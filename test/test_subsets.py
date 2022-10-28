@@ -26,7 +26,7 @@ m.Tec_in.pprint()
 
 # Initialize Input-Tec Combos
 def in_tec_comb_init(m, car):
-    for i, j in m.s_tecin:
+    for i, j in m.set_input_carriers:
         if i == car:
             yield j
 m.in_tec_comb = Set(m.car, initialize=in_tec_comb_init)

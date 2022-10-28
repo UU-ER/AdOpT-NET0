@@ -1,138 +1,142 @@
+# TODO: Include pvlib, hplib, windpowerlib
 from pyomo.environ import *
 from gurobipy import GRB
-import numpy as np
 from src.compile_demand import compile_demand
+from src.DataHandle import DataHandle
+from src.energyhub import energyhub
+
+topology = {}
+topology['time'] = range(1, 3)
+topology['carriers'] = ['electricity', 'heat', 'natural_gas']
+topology['nodes'] = ['onshore', 'offshore']
+topology['technologies'] = {}
+topology['technologies']['onshore'] = ['FurnaceEl', 'FurnaceNg']
+topology['technologies']['offshore'] = ['FurnaceEl']
+topology['networks'] = ['electricity']
+
+data = DataHandle(topology)
+# Read data
+energyhub = energyhub(topology, data)
+# Construct equations
+energyhub.construct_model()
+# Solve model
+# energyhub.solve()
 
 
-# Initialize model
-ehub = ConcreteModel()
+# ehub.m.pprint()
+# solve = SolverFactory('gurobi_persistent')
+# solve.set_instance(ehub.model)
+# solution = solve.solve()
+# solution.write()
+# ehub.model.display()
+
 
 # Define sets
-ehub.s_tecs = Set(initialize = ['FurnaceNg', 'FurnaceEl'])  # Technologies
-ehub.s_car  = Set(initialize = ['electricity', 'heat', 'natural_gas'])  # Carriers
-ehub.s_t    = RangeSet(1,8760)  # Timescale
+# ehub.s_nodes = Set(initialize=sets['nodes'])  # Nodes
+# ehub.s_carriers = Set(initialize=sets['carriers'])  # Carriers
+# ehub.s_t = Set(initialize=sets['time'])  # Timescale
+# def tec_node(ehub, node):
+#     if node in ehub.s_nodes:
+#         return sets['technologies'][node]
+# ehub.s_technologies = Set(ehub.s_nodes, initialize=tec_node)  # Technologies
 
 # Define Technologies THIS NEEDS TO GO IN DATAFILE
-investcost = dict() # Define CAPEX
-investcost['FurnaceNg'] = 100
-investcost['FurnaceEl'] = 100
 
-alpha = dict() # Define performance, input, output
-alpha['FurnaceNg'] = 0.7
-alpha['FurnaceEl']  = 0.9
-
-tecin = dict() # Input of technologies
-tecin['FurnaceNg'] = ['natural_gas']
-tecin['FurnaceEl'] = ['electricity']
-
-tecout = dict() # Output of technologies
-tecout['FurnaceNg'] = ['heat']
-tecout['FurnaceEl'] = ['heat']
-
-demand = dict() # Demands
-demand['heat'] = np.ones(8760) * 60
 
 # Build data required for model construction
-ehub = compile_demand(ehub, demand)
-
-# Build technology model blocks
-def technologymodels_type1(b, tec):
-    # Define input/output sets
-    b.s_tecin = Set(initialize= tecin[tec])
-    b.s_tecout = Set(initialize= tecout[tec])
-
-    # Define variables
-    b.d_input = Var(ehub.s_t, b.s_tecin)
-    b.d_output = Var(ehub.s_t, b.s_tecout)
-    b.d_size = Var(within=NonNegativeReals)
-    b.d_capex = Var()
-
-    # Define constraints
-    def inout1(b, t, input, output):
-        return b.d_output[t,output] == alpha[tec] * b.d_input[t,input]
-    b.c_performance1 = Constraint(ehub.s_t, b.s_tecin, b.s_tecout, rule=inout1)
-
-    # Define Investment Costs
-    b.c_capex = Constraint(expr=b.d_size * investcost[tec] == b.d_capex)
-
-ehub.technologymodels = Block(ehub.s_tecs, rule=technologymodels_type1)
-
-
-# Define energy balance
-ehub.d_export = Var(ehub.s_t, ehub.s_car)
-ehub.d_import = Var(ehub.s_t, ehub.s_car)
-
-
-# def sum_all_inputs(m, car):
-#     return sum(ehub.Tec_in[car,t] for t in m.in_tec_comb[car]) == m.insum[car]
-# m.sumIn = Constraint(m.car, rule=sum_all_inputs)
-
-
-def energybalance(ehub, t, car):
-        return \
-            sum(ehub.technologymodels[tec].d_output[t, car] for tec in ehub.s_tecs if car in ehub.technologymodels[tec].s_tecout) \
-            - sum(ehub.technologymodels[tec].d_input[t, car] for tec in ehub.s_tecs if car in ehub.technologymodels[tec].s_tecin) \
-            + ehub.d_import[t, car] \
-            - ehub.d_export[t, car] \
-            == ehub.p_demand[t, car]
-ehub.c_energybalance = Constraint(ehub.s_t, ehub.s_car, rule=energybalance)
-ehub.c_energybalance.pprint()
-
-
-# Dirty Fix to Run
-def heatimport(ehub, t):
-    return ehub.d_import[t, 'heat'] == 0
-
-ehub.c_heatimport = Constraint(ehub.s_t, rule=heatimport)
-ehub.c_heatimport.pprint()
-
-# def totalcost(ehub, t):
-#     return sum(ehub.technologymodels[t].c_capex)
-ehub.objective = Objective(expr=ehub.technologymodels['FurnaceNg'].d_capex + ehub.technologymodels['FurnaceEl'].d_capex, sense=minimize)
-ehub.objective.pprint()
-
-solve = SolverFactory('gurobi_persistent')
-solve.set_instance(ehub)
-solution = solve.solve()
-solution.write()
 #
-# # Initialize ehub model
-# ehub = ConcreteModel()
-# ehub.m1 = technologies[s_technologies[0]]
-# ehub.m2 = technologies[s_technologies[1]]
-
-
 #
-# model.T = RangeSet(0, 23)
-# maxSize = 1000
-# model.s = Var(within=NonNegativeReals, bounds=(0,maxSize), initialize=0)
-# model.p_out = Var(model.T, within=NonNegativeReals)
-# model.p_in = Var(model.T, within=NonNegativeReals)
+# # Define a node block which is indexed over each node
+# def node_block_rule(b_node, node):
+#     # Get technologies for each node and make it a set for the block
+#     b_node.s_techs = Set(initialize=ehub.s_technologies[node])
 #
-# def inout(model, t):
-#     return model.p_out[t] == 0.7 * model.p_in[t]
-# model.c_performance = Constraint(model.T, rule=inout)
+#     # Create Variables for interaction with network/system boundaries
+#     b_node.network_inflow = Var(ehub.s_t, ehub.s_carriers, bounds=(0,100))
+#     b_node.network_outflow = Var(ehub.s_t, ehub.s_carriers, bounds=(0,100))
+#     b_node.import_flow = Var(ehub.s_t, ehub.s_carriers, bounds=(0,100))
+#     b_node.export_flow = Var(ehub.s_t, ehub.s_carriers, bounds=(0,100))
 #
-# def outconst(model, t):
-#     return model.p_out[t] <= model.s
-# model.c_size = Constraint(model.T, rule=outconst)
+#     # Create Variable for cost at node
+#     b_node.cost = Var()
 #
-# model.profit = Objective(expr = 1000*sum(model.p_out[t] for t in model.T) - 30*sum(model.p_in[t] for t in model.T), sense=maximize)
+#     # Define technology block
+#     def technology_block_rule(b_tec, tec):
+#         # Define set of input/output carriers
+#         b_tec.s_tecin = Set(initialize=data.tecin[tec])
+#         b_tec.s_tecout = Set(initialize=data.tecout[tec])
+#
+#         # Define decision variables
+#         b_tec.d_input = Var(ehub.s_t, b_tec.s_tecin, within=NonNegativeReals)
+#         b_tec.d_output = Var(ehub.s_t, b_tec.s_tecout, within=NonNegativeReals)
+#         b_tec.d_size = Var(within=NonNegativeReals)
+#         b_tec.d_capex = Var()
+#
+#         # Define constraints
+#         def inout1(b_tec, t, input, output):
+#             return b_tec.d_output[t, output] == data.alpha[tec] * b_tec.d_input[t, input]
+#         b_tec.c_performance = Constraint(ehub.s_t, b_tec.s_tecin, b_tec.s_tecout, rule=inout1)
+#
+#         # Size constraint
+#         def outconst(b_tec, t, input):
+#             return b_tec.d_input[t, input] <= b_tec.d_size
+#         b_tec.c_size = Constraint(ehub.s_t, b_tec.s_tecin, rule=outconst)
+#
+#         # Define Investment Costs
+#         b_tec.c_capex = Constraint(expr=b_tec.d_size * data.investcost[tec] == b_tec.d_capex)
+#     b_node.tech_blocks = Block(b_node.s_techs, rule=technology_block_rule)
+#
+#     # energy balance of node
+#     def energybalance(b_node, t, car):
+#         return \
+#         sum(b_node.tech_blocks[tec].d_output[t, car] for tec in b_node.s_techs if car in b_node.tech_blocks[tec].s_tecout) - \
+#         sum(b_node.tech_blocks[tec].d_input[t, car] for tec in b_node.s_techs if car in b_node.tech_blocks[tec].s_tecin) + \
+#         b_node.network_inflow[t, car] + b_node.import_flow[t, car] - \
+#         b_node.network_outflow[t, car] - b_node.export_flow[t, car] == \
+#         ehub.p_demand[t, car]
+#     b_node.c_energybalance = Constraint(ehub.s_t, ehub.s_carriers, rule=energybalance)
+#
+#     # Cost at node
+#     def capex_calc(b_node):
+#         return sum(b_node.tech_blocks[tec].d_capex for tec in b_node.s_techs) == b_node.cost
+#     b_node.c_cost = Constraint(rule=capex_calc)
+#
+#     # Quick fix to ensure no heat import
+#     def heat_to_zeroimport1(ehub, t):
+#         return b_node.network_inflow[t, 'heat'] == 0
+#     b_node.c_import_heat1 = Constraint(ehub.s_t, rule=heat_to_zeroimport1)
+#
+#     def heat_to_zeroimport2(ehub, t):
+#         return b_node.import_flow[t, 'heat'] == 0
+#     b_node.c_import_heat2 = Constraint(ehub.s_t, rule=heat_to_zeroimport2)
+#
+# ehub.node_blocks = Block(ehub.s_nodes, rule=node_block_rule)
+# ehub.node_blocks.pprint()
+#
+# # ehub.s_nodes_used = Set(initialize=['onshore'])
+# # deactivate = ehub.s_nodes - ehub.s_nodes_used
+# # deactivate.pprint()
+# # ehub.node_blocks[ehub.s_nodes - ehub.s_nodes_used].deactivate()
+#
+#
+#
+# def cost_objective(ehub):
+#     return sum(ehub.node_blocks[n].cost for n in ehub.s_nodes)
+# ehub.objective = Objective(rule=cost_objective, sense=minimize)
+# ehub.objective.pprint()
 #
 # solve = SolverFactory('gurobi_persistent')
-# solve.set_instance(model)
+# solve.set_instance(ehub)
 # solution = solve.solve()
 # solution.write()
+# # ehub.display()
 #
-# model.c_size2 = Constraint(expr = model.s <= 800)
-# solve.add_constraint(model.c_size2)
+# ehub.node_blocks['offshore'].deactivate()
+# ehub.objective.clear()
+# ehub.objective = Objective(rule=cost_objective, sense=minimize)
+#
+# solve = SolverFactory('gurobi_persistent')
+# solve.set_instance(ehub)
 # solution = solve.solve()
 # solution.write()
-#
-# solve.remove_constraint(model.c_size2)
-# solution = solve.solve()
-# solution.write()
-#
-# # solution = solver.solve(model, tee=True)
-
-
+# ehub.display()
