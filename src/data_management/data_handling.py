@@ -1,6 +1,6 @@
 import json
 from src.technology_performance_fitting import fit_performance
-from src.import_climate_data import *
+from src.data_management.import_data import *
 import pickle
 import pandas as pd
 
@@ -202,7 +202,7 @@ def load_data_handle(path):
     Loads instance of DataHandle from path.
 
     :param str path: path to load from
-    :return obj data: instance of :class:`~DataHandle`
+    :return: instance of :class:`~DataHandle`
     """
     with open(path, 'rb') as handle:
         data = pickle.load(handle)

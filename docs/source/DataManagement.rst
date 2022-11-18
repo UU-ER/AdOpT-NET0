@@ -7,4 +7,5 @@ creating empty templates for specifiying the system topology and network.
 .. toctree::
     CreateTemplates
     DataHandle
+    ImportFunctions
 

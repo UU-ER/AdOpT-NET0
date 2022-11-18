@@ -13,6 +13,8 @@ For a guideline on documentation please refer to `PEP 257 <https://peps.python.o
 
 
 .. toctree::
+   :maxdepth: 2
+
    DataManagement
 
 
