@@ -1,0 +1,35 @@
+{
+  "Name": "battery",
+  "Economics": {
+    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "unit_CAPEX_annual": 81372.69744126,
+    "piecewise_CAPEX_annual": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0.04
+  },
+  "TechnologyPerf": {
+    "tec_type": 6,
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "electricity"
+    ],
+    "output_carrier": [
+      "electricity"
+    ],
+    "size_min": 0,
+    "size_max": 1.0E+7,
+    "size_is_int": 0,
+    "performance": {
+      "eta_in": 0.96,
+      "eta_out": 0.96,
+      "lambda": 0.001,
+      "theta": 0,
+      "charge_max": 0.33333333333333331,
+      "discharge_max": 0.33333333333333331
+    }
+  }
+}

@@ -1,142 +1,128 @@
-# TODO: Include pvlib, hplib, windpowerlib
-from pyomo.environ import *
-from gurobipy import GRB
-from src.compile_demand import compile_demand
-from src.DataHandle import DataHandle
-from src.energyhub import energyhub
+# Thanks to: ruoyu0088 (piecewise linear modeling)
+# TODO: Include hplib
+# TODO: Implement option for complete linearization
+# TODO: Implement time index for set_t
+# TODO: Implement length of time step
+# TODO: Implement design days (retain extremes)
+# TODO: Implement Lukas Algorithm
+from src.data_management.data_handling import DataHandle, load_data_handle
+from src.data_management.create_templates import create_empty_network_data
+import pandas as pd
+import numpy as np
+
+# Save Data File to file
+data_save_path = r'.\user_data\data_handle_test'
+
+# TOPOLOGY
+modeled_year = 2001
 
 topology = {}
-topology['time'] = range(1, 3)
-topology['carriers'] = ['electricity', 'heat', 'natural_gas']
+topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
+topology['timestep_length_h'] = 1
+topology['carriers'] = ['electricity', 'heat', 'gas']
 topology['nodes'] = ['onshore', 'offshore']
 topology['technologies'] = {}
-topology['technologies']['onshore'] = ['FurnaceEl', 'FurnaceNg']
-topology['technologies']['offshore'] = ['FurnaceEl']
-topology['networks'] = ['electricity']
+topology['technologies']['onshore'] = ['PV', 'Furnace_NG']
+topology['technologies']['offshore'] = ['WT_OS_11000']
 
+topology['networks'] = {}
+topology['networks']['electricity'] = {}
+network_data = create_empty_network_data(topology['nodes'])
+network_data['distance'].at['onshore', 'offshore'] = 100
+network_data['distance'].at['offshore', 'onshore'] = 100
+network_data['connection'].at['onshore', 'offshore'] = 1
+network_data['connection'].at['offshore', 'onshore'] = 1
+topology['networks']['electricity']['AC'] = network_data
+
+# Initialize instance of DataHandle
 data = DataHandle(topology)
-# Read data
-energyhub = energyhub(topology, data)
-# Construct equations
-energyhub.construct_model()
-# Solve model
-# energyhub.solve()
+
+# CLIMATE DATA
+from_file = 1
+if from_file == 1:
+    data.read_climate_data_from_file('onshore', r'.\user_data\climate_data_onshore.txt')
+    data.read_climate_data_from_file('offshore', r'.\user_data\climate_data_offshore.txt')
+else:
+    lat = 52
+    lon = 5.16
+    data.read_climate_data_from_api('onshore', lon, lat,save_path='.\data\climate_data_onshore.txt')
+    lat = 52.2
+    lon = 4.4
+    data.read_climate_data_from_api('offshore', lon, lat,save_path='.\data\climate_data_offshore.txt')
+
+# DEMAND
+heat_demand = np.ones(len(topology['timesteps'])) * 60
+electricity_demand = np.ones(len(topology['timesteps'])) * 10
+
+data.read_demand_data('onshore', 'heat', heat_demand)
+data.read_demand_data('onshore', 'electricity', electricity_demand)
+
+# READ TECHNOLOGY AND NETWORK DATA
+data.read_technology_data()
+# data.read_network_data()
 
 
-# ehub.m.pprint()
-# solve = SolverFactory('gurobi_persistent')
-# solve.set_instance(ehub.model)
-# solution = solve.solve()
+
+# SAVING/LOADING DATA FILE
+# data.save(data_save_path)
+
+# Load Data File from file
+# data = load_data_handle(data_save_path)
+
+
+# # Read data
+# print('Reading in data...')
+# start = time.time()
+# energyhub = energyhub(topology, data)
+# print('Reading in data completed in ' + str(time.time()-start) + ' s')
+#
+# energyhub.print_topology()
+#
+# # Construct equations
+# print('Constructing Model...')
+# start = time.time()
+# energyhub.construct_model()
+# print('Constructing Model completed in ' + str(time.time()-start) + ' s')
+#
+# # energyhub.model.pprint()
+# # # Save model
+# # print('Saving Model...')
+# # start = time.time()
+# # energyhub.save_model('./data/ehub_instances', 'test_non_transformed')
+# # print('Saving Model completed in ' + str(time.time()-start) + ' s')
+# #
+# # Big-M transformation
+# print('Performing Big-M transformation...')
+# start = time.time()
+# xfrm = TransformationFactory('gdp.bigm')
+# xfrm.apply_to(energyhub.model)
+# print('Performing Big-M transformation completed in ' + str(time.time()-start) + ' s')
+#
+# #
+# # # Save model 2
+# # print('Saving Model...')
+# # start = time.time()
+# # energyhub.save_model('./data/ehub_instances', 'test_transformed')
+# # print('Saving Model completed in ' + str(time.time()-start) + ' s')
+# # #
+# # energyhub.model.node_blocks['onshore'].pprint()
+#
+#
+# print('Solving Model...')
+# start = time.time()
+# solver = SolverFactory('gurobi')
+# solution = solver.solve(energyhub.model, tee=True)
 # solution.write()
-# ehub.model.display()
+# print('Solving Model completed in ' + str(time.time()-start) + ' s')
+# # #
+# energyhub.write_results('results')
 
-
-# Define sets
-# ehub.s_nodes = Set(initialize=sets['nodes'])  # Nodes
-# ehub.s_carriers = Set(initialize=sets['carriers'])  # Carriers
-# ehub.s_t = Set(initialize=sets['time'])  # Timescale
-# def tec_node(ehub, node):
-#     if node in ehub.s_nodes:
-#         return sets['technologies'][node]
-# ehub.s_technologies = Set(ehub.s_nodes, initialize=tec_node)  # Technologies
-
-# Define Technologies THIS NEEDS TO GO IN DATAFILE
-
-
-# Build data required for model construction
 #
-#
-# # Define a node block which is indexed over each node
-# def node_block_rule(b_node, node):
-#     # Get technologies for each node and make it a set for the block
-#     b_node.s_techs = Set(initialize=ehub.s_technologies[node])
-#
-#     # Create Variables for interaction with network/system boundaries
-#     b_node.network_inflow = Var(ehub.s_t, ehub.s_carriers, bounds=(0,100))
-#     b_node.network_outflow = Var(ehub.s_t, ehub.s_carriers, bounds=(0,100))
-#     b_node.import_flow = Var(ehub.s_t, ehub.s_carriers, bounds=(0,100))
-#     b_node.export_flow = Var(ehub.s_t, ehub.s_carriers, bounds=(0,100))
-#
-#     # Create Variable for cost at node
-#     b_node.cost = Var()
-#
-#     # Define technology block
-#     def technology_block_rule(b_tec, tec):
-#         # Define set of input/output carriers
-#         b_tec.s_tecin = Set(initialize=data.tecin[tec])
-#         b_tec.s_tecout = Set(initialize=data.tecout[tec])
-#
-#         # Define decision variables
-#         b_tec.d_input = Var(ehub.s_t, b_tec.s_tecin, within=NonNegativeReals)
-#         b_tec.d_output = Var(ehub.s_t, b_tec.s_tecout, within=NonNegativeReals)
-#         b_tec.d_size = Var(within=NonNegativeReals)
-#         b_tec.d_capex = Var()
-#
-#         # Define constraints
-#         def inout1(b_tec, t, input, output):
-#             return b_tec.d_output[t, output] == data.alpha[tec] * b_tec.d_input[t, input]
-#         b_tec.c_performance = Constraint(ehub.s_t, b_tec.s_tecin, b_tec.s_tecout, rule=inout1)
-#
-#         # Size constraint
-#         def outconst(b_tec, t, input):
-#             return b_tec.d_input[t, input] <= b_tec.d_size
-#         b_tec.c_size = Constraint(ehub.s_t, b_tec.s_tecin, rule=outconst)
-#
-#         # Define Investment Costs
-#         b_tec.c_capex = Constraint(expr=b_tec.d_size * data.investcost[tec] == b_tec.d_capex)
-#     b_node.tech_blocks = Block(b_node.s_techs, rule=technology_block_rule)
-#
-#     # energy balance of node
-#     def energybalance(b_node, t, car):
-#         return \
-#         sum(b_node.tech_blocks[tec].d_output[t, car] for tec in b_node.s_techs if car in b_node.tech_blocks[tec].s_tecout) - \
-#         sum(b_node.tech_blocks[tec].d_input[t, car] for tec in b_node.s_techs if car in b_node.tech_blocks[tec].s_tecin) + \
-#         b_node.network_inflow[t, car] + b_node.import_flow[t, car] - \
-#         b_node.network_outflow[t, car] - b_node.export_flow[t, car] == \
-#         ehub.p_demand[t, car]
-#     b_node.c_energybalance = Constraint(ehub.s_t, ehub.s_carriers, rule=energybalance)
-#
-#     # Cost at node
-#     def capex_calc(b_node):
-#         return sum(b_node.tech_blocks[tec].d_capex for tec in b_node.s_techs) == b_node.cost
-#     b_node.c_cost = Constraint(rule=capex_calc)
-#
-#     # Quick fix to ensure no heat import
-#     def heat_to_zeroimport1(ehub, t):
-#         return b_node.network_inflow[t, 'heat'] == 0
-#     b_node.c_import_heat1 = Constraint(ehub.s_t, rule=heat_to_zeroimport1)
-#
-#     def heat_to_zeroimport2(ehub, t):
-#         return b_node.import_flow[t, 'heat'] == 0
-#     b_node.c_import_heat2 = Constraint(ehub.s_t, rule=heat_to_zeroimport2)
-#
-# ehub.node_blocks = Block(ehub.s_nodes, rule=node_block_rule)
-# ehub.node_blocks.pprint()
-#
-# # ehub.s_nodes_used = Set(initialize=['onshore'])
-# # deactivate = ehub.s_nodes - ehub.s_nodes_used
-# # deactivate.pprint()
-# # ehub.node_blocks[ehub.s_nodes - ehub.s_nodes_used].deactivate()
-#
-#
-#
-# def cost_objective(ehub):
-#     return sum(ehub.node_blocks[n].cost for n in ehub.s_nodes)
-# ehub.objective = Objective(rule=cost_objective, sense=minimize)
-# ehub.objective.pprint()
-#
-# solve = SolverFactory('gurobi_persistent')
-# solve.set_instance(ehub)
-# solution = solve.solve()
-# solution.write()
-# # ehub.display()
-#
-# ehub.node_blocks['offshore'].deactivate()
-# ehub.objective.clear()
-# ehub.objective = Objective(rule=cost_objective, sense=minimize)
-#
-# solve = SolverFactory('gurobi_persistent')
-# solve.set_instance(ehub)
-# solution = solve.solve()
-# solution.write()
-# ehub.display()
+# # #
+# # # solve = SolverFactory('gurobi_persistent')
+# # # solve.set_instance(energyhub.model)
+# # # solution = solve.solve(tee=True)
+# # # solution.write()
+# energyhub.model.display()
+# # node_data = energyhub.model.node_blocks['onshore']
+# # tec_data = node_data.tech_blocks['PV'].var_size.pprint()

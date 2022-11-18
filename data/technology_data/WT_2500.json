@@ -1,0 +1,23 @@
+{
+  "Name": "WT_2500",
+  "Economics": {
+    "comment": "CAPEX_annual in EUR/turbine/year, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "unit_CAPEX_annual": 289264.24,
+    "OPEX_variable": 12.797158,
+    "OPEX_fixed": 0
+  },
+  "TechnologyPerf": {
+    "tec_type": 1,
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "wind"
+    ],
+    "output_carrier": [
+      "electricity"
+    ],
+    "size_min": 0,
+    "size_max": 1.5E+9,
+    "size_is_int": 1
+  }
+}

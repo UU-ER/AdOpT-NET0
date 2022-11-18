@@ -1,0 +1,53 @@
+{
+  "Name": "HOS",
+  "Economics": {
+    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "unit_CAPEX_annual": 2313.52951599,
+    "piecewise_CAPEX_annual": {
+      "bp_x": [
+        0,
+        0.033,
+        3.333,
+        100000
+      ],
+      "bp_y": [
+        0,
+        75.33292776,
+        5043.02062215,
+        1.2008423933473261E+8
+      ]
+    },
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0.03
+  },
+  "TechnologyPerf": {
+    "tec_type": 6,
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "hydrogen"
+    ],
+    "output_carrier": [
+      "hydrogen"
+    ],
+    "size_min": [
+      0,
+      0.033,
+      3.333
+    ],
+    "size_max": [
+      0.033,
+      3.333,
+      100000
+    ],
+    "size_is_int": 0,
+    "performance": {
+      "eta_in": 1,
+      "eta_out": 1,
+      "lambda": 0,
+      "theta": 0,
+      "charge_max": 0.33333333333333331,
+      "discharge_max": 0.33333333333333331
+    }
+  }
+}

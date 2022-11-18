@@ -1,3 +1,8 @@
+# User Folders
+user_data
+results
+Documentation.docx
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
