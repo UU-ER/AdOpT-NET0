@@ -5,7 +5,6 @@
 # TODO: Implement length of time step
 # TODO: Implement design days (retain extremes)
 # TODO: Implement Lukas Algorithm
-
 # Hi meester JAN
 # TODO: bla
 from src.data_management.data_handling import DataHandle, load_data_handle
