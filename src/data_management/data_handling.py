@@ -1,5 +1,5 @@
 import json
-from src.technology_performance_fitting import fit_performance
+from src.model_construction.technology_performance_fitting import fit_performance
 from src.data_management.import_data import *
 import pickle
 import pandas as pd
@@ -36,12 +36,16 @@ class DataHandle:
             self.node_data[nodename] = {}
             self.node_data[nodename]['demand'] = pd.DataFrame(index=self.topology['timesteps'])
             self.node_data[nodename]['import_prices'] = pd.DataFrame(index=self.topology['timesteps'])
+            self.node_data[nodename]['import_limit'] = pd.DataFrame(index=self.topology['timesteps'])
             self.node_data[nodename]['export_prices'] = pd.DataFrame(index=self.topology['timesteps'])
+            self.node_data[nodename]['export_limit'] = pd.DataFrame(index=self.topology['timesteps'])
             self.node_data[nodename]['emission_factors'] = pd.DataFrame(index=self.topology['timesteps'])
             for carrier in self.topology['carriers']:
                 self.node_data[nodename]['demand'][carrier] = 0
                 self.node_data[nodename]['import_prices'][carrier] = 0
+                self.node_data[nodename]['import_limit'][carrier] = 0
                 self.node_data[nodename]['export_prices'][carrier] = 0
+                self.node_data[nodename]['export_limit'][carrier] = 0
                 self.node_data[nodename]['emission_factors'][carrier] = 0
 
     def read_climate_data_from_api(self, nodename, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=0):
@@ -133,6 +137,54 @@ class DataHandle:
         """
 
         self.node_data[nodename]['export_prices'][carrier] = price_data
+
+    def read_export_limit_data(self, nodename, carrier, export_limit_data):
+        """
+        Reads export price data of carrier to node
+
+        Note that prices for all carriers not specified is zero.
+
+        :param str nodename: node name as specified in the topology
+        :param str carrier: carrier name as specified in the topology
+        :param list price_data: list of price data for respective carrier. Needs to have the same length as number of \
+        time steps.
+        :return: self at ``self.node_data[nodename]['export_prices'][carrier]``
+        """
+
+        self.node_data[nodename]['export_limit'][carrier] = export_limit_data
+
+    def read_import_limit_data(self, nodename, carrier, import_limit_data):
+        """
+        Reads export price data of carrier to node
+
+        Note that prices for all carriers not specified is zero.
+
+        :param str nodename: node name as specified in the topology
+        :param str carrier: carrier name as specified in the topology
+        :param list price_data: list of price data for respective carrier. Needs to have the same length as number of \
+        time steps.
+        :return: self at ``self.node_data[nodename]['export_prices'][carrier]``
+        """
+
+        self.node_data[nodename]['import_limit'][carrier] = import_limit_data
+
+    def pprint(self):
+        """
+        Prints a summary of the input data (excluding climate data)
+
+        :return: None
+        """
+        for nodename in self.topology['nodes']:
+            print('----- NODE '+ nodename +' -----')
+            for inst in self.node_data[nodename]:
+                if not inst == 'climate_data':
+                    print('\t ' + inst)
+                    print('\t\t' + f"{'':<15}{'Mean':>10}{'Min':>10}{'Max':>10}")
+                    for carrier in self.topology['carriers']:
+                        print('\t\t' + f"{carrier:<15}"
+                                       f"{str(round(self.node_data[nodename][inst][carrier].mean(), 2)):>10}"
+                                       f"{str(round(self.node_data[nodename][inst][carrier].min(), 2)):>10}"
+                                       f"{str(round(self.node_data[nodename][inst][carrier].max(), 2)):>10}")
 
     def read_technology_data(self):
         """

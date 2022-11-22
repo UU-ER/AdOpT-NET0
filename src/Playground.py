@@ -212,7 +212,7 @@ if execute == 1:
 
 #endregion
 
-execute = 1
+execute = 0
 #region How to use pvlib
 if execute == 1:
     # pass data from external
@@ -325,7 +325,6 @@ if execute == 1:
         diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 # #endregion
-
 
 
 

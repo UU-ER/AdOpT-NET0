@@ -1,16 +1,67 @@
-from pyomo.environ import *
-from pyomo.environ import units as u
-from pyomo.gdp import *
-import warnings
 import numbers
-from src.generic_technology_constraints import *
+from src.model_construction.generic_technology_constraints import *
 
 def add_technologies(nodename, b_node, model, data):
+    r"""
+    Adds all technologies as model blocks to respective node.
+
+    This function initializes parameters and decision variables for all technologies at respective node. \
+    For each technology, it adds one block indexed by the set of all technologies at the node :math:`S_n`. \
+    This function adds Sets, Parameters, Variables and Constraints that are common for all technologies.\
+    For each technology type, individual parts are added. The following technology types are currently available:
+
+    - Type 1: Renewable technology with cap_factor as input. Constructed with \
+        :func:`src.model_construction.generic_technology_constraints.constraints_tec_type_1`
+    - Type 2: n inputs -> n output, fuel and output substitution. Constructed with \
+        :func:`src.model_construction.generic_technology_constraints.constraints_tec_type_2`
+    - Type 3: n inputs -> n output, fuel and output substitution. Constructed with \
+        :func:`src.model_construction.generic_technology_constraints.constraints_tec_type_3`
+    - Type 6: Storage technology (1 input -> 1 output). Constructed with \
+        :func:`src.model_construction.generic_technology_constraints.constraints_tec_type_6`
+
+
+    > node blocks, indexed by :math:`N` > technology blocks, indexed by :math:`Tec_n, n \in N`
+
+    **Set declarations:**
+
+    - Set for all technologies :math:`S_n` at respective node :math:`n` : :math:`S_n, n \in N` (this is a duplicate of a set already initialized in ``self.model.set_technologies``).
+
+    **Parameter declarations:**
+
+    - Demand for each time step
+    - Import Prices for each time step
+    - Export Prices for each time step
+    - Import Limits for each time step
+    - Export Limits for each time step
+    - Emission Factors for each time step
+
+    **Variable declarations:**
+
+    - Import Flow for each time step
+    - Export Flow for each time step
+    - Cost at node (includes technology costs (CAPEX, OPEX) and import/export costs), see constraint declarations
+
+    **Constraint declarations**
+
+    - Cost at node:
+
+    .. math::
+        C_n = \
+        \sum_{tec \in Tec_n} CAPEX_{tec} + \
+        \sum_{tec \in Tec_n} OPEXfix_{tec} + \
+        \sum_{tec \in Tec_n} \sum_{t \in T} OPEXvar_{t, tec} + \\
+        \sum_{car \in Car} \sum_{t \in T} import_{t, car} pImport_{t, car} - \
+        \sum_{car \in Car} \sum_{t \in T} export_{t, car} pExport_{t, car}
+
+    **Block declarations:**
+
+    - Technologies at node
+
+    :param obj model: instance of a pyomo model
+    :param DataHandle data: instance of a DataHandle
+    :return: model
+    """
     def technology_block_rule(b_tec, tec):
-        """" Adds all technologies at considered node
-        - Common decision variables and constraints are added first
-        - Technology specific variables are added second
-        """
 
         # region Get options from data
         tec_data = data.technology_data[nodename][tec]

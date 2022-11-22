@@ -1,32 +1,42 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
-from src.construct_nodes import add_nodes
-from src.construct_networks import add_networks
-from src.construct_energybalance import add_energybalance
-import textwrap
+from src.model_construction.construct_nodes import add_nodes
+from src.model_construction.construct_networks import add_networks
+from src.model_construction.construct_energybalance import add_energybalance
 
 import numpy as np
 import dill as pickle
 import pandas as pd
 
-
 class energyhub:
+    r"""
+    Class to construct and manipulate an energy system model.
 
-    def __init__(self, sets, data):
-        """"
-        This function initializes an instance of the energyhub object.
-        It (1) creates the sets used in optimization and (2) reads in data
+    When constructing an instance, it reads data to the instance and defines relevant model sets:
+
+    **Set declarations:**
+
+    - Set of nodes :math:`N`
+    - Set of carriers :math:`M`
+    - Set of time steps :math:`T`
+    - Set of weather variables :math:`W`
+    - Set of technologies at each node :math:`S_n, n \in N`
+
+    """
+    def __init__(self, data):
+        """
+        Constructor of the energyhub class.
         """
         # INITIALIZE MODEL
         self.model = ConcreteModel()
 
         # DEFINE SETS
+        sets = data.topology
         self.model.set_nodes = Set(initialize=sets['nodes'])  # Nodes
         self.model.set_carriers = Set(initialize=sets['carriers'])  # Carriers
-        self.model.set_t = RangeSet(1,sets['timesteps'])  # Timescale
-        climate_vars = list(data.climate_data[self.model.set_nodes[1]]['dataframe'].columns.values)
+        self.model.set_t = RangeSet(1,len(sets['timesteps']))# Timescale
+        climate_vars = data.node_data[self.model.set_nodes[1]]['climate_data']['dataframe'].columns.tolist()
         self.model.set_climate_vars = Set(initialize=climate_vars) # climate variables
-
         def tec_node(model, node):  # Technologies
             try:
                 if node in model.set_nodes:
@@ -35,7 +45,6 @@ class energyhub:
                 print('The nodes in the technology sets do not match the node names. The node \'', node,
                       '\' does not exist.')
                 raise
-
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
 
         # READ IN DATA
@@ -45,21 +54,42 @@ class energyhub:
         u.load_definitions_from_strings(['EUR = [currency]'])
 
     def construct_model(self):
-        """"
-        Adds all decision variables and constraints to the model
         """
+        Constructs model equations, defines objective functions and calculates emissions.
+
+        This function constructs the initial model with all its components as specified in the \
+        topology. It adds (1) networks (:func:`~add_networks`), (2) nodes and technologies \
+        (:func:`~src.model_construction.construct_nodes.add_nodes` including \
+        :func:`~add_technologies`) and (3) links all components with \
+        the constructing the energybalance of the optimization problem (:func:`~add_energybalance`).
+
+        The objective is minimized and can be chosen as total annualized costs, total annualized emissions \
+        multi-objective (emission-cost pareto front).
+
+        """
+        # Todo: implement different options for objective function.
+
+        objective_function = 'cost'
 
         self.model = add_networks(self.model, self.data)
         self.model = add_nodes(self.model, self.data)
         self.model = add_energybalance(self.model)
 
-        def cost_objective(obj):
-            return sum(self.model.node_blocks[n].cost for n in self.model.set_nodes)
-        self.model.objective = Objective(rule=cost_objective, sense=minimize)
+        if objective_function == 'cost':
+            def cost_objective(obj):
+                return sum(self.model.node_blocks[n].cost for n in self.model.set_nodes)
+            self.model.objective = Objective(rule=cost_objective, sense=minimize)
+        elif objective_function == 'emissions':
+            print('to be implemented')
+        elif objective_function == 'pareto':
+            print('to be implemented')
 
     def save_model(self, file_path, file_name):
         """
-        Saves the energyhub object to the specified path
+        Saves an instance of the energyhub class to the specified path (using pickel/dill).
+
+        The object can later be loaded using into the work space using :func:`~load_energyhub_instance`
+
         :param file_path: path to save
         :param file_name: filename
         :return: None
@@ -163,3 +193,14 @@ class energyhub:
             #     counter_i = counter_i + 1
 
 
+def load_energyhub_instance(file_path):
+    """
+    Loads an energyhub instance from file.
+
+    :param str file_path: path to previously saved energyhub instance
+    :return: energyhub instance
+    """
+
+    with open(file_path, mode='rb') as file:
+        energyhub = pickle.load(file)
+    return energyhub
