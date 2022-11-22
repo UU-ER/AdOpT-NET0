@@ -68,7 +68,7 @@ class energyhub:
 
         """
         # Todo: implement different options for objective function.
-
+        # Todo: test something
         objective_function = 'cost'
 
         self.model = add_networks(self.model, self.data)
