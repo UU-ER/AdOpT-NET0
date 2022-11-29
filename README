@@ -1,1 +1,13 @@
+To get started you need to follow the subsequent steps:
+- Clone the repository to you drive
+- Create a virtual environment for this project. You can do this using PyCharm:
+    - Go to File -> Settings -> <project_name> -> Python Interpreter
+    - Select Add Local Inerpreter from the Add Interpreter
+    - In the left-hand pane of the Add Python Interpreter dialog, select Virtualenv Environment
+    - Add a Base Interpreter (select a stable python release)
+- Install all required packages to your virtual environment by using pip. In PyCharm you can do this with:
+    - Move to the terminal. If the virtual environment was correctly installed, you should see a (venv) in fron of the path
+    - Execute the command pip install -r requirements.txt to install all requirements in your virtual environemnt
+
+
 https://peps.python.org/pep-0008/
