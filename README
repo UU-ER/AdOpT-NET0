@@ -1,10 +1,11 @@
 To get started you need to follow the subsequent steps:
+- Make sure you have Python 3.10 installed on your computer (it needs to be 3.10!)
 - Clone the repository to you drive
 - Create a virtual environment for this project. You can do this using PyCharm:
     - Go to File -> Settings -> <project_name> -> Python Interpreter
     - Select Add Local Inerpreter from the Add Interpreter
     - In the left-hand pane of the Add Python Interpreter dialog, select Virtualenv Environment
-    - Add a Base Interpreter (select a stable python release)
+    - Add a Base Interpreter (select Python 3.10)
 - Install all required packages to your virtual environment by using pip. In PyCharm you can do this with:
     - Move to the terminal. If the virtual environment was correctly installed, you should see a (venv) in fron of the path
     - Execute the command pip install -r requirements.txt to install all requirements in your virtual environemnt
