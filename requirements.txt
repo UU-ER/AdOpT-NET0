@@ -24,7 +24,7 @@ fsspec==2022.11.0
 GeoAlchemy2==0.6.3
 geopandas==0.10.2
 greenlet==2.0.1
-gurobipy==9.5.2
+gurobipy
 h3==3.7.4
 h5py==3.7.0
 idna==3.4
