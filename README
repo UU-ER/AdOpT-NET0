@@ -18,7 +18,7 @@ To get started you need to follow the subsequent steps:
     - You can run the model.
 
 If you want to create a new documentation website, you can use the PyCharm Terminal:
-    - Move to the docs folder by executing cd docs
+    - Move to the docs folder by executing 'cd docs' in the terminal
     - Depending on the shell you use, either execute .\make html or make html
     - Find the documentation in docs\build\html\index.html and open it in your browser
 
