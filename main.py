@@ -42,7 +42,7 @@ topology['networks']['electricity']['AC'] = network_data
 data = DataHandle(topology)
 
 # CLIMATE DATA
-from_file = 1
+from_file = 0
 if from_file == 1:
     data.read_climate_data_from_file('onshore', r'.\user_data\climate_data_onshore.txt')
     data.read_climate_data_from_file('offshore', r'.\user_data\climate_data_offshore.txt')
