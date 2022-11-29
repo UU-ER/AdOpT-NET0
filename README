@@ -9,7 +9,7 @@ To get started you need to follow the subsequent steps:
     - Add a Base Interpreter (select Python 3.10)
 - Install all required packages to your virtual environment by using pip. In PyCharm you can do this with:
     - Move to the terminal in PyCharm, it is located on the bottom. If the virtual environment was correctly installed, you should see a (venv) in front of the path
-    - Execute the command pip install -r requirements.txt to install all requirements in your virtual environemnt
+    - Execute the command pip install -r requirements.txt to install all requirements in your virtual environment
 - Now, you can run main.py with python 3.10. In PyCharm, you can do this:
     - Click on Edit configuration, in the upper right corner of the screen
     - Click Add new...
@@ -17,5 +17,8 @@ To get started you need to follow the subsequent steps:
     - Select a Python 3.10 as an interpreter and click ok
     - You can run the model.
 
+If you want to create a new documentation website, you can use the PyCharm Terminal:
+    - Move to the docs folder by executing cd docs
+    - Depending on the shell you use, either execute .\make html or make html
 
 https://peps.python.org/pep-0008/
