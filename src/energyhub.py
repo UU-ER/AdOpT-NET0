@@ -86,7 +86,7 @@ class energyhub:
 
     def save_model(self, file_path, file_name):
         """
-        Saves an instance of the energyhub class to the specified path (using pickel/dill).
+        Saves an instance of the energyhub instance to the specified path (using pickel/dill).
 
         The object can later be loaded using into the work space using :func:`~load_energyhub_instance`
 

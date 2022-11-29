@@ -324,7 +324,7 @@ if execute == 1:
         direct_normal_irr[t_interval['time(UTC)']] = t_interval['Gb(n)']
         diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
-# #endregion
+#endregion
 
 
 
