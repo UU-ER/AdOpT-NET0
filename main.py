@@ -140,6 +140,6 @@ solution.write()
 # # # solve.set_instance(energyhub.model)
 # # # solution = solve.solve(tee=True)
 # # # solution.write()
-# energyhub.model.display()
+energyhub.model.display()
 # # node_data = energyhub.model.node_blocks['onshore']
 # # tec_data = node_data.tech_blocks['PV'].var_size.pprint()
