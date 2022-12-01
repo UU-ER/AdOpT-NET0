@@ -10,7 +10,7 @@ def create_empty_topology():
     """
     topology = {}
     topology['timesteps'] = []
-    topology['timestep_length_h']
+    topology['timestep_length_h'] = []
     topology['carriers'] = []
     topology['nodes'] = []
     topology['technologies'] = {}
