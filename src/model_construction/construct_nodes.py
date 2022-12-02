@@ -58,6 +58,7 @@ def add_nodes(model, data):
 
         # PARAMETERS
         # Demand
+        # TODO: check if or for
         def demand_init(b, t, car):
             if nodename in data.node_data:
                 return data.node_data[nodename]['demand'][car][t - 1]
@@ -88,6 +89,7 @@ def add_nodes(model, data):
         b_node.p_export_limit = Param(model.set_t, model.set_carriers, rule=export_limit_init, units=u.MW)
 
         # Emission Factor
+        # TODO: import and export emissionfactor
         def emission_factor_init(b, t, car):
             if nodename in data.node_data:
                 return data.node_data[nodename]['emission_factors'][car][t - 1]

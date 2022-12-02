@@ -57,7 +57,7 @@ def add_networks(model, data):
             b_netw.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, units=unit_size)
             b_netw.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, units=unit_size)
             b_netw.para_unit_CAPEX = Param(domain=Reals, initialize=netw_data['Economics']['unit_CAPEX_annual'],
-                                          units=u.EUR / unit_size)
+                                          units=u.EUR / unit_size/u.km )
             b_netw.para_OPEX_variable = Param(domain=Reals, initialize=netw_data['Economics']['OPEX_variable'],
                                              units=u.EUR / u.MWh)
             b_netw.para_OPEX_fixed = Param(domain=Reals, initialize=netw_data['Economics']['OPEX_fixed'],
@@ -70,6 +70,8 @@ def add_networks(model, data):
                         if connection.at[from_node, to_node] == 1:
                             yield [from_node, to_node]
             b_netw.set_arcs = Set(initialize=arcs_set_init)
+
+
             if bi_directional == 1:
                 def arcs_all_init(set):
                     for from_node in connection:

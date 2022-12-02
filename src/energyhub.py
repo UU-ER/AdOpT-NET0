@@ -37,9 +37,9 @@ class energyhub:
         self.model.set_t = RangeSet(1,len(sets['timesteps']))# Timescale
         climate_vars = data.node_data[self.model.set_nodes[1]]['climate_data']['dataframe'].columns.tolist()
         self.model.set_climate_vars = Set(initialize=climate_vars) # climate variables
-        def tec_node(model, node):  # Technologies
+        def tec_node(set, node):  # Technologies
             try:
-                if node in model.set_nodes:
+                if node in self.model.set_nodes:
                     return sets['technologies'][node]
             except (KeyError, ValueError):
                 print('The nodes in the technology sets do not match the node names. The node \'', node,
@@ -68,12 +68,14 @@ class energyhub:
 
         """
         # Todo: implement different options for objective function.
+        # TODO: sum over carriers to calculate network costs
 
         objective_function = 'cost'
 
         self.model = add_networks(self.model, self.data)
         self.model = add_nodes(self.model, self.data)
         self.model = add_energybalance(self.model)
+        # self.model = add_emissionbalance(self.model)
 
         if objective_function == 'cost':
             def cost_objective(obj):

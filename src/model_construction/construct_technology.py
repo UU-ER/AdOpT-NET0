@@ -2,6 +2,7 @@ import numbers
 from src.model_construction.generic_technology_constraints import *
 
 def add_technologies(nodename, b_node, model, data):
+    # TODO: define main carrier in tech data
     r"""
     Adds all technologies as model blocks to respective node.
 
