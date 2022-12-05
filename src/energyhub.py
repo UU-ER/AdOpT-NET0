@@ -65,23 +65,23 @@ class energyhub:
         the constructing the energybalance of the optimization problem (:func:`~add_energybalance`).
 
         The objective is minimized and can be chosen as total annualized costs, total annualized emissions \
-        multi-objective (emission-var_cost pareto front).
+        multi-objective (emission-cost pareto front).
 
         """
         # Todo: implement different options for objective function.
         # TODO: sum over carriers to calculate network costs
 
-        objective_function = 'var_cost'
+        objective_function = 'cost'
 
         self.model = add_networks(self.model, self.data)
         self.model = add_nodes(self.model, self.data)
         self.model = add_energybalance(self.model)
         # self.model = add_emissionbalance(self.model)
 
-        if objective_function == 'var_cost':
-            def cost_objective(obj):
+        if objective_function == 'cost':
+            def init_cost_objective(obj):
                 return sum(self.model.node_blocks[n].var_cost for n in self.model.set_nodes)
-            self.model.objective = Objective(rule=cost_objective, sense=minimize)
+            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
         elif objective_function == 'emissions':
             print('to be implemented')
         elif objective_function == 'pareto':

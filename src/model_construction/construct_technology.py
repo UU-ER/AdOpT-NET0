@@ -62,7 +62,7 @@ def add_technologies(nodename, b_node, model, data):
     :param DataHandle data: instance of a DataHandle
     :return: model
     """
-    def technology_block_rule(b_tec, tec):
+    def init_technology_block(b_tec, tec):
 
         # region Get options from data
         tec_data = data.technology_data[nodename][tec]
@@ -138,24 +138,24 @@ def add_technologies(nodename, b_node, model, data):
         b_tec.const_OPEX_fixed = Constraint(expr=b_tec.var_CAPEX * b_tec.para_OPEX_fixed == b_tec.var_OPEX_fixed)
 
         # variable Opex
-        def calculate_OPEX_variable(con, t):
+        def init_OPEX_variable(const, t):
             return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_OPEX_variable == \
                    b_tec.var_OPEX_variable[t]
-        b_tec.const_OPEX_variable = Constraint(model.set_t, rule=calculate_OPEX_variable)
+        b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
         # Size constraint
         if tec_type == 1: # in terms of output
-            def calculate_output_constraint(con, t):
+            def init_output_constraint(const, t):
                 return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) \
                        <= b_tec.var_size
-            b_tec.const_size = Constraint(model.set_t, rule=calculate_output_constraint)
+            b_tec.const_size = Constraint(model.set_t, rule=init_output_constraint)
         elif tec_type == 6: # This is defined in the generic technology constraints
             pass
         else: # in terms of input
-            def calculate_output_constraint(con, t):
+            def init_output_constraint(const, t):
                 return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) \
                        <= b_tec.var_size
-            b_tec.const_size = Constraint(model.set_t, rule=calculate_output_constraint)
+            b_tec.const_size = Constraint(model.set_t, rule=init_output_constraint)
 
         # endregion
 
@@ -175,5 +175,5 @@ def add_technologies(nodename, b_node, model, data):
         elif tec_type == 6: # Storage technology (1 input -> 1 output)
             b_tec = constraints_tec_type_6(model, b_tec, tec_data)
 
-    b_node.tech_blocks = Block(b_node.set_tecsAtNode, rule=technology_block_rule)
+    b_node.tech_blocks = Block(b_node.set_tecsAtNode, rule=init_technology_block)
     return b_node
