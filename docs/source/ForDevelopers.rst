@@ -35,6 +35,10 @@ For the Pyomo classes we use:
 +-------------+--------------+
 | Disjunction | disjunction_ |
 +-------------+--------------+
+| rule        | init_        |
++-------------+--------------+
+| unit        | u            |
++-------------+--------------+
 
 Other names that are regularly used in the EnergyHub are:
 
