@@ -72,10 +72,10 @@ def constraints_tec_type_2(model, b_tec, tec_data):
     # linear through origin
     if performance_function_type == 1:
         def calculate_input_output(con, t):
-            return sum(b_tec.var_output[t, c_output]
-                       for c_output in b_tec.set_output_carriers) == \
-                   alpha1 * sum(b_tec.var_input[t, c_input]
-                                for c_input in b_tec.set_input_carriers)
+            return sum(b_tec.var_output[t, car_output]
+                       for car_output in b_tec.set_output_carriers) == \
+                   alpha1 * sum(b_tec.var_input[t, car_input]
+                                for car_input in b_tec.set_input_carriers)
 
         b_tec.const_input_output = Constraint(model.set_t, rule=calculate_input_output)
 
@@ -90,28 +90,28 @@ def constraints_tec_type_2(model, b_tec, tec_data):
 
         def calculate_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def calculate_input_off(con, c_input):
-                    return b_tec.var_input[t, c_input] == 0
+                def calculate_input_off(con, car_input):
+                    return b_tec.var_input[t, car_input] == 0
 
                 dis.const_input = Constraint(b_tec.set_input_carriers, rule=calculate_input_off)
 
-                def calculate_output_off(con, c_output):
-                    return b_tec.var_output[t, c_output] == 0
+                def calculate_output_off(con, car_output):
+                    return b_tec.var_output[t, car_output] == 0
 
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=calculate_output_off)
             else:  # technology on
                 # input-output relation
                 def calculate_input_output_on(con):
-                    return sum(b_tec.var_output[t, c_output] for c_output in b_tec.set_output_carriers) == \
-                           alpha2 * sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) + \
+                    return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) == \
+                           alpha2 * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
                            alpha1
 
                 dis.const_input_output_on = Constraint(rule=calculate_input_output_on)
 
                 # min part load relation
                 def calculate_min_partload(con):
-                    return sum(b_tec.var_input[t, c_input]
-                               for c_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
+                    return sum(b_tec.var_input[t, car_input]
+                               for car_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
 
                 dis.const_min_partload = Constraint(rule=calculate_min_partload)
 
@@ -129,31 +129,31 @@ def constraints_tec_type_2(model, b_tec, tec_data):
 
         def calculate_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def calculate_input_off(con, c_input):
-                    return b_tec.var_input[t, c_input] == 0
+                def calculate_input_off(con, car_input):
+                    return b_tec.var_input[t, car_input] == 0
 
                 dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=calculate_input_off)
 
-                def calculate_output_off(con, c_output):
-                    return b_tec.var_output[t, c_output] == 0
+                def calculate_output_off(con, car_output):
+                    return b_tec.var_output[t, car_output] == 0
 
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=calculate_output_off)
             else:  # piecewise definition
                 def calculate_input_on1(con):
-                    return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) >= \
+                    return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) >= \
                            bp_x[ind - 1] * b_tec.var_size
 
                 dis.const_input_on1 = Constraint(rule=calculate_input_on1)
 
                 def calculate_input_on2(con):
-                    return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) <= \
+                    return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) <= \
                            bp_x[ind] * b_tec.var_size
 
                 dis.const_input_on2 = Constraint(rule=calculate_input_on2)
 
                 def calculate_output_on(con):
-                    return sum(b_tec.var_output[t, c_output] for c_output in b_tec.set_output_carriers) == \
-                           alpha2[ind - 1] * sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) + \
+                    return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) == \
+                           alpha2[ind - 1] * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
                            alpha1[ind - 1]
 
                 dis.const_input_output_on = Constraint(rule=calculate_output_on)
@@ -184,10 +184,10 @@ def constraints_tec_type_3(model, b_tec, tec_data):
     # Formulate Constraints for each performance function type
     # linear through origin
     if performance_function_type == 1:
-        def calculate_input_output(con, c_output, t):
-            return b_tec.var_output[t, c_output] == \
-                   alpha1[c_output] * sum(b_tec.var_input[t, c_input]
-                                          for c_input in b_tec.set_input_carriers)
+        def calculate_input_output(con, car_output, t):
+            return b_tec.var_output[t, car_output] == \
+                   alpha1[car_output] * sum(b_tec.var_input[t, car_input]
+                                            for car_input in b_tec.set_input_carriers)
 
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
                                               rule=calculate_input_output)
@@ -202,25 +202,25 @@ def constraints_tec_type_3(model, b_tec, tec_data):
 
         def calculate_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def calculate_input_off(con, c_input):
-                    return b_tec.var_input[t, c_input] == 0
+                def calculate_input_off(con, car_input):
+                    return b_tec.var_input[t, car_input] == 0
                 dis.const_input = Constraint(b_tec.set_input_carriers, rule=calculate_input_off)
 
-                def calculate_output_off(con, c_output):
-                    return b_tec.var_output[t, c_output] == 0
+                def calculate_output_off(con, car_output):
+                    return b_tec.var_output[t, car_output] == 0
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=calculate_output_off)
             else:  # technology on
                 # input-output relation
-                def calculate_input_output_on(con, c_output):
-                    return b_tec.var_output[t, c_output] == \
-                           alpha2[c_output] * sum(b_tec.var_input[t, c_input]
-                                                  for c_input in b_tec.set_input_carriers) + alpha1[c_output]
+                def calculate_input_output_on(con, car_output):
+                    return b_tec.var_output[t, car_output] == \
+                           alpha2[car_output] * sum(b_tec.var_input[t, car_input]
+                                                    for car_input in b_tec.set_input_carriers) + alpha1[car_output]
                 dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=calculate_input_output_on)
 
                 # min part load relation
                 def calculate_min_partload(con):
-                    return sum(b_tec.var_input[t, c_input]
-                               for c_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
+                    return sum(b_tec.var_input[t, car_input]
+                               for car_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
                 dis.const_min_partload = Constraint(rule=calculate_min_partload)
 
         b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=calculate_input_output)
@@ -236,34 +236,34 @@ def constraints_tec_type_3(model, b_tec, tec_data):
 
         def calculate_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def calculate_input_off(con, c_input):
-                    return b_tec.var_input[t, c_input] == 0
+                def calculate_input_off(con, car_input):
+                    return b_tec.var_input[t, car_input] == 0
 
                 dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=calculate_input_off)
 
-                def calculate_output_off(con, c_output):
-                    return b_tec.var_output[t, c_output] == 0
+                def calculate_output_off(con, car_output):
+                    return b_tec.var_output[t, car_output] == 0
 
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=calculate_output_off)
 
             else:  # piecewise definition
                 def calculate_input_on1(con):
-                    return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) >= \
+                    return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) >= \
                            bp_x[ind - 1] * b_tec.var_size
 
                 dis.const_input_on1 = Constraint(rule=calculate_input_on1)
 
                 def calculate_input_on2(con):
-                    return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) <= \
+                    return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) <= \
                            bp_x[ind] * b_tec.var_size
 
                 dis.const_input_on2 = Constraint(rule=calculate_input_on2)
 
-                def calculate_output_on(con, c_output):
-                    return b_tec.var_output[t, c_output] == \
-                           alpha2[c_output][ind - 1] * sum(b_tec.var_input[t, c_input]
-                                                           for c_input in b_tec.set_input_carriers) + \
-                           alpha1[c_output][ind - 1]
+                def calculate_output_on(con, car_output):
+                    return b_tec.var_output[t, car_output] == \
+                           alpha2[car_output][ind - 1] * sum(b_tec.var_input[t, car_input]
+                                                             for car_input in b_tec.set_input_carriers) + \
+                           alpha1[car_output][ind - 1]
             dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=calculate_output_on)
 
         b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=calculate_input_output)

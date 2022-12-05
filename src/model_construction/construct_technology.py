@@ -146,14 +146,14 @@ def add_technologies(nodename, b_node, model, data):
         # Size constraint
         if tec_type == 1: # in terms of output
             def calculate_output_constraint(con, t):
-                return sum(b_tec.var_output[t, c_output] for c_output in b_tec.set_output_carriers) \
+                return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) \
                        <= b_tec.var_size
             b_tec.const_size = Constraint(model.set_t, rule=calculate_output_constraint)
         elif tec_type == 6: # This is defined in the generic technology constraints
             pass
         else: # in terms of input
             def calculate_output_constraint(con, t):
-                return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) \
+                return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) \
                        <= b_tec.var_size
             b_tec.const_size = Constraint(model.set_t, rule=calculate_output_constraint)
 
@@ -175,5 +175,5 @@ def add_technologies(nodename, b_node, model, data):
         elif tec_type == 6: # Storage technology (1 input -> 1 output)
             b_tec = constraints_tec_type_6(model, b_tec, tec_data)
 
-    b_node.tech_blocks = Block(b_node.s_techs, rule=technology_block_rule)
+    b_node.tech_blocks = Block(b_node.set_tecsAtNode, rule=technology_block_rule)
     return b_node

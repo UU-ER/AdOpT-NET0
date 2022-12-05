@@ -51,6 +51,7 @@ class energyhub:
         self.data = data
 
         # Define currency unit
+        #TODO: load form file similar to https://github.com/hgrecco/pint/blob/master/pint/default_en.txt
         u.load_definitions_from_strings(['EUR = [currency]'])
 
     def construct_model(self):
@@ -64,22 +65,22 @@ class energyhub:
         the constructing the energybalance of the optimization problem (:func:`~add_energybalance`).
 
         The objective is minimized and can be chosen as total annualized costs, total annualized emissions \
-        multi-objective (emission-cost pareto front).
+        multi-objective (emission-var_cost pareto front).
 
         """
         # Todo: implement different options for objective function.
         # TODO: sum over carriers to calculate network costs
 
-        objective_function = 'cost'
+        objective_function = 'var_cost'
 
         self.model = add_networks(self.model, self.data)
         self.model = add_nodes(self.model, self.data)
         self.model = add_energybalance(self.model)
         # self.model = add_emissionbalance(self.model)
 
-        if objective_function == 'cost':
+        if objective_function == 'var_cost':
             def cost_objective(obj):
-                return sum(self.model.node_blocks[n].cost for n in self.model.set_nodes)
+                return sum(self.model.node_blocks[n].var_cost for n in self.model.set_nodes)
             self.model.objective = Objective(rule=cost_objective, sense=minimize)
         elif objective_function == 'emissions':
             print('to be implemented')
@@ -148,7 +149,7 @@ class energyhub:
             size_tecs = dict()
             for car in self.model.set_carriers:
                 input_tecs[car] = pd.DataFrame()
-                for tec in node_data.s_techs:
+                for tec in node_data.set_tecsAtNode:
                     if car in node_data.tech_blocks[tec].set_input_carriers:
                         temp = np.zeros((n_timesteps), dtype=float)
                         for t in self.model.set_t:
@@ -156,14 +157,14 @@ class energyhub:
                         input_tecs[car][tec] = temp
 
                 output_tecs[car] = pd.DataFrame()
-                for tec in node_data.s_techs:
+                for tec in node_data.set_tecsAtNode:
                     if car in node_data.tech_blocks[tec].set_output_carriers:
                         temp = np.zeros((n_timesteps), dtype=float)
                         for t in self.model.set_t:
                             temp[t-1] = node_data.tech_blocks[tec].var_output[t, car].value
                         output_tecs[car][tec] = temp
 
-                for tec in node_data.s_techs:
+                for tec in node_data.set_tecsAtNode:
                     size_tecs[tec] = node_data.tech_blocks[tec].var_size.value
 
             df = pd.DataFrame(data=size_tecs, index=[0])

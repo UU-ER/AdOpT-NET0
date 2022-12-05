@@ -23,14 +23,14 @@ def add_energybalance(model):
             inflow = 0
             outflow = 0
         return \
-            sum(node_block.tech_blocks[tec].var_output[t, car] for tec in node_block.s_techs if
+            sum(node_block.tech_blocks[tec].var_output[t, car] for tec in node_block.set_tecsAtNode if
                 car in node_block.tech_blocks[tec].set_output_carriers) - \
-            sum(node_block.tech_blocks[tec].var_input[t, car] for tec in node_block.s_techs if
+            sum(node_block.tech_blocks[tec].var_input[t, car] for tec in node_block.set_tecsAtNode if
                 car in node_block.tech_blocks[tec].set_input_carriers) + \
             inflow + node_block.import_flow[t, car] - \
             outflow - node_block.export_flow[t, car] == \
-            node_block.p_demand[t, car]
-    model.cons_energybalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=energybalance)
+            node_block.para_demand[t, car]
+    model.const_energybalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=energybalance)
 
     # Quick fix for import
     def no_import(cons, t, car, node):

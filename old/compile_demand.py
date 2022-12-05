@@ -9,5 +9,5 @@ def compile_demand(model, demand):
                 return 0
         else:
             return 0
-    model.p_demand = Param(model.set_t, model.set_carriers, model.set_nodes, initialize=demand_init)
+    model.para_demand = Param(model.set_t, model.set_carriers, model.set_nodes, initialize=demand_init)
     return model
