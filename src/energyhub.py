@@ -50,10 +50,6 @@ class energyhub:
         # READ IN DATA
         self.data = data
 
-        # Define currency unit
-        #TODO: load form file similar to https://github.com/hgrecco/pint/blob/master/pint/default_en.txt
-        u.load_definitions_from_strings(['EUR = [currency]'])
-
     def construct_model(self):
         """
         Constructs model equations, defines objective functions and calculates emissions.
