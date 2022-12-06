@@ -32,11 +32,4 @@ def add_energybalance(model):
             node_block.p_demand[t, car]
     model.cons_energybalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=energybalance)
 
-    # Quick fix for import
-    def no_import(cons, t, car, node):
-        if (car == 'electricity'):
-            return  model.node_blocks['onshore'].import_flow[t, car] == 0
-        else:
-            return Constraint.Skip
-    model.cons_import = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=no_import)
     return model
