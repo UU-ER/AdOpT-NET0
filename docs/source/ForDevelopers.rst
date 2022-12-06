@@ -3,7 +3,7 @@ Developer Instruction
 This page contains general instructions for the developers that are working on the EnergyHub.
 
 
-.. toctree::
+...toctree::
    :maxdepth: 2
 
 
@@ -17,25 +17,25 @@ For the Pyomo classes we use:
 +-------------+--------------+
 | Type        | Code         |
 +=============+==============+
-| Objective   | objective_   |
+| Objective   | objective... |
 +-------------+--------------+
-| Constraint  | const_       |
+| Constraint  | const...     |
 +-------------+--------------+
-| Piecewise   | const_       |
+| Piecewise   | const...     |
 +-------------+--------------+
-| Set         | set_         |
+| Set         | set...       |
 +-------------+--------------+
-| Block       | b_           |
+| Block       | b...         |
 +-------------+--------------+
-| Var         | var_         |
+| Var         | var...       |
 +-------------+--------------+
-| Param       | para_        |
+| Param       | para...      |
 +-------------+--------------+
-| Disjunct    | dis_         |
+| Disjunct    | dis...       |
 +-------------+--------------+
-| Disjunction | disjunction_ |
+| Disjunction | disjunction..|
 +-------------+--------------+
-| rule        | init_        |
+| rule        | init...      |
 +-------------+--------------+
 | unit        | u            |
 +-------------+--------------+
@@ -45,21 +45,28 @@ Other names that are regularly used in the EnergyHub are:
 +-------------+--------------+
 | Type        | Code         |
 +=============+==============+
-| Timestep    | t_           |
+| Timestep    | t...         |
 +-------------+--------------+
-| Carrier     | car_         |
+| Carrier     | car...       |
 +-------------+--------------+
-| Node        | node_        |
+| Node        | node...      |
 +-------------+--------------+
-| Network     | netw_        |
+| Network     | netw...      |
 +-------------+--------------+
-| Carrier     | car_         |
+| Carrier     | car...       |
 +-------------+--------------+
-| Technology  | tec_         |
+| Technology  | tec...       |
 +-------------+--------------+
-| Consumption | cons_        |
+| Consumption | cons...      |
 +-------------+--------------+
-| Input       | input_       |
+| Input       | input...     |
 +-------------+--------------+
-| Output      | output_      |
+| Output      | output...    |
 +-------------+--------------+
+
+
+Testing new features
+---------------
+The energyhub comes with a test suite, located in ``.\test``. For new features, try to implement a \
+test function in one a respective module (or create a new module). All tests can be executed by \
+running py.test from the terminal.
