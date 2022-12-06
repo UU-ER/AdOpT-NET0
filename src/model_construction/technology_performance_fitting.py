@@ -123,6 +123,10 @@ def perform_fitting_PV(climate_data, **kwargs):
     parameters['specific_area'] = specific_area
     return parameters
 
+def perform_fitting_ST(climate_data):
+    # Todo: code this
+    print('Not coded yet')
+
 def perform_fitting_WT(climate_data, turbine_model, hubheight):
     # Load data for wind turbine type
     WT_data = pd.read_csv(r'.\data\technology_data\WT_data\WT_data.csv', delimiter=';')
@@ -218,6 +222,7 @@ def perform_fitting_tectype3(tec_data):
             linfit = linmodel.fit()
             coeff = linfit.params
             parameters['alpha1'][c] = round(coeff[0], 5)
+        if performance_function_type == 2:
             parameters['alpha2'][c] = round(coeff[1], 5)
     elif performance_function_type == 3:  # piecewise performance function
         X = performance_data['in']
