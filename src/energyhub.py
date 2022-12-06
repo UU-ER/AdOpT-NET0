@@ -50,9 +50,6 @@ class energyhub:
         # READ IN DATA
         self.data = data
 
-        # Define currency unit
-        u.load_definitions_from_strings(['EUR = [currency]'])
-
     def construct_model(self):
         """
         Constructs model equations, defines objective functions and calculates emissions.
@@ -78,9 +75,9 @@ class energyhub:
         # self.model = add_emissionbalance(self.model)
 
         if objective_function == 'cost':
-            def cost_objective(obj):
-                return sum(self.model.node_blocks[n].cost for n in self.model.set_nodes)
-            self.model.objective = Objective(rule=cost_objective, sense=minimize)
+            def init_cost_objective(obj):
+                return sum(self.model.node_blocks[n].var_cost for n in self.model.set_nodes)
+            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
         elif objective_function == 'emissions':
             print('to be implemented')
         elif objective_function == 'pareto':
@@ -148,7 +145,7 @@ class energyhub:
             size_tecs = dict()
             for car in self.model.set_carriers:
                 input_tecs[car] = pd.DataFrame()
-                for tec in node_data.s_techs:
+                for tec in node_data.set_tecsAtNode:
                     if car in node_data.tech_blocks[tec].set_input_carriers:
                         temp = np.zeros((n_timesteps), dtype=float)
                         for t in self.model.set_t:
@@ -156,14 +153,14 @@ class energyhub:
                         input_tecs[car][tec] = temp
 
                 output_tecs[car] = pd.DataFrame()
-                for tec in node_data.s_techs:
+                for tec in node_data.set_tecsAtNode:
                     if car in node_data.tech_blocks[tec].set_output_carriers:
                         temp = np.zeros((n_timesteps), dtype=float)
                         for t in self.model.set_t:
                             temp[t-1] = node_data.tech_blocks[tec].var_output[t, car].value
                         output_tecs[car][tec] = temp
 
-                for tec in node_data.s_techs:
+                for tec in node_data.set_tecsAtNode:
                     size_tecs[tec] = node_data.tech_blocks[tec].var_size.value
 
             df = pd.DataFrame(data=size_tecs, index=[0])

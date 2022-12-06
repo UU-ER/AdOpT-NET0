@@ -18,6 +18,7 @@ For a guideline on documentation please refer to `PEP 257 <https://peps.python.o
    DataManagement
    EnergyHubClass
    ModelConstruction
+   ForDevelopers
 
 
 

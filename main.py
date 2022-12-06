@@ -5,13 +5,16 @@
 # TODO: Implement length of time step
 # TODO: Implement design days (retain extremes)
 # TODO: Implement Lukas Algorithm
-from src.data_management.data_handling import DataHandle, load_data_handle
-from src.data_management.create_templates import create_empty_network_data
+import src.data_management as dm
+from pyomo.environ import units as u
 import pandas as pd
 import numpy as np
 import time
 from src.energyhub import energyhub
 from pyomo.environ import *
+
+# Define currency unit
+u.load_definitions_from_strings(['EUR = [currency]'])
 
 
 # Save Data File to file
@@ -31,7 +34,7 @@ topology['technologies']['offshore'] = ['WT_OS_11000']
 
 topology['networks'] = {}
 topology['networks']['electricity'] = {}
-network_data = create_empty_network_data(topology['nodes'])
+network_data = dm.create_empty_network_data(topology['nodes'])
 network_data['distance'].at['onshore', 'offshore'] = 100
 network_data['distance'].at['offshore', 'onshore'] = 100
 network_data['connection'].at['onshore', 'offshore'] = 1
@@ -39,7 +42,7 @@ network_data['connection'].at['offshore', 'onshore'] = 1
 topology['networks']['electricity']['AC'] = network_data
 
 # Initialize instance of DataHandle
-data = DataHandle(topology)
+data = dm.DataHandle(topology)
 
 # CLIMATE DATA
 from_file = 0

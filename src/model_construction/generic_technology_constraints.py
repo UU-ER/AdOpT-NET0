@@ -24,33 +24,33 @@ def constraints_tec_type_1(model, b_tec, tec_data):
         curtailment = 0
 
     # Set capacity factors as a parameter
-    def set_capfactors(para, t):
+    def init_capfactors(para, t):
         return tec_fit['capacity_factor'][t - 1]
-    b_tec.para_capfactor = Param(model.set_t, domain=Reals, rule=set_capfactors)
+    b_tec.para_capfactor = Param(model.set_t, domain=Reals, rule=init_capfactors)
 
     if curtailment == 0:  # no curtailment allowed (default
-        def calculate_input_output(con, t, c_output):
+        def init_input_output(const, t, c_output):
             return b_tec.var_output[t, c_output] == \
                    b_tec.para_capfactor[t] * b_tec.var_size * unit_size
-        b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers, rule=calculate_input_output)
+        b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers, rule=init_input_output)
 
     elif curtailment == 1:  # continuous curtailment
-        def calculate_input_output(con, t, c_output):
+        def init_input_output(const, t, c_output):
             return b_tec.var_output[t, c_output] <= \
                    b_tec.para_capfactor[t] * b_tec.var_size * unit_size
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
-                                              rule=calculate_input_output)
+                                              rule=init_input_output)
 
     elif curtailment == 2:  # discrete curtailment
         b_tec.var_size_on = Var(model.set_t, within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
-        def curtailed_units(cons, t):
+        def init_curtailed_units(const, t):
             return b_tec.var_size_on[t] <= b_tec.var_size
-        b_tec.const_curtailed_units = Constraint(model.set_t, rule=curtailed_units)
-        def calculate_input_output(con, t, c_output):
+        b_tec.const_curtailed_units = Constraint(model.set_t, rule=init_curtailed_units)
+        def init_input_output(const, t, c_output):
             return b_tec.var_output[t, c_output] <= \
                    b_tec.para_capfactor[t] * b_tec.var_size_on[t] * unit_size
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
-                                              rule=calculate_input_output)
+                                              rule=init_input_output)
 
     return b_tec
 
@@ -71,13 +71,13 @@ def constraints_tec_type_2(model, b_tec, tec_data):
     # Formulate Constraints for each performance function type
     # linear through origin
     if performance_function_type == 1:
-        def calculate_input_output(con, t):
-            return sum(b_tec.var_output[t, c_output]
-                       for c_output in b_tec.set_output_carriers) == \
-                   alpha1 * sum(b_tec.var_input[t, c_input]
-                                for c_input in b_tec.set_input_carriers)
+        def init_input_output(const, t):
+            return sum(b_tec.var_output[t, car_output]
+                       for car_output in b_tec.set_output_carriers) == \
+                   alpha1 * sum(b_tec.var_input[t, car_input]
+                                for car_input in b_tec.set_input_carriers)
 
-        b_tec.const_input_output = Constraint(model.set_t, rule=calculate_input_output)
+        b_tec.const_input_output = Constraint(model.set_t, rule=init_input_output)
 
     # linear not through origin
     elif performance_function_type == 2:
@@ -88,82 +88,72 @@ def constraints_tec_type_2(model, b_tec, tec_data):
         # define disjuncts
         s_indicators = range(0, 2)
 
-        def calculate_input_output(dis, t, ind):
+        def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def calculate_input_off(con, c_input):
-                    return b_tec.var_input[t, c_input] == 0
+                def init_input_off(const, car_input):
+                    return b_tec.var_input[t, car_input] == 0
+                dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
-                dis.const_input = Constraint(b_tec.set_input_carriers, rule=calculate_input_off)
-
-                def calculate_output_off(con, c_output):
-                    return b_tec.var_output[t, c_output] == 0
-
-                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=calculate_output_off)
+                def init_output_off(const, car_output):
+                    return b_tec.var_output[t, car_output] == 0
+                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
             else:  # technology on
                 # input-output relation
-                def calculate_input_output_on(con):
-                    return sum(b_tec.var_output[t, c_output] for c_output in b_tec.set_output_carriers) == \
-                           alpha2 * sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) + \
+                def init_input_output_on(con):
+                    return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) == \
+                           alpha2 * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
                            alpha1
-
-                dis.const_input_output_on = Constraint(rule=calculate_input_output_on)
+                dis.const_input_output_on = Constraint(rule=init_input_output_on)
 
                 # min part load relation
-                def calculate_min_partload(con):
-                    return sum(b_tec.var_input[t, c_input]
-                               for c_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
+                def init_min_partload(con):
+                    return sum(b_tec.var_input[t, car_input]
+                               for car_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
+                dis.const_min_partload = Constraint(rule=init_min_partload)
 
-                dis.const_min_partload = Constraint(rule=calculate_min_partload)
-
-        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=calculate_input_output)
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
-
         b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
     # piecewise affine function
     elif performance_function_type == 3:
         s_indicators = range(0, len(bp_x))
 
-        def calculate_input_output(dis, t, ind):
+        def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def calculate_input_off(con, c_input):
-                    return b_tec.var_input[t, c_input] == 0
+                def init_input_off(const, car_input):
+                    return b_tec.var_input[t, car_input] == 0
+                dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
-                dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=calculate_input_off)
+                def init_output_off(const, car_output):
+                    return b_tec.var_output[t, car_output] == 0
+                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
 
-                def calculate_output_off(con, c_output):
-                    return b_tec.var_output[t, c_output] == 0
-
-                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=calculate_output_off)
             else:  # piecewise definition
-                def calculate_input_on1(con):
-                    return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) >= \
+                def init_input_on1(const):
+                    return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) >= \
                            bp_x[ind - 1] * b_tec.var_size
+                dis.const_input_on1 = Constraint(rule=init_input_on1)
 
-                dis.const_input_on1 = Constraint(rule=calculate_input_on1)
-
-                def calculate_input_on2(con):
-                    return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) <= \
+                def init_input_on2(const):
+                    return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) <= \
                            bp_x[ind] * b_tec.var_size
+                dis.const_input_on2 = Constraint(rule=init_input_on2)
 
-                dis.const_input_on2 = Constraint(rule=calculate_input_on2)
-
-                def calculate_output_on(con):
-                    return sum(b_tec.var_output[t, c_output] for c_output in b_tec.set_output_carriers) == \
-                           alpha2[ind - 1] * sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) + \
+                def init_output_on(const):
+                    return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) == \
+                           alpha2[ind - 1] * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
                            alpha1[ind - 1]
+                dis.const_input_output_on = Constraint(rule=init_output_on)
 
-                dis.const_input_output_on = Constraint(rule=calculate_output_on)
-
-        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=calculate_input_output)
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
-
         b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
     return b_tec
@@ -185,13 +175,12 @@ def constraints_tec_type_3(model, b_tec, tec_data):
     # Formulate Constraints for each performance function type
     # linear through origin
     if performance_function_type == 1:
-        def calculate_input_output(con, c_output, t):
-            return b_tec.var_output[t, c_output] == \
-                   alpha1[c_output] * sum(b_tec.var_input[t, c_input]
-                                          for c_input in b_tec.set_input_carriers)
-
+        def init_input_output(const, car_output, t):
+            return b_tec.var_output[t, car_output] == \
+                   alpha1[car_output] * sum(b_tec.var_input[t, car_input]
+                                            for car_input in b_tec.set_input_carriers)
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
-                                              rule=calculate_input_output)
+                                              rule=init_input_output)
 
     elif performance_function_type == 2:
         if min_part_load == 0:
@@ -202,30 +191,30 @@ def constraints_tec_type_3(model, b_tec, tec_data):
         # define disjuncts
         s_indicators = range(0, 2)
 
-        def calculate_input_output(dis, t, ind):
+        def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def calculate_input_off(con, c_input):
-                    return b_tec.var_input[t, c_input] == 0
-                dis.const_input = Constraint(b_tec.set_input_carriers, rule=calculate_input_off)
+                def init_input_off(const, car_input):
+                    return b_tec.var_input[t, car_input] == 0
+                dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
-                def calculate_output_off(con, c_output):
-                    return b_tec.var_output[t, c_output] == 0
-                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=calculate_output_off)
+                def init_output_off(const, car_output):
+                    return b_tec.var_output[t, car_output] == 0
+                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
             else:  # technology on
                 # input-output relation
-                def calculate_input_output_on(con, c_output):
-                    return b_tec.var_output[t, c_output] == \
-                           alpha2[c_output] * sum(b_tec.var_input[t, c_input]
-                                                  for c_input in b_tec.set_input_carriers) + alpha1[c_output]
-                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=calculate_input_output_on)
+                def init_input_output_on(const, car_output):
+                    return b_tec.var_output[t, car_output] == \
+                           alpha2[car_output] * sum(b_tec.var_input[t, car_input]
+                                                    for car_input in b_tec.set_input_carriers) + alpha1[car_output]
+                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_input_output_on)
 
                 # min part load relation
-                def calculate_min_partload(con):
-                    return sum(b_tec.var_input[t, c_input]
-                               for c_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
-                dis.const_min_partload = Constraint(rule=calculate_min_partload)
+                def init_min_partload(const):
+                    return sum(b_tec.var_input[t, car_input]
+                               for car_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
+                dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=calculate_input_output)
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
@@ -236,44 +225,39 @@ def constraints_tec_type_3(model, b_tec, tec_data):
     elif performance_function_type == 3:
         s_indicators = range(0, len(bp_x))
 
-        def calculate_input_output(dis, t, ind):
+        def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def calculate_input_off(con, c_input):
-                    return b_tec.var_input[t, c_input] == 0
+                def init_input_off(const, car_input):
+                    return b_tec.var_input[t, car_input] == 0
+                dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
-                dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=calculate_input_off)
-
-                def calculate_output_off(con, c_output):
-                    return b_tec.var_output[t, c_output] == 0
-
-                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=calculate_output_off)
+                def init_output_off(const, car_output):
+                    return b_tec.var_output[t, car_output] == 0
+                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
 
             else:  # piecewise definition
-                def calculate_input_on1(con):
-                    return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) >= \
+                def init_input_on1(const):
+                    return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) >= \
                            bp_x[ind - 1] * b_tec.var_size
+                dis.const_input_on1 = Constraint(rule=init_input_on1)
 
-                dis.const_input_on1 = Constraint(rule=calculate_input_on1)
-
-                def calculate_input_on2(con):
-                    return sum(b_tec.var_input[t, c_input] for c_input in b_tec.set_input_carriers) <= \
+                def init_input_on2(const):
+                    return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) <= \
                            bp_x[ind] * b_tec.var_size
+                dis.const_input_on2 = Constraint(rule=init_input_on2)
 
-                dis.const_input_on2 = Constraint(rule=calculate_input_on2)
+                def init_output_on(const, car_output):
+                    return b_tec.var_output[t, car_output] == \
+                           alpha2[car_output][ind - 1] * sum(b_tec.var_input[t, car_input]
+                                                             for car_input in b_tec.set_input_carriers) + \
+                           alpha1[car_output][ind - 1]
+            dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
 
-                def calculate_output_on(con, c_output):
-                    return b_tec.var_output[t, c_output] == \
-                           alpha2[c_output][ind - 1] * sum(b_tec.var_input[t, c_input]
-                                                           for c_input in b_tec.set_input_carriers) + \
-                           alpha1[c_output][ind - 1]
-            dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=calculate_output_on)
-
-        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=calculate_input_output)
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
-
         b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
     return b_tec
@@ -290,17 +274,17 @@ def constraints_tec_type_6(model, b_tec, tec_data):
     b_tec.para_eta_lambda = Param(domain=NonNegativeReals, initialize=tec_fit['lambda'])
     b_tec.para_charge_max = Param(domain=NonNegativeReals, initialize=tec_fit['charge_max'])
     b_tec.para_discharge_max = Param(domain=NonNegativeReals, initialize=tec_fit['discharge_max'])
-    def set_ambient_loss_factor(para, t):
+    def init_ambient_loss_factor(para, t):
         return tec_fit['ambient_loss_factor'].values[t - 1]
-    b_tec.para_ambient_loss_factor = Param(model.set_t, domain=NonNegativeReals, rule=set_ambient_loss_factor)
+    b_tec.para_ambient_loss_factor = Param(model.set_t, domain=NonNegativeReals, rule=init_ambient_loss_factor)
 
     # Size constraint
-    def calculate_size_constraint(con, t, car):
+    def init_size_constraint(const, t, car):
         return b_tec.var_storage_level[t, car] <= b_tec.var_size
-    b_tec.const_size = Constraint(model.set_t, b_tec.set_input_carriers, rule=calculate_size_constraint)
+    b_tec.const_size = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_size_constraint)
 
     # Storage level calculation
-    def calculate_storage_level(con, t, car):
+    def init_storage_level(const, t, car):
         if t == 1: # couple first and last time interval
             return b_tec.var_storage_level[t, car] == \
                   b_tec.var_storage_level[max(model.set_t), car] * (1 - b_tec.para_eta_lambda) - \
@@ -313,12 +297,12 @@ def constraints_tec_type_6(model, b_tec, tec_data):
                 b_tec.para_ambient_loss_factor[t] * b_tec.var_storage_level[t-1, car] + \
                 b_tec.para_eta_in * b_tec.var_input[t, car] - \
                 1/b_tec.para_eta_out * b_tec.var_output[t, car]
-    b_tec.const_storage_level = Constraint(model.set_t, b_tec.set_input_carriers, rule=calculate_storage_level)
+    b_tec.const_storage_level = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_storage_level)
 
-    def maximal_charge(con,t,car):
+    def init_maximal_charge(const,t,car):
         return b_tec.var_input[t, car] <= b_tec.para_eta_in * b_tec.var_size
-    b_tec.const_max_charge = Constraint(model.set_t, b_tec.set_input_carriers, rule=maximal_charge)
+    b_tec.const_max_charge = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
 
-    def maximal_discharge(con,t,car):
+    def init_maximal_discharge(const,t,car):
         return b_tec.var_output[t, car] <= b_tec.para_eta_out * b_tec.var_size
-    b_tec.const_max_discharge = Constraint(model.set_t, b_tec.set_input_carriers, rule=maximal_discharge)
+    b_tec.const_max_discharge = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)

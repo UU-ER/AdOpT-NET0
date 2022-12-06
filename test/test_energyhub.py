@@ -61,7 +61,7 @@ def test_model2():
     size_should = max(data.node_data['test_node1']['demand']['heat']) / data.technology_data['test_node1']['Furnace_NG']['fit']['alpha2']['heat']
     assert  round(size_res,3) == round(size_should,3)
     # Gas Import in each timestep
-    import_res = [value(m.node_blocks['test_node1'].import_flow[key, 'gas'].value) for key in m.set_t]
+    import_res = [value(m.node_blocks['test_node1'].var_import_flow[key, 'gas'].value) for key in m.set_t]
     import_res = pd.Series(import_res)
     import_res = import_res.tolist()
     import_should = data.node_data['test_node1']['demand']['heat'] / data.technology_data['test_node1']['Furnace_NG']['fit']['alpha2']['heat']
