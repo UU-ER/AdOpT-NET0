@@ -163,7 +163,8 @@ def constraints_tec_type_3(model, b_tec, tec_data):
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
     # Get performance parameters
     alpha1 = tec_fit['alpha1']
-    alpha2 = tec_fit['alpha2']
+    if performance_function_type == 2:
+        alpha2 = tec_fit['alpha2']
     if 'min_part_load' in tec_fit:
         min_part_load = tec_fit['min_part_load']
     else:
@@ -185,6 +186,7 @@ def constraints_tec_type_3(model, b_tec, tec_data):
         if min_part_load == 0:
             warnings.warn(
                 'Having performance_function_type = 2 with no part-load usually makes no sense.')
+            # TODO: Switch to performance_function_type 1!
 
         # define disjuncts
         s_indicators = range(0, 2)
