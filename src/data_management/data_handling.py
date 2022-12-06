@@ -30,7 +30,6 @@ class DataHandle:
         self.network_data = {}
 
         # init. demand, prices, emission factors =0 for all timesteps, carriers and nodes
-        self.demand = dict()
 
         for nodename in self.topology['nodes']:
             self.node_data[nodename] = {}
