@@ -20,7 +20,7 @@
     "OPEX_fixed": 0.09
   },
   "TechnologyPerf": {
-    "tec_type": "CONV1",
+    "tec_type": "CONV2",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 2,
     "input_carrier": [
