@@ -98,5 +98,104 @@ def create_data_model2():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+def create_data_technology_type1_PV():
+    """
+    Creates dataset for test_technology_type1_PV().
+    PV @ node 1
+    electricity demand @ node 1
+    import of electricity at high price
+    Size of PV should be around max electricity demand
+    """
+    data_save_path = './test/test_data/technology_type1_PV.p'
+    modeled_year = 2001
+
+    topology = {}
+    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
+                                          end=str(modeled_year) + '-12-31 23:00', freq='1h')
+
+    topology['timestep_length_h'] = 1
+    topology['carriers'] = ['electricity']
+    topology['nodes'] = ['test_node1']
+    topology['technologies'] = {}
+    topology['technologies']['test_node1'] = ['PV']
+
+    topology['networks'] = {}
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
+
+    # DEMAND
+    demand = np.ones(len(topology['timesteps'])) * 10
+    data.read_demand_data('test_node1', 'electricity', demand)
+
+    # PRICE DATA
+    price = np.ones(len(topology['timesteps'])) * 10000
+    data.read_import_price_data('test_node1', 'electricity', price)
+
+    # IMPORT/EXPORT LIMITS
+    import_lim = np.ones(len(topology['timesteps'])) * 10
+    data.read_import_limit_data('test_node1', 'electricity', import_lim)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
+def create_data_technology_type1_WT():
+    """
+    Creates dataset for test_technology_type1_PV().
+    WT @ node 1
+    electricity demand @ node 1
+    import of electricity at high price
+    Size of PV should be around max electricity demand
+    """
+    data_save_path = './test/test_data/technology_type1_WT.p'
+    modeled_year = 2001
+
+    topology = {}
+    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
+                                          end=str(modeled_year) + '-12-31 23:00', freq='1h')
+
+    topology['timestep_length_h'] = 1
+    topology['carriers'] = ['electricity']
+    topology['nodes'] = ['test_node1']
+    topology['technologies'] = {}
+    topology['technologies']['test_node1'] = ['WT_1500']
+
+    topology['networks'] = {}
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
+
+    # DEMAND
+    demand = np.ones(len(topology['timesteps'])) * 10
+    data.read_demand_data('test_node1', 'electricity', demand)
+
+    # PRICE DATA
+    price = np.ones(len(topology['timesteps'])) * 1000
+    data.read_import_price_data('test_node1', 'electricity', price)
+
+    # IMPORT/EXPORT LIMITS
+    import_lim = np.ones(len(topology['timesteps'])) * 10
+    data.read_import_limit_data('test_node1', 'electricity', import_lim)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
+
 create_data_model1()
 create_data_model2()
+create_data_technology_type1_PV()
+create_data_technology_type1_WT()

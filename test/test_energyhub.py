@@ -25,7 +25,7 @@ def test_add_nodes():
 
 def test_model1():
     """
-    Run a model with one node.
+    Run a model with two nodes.
     PV @ node 2
     electricity demand @ node 1
     electricity network in between
