@@ -3,6 +3,7 @@ from pyomo.environ import units as u
 from src.model_construction.construct_nodes import add_nodes
 from src.model_construction.construct_networks import add_networks
 from src.model_construction.construct_energybalance import add_energybalance
+import pint
 
 import numpy as np
 import dill as pickle
@@ -49,6 +50,13 @@ class energyhub:
 
         # READ IN DATA
         self.data = data
+
+        # define units
+        try:
+            u.load_definitions_from_strings(['EUR = [currency]'])
+        except pint.errors.DefinitionSyntaxError:
+            pass
+
 
     def construct_model(self):
         """

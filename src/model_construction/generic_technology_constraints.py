@@ -5,9 +5,26 @@ import warnings
 
 
 def constraints_tec_type_1(model, b_tec, tec_data):
-    """ Adds constraints to technology blocks for tec_type 1 (renewable technology)
-    :param model: full model
-    :param b_tec: technology block
+    """
+    Adds constraints to technology blocks for tec_type 1 (renewable technology)
+
+    **Parameter declarations:**
+
+    - Capacity Factor of technology for each time step. The capacity factor has been calculated in
+      ``src.model_construction.technology_performance_fitting``
+
+    **Constraint declarations:**
+
+    - Output of technology. The output can be curtailed in three different ways. For ``curtailment == 0``, there is
+      no curtailment possible. For ``curtailment == 1``, the curtailment is continuous. For ``curtailment == 2``,
+      the size needs to be an integer, and the technology can only be curtailed discretely, i.e. by turning full
+      modules off. For ``curtailment == 0`` (default), it thus holds:
+
+    .. math::
+        Output_{t, car} == CapFactor_t * Size
+
+    :param obj model: instance of a pyomo model
+    :param obj b_tec: technology block
     :param tec_data: technology data
     :return: technology block
     """
