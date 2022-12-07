@@ -4,7 +4,7 @@ from pyomo.gdp import *
 import warnings
 
 
-def constraints_tec_type_1(model, b_tec, tec_data):
+def constraints_tec_RES(model, b_tec, tec_data):
     """
     Adds constraints to technology blocks for tec_type 1 (renewable technology)
 
@@ -71,7 +71,7 @@ def constraints_tec_type_1(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_type_2(model, b_tec, tec_data):
+def constraints_tec_CONV1(model, b_tec, tec_data):
     """ Adds constraints for technology type 2 (n inputs -> n output, fuel and output substitution)
     :param model: full model
     :param b_tec: technology block
@@ -175,7 +175,7 @@ def constraints_tec_type_2(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_type_3(model, b_tec, tec_data):
+def constraints_tec_CONV2(model, b_tec, tec_data):
     tec_fit = tec_data['fit']
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
     # Get performance parameters
@@ -279,7 +279,11 @@ def constraints_tec_type_3(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_type_6(model, b_tec, tec_data):
+def constraints_tec_CONV3(model, b_tec, tec_data):
+    #performance
+    return b_tec
+
+def constraints_tec_STOR(model, b_tec, tec_data):
     tec_fit = tec_data['fit']
 
     # Additional decision variables
@@ -323,3 +327,5 @@ def constraints_tec_type_6(model, b_tec, tec_data):
     def init_maximal_discharge(const,t,car):
         return b_tec.var_output[t, car] <= b_tec.para_eta_out * b_tec.var_size
     b_tec.const_max_discharge = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
+
+    return b_tec

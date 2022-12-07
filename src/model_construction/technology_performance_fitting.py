@@ -20,11 +20,11 @@ def fit_performance(technology, tec=None, climate_data=None):
 
     # Get options form file
     tec_type = technology['TechnologyPerf']['tec_type']
-    if not (tec_type == 1):
+    if not (tec_type == 'RES'):
         tec_data = technology['TechnologyPerf']
 
     # Derive performance parameters for respective performance function type
-    if tec_type == 1:  # Renewable technologies
+    if tec_type == 'RES':  # Renewable technologies
         if tec == 'PV':
             if 'system_type' in technology:
                 parameters['fit'] = perform_fitting_PV(climate_data, system_data=technology['system_type'])
@@ -40,14 +40,18 @@ def fit_performance(technology, tec=None, climate_data=None):
             parameters['fit'] = perform_fitting_WT(climate_data, technology['Name'], hubheight)
 
 
-    elif tec_type == 2: # n inputs -> n output, fuel and output substitution
-        parameters['fit'] = perform_fitting_tectype2(tec_data)
+    elif tec_type == 'CONV1': # n inputs -> n output, fuel and output substitution
+        parameters['fit'] = perform_fitting_tec_CONV1(tec_data)
 
-    elif tec_type == 3: # n inputs -> n output, fuel and output substitution
-        parameters['fit'] = perform_fitting_tectype3(tec_data)
+    elif tec_type == 'CONV2': # n inputs -> n output, fuel and output substitution
+        parameters['fit'] = perform_fitting_tec_CONV2(tec_data)
 
-    elif tec_type == 6:  # storage technologies
-        parameters['fit'] = perform_fitting_tectype6(tec_data, climate_data)
+    elif tec_type == 'CONV3': # n inputs -> n output, fixed ratio between inputs and outputs
+        #TODO: include performance conv 3
+        print('Not coded yet')
+
+    elif tec_type == 'STOR':  # storage technologies
+        parameters['fit'] = perform_fitting_tec_STOR(tec_data, climate_data)
 
     parameters['TechnologyPerf'] = technology['TechnologyPerf']
     parameters['Economics'] = technology['Economics']
@@ -117,11 +121,11 @@ def perform_fitting_PV(climate_data, **kwargs):
     power = pv_model.results.ac.p_mp
     capacity_factor = power / peakpower
 
-    # return parameters
-    parameters = dict()
-    parameters['capacity_factor'] = capacity_factor
-    parameters['specific_area'] = specific_area
-    return parameters
+    # return fit
+    fitting = dict()
+    fitting['capacity_factor'] = capacity_factor
+    fitting['specific_area'] = specific_area
+    return fitting
 
 def perform_fitting_ST(climate_data):
     # Todo: code this
@@ -158,17 +162,17 @@ def perform_fitting_WT(climate_data, turbine_model, hubheight):
     f = interp1d(x, y)
     capacity_factor = f(ws) / rated_power
 
-    # return parameters
-    parameters = dict()
-    parameters['capacity_factor'] = capacity_factor[0]
-    parameters['rated_power'] = rated_power/1000
+    # return fit
+    fitting = dict()
+    fitting['capacity_factor'] = capacity_factor[0]
+    fitting['rated_power'] = rated_power / 1000
 
-    return parameters
+    return fitting
 
 
-def perform_fitting_tectype2(tec_data):
+def perform_fitting_tec_CONV1(tec_data):
     """
-    Fits technology type 2 and returns parameters as a dict
+    Fits conversion technology type 1 and returns fitted parameters as a dict
     :param performance_data: contains X and y data of technology performance
     :param performance_function_type: options for type of performance function (linear, piecewise,...)
     :param nr_seg: number of segments on piecewise defined function
@@ -180,7 +184,7 @@ def perform_fitting_tectype2(tec_data):
     else:
         nr_seg = 3
 
-    parameters = dict()
+    fitting = dict()
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
         X = performance_data['in']
         if performance_function_type == 2:
@@ -189,17 +193,17 @@ def perform_fitting_tectype2(tec_data):
         linmodel = sm.OLS(y, X)
         linfit = linmodel.fit()
         coeff = linfit.params
-        parameters['alpha1'] = round(coeff[1], 5)
-        parameters['alpha2'] = round(coeff[0], 5)
+        fitting['alpha1'] = round(coeff[1], 5)
+        fitting['alpha2'] = round(coeff[0], 5)
     elif performance_function_type == 3:  # piecewise performance function
         X = performance_data['in']
         y = performance_data['out']
-        parameters = fit_piecewise_function(X,y,nr_seg)
-    return parameters
+        fitting = fit_piecewise_function(X, y, nr_seg)
+    return fitting
 
-def perform_fitting_tectype3(tec_data):
+def perform_fitting_tec_CONV2(tec_data):
     """
-    Fits technology type 2 and returns parameters as a dict
+    Fits conversion technology type 2 and returns fitted parameters as a dict
     :param performance_data: contains X and y data of technology performance
     :param performance_function_type: options for type of performance function (linear, piecewise,...)
     :param nr_seg: number of segments on piecewise defined function
@@ -211,10 +215,11 @@ def perform_fitting_tectype3(tec_data):
     else:
         nr_seg = 3
 
-    parameters = dict()
+    fitting = dict()
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        parameters['alpha1'] = dict()
-        parameters['alpha2'] = dict()
+        #TODO: fitting instead of parameters
+        fitting['alpha1'] = dict()
+        fitting['alpha2'] = dict()
         X = performance_data['in']
         if performance_function_type == 2:
             X = sm.add_constant(X)
@@ -223,31 +228,33 @@ def perform_fitting_tectype3(tec_data):
             linmodel = sm.OLS(y, X)
             linfit = linmodel.fit()
             coeff = linfit.params
-            parameters['alpha1'][c] = round(coeff[0], 5)
+            fitting['alpha1'][c] = round(coeff[0], 5)
         if performance_function_type == 2:
-            parameters['alpha2'][c] = round(coeff[1], 5)
+            fitting['alpha2'][c] = round(coeff[1], 5)
     elif performance_function_type == 3:  # piecewise performance function
         X = performance_data['in']
         y = performance_data['out']
-        parameters = fit_piecewise_function(X,y,nr_seg)
+        fitting = fit_piecewise_function(X, y, nr_seg)
         # TODO: This is currently only coded for a single output
-    return parameters
+    return fitting
 
-def perform_fitting_tectype6(tec_data, climate_data):
+# def perform_fitting_tec_CONV3(tec_data):
+
+def perform_fitting_tec_STOR(tec_data, climate_data):
     theta = tec_data['performance']['theta']
 
-    parameters = {}
-    parameters['ambient_loss_factor'] =  (65 - climate_data['dataframe']['temp_air']) / (90 - 65) * theta
+    fitting = {}
+    fitting['ambient_loss_factor'] = (65 - climate_data['dataframe']['temp_air']) / (90 - 65) * theta
     for par in tec_data['performance']:
         if not par == 'theta':
-            parameters[par] = tec_data['performance'][par]
+            fitting[par] = tec_data['performance'][par]
 
-    return parameters
+    return fitting
 
 
 def fit_piecewise_function(X, Y, nr_seg):
     """
-    Returns parameters of a piecewise defined function
+    Returns fitted parameters of a piecewise defined function
     TODO: Code this for multidimensional X data
     :param X: x-values of data
     :param Y: y-values of data
@@ -283,7 +290,7 @@ def fit_piecewise_function(X, Y, nr_seg):
         r = optimize.minimize(err, x0=np.r_[seg, py_init], method='Nelder-Mead')
         return func(r.x)
 
-    parameters = dict()
+    fitting = dict()
     px, py = segments_fit(X, Y, nr_seg)
 
     alpha1 = []
@@ -294,9 +301,9 @@ def fit_piecewise_function(X, Y, nr_seg):
         alpha2.append(al2)
         alpha1.append(al1)
 
-    parameters['alpha1'] = alpha1
-    parameters['alpha2'] = alpha2
-    parameters['bp_x'] = px
-    parameters['bp_y'] = py
-    return parameters
+    fitting['alpha1'] = alpha1
+    fitting['alpha2'] = alpha2
+    fitting['bp_x'] = px
+    fitting['bp_y'] = py
+    return fitting
 

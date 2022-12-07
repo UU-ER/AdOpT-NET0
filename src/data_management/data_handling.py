@@ -204,9 +204,9 @@ class DataHandle:
                 # Read in JSON files
                 with open('./data/technology_data/' + tec + '.json') as json_file:
                     technology_data = json.load(json_file)
-                # Fit performance function
-                if (technology_data['TechnologyPerf']['tec_type'] == 1) or \
-                        (technology_data['TechnologyPerf']['tec_type'] == 6):
+                # Fit performance function parameters
+                if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
+                        (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
                     technology_data = fit_performance(technology_data, tec=tec,
                                          climate_data=self.node_data[nodename]['climate_data'])
                 else:
