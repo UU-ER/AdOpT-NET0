@@ -65,7 +65,7 @@ def constraints_tec_type_1(model, b_tec, tec_data):
         b_tec.const_curtailed_units = Constraint(model.set_t, rule=init_curtailed_units)
         def init_input_output(const, t, c_output):
             return b_tec.var_output[t, c_output] <= \
-                   b_tec.para_capfactor[t] * b_tec.var_size_on[t] * unit_size
+                   b_tec.para_capfactor[t] * b_tec.var_size_on[t] * rated_power
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
 
