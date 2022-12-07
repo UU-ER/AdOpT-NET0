@@ -25,10 +25,15 @@ def create_empty_network_data(nodes):
     :param list nodes: list of nodes to create matrices from
     :return: dictionary containing two pandas data frames with a distance and connection matrix respectively
     """
+    # initialize return data dict
     data = {}
+
+    # construct connection matrix
     matrix = pd.DataFrame(data=np.full((len(nodes), len(nodes)), 0),
                           index=nodes, columns=nodes)
     data['connection'] = matrix
+
+    # construct distance matrix
     matrix = pd.DataFrame(data=np.full((len(nodes), len(nodes)), 0),
                           index=nodes, columns=nodes)
     data['distance'] = matrix

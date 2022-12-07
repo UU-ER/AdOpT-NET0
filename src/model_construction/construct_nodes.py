@@ -10,11 +10,12 @@ def add_nodes(model, data):
     that are installed at the node (see :func:`~add_technologies`). For each node, it adds one block indexed by the \
     set of all nodes. As such, the function constructs:
 
-    > node blocks, indexed by :math:`N` > technology blocks, indexed by :math:`Tec_n, n \in N`
+    node blocks, indexed by :math:`N` > technology blocks, indexed by :math:`Tec_n, n \in N`
 
     **Set declarations:**
 
-    - Set for all technologies :math:`S_n` at respective node :math:`n` : :math:`S_n, n \in N` (this is a duplicate of a set already initialized in ``self.model.set_technologies``).
+    - Set for all technologies :math:`S_n` at respective node :math:`n` : :math:`S_n, n \in N` (this is a duplicate \
+      of a set already initialized in ``self.model.set_technologies``).
 
     **Parameter declarations:**
 
