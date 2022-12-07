@@ -31,9 +31,9 @@ def constraints_tec_type_1(model, b_tec, tec_data):
     tec_fit = tec_data['fit']
     size_is_integer = tec_data['TechnologyPerf']['size_is_int']
     if size_is_integer:
-        unit_size = u.dimensionless
+        rated_power = tec_fit['rated_power']
     else:
-        unit_size = u.MW
+        rated_power = 1
 
     if 'curtailment' in tec_data['TechnologyPerf']:
         curtailment = tec_data['TechnologyPerf']['curtailment']
@@ -48,13 +48,13 @@ def constraints_tec_type_1(model, b_tec, tec_data):
     if curtailment == 0:  # no curtailment allowed (default
         def init_input_output(const, t, c_output):
             return b_tec.var_output[t, c_output] == \
-                   b_tec.para_capfactor[t] * b_tec.var_size * unit_size
+                   b_tec.para_capfactor[t] * b_tec.var_size * rated_power
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers, rule=init_input_output)
 
     elif curtailment == 1:  # continuous curtailment
         def init_input_output(const, t, c_output):
             return b_tec.var_output[t, c_output] <= \
-                   b_tec.para_capfactor[t] * b_tec.var_size * unit_size
+                   b_tec.para_capfactor[t] * b_tec.var_size * rated_power
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
 

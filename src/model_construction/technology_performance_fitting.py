@@ -150,17 +150,19 @@ def perform_fitting_WT(climate_data, turbine_model, hubheight):
         ws = ws * (hubheight / 10) ** alpha
 
     # Make power curve
-    name_plate =  WT_data.iloc[0]['RatedPowerkW']
+    rated_power =  WT_data.iloc[0]['RatedPowerkW']
     x = np.linspace(0, 35, 71)
     y = WT_data.iloc[:,13:84]
     y = y.to_numpy()
 
     f = interp1d(x, y)
-    capacity_factor = f(ws) / name_plate
+    capacity_factor = f(ws) / rated_power
 
     # return parameters
     parameters = dict()
     parameters['capacity_factor'] = capacity_factor[0]
+    parameters['rated_power'] = rated_power/1000
+
     return parameters
 
 

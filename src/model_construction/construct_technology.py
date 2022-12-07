@@ -147,11 +147,8 @@ def add_technologies(nodename, b_node, model, data):
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
         # Size constraint
-        if tec_type == 1: # in terms of output
-            def init_output_constraint(const, t):
-                return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) \
-                       <= b_tec.var_size
-            b_tec.const_size = Constraint(model.set_t, rule=init_output_constraint)
+        if tec_type == 1: # we don't need size constraints for renewable technologies
+            pass
         elif tec_type == 6: # This is defined in the generic technology constraints
             pass
         else: # in terms of input

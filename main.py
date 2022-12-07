@@ -13,10 +13,6 @@ import time
 from src.energyhub import energyhub
 from pyomo.environ import *
 
-# Define currency unit
-u.load_definitions_from_strings(['EUR = [currency]'])
-
-
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
 #
