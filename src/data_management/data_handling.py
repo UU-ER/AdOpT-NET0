@@ -167,24 +167,6 @@ class DataHandle:
 
         self.node_data[nodename]['import_limit'][carrier] = import_limit_data
 
-    def pprint(self):
-        """
-        Prints a summary of the input data (excluding climate data)
-
-        :return: None
-        """
-        for nodename in self.topology['nodes']:
-            print('----- NODE '+ nodename +' -----')
-            for inst in self.node_data[nodename]:
-                if not inst == 'climate_data':
-                    print('\t ' + inst)
-                    print('\t\t' + f"{'':<15}{'Mean':>10}{'Min':>10}{'Max':>10}")
-                    for carrier in self.topology['carriers']:
-                        print('\t\t' + f"{carrier:<15}"
-                                       f"{str(round(self.node_data[nodename][inst][carrier].mean(), 2)):>10}"
-                                       f"{str(round(self.node_data[nodename][inst][carrier].min(), 2)):>10}"
-                                       f"{str(round(self.node_data[nodename][inst][carrier].max(), 2)):>10}")
-
     def read_technology_data(self):
         """
         Writes technologies to self and fits performance functions
@@ -224,17 +206,39 @@ class DataHandle:
         :return: self at ``self.technology_data[nodename][tec]``
         :todo: Finish coding this!
         """
+        for netw in self.topology['networks']:
+
+
         for netw_car in self.topology['networks']:
             self.network_data[netw_car] = dict()
             for netw in self.topology['networks'][netw_car]:
                 network_data = {}
                 # Read in JSON files
-                # with open('./data/network_data/' + netw + '.json') as json_file:
-                    # network_data = json.load(json_file)
+                with open('./data/network_data/' + netw + '.json') as json_file:
+                    network_data = json.load(json_file)
                 network_data['distance'] = self.topology['networks'][netw_car][netw]['distance']
                 network_data['connection'] = self.topology['networks'][netw_car][netw]['connection']
 
                 self.network_data[netw_car][netw] = network_data
+
+
+    def pprint(self):
+        """
+        Prints a summary of the input data (excluding climate data)
+
+        :return: None
+        """
+        for nodename in self.topology['nodes']:
+            print('----- NODE '+ nodename +' -----')
+            for inst in self.node_data[nodename]:
+                if not inst == 'climate_data':
+                    print('\t ' + inst)
+                    print('\t\t' + f"{'':<15}{'Mean':>10}{'Min':>10}{'Max':>10}")
+                    for carrier in self.topology['carriers']:
+                        print('\t\t' + f"{carrier:<15}"
+                                       f"{str(round(self.node_data[nodename][inst][carrier].mean(), 2)):>10}"
+                                       f"{str(round(self.node_data[nodename][inst][carrier].min(), 2)):>10}"
+                                       f"{str(round(self.node_data[nodename][inst][carrier].max(), 2)):>10}")
 
     def save(self, path):
         """
