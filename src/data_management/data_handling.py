@@ -178,7 +178,7 @@ class DataHandle:
         """
         # get all used technologies
         tecs_used = dict()
-        for nodename in self.topology['nodes']:
+        for nodename in self.topology['technologies']:
             tecs_used[nodename] = self.topology['technologies'][nodename]
             self.technology_data[nodename] = dict()
             # read in data to Data Handle and fit performance functions
@@ -204,23 +204,19 @@ class DataHandle:
         the topology.
 
         :return: self at ``self.technology_data[nodename][tec]``
-        :todo: Finish coding this!
         """
         for netw in self.topology['networks']:
-
-
-        for netw_car in self.topology['networks']:
-            self.network_data[netw_car] = dict()
-            for netw in self.topology['networks'][netw_car]:
-                network_data = {}
-                # Read in JSON files
-                with open('./data/network_data/' + netw + '.json') as json_file:
-                    network_data = json.load(json_file)
-                network_data['distance'] = self.topology['networks'][netw_car][netw]['distance']
-                network_data['connection'] = self.topology['networks'][netw_car][netw]['connection']
-
+            with open('./data/network_data/' + netw + '.json') as json_file:
+                network_data = json.load(json_file)
+            netw_car = network_data['NetworkPerf']['carrier']
+            network_data['distance'] = self.topology['networks'][netw]['distance']
+            network_data['connection'] = self.topology['networks'][netw]['connection']
+            # TODO: Fit energy consumption for network
+            if netw_car in self.network_data.keys():
                 self.network_data[netw_car][netw] = network_data
-
+            else:
+                self.network_data[netw_car] = {}
+                self.network_data[netw_car][netw] = network_data
 
     def pprint(self):
         """

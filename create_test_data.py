@@ -228,17 +228,19 @@ def create_data_network():
 
     # CLIMATE DATA
     data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
+    data.read_climate_data_from_file('test_node2', r'./test/test_data/climate_data_test.p')
+
 
     # DEMAND
     demand = np.ones(len(topology['timesteps'])) * 10
-    data.read_demand_data('test_node1', 'electricity', demand)
+    data.read_demand_data('test_node2', 'electricity', demand)
 
     # PRICE DATA
-    price = np.ones(len(topology['timesteps'])) * 10000
+    price = np.ones(len(topology['timesteps'])) * 1
     data.read_import_price_data('test_node1', 'electricity', price)
 
     # IMPORT/EXPORT LIMITS
-    import_lim = np.ones(len(topology['timesteps'])) * 10
+    import_lim = np.ones(len(topology['timesteps'])) * 20
     data.read_import_limit_data('test_node1', 'electricity', import_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -248,7 +250,8 @@ def create_data_network():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-create_data_model1()
-create_data_model2()
-create_data_technology_type1_PV()
-create_data_technology_type1_WT()
+# create_data_model1()
+# create_data_model2()
+# create_data_technology_type1_PV()
+# create_data_technology_type1_WT()
+create_data_network()
