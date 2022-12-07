@@ -22,12 +22,13 @@
     "OPEX_fixed": 0.02
   },
   "TechnologyPerf": {
-    "tec_type": 3,
+    "tec_type": "CONV1",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 1,
     "input_carrier": [
       "hydrogen"
     ],
+    "input_carrier_main": "hydrogen",
     "output_carrier": [
       "heat"
     ],

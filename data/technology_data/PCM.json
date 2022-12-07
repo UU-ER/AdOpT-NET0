@@ -22,11 +22,12 @@
     "OPEX_fixed": 0.03
   },
   "TechnologyPerf": {
-    "tec_type": 6,
+    "tec_type": "STOR",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "heat"
     ],
+    "input_carrier_main": "heat",
     "output_carrier": [
       "heat"
     ],
