@@ -14,6 +14,7 @@
     "size_min": 0,
     "size_max": 10000,
     "size_is_int": 0,
+    "bidirectional": 1,
     "loss": 5E-8,
     "min_transport": 0,
     "loss2emissions": 0,

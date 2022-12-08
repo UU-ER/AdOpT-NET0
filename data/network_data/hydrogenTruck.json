@@ -13,6 +13,7 @@
     "size_min": 0,
     "size_max": 38.628,
     "size_is_int": 0,
+    "bidirectional": 0,
     "loss": 1.25E-7,
     "min_transport": 0,
     "loss2emissions": 0,
