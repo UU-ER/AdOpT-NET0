@@ -106,12 +106,36 @@ def add_nodes(model, data):
             return (0, b_node.para_export_limit[t, car])
         b_node.var_export_flow = Var(model.set_t, model.set_carriers, bounds=init_export_bounds, units=u.MW)
 
+        b_node.var_netw_inflow = Var(model.set_t, model.set_carriers, units=u.MW)
+        b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MW)
+        b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MW)
+
         # Cost at node
         b_node.var_cost = Var(units=u.EUR)
 
         # BLOCKS
         # Add technologies as blocks
         b_node = add_technologies(nodename, b_node, model, data)
+
+        # Define network constraints
+        def init_netw_inflow(const, t, car):
+            return b_node.var_netw_inflow[t,car] == sum(model.network_block[netw].var_inflow[t,car,nodename]
+                                                        for netw in model.set_networks
+                                                        if car in model.network_block[netw].set_netw_carrier)
+        b_node.const_netw_inflow = Constraint(model.set_t, model.set_carriers, rule=init_netw_inflow)
+
+        def init_netw_outflow(const, t, car):
+            return b_node.var_netw_outflow[t,car] == sum(model.network_block[netw].var_outflow[t,car,nodename]
+                                                        for netw in model.set_networks
+                                                        if car in model.network_block[netw].set_netw_carrier)
+        b_node.const_netw_outflow = Constraint(model.set_t, model.set_carriers, rule=init_netw_outflow)
+
+        def init_netw_consumption(const, t, car):
+            return b_node.var_netw_consumption[t,car] == sum(model.network_block[netw].var_consumption[t,car,nodename]
+                                                        for netw in model.set_networks
+                                                        if car in model.network_block[netw].set_consumed_carriers)
+        b_node.const_netw_consumption = Constraint(model.set_t, model.set_carriers, rule=init_netw_consumption)
+
 
         def init_cost_at_node(const):  # var_cost calculation at node per carrier
             return sum(b_node.tech_blocks[tec].var_CAPEX

@@ -1,6 +1,6 @@
 import json
-from src.model_construction.technology_performance_fitting import fit_performance
-from src.data_management.import_data import *
+import src.model_construction as mc
+import src.data_management as dm
 import pickle
 import pandas as pd
 
@@ -66,9 +66,9 @@ class DataHandle:
         :return: self at ``self.node_data[nodename]['climate_data']``
         """
         if dataset == 'JRC':
-            data = import_jrc_climate_data(lon, lat, year, alt)
+            data = dm.import_jrc_climate_data(lon, lat, year, alt)
         elif dataset == 'ERA5':
-            data = import_era5_climate_data(lon, lat, year)
+            data = dm.import_era5_climate_data(lon, lat, year)
 
         if not save_path==0:
             with open(save_path, 'wb') as handle:
@@ -189,10 +189,10 @@ class DataHandle:
                 # Fit performance function
                 if (technology_data['TechnologyPerf']['tec_type'] == 1) or \
                         (technology_data['TechnologyPerf']['tec_type'] == 6):
-                    technology_data = fit_performance(technology_data, tec=tec,
-                                         climate_data=self.node_data[nodename]['climate_data'])
+                    technology_data = mc.fit_tec_performance(technology_data, tec=tec,
+                                                          climate_data=self.node_data[nodename]['climate_data'])
                 else:
-                    technology_data = fit_performance(technology_data)
+                    technology_data = mc.fit_tec_performance(technology_data)
 
                 self.technology_data[nodename][tec] = technology_data
 
@@ -208,15 +208,10 @@ class DataHandle:
         for netw in self.topology['networks']:
             with open('./data/network_data/' + netw + '.json') as json_file:
                 network_data = json.load(json_file)
-            netw_car = network_data['NetworkPerf']['carrier']
             network_data['distance'] = self.topology['networks'][netw]['distance']
             network_data['connection'] = self.topology['networks'][netw]['connection']
-            # TODO: Fit energy consumption for network
-            if netw_car in self.network_data.keys():
-                self.network_data[netw_car][netw] = network_data
-            else:
-                self.network_data[netw_car] = {}
-                self.network_data[netw_car][netw] = network_data
+            network_data = mc.fit_netw_performance(network_data)
+            self.network_data[netw] = network_data
 
     def pprint(self):
         """

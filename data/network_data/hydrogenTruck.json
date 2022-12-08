@@ -21,25 +21,13 @@
     "energyconsumption": {
       "hydrogen": {
         "cons_model": 1,
-        "eta_flow": [
-          0,
-          0.05
-        ],
-        "eta_flowDistance": [
-          0.1,
-          0.05
-        ]
+        "k_flow": 0,
+        "k_flowDistance": 0.1
       },
       "electricity": {
         "cons_model": 1,
-        "eta_flow": [
-          0,
-          0.05
-        ],
-        "eta_flowDistance": [
-          0.1,
-          0.05
-        ]
+        "k_flow": 0.05,
+        "k_flowDistance": 0.05
       }
     }
   }

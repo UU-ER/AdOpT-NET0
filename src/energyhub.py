@@ -49,6 +49,7 @@ class energyhub:
                     raise Exception('The nodes in the technology sets do not match the node names. The node \'', node,
                           '\' does not exist.')
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
+        self.model.set_networks = Set(initialize=sets['networks'].keys())
 
         # READ IN DATA
         self.data = data
@@ -86,7 +87,9 @@ class energyhub:
 
         if objective_function == 'cost':
             def init_cost_objective(obj):
-                return sum(self.model.node_blocks[n].var_cost for n in self.model.set_nodes)
+                node_cost = sum(self.model.node_blocks[node].var_cost for node in self.model.set_nodes)
+                netw_cost = sum(self.model.network_block[netw].var_cost for netw in self.model.set_networks)
+                return node_cost + netw_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
         elif objective_function == 'emissions':
             print('to be implemented')
