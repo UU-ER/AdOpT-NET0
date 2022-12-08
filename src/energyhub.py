@@ -39,13 +39,15 @@ class energyhub:
         climate_vars = data.node_data[self.model.set_nodes[1]]['climate_data']['dataframe'].columns.tolist()
         self.model.set_climate_vars = Set(initialize=climate_vars) # climate variables
         def tec_node(set, node):  # Technologies
-            try:
-                if node in self.model.set_nodes:
-                    return sets['technologies'][node]
-            except (KeyError, ValueError):
-                print('The nodes in the technology sets do not match the node names. The node \'', node,
-                      '\' does not exist.')
-                raise
+            if node in self.model.set_nodes:
+                try:
+                    if sets['technologies']:
+                        return sets['technologies'][node]
+                    else:
+                        return Set.Skip
+                except (KeyError, ValueError):
+                    raise Exception('The nodes in the technology sets do not match the node names. The node \'', node,
+                          '\' does not exist.')
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
 
         # READ IN DATA
