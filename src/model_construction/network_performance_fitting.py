@@ -30,21 +30,21 @@ def fit_netw_performance(network, climate_data=None):
             EnergyConsumptionFit[car] = {}
             if energycons[car]['cons_model'] == 1:
                 EnergyConsumptionFit[car]['send'] = {}
-                EnergyConsumptionFit[car]['receive'] = {}
                 EnergyConsumptionFit[car]['send'] = energycons[car]
-                EnergyConsumptionFit[car].pop('cons_model')
+                EnergyConsumptionFit[car]['send'].pop('cons_model')
                 # TODO: OptionaL implmementation: receiving energy consumption
+                EnergyConsumptionFit[car]['receive'] = {}
                 EnergyConsumptionFit[car]['receive']['k_flow'] = 0
                 EnergyConsumptionFit[car]['receive']['k_flowDistance'] = 0
             elif energycons[car]['cons_model'] == 2:
                 temp = energycons[car]
                 EnergyConsumptionFit[car]['send'] = {}
-                EnergyConsumptionFit[car]['receive'] = {}
                 EnergyConsumptionFit[car]['send']['k_flow'] = round(temp['c'] * temp['T'] / temp['eta'] / \
                                                                     temp['LHV'] * ((temp['p'] / 30) ** \
                                                                    ((temp['gam'] - 1) / temp['gam']) - 1),4)
                 EnergyConsumptionFit[car]['send']['k_flowDistance'] = 0
                 # TODO: OptionaL implmementation: receiving energy consumption
+                EnergyConsumptionFit[car]['receive'] = {}
                 EnergyConsumptionFit[car]['receive']['k_flow'] = 0
                 EnergyConsumptionFit[car]['receive']['k_flowDistance'] = 0
 

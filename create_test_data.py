@@ -58,7 +58,6 @@ def create_data_model1():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-
 def create_data_model2():
     """
     Creates dataset for a model with two nodes.
@@ -217,18 +216,18 @@ def create_data_network():
                                           end=str(modeled_year) + '-01-01 01:00', freq='1h')
 
     topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
+    topology['carriers'] = ['electricity', 'hydrogen']
     topology['nodes'] = ['test_node1', 'test_node2']
     topology['technologies'] = {}
 
     topology['networks'] = {}
-    topology['networks']['electricityTest'] = {}
+    topology['networks']['hydrogenTest'] = {}
     network_data = dm.create_empty_network_data(topology['nodes'])
     network_data['distance'].at['test_node1', 'test_node2'] = 1
     network_data['distance'].at['test_node2', 'test_node1'] = 1
     network_data['connection'].at['test_node1', 'test_node2'] = 1
     network_data['connection'].at['test_node2', 'test_node1'] = 1
-    topology['networks']['electricityTest'] = network_data
+    topology['networks']['hydrogenTest'] = network_data
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -240,23 +239,33 @@ def create_data_network():
     # DEMAND
     demand = np.zeros(len(topology['timesteps']))
     demand[1] = 10
-    data.read_demand_data('test_node1', 'electricity', demand)
+    data.read_demand_data('test_node1', 'hydrogen', demand)
 
     demand = np.zeros(len(topology['timesteps']))
     demand[0] = 10
-    data.read_demand_data('test_node2', 'electricity', demand)
+    data.read_demand_data('test_node2', 'hydrogen', demand)
 
     # PRICE DATA
     price = np.ones(len(topology['timesteps'])) * 0
+    data.read_import_price_data('test_node1', 'hydrogen', price)
+    data.read_import_price_data('test_node2', 'hydrogen', price)
+    price = np.ones(len(topology['timesteps'])) * 10
     data.read_import_price_data('test_node1', 'electricity', price)
+    data.read_import_price_data('test_node2', 'electricity', price)
 
     # IMPORT/EXPORT LIMITS
     import_lim = np.zeros(len(topology['timesteps']))
-    import_lim[0] = 50
-    data.read_import_limit_data('test_node1', 'electricity', import_lim)
+    import_lim[0] = 100
+    data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
 
     import_lim = np.zeros(len(topology['timesteps']))
-    import_lim[1] = 50
+    import_lim[1] = 100
+    data.read_import_limit_data('test_node2', 'hydrogen', import_lim)
+
+    import_lim = np.ones(len(topology['timesteps'])) * 1000
+    data.read_import_limit_data('test_node1', 'electricity', import_lim)
+
+    import_lim = np.ones(len(topology['timesteps'])) * 1000
     data.read_import_limit_data('test_node2', 'electricity', import_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -274,17 +283,3 @@ create_data_network()
 
 
 
-
-
-
-# assert solution.solver.termination_condition == 'optimal'
-# assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
-# assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
-#
-# for t in energyhub.model.set_t:
-#     energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
-# solver = SolverFactory('gurobi')
-# solution = solver.solve(energyhub.model, tee=True)
-# assert solution.solver.termination_condition == 'optimal'
-# assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
-# assert 0 == energyhub.model.objective()

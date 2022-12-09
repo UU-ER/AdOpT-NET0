@@ -111,7 +111,7 @@ def add_networks(model, data):
         # region DECISION VARIABLES
         b_netw.var_inflow = Var(model.set_t, b_netw.set_netw_carrier, model.set_nodes, domain=NonNegativeReals)
         b_netw.var_outflow = Var(model.set_t, b_netw.set_netw_carrier, model.set_nodes, domain=NonNegativeReals)
-        b_netw.var_consumption = Var(model.set_t, b_netw.set_consumed_carriers, model.set_nodes,
+        b_netw.var_consumption = Var(model.set_t, model.set_carriers, model.set_nodes,
                                          domain=NonNegativeReals)
 
         # Capex/Opex
@@ -297,152 +297,18 @@ def add_networks(model, data):
         # Establish energy consumption for each node and this network
         def init_network_consumption(const, t, car, node):
             if netw_data['EnergyConsumption']:
-                return b_netw.var_consumption[t, car, node] == \
-                       sum(b_netw.arc_block[node, to_node].var_consumption_send[t, car]
-                           for to_node in b_netw.set_sends_to[node]) + \
-                       sum(b_netw.arc_block[from_node, node].var_consumption_receive[t, car]
-                           for from_node in b_netw.set_receives_from[node])
+                if car in b_netw.set_consumed_carriers:
+                    return b_netw.var_consumption[t, car, node] == \
+                           sum(b_netw.arc_block[node, to_node].var_consumption_send[t, car]
+                               for to_node in b_netw.set_sends_to[node]) + \
+                           sum(b_netw.arc_block[from_node, node].var_consumption_receive[t, car]
+                               for from_node in b_netw.set_receives_from[node])
+                else:
+                    return b_netw.var_consumption[t, car, node] == 0
             else:
                 return b_netw.var_consumption[t, car, node] == 0
-        b_netw.const_network_consumption = Constraint(model.set_t, b_netw.set_consumed_carriers, model.set_nodes,
+        b_netw.const_netw_consumption = Constraint(model.set_t, model.set_carriers, model.set_nodes,
                                          rule=init_network_consumption)
-
         return b_netw
     model.network_block = Block(model.set_networks, rule=init_network)
     return model
-    #
-    #     # sum up costs and inflows/outflows for all networks for respective carrier
-    #     b_netw_car.network_block = Block(b_netw_car.set_networks, rule=init_network)
-    #
-    #     def init_netw_car_cost(const):
-    #         return b_netw_car.var_cost == sum(b_netw_car.network_block[netw].var_CAPEX +
-    #                                           b_netw_car.network_block[netw].var_OPEX_fixed +
-    #                                           b_netw_car.network_block[netw].var_OPEX_variable
-    #                                           for netw in b_netw_car.set_networks)
-    #
-    #     b_netw_car.const_cost = Constraint(rule=init_netw_car_cost)
-    #
-    #     def init_netw_car_totalInflowAtNode(const, t, node):
-    #         return b_netw_car.var_inflow[t, node] == \
-    #                sum(b_netw_car.network_block[netw].var_inflow[t, node] for netw in b_netw_car.set_networks)
-    #
-    #     b_netw_car.const_totalInflowAtNode = Constraint(model.set_t, model.set_nodes,
-    #                                                     rule=init_netw_car_totalInflowAtNode)
-    #
-    #     def init_netw_car_totalOutflowAtNode(const, t, node):
-    #         return b_netw_car.var_outflow[t, node] == \
-    #                sum(b_netw_car.network_block[netw].var_outflow[t, node] for netw in b_netw_car.set_networks)
-    #
-    #     b_netw_car.const_totalOutflowAtNode = Constraint(model.set_t, model.set_nodes,
-    #                                                      rule=init_netw_car_totalOutflowAtNode)
-    #
-    #     return b_netw_car
-    #
-    # model.network_carrier_blocks = Block(model.set_network_carriers, rule=network_carrier_rule)
-    # return model
-
-    #
-    #
-
-    #
-    #         # Define Variables
-    #         b_netw.var_inflow = Var(model.set_t, model.set_nodes, domain=NonNegativeReals)
-    #         b_netw.var_outflow = Var(model.set_t, model.set_nodes, domain=NonNegativeReals)
-    #
-    #         # Define each arc
-    #         def arc_rule(b_arc):
-    #             b_arc.var_flow = Var(model.set_t, domain=NonNegativeReals)
-    #             b_arc.var_losses = Var(model.set_t, domain=NonNegativeReals)
-    #             def flowlosses_init(const,t):
-    #                 return b_arc.var_losses[t] == b_arc.var_flow[t] * (1-eta)
-    #             b_arc.const_flowlosses = Constraint(model.set_t, rule=flowlosses_init)
-    #         b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_rule)
-    #
-    #         # Define flow balance at each node
-    #         def node_inflow_init(const, t, node):
-    #             if b_netw.set_receives_from[node] == {}:
-    #                 return b_netw.var_inflow[t, node] == 0
-    #             else:
-    #                 return b_netw.var_inflow[t, node] == \
-    #                         sum(b_netw.arc_block[i, node].var_flow[t] for i in b_netw.set_receives_from[node]) - \
-    #                         sum(b_netw.arc_block[i, node].var_losses[t] for i in b_netw.set_receives_from[node])
-    #         b_netw.cons_node_inflow = Constraint(model.set_t, model.set_nodes, rule=node_inflow_init)
-    #
-    #         def node_outflow_init(const, t, node):
-    #             if b_netw.set_sends_to[node] == {}:
-    #                 return b_netw.var_outflow[t, node] == 0
-    #             else:
-    #                 return b_netw.var_outflow[t, node] == \
-    #                         sum(b_netw.arc_block[node, i].var_flow[t] for i in b_netw.set_sends_to[node])
-    #         b_netw.cons_node_outflow = Constraint(model.set_t, model.set_nodes, rule=node_outflow_init)
-    #
-    #         b_netw.var_size = Var(domain=NonNegativeReals, units=u.MW)
-    #         b_netw.var_CAPEX = Var(units=u.EUR)
-    #
-    #
-    #         b_netw = Block(b_netw_car.set_networks, rule=network_rule)
-    #         b_netw.pprint()
-    #         return b_netw
-    #
-    #     b_netw_car.network_block = Block(b_netw_car.set_networks, rule=network_rule)
-    #     return b_netw_car
-    # model.network_carrier_blocks = Block(model.set_network_carriers, rule=network_carrier_rule)
-    #
-    # return model
-    #
-    #
-    # # Get bidirectional network flows:
-    # # for from_node in connection:  # loops through table headers
-    # #     for to_node in connection[from_node].index:
-    # #         if connection.at[from_node, to_node] == connection.at[to_node, from_node]:
-    # #             connection.at[from_node, to_node] = 2
-    # #             connection.at[to_node, from_node] = 0
-    #
-    # # # Generate Sets for bidirectional arcs:
-    # # def arcs_set_init(set):
-    # #     for from_node in connection: # loops through table headers
-    # #         for to_node in connection[from_node].index:
-    # #             if connection.at[from_node, to_node] ==2:
-    # #                 yield [from_node, to_node]
-    # # model.set_bi_arcs = Set(initialize=arcs_set_init)
-    #
-    # # Generate Sets for unidirectional arcs:
-    # def arcs_set_init(set):
-    #     for from_node in connection: # loops through table headers
-    #         for to_node in connection[from_node].index:
-    #             if connection.at[from_node, to_node] == 1:
-    #                 yield [from_node, to_node]
-    # b_netw.set_arcs = Set(initialize=arcs_set_init)
-    #
-    # def nodesIn_init(m, node):
-    #     for i, j in b_netw.set_arcs:
-    #         if j == node:
-    #             yield i
-    # b_netw.set_nodesIn = Set(model.Nodes, initialize=nodesIn_init)
-
-    #
-    # # Create a set for each node, that specifies connection to other nodes (for inflow and outflow
-    # def node_inflow_set(set, node):
-    #     for i in connection:
-    #         print(connection[i])
-    #
-    #     a=1
-    # b_netw.node_inflow = Set(model.set_nodes, initialize=node_inflow_set)
-
-    # def network_block_rule(b_netw):
-    #
-    # # region Get options from data
-    # netw_data = data.technology_data[nodename][tec]
-    # tec_type = netw_data['TechnologyPerf']['tec_type']
-    # capex_model = netw_data['Economics']['CAPEX_model']
-    # size_is_integer = netw_data['TechnologyPerf']['size_is_int']
-    # # endregion
-    #
-    #
-    # # define subsets of arcs
-    # def initialize_arc_set(set):
-    #
-    # model.netw_blocks = Block(model.set_nodes, rule=node_block_rule)
-    #
-    #
-    # a = 1

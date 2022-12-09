@@ -136,7 +136,6 @@ def add_nodes(model, data):
                                                         if car in model.network_block[netw].set_consumed_carriers)
         b_node.const_netw_consumption = Constraint(model.set_t, model.set_carriers, rule=init_netw_consumption)
 
-
         def init_cost_at_node(const):  # var_cost calculation at node per carrier
             return sum(b_node.tech_blocks[tec].var_CAPEX
                        for tec in b_node.set_tecsAtNode) + \
