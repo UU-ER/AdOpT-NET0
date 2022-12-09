@@ -186,6 +186,8 @@ def perform_fitting_tec_CONV1(tec_data):
 
     fitting = dict()
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
+        fitting['alpha1'] = dict()
+        fitting['alpha2'] = dict()
         X = performance_data['in']
         if performance_function_type == 2:
             X = sm.add_constant(X)
@@ -193,8 +195,11 @@ def perform_fitting_tec_CONV1(tec_data):
         linmodel = sm.OLS(y, X)
         linfit = linmodel.fit()
         coeff = linfit.params
-        fitting['alpha1'] = round(coeff[1], 5)
-        fitting['alpha2'] = round(coeff[0], 5)
+        if performance_function_type == 1:
+            fitting['alpha1'] = round(coeff[0], 5)
+        if performance_function_type == 2:
+            fitting['alpha1'] = round(coeff[1], 5)
+            fitting['alpha2'] = round(coeff[0], 5)
     elif performance_function_type == 3:  # piecewise performance function
         X = performance_data['in']
         y = performance_data['out']
@@ -217,7 +222,6 @@ def perform_fitting_tec_CONV2(tec_data):
 
     fitting = dict()
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        #TODO: fitting instead of parameters
         fitting['alpha1'] = dict()
         fitting['alpha2'] = dict()
         X = performance_data['in']
@@ -228,9 +232,11 @@ def perform_fitting_tec_CONV2(tec_data):
             linmodel = sm.OLS(y, X)
             linfit = linmodel.fit()
             coeff = linfit.params
+        if performance_function_type == 1:
             fitting['alpha1'][c] = round(coeff[0], 5)
         if performance_function_type == 2:
-            fitting['alpha2'][c] = round(coeff[1], 5)
+            fitting['alpha1'][c] = round(coeff[1], 5)
+            fitting['alpha2'][c] = round(coeff[0], 5)
     elif performance_function_type == 3:  # piecewise performance function
         X = performance_data['in']
         y = performance_data['out']
@@ -296,10 +302,10 @@ def fit_piecewise_function(X, Y, nr_seg):
     alpha1 = []
     alpha2 = []
     for seg in range(0, nr_seg):
-        al2 = (py[seg + 1] - py[seg]) / (px[seg + 1] - px[seg]) # Slope
-        al1 = py[seg] - (py[seg + 1] - py[seg]) / (px[seg + 1] - px[seg]) * px[seg] # Intercept
-        alpha2.append(al2)
+        al1 = (py[seg + 1] - py[seg]) / (px[seg + 1] - px[seg]) # Slope
+        al2 = py[seg] - (py[seg + 1] - py[seg]) / (px[seg + 1] - px[seg]) * px[seg] # Intercept
         alpha1.append(al1)
+        alpha2.append(al2)
 
     fitting['alpha1'] = alpha1
     fitting['alpha2'] = alpha2

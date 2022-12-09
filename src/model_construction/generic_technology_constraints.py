@@ -72,7 +72,7 @@ def constraints_tec_RES(model, b_tec, tec_data):
     return b_tec
 
 def constraints_tec_CONV1(model, b_tec, tec_data):
-    """ Adds constraints for technology type 2 (n inputs -> n output, fuel and output substitution)
+    """ Adds constraints for conversion technology type 1 (n inputs -> n output, fuel and output substitution)
     :param model: full model
     :param b_tec: technology block
     :param tec_data: technology data
@@ -80,10 +80,16 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
     """
     tec_fit = tec_data['fit']
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+    # Get performance parameters
+    alpha1 = tec_fit['alpha1']
+    if performance_function_type == 2:
+        alpha2 = tec_fit['alpha2']
     if 'min_part_load' in tec_fit:
         min_part_load = tec_fit['min_part_load']
     else:
         min_part_load = 0
+    if performance_function_type == 3:
+        bp_x = tec_fit['bp_x']
 
     # Formulate Constraints for each performance function type
     # linear through origin
@@ -118,8 +124,8 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
                 # input-output relation
                 def init_input_output_on(con):
                     return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) == \
-                           alpha2 * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
-                           alpha1
+                           alpha1 * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
+                           alpha2
                 dis.const_input_output_on = Constraint(rule=init_input_output_on)
 
                 # min part load relation
@@ -162,8 +168,8 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
 
                 def init_output_on(const):
                     return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) == \
-                           alpha2[ind - 1] * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
-                           alpha1[ind - 1]
+                           alpha1[ind - 1] * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
+                           alpha2[ind - 1]
                 dis.const_input_output_on = Constraint(rule=init_output_on)
 
         b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
@@ -221,8 +227,8 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
                 # input-output relation
                 def init_input_output_on(const, car_output):
                     return b_tec.var_output[t, car_output] == \
-                           alpha2[car_output] * sum(b_tec.var_input[t, car_input]
-                                                    for car_input in b_tec.set_input_carriers) + alpha1[car_output]
+                           alpha1[car_output] * sum(b_tec.var_input[t, car_input]
+                                                    for car_input in b_tec.set_input_carriers) + alpha2[car_output]
                 dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_input_output_on)
 
                 # min part load relation
@@ -265,9 +271,9 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
 
                 def init_output_on(const, car_output):
                     return b_tec.var_output[t, car_output] == \
-                           alpha2[car_output][ind - 1] * sum(b_tec.var_input[t, car_input]
+                           alpha1[car_output][ind - 1] * sum(b_tec.var_input[t, car_input]
                                                              for car_input in b_tec.set_input_carriers) + \
-                           alpha1[car_output][ind - 1]
+                           alpha2[car_output][ind - 1]
             dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
 
         b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
