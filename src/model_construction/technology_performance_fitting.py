@@ -179,7 +179,7 @@ def perform_fitting_tec_CONV1(tec_data):
     """
     performance_data = tec_data['performance']
     performance_function_type = tec_data['performance_function_type']
-    if performance_function_type == 3:
+    if 'nr_segments_piecewise' in performance_data:
         nr_seg = tec_data['nr_segments_piecewise']
     else:
         nr_seg = 3
@@ -215,33 +215,32 @@ def perform_fitting_tec_CONV2(tec_data):
     """
     performance_data = tec_data['performance']
     performance_function_type = tec_data['performance_function_type']
-    if performance_function_type == 3:
-        nr_seg = tec_data['nr_segments_piecewise']
+    if 'nr_segments_piecewise' in performance_data:
+        nr_seg = performance_data['nr_segments_piecewise']
     else:
-        nr_seg = 3
+        nr_seg = 2
 
     fitting = dict()
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        fitting['alpha1'] = dict()
-        fitting['alpha2'] = dict()
         X = performance_data['in']
         if performance_function_type == 2:
             X = sm.add_constant(X)
         for c in performance_data['out']:
+            fitting[c] = dict()
             y = performance_data['out'][c]
             linmodel = sm.OLS(y, X)
             linfit = linmodel.fit()
             coeff = linfit.params
         if performance_function_type == 1:
-            fitting['alpha1'][c] = round(coeff[0], 5)
+            fitting[c]['alpha1'] = round(coeff[0], 5)
         if performance_function_type == 2:
-            fitting['alpha1'][c] = round(coeff[1], 5)
-            fitting['alpha2'][c] = round(coeff[0], 5)
+            fitting[c]['alpha1'] = round(coeff[1], 5)
+            fitting[c]['alpha2'] = round(coeff[0], 5)
     elif performance_function_type == 3:  # piecewise performance function
-        X = performance_data['in']
-        y = performance_data['out']
-        fitting = fit_piecewise_function(X, y, nr_seg)
-        # TODO: This is currently only coded for a single output
+        X = np.array(performance_data['in'])
+        for c in performance_data['out']:
+            y = np.array(performance_data['out'][c])
+            fitting[c] = fit_piecewise_function(X, y, nr_seg)
     return fitting
 
 # def perform_fitting_tec_CONV3(tec_data):
@@ -262,8 +261,8 @@ def fit_piecewise_function(X, Y, nr_seg):
     """
     Returns fitted parameters of a piecewise defined function
     TODO: Code this for multidimensional X data
-    :param X: x-values of data
-    :param Y: y-values of data
+    :param np.array X: x-values of data
+    :param np.array Y: y-values of data
     :param nr_seg: number of segments on piecewise defined function
     :return: x and y breakpoints, slope and intercept parameters of piecewise defined function
     """
@@ -276,8 +275,8 @@ def fit_piecewise_function(X, Y, nr_seg):
         :param count: how many segments
         :return: x and y coordinates of piecewise defined function
         """
-        xmin = X.min()
-        xmax = X.max()
+        xmin = min(X)
+        xmax = max(X)
         seg = np.full(count - 1, (xmax - xmin) / count)
         px_init = np.r_[np.r_[xmin, seg].cumsum(), xmax]
         py_init = np.array([Y[np.abs(X - x) < (xmax - xmin) * 0.01].mean() for x in px_init])

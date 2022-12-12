@@ -25,7 +25,7 @@ topology['timestep_length_h'] = 1
 topology['carriers'] = ['electricity', 'heat', 'gas']
 topology['nodes'] = ['onshore', 'offshore']
 topology['technologies'] = {}
-topology['technologies']['onshore'] = ['PV', 'Furnace_NG', 'battery']
+topology['technologies']['onshore'] = ['PV', 'testPWA', 'battery']
 topology['technologies']['offshore'] = ['WT_OS_11000']
 
 topology['networks'] = {}

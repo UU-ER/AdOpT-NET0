@@ -184,16 +184,21 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
 def constraints_tec_CONV2(model, b_tec, tec_data):
     tec_fit = tec_data['fit']
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+
+    alpha1 = {}
+    alpha2 = {}
     # Get performance parameters
-    alpha1 = tec_fit['alpha1']
-    if performance_function_type == 2:
-        alpha2 = tec_fit['alpha2']
-    if 'min_part_load' in tec_fit:
-        min_part_load = tec_fit['min_part_load']
-    else:
-        min_part_load = 0
-    if performance_function_type == 3:
-        bp_x = tec_fit['bp_x']
+    for c in tec_data['TechnologyPerf']['performance']['out']:
+        alpha1[c] = tec_fit[c]['alpha1']
+        if performance_function_type == 2:
+            alpha2[c] = tec_fit[c]['alpha2']
+        if 'min_part_load' in tec_fit:
+            min_part_load = tec_fit['min_part_load']
+        else:
+            min_part_load = 0
+        if performance_function_type == 3:
+            bp_x = tec_fit[c]['bp_x']
+            alpha2[c] = tec_fit[c]['alpha2']
 
     # Formulate Constraints for each performance function type
     # linear through origin
@@ -274,7 +279,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
                            alpha1[car_output][ind - 1] * sum(b_tec.var_input[t, car_input]
                                                              for car_input in b_tec.set_input_carriers) + \
                            alpha2[car_output][ind - 1]
-            dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
+                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
 
         b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
 
