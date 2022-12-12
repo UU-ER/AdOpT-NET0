@@ -1,6 +1,6 @@
 import json
-from src.model_construction.technology_performance_fitting import fit_performance
-from src.data_management.import_data import *
+import src.model_construction as mc
+import src.data_management as dm
 import pickle
 import pandas as pd
 
@@ -66,9 +66,9 @@ class DataHandle:
         :return: self at ``self.node_data[nodename]['climate_data']``
         """
         if dataset == 'JRC':
-            data = import_jrc_climate_data(lon, lat, year, alt)
+            data = dm.import_jrc_climate_data(lon, lat, year, alt)
         elif dataset == 'ERA5':
-            data = import_era5_climate_data(lon, lat, year)
+            data = dm.import_era5_climate_data(lon, lat, year)
 
         if not save_path==0:
             with open(save_path, 'wb') as handle:
@@ -167,6 +167,52 @@ class DataHandle:
 
         self.node_data[nodename]['import_limit'][carrier] = import_limit_data
 
+    def read_technology_data(self):
+        """
+        Writes technologies to self and fits performance functions
+
+        Reads in technology data from JSON files located at ``./data/technology_data`` for all technologies specified in \
+        the topology.
+
+        :return: self at ``self.technology_data[nodename][tec]``
+        """
+        # get all used technologies
+        tecs_used = dict()
+        for nodename in self.topology['technologies']:
+            tecs_used[nodename] = self.topology['technologies'][nodename]
+            self.technology_data[nodename] = dict()
+            # read in data to Data Handle and fit performance functions
+            for tec in tecs_used[nodename]:
+                # Read in JSON files
+                with open('./data/technology_data/' + tec + '.json') as json_file:
+                    technology_data = json.load(json_file)
+                # Fit performance function
+                if (technology_data['TechnologyPerf']['tec_type'] == 1) or \
+                        (technology_data['TechnologyPerf']['tec_type'] == 6):
+                    technology_data = mc.fit_tec_performance(technology_data, tec=tec,
+                                                          climate_data=self.node_data[nodename]['climate_data'])
+                else:
+                    technology_data = mc.fit_tec_performance(technology_data)
+
+                self.technology_data[nodename][tec] = technology_data
+
+    def read_network_data(self):
+        """
+        Writes network to self and fits performance functions
+
+        Reads in network data from JSON files located at ``./data/network_data`` for all technologies specified in \
+        the topology.
+
+        :return: self at ``self.technology_data[nodename][tec]``
+        """
+        for netw in self.topology['networks']:
+            with open('./data/network_data/' + netw + '.json') as json_file:
+                network_data = json.load(json_file)
+            network_data['distance'] = self.topology['networks'][netw]['distance']
+            network_data['connection'] = self.topology['networks'][netw]['connection']
+            network_data = mc.fit_netw_performance(network_data)
+            self.network_data[netw] = network_data
+
     def pprint(self):
         """
         Prints a summary of the input data (excluding climate data)
@@ -184,57 +230,6 @@ class DataHandle:
                                        f"{str(round(self.node_data[nodename][inst][carrier].mean(), 2)):>10}"
                                        f"{str(round(self.node_data[nodename][inst][carrier].min(), 2)):>10}"
                                        f"{str(round(self.node_data[nodename][inst][carrier].max(), 2)):>10}")
-
-    def read_technology_data(self):
-        """
-        Writes technologies to self and fits performance functions
-
-        Reads in technology data from JSON files located at ``./data/technology_data`` for all technologies specified in \
-        the topology.
-
-        :return: self at ``self.technology_data[nodename][tec]``
-        """
-        # get all used technologies
-        tecs_used = dict()
-        for nodename in self.topology['nodes']:
-            tecs_used[nodename] = self.topology['technologies'][nodename]
-            self.technology_data[nodename] = dict()
-            # read in data to Data Handle and fit performance functions
-            for tec in tecs_used[nodename]:
-                # Read in JSON files
-                with open('./data/technology_data/' + tec + '.json') as json_file:
-                    technology_data = json.load(json_file)
-                # Fit performance function
-                if (technology_data['TechnologyPerf']['tec_type'] == 1) or \
-                        (technology_data['TechnologyPerf']['tec_type'] == 6):
-                    technology_data = fit_performance(technology_data, tec=tec,
-                                         climate_data=self.node_data[nodename]['climate_data'])
-                else:
-                    technology_data = fit_performance(technology_data)
-
-                self.technology_data[nodename][tec] = technology_data
-
-    def read_network_data(self):
-        """
-        Writes network to self and fits performance functions
-
-        Reads in network data from JSON files located at ``./data/network_data`` for all technologies specified in \
-        the topology.
-
-        :return: self at ``self.technology_data[nodename][tec]``
-        :todo: Finish coding this!
-        """
-        for netw_car in self.topology['networks']:
-            self.network_data[netw_car] = dict()
-            for netw in self.topology['networks'][netw_car]:
-                network_data = {}
-                # Read in JSON files
-                # with open('./data/network_data/' + netw + '.json') as json_file:
-                    # network_data = json.load(json_file)
-                network_data['distance'] = self.topology['networks'][netw_car][netw]['distance']
-                network_data['connection'] = self.topology['networks'][netw_car][netw]['connection']
-
-                self.network_data[netw_car][netw] = network_data
 
     def save(self, path):
         """

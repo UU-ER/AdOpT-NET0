@@ -9,7 +9,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 
-def fit_performance(technology, tec=None, climate_data=None):
+def fit_tec_performance(technology, tec=None, climate_data=None):
     """
     Fits the performance parameters for a technology.
     :param technology: Dict read from json files with performance data and options for performance fits
