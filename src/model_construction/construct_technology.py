@@ -1,5 +1,7 @@
 import numbers
 from src.model_construction.generic_technology_constraints import *
+import src.config_model as m_config
+
 
 def add_technologies(nodename, b_node, model, data):
     # TODO: define main carrier in tech data
@@ -131,6 +133,7 @@ def add_technologies(nodename, b_node, model, data):
         if capex_model == 1:
             b_tec.const_CAPEX = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX == b_tec.var_CAPEX)
         elif capex_model == 2:
+            m_config.presolve.big_m_transformation_required = 1
             # TODO Implement link between bps and data
             b_tec.const_CAPEX = Piecewise(b_tec.var_CAPEX, b_tec.var_size,
                                           pw_pts=bp_x,

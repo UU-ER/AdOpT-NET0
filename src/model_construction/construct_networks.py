@@ -1,8 +1,7 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
 from pyomo.gdp import *
-import numpy as np
-import numbers
+import src.config_model as m_config
 
 
 def add_networks(model, data):
@@ -368,6 +367,7 @@ def add_networks(model, data):
         # endregion
 
         if netw_data['NetworkPerf']['bidirectional'] == 1:
+            m_config.presolve.big_m_transformation_required = 1
             """
             bi-directional
                 size(from, to) = size(to, from)
