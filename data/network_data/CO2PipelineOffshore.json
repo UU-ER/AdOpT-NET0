@@ -1,0 +1,33 @@
+{
+  "Name": "CO2PipelineOffshore",
+  "Economics": {
+    "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "gamma1": 1.37405,
+    "gamma2": 1000,
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0
+  },
+  "NetworkPerf": {
+    "carrier": "CO2",
+    "size_min": 0,
+    "size_max": 10000,
+    "size_is_int": 0,
+    "bidirectional": 0,
+    "loss": 1.25E-7,
+    "min_transport": 0,
+    "loss2emissions": 1,
+    "emissionfactor": 0,
+    "energyconsumption": {
+      "electricity": {
+        "cons_model": 2,
+        "p": 500,
+        "c": 0.000234,
+        "T": 300,
+        "eta": 0.65,
+        "gam": 1.289,
+        "LHV": 0.001
+      }
+    }
+  }
+}

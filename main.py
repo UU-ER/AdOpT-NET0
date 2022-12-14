@@ -29,13 +29,13 @@ topology['technologies']['onshore'] = ['PV', 'testPWA', 'battery']
 topology['technologies']['offshore'] = ['WT_OS_11000']
 
 topology['networks'] = {}
-topology['networks']['electricity'] = {}
+topology['networks']['electricitySimple'] = {}
 network_data = dm.create_empty_network_data(topology['nodes'])
 network_data['distance'].at['onshore', 'offshore'] = 100
 network_data['distance'].at['offshore', 'onshore'] = 100
 network_data['connection'].at['onshore', 'offshore'] = 1
 network_data['connection'].at['offshore', 'onshore'] = 1
-topology['networks']['electricity']['AC'] = network_data
+topology['networks']['electricitySimple'] = network_data
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)
