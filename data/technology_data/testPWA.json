@@ -20,15 +20,17 @@
     "OPEX_fixed": 0.09
   },
   "TechnologyPerf": {
-    "tec_type": "CONV2",
+    "tec_type": "CONV3",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 3,
     "input_carrier": [
-      "gas"
+      "gas",
+      "electricity"
     ],
     "input_carrier_main": "gas",
     "output_carrier": [
-      "heat"
+      "heat",
+      "electricity"
     ],
     "size_min": [
       0,
@@ -59,6 +61,10 @@
         ]
       },
       "nr_segments_piecewise": 2
+    },
+    "input_ratios": {
+      "gas": 1,
+      "electricity": 0.2
     }
   }
 }

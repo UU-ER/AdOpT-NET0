@@ -80,6 +80,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
     """
     tec_fit = tec_data['fit']
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+
     # Get performance parameters
     alpha1 = tec_fit['alpha1']
     if performance_function_type == 2:
@@ -179,6 +180,12 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
+    # size constraint based on sum of inputs
+    def init_size_constraint(const, t):
+        return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) \
+               <= b_tec.var_size
+    b_tec.const_size = Constraint(model.set_t, rule=init_size_constraint)
+
     return b_tec
 
 def constraints_tec_CONV2(model, b_tec, tec_data):
@@ -197,6 +204,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
         else:
             min_part_load = 0
         if performance_function_type == 3:
+            #TODO: check if there is a better way to use bp_x from only the first carrier (always the same?)
             bp_x = tec_fit[c]['bp_x']
             alpha2[c] = tec_fit[c]['alpha2']
 
@@ -213,7 +221,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
     elif performance_function_type == 2:
         if min_part_load == 0:
             warnings.warn(
-                'Having performance_function_type = 2 with no part-load usually makes no sense.')
+                'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + tec)
             # TODO: Switch to performance_function_type 1!
 
         # define disjuncts
@@ -288,10 +296,150 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
+    # size constraint based on sum of inputs
+    def init_size_constraint(const, t):
+        return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) \
+               <= b_tec.var_size
+
+    b_tec.const_size = Constraint(model.set_t, rule=init_size_constraint)
+
     return b_tec
 
 def constraints_tec_CONV3(model, b_tec, tec_data):
-    #performance
+    tec_fit = tec_data['fit']
+    performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+    performance_data = tec_data['TechnologyPerf']
+
+    alpha1 = {}
+    alpha2 = {}
+    phi = {}
+    # Get performance parameters
+    for c in performance_data['performance']['out']:
+        alpha1[c] = tec_fit[c]['alpha1']
+        if performance_function_type == 2:
+            alpha2[c] = tec_fit[c]['alpha2']
+        if 'min_part_load' in tec_fit:
+            min_part_load = tec_fit['min_part_load']
+        else:
+            min_part_load = 0
+        if performance_function_type == 3:
+            # TODO: check if there is a better way to use bp_x from only the first carrier
+            bp_x = tec_fit[c]['bp_x']
+            alpha2[c] = tec_fit[c]['alpha2']
+
+    if 'input_ratios' in performance_data:
+        main_car = performance_data['input_carrier_main']
+        for c in performance_data['input_ratios']:
+            phi[c] = performance_data['input_ratios'][c]
+    else:
+        #TODO: make error message?
+        warnings.warn(
+            'Using CONV3 without input ratios makes no sense. Error occured for ' + tec)
+
+
+
+    # Formulate Constraints for each performance function type
+    # linear through origin
+    if performance_function_type == 1:
+        def init_input_output(const, car_output, t):
+            return b_tec.var_output[t, car_output] == \
+                   alpha1[car_output] * b_tec.var_input[t, main_car]
+
+        b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
+                                              rule=init_input_output)
+
+        def init_input_input(const, car_input, t):
+            return b_tec.var_input[t, car_input] == phi[car_input] * b_tec.var_input[t, main_car]
+
+        b_tec.const_input_input = Constraint(model.set_t, b_tec.set_input_carriers,
+                                              rule=init_input_input)
+
+    elif performance_function_type == 2:
+        if min_part_load == 0:
+            warnings.warn(
+                'Having performance_function_type = 2 with no part-load usually makes no sense.')
+            # TODO: Switch to performance_function_type 1!
+
+        # define disjuncts
+        s_indicators = range(0, 2)
+
+        def init_input_output(dis, t, ind):
+            if ind == 0:  # technology off
+                def init_input_off(const, car_input):
+                    return b_tec.var_input[t, car_input] == 0
+                dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                def init_output_off(const, car_output):
+                    return b_tec.var_output[t, car_output] == 0
+                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+            else:  # technology on
+                # input-output relation
+                def init_input_output_on(const, car_output):
+                    return b_tec.var_output[t, car_output] == \
+                           alpha1[car_output] * b_tec.var_input[t, main_car] + alpha2[car_output]
+                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_input_output_on)
+
+                # main input-input relation
+                def init_input_input_on(const, car_input):
+                    return b_tec.var_input[t, car_input] == phi[car_input] * b_tec.var_input[t, main_car]
+
+                b_tec.const_input_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_input_on)
+
+                # min part load relation
+                def init_min_partload(const):
+                    return b_tec.var_input[t, main_car] >= min_part_load * b_tec.var_size
+                dis.const_min_partload = Constraint(rule=init_min_partload)
+
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
+
+        # Bind disjuncts
+        def bind_disjunctions(dis, t):
+            return [b_tec.dis_input_output[t, i] for i in s_indicators]
+        b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
+
+    # piecewise affine function
+    elif performance_function_type == 3:
+        s_indicators = range(0, len(bp_x))
+
+        def init_input_output(dis, t, ind):
+            if ind == 0:  # technology off
+                def init_input_off(const, car_input):
+                    return b_tec.var_input[t, car_input] == 0
+                dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                def init_output_off(const, car_output):
+                    return b_tec.var_output[t, car_output] == 0
+                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+
+            else:  # piecewise definition
+                def init_input_on1(const):
+                    return b_tec.var_input[t, main_car] >= bp_x[ind - 1] * b_tec.var_size
+                dis.const_input_on1 = Constraint(rule=init_input_on1)
+
+                def init_input_on2(const):
+                    return b_tec.var_input[t, main_car] <= bp_x[ind] * b_tec.var_size
+                dis.const_input_on2 = Constraint(rule=init_input_on2)
+
+                def init_output_on(const, car_output):
+                    return b_tec.var_output[t, car_output] == \
+                           alpha1[car_output][ind - 1] * b_tec.var_input[t, main_car] + \
+                           alpha2[car_output][ind - 1]
+                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
+
+                #TODO: check why it returns an error about that the component is replaced by a new component (modeling error)
+                def init_input_on3(const, car_input):
+                    return b_tec.var_input[t, car_input] == phi[car_input] * b_tec.var_input[t, main_car]
+
+                b_tec.const_input_on3 = Constraint(b_tec.set_input_carriers, rule=init_input_on3)
+
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
+
+    # size constraint based main carrier input
+    def init_size_constraint(const, t):
+        return b_tec.var_input[t, main_car] <= b_tec.var_size
+
+    b_tec.const_size = Constraint(model.set_t, rule=init_size_constraint)
+
     return b_tec
 
 def constraints_tec_STOR(model, b_tec, tec_data):

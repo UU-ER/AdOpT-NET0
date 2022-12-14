@@ -47,8 +47,7 @@ def fit_performance(technology, tec=None, climate_data=None):
         parameters['fit'] = perform_fitting_tec_CONV2(tec_data)
 
     elif tec_type == 'CONV3': # n inputs -> n output, fixed ratio between inputs and outputs
-        #TODO: include performance conv 3
-        print('Not coded yet')
+        parameters['fit'] = perform_fitting_tec_CONV3(tec_data)
 
     elif tec_type == 'STOR':  # storage technologies
         parameters['fit'] = perform_fitting_tec_STOR(tec_data, climate_data)
@@ -243,7 +242,42 @@ def perform_fitting_tec_CONV2(tec_data):
             fitting[c] = fit_piecewise_function(X, y, nr_seg)
     return fitting
 
-# def perform_fitting_tec_CONV3(tec_data):
+def perform_fitting_tec_CONV3(tec_data):
+    """
+    Fits conversion technology type 3 and returns fitted parameters as a dict
+    :param performance_data: contains X and y data of technology performance
+    :param performance_function_type: options for type of performance function (linear, piecewise,...)
+    :param nr_seg: number of segments on piecewise defined function
+    """
+    performance_data = tec_data['performance']
+    performance_function_type = tec_data['performance_function_type']
+    if 'nr_segments_piecewise' in performance_data:
+        nr_seg = performance_data['nr_segments_piecewise']
+    else:
+        nr_seg = 2
+
+    fitting = dict()
+    if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
+        X = performance_data['in']
+        if performance_function_type == 2:
+            X = sm.add_constant(X)
+        for c in performance_data['out']:
+            fitting[c] = dict()
+            y = performance_data['out'][c]
+            linmodel = sm.OLS(y, X)
+            linfit = linmodel.fit()
+            coeff = linfit.params
+        if performance_function_type == 1:
+            fitting[c]['alpha1'] = round(coeff[0], 5)
+        if performance_function_type == 2:
+            fitting[c]['alpha1'] = round(coeff[1], 5)
+            fitting[c]['alpha2'] = round(coeff[0], 5)
+    elif performance_function_type == 3:  # piecewise performance function
+        X = np.array(performance_data['in'])
+        for c in performance_data['out']:
+            y = np.array(performance_data['out'][c])
+            fitting[c] = fit_piecewise_function(X, y, nr_seg)
+    return fitting
 
 def perform_fitting_tec_STOR(tec_data, climate_data):
     theta = tec_data['performance']['theta']
