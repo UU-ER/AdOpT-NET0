@@ -215,7 +215,7 @@ def create_data_technology_PWA():
 
     topology = {}
     topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
-                                          end=str(modeled_year) + '-01-01 00:00', freq='1h')
+                                          end=str(modeled_year) + '-01-01 01:00', freq='1h')
 
     topology['timestep_length_h'] = 1
     topology['carriers'] = ['electricity', 'heat', 'gas', 'hydrogen']
@@ -234,7 +234,8 @@ def create_data_technology_PWA():
     # DEMAND
     demand_e = np.ones(len(topology['timesteps'])) * 5
     data.read_demand_data('test_node1', 'electricity', demand_e)
-    demand_h = np.ones(len(topology['timesteps'])) * 10
+    # demand_h = np.ones(len(topology['timesteps'])) * 10
+    demand_h = np.ones(len(topology['timesteps'])) * [10, 5]
     data.read_demand_data('test_node1', 'heat', demand_h)
 
     # PRICE DATA

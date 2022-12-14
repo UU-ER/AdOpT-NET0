@@ -81,23 +81,17 @@ def test_technology_CONV3_PWA():
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.solve_model()
-    assert solution.solver.termination_condition == 'optimal'
-    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks['testPWA'].var_size.value
 
-    # Import at zero price
-    for t in energyhub.model.set_t:
-        energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'optimal'
-    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks['WT_1500'].var_size.value
-    assert 0 == energyhub.model.objective()
+    #check optimality
+    assert energyhub.solution.solver.termination_condition == 'optimal'
 
-    # Curtailment
-    data.technology_data['test_node1']['WT_1500']['TechnologyPerf']['curtailment'] = 2
-    energyhub = ehub(data)
-    energyhub.construct_model()
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'optimal'
-    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks['WT_1500'].var_size.value
+    # check size and input/output
+    assert 10 == energyhub.model.node_blocks['test_node1'].tech_blocks['testPWA'].var_size.value
+    assert 10 == energyhub.model.node_blocks['test_node1'].tech_blocks['testPWA'].var_input[1,'gas'].value
+    assert 1 == energyhub.model.node_blocks['test_node1'].tech_blocks['testPWA'].var_input[1,'hydrogen'].value
+    assert 5 == energyhub.model.node_blocks['test_node1'].tech_blocks['testPWA'].var_input[2,'gas'].value
+    assert 0.5 == energyhub.model.node_blocks['test_node1'].tech_blocks['testPWA'].var_input[2,'hydrogen'].value
+    assert 10 == energyhub.model.node_blocks['test_node1'].tech_blocks['testPWA'].var_output[1,'heat'].value
+    assert 5 == energyhub.model.node_blocks['test_node1'].tech_blocks['testPWA'].var_output[1,'electricity'].value
+
+    #TODO: think of difference performance profile that checks PWA
