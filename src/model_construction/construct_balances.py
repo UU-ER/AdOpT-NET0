@@ -16,7 +16,8 @@ def add_energybalance(model):
 
     # Delete previously initialized constraints
     if model.find_component('const_energybalance'):
-        model.const_energybalance.del_component()
+        model.del_component(model.const_energybalance)
+        model.del_component(model.const_energybalance_index)
 
     def init_energybalance(const, t, car, node):  # energybalance at each node
         node_block = model.node_blocks[node]
@@ -48,9 +49,9 @@ def add_system_costs(model):
     """
     # Delete previously initialized constraints
     if model.find_component('const_node_cost'):
-        model.const_node_cost.del_component()
-        model.const_netw_cost.del_component()
-        model.const_cost.del_component()
+        model.del_component(model.const_node_cost)
+        model.del_component(model.const_netw_cost)
+        model.del_component(model.const_cost)
 
     # Cost at each node
     def init_node_cost(const):

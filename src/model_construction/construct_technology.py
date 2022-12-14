@@ -180,7 +180,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
     # Create a new block containing all new technologies. The set of nodes that need to be added
     if b_node.find_component('tech_blocks_new'):
-        del b_node.tech_blocks_new
+        b_node.del_component(b_node.tech_blocks_new)
     b_node.tech_blocks_new = Block(set_tecsToAdd, rule=init_technology_block)
 
     # If it exists, carry over active tech blocks to temporary block
@@ -188,12 +188,11 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         b_node.tech_blocks_existing = Block(b_node.set_tecsAtNode)
         for tec in b_node.set_tecsAtNode:
             b_node.tech_blocks_existing[tec].transfer_attributes_from(b_node.tech_blocks_active[tec])
-        del b_node.tech_blocks_active
+        b_node.del_component(b_node.tech_blocks_active)
 
     # Create a block containing all active technologies at node
-    set_to_add = b_node.set_tecsAtNode - set_tecsToAdd
-    if len(set_to_add) > 0:
-        b_node.set_tecsAtNode.add(set_to_add)
+    if not set(set_tecsToAdd).issubset(b_node.set_tecsAtNode):
+        b_node.set_tecsAtNode.add(set_tecsToAdd)
 
     def init_active_technology_blocks(bl, tec):
         if tec in set_tecsToAdd:
@@ -201,4 +200,9 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         else:
             bl.transfer_attributes_from(b_node.tech_blocks_existing[tec])
     b_node.tech_blocks_active = Block(b_node.set_tecsAtNode, rule=init_active_technology_blocks)
+
+    if b_node.find_component('tech_blocks_new'):
+        b_node.del_component(b_node.tech_blocks_new)
+    if b_node.find_component('tech_blocks_existing'):
+        b_node.del_component(b_node.tech_blocks_existing)
     return b_node

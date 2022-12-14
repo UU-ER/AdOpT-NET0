@@ -30,6 +30,9 @@ class energyhub:
         """
         Constructor of the energyhub class.
         """
+        print('Reading in data...')
+        start = time.time()
+
         # INITIALIZE MODEL
         self.model = ConcreteModel()
 
@@ -62,6 +65,8 @@ class energyhub:
         except pint.errors.DefinitionSyntaxError:
             pass
 
+        print('Reading in data completed in ' + str(time.time() - start) + ' s')
+
     def construct_model(self):
         """
         Constructs model equations, defines objective functions and calculates emissions.
@@ -79,7 +84,6 @@ class energyhub:
         """
         # Todo: implement different options for objective function.
 
-        objective_function = 'cost'
         print('Constructing Model...')
         start = time.time()
         # Global Variables
@@ -91,25 +95,29 @@ class energyhub:
         # Model construction
         self.model = mc.add_networks(self.model, self.data)
         self.model = mc.add_nodes(self.model, self.data)
+
+    def solve_model(self):
+        """
+        Performs big-M transformation (if required) and solves model
+        """
+
+        objective_function = 'cost'
+
         self.model = mc.add_energybalance(self.model)
         # self.model = mc.add_emissionbalance(self.model)
         self.model = mc.add_system_costs(self.model)
-        print('Constructing Model completed in ' + str(time.time() - start) + ' s')
 
         # Objective Function
         if objective_function == 'cost':
             def init_cost_objective(obj):
                 return self.model.var_total_cost
+
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
         elif objective_function == 'emissions':
             print('to be implemented')
         elif objective_function == 'pareto':
             print('to be implemented')
 
-    def solve_model(self):
-        """
-        Performs big-M transformation (if required) and solves model
-        """
         # Big-M transformation
         if m_config.presolve.big_m_transformation_required:
             print('Performing Big-M transformation...')
@@ -122,8 +130,11 @@ class energyhub:
         print('Solving Model...')
         start = time.time()
         solver = SolverFactory(m_config.solver.solver)
-        self.solution = solver.solve(self.model, tee=True)
+        self.solution = solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
+
+        m_config.presolve.big_m_transformation_required = 0
+        self.model.del_component(self.model.objective)
 
     def add_technology_to_node(self, nodename, technologies):
         """
