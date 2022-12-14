@@ -11,6 +11,7 @@ from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
 
+
 def create_data_model1():
     """
     Creates dataset for a model with two nodes.
@@ -57,6 +58,7 @@ def create_data_model1():
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
+
 
 def create_data_model2():
     """
@@ -105,6 +107,7 @@ def create_data_model2():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+
 def create_data_technology_type1_PV():
     """
     Creates dataset for test_technology_type1_PV().
@@ -152,6 +155,7 @@ def create_data_technology_type1_PV():
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
+
 
 def create_data_technology_type1_WT():
     """
@@ -275,11 +279,9 @@ def create_data_network():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+
 create_data_model1()
 create_data_model2()
 create_data_technology_type1_PV()
 create_data_technology_type1_WT()
 create_data_network()
-
-
-

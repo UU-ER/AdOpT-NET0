@@ -3,7 +3,7 @@ from src.model_construction.generic_technology_constraints import *
 import src.config_model as m_config
 
 
-def add_technologies(nodename, b_node, model, data):
+def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     # TODO: define main carrier in tech data
     r"""
     Adds all technologies as model blocks to respective node.
@@ -178,5 +178,27 @@ def add_technologies(nodename, b_node, model, data):
         elif tec_type == 6: # Storage technology (1 input -> 1 output)
             b_tec = constraints_tec_type_6(model, b_tec, tec_data)
 
-    b_node.tech_blocks = Block(b_node.set_tecsAtNode, rule=init_technology_block)
+    # Create a new block containing all new technologies. The set of nodes that need to be added
+    if b_node.find_component('tech_blocks_new'):
+        del b_node.tech_blocks_new
+    b_node.tech_blocks_new = Block(set_tecsToAdd, rule=init_technology_block)
+
+    # If it exists, carry over active tech blocks to temporary block
+    if b_node.find_component('tech_blocks_active'):
+        b_node.tech_blocks_existing = Block(b_node.set_tecsAtNode)
+        for tec in b_node.set_tecsAtNode:
+            b_node.tech_blocks_existing[tec].transfer_attributes_from(b_node.tech_blocks_active[tec])
+        del b_node.tech_blocks_active
+
+    # Create a block containing all active technologies at node
+    set_to_add = b_node.set_tecsAtNode - set_tecsToAdd
+    if len(set_to_add) > 0:
+        b_node.set_tecsAtNode.add(set_to_add)
+
+    def init_active_technology_blocks(bl, tec):
+        if tec in set_tecsToAdd:
+            bl.transfer_attributes_from(b_node.tech_blocks_new[tec])
+        else:
+            bl.transfer_attributes_from(b_node.tech_blocks_existing[tec])
+    b_node.tech_blocks_active = Block(b_node.set_tecsAtNode, rule=init_active_technology_blocks)
     return b_node

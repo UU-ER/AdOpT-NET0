@@ -52,7 +52,7 @@ def test_model2():
     m = energyhub.model
     assert energyhub.solution.solver.termination_condition == 'optimal'
     # Size of Furnace
-    size_res = m.node_blocks['test_node1'].tech_blocks['Furnace_NG'].var_size.value
+    size_res = m.node_blocks['test_node1'].tech_blocks_active['Furnace_NG'].var_size.value
     size_should = max(data.node_data['test_node1']['demand']['heat']) / data.technology_data['test_node1']['Furnace_NG']['fit']['alpha2']['heat']
     assert  round(size_res,3) == round(size_should,3)
     # Gas Import in each timestep

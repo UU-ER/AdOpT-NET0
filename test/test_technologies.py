@@ -21,15 +21,15 @@ def test_technology_type1_PV():
     solver = SolverFactory('gurobi')
     solution = solver.solve(energyhub.model, tee=True)
     assert solution.solver.termination_condition == 'optimal'
-    assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
-    assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
+    assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
+    assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
 
     for t in energyhub.model.set_t:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
     solver = SolverFactory('gurobi')
     solution = solver.solve(energyhub.model, tee=True)
     assert solution.solver.termination_condition == 'optimal'
-    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
+    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
     assert 0 == energyhub.model.objective()
 
 
@@ -48,7 +48,7 @@ def test_technology_type1_WT():
     solver = SolverFactory('gurobi')
     solution = solver.solve(energyhub.model, tee=True)
     assert solution.solver.termination_condition == 'optimal'
-    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks['WT_1500'].var_size.value
+    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value
 
     # Import at zero price
     for t in energyhub.model.set_t:
@@ -56,7 +56,7 @@ def test_technology_type1_WT():
     solver = SolverFactory('gurobi')
     solution = solver.solve(energyhub.model, tee=True)
     assert solution.solver.termination_condition == 'optimal'
-    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks['WT_1500'].var_size.value
+    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value
     assert 0 == energyhub.model.objective()
 
     # Curtailment
@@ -66,4 +66,4 @@ def test_technology_type1_WT():
     solver = SolverFactory('gurobi')
     solution = solver.solve(energyhub.model, tee=True)
     assert solution.solver.termination_condition == 'optimal'
-    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks['WT_1500'].var_size.value
+    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value

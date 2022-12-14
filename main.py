@@ -20,7 +20,7 @@ data_save_path = r'.\user_data\data_handle_test'
 modeled_year = 2001
 
 topology = {}
-topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
+topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 00:00', freq='1h')
 topology['timestep_length_h'] = 1
 topology['carriers'] = ['electricity', 'heat', 'gas']
 topology['nodes'] = ['onshore', 'offshore']
@@ -91,16 +91,16 @@ print('Reading in data...')
 start = time.time()
 energyhub = energyhub(data)
 print('Reading in data completed in ' + str(time.time()-start) + ' s')
-#
-# energyhub.print_topology()
-#
-# # Construct equations
-print('Constructing Model...')
-start = time.time()
-energyhub.construct_model()
-print('Constructing Model completed in ' + str(time.time()-start) + ' s')
 
+# Construct equations
+energyhub.construct_model()
+
+# Solve model
 energyhub.solve_model()
+
+energyhub.add_technology_to_node('onshore', 'WT_OS_11000')
+energyhub.solve_model()
+
 #
 # # energyhub.model.pprint()
 # # # Save model
@@ -143,4 +143,4 @@ energyhub.solve_model()
 # # # solution.write()
 energyhub.model.display()
 # # node_data = energyhub.model.node_blocks['onshore']
-# # tec_data = node_data.tech_blocks['PV'].var_size.pprint()
+# # tec_data = node_data.tech_blocks_active['PV'].var_size.pprint()

@@ -1,8 +1,11 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
+from pyomo.gdp import *
+
 from src.model_construction.construct_nodes import add_nodes
 from src.model_construction.construct_networks import add_networks
-from src.model_construction.construct_energybalance import add_energybalance
+from src.model_construction.construct_balances import add_energybalance
+from src.model_construction.construct_balances import add_system_costs
 import pint
 import numpy as np
 import dill as pickle
@@ -70,29 +73,36 @@ class energyhub:
         topology. It adds (1) networks (:func:`~add_networks`), (2) nodes and technologies \
         (:func:`~src.model_construction.construct_nodes.add_nodes` including \
         :func:`~add_technologies`) and (3) links all components with \
-        the constructing the energybalance of the optimization problem (:func:`~add_energybalance`).
+        the constructing the energybalance (:func:`~add_energybalance`), the total cost (:func:`~add_system_costs`)
+        and the emission balance (:func:`~add_emissionbalance`)
 
         The objective is minimized and can be chosen as total annualized costs, total annualized emissions \
         multi-objective (emission-cost pareto front).
 
         """
         # Todo: implement different options for objective function.
-        # TODO: sum over carriers to calculate network costs
 
         objective_function = 'cost'
         print('Constructing Model...')
         start = time.time()
+        # Global Variables
+        self.model.var_emissions = Var()
+        self.model.var_node_cost = Var()
+        self.model.var_netw_cost = Var()
+        self.model.var_cost = Var()
+
+        # Model construction
         self.model = add_networks(self.model, self.data)
         self.model = add_nodes(self.model, self.data)
         self.model = add_energybalance(self.model)
         # self.model = add_emissionbalance(self.model)
+        self.model = add_system_costs(self.model)
         print('Constructing Model completed in ' + str(time.time() - start) + ' s')
 
+        # Objective Function
         if objective_function == 'cost':
             def init_cost_objective(obj):
-                node_cost = sum(self.model.node_blocks[node].var_cost for node in self.model.set_nodes)
-                netw_cost = sum(self.model.network_block[netw].var_cost for netw in self.model.set_networks)
-                return node_cost + netw_cost
+                return self.model.var_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
         elif objective_function == 'emissions':
             print('to be implemented')
@@ -112,6 +122,9 @@ class energyhub:
         solver = SolverFactory(m_config.solver.solver)
         self.solution = solver.solve(self.model, tee=True)
         self.solution.write()
+
+    def add_technology_to_node(self, node, technology):
+        pass
 
     def save_model(self, file_path, file_name):
         """
@@ -176,22 +189,22 @@ class energyhub:
             for car in self.model.set_carriers:
                 input_tecs[car] = pd.DataFrame()
                 for tec in node_data.set_tecsAtNode:
-                    if car in node_data.tech_blocks[tec].set_input_carriers:
+                    if car in node_data.tech_blocks_active[tec].set_input_carriers:
                         temp = np.zeros((n_timesteps), dtype=float)
                         for t in self.model.set_t:
-                            temp[t-1] = node_data.tech_blocks[tec].var_input[t, car].value
+                            temp[t-1] = node_data.tech_blocks_active[tec].var_input[t, car].value
                         input_tecs[car][tec] = temp
 
                 output_tecs[car] = pd.DataFrame()
                 for tec in node_data.set_tecsAtNode:
-                    if car in node_data.tech_blocks[tec].set_output_carriers:
+                    if car in node_data.tech_blocks_active[tec].set_output_carriers:
                         temp = np.zeros((n_timesteps), dtype=float)
                         for t in self.model.set_t:
-                            temp[t-1] = node_data.tech_blocks[tec].var_output[t, car].value
+                            temp[t-1] = node_data.tech_blocks_active[tec].var_output[t, car].value
                         output_tecs[car][tec] = temp
 
                 for tec in node_data.set_tecsAtNode:
-                    size_tecs[tec] = node_data.tech_blocks[tec].var_size.value
+                    size_tecs[tec] = node_data.tech_blocks_active[tec].var_size.value
 
             df = pd.DataFrame(data=size_tecs, index=[0])
             with pd.ExcelWriter(file_name) as writer:
