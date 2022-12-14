@@ -4,8 +4,7 @@ from src.energyhub import energyhub as ehub
 from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
-
-
+import src.config_model as m_config
 
 def test_networks():
     """
@@ -19,12 +18,9 @@ def test_networks():
     data.network_data['hydrogenTest']['EnergyConsumption'] = {}
     energyhub1 = ehub(data)
     energyhub1.construct_model()
-    xfrm = TransformationFactory('gdp.bigm')
-    xfrm.apply_to(energyhub1.model)
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub1.model, tee=True)
+    energyhub1.solve_model()
     cost1 = energyhub1.model.objective()
-    assert solution.solver.termination_condition == 'optimal'
+    assert energyhub1.solution.solver.termination_condition == 'optimal'
     # is network size double the demand (because of losses)
     should = 20
     res = energyhub1.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
@@ -40,12 +36,9 @@ def test_networks():
     data.network_data['hydrogenTest']['EnergyConsumption'] = {}
     energyhub2 = ehub(data)
     energyhub2.construct_model()
-    xfrm = TransformationFactory('gdp.bigm')
-    xfrm.apply_to(energyhub2.model)
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub2.model, tee=True)
+    energyhub2.solve_model()
     cost2 = energyhub2.model.objective()
-    assert solution.solver.termination_condition == 'optimal'
+    assert energyhub2.solution.solver.termination_condition == 'optimal'
     # is network size double the demand (because of losses)
     should = 20
     res = energyhub1.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
@@ -56,12 +49,9 @@ def test_networks():
     data.network_data['hydrogenTest']['NetworkPerf']['bidirectional'] = 0
     energyhub3 = ehub(data)
     energyhub3.construct_model()
-    xfrm = TransformationFactory('gdp.bigm')
-    xfrm.apply_to(energyhub3.model)
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub3.model, tee=True)
+    energyhub3.solve_model()
     cost3 = energyhub3.model.objective()
-    assert solution.solver.termination_condition == 'optimal'
+    assert energyhub3.solution.solver.termination_condition == 'optimal'
     # is network size double the demand (because of losses)
     should = 20
     res = energyhub3.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
