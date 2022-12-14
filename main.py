@@ -25,7 +25,7 @@ topology['timestep_length_h'] = 1
 topology['carriers'] = ['electricity', 'heat', 'gas']
 topology['nodes'] = ['onshore', 'offshore']
 topology['technologies'] = {}
-topology['technologies']['onshore'] = ['PV', 'Furnace_NG', 'battery']
+topology['technologies']['onshore'] = ['Furnace_NG', 'battery']
 topology['technologies']['offshore'] = ['WT_OS_11000']
 
 topology['networks'] = {}
@@ -98,8 +98,11 @@ energyhub.construct_model()
 # Solve model
 energyhub.solve_model()
 
-energyhub.add_technology_to_node('onshore', 'WT_OS_11000')
+energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
 energyhub.solve_model()
+
+energyhub.model.display()
+
 
 #
 # # energyhub.model.pprint()
@@ -141,6 +144,5 @@ energyhub.solve_model()
 # # # solve.set_instance(energyhub.model)
 # # # solution = solve.solve(tee=True)
 # # # solution.write()
-energyhub.model.display()
 # # node_data = energyhub.model.node_blocks['onshore']
 # # tec_data = node_data.tech_blocks_active['PV'].var_size.pprint()

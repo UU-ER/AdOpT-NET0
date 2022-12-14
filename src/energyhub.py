@@ -2,10 +2,7 @@ from pyomo.environ import *
 from pyomo.environ import units as u
 from pyomo.gdp import *
 
-from src.model_construction.construct_nodes import add_nodes
-from src.model_construction.construct_networks import add_networks
-from src.model_construction.construct_balances import add_energybalance
-from src.model_construction.construct_balances import add_system_costs
+import src.model_construction as mc
 import pint
 import numpy as np
 import dill as pickle
@@ -92,11 +89,11 @@ class energyhub:
         self.model.var_total_cost = Var()
 
         # Model construction
-        self.model = add_networks(self.model, self.data)
-        self.model = add_nodes(self.model, self.data)
-        self.model = add_energybalance(self.model)
-        # self.model = add_emissionbalance(self.model)
-        self.model = add_system_costs(self.model)
+        self.model = mc.add_networks(self.model, self.data)
+        self.model = mc.add_nodes(self.model, self.data)
+        self.model = mc.add_energybalance(self.model)
+        # self.model = mc.add_emissionbalance(self.model)
+        self.model = mc.add_system_costs(self.model)
         print('Constructing Model completed in ' + str(time.time() - start) + ' s')
 
         # Objective Function
@@ -110,6 +107,10 @@ class energyhub:
             print('to be implemented')
 
     def solve_model(self):
+        """
+        Performs big-M transformation (if required) and solves model
+        """
+        # Big-M transformation
         if m_config.presolve.big_m_transformation_required:
             print('Performing Big-M transformation...')
             start = time.time()
@@ -117,14 +118,24 @@ class energyhub:
             xfrm.apply_to(self.model)
             print('Performing Big-M transformation completed in ' + str(time.time() - start) + ' s')
 
+        # Solve model
         print('Solving Model...')
         start = time.time()
         solver = SolverFactory(m_config.solver.solver)
         self.solution = solver.solve(self.model, tee=True)
         self.solution.write()
 
-    def add_technology_to_node(self, node, technology):
-        pass
+    def add_technology_to_node(self, nodename, technologies):
+        """
+        Adds technologies retrospectively to the model
+
+        :param str nodename: name of node for which technology is installed
+        :param list technologies: list of technologies that should be added to nodename
+        :return: None
+        """
+        self.data.read_single_technology_data(nodename, technologies)
+        node_block = self.model.node_blocks[nodename]
+        mc.add_technologies(nodename, technologies, self.model, self.data, node_block)
 
     def save_model(self, file_path, file_name):
         """

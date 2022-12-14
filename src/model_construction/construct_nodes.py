@@ -110,14 +110,7 @@ def add_nodes(model, data):
         b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MW)
         b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MW)
 
-        # Cost at node
-        b_node.var_cost = Var(units=u.EUR)
-
-        # BLOCKS
-        # Add technologies as blocks
-        b_node = add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node)
-
-        # Define network constraints
+         # Define network constraints
         def init_netw_inflow(const, t, car):
             return b_node.var_netw_inflow[t,car] == sum(model.network_block[netw].var_inflow[t,car,nodename]
                                                         for netw in model.set_networks
@@ -135,6 +128,10 @@ def add_nodes(model, data):
                                                         for netw in model.set_networks
                                                         if car in model.network_block[netw].set_consumed_carriers)
         b_node.const_netw_consumption = Constraint(model.set_t, model.set_carriers, rule=init_netw_consumption)
+
+        # BLOCKS
+        # Add technologies as blocks
+        b_node = add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node)
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 
