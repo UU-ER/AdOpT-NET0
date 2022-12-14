@@ -353,13 +353,8 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
 
-        def init_input_input(const, car_input, t):
-            return b_tec.var_input[t, car_input] == phi[car_input] * b_tec.var_input[t, main_car]
-
-        b_tec.const_input_input = Constraint(model.set_t, b_tec.set_input_carriers,
-                                              rule=init_input_input)
-
     elif performance_function_type == 2:
+        m_config.presolve.big_m_transformation_required = 1
         if min_part_load == 0:
             warnings.warn(
                 'Having performance_function_type = 2 with no part-load usually makes no sense.')
@@ -384,12 +379,6 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
                            alpha1[car_output] * b_tec.var_input[t, main_car] + alpha2[car_output]
                 dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_input_output_on)
 
-                # main input-input relation
-                def init_input_input_on(const, car_input):
-                    return b_tec.var_input[t, car_input] == phi[car_input] * b_tec.var_input[t, main_car]
-
-                b_tec.const_input_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_input_on)
-
                 # min part load relation
                 def init_min_partload(const):
                     return b_tec.var_input[t, main_car] >= min_part_load * b_tec.var_size
@@ -404,6 +393,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
 
     # piecewise affine function
     elif performance_function_type == 3:
+        m_config.presolve.big_m_transformation_required = 1
         s_indicators = range(0, len(bp_x))
 
         def init_input_output(dis, t, ind):
@@ -431,13 +421,18 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
                            alpha2[car_output][ind - 1]
                 dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
 
-                #TODO: check why it returns an error about that the component is replaced by a new component (modeling error)
-                def init_input_on3(const, car_input):
-                    return b_tec.var_input[t, car_input] == phi[car_input] * b_tec.var_input[t, main_car]
-
-                b_tec.const_input_on3 = Constraint(b_tec.set_input_carriers, rule=init_input_on3)
 
         b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
+
+
+    # constraint on input ratios
+    def init_input_input(const, t, car_input):
+        if car_input == main_car:
+            return Constraint.Skip
+        else:
+            return b_tec.var_input[t, car_input] == phi[car_input] * b_tec.var_input[t, main_car]
+
+    b_tec.const_input_input = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_input_input)
 
     # size constraint based main carrier input
     def init_size_constraint(const, t):

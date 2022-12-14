@@ -201,6 +201,67 @@ def create_data_technology_type1_WT():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+def create_data_technology_PWA():
+    """
+    Creates dataset for test_technology_CONV3_PWA().
+    PWA @ node 1
+    heat & electricity demand_e @ node 1
+    electricity is about half the heat demand
+    import of heat, electricity and gas at high price
+
+    """
+    data_save_path = './test/test_data/technology_CONV3_PWA.p'
+    modeled_year = 2001
+
+    topology = {}
+    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
+                                          end=str(modeled_year) + '-01-01 00:00', freq='1h')
+
+    topology['timestep_length_h'] = 1
+    topology['carriers'] = ['electricity', 'heat', 'gas', 'hydrogen']
+    topology['nodes'] = ['test_node1']
+    topology['technologies'] = {}
+    topology['technologies']['test_node1'] = ['testPWA']
+
+    topology['networks'] = {}
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
+
+    # DEMAND
+    demand_e = np.ones(len(topology['timesteps'])) * 5
+    data.read_demand_data('test_node1', 'electricity', demand_e)
+    demand_h = np.ones(len(topology['timesteps'])) * 10
+    data.read_demand_data('test_node1', 'heat', demand_h)
+
+    # PRICE DATA
+    price = np.ones(len(topology['timesteps'])) * 10000
+    data.read_import_price_data('test_node1', 'electricity', price)
+    data.read_import_price_data('test_node1', 'gas', price)
+    data.read_import_price_data('test_node1', 'heat', price)
+    data.read_import_price_data('test_node1', 'hydrogen', price)
+
+    # IMPORT/EXPORT LIMITS
+    import_lim = np.ones(len(topology['timesteps'])) * 5
+    data.read_import_limit_data('test_node1', 'electricity', import_lim)
+    import_lim = np.ones(len(topology['timesteps'])) * 10
+    data.read_import_limit_data('test_node1', 'heat', import_lim)
+    import_lim = np.ones(len(topology['timesteps'])) * 10
+    data.read_import_limit_data('test_node1', 'gas', import_lim)
+    import_lim = np.ones(len(topology['timesteps'])) * 1
+    data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
+
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
 
 def create_data_network():
     """
@@ -275,11 +336,12 @@ def create_data_network():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-create_data_model1()
-create_data_model2()
-create_data_technology_type1_PV()
-create_data_technology_type1_WT()
-create_data_network()
+# create_data_model1()
+# create_data_model2()
+# create_data_technology_type1_PV()
+# create_data_technology_type1_WT()
+create_data_technology_PWA()
+# create_data_network()
 
 
 

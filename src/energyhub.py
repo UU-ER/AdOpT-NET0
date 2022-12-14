@@ -100,12 +100,12 @@ class energyhub:
             print('to be implemented')
 
     def solve_model(self):
-        if m_config.presolve.big_m_transformation_required:
-            print('Performing Big-M transformation...')
-            start = time.time()
-            xfrm = TransformationFactory('gdp.bigm')
-            xfrm.apply_to(self.model)
-            print('Performing Big-M transformation completed in ' + str(time.time() - start) + ' s')
+        # if m_config.presolve.big_m_transformation_required:
+        print('Performing Big-M transformation...')
+        start = time.time()
+        xfrm = TransformationFactory('gdp.bigm')
+        xfrm.apply_to(self.model)
+        print('Performing Big-M transformation completed in ' + str(time.time() - start) + ' s')
 
         print('Solving Model...')
         start = time.time()
