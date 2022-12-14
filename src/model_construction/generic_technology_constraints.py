@@ -424,6 +424,10 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
 
         b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
 
+        # Bind disjuncts
+        def bind_disjunctions(dis, t):
+            return [b_tec.dis_input_output[t, i] for i in s_indicators]
+        b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
     # constraint on input ratios
     def init_input_input(const, t, car_input):
