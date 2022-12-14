@@ -4,10 +4,12 @@ from src.model_construction.construct_nodes import add_nodes
 from src.model_construction.construct_networks import add_networks
 from src.model_construction.construct_energybalance import add_energybalance
 import pint
-
 import numpy as np
 import dill as pickle
 import pandas as pd
+import src.config_model as m_config
+import time
+
 
 class energyhub:
     r"""
@@ -60,7 +62,6 @@ class energyhub:
         except pint.errors.DefinitionSyntaxError:
             pass
 
-
     def construct_model(self):
         """
         Constructs model equations, defines objective functions and calculates emissions.
@@ -79,11 +80,13 @@ class energyhub:
         # TODO: sum over carriers to calculate network costs
 
         objective_function = 'cost'
-
+        print('Constructing Model...')
+        start = time.time()
         self.model = add_networks(self.model, self.data)
         self.model = add_nodes(self.model, self.data)
         self.model = add_energybalance(self.model)
         # self.model = add_emissionbalance(self.model)
+        print('Constructing Model completed in ' + str(time.time() - start) + ' s')
 
         if objective_function == 'cost':
             def init_cost_objective(obj):
@@ -95,6 +98,20 @@ class energyhub:
             print('to be implemented')
         elif objective_function == 'pareto':
             print('to be implemented')
+
+    def solve_model(self):
+        if m_config.presolve.big_m_transformation_required:
+            print('Performing Big-M transformation...')
+            start = time.time()
+            xfrm = TransformationFactory('gdp.bigm')
+            xfrm.apply_to(self.model)
+            print('Performing Big-M transformation completed in ' + str(time.time() - start) + ' s')
+
+        print('Solving Model...')
+        start = time.time()
+        solver = SolverFactory(m_config.solver.solver)
+        self.solution = solver.solve(self.model, tee=True)
+        self.solution.write()
 
     def save_model(self, file_path, file_name):
         """

@@ -18,9 +18,8 @@ def test_add_nodes():
     data = dm.load_data_handle(r'./test/test_data/data_handle_test.p')
     energyhub = ehub(data)
     energyhub.construct_model()
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'infeasibleOrUnbounded'
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
 
 def test_model1():
@@ -34,9 +33,8 @@ def test_model1():
     data = dm.load_data_handle(r'./test/test_data/model1.p')
     energyhub = ehub(data)
     energyhub.construct_model()
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'infeasibleOrUnbounded'
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
 def test_model2():
     """
@@ -50,12 +48,9 @@ def test_model2():
     data = dm.load_data_handle(r'./test/test_data/model2.p')
     energyhub = ehub(data)
     energyhub.construct_model()
-    xfrm = TransformationFactory('gdp.bigm')
-    xfrm.apply_to(energyhub.model)
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
+    energyhub.solve_model()
     m = energyhub.model
-    assert solution.solver.termination_condition == 'optimal'
+    assert energyhub.solution.solver.termination_condition == 'optimal'
     # Size of Furnace
     size_res = m.node_blocks['test_node1'].tech_blocks['Furnace_NG'].var_size.value
     size_should = max(data.node_data['test_node1']['demand']['heat']) / data.technology_data['test_node1']['Furnace_NG']['fit']['alpha2']['heat']

@@ -99,6 +99,8 @@ print('Constructing Model...')
 start = time.time()
 energyhub.construct_model()
 print('Constructing Model completed in ' + str(time.time()-start) + ' s')
+
+energyhub.solve_model()
 #
 # # energyhub.model.pprint()
 # # # Save model
@@ -108,11 +110,11 @@ print('Constructing Model completed in ' + str(time.time()-start) + ' s')
 # # print('Saving Model completed in ' + str(time.time()-start) + ' s')
 # #
 # Big-M transformation
-print('Performing Big-M transformation...')
-start = time.time()
-xfrm = TransformationFactory('gdp.bigm')
-xfrm.apply_to(energyhub.model)
-print('Performing Big-M transformation completed in ' + str(time.time()-start) + ' s')
+# print('Performing Big-M transformation...')
+# start = time.time()
+# xfrm = TransformationFactory('gdp.bigm')
+# xfrm.apply_to(energyhub.model)
+# print('Performing Big-M transformation completed in ' + str(time.time()-start) + ' s')
 
 # #
 # # # Save model 2
@@ -124,11 +126,11 @@ print('Performing Big-M transformation completed in ' + str(time.time()-start) +
 # # energyhub.model.node_blocks['onshore'].pprint()
 #
 #
-print('Solving Model...')
-start = time.time()
-solver = SolverFactory('gurobi')
-solution = solver.solve(energyhub.model, tee=True)
-solution.write()
+# print('Solving Model...')
+# start = time.time()
+# solver = SolverFactory('gurobi')
+# solution = solver.solve(energyhub.model, tee=True)
+# solution.write()
 # print('Solving Model completed in ' + str(time.time()-start) + ' s')
 # # #
 # energyhub.write_results('results')
