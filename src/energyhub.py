@@ -89,7 +89,7 @@ class energyhub:
         self.model.var_emissions = Var()
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
-        self.model.var_cost = Var()
+        self.model.var_total_cost = Var()
 
         # Model construction
         self.model = add_networks(self.model, self.data)
@@ -102,7 +102,7 @@ class energyhub:
         # Objective Function
         if objective_function == 'cost':
             def init_cost_objective(obj):
-                return self.model.var_cost
+                return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
         elif objective_function == 'emissions':
             print('to be implemented')

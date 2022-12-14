@@ -4,9 +4,20 @@ from pyomo.environ import units as u
 def add_energybalance(model):
     # TODO: formulate energybalance to include global balance
     """
-    output_from_technologies - input_to_technologies + inflow_from_network - outflow_to_network + imports - exports
-    == demand
+    Calculates the energy balance for each node and carrier as:
+
+    .. math::
+        outputFromTechnologies - inputToTechnologies + \\
+        inflowFromNetwork - outflowToNetwork + \\
+        imports - exports = demand
+
+
     """
+
+    # Delete previously initialized constraints
+    if model.find_component('const_energybalance'):
+        model.const_energybalance.del_component()
+
     def init_energybalance(const, t, car, node):  # energybalance at each node
         node_block = model.node_blocks[node]
         tec_output = sum(node_block.tech_blocks_active[tec].var_output[t, car] for tec in node_block.set_tecsAtNode if
@@ -29,7 +40,19 @@ def add_energybalance(model):
 
 def add_system_costs(model):
     """
+    Calculates total system costs in three steps.
+
+    - Calculates cost at all nodes as the sum of technology costs, import costs and export revenues
+    - Calculates cost of all networks
+    - Adds up cost of networks and node costs
     """
+    # Delete previously initialized constraints
+    if model.find_component('const_node_cost'):
+        model.const_node_cost.del_component()
+        model.const_netw_cost.del_component()
+        model.const_cost.del_component()
+
+    # Cost at each node
     def init_node_cost(const):
         return sum(
                 sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX
@@ -46,15 +69,16 @@ def add_system_costs(model):
                model.var_node_cost
     model.const_node_cost = Constraint(rule=init_node_cost)
 
-    def init_node_cost(const):
+    # Calculates network costs
+    def init_netw_cost(const):
         return sum(model.network_block[netw].var_cost for netw in model.set_networks) == \
                model.var_netw_cost
-    model.const_netw_cost = Constraint(rule=init_node_cost)
+    model.const_netw_cost = Constraint(rule=init_netw_cost)
 
-    def init_cost(const):
+    def init_total_cost(const):
         return \
             model.var_node_cost + model.var_netw_cost == \
-            model.var_cost
-    model.const_cost = Constraint(rule=init_cost)
+            model.var_total_cost
+    model.const_cost = Constraint(rule=init_total_cost)
 
     return model
