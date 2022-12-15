@@ -26,7 +26,7 @@
     "input_carrier": [
       "gas"
     ],
-    "input_carrier_main": "gas",
+    "main_input_carrier": "gas",
     "output_carrier": [
       "hydrogen",
       "electricity"
@@ -40,6 +40,7 @@
       100000
     ],
     "size_is_int": 0,
+    "emission_factor": 0,
     "min_part_load": 0.9,
     "performance": {
       "in": [

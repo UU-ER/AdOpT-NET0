@@ -27,7 +27,7 @@
     "input_carrier": [
       "heat"
     ],
-    "input_carrier_main": "heat",
+    "main_input_carrier": "heat",
     "output_carrier": [
       "heat"
     ],
@@ -42,6 +42,7 @@
       28000
     ],
     "size_is_int": 0,
+    "emission_factor": 0,
     "performance": {
       "eta_in": 0.95,
       "eta_out": 0.95,

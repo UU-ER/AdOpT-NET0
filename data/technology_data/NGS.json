@@ -17,13 +17,14 @@
     "input_carrier": [
       "gas"
     ],
-    "input_carrier_main": "gas",
+    "main_input_carrier": "gas",
     "output_carrier": [
       "gas"
     ],
     "size_min": 0,
     "size_max": 1000,
     "size_is_int": 0,
+    "emission_factor": 0,
     "performance": {
       "eta_in": 1,
       "eta_out": 1,

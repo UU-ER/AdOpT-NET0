@@ -13,12 +13,13 @@
     "input_carrier": [
       "solar"
     ],
-    "input_carrier_main": "solar",
+    "main_input_carrier": "solar",
     "output_carrier": [
       "electricity"
     ],
     "size_min": 0,
     "size_max": 1000,
-    "size_is_int": 0
+    "size_is_int": 0,
+    "emission_factor": 0
   }
 }

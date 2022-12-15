@@ -18,13 +18,14 @@
     "input_carrier": [
       "WAGgas"
     ],
-    "input_carrier_main": "WAGgas",
+    "main_input_carrier": "WAGgas",
     "output_carrier": [
       "electricity"
     ],
     "size_min": 0,
     "size_max": 1500,
     "size_is_int": 0,
+    "emission_factor": 0,
     "min_part_load": 0,
     "performance": {
       "in": [

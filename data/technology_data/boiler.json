@@ -28,7 +28,7 @@
     "input_carrier": [
       "gas"
     ],
-    "input_carrier_main": "gas",
+    "main_input_carrier": "gas",
     "output_carrier": [
       "heat"
     ],
@@ -43,6 +43,7 @@
       2.5
     ],
     "size_is_int": 0,
+    "emission_factor": 0,
     "min_part_load": 0,
     "performance": {
       "in": [

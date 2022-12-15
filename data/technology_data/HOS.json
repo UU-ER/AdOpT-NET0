@@ -27,7 +27,7 @@
     "input_carrier": [
       "hydrogen"
     ],
-    "input_carrier_main": "hydrogen",
+    "main_input_carrier": "hydrogen",
     "output_carrier": [
       "hydrogen"
     ],
@@ -42,6 +42,7 @@
       100000
     ],
     "size_is_int": 0,
+    "emission_factor": 0,
     "performance": {
       "eta_in": 1,
       "eta_out": 1,
