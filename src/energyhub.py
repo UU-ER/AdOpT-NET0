@@ -85,7 +85,7 @@ class energyhub:
         self.model = add_networks(self.model, self.data)
         self.model = add_nodes(self.model, self.data)
         self.model = add_energybalance(self.model)
-        # self.model = add_emissionbalance(self.model)
+        self.model = add_emissionbalance(self.model)
         print('Constructing Model completed in ' + str(time.time() - start) + ' s')
 
         if objective_function == 'cost':
