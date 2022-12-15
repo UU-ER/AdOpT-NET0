@@ -28,7 +28,7 @@
     "input_carrier": [
       "WAGgas"
     ],
-    "input_carrier_main": "WAGgas",
+    "main_input_carrier": "WAGgas",
     "output_carrier": [
       "heat"
     ],

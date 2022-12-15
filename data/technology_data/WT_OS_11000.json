@@ -13,7 +13,7 @@
     "input_carrier": [
       "wind"
     ],
-    "input_carrier_main": "wind",
+    "main_input_carrier": "wind",
     "output_carrier": [
       "electricity"
     ],

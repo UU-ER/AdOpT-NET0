@@ -13,7 +13,7 @@
     "input_carrier": [
       "solar"
     ],
-    "input_carrier_main": "solar",
+    "main_input_carrier": "solar",
     "output_carrier": [
       "electricity"
     ],
