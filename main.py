@@ -24,10 +24,10 @@ topology = {}
 topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 00:00', freq='1h')
 
 topology['timestep_length_h'] = 1
-topology['carriers'] = ['electricity']
+topology['carriers'] = ['electricity', 'heat']
 topology['nodes'] = ['onshore', 'offshore']
 topology['technologies'] = {}
-topology['technologies']['onshore'] = ['battery', 'PV']
+topology['technologies']['onshore'] = ['battery', 'PV', 'Furnace_NG']
 topology['technologies']['offshore'] = []
 
 topology['networks'] = {}
@@ -43,10 +43,10 @@ topology['networks']['electricitySimple'] = network_data
 data = dm.DataHandle(topology)
 
 # CLIMATE DATA
-from_file = 0
+from_file = 1
 if from_file == 1:
-    data.read_climate_data_from_file('onshore', r'.\user_data\climate_data_onshore.txt')
-    data.read_climate_data_from_file('offshore', r'.\user_data\climate_data_offshore.txt')
+    data.read_climate_data_from_file('onshore', r'.\data\climate_data_onshore.txt')
+    data.read_climate_data_from_file('offshore', r'.\data\climate_data_offshore.txt')
 else:
     lat = 52
     lon = 5.16
@@ -58,6 +58,12 @@ else:
 # DEMAND
 electricity_demand = np.ones(len(topology['timesteps'])) * 10
 data.read_demand_data('onshore', 'electricity', electricity_demand)
+heat_demand = np.ones(len(topology['timesteps'])) * 10
+data.read_demand_data('onshore', 'heat', heat_demand)
+
+# IMPORT
+gas_import = np.ones(len(topology['timesteps'])) * 50
+data.read_import_limit_data('onshore', 'gas', gas_import)
 
 # PRINT DATA
 # data.pprint()
@@ -90,6 +96,7 @@ energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
 energyhub.construct_balances()
 energyhub.solve_model()
 
+print('done')
 # energyhub.model.display()
 #
 # # energyhub.model.pprint()

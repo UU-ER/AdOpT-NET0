@@ -39,6 +39,25 @@ def add_energybalance(model):
 
     return model
 
+def add_emissionbalance(model):
+    """
+    Calculates the total and the net CO_2 balance.
+
+    """
+    # TODO:check name emissionbalance
+
+    # Delete previously initialized constraints
+    if model.find_component('const_emissionbalance'):
+        model.del_component(model.const_emissionbalance)
+        model.del_component(model.const_emissionbalance_index)
+
+    # def init_emissionbalance(const, t, car, node):  # emissionbalance at each node
+    # TODO: add unused CO2 to emissions
+
+    # model.const_emissionbalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_emissionbalance)
+
+    return model
+
 def add_system_costs(model):
     """
     Calculates total system costs in three steps.
@@ -83,3 +102,7 @@ def add_system_costs(model):
     model.const_cost = Constraint(rule=init_total_cost)
 
     return model
+
+
+
+    return None

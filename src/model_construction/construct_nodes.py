@@ -90,7 +90,7 @@ def add_nodes(model, data):
         b_node.para_export_limit = Param(model.set_t, model.set_carriers, rule=init_export_limit, units=u.MW)
 
         # Emission Factor
-        # TODO: import and export emissionfactor
+        # TODO: import and export emissionfactor, units
         def init_emission_factor(para, t, car):
             if nodename in data.node_data:
                 return data.node_data[nodename]['emission_factors'][car][t - 1]

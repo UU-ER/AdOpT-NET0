@@ -101,7 +101,7 @@ class energyhub:
         Constructs the energy balance, emission balance and calculates costs
         """
         self.model = mc.add_energybalance(self.model)
-        # self.model = mc.add_emissionbalance(self.model)
+        self.model = mc.add_emissionbalance(self.model)
         self.model = mc.add_system_costs(self.model)
 
     def solve_model(self, objective = 'cost'):
