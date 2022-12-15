@@ -1,8 +1,8 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
-from src.model_construction.construct_nodes import add_nodes
-from src.model_construction.construct_networks import add_networks
-from src.model_construction.construct_energybalance import add_energybalance
+from pyomo.gdp import *
+
+import src.model_construction as mc
 import pint
 import numpy as np
 import dill as pickle
@@ -30,6 +30,9 @@ class energyhub:
         """
         Constructor of the energyhub class.
         """
+        print('Reading in data...')
+        start = time.time()
+
         # INITIALIZE MODEL
         self.model = ConcreteModel()
 
@@ -62,6 +65,8 @@ class energyhub:
         except pint.errors.DefinitionSyntaxError:
             pass
 
+        print('Reading in data completed in ' + str(time.time() - start) + ' s')
+
     def construct_model(self):
         """
         Constructs model equations, defines objective functions and calculates emissions.
@@ -70,48 +75,77 @@ class energyhub:
         topology. It adds (1) networks (:func:`~add_networks`), (2) nodes and technologies \
         (:func:`~src.model_construction.construct_nodes.add_nodes` including \
         :func:`~add_technologies`) and (3) links all components with \
-        the constructing the energybalance of the optimization problem (:func:`~add_energybalance`).
+        the constructing the energybalance (:func:`~add_energybalance`), the total cost (:func:`~add_system_costs`)
+        and the emission balance (:func:`~add_emissionbalance`)
 
         The objective is minimized and can be chosen as total annualized costs, total annualized emissions \
         multi-objective (emission-cost pareto front).
 
         """
         # Todo: implement different options for objective function.
-        # TODO: sum over carriers to calculate network costs
 
-        objective_function = 'cost'
         print('Constructing Model...')
         start = time.time()
-        self.model = add_networks(self.model, self.data)
-        self.model = add_nodes(self.model, self.data)
-        self.model = add_energybalance(self.model)
-        # self.model = add_emissionbalance(self.model)
-        print('Constructing Model completed in ' + str(time.time() - start) + ' s')
+        # Global Variables
+        self.model.var_emissions = Var()
+        self.model.var_node_cost = Var()
+        self.model.var_netw_cost = Var()
+        self.model.var_total_cost = Var()
 
-        if objective_function == 'cost':
+        # Model construction
+        self.model = mc.add_networks(self.model, self.data)
+        self.model = mc.add_nodes(self.model, self.data)
+
+    def construct_balances(self):
+        """
+        Constructs the energy balance, emission balance and calculates costs
+        """
+        self.model = mc.add_energybalance(self.model)
+        # self.model = mc.add_emissionbalance(self.model)
+        self.model = mc.add_system_costs(self.model)
+
+    def solve_model(self, objective = 'cost'):
+        """
+        Defines objective and solves model
+        """
+        # This is a dirty fix as objectives cannot be found with find_component
+        try:
+            self.model.del_component(self.model.objective)
+        except:
+            pass
+
+        # Define Objective Function
+        if objective == 'cost':
             def init_cost_objective(obj):
-                node_cost = sum(self.model.node_blocks[node].var_cost for node in self.model.set_nodes)
-                netw_cost = sum(self.model.network_block[netw].var_cost for netw in self.model.set_networks)
-                return node_cost + netw_cost
+                return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        elif objective_function == 'emissions':
+        elif objective == 'emissions':
             print('to be implemented')
-        elif objective_function == 'pareto':
+        elif objective == 'pareto':
             print('to be implemented')
 
-    def solve_model(self):
-        if m_config.presolve.big_m_transformation_required:
-            print('Performing Big-M transformation...')
-            start = time.time()
-            xfrm = TransformationFactory('gdp.bigm')
-            xfrm.apply_to(self.model)
-            print('Performing Big-M transformation completed in ' + str(time.time() - start) + ' s')
-
+        # Solve model
         print('Solving Model...')
         start = time.time()
         solver = SolverFactory(m_config.solver.solver)
-        self.solution = solver.solve(self.model, tee=True)
+        self.solution = solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
+
+
+    def add_technology_to_node(self, nodename, technologies):
+        """
+        Adds technologies retrospectively to the model.
+
+        After adding a technology to a node, the anergy and emission balance need to be re-constructed, as well as the
+        costs recalculated. To solve the model, :func:`~construct_balances` and then solve again.
+
+        :param str nodename: name of node for which technology is installed
+        :param list technologies: list of technologies that should be added to nodename
+        :return: None
+        """
+        self.data.read_single_technology_data(nodename, technologies)
+        node_block = self.model.node_blocks[nodename]
+        mc.add_technologies(nodename, technologies, self.model, self.data, node_block)
 
     def save_model(self, file_path, file_name):
         """
@@ -176,22 +210,22 @@ class energyhub:
             for car in self.model.set_carriers:
                 input_tecs[car] = pd.DataFrame()
                 for tec in node_data.set_tecsAtNode:
-                    if car in node_data.tech_blocks[tec].set_input_carriers:
+                    if car in node_data.tech_blocks_active[tec].set_input_carriers:
                         temp = np.zeros((n_timesteps), dtype=float)
                         for t in self.model.set_t:
-                            temp[t-1] = node_data.tech_blocks[tec].var_input[t, car].value
+                            temp[t-1] = node_data.tech_blocks_active[tec].var_input[t, car].value
                         input_tecs[car][tec] = temp
 
                 output_tecs[car] = pd.DataFrame()
                 for tec in node_data.set_tecsAtNode:
-                    if car in node_data.tech_blocks[tec].set_output_carriers:
+                    if car in node_data.tech_blocks_active[tec].set_output_carriers:
                         temp = np.zeros((n_timesteps), dtype=float)
                         for t in self.model.set_t:
-                            temp[t-1] = node_data.tech_blocks[tec].var_output[t, car].value
+                            temp[t-1] = node_data.tech_blocks_active[tec].var_output[t, car].value
                         output_tecs[car][tec] = temp
 
                 for tec in node_data.set_tecsAtNode:
-                    size_tecs[tec] = node_data.tech_blocks[tec].var_size.value
+                    size_tecs[tec] = node_data.tech_blocks_active[tec].var_size.value
 
             df = pd.DataFrame(data=size_tecs, index=[0])
             with pd.ExcelWriter(file_name) as writer:

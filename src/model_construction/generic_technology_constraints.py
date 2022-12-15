@@ -86,6 +86,9 @@ def constraints_tec_type_2(model, b_tec, tec_data):
     else:
         min_part_load = 0
 
+    if performance_function_type >= 2:
+        m_config.presolve.big_m_transformation_required = 1
+
     # Formulate Constraints for each performance function type
     # linear through origin
     if performance_function_type == 1:
@@ -99,7 +102,6 @@ def constraints_tec_type_2(model, b_tec, tec_data):
 
     # linear not through origin
     elif performance_function_type == 2:
-        m_config.presolve.big_m_transformation_required = 1
         if min_part_load == 0:
             warnings.warn(
                 'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + tec)
@@ -139,7 +141,6 @@ def constraints_tec_type_2(model, b_tec, tec_data):
 
     # piecewise affine function
     elif performance_function_type == 3:
-        m_config.presolve.big_m_transformation_required = 1
         s_indicators = range(0, len(bp_x))
 
         def init_input_output(dis, t, ind):
@@ -192,6 +193,9 @@ def constraints_tec_type_3(model, b_tec, tec_data):
     if performance_function_type == 3:
         bp_x = tec_fit['bp_x']
 
+    if performance_function_type >= 2:
+        m_config.presolve.big_m_transformation_required = 1
+
     # Formulate Constraints for each performance function type
     # linear through origin
     if performance_function_type == 1:
@@ -203,7 +207,6 @@ def constraints_tec_type_3(model, b_tec, tec_data):
                                               rule=init_input_output)
 
     elif performance_function_type == 2:
-        m_config.presolve.big_m_transformation_required = 1
         if min_part_load == 0:
             warnings.warn(
                 'Having performance_function_type = 2 with no part-load usually makes no sense.')
@@ -244,7 +247,6 @@ def constraints_tec_type_3(model, b_tec, tec_data):
 
     # piecewise affine function
     elif performance_function_type == 3:
-        m_config.presolve.big_m_transformation_required = 1
         s_indicators = range(0, len(bp_x))
 
         def init_input_output(dis, t, ind):
@@ -328,3 +330,5 @@ def constraints_tec_type_6(model, b_tec, tec_data):
     def init_maximal_discharge(const,t,car):
         return b_tec.var_output[t, car] <= b_tec.para_eta_out * b_tec.var_size
     b_tec.const_max_discharge = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
+
+    return b_tec

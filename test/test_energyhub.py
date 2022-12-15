@@ -33,6 +33,7 @@ def test_model1():
     data = dm.load_data_handle(r'./test/test_data/model1.p')
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
@@ -48,11 +49,12 @@ def test_model2():
     data = dm.load_data_handle(r'./test/test_data/model2.p')
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     m = energyhub.model
     assert energyhub.solution.solver.termination_condition == 'optimal'
     # Size of Furnace
-    size_res = m.node_blocks['test_node1'].tech_blocks['Furnace_NG'].var_size.value
+    size_res = m.node_blocks['test_node1'].tech_blocks_active['Furnace_NG'].var_size.value
     size_should = max(data.node_data['test_node1']['demand']['heat']) / data.technology_data['test_node1']['Furnace_NG']['fit']['alpha2']['heat']
     assert  round(size_res,3) == round(size_should,3)
     # Gas Import in each timestep
@@ -74,4 +76,39 @@ def test_model2():
     cost_should = tec_cost + import_cost
     cost_error = abs(cost_should - cost_res) / cost_res
     assert cost_error <= 0.001
+
+def test_addtechnology():
+    """
+    electricity demand @ node 2
+    battery at node 2
+    first, WT at node 1, later PV at node 2
+
+    second solve should be cheaper
+    """
+    data = dm.load_data_handle(r'./test/test_data/addtechnology.p')
+    energyhub = ehub(data)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve_model()
+
+    obj1 = energyhub.model.objective()
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    sizeWT1 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_OS_6000'].var_size.value
+    sizeBattery1 = energyhub.model.node_blocks['test_node2'].tech_blocks_active['battery'].var_size.value
+    assert 0 <= sizeWT1
+    assert 0 <= sizeBattery1
+    should = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_OS_6000'].var_size.value * 6
+    res = energyhub.model.network_block['electricitySimple'].arc_block['test_node1', 'test_node2'].var_size.value
+    assert abs(should - res) / res <= 0.001
+
+    energyhub.add_technology_to_node('test_node2', ['PV'])
+    energyhub.construct_balances()
+    energyhub.solve_model()
+
+    obj2 = energyhub.model.objective()
+    sizeWT2 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_OS_6000'].var_size.value
+    sizeBattery2 = energyhub.model.node_blocks['test_node2'].tech_blocks_active['battery'].var_size.value
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    assert sizeWT2 <= sizeWT1
+    assert (obj2 - obj1) / obj1 <= 0.8
 
