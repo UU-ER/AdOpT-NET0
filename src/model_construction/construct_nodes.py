@@ -110,14 +110,7 @@ def add_nodes(model, data):
         b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MW)
         b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MW)
 
-        # Cost at node
-        b_node.var_cost = Var(units=u.EUR)
-
-        # BLOCKS
-        # Add technologies as blocks
-        b_node = add_technologies(nodename, b_node, model, data)
-
-        # Define network constraints
+         # Define network constraints
         def init_netw_inflow(const, t, car):
             return b_node.var_netw_inflow[t,car] == sum(model.network_block[netw].var_inflow[t,car,nodename]
                                                         for netw in model.set_networks
@@ -136,19 +129,9 @@ def add_nodes(model, data):
                                                         if car in model.network_block[netw].set_consumed_carriers)
         b_node.const_netw_consumption = Constraint(model.set_t, model.set_carriers, rule=init_netw_consumption)
 
-        def init_cost_at_node(const):  # var_cost calculation at node per carrier
-            return sum(b_node.tech_blocks[tec].var_CAPEX
-                       for tec in b_node.set_tecsAtNode) + \
-                   sum(sum(b_node.tech_blocks[tec].var_OPEX_variable[t]
-                            for tec in b_node.set_tecsAtNode) for t in model.set_t) + \
-                   sum(b_node.tech_blocks[tec].var_OPEX_fixed
-                        for tec in b_node.set_tecsAtNode) + \
-                   sum(sum(b_node.var_import_flow[t, car] * b_node.para_import_price[t, car]
-                           for car in model.set_carriers) for t in model.set_t) - \
-                   sum(sum(b_node.var_export_flow[t, car] * b_node.para_export_price[t, car]
-                           for car in model.set_carriers) for t in model.set_t) == \
-                   b_node.var_cost
-        b_node.const_cost = Constraint(rule=init_cost_at_node)
+        # BLOCKS
+        # Add technologies as blocks
+        b_node = add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node)
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 

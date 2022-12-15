@@ -18,6 +18,7 @@ def test_networks():
     data.network_data['hydrogenTest']['EnergyConsumption'] = {}
     energyhub1 = ehub(data)
     energyhub1.construct_model()
+    energyhub1.construct_balances()
     energyhub1.solve_model()
     cost1 = energyhub1.model.objective()
     assert energyhub1.solution.solver.termination_condition == 'optimal'
@@ -36,6 +37,7 @@ def test_networks():
     data.network_data['hydrogenTest']['EnergyConsumption'] = {}
     energyhub2 = ehub(data)
     energyhub2.construct_model()
+    energyhub2.construct_balances()
     energyhub2.solve_model()
     cost2 = energyhub2.model.objective()
     assert energyhub2.solution.solver.termination_condition == 'optimal'
@@ -49,6 +51,7 @@ def test_networks():
     data.network_data['hydrogenTest']['NetworkPerf']['bidirectional'] = 0
     energyhub3 = ehub(data)
     energyhub3.construct_model()
+    energyhub3.construct_balances()
     energyhub3.solve_model()
     cost3 = energyhub3.model.objective()
     assert energyhub3.solution.solver.termination_condition == 'optimal'

@@ -20,13 +20,15 @@ data_save_path = r'.\user_data\data_handle_test'
 modeled_year = 2001
 
 topology = {}
-topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
+# topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
+topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 00:00', freq='1h')
+
 topology['timestep_length_h'] = 1
-topology['carriers'] = ['electricity', 'heat', 'gas']
+topology['carriers'] = ['electricity']
 topology['nodes'] = ['onshore', 'offshore']
 topology['technologies'] = {}
-topology['technologies']['onshore'] = ['PV', 'Furnace_NG', 'battery']
-topology['technologies']['offshore'] = ['WT_OS_11000']
+topology['technologies']['onshore'] = ['battery', 'PV']
+topology['technologies']['offshore'] = []
 
 topology['networks'] = {}
 topology['networks']['electricitySimple'] = {}
@@ -54,28 +56,16 @@ else:
     data.read_climate_data_from_api('offshore', lon, lat,save_path='.\data\climate_data_offshore.txt')
 
 # DEMAND
-heat_demand = np.ones(len(topology['timesteps'])) * 60
 electricity_demand = np.ones(len(topology['timesteps'])) * 10
-
-data.read_demand_data('onshore', 'heat', heat_demand)
 data.read_demand_data('onshore', 'electricity', electricity_demand)
 
-# PRICE DATA
-gas_price = np.ones(len(topology['timesteps'])) * 100
-data.read_import_price_data('onshore', 'gas', gas_price)
-
-# IMPORT/EXPORT LIMITS
-gas_import = np.ones(len(topology['timesteps'])) * 1000
-data.read_import_limit_data('onshore', 'gas', gas_price)
-
 # PRINT DATA
-data.pprint()
+# data.pprint()
 
 
 # READ TECHNOLOGY AND NETWORK DATA
 data.read_technology_data()
 data.read_network_data()
-
 
 
 # # SAVING/LOADING DATA FILE
@@ -87,20 +77,20 @@ data.read_network_data()
 
 
 # # Read data
-print('Reading in data...')
-start = time.time()
 energyhub = energyhub(data)
-print('Reading in data completed in ' + str(time.time()-start) + ' s')
-#
-# energyhub.print_topology()
-#
-# # Construct equations
-print('Constructing Model...')
-start = time.time()
-energyhub.construct_model()
-print('Constructing Model completed in ' + str(time.time()-start) + ' s')
 
+# Construct equations
+energyhub.construct_model()
+energyhub.construct_balances()
+
+# Solve model
 energyhub.solve_model()
+
+energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
+energyhub.construct_balances()
+energyhub.solve_model()
+
+# energyhub.model.display()
 #
 # # energyhub.model.pprint()
 # # # Save model
@@ -141,6 +131,5 @@ energyhub.solve_model()
 # # # solve.set_instance(energyhub.model)
 # # # solution = solve.solve(tee=True)
 # # # solution.write()
-energyhub.model.display()
 # # node_data = energyhub.model.node_blocks['onshore']
-# # tec_data = node_data.tech_blocks['PV'].var_size.pprint()
+# # tec_data = node_data.tech_blocks_active['PV'].var_size.pprint()
