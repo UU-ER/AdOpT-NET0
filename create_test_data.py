@@ -337,12 +337,12 @@ def create_data_network():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-# create_data_model1()
-# create_data_model2()
-# create_data_technology_type1_PV()
-# create_data_technology_type1_WT()
+create_data_model1()
+create_data_model2()
+create_data_technology_type1_PV()
+create_data_technology_type1_WT()
 create_data_technology_PWA()
-# create_data_network()
+create_data_network()
 
 
 
