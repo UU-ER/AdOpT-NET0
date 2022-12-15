@@ -23,6 +23,7 @@
     "size_min": 0,
     "size_max": 1.0E+7,
     "size_is_int": 0,
+    "emission_factor": 0,
     "performance": {
       "eta_in": 0.96,
       "eta_out": 0.96,

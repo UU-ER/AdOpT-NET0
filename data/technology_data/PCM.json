@@ -41,6 +41,7 @@
       280
     ],
     "size_is_int": 0,
+    "emission_factor": 0,
     "performance": {
       "eta_in": 0.95,
       "eta_out": 0.95,
