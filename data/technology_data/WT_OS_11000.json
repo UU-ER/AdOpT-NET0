@@ -3,7 +3,7 @@
   "Economics": {
     "comment": "CAPEX_annual in EUR/turbine/year, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 1.66404898E+20,
+    "unit_CAPEX_annual": 1.66404898E+6,
     "OPEX_variable": 2.6,
     "OPEX_fixed": 0.23
   },
