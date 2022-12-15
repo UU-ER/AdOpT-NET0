@@ -4,7 +4,6 @@ import src.config_model as m_config
 
 
 def add_technologies(nodename, b_node, model, data):
-    # TODO: define main carrier in tech data
     r"""
     Adds all technologies as model blocks to respective node.
 
@@ -101,6 +100,11 @@ def add_technologies(nodename, b_node, model, data):
                                          units=u.EUR/u.MWh)
         b_tec.para_OPEX_fixed = Param(domain=Reals, initialize=tec_data['Economics']['OPEX_fixed'],
                                       units=u.EUR/u.EUR)
+
+        #TODO: check unit tonnes
+        # b_tec.para_emissionfactor = Param(domain=Reals, initialize=tec_data['TechnologyPerf']['emissionfactor'],
+        #                               units=u.tonnes/u.MWh)
+
         # endregion
 
         # region SETS
@@ -116,6 +120,11 @@ def add_technologies(nodename, b_node, model, data):
         # Output
         b_tec.var_output = Var(model.set_t, b_tec.set_output_carriers, within=NonNegativeReals,
                                bounds=(0, b_tec.para_output_max), units=u.MW)
+
+        # Emission
+        #TODO: check bounds and units
+        # b_tec.var_emissions = Var(model.set_t, within=NonNegativeReals, bounds=(0, b_tec.para_size_max), units=u.tonnes)
+
         # Size
         if size_is_integer:  # size
             b_tec.var_size = Var(within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
@@ -148,6 +157,13 @@ def add_technologies(nodename, b_node, model, data):
             return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_OPEX_variable == \
                    b_tec.var_OPEX_variable[t]
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
+
+        # Emissions
+        #TODO: check main input carrier and sum
+        # def init_tec_emissions(const, t):
+        #     return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
+        #         * b_tec.para_emissionfactor == b_tec.var_tec_emissions
+        # b_tec.const_tec_emissions = Constraint(rule=init_tec_emissions)
 
         # Size constraint
         if tec_type == 1: # we don't need size constraints for renewable technologies
