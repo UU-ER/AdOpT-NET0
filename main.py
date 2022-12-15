@@ -21,7 +21,7 @@ modeled_year = 2001
 
 topology = {}
 # topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
-topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 00:00', freq='1h')
+topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 00:00', freq='1h')
 
 topology['timestep_length_h'] = 1
 topology['carriers'] = ['electricity']
@@ -81,11 +81,13 @@ energyhub = energyhub(data)
 
 # Construct equations
 energyhub.construct_model()
+energyhub.construct_balances()
 
 # Solve model
 energyhub.solve_model()
 
 energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
+energyhub.construct_balances()
 energyhub.solve_model()
 
 # energyhub.model.display()

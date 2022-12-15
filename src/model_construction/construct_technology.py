@@ -1,5 +1,6 @@
 import numbers
 from src.model_construction.generic_technology_constraints import *
+import src.model_construction as mc
 import src.config_model as m_config
 
 
@@ -177,6 +178,11 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         elif tec_type == 6: # Storage technology (1 input -> 1 output)
             b_tec = constraints_tec_type_6(model, b_tec, tec_data)
+
+        if m_config.presolve.big_m_transformation_required:
+            mc.perform_disjunct_relaxation(b_tec)
+
+        return b_tec
 
     # Create a new block containing all new technologies. The set of nodes that need to be added
     if b_node.find_component('tech_blocks_new'):

@@ -96,35 +96,33 @@ class energyhub:
         self.model = mc.add_networks(self.model, self.data)
         self.model = mc.add_nodes(self.model, self.data)
 
-    def solve_model(self):
+    def construct_balances(self):
         """
-        Performs big-M transformation (if required) and solves model
+        Constructs the energy balance, emission balance and calculates costs
         """
-
-        objective_function = 'cost'
-
         self.model = mc.add_energybalance(self.model)
         # self.model = mc.add_emissionbalance(self.model)
         self.model = mc.add_system_costs(self.model)
 
-        # Objective Function
-        if objective_function == 'cost':
+    def solve_model(self, objective = 'cost'):
+        """
+        Defines objective and solves model
+        """
+        # This is a dirty fix as objectives cannot be found with find_component
+        try:
+            self.model.del_component(self.model.objective)
+        except:
+            pass
+
+        # Define Objective Function
+        if objective == 'cost':
             def init_cost_objective(obj):
                 return self.model.var_total_cost
-
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        elif objective_function == 'emissions':
+        elif objective == 'emissions':
             print('to be implemented')
-        elif objective_function == 'pareto':
+        elif objective == 'pareto':
             print('to be implemented')
-
-        # Big-M transformation
-        if m_config.presolve.big_m_transformation_required:
-            print('Performing Big-M transformation...')
-            start = time.time()
-            xfrm = TransformationFactory('gdp.bigm')
-            xfrm.apply_to(self.model)
-            print('Performing Big-M transformation completed in ' + str(time.time() - start) + ' s')
 
         # Solve model
         print('Solving Model...')
@@ -133,12 +131,13 @@ class energyhub:
         self.solution = solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
 
-        m_config.presolve.big_m_transformation_required = 0
-        self.model.del_component(self.model.objective)
 
     def add_technology_to_node(self, nodename, technologies):
         """
-        Adds technologies retrospectively to the model
+        Adds technologies retrospectively to the model.
+
+        After adding a technology to a node, the anergy and emission balance need to be re-constructed, as well as the
+        costs recalculated. To solve the model, :func:`~construct_balances` and then solve again.
 
         :param str nodename: name of node for which technology is installed
         :param list technologies: list of technologies that should be added to nodename

@@ -2,7 +2,7 @@ from pyomo.environ import *
 from pyomo.environ import units as u
 from pyomo.gdp import *
 import src.config_model as m_config
-
+import src.model_construction as mc
 
 def add_networks(model, data):
     r"""
@@ -460,8 +460,13 @@ def add_networks(model, data):
                     return b_netw.var_consumption[t, car, node] == 0
             else:
                 return b_netw.var_consumption[t, car, node] == 0
+
         b_netw.const_netw_consumption = Constraint(model.set_t, model.set_carriers, model.set_nodes,
                                          rule=init_network_consumption)
+
+        if m_config.presolve.big_m_transformation_required:
+            mc.perform_disjunct_relaxation(b_netw)
+
         return b_netw
     model.network_block = Block(model.set_networks, rule=init_network)
     return model
