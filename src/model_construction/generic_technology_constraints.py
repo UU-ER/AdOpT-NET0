@@ -81,13 +81,14 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
     """
     tec_fit = tec_data['fit']
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+    performance_data = tec_data['TechnologyPerf']
 
     # Get performance parameters
     alpha1 = tec_fit['alpha1']
     if performance_function_type == 2:
         alpha2 = tec_fit['alpha2']
-    if 'min_part_load' in tec_fit:
-        min_part_load = tec_fit['min_part_load']
+    if 'min_part_load' in performance_data:
+        min_part_load = performance_data['min_part_load']
     else:
         min_part_load = 0
     if performance_function_type == 3:
@@ -109,7 +110,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
         m_config.presolve.big_m_transformation_required = 1
         if min_part_load == 0:
             warnings.warn(
-                'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + tec)
+                'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + b_tec.local_name)
 
         # define disjuncts
         s_indicators = range(0, 2)
@@ -194,16 +195,17 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
 def constraints_tec_CONV2(model, b_tec, tec_data):
     tec_fit = tec_data['fit']
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+    performance_data = tec_data['TechnologyPerf']
 
     alpha1 = {}
     alpha2 = {}
     # Get performance parameters
-    for c in tec_data['TechnologyPerf']['performance']['out']:
+    for c in performance_data['performance']['out']:
         alpha1[c] = tec_fit[c]['alpha1']
         if performance_function_type == 2:
             alpha2[c] = tec_fit[c]['alpha2']
-        if 'min_part_load' in tec_fit:
-            min_part_load = tec_fit['min_part_load']
+        if 'min_part_load' in performance_data:
+            min_part_load = performance_data['min_part_load']
         else:
             min_part_load = 0
         if performance_function_type == 3:
@@ -225,7 +227,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
         m_config.presolve.big_m_transformation_required = 1
         if min_part_load == 0:
             warnings.warn(
-                'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + tec)
+                'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + b_tec.local_name)
             # TODO: Switch to performance_function_type 1!
 
         # define disjuncts
@@ -339,7 +341,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
     else:
         #TODO: make error message?
         warnings.warn(
-            'Using CONV3 without input ratios makes no sense. Error occured for ' + tec)
+            'Using CONV3 without input ratios makes no sense. Error occured for ' + b_tec.local_name)
 
 
 
