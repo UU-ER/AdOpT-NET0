@@ -9,7 +9,6 @@ import src.data_management as dm
 from pyomo.environ import units as u
 import pandas as pd
 import numpy as np
-import time
 from src.energyhub import energyhub
 from pyomo.environ import *
 
@@ -20,8 +19,7 @@ data_save_path = r'.\user_data\data_handle_test'
 modeled_year = 2001
 
 topology = {}
-# topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
-topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 00:00', freq='1h')
+topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
 
 topology['timestep_length_h'] = 1
 topology['carriers'] = ['electricity']
@@ -62,7 +60,6 @@ data.read_demand_data('onshore', 'electricity', electricity_demand)
 # PRINT DATA
 # data.pprint()
 
-
 # READ TECHNOLOGY AND NETWORK DATA
 data.read_technology_data()
 data.read_network_data()
@@ -70,11 +67,6 @@ data.read_network_data()
 
 # # SAVING/LOADING DATA FILE
 # data.save(data_save_path)
-
-# Load Data File from file
-# data = load_data_handle(data_save_path)
-# data.pprint()
-
 
 # # Read data
 energyhub = energyhub(data)
@@ -86,50 +78,16 @@ energyhub.construct_balances()
 # Solve model
 energyhub.solve_model()
 
+# Add technology to model and solve again
 energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
 energyhub.construct_balances()
 energyhub.solve_model()
 
-# energyhub.model.display()
-#
-# # energyhub.model.pprint()
-# # # Save model
-# # print('Saving Model...')
-# # start = time.time()
-# # energyhub.save_model('./data/ehub_instances', 'test_non_transformed')
-# # print('Saving Model completed in ' + str(time.time()-start) + ' s')
-# #
-# Big-M transformation
-# print('Performing Big-M transformation...')
-# start = time.time()
-# xfrm = TransformationFactory('gdp.bigm')
-# xfrm.apply_to(energyhub.model)
-# print('Performing Big-M transformation completed in ' + str(time.time()-start) + ' s')
+# Display whole model
+# energyhub.model.pprint()
 
-# #
-# # # Save model 2
-# # print('Saving Model...')
-# # start = time.time()
-# # energyhub.save_model('./data/ehub_instances', 'test_transformed')
-# # print('Saving Model completed in ' + str(time.time()-start) + ' s')
-# # #
-# # energyhub.model.node_blocks['onshore'].pprint()
-#
-#
-# print('Solving Model...')
+# Save model
+# print('Saving Model...')
 # start = time.time()
-# solver = SolverFactory('gurobi')
-# solution = solver.solve(energyhub.model, tee=True)
-# solution.write()
-# print('Solving Model completed in ' + str(time.time()-start) + ' s')
-# # #
-# energyhub.write_results('results')
-
-#
-# # #
-# # # solve = SolverFactory('gurobi_persistent')
-# # # solve.set_instance(energyhub.model)
-# # # solution = solve.solve(tee=True)
-# # # solution.write()
-# # node_data = energyhub.model.node_blocks['onshore']
-# # tec_data = node_data.tech_blocks_active['PV'].var_size.pprint()
+# energyhub.save_model('./data/ehub_instances', 'test_non_transformed')
+# print('Saving Model completed in ' + str(time.time()-start) + ' s')
