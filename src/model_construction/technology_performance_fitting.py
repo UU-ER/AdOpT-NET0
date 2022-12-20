@@ -179,30 +179,30 @@ def perform_fitting_tec_CONV1(tec_data):
     performance_data = tec_data['performance']
     performance_function_type = tec_data['performance_function_type']
     if 'nr_segments_piecewise' in performance_data:
-        nr_seg = tec_data['nr_segments_piecewise']
+        nr_seg = performance_data['nr_segments_piecewise']
     else:
-        nr_seg = 3
+        nr_seg = 2
 
-    fitting = dict()
+    fitting = {}
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        fitting['alpha1'] = dict()
-        fitting['alpha2'] = dict()
-        X = performance_data['in']
+        fitting['out'] = dict()
+        x = performance_data['in']
         if performance_function_type == 2:
-            X = sm.add_constant(X)
+            x = sm.add_constant(x)
         y = performance_data['out']
-        linmodel = sm.OLS(y, X)
+        linmodel = sm.OLS(y, x)
         linfit = linmodel.fit()
         coeff = linfit.params
         if performance_function_type == 1:
-            fitting['alpha1'] = round(coeff[0], 5)
+            fitting['out']['alpha1'] = round(coeff[0], 5)
         if performance_function_type == 2:
-            fitting['alpha1'] = round(coeff[1], 5)
-            fitting['alpha2'] = round(coeff[0], 5)
+            fitting['out']['alpha1'] = round(coeff[1], 5)
+            fitting['out']['alpha2'] = round(coeff[0], 5)
     elif performance_function_type == 3:  # piecewise performance function
-        X = performance_data['in']
-        y = performance_data['out']
-        fitting = fit_piecewise_function(X, y, nr_seg)
+        y = {}
+        x = performance_data['in']
+        y['out'] = performance_data['out']
+        fitting = fit_piecewise_function(x, y, nr_seg)
     return fitting
 
 def perform_fitting_tec_CONV2(tec_data):
@@ -219,27 +219,26 @@ def perform_fitting_tec_CONV2(tec_data):
     else:
         nr_seg = 2
 
-    fitting = dict()
+    fitting = {}
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        X = performance_data['in']
+        x = performance_data['in']
         if performance_function_type == 2:
-            X = sm.add_constant(X)
+            x = sm.add_constant(x)
         for c in performance_data['out']:
             fitting[c] = dict()
             y = performance_data['out'][c]
-            linmodel = sm.OLS(y, X)
+            linmodel = sm.OLS(y, x)
             linfit = linmodel.fit()
             coeff = linfit.params
-        if performance_function_type == 1:
-            fitting[c]['alpha1'] = round(coeff[0], 5)
-        if performance_function_type == 2:
-            fitting[c]['alpha1'] = round(coeff[1], 5)
-            fitting[c]['alpha2'] = round(coeff[0], 5)
+            if performance_function_type == 1:
+                fitting[c]['alpha1'] = round(coeff[0], 5)
+            if performance_function_type == 2:
+                fitting[c]['alpha1'] = round(coeff[1], 5)
+                fitting[c]['alpha2'] = round(coeff[0], 5)
     elif performance_function_type == 3:  # piecewise performance function
-        X = np.array(performance_data['in'])
-        for c in performance_data['out']:
-            y = np.array(performance_data['out'][c])
-            fitting[c] = fit_piecewise_function(X, y, nr_seg)
+        x = performance_data['in']
+        Y =  performance_data['out']
+        fitting = fit_piecewise_function(x, Y, nr_seg)
     return fitting
 
 def perform_fitting_tec_CONV3(tec_data):
@@ -256,27 +255,26 @@ def perform_fitting_tec_CONV3(tec_data):
     else:
         nr_seg = 2
 
-    fitting = dict()
+    fitting = {}
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        X = performance_data['in']
+        x = performance_data['in']
         if performance_function_type == 2:
-            X = sm.add_constant(X)
+            x = sm.add_constant(x)
         for c in performance_data['out']:
             fitting[c] = dict()
             y = performance_data['out'][c]
-            linmodel = sm.OLS(y, X)
+            linmodel = sm.OLS(y, x)
             linfit = linmodel.fit()
             coeff = linfit.params
-        if performance_function_type == 1:
-            fitting[c]['alpha1'] = round(coeff[0], 5)
-        if performance_function_type == 2:
-            fitting[c]['alpha1'] = round(coeff[1], 5)
-            fitting[c]['alpha2'] = round(coeff[0], 5)
+            if performance_function_type == 1:
+                fitting[c]['alpha1'] = round(coeff[0], 5)
+            if performance_function_type == 2:
+                fitting[c]['alpha1'] = round(coeff[1], 5)
+                fitting[c]['alpha2'] = round(coeff[0], 5)
     elif performance_function_type == 3:  # piecewise performance function
-        X = np.array(performance_data['in'])
-        for c in performance_data['out']:
-            y = np.array(performance_data['out'][c])
-            fitting[c] = fit_piecewise_function(X, y, nr_seg)
+        x = performance_data['in']
+        Y = performance_data['out']
+        fitting = fit_piecewise_function(x, Y, nr_seg)
     return fitting
 
 def perform_fitting_tec_STOR(tec_data, climate_data):
@@ -294,7 +292,6 @@ def perform_fitting_tec_STOR(tec_data, climate_data):
 def fit_piecewise_function(X, Y, nr_seg):
     """
     Returns fitted parameters of a piecewise defined function
-    TODO: Code this for multidimensional X data
     :param np.array X: x-values of data
     :param np.array Y: y-values of data
     :param nr_seg: number of segments on piecewise defined function
@@ -303,46 +300,65 @@ def fit_piecewise_function(X, Y, nr_seg):
     def segments_fit(X, Y, count):
         """
         Fits a piecewise defined function to x-y data
-        Thanks to ruoyu0088, available on github
-        :param X: x-values
-        :param Y: y-values
+        :param list X: x-values
+        :param dict Y: y-values (can have multiple dimensions)
         :param count: how many segments
         :return: x and y coordinates of piecewise defined function
         """
+        X = np.array(X)
         xmin = min(X)
         xmax = max(X)
         seg = np.full(count - 1, (xmax - xmin) / count)
         px_init = np.r_[np.r_[xmin, seg].cumsum(), xmax]
-        py_init = np.array([Y[np.abs(X - x) < (xmax - xmin) * 0.01].mean() for x in px_init])
-
-        def func(p):
-            seg = p[:count - 1]
-            py = p[count - 1:]
-            px = np.r_[np.r_[xmin, seg].cumsum(), xmax]
-            return px, py
+        py_init = np.array([])
+        for car in Y:
+            y = np.array(Y[car])
+            py_init = np.append(py_init, np.interp(px_init, X, y))
 
         def err(p):
-            px, py = func(p)
-            Y2 = np.interp(X, px, py)
-            return np.mean((Y - Y2) ** 2)
+            """
+            Calculates root mean square error of multiple curve fittings
+            """
+            # get variables
+            free_x_bp = p[:count - 1]
+            y_bps = p[count - 1:]
+            # Calculate y residuals
+            y_bp = np.empty((0, count+1))
+            y_res = np.empty(0)
+            for idx, car in enumerate(Y):
+                y_bp = np.append(y_bp, np.reshape(y_bps[idx*(count+1):(idx+1)*(count+1)], (1,-1)), axis=0)
+                y_res = np.append(y_res,
+                      np.mean((Y[car] - np.interp(X, np.r_[np.r_[xmin, free_x_bp].cumsum(), xmax], y_bp[idx])) ** 2))
+            return np.sum(y_res)
 
-        r = optimize.minimize(err, x0=np.r_[seg, py_init], method='Nelder-Mead')
-        return func(r.x)
+        options = {}
+        options['disp'] = 1
+        options['maxiter'] = 1500
+        r = optimize.minimize(err, x0=np.r_[seg, py_init], method='Nelder-Mead', options=options, tol=10^-6)
 
-    fitting = dict()
+        # Retrieve results
+        px = np.r_[xmin, r.x[:count - 1].cumsum(), xmax].round(5)
+        pys = r.x[count - 1:].ravel().round(5)
+        py = {}
+        for idx, car in enumerate(Y):
+            py[car] = pys[idx * (count + 1):(idx + 1) * (count + 1)]
+        return px, py
+
+    fitting = {}
     px, py = segments_fit(X, Y, nr_seg)
 
-    alpha1 = []
-    alpha2 = []
-    for seg in range(0, nr_seg):
-        al1 = (py[seg + 1] - py[seg]) / (px[seg + 1] - px[seg]) # Slope
-        al2 = py[seg] - (py[seg + 1] - py[seg]) / (px[seg + 1] - px[seg]) * px[seg] # Intercept
-        alpha1.append(al1)
-        alpha2.append(al2)
-
-    fitting['alpha1'] = alpha1
-    fitting['alpha2'] = alpha2
-    fitting['bp_x'] = px
-    fitting['bp_y'] = py
+    for idx, car in enumerate(Y):
+        fitting[car] = {}
+        alpha1 = []
+        alpha2 = []
+        for seg in range(0, nr_seg):
+            al1 = (py[car][seg + 1] - py[car][seg]) / (px[seg + 1] - px[seg]) # Slope
+            al2 = py[car][seg] - (py[car][seg + 1] - py[car][seg]) / (px[seg + 1] - px[seg]) * px[seg] # Intercept
+            alpha1.append(al1)
+            alpha2.append(al2)
+        fitting[car]['alpha1'] = alpha1
+        fitting[car]['alpha2'] = alpha2
+        fitting[car]['bp_y'] = py[car]
+        fitting['bp_x'] = px
     return fitting
 

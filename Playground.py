@@ -11,6 +11,7 @@ import cdsapi
 import pandas as pd
 from timezonefinder import TimezoneFinder
 
+from src.model_construction.technology_performance_fitting import fit_piecewise_function
 
 
 execute = 0
@@ -137,77 +138,26 @@ if execute == 1:
 
 #endregion
 
-execute = 0
+execute = 1
 #region How to fit a piece-wise linear function
 if execute == 1:
-    def make_test_data(seg_count, point_count):
-        x = np.random.uniform(2, 10, seg_count)
-        x = np.cumsum(x)
-        x *= 10 / x.max()
-        y = np.cumsum(np.random.uniform(-1, 1, seg_count))
-        X = np.random.uniform(0, 10, point_count)
-        Y = np.interp(X, x, y) + np.random.normal(0, 0.05, point_count)
-        return X, Y
+    nr_seg = 3
+    tec = 'testPWA'
+    with open('./data/technology_data/' + tec + '.json') as json_file:
+        technology_data = json.load(json_file)
 
+    tec_data = technology_data['TechnologyPerf']
+    performance_data = tec_data['performance']
+    X = performance_data['in']
+    Y = performance_data['out']
+    count = nr_seg
+    fitting = fit_piecewise_function(X, Y, nr_seg)
 
-    def fit_piecewise_function(X, Y, nr_seg):
-        parameters = dict()
+    pl.plot(X, Y['electricity'], ".")
+    pl.plot(X, Y['heat'], ".")
+    pl.plot(fitting['bp_x'], fitting['electricity']['bp_y'], "-or")
+    pl.plot(fitting['bp_x'], fitting['heat']['bp_y'], "-or")
 
-        def segments_fit(X, Y, count):
-            # Thanks to ruoyu0088, available on github
-            xmin = X.min()
-            xmax = X.max()
-
-            seg = np.full(count - 1, (xmax - xmin) / count)
-
-            px_init = np.r_[np.r_[xmin, seg].cumsum(), xmax]
-            py_init = np.array([Y[np.abs(X - x) < (xmax - xmin) * 0.01].mean() for x in px_init])
-
-            def func(p):
-                seg = p[:count - 1]
-                py = p[count - 1:]
-                px = np.r_[np.r_[xmin, seg].cumsum(), xmax]
-                return px, py
-
-            def err(p):
-                px, py = func(p)
-                Y2 = np.interp(X, px, py)
-                return np.mean((Y - Y2) ** 2)
-
-            r = optimize.minimize(err, x0=np.r_[seg, py_init], method='Nelder-Mead')
-            return func(r.x)
-
-        px, py = segments_fit(X, Y, nr_seg)
-        alpha1 = []
-        alpha2 = []
-        for seg in range(0, nr_seg):
-            x1 = px[seg]
-            x1_1 = px[seg+1]
-            y1 = py[seg]
-            y1_1 = py[seg + 1]
-            al1 = (y1_1-y1)/(x1_1 - x1)
-            al2 = y1 - (y1_1-y1)/(x1_1 - x1) * x1
-            alpha1.append(al1)
-            alpha2.append(al2)
-        # alpha1 = py/px
-        print(px, py)
-        return px, py, alpha1, alpha2
-
-    X, Y = make_test_data(2, 100)
-    px, py, alpha1, alpha2 = fit_piecewise_function(X, Y, 2)
-    print(alpha1)
-    print(alpha2)
-
-
-    pl.plot(X, Y, ".")
-    pl.plot(px, py, "-or")
-
-    x = np.arange(2, 10, 0.2)
-    y1 = alpha1[0] * x + alpha2[0]
-    y2 = alpha1[1] * x + alpha2[1]
-
-    pl.plot(x, y1)
-    pl.plot(x, y2)
     pl.show()
 
 #endregion
