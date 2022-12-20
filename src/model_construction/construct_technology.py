@@ -102,8 +102,6 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
                                          units=u.EUR/u.MWh)
         b_tec.para_OPEX_fixed = Param(domain=Reals, initialize=tec_data['Economics']['OPEX_fixed'],
                                       units=u.EUR/u.EUR)
-
-        #TODO: check unit tonnes
         b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=tec_data['TechnologyPerf']['emission_factor'],
                                       units=u.t/u.MWh)
 
@@ -123,10 +121,9 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         b_tec.var_output = Var(model.set_t, b_tec.set_output_carriers, within=NonNegativeReals,
                                bounds=(0, b_tec.para_output_max), units=u.MW)
 
-        # Emission
-        #TODO: check bounds and units
-        b_tec.var_tec_emissions = Var(model.set_t, within=NonNegativeReals, bounds=(0, b_tec.para_size_max), units=u.t)
-        b_tec.var_tec_emissions_neg = Var(model.set_t, within=NonNegativeReals, bounds=(0, b_tec.para_size_max), units=u.t)
+        # Emissions
+        b_tec.var_tec_emissions = Var(within=NonNegativeReals, units=u.t)
+        b_tec.var_tec_emissions_neg = Var(within=NonNegativeReals, units=u.t)
 
         # Size
         if size_is_integer:  # size
@@ -162,15 +159,23 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
         # Emissions
-        #TODO: check main input carrier and sum, difference between emissions and neg emissions
-        def init_tec_emissions(const, t):
-            return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
-                * b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions
+        def init_tec_emissions(const):
+            if tec_data['TechnologyPerf']['emission_factor'] >= 0:
+                return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
+                       * b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions
+            else:
+                return b_tec.var_tec_emissions == 0
         b_tec.const_tec_emissions = Constraint(rule=init_tec_emissions)
-        # def init_tec_emissions_neg(const, t):
-        #     return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
-        #         * b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions
-        # b_tec.const_tec_emissions_neg = Constraint(rule=init_tec_emissions_neg)
+
+        #TODO: do define negative emissions with positive or negative value
+        def init_tec_emissions_neg(const):
+            if tec_data['TechnologyPerf']['emission_factor'] > 0:
+                return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
+                       * -b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions_neg
+            else:
+                return b_tec.var_tec_emissions_neg == 0
+        b_tec.const_tec_emissions_neg = Constraint(rule=init_tec_emissions_neg)
+
 
         # Size constraint
         if tec_type == 1: # we don't need size constraints for renewable technologies
