@@ -86,11 +86,15 @@ class energyhub:
 
         print('Constructing Model...')
         start = time.time()
-        # Global Variables
-        self.model.var_emissions = Var()
+        # Global Cost Variables
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
+        # Global Emission variables
+        self.model.var_emissions_tot = Var()
+        self.model.var_emissions_neg = Var()
+        self.model.var_emissions_net = Var()
+
 
         # Model construction
         self.model = mc.add_networks(self.model, self.data)

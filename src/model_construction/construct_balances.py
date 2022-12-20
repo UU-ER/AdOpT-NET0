@@ -44,17 +44,37 @@ def add_emissionbalance(model):
     Calculates the total and the net CO_2 balance.
 
     """
-    # TODO:check name emissionbalance
-
     # Delete previously initialized constraints
-    if model.find_component('const_emissionbalance'):
-        model.del_component(model.const_emissionbalance)
-        model.del_component(model.const_emissionbalance_index)
+    # if model.find_component('const_emissionbalance'):
+    #     model.del_component(model.const_emissionbalance)
+    #     model.del_component(model.const_emissionbalance_index)
 
-    # def init_emissionbalance(const, t, car, node):  # emissionbalance at each node
     # TODO: add unused CO2 to emissions
-
+    # def init_emissionbalance(const, t, car, node):  # emissionbalance at each node
     # model.const_emissionbalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_emissionbalance)
+
+    # calculate total emissions from technologies, networks and importing/exporting carriers
+    def init_emissions_tot(const):
+        return sum(
+                sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions
+                    for tec in model.node_blocks[node].set_tecsAtNode) + \
+                model.node_blocks[node].var_car_emissions
+                for node in model.set_nodes) == \
+                model.var_emissions_tot
+    model.const_emissions_tot = Constraint(rule=init_emissions_tot)
+
+    # calculate negative emissions from technologies, networks and im
+    def init_emissions_neg(const):
+        return sum(
+                sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg
+                       for tec in model.node_blocks[node].set_tecsAtNode) + \
+                model.node_blocks[node].var_car_emissions_neg
+                for node in model.set_nodes) == \
+               model.var_emissions_neg
+    model.const_emissions_neg = Constraint(rule=init_emissions_neg)
+
+    model.const_emissions_net = Constraint(rule=model.var_emissions_neg - model.var_emissions_neg == model.var_emissions_net)
+
 
     return model
 
