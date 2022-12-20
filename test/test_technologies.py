@@ -413,7 +413,7 @@ def test_technology_CONV3():
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
     assert abs(10 - objective_value) / 10 <= allowed_fitting_error
-    assert gas_in_1 == tec_size
+    assert abs(gas_in_1 - tec_size) / tec_size <= allowed_fitting_error
     assert round(1 - 0.05 / 0.75, 3) == gas_in_1
     assert gas_in_1 * 2 == hydrogen_in_1
     assert round((0.5 - 0.05) / 0.75, 3) == gas_in_2
