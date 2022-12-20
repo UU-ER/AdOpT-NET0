@@ -29,7 +29,7 @@ class DataHandle:
         self.technology_data = {}
         self.network_data = {}
 
-        # init. demand, prices, emission factors =0 for all timesteps, carriers and nodes
+        # init. demand, prices, emission factors = 0 for all timesteps, carriers and nodes
 
         for nodename in self.topology['nodes']:
             self.node_data[nodename] = {}
@@ -195,6 +195,28 @@ class DataHandle:
                     technology_data = mc.fit_tec_performance(technology_data)
 
                 self.technology_data[nodename][tec] = technology_data
+
+    def read_single_technology_data(self, nodename, technologies):
+        """
+        Reads technologies to DataHandle after it has been initialized.
+
+        This function is only required if technologies are added to the model after the DataHandle has been initialized.
+        """
+
+        for tec in technologies:
+            # Read in JSON files
+            with open('./data/technology_data/' + tec + '.json') as json_file:
+                technology_data = json.load(json_file)
+            # Fit performance function
+            if (technology_data['TechnologyPerf']['tec_type'] == 1) or \
+                    (technology_data['TechnologyPerf']['tec_type'] == 6):
+                technology_data = mc.fit_tec_performance(technology_data, tec=tec,
+                                                         climate_data=self.node_data[nodename]['climate_data'])
+            else:
+                technology_data = mc.fit_tec_performance(technology_data)
+
+            self.technology_data[nodename][tec] = technology_data
+
 
     def read_network_data(self):
         """

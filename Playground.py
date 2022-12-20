@@ -14,36 +14,48 @@ from timezonefinder import TimezoneFinder
 from src.model_construction.technology_performance_fitting import fit_piecewise_function
 
 
-execute = 0
+execute = 1
 #region How to formulate hierarchical models with blocks
 if execute == 1:
     m = ConcreteModel()
 
-    m.t = RangeSet(1,2)
+    m.t = RangeSet(1,1)
     m.tec = Set(initialize=['Tec1','Tec2'])
 
+    m.tecBlock = Block(m.tec)
 
-    def time_block_rule(b_t):
+    def tec_block_rule(bl):
+        bl.var_input = Var()
+        bl.var_output = Var()
+        def inout(model):
+            return bl.var_output == 0.7 * bl.var_input
+        bl.c_perf = Constraint(rule=inout)
+    m.tecBlock = Block(m.tec, rule=tec_block_rule)
+
+    newtec = ['Tec3']
+
+    m.tec.add(newtec)
+    m.tecBlock[newtec] = Block(rule=tec_block_rule)
+    # for tec in m.tec:
+    #     m.tecBlock2[tec].transfer_attributes_from(m.tecBlock[tec])
+    # m.bla = Block()
+    # m.bla.transfer_attributes_from(m.tecBlock['Tec1'].clone())
+
+    #
+    # m.tecBlock['Tec1'].add_component('bla', RangeSet(1,1))
+    # m.pprint()
+    # m.pprint()
+    # m.tecBlock['Tec3'].pprint()
+    # m.cons_balance = Constraint(expr=m.tecBlock['Tec3'].var_output == 3)
+    m.pprint()
 
 
-        def tec_block_rule(model):
-            model.var_input = Var()
-            model.var_output = Var()
-            def inout(model):
-                return model.var_output == 0.7 * model.var_input
-            model.c_perf = Constraint(rule=inout)
-        b_t.tecBlock = Block(m.tec, rule=tec_block_rule)
-
-
-    m.time_block = Block(m.t, rule=time_block_rule)
-
-    m.time_block.pprint()
 
     # Set definitions
-    m.nodes = Set(initialize=['onshore','offshore'])
-    m.tecs = Set(m.nodes, dimen=1, initialize=['Tec1','Tec2'])
+    # m.nodes = Set(initialize=['onshore','offshore'])
+    # m.tecs = Set(m.nodes, dimen=1, initialize=['Tec1','Tec2'])
 
-    m.tecs['onshore'].pprint()
+    # m.tecs['onshore'].pprint()
 #endregion
 
 execute = 0

@@ -18,18 +18,17 @@ def test_technology_RES_PV():
     data = dm.load_data_handle(r'./test/test_data/technology_type1_PV.p')
     energyhub = ehub(data)
     energyhub.construct_model()
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'optimal'
-    assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
-    assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
+    energyhub.construct_balances()
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
+    assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
 
     for t in energyhub.model.set_t:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'optimal'
-    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks['PV'].var_size.value
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
     assert 0 == energyhub.model.objective()
 
 
@@ -45,28 +44,27 @@ def test_technology_RES_WT():
     data = dm.load_data_handle(r'./test/test_data/technology_type1_WT.p')
     energyhub = ehub(data)
     energyhub.construct_model()
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'optimal'
-    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks['WT_1500'].var_size.value
+    energyhub.construct_balances()
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value
 
     # Import at zero price
     for t in energyhub.model.set_t:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'optimal'
-    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks['WT_1500'].var_size.value
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value
     assert 0 == energyhub.model.objective()
 
     # Curtailment
     data.technology_data['test_node1']['WT_1500']['TechnologyPerf']['curtailment'] = 2
     energyhub = ehub(data)
     energyhub.construct_model()
-    solver = SolverFactory('gurobi')
-    solution = solver.solve(energyhub.model, tee=True)
-    assert solution.solver.termination_condition == 'optimal'
-    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks['WT_1500'].var_size.value
+    energyhub.construct_balances()
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value
 
 def test_technology_CONV1():
     """
@@ -78,24 +76,24 @@ def test_technology_CONV1():
     tecname = 'testCONV1_1'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
-    energyhub.model.pprint()
     allowed_fitting_error = 0.1
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
     assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
     assert hydrogen_in_1 == tec_size
@@ -114,21 +112,22 @@ def test_technology_CONV1():
     tecname = 'testCONV1_2'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
 
     assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
@@ -148,21 +147,22 @@ def test_technology_CONV1():
     tecname = 'testCONV1_3'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
 
     assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
@@ -182,6 +182,7 @@ def test_technology_CONV1():
     data.node_data['test_node1']['export_limit']['electricity'][1] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     energyhub.model.pprint()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
@@ -192,6 +193,7 @@ def test_technology_CONV1():
     data.node_data['test_node1']['export_limit']['electricity'][1] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     energyhub.model.pprint()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
@@ -203,21 +205,22 @@ def test_technology_CONV2():
     tecname = 'testCONV2_1'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
     assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
     assert 0.75 == heat_out_1
@@ -236,21 +239,22 @@ def test_technology_CONV2():
     tecname = 'testCONV2_2'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
     assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
     assert 0.75 == heat_out_1
@@ -267,21 +271,22 @@ def test_technology_CONV2():
     tecname = 'testCONV2_3'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
     assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
     assert 0.75 == heat_out_1
@@ -308,6 +313,7 @@ def test_technology_CONV2():
     data.node_data['test_node1']['export_limit']['electricity'][1] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
@@ -322,21 +328,22 @@ def test_technology_CONV3():
     tecname = 'testCONV3_3'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
     assert 10 == objective_value
     assert gas_in_1 == tec_size
@@ -355,21 +362,22 @@ def test_technology_CONV3():
     tecname = 'testCONV3_1'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
     assert abs(10 - objective_value) / 10 <= allowed_fitting_error
     assert gas_in_1 == tec_size
@@ -387,21 +395,22 @@ def test_technology_CONV3():
     tecname = 'testCONV3_2'
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
-    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_size.value, 3)
-    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[1, 'hydrogen'].value,
+    tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
                           3)
-    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_input[2, 'hydrogen'].value,
+    gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    hydrogen_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
                           3)
-    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'heat'].value, 3)
-    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[1, 'electricity'].value,
+    heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
                      3)
-    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'heat'].value, 3)
-    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks[tecname].var_output[2, 'electricity'].value,
+    heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
     assert abs(10 - objective_value) / 10 <= allowed_fitting_error
     assert gas_in_1 == tec_size
@@ -420,6 +429,7 @@ def test_technology_CONV3():
     data.node_data['test_node1']['export_limit']['electricity'][1] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
@@ -429,5 +439,6 @@ def test_technology_CONV3():
     data.node_data['test_node1']['export_limit']['electricity'][1] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
+    energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'

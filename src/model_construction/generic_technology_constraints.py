@@ -96,6 +96,9 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
     else:
         min_part_load = 0
 
+    if performance_function_type >= 2:
+        m_config.presolve.big_m_transformation_required = 1
+
     # Formulate Constraints for each performance function type
     # linear through origin
     # sum(output) = alpha1 * sum(input)
@@ -109,13 +112,12 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
 
     # linear not through origin
     elif performance_function_type == 2:
-        m_config.presolve.big_m_transformation_required = 1
         if min_part_load == 0:
             warnings.warn(
                 'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + b_tec.local_name)
 
         # define disjuncts for on/off
-        s_indicators_onoff = range(0, 2)
+        s_indicators = range(0, 2)
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
@@ -141,17 +143,16 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
                                for car_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators_onoff, rule=init_input_output)
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
-            return [b_tec.dis_input_output[t, i] for i in s_indicators_onoff]
+            return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
     # piecewise affine function
     elif performance_function_type == 3:
-        m_config.presolve.big_m_transformation_required = 1
-        s_indicators_onoff = range(0, len(bp_x))
+        s_indicators = range(0, len(bp_x))
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
@@ -186,11 +187,11 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
                                for car_input in b_tec.set_input_carriers) >= min_part_load * b_tec.var_size
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators_onoff, rule=init_input_output)
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
-            return [b_tec.dis_input_output[t, i] for i in s_indicators_onoff]
+            return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
     # size constraint based on sum of inputs
@@ -221,6 +222,9 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
             bp_x = tec_fit['bp_x']
             alpha2[c] = tec_fit[c]['alpha2']
 
+    if performance_function_type >= 2:
+        m_config.presolve.big_m_transformation_required = 1
+
     # Formulate Constraints for each performance function type
     # linear through origin
     if performance_function_type == 1:
@@ -232,7 +236,6 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
                                               rule=init_input_output)
 
     elif performance_function_type == 2:
-        m_config.presolve.big_m_transformation_required = 1
         if min_part_load == 0:
             warnings.warn(
                 'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + b_tec.local_name)
@@ -273,7 +276,6 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
 
     # piecewise affine function
     elif performance_function_type == 3:
-        m_config.presolve.big_m_transformation_required = 1
         s_indicators = range(0, len(bp_x))
 
         def init_input_output(dis, t, ind):
