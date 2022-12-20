@@ -1,9 +1,9 @@
 {
-  "Name": "Furnace_H2",
+  "Name": "testPWA",
   "Economics": {
     "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 2366.52798397,
+    "unit_CAPEX_annual": 10,
     "piecewise_CAPEX_annual": {
       "bp_x": [
         0,
@@ -11,24 +11,26 @@
         500
       ],
       "bp_y": [
-        0.00015777,
-        84104.35355947,
-        488780.6388188
+        0.00013147,
+        70086.96129956,
+        407317.19901567
       ]
     },
-    "OPEX_variable": 0.1,
-    "OPEX_fixed": 0.09
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0
   },
   "TechnologyPerf": {
-    "tec_type": "CONV2",
+    "tec_type": "CONV3",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 2,
+    "performance_function_type": 3,
     "input_carrier": [
+      "gas",
       "hydrogen"
     ],
-    "main_input_carrier": "hydrogen",
+    "input_carrier_main": "gas",
     "output_carrier": [
-      "heat"
+      "heat",
+      "electricity"
     ],
     "size_min": [
       0,
@@ -39,19 +41,33 @@
       500
     ],
     "size_is_int": 0,
-    "emission_factor": 0,
     "min_part_load": 0.1,
     "performance": {
       "in": [
         0,
+        0.4,
+        0.6,
         1
       ],
       "out": {
         "heat": [
           0,
-          0.99
+          0.4,
+          0.55,
+          0.75
+        ],
+        "electricity": [
+          0,
+          0.2,
+          0.275,
+          0.375
         ]
-      }
+      },
+      "nr_segments_piecewise": 2
+    },
+    "input_ratios": {
+      "gas": 1,
+      "hydrogen": 2
     }
   }
 }

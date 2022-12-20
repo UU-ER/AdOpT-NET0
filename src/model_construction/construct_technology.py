@@ -4,8 +4,8 @@ import src.model_construction as mc
 import src.config_model as m_config
 
 
+
 def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
-    # TODO: define main carrier in tech data
     r"""
     Adds all technologies as model blocks to respective node.
 
@@ -111,7 +111,8 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         # region DECISION VARIABLES
         # Input
-        if not tec_type == 1:
+        # TODO: calculate different bounds
+        if not tec_type == 'RES':
             b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=(b_tec.para_size_min, b_tec.para_size_max), units=u.MW)
         # Output
@@ -150,34 +151,21 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
                    b_tec.var_OPEX_variable[t]
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
-        # Size constraint
-        if tec_type == 1: # we don't need size constraints for renewable technologies
-            pass
-        elif tec_type == 6: # This is defined in the generic technology constraints
-            pass
-        else: # in terms of input
-            def init_output_constraint(const, t):
-                return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) \
-                       <= b_tec.var_size
-            b_tec.const_size = Constraint(model.set_t, rule=init_output_constraint)
-
-        # endregion
-
         # region TECHNOLOGY TYPES
-        if tec_type == 1: # Renewable technology with cap_factor as input
-            b_tec = constraints_tec_type_1(model, b_tec,tec_data)
+        if tec_type == 'RES': # Renewable technology with cap_factor as input
+            b_tec = constraints_tec_RES(model, b_tec, tec_data)
 
-        elif tec_type == 2: # n inputs -> n output, fuel and output substitution
-            b_tec = constraints_tec_type_2(model, b_tec, tec_data)
+        elif tec_type == 'CONV1': # n inputs -> n output, fuel and output substitution
+            b_tec = constraints_tec_CONV1(model, b_tec, tec_data)
 
-        elif tec_type == 3: # n inputs -> n output, fuel and output substitution
-            b_tec = constraints_tec_type_3(model, b_tec, tec_data)
+        elif tec_type == 'CONV2': # n inputs -> n output, fuel and output substitution
+            b_tec = constraints_tec_CONV2(model, b_tec, tec_data)
 
-        # elif tectype == 4:  # 1 input -> n outputs, output flexible, linear performance
-        # elif tectype == 5:  # 1 input -> n outputs, fixed output ratio, linear performance
+        elif tec_type == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
+            b_tec = constraints_tec_CONV3(model, b_tec, tec_data)
 
-        elif tec_type == 6: # Storage technology (1 input -> 1 output)
-            b_tec = constraints_tec_type_6(model, b_tec, tec_data)
+        elif tec_type == 'STOR': # Storage technology (1 input -> 1 output)
+            b_tec = constraints_tec_STOR(model, b_tec, tec_data)
 
         if m_config.presolve.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)

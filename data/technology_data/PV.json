@@ -8,16 +8,18 @@
     "OPEX_fixed": 0
   },
   "TechnologyPerf": {
-    "tec_type": 1,
+    "tec_type": "RES",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "solar"
     ],
+    "main_input_carrier": "solar",
     "output_carrier": [
       "electricity"
     ],
     "size_min": 0,
     "size_max": 1000,
-    "size_is_int": 0
+    "size_is_int": 0,
+    "emission_factor": 0
   }
 }

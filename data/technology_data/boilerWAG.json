@@ -22,12 +22,13 @@
     "OPEX_fixed": 0.02
   },
   "TechnologyPerf": {
-    "tec_type": 3,
+    "tec_type": "CONV2",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 1,
     "input_carrier": [
       "WAGgas"
     ],
+    "main_input_carrier": "WAGgas",
     "output_carrier": [
       "heat"
     ],
@@ -42,6 +43,7 @@
       250
     ],
     "size_is_int": 0,
+    "emission_factor": 0,
     "min_part_load": 0,
     "performance": {
       "in": [

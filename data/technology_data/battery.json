@@ -12,17 +12,19 @@
     "OPEX_fixed": 0.04
   },
   "TechnologyPerf": {
-    "tec_type": 6,
+    "tec_type": "STOR",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "electricity"
     ],
+    "main_input_carrier": "electricity",
     "output_carrier": [
       "electricity"
     ],
     "size_min": 0,
     "size_max": 1.0E+7,
     "size_is_int": 0,
+    "emission_factor": 0,
     "performance": {
       "eta_in": 0.96,
       "eta_out": 0.96,

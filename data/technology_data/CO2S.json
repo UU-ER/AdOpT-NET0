@@ -12,17 +12,19 @@
     "OPEX_fixed": 0
   },
   "TechnologyPerf": {
-    "tec_type": 6,
+    "tec_type": "STOR",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "CO2"
     ],
+    "main_input_carrier": "CO2",
     "output_carrier": [
       "CO2"
     ],
     "size_min": 0,
     "size_max": 1000,
     "size_is_int": 0,
+    "emission_factor": 0,
     "performance": {
       "eta_in": 1,
       "eta_out": 1,
