@@ -114,6 +114,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         # region DECISION VARIABLES
         # Input
+        #TODO: if size is integer units do not work
         if not tec_type == 1:
             b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=(b_tec.para_size_min, b_tec.para_size_max), units=u.MW)
