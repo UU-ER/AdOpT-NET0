@@ -631,6 +631,8 @@ def constraints_tec_STOR(model, b_tec, tec_data):
     tec_fit = tec_data['fit']
     if 'allow_only_one_direction' in tec_fit:
         allow_only_one_direction = tec_fit['allow_only_one_direction']
+    else:
+        allow_only_one_direction = 0
 
     # Additional decision variables
     b_tec.var_storage_level = Var(model.set_t, b_tec.set_input_carriers, domain=NonNegativeReals)
