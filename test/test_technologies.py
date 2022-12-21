@@ -414,7 +414,7 @@ def test_technology_CONV3():
                      3)
     assert abs(10 - objective_value) / 10 <= allowed_fitting_error
     assert abs(gas_in_1 - tec_size) / tec_size <= allowed_fitting_error
-    assert round(1 - 0.05 / 0.75, 3) == gas_in_1
+    assert abs(gas_in_1 - round(1 - 0.05 / 0.75, 3)) / round(1 - 0.05 / 0.75, 3) <= allowed_fitting_error
     assert gas_in_1 * 2 == hydrogen_in_1
     assert round((0.5 - 0.05) / 0.75, 3) == gas_in_2
     assert gas_in_2 * 2 == hydrogen_in_2

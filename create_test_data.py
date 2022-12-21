@@ -263,6 +263,44 @@ def create_data_technology_CONV():
             # SAVING/LOADING DATA FILE
             data.save(data_save_path)
 
+def create_data_technologySTOR():
+    """
+    Creates dataset for a model with two nodes.
+    WT, battery @ node 1
+    electricity demand @ node 1
+    two periods, rated wind speed at first, no wind at second. battery to balance
+    """
+    data_save_path = './test/test_data/technologySTOR.p'
+    modeled_year = 2001
+
+    topology = {}
+    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 01:00', freq='1h')
+    topology['timestep_length_h'] = 1
+    topology['carriers'] = ['electricity']
+    topology['nodes'] = ['test_node1']
+    topology['technologies'] = {}
+    topology['technologies']['test_node1'] = ['WT_4000', 'testSTOR']
+
+    topology['networks'] = {}
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
+    data.node_data['test_node1']['climate_data']['dataframe']['ws10'][0] = 15
+    data.node_data['test_node1']['climate_data']['dataframe']['ws10'][1] = 0
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology['timesteps'])) * 1
+    data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
 
 def create_data_network():
     """
@@ -393,3 +431,4 @@ create_data_technology_type1_WT()
 create_data_technology_CONV()
 create_data_network()
 create_data_addtechnology()
+create_data_technologySTOR()

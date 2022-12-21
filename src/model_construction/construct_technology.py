@@ -14,14 +14,16 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     This function adds Sets, Parameters, Variables and Constraints that are common for all technologies.
     For each technology type, individual parts are added. The following technology types are currently available:
 
-    - Type 1: Renewable technology with cap_factor as input. Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_type_1`
-    - Type 2: n inputs -> n output, fuel and output substitution. Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_type_2`
-    - Type 3: n inputs -> n output, fuel and output substitution. Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_type_3`
-    - Type 6: Storage technology (1 input -> 1 output). Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_type_6`
+    - Type RES: Renewable technology with cap_factor as input. Constructed with \
+      :func:`src.model_construction.generic_technology_constraints.constraints_tec_RES`
+    - Type CONV1: n inputs -> n output, fuel and output substitution. Constructed with \
+      :func:`src.model_construction.generic_technology_constraints.constraints_tec_CONV1`
+    - Type CONV2: n inputs -> n output, fuel substitution. Constructed with \
+      :func:`src.model_construction.generic_technology_constraints.constraints_tec_CONV2`
+    - Type CONV2: n inputs -> n output, no fuel and output substitution. Constructed with \
+      :func:`src.model_construction.generic_technology_constraints.constraints_tec_CONV3`
+    - Type STOR: Storage technology (1 input -> 1 output). Constructed with \
+      :func:`src.model_construction.generic_technology_constraints.constraints_tec_STOR`
 
     **Set declarations:**
 
