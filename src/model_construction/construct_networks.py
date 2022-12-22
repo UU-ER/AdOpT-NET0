@@ -225,6 +225,12 @@ def add_networks(model, data):
             b_netw.para_receive_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive2,
                                             units=u.dimensionless)
 
+        # Network emissions
+        b_netw.para_loss2emissions = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['loss2missions'],
+                                     units=u.t/u.dimensionless)
+        b_netw.para_emissions = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['emissionfactor'],
+                                           units=u.t / u.MWh)
+
         # endregion
 
         # region SETS
