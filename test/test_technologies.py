@@ -42,6 +42,7 @@ def test_technology_RES_WT():
     """
     # No curtailment
     data = dm.load_data_handle(r'./test/test_data/technology_type1_WT.p')
+    data.technology_data['test_node1']['WT_1500']['TechnologyPerf']['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
