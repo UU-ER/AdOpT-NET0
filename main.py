@@ -57,7 +57,7 @@ electricity_demand = np.ones(len(topology['timesteps'])) * 10
 data.read_demand_data('onshore', 'electricity', electricity_demand)
 
 # PRINT DATA
-# data.pprint()
+data.pprint()
 
 # READ TECHNOLOGY AND NETWORK DATA
 data.read_technology_data()
@@ -78,8 +78,6 @@ energyhub.construct_balances()
 energyhub.solve_model()
 results = energyhub.write_results()
 results.write_excel(r'.\userData\results')
-
-# Todo: Include documentation of result handling
 
 # # Add technology to model and solve again
 # energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
