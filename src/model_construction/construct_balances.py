@@ -45,9 +45,10 @@ def add_emissionbalance(model):
 
     """
     # Delete previously initialized constraints
-    # if model.find_component('const_emissionbalance'):
-    #     model.del_component(model.const_emissionbalance)
-    #     model.del_component(model.const_emissionbalance_index)
+    if model.find_component('const_emissions_tot'):
+        model.del_component(model.const_emissions_tot)
+        model.del_component(model.const_emissions_net)
+        model.del_component(model.const_emissions_neg)
 
     # TODO: add unused CO2 to emissions
     # def init_emissionbalance(const, t, car, node):  # emissionbalance at each node
@@ -58,12 +59,13 @@ def add_emissionbalance(model):
         return sum(
                 sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions
                     for tec in model.node_blocks[node].set_tecsAtNode) + \
-                model.node_blocks[node].var_car_emissions
+                model.node_blocks[node].var_car_emissions + \
+                sum(model.network_block[netw].var_netw_emissions for netw in model.set_networks)
                 for node in model.set_nodes) == \
                 model.var_emissions_tot
     model.const_emissions_tot = Constraint(rule=init_emissions_tot)
 
-    # calculate negative emissions from technologies, networks and im
+    # calculate negative emissions from technologies and import/export
     def init_emissions_neg(const):
         return sum(
                 sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg
