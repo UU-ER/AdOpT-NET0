@@ -77,7 +77,9 @@ energyhub.construct_balances()
 # Solve model
 energyhub.solve_model()
 results = energyhub.write_results()
+results.write_excel(r'.\userData\results')
 
+# Todo: Include documentation of result handling
 
 # # Add technology to model and solve again
 # energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
