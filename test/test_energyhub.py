@@ -86,6 +86,7 @@ def test_addtechnology():
     second solve should be cheaper
     """
     data = dm.load_data_handle(r'./test/test_data/addtechnology.p')
+    data.technology_data['test_node1']['WT_OS_6000']['TechnologyPerf']['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -99,7 +100,7 @@ def test_addtechnology():
     assert 0 <= sizeBattery1
     should = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_OS_6000'].var_size.value * 6
     res = energyhub.model.network_block['electricitySimple'].arc_block['test_node1', 'test_node2'].var_size.value
-    assert abs(should - res) / res <= 0.001
+    assert abs(should - res) / res <= 0.01
 
     energyhub.add_technology_to_node('test_node2', ['PV'])
     energyhub.construct_balances()

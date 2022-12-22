@@ -200,7 +200,7 @@ def create_data_technology_type1_WT():
     WT @ node 1
     electricity demand @ node 1
     import of electricity at high price
-    Size of PV should be around max electricity demand
+    Size of WT should be around max electricity demand
     """
     data_save_path = './test/test_data/technology_type1_WT.p'
     modeled_year = 2001
