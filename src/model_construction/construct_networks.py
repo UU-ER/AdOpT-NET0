@@ -228,7 +228,7 @@ def add_networks(model, data):
         # Network emissions
         b_netw.para_loss2emissions = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['loss2missions'],
                                      units=u.t/u.dimensionless)
-        b_netw.para_emissions = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['emissionfactor'],
+        b_netw.para_emissionfactor = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['emissionfactor'],
                                            units=u.t / u.MWh)
 
         # endregion
@@ -279,6 +279,9 @@ def add_networks(model, data):
         b_netw.var_OPEX_variable = Var(units=u.EUR)
         b_netw.var_OPEX_fixed = Var(units=u.EUR)
         b_netw.var_cost = Var(units=u.EUR)
+
+        # Emissions
+        b_netw.var_emissions = Var(units=u.t)
         # endregion
 
         # region Establish each arc as a block with
@@ -434,6 +437,14 @@ def add_networks(model, data):
             return b_netw.var_CAPEX + b_netw.var_OPEX_fixed + b_netw.var_OPEX_variable == \
                    b_netw.var_cost
         b_netw.const_cost = Constraint(rule=init_cost)
+
+        # Network emissions
+        def init_netw_emissions(const):
+            return (sum(sum(b_netw.arc_block[arc].var_flow[t] for t in model.set_t) for arc in arc_set) *
+                    b_netw.para_emissionfactor) + \
+                   (sum(sum(b_netw.arc_block[arc].var_flow[t] for t in model.set_t) for arc in arc_set) *
+                   b_netw.para_loss2emissions) == b_netw.var_emissions
+        b_netw.const_netw_emissions = Constraint(rule=init_netw_emissions)
 
         # Establish inflow and outflow for each node and this network
         """
