@@ -153,7 +153,7 @@ def test_emission_balance():
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_losses[t].value
                              for t in energyhub.model.set_t)) * \
                         data.network_data['electricityTest']['NetworkPerf']['loss2emissions']
-    assert emissionsNETW == emissionsFlowNETW + emissionsLossNETW
+    assert round(emissionsNETW) == round(emissionsFlowNETW + emissionsLossNETW)
 
     # technology emissions
     assert energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions.value == 3.7
