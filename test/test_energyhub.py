@@ -113,3 +113,52 @@ def test_addtechnology():
     assert sizeWT2 <= sizeWT1
     assert (obj2 - obj1) / obj1 <= 0.8
 
+
+def test_emission_balance():
+    """
+    Creates dataset for a model with two nodes.
+    PV & furnace @ node 1
+    electricity & heat demand @ node 1
+    offshore wind @ node 2
+    electricity network in between
+    should be feasible
+    """
+    data = dm.load_data_handle(r'./test/test_data/emissionbalance.p')
+    data.technology_data['onshore']['Furnace_NG']['TechnologyPerf']['performance_function_type'] = 1
+    data.technology_data['onshore']['Furnace_NG']['fit']['heat']['alpha1'] = 0.9
+    data.network_data['electricityTest']['NetworkPerf']['emissionfactor'] = 0.2
+    data.network_data['electricityTest']['NetworkPerf']['loss2emissions'] = 1
+    energyhub = ehub(data)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve_model()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    #total emissions
+    emissionsTOT = energyhub.model.var_emissions_tot.value
+    emissionsNET = energyhub.model.var_emissions_net.value
+    assert emissionsTOT == emissionsNET
+    assert round(emissionsTOT) == 64
+
+    #network emissions
+    emissionsNETW = energyhub.model.network_block['electricityTest'].var_netw_emissions.value
+    emissionsFlowNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore','offshore')].var_flow[t].value
+                   for t in energyhub.model.set_t) + \
+                         sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_flow[t].value
+                   for t in energyhub.model.set_t)) * \
+                        data.network_data['electricityTest']['NetworkPerf']['emissionfactor']
+    emissionsLossNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore', 'offshore')].var_losses[t].value
+                             for t in energyhub.model.set_t) + \
+                         sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_losses[t].value
+                             for t in energyhub.model.set_t)) * \
+                        data.network_data['electricityTest']['NetworkPerf']['loss2emissions']
+    assert emissionsNETW == emissionsFlowNETW + emissionsLossNETW
+
+    # technology emissions
+    assert energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions.value == 3.7
+
+    # import emissions
+    assert energyhub.model.node_blocks['onshore'].var_car_emissions.value == 4
+    #
+

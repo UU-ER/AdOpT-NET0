@@ -39,7 +39,7 @@
       500
     ],
     "size_is_int": 0,
-    "emission_factor": 0,
+    "emission_factor": 0.185,
     "min_part_load": 0.1,
     "performance": {
       "in": [

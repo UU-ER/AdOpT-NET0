@@ -166,6 +166,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
         # Emissions
+        #TODO: emissions are not defined for RES at the moment
         if tec_type != 'RES':
             def init_tec_emissions(const):
                 if tec_data['TechnologyPerf']['emission_factor'] >= 0:
