@@ -73,7 +73,7 @@ def add_emissionbalance(model):
                model.var_emissions_neg
     model.const_emissions_neg = Constraint(rule=init_emissions_neg)
 
-    model.const_emissions_net = Constraint(rule=model.var_emissions_neg - model.var_emissions_neg == model.var_emissions_net)
+    model.const_emissions_net = Constraint(rule=model.var_emissions_tot - model.var_emissions_neg == model.var_emissions_net)
 
 
     return model
