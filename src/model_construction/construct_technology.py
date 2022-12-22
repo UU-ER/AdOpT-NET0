@@ -175,7 +175,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
             #TODO: do define negative emissions with positive or negative value?
             def init_tec_emissions_neg(const):
-                if tec_data['TechnologyPerf']['emission_factor'] > 0:
+                if tec_data['TechnologyPerf']['emission_factor'] < 0:
                     return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
                            * -b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions_neg
                 else:
