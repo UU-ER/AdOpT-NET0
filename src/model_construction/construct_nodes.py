@@ -124,7 +124,7 @@ def add_nodes(model, data):
 
         #Emission constraints
         def init_import_emissions(const, t, car):
-            if b_node.para_import_emissionfactors[t, car] >= 0:
+            if data.node_data[nodename]['import_emissionfactors'][car][t - 1] >= 0:
                 return b_node.var_import_flow[t, car] * b_node.para_import_emissionfactors[t, car] \
                     == b_node.var_import_emissions[t, car]
             else:
@@ -132,7 +132,7 @@ def add_nodes(model, data):
         b_node.const_import_emissions = Constraint(model.set_t, model.set_carriers, rule=init_import_emissions)
 
         def init_export_emissions(const, t, car):
-            if b_node.para_export_emissionfactors[t, car] >= 0:
+            if data.node_data[nodename]['export_emissionfactors'][car][t - 1] >= 0:
                 return b_node.var_export_flow[t, car] * b_node.para_export_emissionfactors[t, car] \
                     == b_node.var_export_emissions[t, car]
             else:
@@ -140,7 +140,7 @@ def add_nodes(model, data):
         b_node.const_export_emissions = Constraint(model.set_t, model.set_carriers, rule=init_export_emissions)
 
         def init_import_emissions_neg(const, t, car):
-            if b_node.para_import_emissionfactors[t, car] < 0:
+            if data.node_data[nodename]['import_emissionfactors'][car][t - 1] < 0:
                 return b_node.var_import_flow[t, car] * b_node.para_import_emissionfactors[t, car] \
                     == b_node.var_import_emissions_neg[t, car]
             else:
@@ -148,7 +148,7 @@ def add_nodes(model, data):
         b_node.const_import_emissions_neg = Constraint(model.set_t, model.set_carriers, rule=init_import_emissions_neg)
 
         def init_export_emissions_neg(const, t, car):
-            if b_node.para_export_emissionfactors[t, car] < 0:
+            if data.node_data[nodename]['export_emissionfactors'][car][t - 1] < 0:
                 return b_node.var_export_flow[t, car] * b_node.para_export_emissionfactors[t, car] \
                     == b_node.var_export_emissions_neg[t, car]
             else:

@@ -164,22 +164,23 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
         # Emissions
-        def init_tec_emissions(const):
-            if tec_data['TechnologyPerf']['emission_factor'] >= 0:
-                return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
-                       * b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions
-            else:
-                return b_tec.var_tec_emissions == 0
-        b_tec.const_tec_emissions = Constraint(rule=init_tec_emissions)
+        if tec_type != 'RES':
+            def init_tec_emissions(const):
+                if tec_data['TechnologyPerf']['emission_factor'] >= 0:
+                    return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
+                           * b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions
+                else:
+                    return b_tec.var_tec_emissions == 0
+            b_tec.const_tec_emissions = Constraint(rule=init_tec_emissions)
 
-        #TODO: do define negative emissions with positive or negative value?
-        def init_tec_emissions_neg(const):
-            if tec_data['TechnologyPerf']['emission_factor'] > 0:
-                return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
-                       * -b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions_neg
-            else:
-                return b_tec.var_tec_emissions_neg == 0
-        b_tec.const_tec_emissions_neg = Constraint(rule=init_tec_emissions_neg)
+            #TODO: do define negative emissions with positive or negative value?
+            def init_tec_emissions_neg(const):
+                if tec_data['TechnologyPerf']['emission_factor'] > 0:
+                    return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
+                           * -b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions_neg
+                else:
+                    return b_tec.var_tec_emissions_neg == 0
+            b_tec.const_tec_emissions_neg = Constraint(rule=init_tec_emissions_neg)
 
 
         # region TECHNOLOGY TYPES
