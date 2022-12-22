@@ -3,6 +3,7 @@ from pyomo.environ import units as u
 from pyomo.gdp import *
 
 import src.model_construction as mc
+import src.data_management as dm
 import pint
 import numpy as np
 import dill as pickle
@@ -11,7 +12,7 @@ import src.config_model as m_config
 import time
 
 
-class energyhub:
+class EnergyHub:
     r"""
     Class to construct and manipulate an energy system model.
 
@@ -192,50 +193,58 @@ class energyhub:
                             print('\t\t\t' + from_node  + '---' +  to_node)
         # for node in self.model.set_nodes:
 
-    def write_results(self, directory):
-        for node_name in self.model.set_nodes:
-            # TODO: Add import/export here
-            file_name = r'./' + directory + '/' + node_name + '.xlsx'
+    def write_results(self):
+        """
+        Exports results to an instance of ResultsHandle to be further exported or viewed
+        """
 
-            # get relevant data
-            node_data = self.model.node_blocks[node_name]
-            n_carriers = len(self.model.set_carriers)
-            n_timesteps = len(self.model.set_t)
-            demand = self.data.demand[node_name]
+        results = dm.ResultsHandle()
+        results.read_results(self)
 
-            # Get data - input/output
-            input_tecs = dict()
-            output_tecs = dict()
-            size_tecs = dict()
-            for car in self.model.set_carriers:
-                input_tecs[car] = pd.DataFrame()
-                for tec in node_data.set_tecsAtNode:
-                    if car in node_data.tech_blocks_active[tec].set_input_carriers:
-                        temp = np.zeros((n_timesteps), dtype=float)
-                        for t in self.model.set_t:
-                            temp[t-1] = node_data.tech_blocks_active[tec].var_input[t, car].value
-                        input_tecs[car][tec] = temp
-
-                output_tecs[car] = pd.DataFrame()
-                for tec in node_data.set_tecsAtNode:
-                    if car in node_data.tech_blocks_active[tec].set_output_carriers:
-                        temp = np.zeros((n_timesteps), dtype=float)
-                        for t in self.model.set_t:
-                            temp[t-1] = node_data.tech_blocks_active[tec].var_output[t, car].value
-                        output_tecs[car][tec] = temp
-
-                for tec in node_data.set_tecsAtNode:
-                    size_tecs[tec] = node_data.tech_blocks_active[tec].var_size.value
-
-            df = pd.DataFrame(data=size_tecs, index=[0])
-            with pd.ExcelWriter(file_name) as writer:
-                df.to_excel(writer, sheet_name='size')
-                for car in self.model.set_carriers:
-                    if car in input_tecs:
-                        input_tecs[car].to_excel(writer, sheet_name=car + 'in')
-                    if car in output_tecs:
-                        output_tecs[car].to_excel(writer, sheet_name=car + 'out')
-                writer.save()
+        return results
+        # for node_name in self.model.set_nodes:
+        #     # TODO: Add import/export here
+        #     file_name = r'./' + directory + '/' + node_name + '.xlsx'
+        #
+        #     # get relevant data
+        #     node_data = self.model.node_blocks[node_name]
+        #     n_carriers = len(self.model.set_carriers)
+        #     n_timesteps = len(self.model.set_t)
+        #     demand = self.data.demand[node_name]
+        #
+        #     # Get data - input/output
+        #     input_tecs = dict()
+        #     output_tecs = dict()
+        #     size_tecs = dict()
+        #     for car in self.model.set_carriers:
+        #         input_tecs[car] = pd.DataFrame()
+        #         for tec in node_data.set_tecsAtNode:
+        #             if car in node_data.tech_blocks_active[tec].set_input_carriers:
+        #                 temp = np.zeros((n_timesteps), dtype=float)
+        #                 for t in self.model.set_t:
+        #                     temp[t-1] = node_data.tech_blocks_active[tec].var_input[t, car].value
+        #                 input_tecs[car][tec] = temp
+        #
+        #         output_tecs[car] = pd.DataFrame()
+        #         for tec in node_data.set_tecsAtNode:
+        #             if car in node_data.tech_blocks_active[tec].set_output_carriers:
+        #                 temp = np.zeros((n_timesteps), dtype=float)
+        #                 for t in self.model.set_t:
+        #                     temp[t-1] = node_data.tech_blocks_active[tec].var_output[t, car].value
+        #                 output_tecs[car][tec] = temp
+        #
+        #         for tec in node_data.set_tecsAtNode:
+        #             size_tecs[tec] = node_data.tech_blocks_active[tec].var_size.value
+        #
+        #     df = pd.DataFrame(data=size_tecs, index=[0])
+        #     with pd.ExcelWriter(file_name) as writer:
+        #         df.to_excel(writer, sheet_name='size')
+        #         for car in self.model.set_carriers:
+        #             if car in input_tecs:
+        #                 input_tecs[car].to_excel(writer, sheet_name=car + 'in')
+        #             if car in output_tecs:
+        #                 output_tecs[car].to_excel(writer, sheet_name=car + 'out')
+        #         writer.save()
 
 
 

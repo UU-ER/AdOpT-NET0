@@ -1,4 +1,3 @@
-# Thanks to: ruoyu0088 (piecewise linear modeling)
 # TODO: Include hplib
 # TODO: Implement option for complete linearization
 # TODO: Implement time index for set_t
@@ -9,7 +8,7 @@ import src.data_management as dm
 from pyomo.environ import units as u
 import pandas as pd
 import numpy as np
-from src.energyhub import energyhub
+from src.energyhub import EnergyHub
 from pyomo.environ import *
 
 # Save Data File to file
@@ -19,7 +18,7 @@ data_save_path = r'.\user_data\data_handle_test'
 modeled_year = 2001
 
 topology = {}
-topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
+topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-04 23:00', freq='1h')
 
 topology['timestep_length_h'] = 1
 topology['carriers'] = ['electricity']
@@ -69,7 +68,7 @@ data.read_network_data()
 # data.save(data_save_path)
 
 # # Read data
-energyhub = energyhub(data)
+energyhub = EnergyHub(data)
 
 # Construct equations
 energyhub.construct_model()
@@ -77,11 +76,16 @@ energyhub.construct_balances()
 
 # Solve model
 energyhub.solve_model()
+results = energyhub.write_results()
 
-# Add technology to model and solve again
-energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
-energyhub.construct_balances()
-energyhub.solve_model()
+
+# # Add technology to model and solve again
+# energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
+# energyhub.construct_balances()
+# energyhub.solve_model()
+#
+# # Write results
+# results = energyhub.write_results()
 
 # Display whole model
 # energyhub.model.pprint()
