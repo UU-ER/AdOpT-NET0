@@ -7,7 +7,7 @@ import src.config_model as m_config
 
 def constraints_tec_RES(model, b_tec, tec_data):
     """
-    Adds constraints to technology blocks for tec_type 1 (renewable technology)
+    Adds constraints to technology blocks for tec_type RES (renewable technology)
 
     **Parameter declarations:**
 
@@ -19,10 +19,10 @@ def constraints_tec_RES(model, b_tec, tec_data):
     - Output of technology. The output can be curtailed in three different ways. For ``curtailment == 0``, there is
       no curtailment possible. For ``curtailment == 1``, the curtailment is continuous. For ``curtailment == 2``,
       the size needs to be an integer, and the technology can only be curtailed discretely, i.e. by turning full
-      modules off. For ``curtailment == 0`` (default), it thus holds:
+      modules off. For ``curtailment == 0`` (default), it holds:
 
     .. math::
-        Output_{t, car} == CapFactor_t * Size
+        Output_{t, car} = CapFactor_t * Size
 
     :param obj model: instance of a pyomo model
     :param obj b_tec: technology block
@@ -46,7 +46,7 @@ def constraints_tec_RES(model, b_tec, tec_data):
         return tec_fit['capacity_factor'][t - 1]
     b_tec.para_capfactor = Param(model.set_t, domain=Reals, rule=init_capfactors)
 
-    if curtailment == 0:  # no curtailment allowed (default
+    if curtailment == 0:  # no curtailment allowed (default)
         def init_input_output(const, t, c_output):
             return b_tec.var_output[t, c_output] == \
                    b_tec.para_capfactor[t] * b_tec.var_size * rated_power
@@ -65,7 +65,7 @@ def constraints_tec_RES(model, b_tec, tec_data):
             return b_tec.var_size_on[t] <= b_tec.var_size
         b_tec.const_curtailed_units = Constraint(model.set_t, rule=init_curtailed_units)
         def init_input_output(const, t, c_output):
-            return b_tec.var_output[t, c_output] <= \
+            return b_tec.var_output[t, c_output] == \
                    b_tec.para_capfactor[t] * b_tec.var_size_on[t] * rated_power
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
@@ -73,9 +73,43 @@ def constraints_tec_RES(model, b_tec, tec_data):
     return b_tec
 
 def constraints_tec_CONV1(model, b_tec, tec_data):
-    """ Adds constraints for conversion technology type 1 (n inputs -> n output, fuel and output substitution)
-    :param model: full model
-    :param b_tec: technology block
+    """
+    Adds constraints to technology blocks for tec_type CONV1, i.e. :math:`\sum(output) = f(\sum(inputs))`
+
+    This technology type resembles a technology with full input and output substitution.
+    As for all conversion technologies, three different performance function fits are possible. The performance
+    functions are fitted in ``src.model_construction.technology_performance_fitting``.
+
+    **Constraint declarations:**
+
+    - ``performance_function_type == 1``: Linear through origin, i.e.:
+
+      .. math::
+        \sum(Output_{t, car}) == {\\alpha}_1 \sum(Input_{t, car})
+
+    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
+      technology is in on, it holds:
+
+      .. math::
+        \sum(Output_{t, car}) = {\\alpha}_1 \sum(Input_{t, car}) + {\\alpha}_2
+
+      .. math::
+        \sum(Input_{car}) \geq Input_{min} * S
+
+      If the technology is off, input and output is set to 0:
+
+      .. math::
+         \sum(Output_{t, car}) = 0
+
+      .. math::
+         \sum(Input_{t, car}) = 0
+
+    - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
+      The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
+      is defined piecewise for the respective number of pieces
+
+    :param obj model: instance of a pyomo model
+    :param obj b_tec: technology block
     :param tec_data: technology data
     :return: technology block
     """
@@ -99,9 +133,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
     if performance_function_type >= 2:
         m_config.presolve.big_m_transformation_required = 1
 
-    # Formulate Constraints for each performance function type
-    # linear through origin
-    # sum(output) = alpha1 * sum(input)
+    # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:
         def init_input_output(const, t):
             return sum(b_tec.var_output[t, car_output]
@@ -110,7 +142,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
                                 for car_input in b_tec.set_input_carriers)
         b_tec.const_input_output = Constraint(model.set_t, rule=init_input_output)
 
-    # linear not through origin
+    # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
         if min_part_load == 0:
             warnings.warn(
@@ -130,7 +162,6 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
             else:  # technology on
                 # input-output relation
-                # sum(output) = alpha1 * sum(input) + alpha2 * S
                 def init_input_output_on(const):
                     return sum(b_tec.var_output[t, car_output] for car_output in b_tec.set_output_carriers) == \
                            alpha1 * sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) + \
@@ -150,7 +181,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
 
-    # piecewise affine function
+    # PIECEWISE-AFFINE
     elif performance_function_type == 3:
         s_indicators = range(0, len(bp_x))
 
@@ -203,6 +234,47 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
     return b_tec
 
 def constraints_tec_CONV2(model, b_tec, tec_data):
+    """
+    Adds constraints to technology blocks for tec_type CONV2, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
+
+    This technology type resembles a technology with full input substitution, but different performance functions
+    for the respective output carriers.
+    As for all conversion technologies, three different performance function fits are possible. The performance
+    functions are fitted in ``src.model_construction.technology_performance_fitting``.
+
+    **Constraint declarations:**
+
+    - ``performance_function_type == 1``: Linear through origin, i.e.:
+
+      .. math::
+        Output_{t, car} == {\\alpha}_{1, car} \sum(Input_{t, car})
+
+    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
+      technology is in on, it holds:
+
+      .. math::
+        Output_{t, car} = {\\alpha}_{1, car} \sum(Input_{t, car}) + {\\alpha}_{2, car}
+
+      .. math::
+        \sum(Input_{car}) \geq Input_{min} * S
+
+      If the technology is off, input and output is set to 0:
+
+      .. math::
+         Output_{t, car} = 0
+
+      .. math::
+         \sum(Input_{t, car}) = 0
+
+    - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
+      The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
+      is defined piecewise for the respective number of pieces
+
+    :param obj model: instance of a pyomo model
+    :param obj b_tec: technology block
+    :param tec_data: technology data
+    :return: technology block
+    """
     tec_fit = tec_data['fit']
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
     performance_data = tec_data['TechnologyPerf']
@@ -225,8 +297,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
     if performance_function_type >= 2:
         m_config.presolve.big_m_transformation_required = 1
 
-    # Formulate Constraints for each performance function type
-    # linear through origin
+    # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:
         def init_input_output(const, t, car_output):
             return b_tec.var_output[t, car_output] == \
@@ -235,6 +306,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
 
+    # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
         if min_part_load == 0:
             warnings.warn(
@@ -328,6 +400,52 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
     return b_tec
 
 def constraints_tec_CONV3(model, b_tec, tec_data):
+    """
+    Adds constraints to technology blocks for tec_type CONV3, i.e. :math:`output_{car} = f_{car}(input_{maincarrier})`
+
+    This technology type resembles a technology with different performance functions for the respective output
+    carriers. The performance function is based on the input of the main carrier.
+    The ratio between all input carriers is fixed.
+    As for all conversion technologies, three different performance function fits are possible. The performance
+    functions are fitted in ``src.model_construction.technology_performance_fitting``.
+
+    **Constraint declarations:**
+    - The ratios of inputs for all performance function types are fixed and given as:
+
+      .. math::
+        Input_{t, car} = {\\phi}_{car} * Input_{t, maincarrier}
+
+    - ``performance_function_type == 1``: Linear through origin, i.e.:
+
+      .. math::
+        Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
+
+    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
+      technology is in on, it holds:
+
+      .. math::
+        Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier} + {\\alpha}_{2, car}
+
+      .. math::
+        Input_{maincarrier} \geq Input_{min} * S
+
+      If the technology is off, input and output is set to 0:
+
+      .. math::
+         Output_{t, car} = 0
+
+      .. math::
+         Input_{t, maincarrier} = 0
+
+    - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
+      The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
+      is defined piecewise for the respective number of pieces
+
+    :param obj model: instance of a pyomo model
+    :param obj b_tec: technology block
+    :param tec_data: technology data
+    :return: technology block
+    """
     tec_fit = tec_data['fit']
     performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
     performance_data = tec_data['TechnologyPerf']
@@ -356,8 +474,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
         warnings.warn(
             'Using CONV3 without input ratios makes no sense. Error occured for ' + b_tec.local_name)
 
-    # Formulate Constraints for each performance function type
-    # linear through origin
+    # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:
         def init_input_output(const, t, car_output):
             return b_tec.var_output[t, car_output] == \
@@ -366,6 +483,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
         b_tec.const_input_output = Constraint(model.set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
 
+    # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
         m_config.presolve.big_m_transformation_required = 1
         if min_part_load == 0:
@@ -461,7 +579,60 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
     return b_tec
 
 def constraints_tec_STOR(model, b_tec, tec_data):
+    """
+    Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
+
+    As for all conversion technologies, three different performance function fits are possible. The performance
+    functions are fitted in ``src.model_construction.technology_performance_fitting``.
+    Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
+
+    **Parameter declarations:**
+    - :math:`{\\eta}_{in}`: Charging efficiency
+
+    - :math:`{\\eta}_{out}`: Discharging efficiency
+
+    - :math:`{\\lambda}`: Self-Discharging coefficient (independent of environment)
+
+    - :math:`ambientLossFactor`: Self-Discharging coefficient (dependent on environment)
+
+    - :math:`Input_{max}`: Maximal charging capacity in one time-slice
+
+    - :math:`Output_{max}`: Maximal discharging capacity in one time-slice
+
+    **Variable declarations:**
+    - Storage level in :math:`t`: :math:`E_t`
+
+    **Constraint declarations:**
+    - Maximal charging and discharging:
+
+      .. math::
+        Input_{t} \leq Input_{max} \\
+        Output_{t} \leq Output_{max} \\
+
+    - Size constraint:
+
+      .. math::
+        E_{t} \leq S
+
+    - Storage level calculation:
+
+      .. math::
+        E_{t} = E_{t-1} * (1 - \\lambda) - ambientLossFactor * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
+
+    - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
+      step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
+
+    :param obj model: instance of a pyomo model
+    :param obj b_tec: technology block
+    :param tec_data: technology data
+    :return: technology block
+    """
+
     tec_fit = tec_data['fit']
+    if 'allow_only_one_direction' in tec_fit:
+        allow_only_one_direction = tec_fit['allow_only_one_direction']
+    else:
+        allow_only_one_direction = 0
 
     # Additional decision variables
     b_tec.var_storage_level = Var(model.set_t, b_tec.set_input_carriers, domain=NonNegativeReals)
@@ -497,12 +668,35 @@ def constraints_tec_STOR(model, b_tec, tec_data):
                 1/b_tec.para_eta_out * b_tec.var_output[t, car]
     b_tec.const_storage_level = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_storage_level)
 
+    # This makes sure that only either input or output is larger zero.
+    if allow_only_one_direction == 1:
+        m_config.presolve.big_m_transformation_required = 1
+        s_indicators = range(0, 2)
+
+        def init_input_output(dis, t, ind):
+            if ind == 0:  # input only
+                def init_output_to_zero(const, car_input):
+                    return b_tec.var_output[t, car_input] == 0
+                dis.const_output_to_zero = Constraint(b_tec.set_input_carriers, rule=init_output_to_zero)
+
+            elif ind == 1:  # output only
+                def init_input_to_zero(const, car_input):
+                    return b_tec.var_input[t, car_input] == 0
+                dis.const_input_to_zero = Constraint(b_tec.set_input_carriers, rule=init_input_to_zero)
+
+        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
+
+        # Bind disjuncts
+        def bind_disjunctions(dis, t):
+            return [b_tec.dis_input_output[t, i] for i in s_indicators]
+        b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
+
     def init_maximal_charge(const,t,car):
-        return b_tec.var_input[t, car] <= b_tec.para_eta_in * b_tec.var_size
+        return b_tec.var_input[t, car] <= b_tec.para_charge_max * b_tec.var_size
     b_tec.const_max_charge = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
 
     def init_maximal_discharge(const,t,car):
-        return b_tec.var_output[t, car] <= b_tec.para_eta_out * b_tec.var_size
+        return b_tec.var_output[t, car] <= b_tec.para_discharge_max * b_tec.var_size
     b_tec.const_max_discharge = Constraint(model.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
 
     return b_tec
