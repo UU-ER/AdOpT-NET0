@@ -3,6 +3,7 @@ from pyomo.environ import units as u
 from pyomo.gdp import *
 
 import src.model_construction as mc
+import src.data_management as dm
 import pint
 import numpy as np
 import dill as pickle
@@ -11,7 +12,7 @@ import src.config_model as m_config
 import time
 
 
-class energyhub:
+class EnergyHub:
     r"""
     Class to construct and manipulate an energy system model.
 
@@ -196,9 +197,16 @@ class energyhub:
                     for to_node in connection[from_node].index:
                         if connection.at[from_node, to_node] == 1:
                             print('\t\t\t' + from_node  + '---' +  to_node)
-        # for node in self.model.set_nodes:
 
-    def write_results(self, directory):
+    def write_results(self):
+        """
+        Exports results to an instance of ResultsHandle to be further exported or viewed
+        """
+
+        results = dm.ResultsHandle()
+        results.read_results(self)
+
+        return results
         for node_name in self.model.set_nodes:
             # TODO: Add import/export here
             file_name = r'./' + directory + '/' + node_name + '.xlsx'
