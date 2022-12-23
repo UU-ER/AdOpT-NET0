@@ -178,8 +178,8 @@ class DataHandle:
 
         :param str nodename: node name as specified in the topology
         :param str carrier: carrier name as specified in the topology
-        :param list export_emissionfactor_data: list of emission data for respective carrier. Needs to have the same length as number of \
-        time steps.
+        :param list export_emissionfactor_data: list of emission data for respective carrier. \
+        Needs to have the same length as number of time steps.
         :return: self at ``self.node_data[nodename]['export_emissionfactors'][carrier]``
         """
 
@@ -193,8 +193,8 @@ class DataHandle:
 
         :param str nodename: node name as specified in the topology
         :param str carrier: carrier name as specified in the topology
-        :param list import_emissionfactor_data: list of emission data for respective carrier. Needs to have the same length as number of \
-        time steps.
+        :param list import_emissionfactor_data: list of emission data for respective carrier. \
+        Needs to have the same length as number of time steps.
         :return: self at ``self.node_data[nodename]['import_emissionfactors'][carrier]``
         """
 

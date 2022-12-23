@@ -6,7 +6,6 @@ import src.config_model as m_config
 
 
 def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
-
     r"""
     Adds all technologies as model blocks to respective node.
 
@@ -166,21 +165,28 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
         # Emissions
-        #TODO: emissions are not defined for RES at the moment
-        if tec_type != 'RES':
+        if tec_type == 'RES':
+            # Set emissions to zero
+            b_tec.const_tec_emissions = Constraint(expr=b_tec.var_tec_emissions == 0)
+            b_tec.const_tec_emissions_neg = Constraint(expr=b_tec.var_tec_emissions_neg == 0)
+        else:
+            # Calculate emissions from emission factor
             def init_tec_emissions(const):
                 if tec_data['TechnologyPerf']['emission_factor'] >= 0:
-                    return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
-                           * b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions
+                    return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']]
+                               for t in model.set_t) \
+                           * b_tec.para_tec_emissionfactor \
+                           == b_tec.var_tec_emissions
                 else:
                     return b_tec.var_tec_emissions == 0
             b_tec.const_tec_emissions = Constraint(rule=init_tec_emissions)
 
-            #TODO: do define negative emissions with positive or negative value?
             def init_tec_emissions_neg(const):
                 if tec_data['TechnologyPerf']['emission_factor'] < 0:
-                    return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] for t in model.set_t) \
-                           * -b_tec.para_tec_emissionfactor == b_tec.var_tec_emissions_neg
+                    return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']]
+                               for t in model.set_t) * \
+                           (-b_tec.para_tec_emissionfactor) == \
+                           b_tec.var_tec_emissions_neg
                 else:
                     return b_tec.var_tec_emissions_neg == 0
             b_tec.const_tec_emissions_neg = Constraint(rule=init_tec_emissions_neg)

@@ -467,7 +467,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
             alpha2[c] = tec_fit[c]['alpha2']
 
     if 'input_ratios' in performance_data:
-        main_car = performance_data['input_carrier_main']
+        main_car = performance_data['main_input_carrier']
         for c in performance_data['input_ratios']:
             phi[c] = performance_data['input_ratios'][c]
     else:

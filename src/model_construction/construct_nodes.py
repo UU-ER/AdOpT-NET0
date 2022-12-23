@@ -90,16 +90,17 @@ def add_nodes(model, data):
         b_node.para_export_limit = Param(model.set_t, model.set_carriers, rule=init_export_limit, units=u.MW)
 
         # Emission Factor
-        # TODO: import and export emissionfactor, need if statement?
         def init_import_emissionfactor(para, t, car):
             if nodename in data.node_data:
                 return data.node_data[nodename]['import_emissionfactors'][car][t - 1]
-        b_node.para_import_emissionfactors = Param(model.set_t, model.set_carriers, rule=init_import_emissionfactor, units=u.t / u.MWh)
+        b_node.para_import_emissionfactors = Param(model.set_t, model.set_carriers,
+                                                   rule=init_import_emissionfactor, units=u.t / u.MWh)
 
         def init_export_emissionfactor(para, t, car):
             if nodename in data.node_data:
                 return data.node_data[nodename]['export_emissionfactors'][car][t - 1]
-        b_node.para_export_emissionfactors = Param(model.set_t, model.set_carriers, rule=init_export_emissionfactor, units=u.t / u.MWh)
+        b_node.para_export_emissionfactors = Param(model.set_t, model.set_carriers,
+                                                   rule=init_export_emissionfactor, units=u.t / u.MWh)
 
         # DECISION VARIABLES
         # Interaction with network/system boundaries
@@ -129,7 +130,8 @@ def add_nodes(model, data):
                     == b_node.var_import_emissions[t, car]
             else:
                 return 0 == b_node.var_import_emissions[t, car]
-        b_node.const_import_emissions = Constraint(model.set_t, model.set_carriers, rule=init_import_emissions)
+        b_node.const_import_emissions = Constraint(model.set_t, model.set_carriers,
+                                                   rule=init_import_emissions)
 
         def init_export_emissions(const, t, car):
             if data.node_data[nodename]['export_emissionfactors'][car][t - 1] >= 0:
@@ -145,7 +147,8 @@ def add_nodes(model, data):
                     == b_node.var_import_emissions_neg[t, car]
             else:
                 return 0 == b_node.var_import_emissions_neg[t, car]
-        b_node.const_import_emissions_neg = Constraint(model.set_t, model.set_carriers, rule=init_import_emissions_neg)
+        b_node.const_import_emissions_neg = Constraint(model.set_t, model.set_carriers,
+                                                       rule=init_import_emissions_neg)
 
         def init_export_emissions_neg(const, t, car):
             if data.node_data[nodename]['export_emissionfactors'][car][t - 1] < 0:
@@ -153,18 +156,21 @@ def add_nodes(model, data):
                     == b_node.var_export_emissions_neg[t, car]
             else:
                 return 0 == b_node.var_export_emissions_neg[t, car]
-        b_node.const_export_emissions_neg = Constraint(model.set_t, model.set_carriers, rule=init_export_emissions_neg)
+        b_node.const_export_emissions_neg = Constraint(model.set_t, model.set_carriers,
+                                                       rule=init_export_emissions_neg)
 
         def init_car_emissions(const):
             return sum(
-                sum(b_node.var_import_emissions[t, car] + b_node.var_export_emissions[t, car] for t in model.set_t)
-                for car in model.set_carriers) == b_node.var_car_emissions
+                sum(b_node.var_import_emissions[t, car] + b_node.var_export_emissions[t, car]
+                    for t in model.set_t) for car in model.set_carriers) \
+                   == b_node.var_car_emissions
         b_node.const_car_emissions = Constraint(rule=init_car_emissions)
 
         def init_car_emissions_neg(const):
             return sum(
-                sum(b_node.var_import_emissions_neg[t, car] + b_node.var_export_emissions_neg[t, car] for t in model.set_t)
-                for car in model.set_carriers) == b_node.var_car_emissions_neg
+                sum(b_node.var_import_emissions_neg[t, car] + b_node.var_export_emissions_neg[t, car]
+                    for t in model.set_t) for car in model.set_carriers) == \
+                   b_node.var_car_emissions_neg
         b_node.const_car_emissions_neg = Constraint(rule=init_car_emissions_neg)
 
 

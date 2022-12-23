@@ -124,7 +124,9 @@ class energyhub:
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
         elif objective == 'emissions':
-            print('to be implemented')
+            def init_emission_objective(obj):
+                return self.model.var_emissions_net
+            self.model.objective = Objective(rule=init_emission_objective, sense=minimize)
         elif objective == 'pareto':
             print('to be implemented')
 
