@@ -114,6 +114,11 @@ def add_nodes(model, data):
             return (0, b_node.para_export_limit[t, car])
         b_node.var_export_flow = Var(model.set_t, model.set_carriers, bounds=init_export_bounds, units=u.MWh)
 
+        b_node.var_netw_inflow = Var(model.set_t, model.set_carriers, units=u.MWh)
+        b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MWh)
+        b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MWh)
+
+        # Emissions
         b_node.var_import_emissions = Var(model.set_t, model.set_carriers, units=u.MWh)
         b_node.var_import_emissions_neg = Var(model.set_t, model.set_carriers, units=u.MWh)
         b_node.var_export_emissions = Var(model.set_t, model.set_carriers, units=u.MWh)
@@ -121,10 +126,7 @@ def add_nodes(model, data):
         b_node.var_car_emissions = Var(within=NonNegativeReals, units=u.t)
         b_node.var_car_emissions_neg = Var(within=NonNegativeReals, units=u.t)
 
-        b_node.var_netw_inflow = Var(model.set_t, model.set_carriers, units=u.MWh)
-        b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MWh)
-        b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MWh)
-
+        # CONSTRAINTS
         #Emission constraints
         def init_import_emissions(const, t, car):
             if data.node_data[nodename]['import_emissionfactors'][car][t - 1] >= 0:

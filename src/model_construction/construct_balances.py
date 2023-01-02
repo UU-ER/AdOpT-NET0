@@ -10,8 +10,6 @@ def add_energybalance(model):
         outputFromTechnologies - inputToTechnologies + \\
         inflowFromNetwork - outflowToNetwork + \\
         imports - exports = demand
-
-
     """
 
     # Delete previously initialized constraints
@@ -19,7 +17,8 @@ def add_energybalance(model):
         model.del_component(model.const_energybalance)
         model.del_component(model.const_energybalance_index)
 
-    def init_energybalance(const, t, car, node):  # energybalance at each node
+    # energybalance at each node
+    def init_energybalance(const, t, car, node):
         node_block = model.node_blocks[node]
         tec_output = sum(node_block.tech_blocks_active[tec].var_output[t, car] for tec in node_block.set_tecsAtNode if
                          car in node_block.tech_blocks_active[tec].set_output_carriers)

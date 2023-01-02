@@ -72,15 +72,13 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     """
     def init_technology_block(b_tec, tec):
 
-        # region Get options from data
+        # Get options from data
         tec_data = data.technology_data[nodename][tec]
         tec_type = tec_data['TechnologyPerf']['tec_type']
         capex_model = tec_data['Economics']['CAPEX_model']
         size_is_integer = tec_data['TechnologyPerf']['size_is_int']
-        # endregion
 
-        # region PARAMETERS
-
+        # PARAMETERS
         # We need this shit because python does not accept single value in its build-in min function
         if isinstance(tec_data['TechnologyPerf']['size_min'], numbers.Number):
             size_min = tec_data['TechnologyPerf']['size_min']
@@ -107,43 +105,38 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=tec_data['TechnologyPerf']['emission_factor'],
                                       units=u.t/u.MWh)
 
-        # endregion
-
-        # region SETS
+        # SETS
         b_tec.set_input_carriers = Set(initialize=tec_data['TechnologyPerf']['input_carrier'])
         b_tec.set_output_carriers = Set(initialize=tec_data['TechnologyPerf']['output_carrier'])
-        # endregion
 
-        # region DECISION VARIABLES
+        # DECISION VARIABLES
         # Input
-
-        #TODO: if size is integer units do not work
-
+        # TODO: if size is integer units do not work
         # TODO: calculate different bounds
         if not tec_type == 'RES':
             b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=(b_tec.para_size_min, b_tec.para_size_max), units=u.MW)
         # Output
         b_tec.var_output = Var(model.set_t, b_tec.set_output_carriers, within=NonNegativeReals,
-                               bounds=(0, b_tec.para_output_max), units=u.MW)
+                               units=u.MW)
 
         # Emissions
         b_tec.var_tec_emissions = Var(within=NonNegativeReals, units=u.t)
         b_tec.var_tec_emissions_neg = Var(within=NonNegativeReals, units=u.t)
 
         # Size
-        if size_is_integer:  # size
+        if size_is_integer:
             b_tec.var_size = Var(within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
         else:
             b_tec.var_size = Var(within=NonNegativeReals, bounds=(b_tec.para_size_min, b_tec.para_size_max),
                                  units=u.MW)
-        # Capex/Opex
-        b_tec.var_CAPEX = Var(units=u.EUR)  # capex
-        b_tec.var_OPEX_variable = Var(model.set_t, units=u.EUR)  # variable opex
-        b_tec.var_OPEX_fixed = Var(units=u.EUR)  # fixed opex
-        # endregion
 
-        # region GENERAL CONSTRAINTS
+        # Capex/Opex
+        b_tec.var_CAPEX = Var(units=u.EUR)
+        b_tec.var_OPEX_variable = Var(model.set_t, units=u.EUR)
+        b_tec.var_OPEX_fixed = Var(units=u.EUR)
+
+        # GENERAL CONSTRAINTS
         # Capex
         if capex_model == 1:
             b_tec.const_CAPEX = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX == b_tec.var_CAPEX)
@@ -192,7 +185,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             b_tec.const_tec_emissions_neg = Constraint(rule=init_tec_emissions_neg)
 
 
-        # region TECHNOLOGY TYPES
+        # TECHNOLOGY TYPES
         if tec_type == 'RES': # Renewable technology with cap_factor as input
             b_tec = constraints_tec_RES(model, b_tec, tec_data)
 
@@ -213,7 +206,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         return b_tec
 
-    # Create a new block containing all new technologies. The set of nodes that need to be added
+    # Create a new block containing all new technologies.
     if b_node.find_component('tech_blocks_new'):
         b_node.del_component(b_node.tech_blocks_new)
     b_node.tech_blocks_new = Block(set_tecsToAdd, rule=init_technology_block)

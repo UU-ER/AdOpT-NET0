@@ -29,6 +29,7 @@ def constraints_tec_RES(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    # DATA OF TECHNOLOGY
     tec_fit = tec_data['fit']
     size_is_integer = tec_data['TechnologyPerf']['size_is_int']
     if size_is_integer:
@@ -41,11 +42,13 @@ def constraints_tec_RES(model, b_tec, tec_data):
     else:
         curtailment = 0
 
+    # PARAMETERS
     # Set capacity factors as a parameter
     def init_capfactors(para, t):
         return tec_fit['capacity_factor'][t - 1]
     b_tec.para_capfactor = Param(model.set_t, domain=Reals, rule=init_capfactors)
 
+    # CONSTRAINTS
     if curtailment == 0:  # no curtailment allowed (default)
         def init_input_output(const, t, c_output):
             return b_tec.var_output[t, c_output] == \

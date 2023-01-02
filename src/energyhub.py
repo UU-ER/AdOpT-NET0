@@ -34,32 +34,11 @@ class EnergyHub:
         print('Reading in data...')
         start = time.time()
 
-        # INITIALIZE MODEL
-        self.model = ConcreteModel()
-
-        # DEFINE SETS
-        sets = data.topology
-        self.model.set_nodes = Set(initialize=sets['nodes'])
-        self.model.set_carriers = Set(initialize=sets['carriers'])
-        self.model.set_t = RangeSet(1,len(sets['timesteps']))
-        climate_vars = data.node_data[self.model.set_nodes[1]]['climate_data']['dataframe'].columns.tolist()
-        self.model.set_climate_vars = Set(initialize=climate_vars)
-
-        def tec_node(set, node):
-            if node in self.model.set_nodes:
-                try:
-                    if sets['technologies']:
-                        return sets['technologies'][node]
-                    else:
-                        return Set.Skip
-                except (KeyError, ValueError):
-                    raise Exception('The nodes in the technology sets do not match the node names. The node \'', node,
-                          '\' does not exist.')
-        self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=sets['networks'].keys())
-
         # READ IN DATA
         self.data = data
+
+        # INITIALIZE MODEL
+        self.model = ConcreteModel()
 
         # Define units
         try:
@@ -84,12 +63,34 @@ class EnergyHub:
         print('Constructing Model...')
         start = time.time()
 
-        # Global Cost Variables
+        # DEFINE SETS
+        sets = self.data.topology
+        self.model.set_nodes = Set(initialize=sets['nodes'])
+        self.model.set_carriers = Set(initialize=sets['carriers'])
+        self.model.set_t = RangeSet(1,len(sets['timesteps']))
+        climate_vars = self.data.node_data[self.model.set_nodes[1]]['climate_data']['dataframe'].columns.tolist()
+        self.model.set_climate_vars = Set(initialize=climate_vars)
+
+        def tec_node(set, node):
+            if node in self.model.set_nodes:
+                try:
+                    if sets['technologies']:
+                        return sets['technologies'][node]
+                    else:
+                        return Set.Skip
+                except (KeyError, ValueError):
+                    raise Exception('The nodes in the technology sets do not match the node names. The node \'', node,
+                          '\' does not exist.')
+        self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
+        self.model.set_networks = Set(initialize=sets['networks'].keys())
+
+        # DEFINE VARIABLES
+        # Global cost variables
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
 
-        # Global Emission variables
+        # Global emission variables
         self.model.var_emissions_tot = Var()
         self.model.var_emissions_neg = Var()
         self.model.var_emissions_net = Var()
