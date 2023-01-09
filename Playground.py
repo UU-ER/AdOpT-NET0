@@ -1,20 +1,75 @@
 from pyomo.environ import *
 from pyomo.gdp import *
-from scipy import optimize
-import matplotlib.pyplot as plt
-import numpy as np
 import pylab as pl
 import pvlib
+import numpy as np
 import requests
 import json
-import cdsapi
 import pandas as pd
 from timezonefinder import TimezoneFinder
+import src.data_management as dm
+from src.energyhub import EnergyHub
 
-from src.model_construction.technology_performance_fitting import fit_piecewise_function
 
+from src.data_management.technology_performance_fitting import fit_piecewise_function
 
 execute = 1
+# region: how to k-means cluster
+if execute == 1:
+    # Load data handle from file
+    modeled_year = 2001
+    topology = {}
+    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
+                                          end=str(modeled_year) + '-12-31 23:00', freq='1h')
+    topology['timestep_length_h'] = 1
+    topology['carriers'] = ['electricity']
+    topology['nodes'] = ['test_node1']
+    topology['technologies'] = {}
+    topology['technologies']['test_node1'] = ['PV', 'testSTOR']
+
+    topology['networks'] = {}
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology['timesteps'])) * 1
+    data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SOLVE WITH CLUSTERED DATA
+    clustered_data = dm.ClusteredDataHandle()
+    nr_days_cluster = 40
+    clustered_data.cluster_data(data, nr_days_cluster)
+
+    energyhub_clustered = EnergyHub(clustered_data)
+    energyhub_clustered.construct_model()
+    energyhub_clustered.construct_balances()
+
+    # Solve model
+    energyhub_clustered.solve_model()
+    results1 = energyhub_clustered.write_results()
+    results1.write_excel(r'.\userData\results_clustered')
+
+    # SOLVE WITH FULL RESOLUTION
+    energyhub = EnergyHub(data)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+
+    # Solve model
+    energyhub.solve_model()
+    results2 = energyhub.write_results()
+    results2.write_excel(r'.\userData\results_full')
+
+
+
+execute = 0
 #region How to formulate hierarchical models with blocks
 if execute == 1:
     m = ConcreteModel()
@@ -150,7 +205,7 @@ if execute == 1:
 
 #endregion
 
-execute = 1
+execute = 0
 #region How to fit a piece-wise linear function
 if execute == 1:
     nr_seg = 3

@@ -68,8 +68,13 @@ class EnergyHub:
         self.model.set_nodes = Set(initialize=sets['nodes'])
         self.model.set_carriers = Set(initialize=sets['carriers'])
         self.model.set_t = RangeSet(1,len(sets['timesteps']))
-        climate_vars = self.data.node_data[self.model.set_nodes[1]]['climate_data']['dataframe'].columns.tolist()
-        self.model.set_climate_vars = Set(initialize=climate_vars)
+        if hasattr(self.data, 'k_means_specs'):
+            # If yes, we are working with clustered data
+            self.model.set_t_full = RangeSet(1, len(self.data.k_means_specs['keys']['typical_day']))
+            m_config.presolve.clustered_data = 1
+        else:
+            self.model.set_t_full = RangeSet(1,len(sets['timesteps']))
+            m_config.presolve.clustered_data = 0
 
         def tec_node(set, node):
             if node in self.model.set_nodes:
@@ -112,8 +117,14 @@ class EnergyHub:
         start = time.time()
 
         self.model = mc.add_energybalance(self.model)
-        self.model = mc.add_emissionbalance(self.model)
-        self.model = mc.add_system_costs(self.model)
+
+        if m_config.presolve.clustered_data == 1:
+            occurrence_hour = self.data.k_means_specs['factors']['factor'].to_numpy()
+        else:
+            occurrence_hour = np.ones(len(self.model.set_t))
+
+        self.model = mc.add_emissionbalance(self.model, occurrence_hour)
+        self.model = mc.add_system_costs(self.model, occurrence_hour)
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
 

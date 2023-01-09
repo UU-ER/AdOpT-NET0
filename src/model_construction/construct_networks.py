@@ -276,12 +276,12 @@ def add_networks(model, data):
 
         # Capex/Opex
         b_netw.var_CAPEX = Var(units=u.EUR)
-        b_netw.var_OPEX_variable = Var(units=u.EUR)
+        b_netw.var_OPEX_variable = Var(model.set_t, units=u.EUR)
         b_netw.var_OPEX_fixed = Var(units=u.EUR)
         b_netw.var_cost = Var(units=u.EUR)
 
         # Emissions
-        b_netw.var_netw_emissions = Var(units=u.t)
+        b_netw.var_netw_emissions = Var(model.set_t, units=u.t)
         # endregion
 
         # region Establish each arc as a block with
@@ -305,7 +305,7 @@ def add_networks(model, data):
                                            b_netw.para_size_max * b_netw.para_rated_capacity))
 
             b_arc.var_CAPEX = Var(units=u.EUR)
-            b_arc.var_OPEX_variable = Var(units=u.EUR)
+            b_arc.var_OPEX_variable = Var(model.set_t, units=u.EUR)
 
             # Flow
             def init_flowlosses(const, t):
@@ -367,10 +367,10 @@ def add_networks(model, data):
             b_arc.const_capex = Constraint(rule=init_capex)
 
             # OPEX
-            def init_OPEX_variable(const):
-                return b_arc.var_OPEX_variable == sum(b_arc.var_flow[t] for t in model.set_t) * \
+            def init_OPEX_variable(const, t):
+                return b_arc.var_OPEX_variable[t] == b_arc.var_flow[t] * \
                        b_netw.para_OPEX_variable
-            b_arc.const_OPEX_variable = Constraint(rule=init_OPEX_variable)
+            b_arc.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
         b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_block_init)
         # endregion
@@ -387,7 +387,6 @@ def add_networks(model, data):
             def init_size_bidirectional(const, node_from, node_to):
                 return b_netw.arc_block[node_from, node_to].var_size == \
                        b_netw.arc_block[node_to, node_from].var_size
-
             b_netw.const_size_bidirectional = Constraint(b_netw.set_arcs_unique, rule=init_size_bidirectional)
 
             s_indicators = range(0, 2)
@@ -401,14 +400,12 @@ def add_networks(model, data):
                     def init_bidirectional2(const):
                         return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
                     dis.const_flow_zero = Constraint(rule=init_bidirectional2)
-
             b_netw.dis_one_direction_only = Disjunct(model.set_t, b_netw.set_arcs_unique, s_indicators,
                                                      rule=init_bidirectional)
 
             # Bind disjuncts
             def bind_disjunctions(dis, t, node_from, node_to):
                 return [b_netw.dis_one_direction_only[t, node_from, node_to, i] for i in s_indicators]
-
             b_netw.disjunction_one_direction_only = Disjunction(model.set_t, b_netw.set_arcs_unique,
                                                                 rule=bind_disjunctions)
 
@@ -428,15 +425,10 @@ def add_networks(model, data):
                    b_netw.var_OPEX_fixed
         b_netw.const_OPEX_fixed = Constraint(rule=init_opex_fixed)
 
-        def init_opex_variable(const):
-            return sum(b_netw.arc_block[arc].var_OPEX_variable for arc in arc_set) == \
-                   b_netw.var_OPEX_variable
-        b_netw.const_OPEX_var = Constraint(rule=init_opex_variable)
-
-        def init_cost(const):
-            return b_netw.var_CAPEX + b_netw.var_OPEX_fixed + b_netw.var_OPEX_variable == \
-                   b_netw.var_cost
-        b_netw.const_cost = Constraint(rule=init_cost)
+        def init_opex_variable(const, t):
+            return sum(b_netw.arc_block[arc].var_OPEX_variable[t] for arc in arc_set) == \
+                   b_netw.var_OPEX_variable[t]
+        b_netw.const_OPEX_var = Constraint(model.set_t, rule=init_opex_variable)
 
         # Establish inflow and outflow for each node and this network
         """
@@ -457,14 +449,13 @@ def add_networks(model, data):
         b_netw.const_outflow = Constraint(model.set_t, b_netw.set_netw_carrier, model.set_nodes, rule=init_outflow)
 
         # Network emissions as sum over inflow
-        #TODO: add loss to emissions
-        def init_netw_emissions(const):
-            return sum(sum(b_netw.arc_block[arc].var_flow[t] for t in model.set_t) for arc in b_netw.set_arcs) * \
+        def init_netw_emissions(const, t):
+            return sum(b_netw.arc_block[arc].var_flow[t] for arc in b_netw.set_arcs) * \
                    b_netw.para_emissionfactor + \
-                   sum(sum(b_netw.arc_block[arc].var_losses[t] for t in model.set_t) for arc in b_netw.set_arcs) * \
+                   sum(b_netw.arc_block[arc].var_losses[t] for arc in b_netw.set_arcs) * \
                    b_netw.para_loss2emissions \
-                   == b_netw.var_netw_emissions
-        b_netw.const_netw_emissions = Constraint(rule=init_netw_emissions)
+                   == b_netw.var_netw_emissions[t]
+        b_netw.const_netw_emissions = Constraint(model.set_t, rule=init_netw_emissions)
 
         # Establish energy consumption for each node and this network
         def init_network_consumption(const, t, car, node):

@@ -1,8 +1,13 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
+import src.config_model as m_config
+import numpy as np
+
 
 def add_energybalance(model):
     # TODO: formulate energybalance to include global balance
+    # Todo: CLUSTERING: Change balance to full temporal resolution
+
     """
     Calculates the energy balance for each node and carrier as:
 
@@ -34,15 +39,19 @@ def add_energybalance(model):
             netw_inflow - netw_outflow - netw_consumption + \
             import_flow - export_flow == \
             node_block.para_demand[t, car]
+
     model.const_energybalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_energybalance)
 
     return model
 
-def add_emissionbalance(model):
+
+def add_emissionbalance(model, occurrence_hour):
     """
     Calculates the total and the net CO_2 balance.
 
     """
+    # Todo: CLUSTERING: Change balance to full temporal resolution
+
     # Delete previously initialized constraints
     if model.find_component('const_emissions_tot'):
         model.del_component(model.const_emissions_tot)
@@ -53,34 +62,43 @@ def add_emissionbalance(model):
     # def init_emissionbalance(const, t, car, node):  # emissionbalance at each node
     # model.const_emissionbalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_emissionbalance)
 
+
     # calculate total emissions from technologies, networks and importing/exporting carriers
     def init_emissions_tot(const):
-        return sum(
-                sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions
-                    for tec in model.node_blocks[node].set_tecsAtNode) + \
-                model.node_blocks[node].var_car_emissions + \
-                sum(model.network_block[netw].var_netw_emissions for netw in model.set_networks)
-                for node in model.set_nodes) == \
-                model.var_emissions_tot
+        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions[t] *
+                                        occurrence_hour[t - 1]
+                                        for t in model.set_t)
+                                    for tec in model.node_blocks[node].set_tecsAtNode)
+                                for node in model.set_nodes)
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions[t] * occurrence_hour[t - 1]
+                                for t in model.set_t)
+                            for node in model.set_nodes)
+        from_networks = sum(sum(model.network_block[netw].var_netw_emissions[t] * occurrence_hour[t - 1]
+                                for t in model.set_t)
+                            for netw in model.set_networks)
+        return from_technologies + from_carriers + from_networks == model.var_emissions_tot
     model.const_emissions_tot = Constraint(rule=init_emissions_tot)
 
     # calculate negative emissions from technologies and import/export
     def init_emissions_neg(const):
-        return sum(
-                sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg
-                       for tec in model.node_blocks[node].set_tecsAtNode) + \
-                model.node_blocks[node].var_car_emissions_neg
-                for node in model.set_nodes) == \
-               model.var_emissions_neg
+        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t] *
+                                        occurrence_hour[t - 1]
+                                    for t in model.set_t)
+                                for tec in model.node_blocks[node].set_tecsAtNode)
+                            for node in model.set_nodes)
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_neg[t] * occurrence_hour[t - 1]
+                                for t in model.set_t)
+                            for node in model.set_nodes)
+        return from_technologies + from_carriers == model.var_emissions_neg
     model.const_emissions_neg = Constraint(rule=init_emissions_neg)
 
     model.const_emissions_net = Constraint(expr=model.var_emissions_tot - model.var_emissions_neg == \
                                                 model.var_emissions_net)
 
-
     return model
 
-def add_system_costs(model):
+
+def add_system_costs(model, occurrence_hour):
     """
     Calculates total system costs in three steps.
 
@@ -88,6 +106,8 @@ def add_system_costs(model):
     - Calculates cost of all networks
     - Adds up cost of networks and node costs
     """
+    # Todo: CLUSTERING: Change balance to full temporal resolution
+
     # Delete previously initialized constraints
     if model.find_component('const_node_cost'):
         model.del_component(model.const_node_cost)
@@ -96,23 +116,42 @@ def add_system_costs(model):
 
     # Cost at each node
     def init_node_cost(const):
-        return sum(
-                sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX
-                       for tec in model.node_blocks[node].set_tecsAtNode) + \
-                   sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t]
-                           for tec in model.node_blocks[node].set_tecsAtNode) for t in model.set_t) + \
-                   sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_fixed
-                       for tec in model.node_blocks[node].set_tecsAtNode) + \
-                   sum(sum(model.node_blocks[node].var_import_flow[t, car] * model.node_blocks[node].para_import_price[t, car]
-                           for car in model.set_carriers) for t in model.set_t) - \
-                   sum(sum(model.node_blocks[node].var_export_flow[t, car] * model.node_blocks[node].para_export_price[t, car]
-                           for car in model.set_carriers) for t in model.set_t) \
-                for node in model.set_nodes) == \
-               model.var_node_cost
+        tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX
+                            for tec in model.node_blocks[node].set_tecsAtNode)
+                        for node in model.set_nodes)
+        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t] *
+                                        occurrence_hour[t - 1]
+                                        for tec in model.node_blocks[node].set_tecsAtNode)
+                                    for t in model.set_t)
+                                for node in model.set_nodes)
+        tec_OPEX_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_fixed
+                                for tec in model.node_blocks[node].set_tecsAtNode)
+                             for node in model.set_nodes)
+        import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
+                                    model.node_blocks[node].para_import_price[t, car] *
+                                    occurrence_hour[t - 1]
+                                  for car in model.set_carriers)
+                              for t in model.set_t)
+                          for node in model.set_nodes)
+        export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car] *
+                                     model.node_blocks[node].para_export_price[t, car] *
+                                     occurrence_hour[t - 1]
+                                    for car in model.set_carriers)
+                                 for t in model.set_t)
+                             for node in model.set_nodes)
+        return tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed + import_cost - export_revenue == model.var_node_cost
     model.const_node_cost = Constraint(rule=init_node_cost)
 
     # Calculates network costs
     def init_netw_cost(const):
+        netw_CAPEX = sum(model.network_block[netw].var_CAPEX
+                         for netw in model.set_networks)
+        netw_OPEX_variable = sum(sum(model.network_block[netw].var_OPEX_variable[t] *
+                                        occurrence_hour[t - 1]
+                                     for netw in model.set_networks)
+                                 for t in model.set_t)
+        netw_OPEX_fixed = sum(model.network_block[netw].var_OPEX_fixed
+                         for netw in model.set_networks)
         return sum(model.network_block[netw].var_cost for netw in model.set_networks) == \
                model.var_netw_cost
     model.const_netw_cost = Constraint(rule=init_netw_cost)

@@ -1,4 +1,5 @@
 import numbers
+import numpy as np
 from src.model_construction.generic_technology_constraints import *
 import src.model_construction as mc
 import src.config_model as m_config
@@ -121,8 +122,8 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
                                units=u.MW)
 
         # Emissions
-        b_tec.var_tec_emissions = Var(within=NonNegativeReals, units=u.t)
-        b_tec.var_tec_emissions_neg = Var(within=NonNegativeReals, units=u.t)
+        b_tec.var_tec_emissions = Var(model.set_t, within=NonNegativeReals, units=u.t)
+        b_tec.var_tec_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
 
         # Size
         if size_is_integer:
@@ -160,29 +161,31 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         # Emissions
         if tec_type == 'RES':
             # Set emissions to zero
-            b_tec.const_tec_emissions = Constraint(expr=b_tec.var_tec_emissions == 0)
-            b_tec.const_tec_emissions_neg = Constraint(expr=b_tec.var_tec_emissions_neg == 0)
+            def init_tec_emissions_RES(const, t):
+                return b_tec.var_tec_emissions[t] == 0
+            b_tec.const_tec_emissions = Constraint(model.set_t, rule=init_tec_emissions_RES)
+            def init_tec_emissions_neg_RES(const, t):
+                return b_tec.var_tec_emissions_neg[t] == 0
+            b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg_RES)
         else:
             # Calculate emissions from emission factor
-            def init_tec_emissions(const):
+            def init_tec_emissions(const, t):
                 if tec_data['TechnologyPerf']['emission_factor'] >= 0:
-                    return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']]
-                               for t in model.set_t) \
+                    return b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] \
                            * b_tec.para_tec_emissionfactor \
-                           == b_tec.var_tec_emissions
+                           == b_tec.var_tec_emissions[t]
                 else:
-                    return b_tec.var_tec_emissions == 0
-            b_tec.const_tec_emissions = Constraint(rule=init_tec_emissions)
+                    return b_tec.var_tec_emissions[t] == 0
+            b_tec.const_tec_emissions = Constraint(model.set_t, rule=init_tec_emissions)
 
-            def init_tec_emissions_neg(const):
+            def init_tec_emissions_neg(const, t):
                 if tec_data['TechnologyPerf']['emission_factor'] < 0:
-                    return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']]
-                               for t in model.set_t) * \
+                    return b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] \
                            (-b_tec.para_tec_emissionfactor) == \
-                           b_tec.var_tec_emissions_neg
+                           b_tec.var_tec_emissions_neg[t]
                 else:
-                    return b_tec.var_tec_emissions_neg == 0
-            b_tec.const_tec_emissions_neg = Constraint(rule=init_tec_emissions_neg)
+                    return b_tec.var_tec_emissions_neg[t] == 0
+            b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg)
 
 
         # TECHNOLOGY TYPES
@@ -199,7 +202,11 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             b_tec = constraints_tec_CONV3(model, b_tec, tec_data)
 
         elif tec_type == 'STOR': # Storage technology (1 input -> 1 output)
-            b_tec = constraints_tec_STOR(model, b_tec, tec_data)
+            if m_config.presolve.clustered_data == 1:
+                hourly_order_time_slices = data.k_means_specs['keys']['hourly_order']
+            else:
+                hourly_order_time_slices = np.arange(1, len(model.set_t)+1)
+            b_tec = constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices)
 
         if m_config.presolve.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
