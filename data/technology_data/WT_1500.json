@@ -17,7 +17,6 @@
     "output_carrier": [
       "electricity"
     ],
-    "curtailment": 2,
     "size_min": 0,
     "size_max": 1.5E+9,
     "size_is_int": 1,
