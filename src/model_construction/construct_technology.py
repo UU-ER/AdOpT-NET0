@@ -96,7 +96,6 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             unit_size = u.MW
         b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, units=unit_size)
         b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, units=unit_size)
-        b_tec.para_output_max = Param(domain=NonNegativeReals, initialize=size_max, units=u.MW)
         b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=tec_data['Economics']['unit_CAPEX_annual'],
                                       units=u.EUR/unit_size)
         b_tec.para_OPEX_variable = Param(domain=Reals, initialize=tec_data['Economics']['OPEX_variable'],
@@ -113,13 +112,18 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         # DECISION VARIABLES
         # Input
         # TODO: if size is integer units do not work
-        # TODO: calculate different bounds
+        output_bounds = calculate_output_bounds(tec_type, tec_data, size_max)
+        input_bounds = calculate_input_bounds(tec_type, tec_data, size_max)
         if not tec_type == 'RES':
+            def init_input_bounds(bounds, t, car):
+                return input_bounds[car]
             b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals,
-                                  bounds=(b_tec.para_size_min, b_tec.para_size_max), units=u.MW)
+                                  bounds=init_input_bounds, units=u.MW)
         # Output
+        def init_output_bounds(bounds, t, car):
+            return output_bounds[car]
         b_tec.var_output = Var(model.set_t, b_tec.set_output_carriers, within=NonNegativeReals,
-                               units=u.MW)
+                               bounds=init_output_bounds, units=u.MW)
 
         # Emissions
         b_tec.var_tec_emissions = Var(model.set_t, within=NonNegativeReals, units=u.t)
@@ -241,3 +245,89 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     if b_node.find_component('tech_blocks_existing'):
         b_node.del_component(b_node.tech_blocks_existing)
     return b_node
+
+
+
+def calculate_input_bounds(tec_type, tec_data, max_size):
+    bounds = {}
+    performance_data = tec_data['TechnologyPerf']
+    if tec_type == 'CONV3':
+        main_car = performance_data['main_input_carrier']
+        for c in tec_data['TechnologyPerf']['input_carrier']:
+            if c == main_car:
+                bounds[c] = (0, max_size)
+            else:
+                bounds[c] = (0, max_size * performance_data['input_ratios'][c])
+    else:
+        for c in tec_data['TechnologyPerf']['input_carrier']:
+            bounds[c] = (0, max_size)
+    return bounds
+
+def calculate_output_bounds(tec_type, tec_data, max_size):
+    tec_fit = tec_data['fit']
+    bounds = {}
+
+    if tec_type == 'RES':  # Renewable technology with cap_factor as input
+        if tec_data['TechnologyPerf']['size_is_int']:
+            rated_power = tec_fit['rated_power']
+        else:
+            rated_power = 1
+        cap_factor = tec_fit['capacity_factor']
+        for c in tec_data['TechnologyPerf']['output_carrier']:
+            max_bound = float(max_size * max(cap_factor) * rated_power)
+            bounds[c] = (0, max_bound)
+
+    elif tec_type == 'CONV1':  # n inputs -> n output, fuel and output substitution
+        performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+        alpha1 = tec_fit['out']['alpha1']
+        for c in tec_data['TechnologyPerf']['output_carrier']:
+            if performance_function_type == 1:
+                max_bound = max_size * alpha1
+            if performance_function_type == 2:
+                alpha2 = tec_fit['out']['alpha2']
+                max_bound = max_size * (alpha1 + alpha2)
+            if performance_function_type == 3:
+                alpha2 = tec_fit['out']['alpha2']
+                max_bound = max_size * (alpha1[-1] + alpha2[-1])
+            bounds[c] = (0, max_bound)
+
+    elif tec_type == 'CONV2':  # n inputs -> n output, fuel and output substitution
+        alpha1 = {}
+        alpha2 = {}
+        performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+        performance_data = tec_data['TechnologyPerf']
+        for c in performance_data['performance']['out']:
+            alpha1[c] = tec_fit[c]['alpha1']
+            if performance_function_type == 1:
+                max_bound = alpha1[c] * max_size
+            if performance_function_type == 2:
+                alpha2[c] = tec_fit[c]['alpha2']
+                max_bound = max_size * (alpha1[c] + alpha2[c])
+            if performance_function_type == 3:
+                alpha2[c] = tec_fit[c]['alpha2']
+                max_bound = max_size * (alpha1[c][-1] + alpha2[c][-1])
+            bounds[c] = (0, max_bound)
+
+    elif tec_type == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
+        alpha1 = {}
+        alpha2 = {}
+        performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
+        performance_data = tec_data['TechnologyPerf']
+        # Get performance parameters
+        for c in performance_data['performance']['out']:
+            alpha1[c] = tec_fit[c]['alpha1']
+            if performance_function_type == 1:
+                max_bound = alpha1[c] * max_size
+            if performance_function_type == 2:
+                alpha2[c] = tec_fit[c]['alpha2']
+                max_bound = max_size * (alpha1[c] + alpha2[c])
+            if performance_function_type == 3:
+                alpha2[c] = tec_fit[c]['alpha2']
+                max_bound = max_size * (alpha1[c][-1] + alpha2[c][-1])
+            bounds[c] = (0, max_bound)
+
+    elif tec_type == 'STOR':  # Storage technology (1 input -> 1 output)
+        for c in tec_data['TechnologyPerf']['output_carrier']:
+            bounds[c] = (0, max_size)
+
+    return bounds

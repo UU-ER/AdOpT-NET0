@@ -1,5 +1,9 @@
 from types import SimpleNamespace
 import pandas as pd
+import numpy as np
+
+import src.config_model as m_config
+
 
 class ResultsHandle:
     """
@@ -13,12 +17,12 @@ class ResultsHandle:
                                                'Import_Cost',
                                                'Export_Revenue'
                                                ])
-        self.emissions = pd.DataFrame(columns=['Negative',
+        self.emissions = pd.DataFrame(columns=['Net',
                                                'Positive',
-                                               'From_Technologies',
-                                               'From_Networks',
-                                               'From_Import',
-                                               'From_Export'
+                                               'Negative',
+                                               'Net_From_Technologies',
+                                               'Net_From_Networks',
+                                               'Net_From_Carriers'
                                                ])
         self.technologies = pd.DataFrame(columns=['Node',
                                                   'Technology',
@@ -50,35 +54,71 @@ class ResultsHandle:
         """
         m = energyhub.model
 
+        if m_config.presolve.clustered_data == 1:
+            occurrence_hour = energyhub.data.k_means_specs['factors']['factor'].to_numpy()
+        else:
+            occurrence_hour = np.ones(len(m.set_t))
+
+
         # Economics
         total_cost = m.var_total_cost.value
         # emission_cost = m.var_emission_cost.value
         # Todo: Add this here, if it is done
         emission_cost = 0
-        tec_cost = sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_CAPEX.value
-                           for tec in m.node_blocks[node].set_tecsAtNode) + \
-                       sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t].value
-                               for tec in m.node_blocks[node].set_tecsAtNode)
-                           for t in m.set_t) + \
-                       sum(m.node_blocks[node].tech_blocks_active[tec].var_OPEX_fixed.value
-                           for tec in m.node_blocks[node].set_tecsAtNode) \
-                       for node in m.set_nodes)
-        netw_cost = m.var_netw_cost
-        import_cost = sum(sum(sum(m.node_blocks[node].var_import_flow[t, car].value * \
-                                   m.node_blocks[node].para_import_price[t, car].value
-                                for car in m.set_carriers)
-                              for t in m.set_t) \
-                            for node in m.set_nodes)
-        export_revenue = sum(sum(sum(m.node_blocks[node].var_export_flow[t, car].value * \
-                                   m.node_blocks[node].para_export_price[t, car].value
-                                for car in m.set_carriers)
-                              for t in m.set_t) \
-                            for node in m.set_nodes)
+        tec_CAPEX = sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_CAPEX.value
+                            for tec in m.node_blocks[node].set_tecsAtNode)
+                        for node in m.set_nodes)
+        tec_OPEX_variable = sum(sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t].value *
+                                        occurrence_hour[t - 1]
+                                        for tec in m.node_blocks[node].set_tecsAtNode)
+                                    for t in m.set_t)
+                                for node in m.set_nodes)
+        tec_OPEX_fixed = sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_OPEX_fixed.value
+                                 for tec in m.node_blocks[node].set_tecsAtNode)
+                             for node in m.set_nodes)
+        tec_cost = tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed
+        import_cost = sum(sum(sum(m.node_blocks[node].var_import_flow[t, car].value *
+                                    m.node_blocks[node].para_import_price[t, car].value *
+                                    occurrence_hour[t - 1]
+                                  for car in m.set_carriers)
+                              for t in m.set_t)
+                          for node in m.set_nodes)
+        export_revenue = sum(sum(sum(m.node_blocks[node].var_export_flow[t, car].value *
+                                     m.node_blocks[node].para_export_price[t, car].value *
+                                     occurrence_hour[t - 1]
+                                    for car in m.set_carriers)
+                                 for t in m.set_t)
+                             for node in m.set_nodes)
+        netw_cost = m.var_netw_cost.value
         self.economics.loc[len(self.economics.index)] = \
             [total_cost, emission_cost, tec_cost, netw_cost, import_cost, export_revenue]
 
         # Emissions
-        # Todo: Add this here, if it is done
+        net_emissions = m.var_emissions_net.value
+        positive_emissions = m.var_emissions_tot.value
+        negative_emissions = m.var_emissions_neg.value
+        from_technologies = sum(sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_tec_emissions[t].value *
+                                        occurrence_hour[t - 1]
+                                        for t in m.set_t)
+                                    for tec in m.node_blocks[node].set_tecsAtNode)
+                                for node in m.set_nodes) - \
+                            sum(sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t].value *
+                                        occurrence_hour[t - 1]
+                                        for t in m.set_t)
+                                    for tec in m.node_blocks[node].set_tecsAtNode)
+                                for node in m.set_nodes)
+        from_carriers = sum(sum(m.node_blocks[node].var_car_emissions[t].value * occurrence_hour[t - 1]
+                                for t in m.set_t)
+                            for node in m.set_nodes) - \
+                        sum(sum(m.node_blocks[node].var_car_emissions_neg[t].value * occurrence_hour[t - 1]
+                                for t in m.set_t)
+                            for node in m.set_nodes)
+        from_networks = sum(sum(m.network_block[netw].var_netw_emissions[t].value * occurrence_hour[t - 1]
+                                for t in m.set_t)
+                            for netw in m.set_networks)
+        self.emissions.loc[len(self.emissions.index)] = \
+            [net_emissions, positive_emissions, negative_emissions, from_technologies,
+             from_networks, from_carriers]
 
         # Technology Sizes
         for node_name in m.set_nodes:
@@ -88,7 +128,9 @@ class ResultsHandle:
                 s = tec_data.var_size.value
                 capex = tec_data.var_CAPEX.value
                 opex_fix = tec_data.var_OPEX_fixed.value
-                opex_var = sum(tec_data.var_OPEX_variable[t].value for t in m.set_t)
+                opex_var = sum(tec_data.var_OPEX_variable[t].value *
+                                occurrence_hour[t - 1]
+                            for t in m.set_t)
                 self.technologies.loc[len(self.technologies.index)] = \
                     [node_name, tec_name, s, capex, opex_fix, opex_var]
 
@@ -101,9 +143,13 @@ class ResultsHandle:
                 toNode = arc[1]
                 s = arc_data.var_size.value
                 capex = arc_data.var_CAPEX.value
-                opex_var = arc_data.var_OPEX_variable.value
+                opex_var = sum(arc_data.var_OPEX_variable[t] *
+                                        occurrence_hour[t - 1]
+                                 for t in m.set_t)
                 opex_fix = capex * netw_data.para_OPEX_fixed.value
-                total_flow = sum(arc_data.var_flow[t].value for t in m.set_t)
+                total_flow = sum(arc_data.var_flow[t].value *
+                                occurrence_hour[t - 1]
+                             for t in m.set_t)
                 self.networks.loc[len(self.networks.index)] = \
                     [netw_name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow]
 
@@ -151,19 +197,32 @@ class ResultsHandle:
             self.detailed_results.nodes[node_name] = {}
             for tec_name in node_data.set_tecsAtNode:
                 tec_data = node_data.tech_blocks_active[tec_name]
+                tec_type = energyhub.data.technology_data[node_name][tec_name]['TechnologyPerf']['tec_type']
+
+                if tec_type == 'STOR':
+                    time_set = m.set_t_full
+                    if tec_data.find_component('var_input'):
+                        input = tec_data.var_input_full_resolution
+                        output = tec_data.var_output_full_resolution
+
+                else:
+                    time_set = m.set_t
+                    if tec_data.find_component('var_input'):
+                        input = tec_data.var_input
+                        output = tec_data.var_output
 
                 df = pd.DataFrame()
 
                 for car in tec_data.set_input_carriers:
                     if tec_data.find_component('var_input'):
-                        df['input_' + car] = [tec_data.var_input[t, car].value for t in m.set_t]
+                        df['input_' + car] = [input[t, car].value for t in time_set]
 
                 for car in tec_data.set_output_carriers:
-                    df['output_' + car] = [tec_data.var_output[t, car].value for t in m.set_t]
+                    df['output_' + car] = [output[t, car].value for t in time_set]
 
                 if tec_data.find_component('var_storage_level'):
                     for car in tec_data.set_input_carriers:
-                        df['storage_level_' + car] = [tec_data.var_storage_level[t, car].value for t in m.set_t]
+                        df['storage_level_' + car] = [tec_data.var_storage_level[t, car].value for t in time_set]
 
                 self.detailed_results.nodes[node_name][tec_name] = df
 

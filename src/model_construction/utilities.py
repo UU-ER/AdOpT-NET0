@@ -10,5 +10,5 @@ def perform_disjunct_relaxation(component):
     xfrm = TransformationFactory('gdp.bigm')
     xfrm.apply_to(component)
     m_config.presolve.big_m_transformation_required = 0
-    print('Reading in data completed in ' + str(time.time() - start) + ' s')
+    print('Big-M Transformation completed in ' + str(time.time() - start) + ' s')
     return component

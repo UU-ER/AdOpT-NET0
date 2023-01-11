@@ -320,6 +320,8 @@ def load_data_handle(path):
 class ClusteredDataHandle(DataHandle):
     """
     DataHandle sub-class for handling k-means clustered data
+
+    This class is used to generate time series of typical days based on a full resolution of input data.
     """
     def __init__(self):
         """
@@ -333,6 +335,18 @@ class ClusteredDataHandle(DataHandle):
         self.node_data_full_resolution = {}
 
     def cluster_data(self, data, nr_clusters, nr_days_full_resolution= 365, nr_time_intervals_per_day=24):
+        """
+        Performs the clustering process
+
+        This function performsthe k-means algorithm on the data resulting in a new DataHandle object that can be passed
+        to the energhub class for optimization.
+
+        :param DataHandle data: DataHandle containing data of the full resolution
+        :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
+        :param int nr_days_full_resolution: nr of days in data (full resolution)
+        :param int nr_time_intervals_per_day: nr of time intervalls per day in data (full resolution)
+        :return: instance of :class:`~ClusteredDataHandle`
+        """
         # Take data from old data object
         self.topology = copy.deepcopy(data.topology)
         self.topology['timesteps'] = range(0, nr_clusters * nr_time_intervals_per_day)

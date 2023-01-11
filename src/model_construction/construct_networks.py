@@ -1,6 +1,8 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
 from pyomo.gdp import *
+import copy
+
 import src.config_model as m_config
 import src.model_construction as mc
 
@@ -45,7 +47,6 @@ def add_networks(model, data):
         - CAPEX: ``var_CAPEX``
         - Variable OPEX: ``var_OPEX_variable``
         - Fixed OPEX: ``var_OPEX_fixed``
-        - Total cost: ``var_cost``
         - Furthermore for each node:
 
             * Inflow to node (as a sum of all inflows from other nodes): ``var_inflow``
@@ -151,7 +152,7 @@ def add_networks(model, data):
 
         # region Get options from data
         netw_data = data.network_data[netw]
-        connection = netw_data['connection'][:]
+        connection = copy.deepcopy(netw_data['connection'][:])
         distance = netw_data['distance']
         # endregion
 
@@ -278,7 +279,6 @@ def add_networks(model, data):
         b_netw.var_CAPEX = Var(units=u.EUR)
         b_netw.var_OPEX_variable = Var(model.set_t, units=u.EUR)
         b_netw.var_OPEX_fixed = Var(units=u.EUR)
-        b_netw.var_cost = Var(units=u.EUR)
 
         # Emissions
         b_netw.var_netw_emissions = Var(model.set_t, units=u.t)

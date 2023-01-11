@@ -28,7 +28,7 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
     # is capex correct
     should = 1020
-    res = energyhub1.model.network_block['hydrogenTest'].var_cost.value
+    res = energyhub1.model.network_block['hydrogenTest'].var_CAPEX.value
     assert abs(should - res) / res <= 0.001
 
     # Test no bidirectional

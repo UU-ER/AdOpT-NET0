@@ -5,8 +5,6 @@ from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
 
-u.load_definitions_from_strings(['EUR = [currency]'])
-
 def test_initializer():
     data = dm.load_data_handle(r'./test/test_data/data_handle_test.p')
     energyhub = ehub(data)
@@ -147,10 +145,10 @@ def test_emission_balance1():
     emissionsTOT = energyhub.model.var_emissions_tot.value
     emissionsNET = energyhub.model.var_emissions_net.value
     assert emissionsTOT == emissionsNET
-    assert round(emissionsTOT) == 64
 
     #network emissions
-    emissionsNETW = energyhub.model.network_block['electricityTest'].var_netw_emissions.value
+    emissionsNETW = sum(energyhub.model.network_block['electricityTest'].var_netw_emissions[t].value
+                        for t in energyhub.model.set_t)
     emissionsFlowNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore','offshore')].var_flow[t].value
                    for t in energyhub.model.set_t) + \
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_flow[t].value
@@ -162,12 +160,20 @@ def test_emission_balance1():
                              for t in energyhub.model.set_t)) * \
                         data.network_data['electricityTest']['NetworkPerf']['loss2emissions']
     assert round(emissionsNETW) == round(emissionsFlowNETW + emissionsLossNETW)
+    assert abs(emissionsNETW - 28) / 28 <= 0.01
 
     # technology emissions
-    assert energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions.value == 3.7
+    tec_emissions = 9/0.9*0.185*2
+    assert abs(sum(energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions[t].value
+               for t in energyhub.model.set_t)-tec_emissions)/tec_emissions <= 0.01
 
     # import emissions
-    assert energyhub.model.node_blocks['onshore'].var_car_emissions.value == 4
+    import_emissions = 10*0.4
+    assert abs(sum(energyhub.model.node_blocks['onshore'].var_car_emissions[t].value
+               for t in energyhub.model.set_t)-import_emissions)/import_emissions <= 0.01
+
+    # total emissions
+    assert abs(tec_emissions + import_emissions + emissionsNETW - emissionsTOT)/ emissionsTOT <= 0.01
 
 
 def test_emission_balance2():

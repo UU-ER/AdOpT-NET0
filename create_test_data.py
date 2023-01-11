@@ -160,8 +160,8 @@ def create_data_emissionbalance1():
     topology['carriers'] = ['electricity', 'heat', 'gas']
     topology['nodes'] = ['onshore', 'offshore']
     topology['technologies'] = {}
-    topology['technologies']['onshore'] = ['battery', 'PV', 'Furnace_NG']
-    topology['technologies']['offshore'] = ['WT_OS_11000']
+    topology['technologies']['onshore'] = ['Furnace_NG']
+    topology['technologies']['offshore'] = []
 
     topology['networks'] = {}
     topology['networks']['electricityTest'] = {}
@@ -188,6 +188,8 @@ def create_data_emissionbalance1():
     # IMPORT
     gas_import = np.ones(len(topology['timesteps'])) * 10
     data.read_import_limit_data('onshore', 'gas', gas_import)
+    el_import = np.ones(len(topology['timesteps'])) * 100
+    data.read_import_limit_data('offshore', 'electricity', el_import)
 
     # EMISSIONS
     gas_imp_emis = np.ones(len(topology['timesteps'])) * 0.4
@@ -562,6 +564,44 @@ def create_data_addtechnology():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+def create_data_k_means():
+    """
+    Creates dataset for a model with two nodes.
+    PV @ node 2
+    electricity demand @ node 1
+    electricity network in between
+    should be infeasible
+    """
+    data_save_path = './test/test_data/k_means.p'
+    modeled_year = 2001
+
+    topology = {}
+    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
+    topology['timestep_length_h'] = 1
+    topology['carriers'] = ['electricity']
+    topology['nodes'] = ['test_node1']
+    topology['technologies'] = {}
+    topology['technologies']['test_node1'] = ['testSTOR', 'PV']
+
+    topology['networks'] = {}
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_onshore.txt')
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology['timesteps'])) * 1
+    data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
 create_data_test_data_handle()
 create_data_model1()
 create_data_model2()
@@ -573,3 +613,6 @@ create_data_technology_CONV()
 create_data_network()
 create_data_addtechnology()
 create_data_technologySTOR()
+create_data_k_means()
+
+

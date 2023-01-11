@@ -11,9 +11,23 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 
 
-from src.data_management.technology_performance_fitting import fit_piecewise_function
+from src.data_management.fit_technology_performance import fit_piecewise_function
 
 execute = 1
+if execute == 1:
+    data = dm.load_data_handle(r'./test/test_data/emissionbalance1.p')
+    data.technology_data['onshore']['Furnace_NG']['TechnologyPerf']['performance_function_type'] = 1
+    data.technology_data['onshore']['Furnace_NG']['fit']['heat']['alpha1'] = 0.9
+    data.network_data['electricityTest']['NetworkPerf']['emissionfactor'] = 0.2
+    data.network_data['electricityTest']['NetworkPerf']['loss2emissions'] = 1
+    energyhub = EnergyHub(data)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve_model()
+    results = energyhub.write_results()
+
+
+execute = 0
 # region: how to k-means cluster
 if execute == 1:
     # Load data handle from file
@@ -25,7 +39,8 @@ if execute == 1:
     topology['carriers'] = ['electricity']
     topology['nodes'] = ['test_node1']
     topology['technologies'] = {}
-    topology['technologies']['test_node1'] = ['PV', 'testSTOR']
+    # topology['technologies']['test_node1'] = ['PV', 'testSTOR']
+    topology['technologies']['test_node1'] = ['PV']
 
     topology['networks'] = {}
 
@@ -39,13 +54,21 @@ if execute == 1:
     electricity_demand = np.ones(len(topology['timesteps'])) * 1
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
+    # IMPORT
+    electricity_import = np.ones(len(topology['timesteps'])) * 10
+    data.read_import_limit_data('test_node1', 'electricity', electricity_import)
+
+    # IMPORT Prices
+    electricity_price = np.ones(len(topology['timesteps'])) * 1000
+    data.read_import_price_data('test_node1', 'electricity', electricity_price)
+
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data()
     data.read_network_data()
 
     # SOLVE WITH CLUSTERED DATA
     clustered_data = dm.ClusteredDataHandle()
-    nr_days_cluster = 40
+    nr_days_cluster = 5
     clustered_data.cluster_data(data, nr_days_cluster)
 
     energyhub_clustered = EnergyHub(clustered_data)

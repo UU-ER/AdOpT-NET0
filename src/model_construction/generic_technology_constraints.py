@@ -289,13 +289,14 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
         alpha1[c] = tec_fit[c]['alpha1']
         if performance_function_type == 2:
             alpha2[c] = tec_fit[c]['alpha2']
-        if 'min_part_load' in performance_data:
-            min_part_load = performance_data['min_part_load']
-        else:
-            min_part_load = 0
         if performance_function_type == 3:
             bp_x = tec_fit['bp_x']
             alpha2[c] = tec_fit[c]['alpha2']
+
+    if 'min_part_load' in performance_data:
+        min_part_load = performance_data['min_part_load']
+    else:
+        min_part_load = 0
 
     if performance_function_type >= 2:
         m_config.presolve.big_m_transformation_required = 1
@@ -461,13 +462,14 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
         alpha1[c] = tec_fit[c]['alpha1']
         if performance_function_type == 2:
             alpha2[c] = tec_fit[c]['alpha2']
-        if 'min_part_load' in tec_fit:
-            min_part_load = tec_fit['min_part_load']
-        else:
-            min_part_load = 0
         if performance_function_type == 3:
             bp_x = tec_fit['bp_x']
             alpha2[c] = tec_fit[c]['alpha2']
+
+    if 'min_part_load' in tec_fit:
+        min_part_load = tec_fit['min_part_load']
+    else:
+        min_part_load = 0
 
     if 'input_ratios' in performance_data:
         main_car = performance_data['main_input_carrier']
@@ -680,8 +682,8 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices):
     def init_storage_level(const, t, car):
         if t == 1: # couple first and last time interval
             return b_tec.var_storage_level[t, car] == \
-                  b_tec.var_storage_level[max(model.set_t), car] * (1 - b_tec.para_eta_lambda) - \
-                  b_tec.para_ambient_loss_factor[max(model.set_t)] * b_tec.var_storage_level[max(model.set_t), car] + \
+                  b_tec.var_storage_level[max(model.set_t_full), car] * (1 - b_tec.para_eta_lambda) - \
+                  b_tec.para_ambient_loss_factor[max(model.set_t_full)] * b_tec.var_storage_level[max(model.set_t_full), car] + \
                   b_tec.para_eta_in * b_tec.var_input_full_resolution[t, car] - \
                   1 / b_tec.para_eta_out * b_tec.var_output_full_resolution[t, car]
         else: # all other time intervalls

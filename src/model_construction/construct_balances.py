@@ -6,8 +6,6 @@ import numpy as np
 
 def add_energybalance(model):
     # TODO: formulate energybalance to include global balance
-    # Todo: CLUSTERING: Change balance to full temporal resolution
-
     """
     Calculates the energy balance for each node and carrier as:
 
@@ -106,8 +104,6 @@ def add_system_costs(model, occurrence_hour):
     - Calculates cost of all networks
     - Adds up cost of networks and node costs
     """
-    # Todo: CLUSTERING: Change balance to full temporal resolution
-
     # Delete previously initialized constraints
     if model.find_component('const_node_cost'):
         model.del_component(model.const_node_cost)
@@ -152,7 +148,7 @@ def add_system_costs(model, occurrence_hour):
                                  for t in model.set_t)
         netw_OPEX_fixed = sum(model.network_block[netw].var_OPEX_fixed
                          for netw in model.set_networks)
-        return sum(model.network_block[netw].var_cost for netw in model.set_networks) == \
+        return netw_CAPEX + netw_OPEX_variable + netw_OPEX_fixed == \
                model.var_netw_cost
     model.const_netw_cost = Constraint(rule=init_netw_cost)
 
