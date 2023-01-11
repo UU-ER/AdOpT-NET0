@@ -128,7 +128,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
                                bounds=(0, b_tec.para_output_max), units=u.MW)
 
         # Emissions
-        b_tec.var_tec_emissions = Var(within=NonNegativeReals, units=u.t)
+        b_tec.var_tec_emissions_pos = Var(within=NonNegativeReals, units=u.t)
         b_tec.var_tec_emissions_neg = Var(within=NonNegativeReals, units=u.t)
 
         # Size
@@ -167,19 +167,19 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         # Emissions
         if tec_type == 'RES':
             # Set emissions to zero
-            b_tec.const_tec_emissions = Constraint(expr=b_tec.var_tec_emissions == 0)
+            b_tec.const_tec_emissions_pos = Constraint(expr=b_tec.var_tec_emissions_pos == 0)
             b_tec.const_tec_emissions_neg = Constraint(expr=b_tec.var_tec_emissions_neg == 0)
         else:
             # Calculate emissions from emission factor
-            def init_tec_emissions(const):
+            def init_tec_emissions_pos(const):
                 if tec_data['TechnologyPerf']['emission_factor'] >= 0:
                     return sum(b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']]
                                for t in model.set_t) \
                            * b_tec.para_tec_emissionfactor \
-                           == b_tec.var_tec_emissions
+                           == b_tec.var_tec_emissions_pos
                 else:
-                    return b_tec.var_tec_emissions == 0
-            b_tec.const_tec_emissions = Constraint(rule=init_tec_emissions)
+                    return b_tec.var_tec_emissions_pos == 0
+            b_tec.const_tec_emissions_pos = Constraint(rule=init_tec_emissions_pos)
 
             def init_tec_emissions_neg(const):
                 if tec_data['TechnologyPerf']['emission_factor'] < 0:

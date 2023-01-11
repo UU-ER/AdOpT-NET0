@@ -92,7 +92,7 @@ class EnergyHub:
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
         # Global Emission variables
-        self.model.var_emissions_tot = Var()
+        self.model.var_emissions_pos = Var()
         self.model.var_emissions_neg = Var()
         self.model.var_emissions_net = Var()
 
@@ -124,20 +124,20 @@ class EnergyHub:
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        elif objective == 'emissions':
-            def init_emission_objective(obj):
-                return self.model.var_emissions_tot
-            self.model.objective = Objective(rule=init_emission_objective, sense=minimize)
+        elif objective == 'emissions_pos':
+            def init_emission_pos_objective(obj):
+                return self.model.var_emissions_pos
+            self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
         elif objective == 'emissions_net':
             def init_emission_net_objective(obj):
                 return self.model.var_emissions_net
             self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
         elif objective == 'emissions_minC':
             def init_emission_minC_objective(obj):
-                return self.model.var_emissions_tot
+                return self.model.var_emissions_pos
             self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
-            emission_limit = self.model.var_emissions_tot.value
-            self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_tot <= emission_limit)
+            emission_limit = self.model.var_emissions_pos.value
+            self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)

@@ -144,7 +144,7 @@ def test_emission_balance1():
     assert energyhub.solution.solver.termination_condition == 'optimal'
 
     #total emissions
-    emissionsTOT = energyhub.model.var_emissions_tot.value
+    emissionsTOT = energyhub.model.var_emissions_pos.value
     emissionsNET = energyhub.model.var_emissions_net.value
     assert emissionsTOT == emissionsNET
     assert round(emissionsTOT) == 64
@@ -164,10 +164,10 @@ def test_emission_balance1():
     assert round(emissionsNETW) == round(emissionsFlowNETW + emissionsLossNETW)
 
     # technology emissions
-    assert energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions.value == 3.7
+    assert energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions_pos.value == 3.7
 
     # import emissions
-    assert energyhub.model.node_blocks['onshore'].var_car_emissions.value == 4
+    assert energyhub.model.node_blocks['onshore'].var_car_emissions_pos.value == 4
 
 
 def test_emission_balance2():

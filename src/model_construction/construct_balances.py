@@ -45,8 +45,8 @@ def add_emissionbalance(model):
 
     """
     # Delete previously initialized constraints
-    if model.find_component('const_emissions_tot'):
-        model.del_component(model.const_emissions_tot)
+    if model.find_component('const_emissions_pos'):
+        model.del_component(model.const_emissions_pos)
         model.del_component(model.const_emissions_net)
         model.del_component(model.const_emissions_neg)
 
@@ -55,15 +55,15 @@ def add_emissionbalance(model):
     # model.const_emissionbalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_emissionbalance)
 
     # calculate total emissions from technologies, networks and importing/exporting carriers
-    def init_emissions_tot(const):
+    def init_emissions_pos(const):
         return sum(
-                sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions
+            sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos
                     for tec in model.node_blocks[node].set_tecsAtNode) + \
-                model.node_blocks[node].var_car_emissions + \
-                sum(model.network_block[netw].var_netw_emissions for netw in model.set_networks)
-                for node in model.set_nodes) == \
-                model.var_emissions_tot
-    model.const_emissions_tot = Constraint(rule=init_emissions_tot)
+            model.node_blocks[node].var_car_emissions_pos + \
+            sum(model.network_block[netw].var_netw_emissions for netw in model.set_networks)
+            for node in model.set_nodes) == \
+                model.var_emissions_pos
+    model.const_emissions_pos = Constraint(rule=init_emissions_pos)
 
     # calculate negative emissions from technologies and import/export
     def init_emissions_neg(const):
@@ -75,7 +75,7 @@ def add_emissionbalance(model):
                model.var_emissions_neg
     model.const_emissions_neg = Constraint(rule=init_emissions_neg)
 
-    model.const_emissions_net = Constraint(expr=model.var_emissions_tot - model.var_emissions_neg == \
+    model.const_emissions_net = Constraint(expr=model.var_emissions_pos - model.var_emissions_neg == \
                                                 model.var_emissions_net)
 
 
