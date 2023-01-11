@@ -189,7 +189,7 @@ def test_emission_balance2():
     emissions1 = energyhub.model.var_emissions_net.value
 
     # Emission Optimization
-    energyhub.solve_model(objective='emissions')
+    energyhub.solve_model(objective='emissions_pos')
     cost2 = energyhub.model.var_total_cost.value
     emissions2 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == 'optimal'
