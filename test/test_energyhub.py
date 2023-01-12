@@ -150,7 +150,7 @@ def test_emission_balance1():
     assert round(emissionsTOT) == 64
 
     #network emissions
-    emissionsNETW = energyhub.model.network_block['electricityTest'].var_netw_emissions.value
+    emissionsNETW = energyhub.model.network_block['electricityTest'].var_netw_emissions_pos.value
     emissionsFlowNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore','offshore')].var_flow[t].value
                    for t in energyhub.model.set_t) + \
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_flow[t].value

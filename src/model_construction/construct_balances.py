@@ -60,7 +60,7 @@ def add_emissionbalance(model):
             sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos
                     for tec in model.node_blocks[node].set_tecsAtNode) + \
             model.node_blocks[node].var_car_emissions_pos + \
-            sum(model.network_block[netw].var_netw_emissions for netw in model.set_networks)
+            sum(model.network_block[netw].var_netw_emissions_pos for netw in model.set_networks)
             for node in model.set_nodes) == \
                 model.var_emissions_pos
     model.const_emissions_pos = Constraint(rule=init_emissions_pos)
