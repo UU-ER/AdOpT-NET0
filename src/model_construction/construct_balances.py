@@ -48,8 +48,6 @@ def add_emissionbalance(model, occurrence_hour):
     Calculates the total and the net CO_2 balance.
 
     """
-    # Todo: CLUSTERING: Change balance to full temporal resolution
-
     # Delete previously initialized constraints
     if model.find_component('const_emissions_tot'):
         model.del_component(model.const_emissions_tot)

@@ -123,13 +123,11 @@ def add_nodes(model, data):
         b_node.var_import_emissions_neg = Var(model.set_t, model.set_carriers, units=u.t)
         b_node.var_export_emissions = Var(model.set_t, model.set_carriers, units=u.t)
         b_node.var_export_emissions_neg = Var(model.set_t, model.set_carriers, units=u.t)
-        # Todo: CLUSTERING: Change all emissions to indexed variables
         b_node.var_car_emissions = Var(model.set_t, within=NonNegativeReals, units=u.t)
         b_node.var_car_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
 
         # CONSTRAINTS
-        #Emission constraints
-        # Todo: CLUSTERING: Change all emissions to indexed variables
+        # Emission constraints
         def init_import_emissions(const, t, car):
             if data.node_data[nodename]['import_emissionfactors'][car][t - 1] >= 0:
                 return b_node.var_import_flow[t, car] * b_node.para_import_emissionfactors[t, car] \
