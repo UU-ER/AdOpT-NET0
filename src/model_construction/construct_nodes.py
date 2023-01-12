@@ -164,7 +164,7 @@ def add_nodes(model, data):
                                                        rule=init_export_emissions_neg)
 
         def init_car_emissions_pos(const, t):
-            return sum(b_node.var_car_emissions_pos[t, car] + b_node.var_export_emissions[t, car]
+            return sum(b_node.var_import_emissions_pos[t, car] + b_node.var_export_emissions_pos[t, car]
                     for car in model.set_carriers) \
                    == b_node.var_car_emissions_pos[t]
         b_node.const_car_emissions_pos = Constraint(model.set_t, rule=init_car_emissions_pos)
