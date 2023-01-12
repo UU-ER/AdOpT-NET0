@@ -225,6 +225,12 @@ def add_networks(model, data):
             b_netw.para_receive_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive2,
                                             units=u.dimensionless)
 
+        # Network emissions
+        b_netw.para_loss2emissions = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['loss2emissions'],
+                                     units=u.t/u.dimensionless)
+        b_netw.para_emissionfactor = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['emissionfactor'],
+                                           units=u.t / u.MWh)
+
         # endregion
 
         # region SETS
@@ -273,6 +279,9 @@ def add_networks(model, data):
         b_netw.var_OPEX_variable = Var(units=u.EUR)
         b_netw.var_OPEX_fixed = Var(units=u.EUR)
         b_netw.var_cost = Var(units=u.EUR)
+
+        # Emissions
+        b_netw.var_netw_emissions_pos = Var(units=u.t)
         # endregion
 
         # region Establish each arc as a block with
@@ -446,6 +455,16 @@ def add_networks(model, data):
             return b_netw.var_outflow[t, car, node] == sum(b_netw.arc_block[node, from_node].var_flow[t] \
                                                       for from_node in b_netw.set_receives_from[node])
         b_netw.const_outflow = Constraint(model.set_t, b_netw.set_netw_carrier, model.set_nodes, rule=init_outflow)
+
+        # Network emissions as sum over inflow
+        #TODO: add loss to emissions
+        def init_netw_emissions(const):
+            return sum(sum(b_netw.arc_block[arc].var_flow[t] for t in model.set_t) for arc in b_netw.set_arcs) * \
+                   b_netw.para_emissionfactor + \
+                   sum(sum(b_netw.arc_block[arc].var_losses[t] for t in model.set_t) for arc in b_netw.set_arcs) * \
+                   b_netw.para_loss2emissions \
+                   == b_netw.var_netw_emissions_pos
+        b_netw.const_netw_emissions = Constraint(rule=init_netw_emissions)
 
         # Establish energy consumption for each node and this network
         def init_network_consumption(const, t, car, node):

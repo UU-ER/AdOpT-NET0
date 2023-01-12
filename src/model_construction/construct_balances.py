@@ -39,6 +39,48 @@ def add_energybalance(model):
 
     return model
 
+def add_emissionbalance(model):
+    """
+    Calculates the total and the net CO_2 balance.
+
+    """
+    # Delete previously initialized constraints
+    if model.find_component('const_emissions_pos'):
+        model.del_component(model.const_emissions_pos)
+        model.del_component(model.const_emissions_net)
+        model.del_component(model.const_emissions_neg)
+
+    # TODO: add unused CO2 to emissions
+    # def init_emissionbalance(const, t, car, node):  # emissionbalance at each node
+    # model.const_emissionbalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_emissionbalance)
+
+    # calculate total emissions from technologies, networks and importing/exporting carriers
+    def init_emissions_pos(const):
+        return sum(
+            sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos
+                    for tec in model.node_blocks[node].set_tecsAtNode) + \
+            model.node_blocks[node].var_car_emissions_pos + \
+            sum(model.network_block[netw].var_netw_emissions_pos for netw in model.set_networks)
+            for node in model.set_nodes) == \
+                model.var_emissions_pos
+    model.const_emissions_pos = Constraint(rule=init_emissions_pos)
+
+    # calculate negative emissions from technologies and import/export
+    def init_emissions_neg(const):
+        return sum(
+                sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg
+                       for tec in model.node_blocks[node].set_tecsAtNode) + \
+                model.node_blocks[node].var_car_emissions_neg
+                for node in model.set_nodes) == \
+               model.var_emissions_neg
+    model.const_emissions_neg = Constraint(rule=init_emissions_neg)
+
+    model.const_emissions_net = Constraint(expr=model.var_emissions_pos - model.var_emissions_neg == \
+                                                model.var_emissions_net)
+
+
+    return model
+
 def add_system_costs(model):
     """
     Calculates total system costs in three steps.

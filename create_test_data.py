@@ -6,10 +6,9 @@ import sys
 # REMOVE THIS
 import pytest
 import src.data_management as dm
-from src.energyhub import energyhub as ehub
+from src.energyhub import EnergyHub as ehub
 from pyomo.environ import units as u
 from pyomo.environ import *
-import pandas as pd
 
 
 def create_data_test_data_handle():
@@ -96,7 +95,6 @@ def create_data_model1():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-
 def create_data_model2():
     """
     Creates dataset for a model with two nodes.
@@ -144,6 +142,110 @@ def create_data_model2():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+def create_data_emissionbalance1():
+    """
+    Creates dataset for a model with two nodes.
+    PV & furnace @ node 1
+    electricity & heat demand @ node 1
+    offshore wind @ node 2
+    electricity network in between
+    """
+    data_save_path = './test/test_data/emissionbalance1.p'
+    modeled_year = 2001
+
+    topology = {}
+    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 01:00', freq='1h')
+
+    topology['timestep_length_h'] = 1
+    topology['carriers'] = ['electricity', 'heat', 'gas']
+    topology['nodes'] = ['onshore', 'offshore']
+    topology['technologies'] = {}
+    topology['technologies']['onshore'] = ['battery', 'PV', 'Furnace_NG']
+    topology['technologies']['offshore'] = ['WT_OS_11000']
+
+    topology['networks'] = {}
+    topology['networks']['electricityTest'] = {}
+    network_data = dm.create_empty_network_data(topology['nodes'])
+    network_data['distance'].at['onshore', 'offshore'] = 100
+    network_data['distance'].at['offshore', 'onshore'] = 100
+    network_data['connection'].at['onshore', 'offshore'] = 1
+    network_data['connection'].at['offshore', 'onshore'] = 1
+    topology['networks']['electricityTest'] = network_data
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('onshore', r'./test/test_data/climate_data_test.p')
+    data.read_climate_data_from_file('offshore', r'./test/test_data/climate_data_test.p')
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology['timesteps'])) * 10
+    data.read_demand_data('onshore', 'electricity', electricity_demand)
+    heat_demand = np.ones(len(topology['timesteps'])) * 9
+    data.read_demand_data('onshore', 'heat', heat_demand)
+
+    # IMPORT
+    gas_import = np.ones(len(topology['timesteps'])) * 10
+    data.read_import_limit_data('onshore', 'gas', gas_import)
+
+    # EMISSIONS
+    gas_imp_emis = np.ones(len(topology['timesteps'])) * 0.4
+    gas_imp_emis[1] = 0
+    data.read_import_emissionfactor_data('onshore', 'gas', gas_imp_emis)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
+def create_data_emissionbalance2():
+    """
+    Creates dataset for a model with two nodes.
+    PV & furnace @ node 1
+    electricity demand @ node 1
+    """
+    data_save_path = './test/test_data/emissionbalance2.p'
+    modeled_year = 2001
+
+    topology = {}
+    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
+                                          end=str(modeled_year) + '-01-10 01:00', freq='1h')
+
+    topology['timestep_length_h'] = 1
+    topology['carriers'] = ['electricity', 'heat', 'gas', 'hydrogen']
+    topology['nodes'] = ['test_node1']
+    topology['technologies'] = {}
+    topology['technologies']['test_node1'] = ['battery', 'PV', 'testCONV1_1']
+
+    topology['networks'] = {}
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology['timesteps'])) * 10
+    data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+    # IMPORT
+    gas_import = np.ones(len(topology['timesteps'])) * 100
+    data.read_import_limit_data('test_node1', 'gas', gas_import)
+
+    # EMISSIONS
+    gas_imp_emis = np.ones(len(topology['timesteps'])) * 0
+    data.read_import_emissionfactor_data('test_node1', 'gas', gas_imp_emis)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
 
 def create_data_technology_type1_PV():
     """
@@ -192,7 +294,6 @@ def create_data_technology_type1_PV():
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
-
 
 def create_data_technology_type1_WT():
     """
@@ -464,6 +565,8 @@ def create_data_addtechnology():
 create_data_test_data_handle()
 create_data_model1()
 create_data_model2()
+create_data_emissionbalance1()
+create_data_emissionbalance2()
 create_data_technology_type1_PV()
 create_data_technology_type1_WT()
 create_data_technology_CONV()

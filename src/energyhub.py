@@ -3,6 +3,7 @@ from pyomo.environ import units as u
 from pyomo.gdp import *
 
 import src.model_construction as mc
+import src.data_management as dm
 import pint
 import numpy as np
 import dill as pickle
@@ -11,7 +12,7 @@ import src.config_model as m_config
 import time
 
 
-class energyhub:
+class EnergyHub:
     r"""
     Class to construct and manipulate an energy system model.
 
@@ -86,11 +87,15 @@ class energyhub:
 
         print('Constructing Model...')
         start = time.time()
-        # Global Variables
-        self.model.var_emissions = Var()
+        # Global Cost Variables
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
+        # Global Emission variables
+        self.model.var_emissions_pos = Var()
+        self.model.var_emissions_neg = Var()
+        self.model.var_emissions_net = Var()
+
 
         # Model construction
         self.model = mc.add_networks(self.model, self.data)
@@ -101,7 +106,7 @@ class energyhub:
         Constructs the energy balance, emission balance and calculates costs
         """
         self.model = mc.add_energybalance(self.model)
-        # self.model = mc.add_emissionbalance(self.model)
+        self.model = mc.add_emissionbalance(self.model)
         self.model = mc.add_system_costs(self.model)
 
     def solve_model(self, objective = 'cost'):
@@ -119,8 +124,24 @@ class energyhub:
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        elif objective == 'emissions':
-            print('to be implemented')
+        elif objective == 'emissions_pos':
+            def init_emission_pos_objective(obj):
+                return self.model.var_emissions_pos
+            self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+        elif objective == 'emissions_net':
+            def init_emission_net_objective(obj):
+                return self.model.var_emissions_net
+            self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+        elif objective == 'emissions_minC':
+            def init_emission_minC_objective(obj):
+                return self.model.var_emissions_pos
+            self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
+            emission_limit = self.model.var_emissions_pos.value
+            self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
+            def init_cost_objective(obj):
+                return self.model.var_total_cost
+            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+
         elif objective == 'pareto':
             print('to be implemented')
 
@@ -190,9 +211,16 @@ class energyhub:
                     for to_node in connection[from_node].index:
                         if connection.at[from_node, to_node] == 1:
                             print('\t\t\t' + from_node  + '---' +  to_node)
-        # for node in self.model.set_nodes:
 
-    def write_results(self, directory):
+    def write_results(self):
+        """
+        Exports results to an instance of ResultsHandle to be further exported or viewed
+        """
+
+        results = dm.ResultsHandle()
+        results.read_results(self)
+
+        return results
         for node_name in self.model.set_nodes:
             # TODO: Add import/export here
             file_name = r'./' + directory + '/' + node_name + '.xlsx'

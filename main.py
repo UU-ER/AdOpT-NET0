@@ -1,4 +1,3 @@
-# Thanks to: ruoyu0088 (piecewise linear modeling)
 # TODO: Include hplib
 # TODO: Implement option for complete linearization
 # TODO: Implement time index for set_t
@@ -9,7 +8,7 @@ import src.data_management as dm
 from pyomo.environ import units as u
 import pandas as pd
 import numpy as np
-from src.energyhub import energyhub
+from src.energyhub import EnergyHub
 from pyomo.environ import *
 
 # Save Data File to file
@@ -19,13 +18,13 @@ data_save_path = r'.\user_data\data_handle_test'
 modeled_year = 2001
 
 topology = {}
-topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
+topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-04 23:00', freq='1h')
 
 topology['timestep_length_h'] = 1
-topology['carriers'] = ['electricity']
+topology['carriers'] = ['electricity', 'heat']
 topology['nodes'] = ['onshore', 'offshore']
 topology['technologies'] = {}
-topology['technologies']['onshore'] = ['battery', 'PV']
+topology['technologies']['onshore'] = ['battery', 'PV', 'Furnace_NG']
 topology['technologies']['offshore'] = []
 
 topology['networks'] = {}
@@ -56,9 +55,15 @@ else:
 # DEMAND
 electricity_demand = np.ones(len(topology['timesteps'])) * 10
 data.read_demand_data('onshore', 'electricity', electricity_demand)
+heat_demand = np.ones(len(topology['timesteps'])) * 10
+data.read_demand_data('onshore', 'heat', heat_demand)
+
+# IMPORT
+gas_import = np.ones(len(topology['timesteps'])) * 50
+data.read_import_limit_data('onshore', 'gas', gas_import)
 
 # PRINT DATA
-# data.pprint()
+data.pprint()
 
 # READ TECHNOLOGY AND NETWORK DATA
 data.read_technology_data()
@@ -69,7 +74,7 @@ data.read_network_data()
 # data.save(data_save_path)
 
 # # Read data
-energyhub = energyhub(data)
+energyhub = EnergyHub(data)
 
 # Construct equations
 energyhub.construct_model()
@@ -77,12 +82,33 @@ energyhub.construct_balances()
 
 # Solve model
 energyhub.solve_model()
+results = energyhub.write_results()
+results.write_excel(r'.\userData\results')
 
-# Add technology to model and solve again
-energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
-energyhub.construct_balances()
-energyhub.solve_model()
+# # Add technology to model and solve again
+# energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
+# energyhub.construct_balances()
+# energyhub.solve_model()
+#
+# # Write results
+# results = energyhub.write_results()
 
+print('done')
+# energyhub.model.display()
+#
+# # energyhub.model.pprint()
+# # # Save model
+# # print('Saving Model...')
+# # start = time.time()
+# # energyhub.save_model('./data/ehub_instances', 'test_non_transformed')
+# # print('Saving Model completed in ' + str(time.time()-start) + ' s')
+# #
+# Big-M transformation
+# print('Performing Big-M transformation...')
+# start = time.time()
+# xfrm = TransformationFactory('gdp.bigm')
+# xfrm.apply_to(energyhub.model)
+# print('Performing Big-M transformation completed in ' + str(time.time()-start) + ' s')
 # Display whole model
 # energyhub.model.pprint()
 

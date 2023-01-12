@@ -90,11 +90,17 @@ def add_nodes(model, data):
         b_node.para_export_limit = Param(model.set_t, model.set_carriers, rule=init_export_limit, units=u.MW)
 
         # Emission Factor
-        # TODO: import and export emissionfactor
-        def init_emission_factor(para, t, car):
+        def init_import_emissionfactor(para, t, car):
             if nodename in data.node_data:
-                return data.node_data[nodename]['emission_factors'][car][t - 1]
-        b_node.para_emission_factor = Param(model.set_t, model.set_carriers, rule=init_emission_factor, units=u.t / u.MW)
+                return data.node_data[nodename]['import_emissionfactors'][car][t - 1]
+        b_node.para_import_emissionfactors = Param(model.set_t, model.set_carriers,
+                                                   rule=init_import_emissionfactor, units=u.t / u.MWh)
+
+        def init_export_emissionfactor(para, t, car):
+            if nodename in data.node_data:
+                return data.node_data[nodename]['export_emissionfactors'][car][t - 1]
+        b_node.para_export_emissionfactors = Param(model.set_t, model.set_carriers,
+                                                   rule=init_export_emissionfactor, units=u.t / u.MWh)
 
         # DECISION VARIABLES
         # Interaction with network/system boundaries
@@ -106,9 +112,67 @@ def add_nodes(model, data):
             return (0, b_node.para_export_limit[t, car])
         b_node.var_export_flow = Var(model.set_t, model.set_carriers, bounds=init_export_bounds, units=u.MW)
 
+        b_node.var_import_emissions_pos = Var(model.set_t, model.set_carriers, units=u.MW)
+        b_node.var_import_emissions_neg = Var(model.set_t, model.set_carriers, units=u.MW)
+        b_node.var_export_emissions_pos = Var(model.set_t, model.set_carriers, units=u.MW)
+        b_node.var_export_emissions_neg = Var(model.set_t, model.set_carriers, units=u.MW)
+        b_node.var_car_emissions_pos = Var(within=NonNegativeReals, units=u.t)
+        b_node.var_car_emissions_neg = Var(within=NonNegativeReals, units=u.t)
+
         b_node.var_netw_inflow = Var(model.set_t, model.set_carriers, units=u.MW)
         b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MW)
         b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MW)
+
+        #Emission constraints
+        def init_import_emissions_pos(const, t, car):
+            if data.node_data[nodename]['import_emissionfactors'][car][t - 1] >= 0:
+                return b_node.var_import_flow[t, car] * b_node.para_import_emissionfactors[t, car] \
+                    == b_node.var_import_emissions_pos[t, car]
+            else:
+                return 0 == b_node.var_import_emissions_pos[t, car]
+        b_node.const_import_emissions_pos = Constraint(model.set_t, model.set_carriers,
+                                                       rule=init_import_emissions_pos)
+
+        def init_export_emissions_pos(const, t, car):
+            if data.node_data[nodename]['export_emissionfactors'][car][t - 1] >= 0:
+                return b_node.var_export_flow[t, car] * b_node.para_export_emissionfactors[t, car] \
+                    == b_node.var_export_emissions_pos[t, car]
+            else:
+                return 0 == b_node.var_export_emissions_pos[t, car]
+        b_node.const_export_emissions_pos = Constraint(model.set_t, model.set_carriers, rule=init_export_emissions_pos)
+
+        def init_import_emissions_neg(const, t, car):
+            if data.node_data[nodename]['import_emissionfactors'][car][t - 1] < 0:
+                return b_node.var_import_flow[t, car] * (-b_node.para_import_emissionfactors[t, car]) \
+                    == b_node.var_import_emissions_neg[t, car]
+            else:
+                return 0 == b_node.var_import_emissions_neg[t, car]
+        b_node.const_import_emissions_neg = Constraint(model.set_t, model.set_carriers,
+                                                       rule=init_import_emissions_neg)
+
+        def init_export_emissions_neg(const, t, car):
+            if data.node_data[nodename]['export_emissionfactors'][car][t - 1] < 0:
+                return b_node.var_export_flow[t, car] * (-b_node.para_export_emissionfactors[t, car]) \
+                    == b_node.var_export_emissions_neg[t, car]
+            else:
+                return 0 == b_node.var_export_emissions_neg[t, car]
+        b_node.const_export_emissions_neg = Constraint(model.set_t, model.set_carriers,
+                                                       rule=init_export_emissions_neg)
+
+        def init_car_emissions_pos(const):
+            return sum(
+                sum(b_node.var_import_emissions_pos[t, car] + b_node.var_export_emissions_pos[t, car]
+                    for t in model.set_t) for car in model.set_carriers) \
+                   == b_node.var_car_emissions_pos
+        b_node.const_car_emissions_pos = Constraint(rule=init_car_emissions_pos)
+
+        def init_car_emissions_neg(const):
+            return sum(
+                sum(b_node.var_import_emissions_neg[t, car] + b_node.var_export_emissions_neg[t, car]
+                    for t in model.set_t) for car in model.set_carriers) == \
+                   b_node.var_car_emissions_neg
+        b_node.const_car_emissions_neg = Constraint(rule=init_car_emissions_neg)
+
 
          # Define network constraints
         def init_netw_inflow(const, t, car):
