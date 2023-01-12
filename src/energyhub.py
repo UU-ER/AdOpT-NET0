@@ -94,9 +94,8 @@ class EnergyHub:
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
-
-        # Global emission variables
-        self.model.var_emissions_tot = Var()
+        # Global Emission variables
+        self.model.var_emissions_pos = Var()
         self.model.var_emissions_neg = Var()
         self.model.var_emissions_net = Var()
 
@@ -113,7 +112,7 @@ class EnergyHub:
         Links all components with the constructing the energybalance (:func:`~add_energybalance`),
         the total cost (:func:`~add_system_costs`) and the emission balance (:func:`~add_emissionbalance`)
         """
-        print('Constructing Balances...')
+        print('Constructing balances...')
         start = time.time()
 
         self.model = mc.add_energybalance(self.model)
@@ -146,10 +145,23 @@ class EnergyHub:
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        elif objective == 'emissions':
-            def init_emission_objective(obj):
+        elif objective == 'emissions_pos':
+            def init_emission_pos_objective(obj):
+                return self.model.var_emissions_pos
+            self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+        elif objective == 'emissions_net':
+            def init_emission_net_objective(obj):
                 return self.model.var_emissions_net
-            self.model.objective = Objective(rule=init_emission_objective, sense=minimize)
+            self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+        elif objective == 'emissions_minC':
+            def init_emission_minC_objective(obj):
+                return self.model.var_emissions_pos
+            self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
+            emission_limit = self.model.var_emissions_pos.value
+            self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
+            def init_cost_objective(obj):
+                return self.model.var_total_cost
+            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
         elif objective == 'pareto':
             print('to be implemented')
 

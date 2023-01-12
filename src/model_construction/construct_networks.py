@@ -281,7 +281,7 @@ def add_networks(model, data):
         b_netw.var_OPEX_fixed = Var(units=u.EUR)
 
         # Emissions
-        b_netw.var_netw_emissions = Var(model.set_t, units=u.t)
+        b_netw.var_netw_emissions_pos = Var(model.set_t, units=u.t)
         # endregion
 
         # region Establish each arc as a block with
@@ -454,7 +454,7 @@ def add_networks(model, data):
                    b_netw.para_emissionfactor + \
                    sum(b_netw.arc_block[arc].var_losses[t] for arc in b_netw.set_arcs) * \
                    b_netw.para_loss2emissions \
-                   == b_netw.var_netw_emissions[t]
+                   == b_netw.var_netw_emissions_pos[t]
         b_netw.const_netw_emissions = Constraint(model.set_t, rule=init_netw_emissions)
 
         # Establish energy consumption for each node and this network

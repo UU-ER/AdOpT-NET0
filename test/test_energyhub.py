@@ -142,12 +142,12 @@ def test_emission_balance1():
     assert energyhub.solution.solver.termination_condition == 'optimal'
 
     #total emissions
-    emissionsTOT = energyhub.model.var_emissions_tot.value
+    emissionsTOT = energyhub.model.var_emissions_pos.value
     emissionsNET = energyhub.model.var_emissions_net.value
     assert emissionsTOT == emissionsNET
 
     #network emissions
-    emissionsNETW = sum(energyhub.model.network_block['electricityTest'].var_netw_emissions[t].value
+    emissionsNETW = sum(energyhub.model.network_block['electricityTest'].var_netw_emissions_pos[t].value
                         for t in energyhub.model.set_t)
     emissionsFlowNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore','offshore')].var_flow[t].value
                    for t in energyhub.model.set_t) + \
@@ -164,12 +164,12 @@ def test_emission_balance1():
 
     # technology emissions
     tec_emissions = 9/0.9*0.185*2
-    assert abs(sum(energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions[t].value
+    assert abs(sum(energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions_pos[t].value
                for t in energyhub.model.set_t)-tec_emissions)/tec_emissions <= 0.01
 
     # import emissions
     import_emissions = 10*0.4
-    assert abs(sum(energyhub.model.node_blocks['onshore'].var_car_emissions[t].value
+    assert abs(sum(energyhub.model.node_blocks['onshore'].var_car_emissions_pos[t].value
                for t in energyhub.model.set_t)-import_emissions)/import_emissions <= 0.01
 
     # total emissions
@@ -195,7 +195,7 @@ def test_emission_balance2():
     emissions1 = energyhub.model.var_emissions_net.value
 
     # Emission Optimization
-    energyhub.solve_model(objective='emissions')
+    energyhub.solve_model(objective='emissions_pos')
     cost2 = energyhub.model.var_total_cost.value
     emissions2 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == 'optimal'

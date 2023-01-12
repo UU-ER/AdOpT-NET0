@@ -13,6 +13,8 @@ def add_energybalance(model):
         outputFromTechnologies - inputToTechnologies + \\
         inflowFromNetwork - outflowToNetwork + \\
         imports - exports = demand
+
+
     """
 
     # Delete previously initialized constraints
@@ -37,7 +39,6 @@ def add_energybalance(model):
             netw_inflow - netw_outflow - netw_consumption + \
             import_flow - export_flow == \
             node_block.para_demand[t, car]
-
     model.const_energybalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_energybalance)
 
     return model
@@ -49,8 +50,8 @@ def add_emissionbalance(model, occurrence_hour):
 
     """
     # Delete previously initialized constraints
-    if model.find_component('const_emissions_tot'):
-        model.del_component(model.const_emissions_tot)
+    if model.find_component('const_emissions_pos'):
+        model.del_component(model.const_emissions_pos)
         model.del_component(model.const_emissions_net)
         model.del_component(model.const_emissions_neg)
 
@@ -60,20 +61,20 @@ def add_emissionbalance(model, occurrence_hour):
 
 
     # calculate total emissions from technologies, networks and importing/exporting carriers
-    def init_emissions_tot(const):
-        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions[t] *
+    def init_emissions_pos(const):
+        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t] *
                                         occurrence_hour[t - 1]
                                         for t in model.set_t)
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes)
-        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions[t] * occurrence_hour[t - 1]
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t] * occurrence_hour[t - 1]
                                 for t in model.set_t)
                             for node in model.set_nodes)
-        from_networks = sum(sum(model.network_block[netw].var_netw_emissions[t] * occurrence_hour[t - 1]
+        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t] * occurrence_hour[t - 1]
                                 for t in model.set_t)
                             for netw in model.set_networks)
-        return from_technologies + from_carriers + from_networks == model.var_emissions_tot
-    model.const_emissions_tot = Constraint(rule=init_emissions_tot)
+        return from_technologies + from_carriers + from_networks == model.var_emissions_pos
+    model.const_emissions_tot = Constraint(rule=init_emissions_pos)
 
     # calculate negative emissions from technologies and import/export
     def init_emissions_neg(const):
@@ -88,7 +89,7 @@ def add_emissionbalance(model, occurrence_hour):
         return from_technologies + from_carriers == model.var_emissions_neg
     model.const_emissions_neg = Constraint(rule=init_emissions_neg)
 
-    model.const_emissions_net = Constraint(expr=model.var_emissions_tot - model.var_emissions_neg == \
+    model.const_emissions_net = Constraint(expr=model.var_emissions_pos - model.var_emissions_neg == \
                                                 model.var_emissions_net)
 
     return model
