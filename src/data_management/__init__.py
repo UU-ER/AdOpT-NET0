@@ -4,3 +4,6 @@ from .import_data import *
 from .handle_optimization_results import *
 from .fit_technology_performance import *
 from .fit_network_performance import *
+from .utilities import *
+from .simplify_k_means import DataHandle_KMeans
+from .simplify_time_averaging import DataHandle_AveragedData

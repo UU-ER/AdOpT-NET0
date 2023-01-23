@@ -67,7 +67,7 @@ if execute == 1:
     data.read_network_data()
 
     # SOLVE WITH CLUSTERED DATA
-    clustered_data = dm.ClusteredDataHandle()
+    clustered_data = dm.DataHandle_KMeans()
     nr_days_cluster = 5
     clustered_data.cluster_data(data, nr_days_cluster)
 

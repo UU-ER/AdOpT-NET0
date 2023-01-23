@@ -55,7 +55,7 @@ class ResultsHandle:
         m = energyhub.model
 
         if m_config.presolve.clustered_data == 1:
-            occurrence_hour = energyhub.data.k_means_specs['factors']['factor'].to_numpy()
+            occurrence_hour = energyhub.data.specifications_time_resolution['factors']['factor'].to_numpy()
         else:
             occurrence_hour = np.ones(len(m.set_t))
 
@@ -95,7 +95,7 @@ class ResultsHandle:
 
         # Emissions
         net_emissions = m.var_emissions_net.value
-        positive_emissions = m.var_emissions_tot.value
+        positive_emissions = m.var_emissions_pos.value
         negative_emissions = m.var_emissions_neg.value
         from_technologies = sum(sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_tec_emissions[t].value *
                                         occurrence_hour[t - 1]

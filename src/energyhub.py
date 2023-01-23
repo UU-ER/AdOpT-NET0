@@ -68,9 +68,9 @@ class EnergyHub:
         self.model.set_nodes = Set(initialize=sets['nodes'])
         self.model.set_carriers = Set(initialize=sets['carriers'])
         self.model.set_t = RangeSet(1,len(sets['timesteps']))
-        if hasattr(self.data, 'k_means_specs'):
+        if hasattr(self.data, 'specifications_time_resolution'):
             # If yes, we are working with clustered data
-            self.model.set_t_full = RangeSet(1, len(self.data.k_means_specs['keys']['typical_day']))
+            self.model.set_t_full = RangeSet(1, len(self.data.specifications_time_resolution['keys']['typical_day']))
             m_config.presolve.clustered_data = 1
         else:
             self.model.set_t_full = RangeSet(1,len(sets['timesteps']))
@@ -118,7 +118,7 @@ class EnergyHub:
         self.model = mc.add_energybalance(self.model)
 
         if m_config.presolve.clustered_data == 1:
-            occurrence_hour = self.data.k_means_specs['factors']['factor'].to_numpy()
+            occurrence_hour = self.data.specifications_time_resolution['factors']['factor'].to_numpy()
         else:
             occurrence_hour = np.ones(len(self.model.set_t))
 
