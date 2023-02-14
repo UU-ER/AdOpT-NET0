@@ -142,30 +142,30 @@ class DataHandle:
 
     def read_export_limit_data(self, nodename, carrier, export_limit_data):
         """
-        Reads export price data of carrier to node
+        Reads export limit data of carrier to node
 
-        Note that prices for all carriers not specified is zero.
+        Note that limits for all carriers not specified is zero.
 
         :param str nodename: node name as specified in the topology
         :param str carrier: carrier name as specified in the topology
-        :param list price_data: list of price data for respective carrier. Needs to have the same length as number of \
+        :param list export_limit_data: list of export limit data for respective carrier. Needs to have the same length as number of \
         time steps.
-        :return: self at ``self.node_data[nodename]['export_prices'][carrier]``
+        :return: self at ``self.node_data[nodename]['export_limit'][carrier]``
         """
 
         self.node_data[nodename]['export_limit'][carrier] = export_limit_data
 
     def read_import_limit_data(self, nodename, carrier, import_limit_data):
         """
-        Reads export price data of carrier to node
+        Reads import limit data of carrier to node
 
-        Note that prices for all carriers not specified is zero.
+        Note that limits for all carriers not specified is zero.
 
         :param str nodename: node name as specified in the topology
         :param str carrier: carrier name as specified in the topology
-        :param list price_data: list of price data for respective carrier. Needs to have the same length as number of \
+        :param list import_limit_data: list of import limit data for respective carrier. Needs to have the same length as number of \
         time steps.
-        :return: self at ``self.node_data[nodename]['export_prices'][carrier]``
+        :return: self at ``self.node_data[nodename]['import_limit'][carrier]``
         """
 
         self.node_data[nodename]['import_limit'][carrier] = import_limit_data
