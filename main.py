@@ -55,7 +55,7 @@ else:
 # DEMAND
 electricity_demand = np.ones(len(topology['timesteps'])) * 10
 data.read_demand_data('onshore', 'electricity', electricity_demand)
-heat_demand = np.ones(len(topology['timesteps'])) * 140
+heat_demand = np.ones(len(topology['timesteps'])) * 10
 data.read_demand_data('onshore', 'heat', heat_demand)
 
 # IMPORT
