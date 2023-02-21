@@ -3,7 +3,7 @@
   "Economics": {
     "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 10,
+    "unit_CAPEX": 10,
     "piecewise_CAPEX_annual": {
       "bp_x": [
         0,
@@ -17,7 +17,9 @@
       ]
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0
+    "OPEX_fixed": 0,
+    "discount_rate": 0,
+    "lifetime": 1
   },
   "TechnologyPerf": {
     "tec_type": "CONV2",

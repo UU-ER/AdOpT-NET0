@@ -1,23 +1,24 @@
 {
-  "Name": "SMR",
   "Economics": {
-    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 117.45962477,
-    "piecewise_CAPEX_annual": {
+    "unit_CAPEX": -1000,
+    "piecewise_CAPEX": {
       "bp_x": [
         1,
         20,
         100000
       ],
       "bp_y": [
-        1.17812003646863E+6,
-        2.32570057049641E+6,
-        2.8207928889126863E+9
+        1.003E+7,
+        1.98E+7,
+        2.4015E+10
       ]
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.04
+    "OPEX_fixed": 0.04,
+    "discount_rate": 0.1,
+    "lifetime": 20
   },
   "TechnologyPerf": {
     "tec_type": "CONV2",

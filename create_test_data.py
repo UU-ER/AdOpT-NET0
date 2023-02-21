@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import sys
 
+
 # REMOVE THIS
 import pytest
 import src.data_management as dm
@@ -60,7 +61,7 @@ def create_data_model1():
     modeled_year = 2001
 
     topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
+    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-31 23:00', freq='1h')
     topology['timestep_length_h'] = 1
     topology['carriers'] = ['electricity']
     topology['nodes'] = ['test_node1', 'test_node2']
@@ -101,7 +102,7 @@ def create_data_model2():
     PV @ node 2
     electricity demand @ node 1
     electricity network in between
-    should be infeasible
+    should be feasible
     """
     data_save_path = './test/test_data/model2.p'
     modeled_year = 2001

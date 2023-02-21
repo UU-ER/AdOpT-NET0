@@ -12,3 +12,10 @@ def perform_disjunct_relaxation(component):
     m_config.presolve.big_m_transformation_required = 0
     print('Big-M Transformation completed in ' + str(time.time() - start) + ' s')
     return component
+
+def annualize(r, t):
+    if r==0:
+        annualization_factor = 1/t
+    else:
+        annualization_factor = r / (1 - (1 / (1 + r) ** t))
+    return annualization_factor
