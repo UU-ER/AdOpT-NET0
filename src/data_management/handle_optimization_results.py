@@ -169,14 +169,14 @@ class ResultsHandle:
                                                                             ])
                 node_data = m.node_blocks[node_name]
                 self.energybalance[car][node_name]['Technology_inputs'] = \
-                    [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
-                         for tec in node_data.set_tecsAtNode
-                         if car in node_data.tech_blocks_active[tec].set_output_carriers)
-                     for t in m.set_t]
-                self.energybalance[car][node_name]['Technology_outputs'] = \
                     [sum(node_data.tech_blocks_active[tec].var_input[t, car].value
                          for tec in node_data.set_tecsAtNode
                          if car in node_data.tech_blocks_active[tec].set_input_carriers)
+                     for t in m.set_t]
+                self.energybalance[car][node_name]['Technology_outputs'] = \
+                    [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
+                         for tec in node_data.set_tecsAtNode
+                         if car in node_data.tech_blocks_active[tec].set_output_carriers)
                      for t in m.set_t]
                 self.energybalance[car][node_name]['Network_inflow'] = \
                     [node_data.var_netw_inflow[t, car].value for t in m.set_t]

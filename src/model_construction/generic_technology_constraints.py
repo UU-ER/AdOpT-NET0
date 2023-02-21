@@ -592,27 +592,36 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices):
     Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
 
     **Parameter declarations:**
+
     - :math:`{\\eta}_{in}`: Charging efficiency
 
     - :math:`{\\eta}_{out}`: Discharging efficiency
 
-    - :math:`{\\lambda}`: Self-Discharging coefficient (independent of environment)
+    - :math:`{\\lambda_1}`: Self-Discharging coefficient (independent of environment)
 
-    - :math:`ambientLossFactor`: Self-Discharging coefficient (dependent on environment)
+    - :math:`{\\lambda_2(\\Theta)}`: Self-Discharging coefficient (dependent on environment)
 
     - :math:`Input_{max}`: Maximal charging capacity in one time-slice
 
     - :math:`Output_{max}`: Maximal discharging capacity in one time-slice
 
     **Variable declarations:**
+
     - Storage level in :math:`t`: :math:`E_t`
 
+    - Charging in in :math:`t`: :math:`Input_{t}`
+
+    - Discharging in in :math:`t`: :math:`Output_{t}`
+
     **Constraint declarations:**
+
     - Maximal charging and discharging:
 
       .. math::
-        Input_{t} \leq Input_{max} \\
-        Output_{t} \leq Output_{max} \\
+        Input_{t} \leq Input_{max}
+
+      .. math::
+        Output_{t} \leq Output_{max}
 
     - Size constraint:
 
@@ -622,7 +631,7 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices):
     - Storage level calculation:
 
       .. math::
-        E_{t} = E_{t-1} * (1 - \\lambda) - ambientLossFactor * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
+        E_{t} = E_{t-1} * (1 - \\lambda_1) - \\lambda_2(\\Theta) * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
 
     - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
       step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
