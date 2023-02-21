@@ -1,9 +1,9 @@
 # TODO: Include hplib
 # TODO: Implement option for complete linearization
-# TODO: Implement time index for set_t
 # TODO: Implement length of time step
-# TODO: Implement design days (retain extremes)
 # TODO: Implement Lukas Algorithm
+# TODO: Implement all technologies
+# TODO: Complete ERA5 weather import
 import src.data_management as dm
 from pyomo.environ import units as u
 import pandas as pd
@@ -95,22 +95,6 @@ results.write_excel(r'.\userData\results')
 
 print('done')
 # energyhub.model.display()
-#
-# # energyhub.model.pprint()
-# # # Save model
-# # print('Saving Model...')
-# # start = time.time()
-# # energyhub.save_model('./data/ehub_instances', 'test_non_transformed')
-# # print('Saving Model completed in ' + str(time.time()-start) + ' s')
-# #
-# Big-M transformation
-# print('Performing Big-M transformation...')
-# start = time.time()
-# xfrm = TransformationFactory('gdp.bigm')
-# xfrm.apply_to(energyhub.model)
-# print('Performing Big-M transformation completed in ' + str(time.time()-start) + ' s')
-# Display whole model
-# energyhub.model.pprint()
 
 # Save model
 # print('Saving Model...')

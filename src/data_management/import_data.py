@@ -10,6 +10,7 @@ def roundPartial (value, resolution):
     Rounds number to decimals
 
     Rounds to grid level of JRC dataset
+
     :param float value: value to round
     :param float resolution: resolution of rounding
     :return float rounded value: result value

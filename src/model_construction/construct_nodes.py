@@ -1,6 +1,7 @@
+import src.model_construction as mc
+
 from pyomo.environ import *
 from pyomo.environ import units as u
-from src.model_construction.construct_technology import add_technologies
 
 def add_nodes(model, data):
     r"""
@@ -63,7 +64,8 @@ def add_nodes(model, data):
         def init_demand(para, t, car):
             if nodename in data.node_data:
                 return data.node_data[nodename]['demand'][car][t - 1]
-        b_node.para_demand = Param(model.set_t, model.set_carriers, rule=init_demand, units=u.MW)
+        b_node.para_demand = Param(model.set_t, model.set_carriers,
+                                   rule=init_demand, units=u.MWh)
 
         # Import Prices
         def init_import_price(para, t, car):
@@ -81,13 +83,13 @@ def add_nodes(model, data):
         def init_import_limit(para, t, car):
             if nodename in data.node_data:
                 return data.node_data[nodename]['import_limit'][car][t - 1]
-        b_node.para_import_limit = Param(model.set_t, model.set_carriers, rule=init_import_limit, units=u.MW)
+        b_node.para_import_limit = Param(model.set_t, model.set_carriers, rule=init_import_limit, units=u.MWh)
 
         # Export Limit
         def init_export_limit(para, t, car):
             if nodename in data.node_data:
                 return data.node_data[nodename]['export_limit'][car][t - 1]
-        b_node.para_export_limit = Param(model.set_t, model.set_carriers, rule=init_export_limit, units=u.MW)
+        b_node.para_export_limit = Param(model.set_t, model.set_carriers, rule=init_export_limit, units=u.MWh)
 
         # Emission Factor
         def init_import_emissionfactor(para, t, car):
@@ -106,24 +108,26 @@ def add_nodes(model, data):
         # Interaction with network/system boundaries
         def init_import_bounds(var, t, car):
             return (0, b_node.para_import_limit[t, car])
-        b_node.var_import_flow = Var(model.set_t, model.set_carriers, bounds=init_import_bounds, units=u.MW)
+        b_node.var_import_flow = Var(model.set_t, model.set_carriers, bounds=init_import_bounds, units=u.MWh)
 
         def init_export_bounds(var, t, car):
             return (0, b_node.para_export_limit[t, car])
-        b_node.var_export_flow = Var(model.set_t, model.set_carriers, bounds=init_export_bounds, units=u.MW)
+        b_node.var_export_flow = Var(model.set_t, model.set_carriers, bounds=init_export_bounds, units=u.MWh)
 
-        b_node.var_import_emissions_pos = Var(model.set_t, model.set_carriers, units=u.MW)
-        b_node.var_import_emissions_neg = Var(model.set_t, model.set_carriers, units=u.MW)
-        b_node.var_export_emissions_pos = Var(model.set_t, model.set_carriers, units=u.MW)
-        b_node.var_export_emissions_neg = Var(model.set_t, model.set_carriers, units=u.MW)
-        b_node.var_car_emissions_pos = Var(within=NonNegativeReals, units=u.t)
-        b_node.var_car_emissions_neg = Var(within=NonNegativeReals, units=u.t)
+        b_node.var_netw_inflow = Var(model.set_t, model.set_carriers, units=u.MWh)
+        b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MWh)
+        b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MWh)
 
-        b_node.var_netw_inflow = Var(model.set_t, model.set_carriers, units=u.MW)
-        b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MW)
-        b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MW)
+        # Emissions
+        b_node.var_import_emissions_pos = Var(model.set_t, model.set_carriers, units=u.t)
+        b_node.var_import_emissions_neg = Var(model.set_t, model.set_carriers, units=u.t)
+        b_node.var_export_emissions_pos = Var(model.set_t, model.set_carriers, units=u.t)
+        b_node.var_export_emissions_neg = Var(model.set_t, model.set_carriers, units=u.t)
+        b_node.var_car_emissions_pos = Var(model.set_t, within=NonNegativeReals, units=u.t)
+        b_node.var_car_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
 
-        #Emission constraints
+        # CONSTRAINTS
+        # Emission constraints
         def init_import_emissions_pos(const, t, car):
             if data.node_data[nodename]['import_emissionfactors'][car][t - 1] >= 0:
                 return b_node.var_import_flow[t, car] * b_node.para_import_emissionfactors[t, car] \
@@ -159,20 +163,17 @@ def add_nodes(model, data):
         b_node.const_export_emissions_neg = Constraint(model.set_t, model.set_carriers,
                                                        rule=init_export_emissions_neg)
 
-        def init_car_emissions_pos(const):
-            return sum(
-                sum(b_node.var_import_emissions_pos[t, car] + b_node.var_export_emissions_pos[t, car]
-                    for t in model.set_t) for car in model.set_carriers) \
-                   == b_node.var_car_emissions_pos
-        b_node.const_car_emissions_pos = Constraint(rule=init_car_emissions_pos)
+        def init_car_emissions_pos(const, t):
+            return sum(b_node.var_import_emissions_pos[t, car] + b_node.var_export_emissions_pos[t, car]
+                    for car in model.set_carriers) \
+                   == b_node.var_car_emissions_pos[t]
+        b_node.const_car_emissions_pos = Constraint(model.set_t, rule=init_car_emissions_pos)
 
-        def init_car_emissions_neg(const):
-            return sum(
-                sum(b_node.var_import_emissions_neg[t, car] + b_node.var_export_emissions_neg[t, car]
-                    for t in model.set_t) for car in model.set_carriers) == \
-                   b_node.var_car_emissions_neg
-        b_node.const_car_emissions_neg = Constraint(rule=init_car_emissions_neg)
-
+        def init_car_emissions_neg(const, t):
+            return sum(b_node.var_import_emissions_neg[t, car] + b_node.var_export_emissions_neg[t, car]
+                    for car in model.set_carriers) == \
+                   b_node.var_car_emissions_neg[t]
+        b_node.const_car_emissions_neg = Constraint(model.set_t, rule=init_car_emissions_neg)
 
          # Define network constraints
         def init_netw_inflow(const, t, car):
@@ -195,7 +196,7 @@ def add_nodes(model, data):
 
         # BLOCKS
         # Add technologies as blocks
-        b_node = add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node)
+        b_node = mc.add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node)
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 

@@ -1,8 +1,13 @@
-import json
 import src.model_construction as mc
 import src.data_management as dm
+
+import json
 import pickle
 import pandas as pd
+from sklearn.cluster import KMeans
+import copy
+import numpy as np
+
 
 
 class DataHandle:
@@ -24,13 +29,12 @@ class DataHandle:
         :param dict topology: dictionary with time indices, networks, technologies, nodes. An empty dict can be created \
         by using the function :func:`~src.data_management.create_templates.create_empty_topology`
         """
-        self.topology = topology
         self.node_data = {}
         self.technology_data = {}
         self.network_data = {}
 
-        # init. demand, prices, emission factors = 0 for all timesteps, carriers and nodes
-
+        self.topology = topology
+        # Initialize demand, prices, emission factors = 0 for all timesteps, carriers and nodes
         for nodename in self.topology['nodes']:
             self.node_data[nodename] = {}
             self.node_data[nodename]['demand'] = pd.DataFrame(index=self.topology['timesteps'])
@@ -49,6 +53,7 @@ class DataHandle:
                 self.node_data[nodename]['export_prices'][carrier] = 0
                 self.node_data[nodename]['export_limit'][carrier] = 0
                 self.node_data[nodename]['export_emissionfactors'][carrier] = 0
+
 
     def read_climate_data_from_api(self, nodename, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=0):
         """
@@ -222,10 +227,10 @@ class DataHandle:
                 # Fit performance function
                 if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
                         (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
-                    technology_data = mc.fit_tec_performance(technology_data, tec=tec,
+                    technology_data = dm.fit_tec_performance(technology_data, tec=tec,
                                                           climate_data=self.node_data[nodename]['climate_data'])
                 else:
-                    technology_data = mc.fit_tec_performance(technology_data)
+                    technology_data = dm.fit_tec_performance(technology_data)
 
                 self.technology_data[nodename][tec] = technology_data
 
@@ -243,10 +248,10 @@ class DataHandle:
             # Fit performance function
             if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
                     (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
-                technology_data = mc.fit_tec_performance(technology_data, tec=tec,
+                technology_data = dm.fit_tec_performance(technology_data, tec=tec,
                                                          climate_data=self.node_data[nodename]['climate_data'])
             else:
-                technology_data = mc.fit_tec_performance(technology_data)
+                technology_data = dm.fit_tec_performance(technology_data)
 
             self.technology_data[nodename][tec] = technology_data
 
@@ -265,7 +270,7 @@ class DataHandle:
                 network_data = json.load(json_file)
             network_data['distance'] = self.topology['networks'][netw]['distance']
             network_data['connection'] = self.topology['networks'][netw]['connection']
-            network_data = mc.fit_netw_performance(network_data)
+            network_data = dm.fit_netw_performance(network_data)
             self.network_data[netw] = network_data
 
     def pprint(self):
@@ -298,6 +303,7 @@ class DataHandle:
         with open(path, 'wb') as handle:
             pickle.dump(self, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+
 def load_data_handle(path):
     """
     Loads instance of DataHandle from path.
@@ -309,3 +315,155 @@ def load_data_handle(path):
         data = pickle.load(handle)
 
     return data
+
+
+class ClusteredDataHandle(DataHandle):
+    """
+    DataHandle sub-class for handling k-means clustered data
+
+    This class is used to generate time series of typical days based on a full resolution of input data.
+    """
+    def __init__(self):
+        """
+        Constructor
+        """
+        self.topology = {}
+        self.node_data = {}
+        self.technology_data = {}
+        self.network_data = {}
+        self.k_means_specs = {}
+        self.node_data_full_resolution = {}
+
+    def cluster_data(self, data, nr_clusters, nr_days_full_resolution= 365, nr_time_intervals_per_day=24):
+        """
+        Performs the clustering process
+
+        This function performsthe k-means algorithm on the data resulting in a new DataHandle object that can be passed
+        to the energhub class for optimization.
+
+        :param DataHandle data: DataHandle containing data of the full resolution
+        :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
+        :param int nr_days_full_resolution: nr of days in data (full resolution)
+        :param int nr_time_intervals_per_day: nr of time intervalls per day in data (full resolution)
+        :return: instance of :class:`~ClusteredDataHandle`
+        """
+        # Take data from old data object
+        self.topology = copy.deepcopy(data.topology)
+        self.topology['timesteps'] = range(0, nr_clusters * nr_time_intervals_per_day)
+        self.node_data_full_resolution = data.node_data
+
+        # get all used technologies and their capacity factors for RE
+        tecs_used = {}
+        tecs_flagged_for_clustering = {}
+        for nodename in self.topology['technologies']:
+            tecs_used[nodename] = self.topology['technologies'][nodename]
+            self.technology_data[nodename] = {}
+            tecs_flagged_for_clustering[nodename] = {}
+            # read in data to Data Handle and fit performance functions
+            for tec in tecs_used[nodename]:
+                # Read in JSON files
+                with open('./data/technology_data/' + tec + '.json') as json_file:
+                    technology_data = json.load(json_file)
+                # Fit performance function
+                if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
+                        (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
+                    technology_data = dm.fit_tec_performance(technology_data, tec=tec,
+                                                          climate_data=data.node_data[nodename]['climate_data'])
+                    if technology_data['TechnologyPerf']['tec_type'] == 'RES':
+                        tecs_flagged_for_clustering[nodename][tec] = 1
+                else:
+                    technology_data = dm.fit_tec_performance(technology_data)
+
+                self.technology_data[nodename][tec] = technology_data
+
+        # Transform all data to large dataframe with each row being one day
+        def reshape_df(series_to_add, column_names, nr_cols):
+            if not type(series_to_add).__module__ == np.__name__:
+                transformed_series = series_to_add.to_numpy()
+            else:
+                transformed_series = series_to_add
+            transformed_series = transformed_series.reshape((-1, nr_cols))
+            transformed_series = pd.DataFrame(transformed_series, columns=column_names)
+            return transformed_series
+
+        # Create a multi index from a list
+        def define_multiindex(ls):
+            multi_index = list(zip(*ls))
+            multi_index = pd.MultiIndex.from_tuples(multi_index)
+            return multi_index
+
+        full_resolution = pd.DataFrame()
+        for nodename in data.node_data:
+            for series in data.node_data[nodename]:
+                if not series == 'climate_data':
+                    for carrier in data.node_data[nodename][series]:
+                        series_names = define_multiindex([
+                                             [nodename] * nr_time_intervals_per_day,
+                                             [series] * nr_time_intervals_per_day,
+                                             [carrier] * nr_time_intervals_per_day,
+                                             list(range(1, nr_time_intervals_per_day + 1))
+                                             ])
+                        to_add = reshape_df(data.node_data[nodename][series][carrier],
+                                                 series_names, nr_time_intervals_per_day)
+                        full_resolution = pd.concat([full_resolution, to_add], axis=1)
+            for tec in tecs_flagged_for_clustering[nodename]:
+                series_names = define_multiindex([
+                                [nodename] * nr_time_intervals_per_day,
+                                [tec] * nr_time_intervals_per_day,
+                                ['capacity_factor'] * nr_time_intervals_per_day,
+                                list(range(1, nr_time_intervals_per_day + 1))
+                                 ])
+                to_add = reshape_df(self.technology_data[nodename][tec]['fit']['capacity_factor'],
+                                         series_names, nr_time_intervals_per_day)
+                full_resolution = pd.concat([full_resolution, to_add], axis=1)
+
+        # Perform clustering
+        kmeans = KMeans(
+            init="random",
+            n_clusters=nr_clusters,
+            n_init=10,
+            max_iter=300,
+            random_state=42
+        )
+
+        kmeans.fit(full_resolution.to_numpy())
+        series_names = pd.MultiIndex.from_tuples(full_resolution.columns.to_list())
+        clustered_data = pd.DataFrame(kmeans.cluster_centers_, columns=series_names)
+
+        # Create keys matching full resolution to clustered data
+        time_slices_cluster = np.arange(1, nr_time_intervals_per_day * nr_clusters+1)
+        time_slices_cluster = time_slices_cluster.reshape((-1, nr_time_intervals_per_day))
+        day_labels = kmeans.labels_
+        keys = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
+        for day in range(0,nr_days_full_resolution):
+            keys[day] = time_slices_cluster[day_labels[day]]
+        keys = keys.reshape((-1, 1))
+
+        # Create factors, indicating how many times an hour occurs
+        factors = pd.DataFrame(np.unique(keys, return_counts=True))
+        factors = factors.transpose()
+        factors.columns = ['timestep', 'factor']
+
+        self.k_means_specs['keys'] = pd.DataFrame(index=data.topology['timesteps'])
+        self.k_means_specs['keys']['typical_day'] = np.repeat(kmeans.labels_, nr_time_intervals_per_day)
+        self.k_means_specs['keys']['hourly_order'] = keys
+        self.k_means_specs['factors'] = factors
+
+        # Read data back in
+        for nodename in data.node_data:
+            self.node_data[nodename] = {}
+            for series in data.node_data[nodename]:
+                if not series == 'climate_data':
+                    self.node_data[nodename][series] = pd.DataFrame()
+                    for carrier in data.node_data[nodename][series]:
+                        self.node_data[nodename][series][carrier]= \
+                            reshape_df(clustered_data[nodename][series][carrier],
+                                       None, 1)
+            for tec in tecs_flagged_for_clustering[nodename]:
+                series_data = reshape_df(clustered_data[nodename][tec]['capacity_factor'], None, 1)
+                series_data = series_data.to_numpy()
+                self.technology_data[nodename][tec]['fit']['capacity_factor'] = \
+                    series_data
+
+        # Read network data
+        self.read_network_data()
