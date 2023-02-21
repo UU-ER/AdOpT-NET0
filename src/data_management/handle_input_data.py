@@ -224,6 +224,9 @@ class DataHandle:
                 # Read in JSON files
                 with open('./data/technology_data/' + tec + '.json') as json_file:
                     technology_data = json.load(json_file)
+                # Assign name
+                technology_data['Name'] = tec
+
                 # Fit performance function
                 if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
                         (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):

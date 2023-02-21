@@ -1,23 +1,24 @@
 {
-  "Name": "SMRCCS",
   "Economics": {
-    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 209782.88984377,
-    "piecewise_CAPEX_annual": {
+    "unit_CAPEX": 1.786E+6,
+    "piecewise_CAPEX": {
       "bp_x": [
         0.7,
         20,
         90000
       ],
       "bp_y": [
-        2.06393301822827E+6,
-        4.1943571429583E+6,
-        4.4342648557836351E+9
+        1.7571425264E+7,
+        3.57089268E+7,
+        3.77513964E+10
       ]
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.04
+    "OPEX_fixed": 0.04,
+    "discount_rate": 0.1,
+    "lifetime": 20
   },
   "TechnologyPerf": {
     "tec_type": "CONV2",
@@ -41,7 +42,7 @@
       90000
     ],
     "size_is_int": 0,
-    "emission_factor": 0,
+    "emission_factor": 0.185,
     "min_part_load": 0,
     "performance": {
       "in": [

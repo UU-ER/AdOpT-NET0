@@ -1,15 +1,16 @@
 {
-  "Name": "CO2S",
   "Economics": {
-    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 1.1E-6,
-    "piecewise_CAPEX_annual": {
+    "unit_CAPEX": 1E-5,
+    "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0
+    "OPEX_fixed": 0,
+    "discount_rate": 0.1,
+    "lifetime": 25
   },
   "TechnologyPerf": {
     "tec_type": "STOR",

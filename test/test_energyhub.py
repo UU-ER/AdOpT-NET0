@@ -4,6 +4,8 @@ from src.energyhub import EnergyHub as ehub
 from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
+import src.model_construction as mc
+
 
 def test_initializer():
     data = dm.load_data_handle(r'./test/test_data/data_handle_test.p')
@@ -69,7 +71,10 @@ def test_model2():
     cost_res = m.objective()
     import_price = data.node_data['test_node1']['import_prices']['gas'].tolist()
     import_cost = sum([i1 * i2 for i1, i2 in zip(import_price, import_res)])
-    capex = data.technology_data['test_node1']['Furnace_NG']['Economics']['unit_CAPEX_annual'] * size_res
+    t = data.technology_data['test_node1']['Furnace_NG']['Economics']['lifetime']
+    r = data.technology_data['test_node1']['Furnace_NG']['Economics']['discount_rate']
+    a = mc.annualize(r,t)
+    capex = data.technology_data['test_node1']['Furnace_NG']['Economics']['unit_CAPEX'] * size_res * a
     opex_fix = capex * data.technology_data['test_node1']['Furnace_NG']['Economics']['OPEX_fixed']
     opex_var = sum(import_res) * data.technology_data['test_node1']['Furnace_NG']['Economics']['OPEX_variable']
     tec_cost = capex + opex_fix + opex_var

@@ -36,7 +36,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     - Min Size
     - Max Size
     - Output max (same as size max)
-    - Unit CAPEX
+    - Unit CAPEX (annualized from given data on up-front CAPEX, lifetime and discount rate)
     - Variable OPEX
     - Fixed OPEX
 
@@ -96,8 +96,15 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             unit_size = u.MW
         b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, units=unit_size)
         b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, units=unit_size)
-        b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=tec_data['Economics']['unit_CAPEX_annual'],
+        b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=tec_data['Economics']['unit_CAPEX'],
                                       units=u.EUR/unit_size)
+
+        r = tec_data['Economics']['discount_rate']
+        t = tec_data['Economics']['lifetime']
+        annualization_factor = mc.annualize(r, t)
+        b_tec.para_unit_CAPEX_annual = Param(domain=Reals,
+                                             initialize= annualization_factor *tec_data['Economics']['unit_CAPEX'],
+                                             units=u.EUR/unit_size)
         b_tec.para_OPEX_variable = Param(domain=Reals, initialize=tec_data['Economics']['OPEX_variable'],
                                          units=u.EUR/u.MWh)
         b_tec.para_OPEX_fixed = Param(domain=Reals, initialize=tec_data['Economics']['OPEX_fixed'],
@@ -144,7 +151,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         # GENERAL CONSTRAINTS
         # Capex
         if capex_model == 1:
-            b_tec.const_CAPEX = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX == b_tec.var_CAPEX)
+            b_tec.const_CAPEX = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX_annual == b_tec.var_CAPEX)
         elif capex_model == 2:
             m_config.presolve.big_m_transformation_required = 1
             # TODO Implement link between bps and data

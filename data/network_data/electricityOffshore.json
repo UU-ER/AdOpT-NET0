@@ -1,12 +1,13 @@
 {
-  "Name": "electricityOffshore",
   "Economics": {
     "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
     "gamma1": 2500,
     "gamma2": 1000,
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.1
+    "OPEX_fixed": 0.1,
+    "discount_rate": 0.1,
+    "lifetime": 40
   },
   "NetworkPerf": {
     "carrier": "electricity",

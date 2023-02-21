@@ -35,7 +35,8 @@ def add_networks(model, data):
 
         - Min Size (for each arc)
         - Max Size (for each arc)
-        - :math:`{\gamma}_1, {\gamma}_2, {\gamma}_3` for CAPEX calculation
+        - :math:`{\gamma}_1, {\gamma}_2, {\gamma}_3` for CAPEX calculation  \
+          (annualized from given data on up-front CAPEX, lifetime and discount rate)
         - Variable OPEX
         - Fixed OPEX
         - Network losses (in % per km and flow) :math:`{\mu}`
@@ -178,22 +179,33 @@ def add_networks(model, data):
                                            units=u.dimensionless)
 
         # CAPEX
+        r = netw_data['Economics']['discount_rate']
+        t = netw_data['Economics']['lifetime']
+        annualization_factor = mc.annualize(r, t)
+
         if netw_data['Economics']['CAPEX_model'] == 1:
-            b_netw.para_CAPEX_gamma1 = Param(domain=Reals, initialize=netw_data['Economics']['gamma1'],
+            b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
+                                             initialize=netw_data['Economics']['gamma1'] * annualization_factor,
                                              units=u.EUR / unit_size)
-            b_netw.para_CAPEX_gamma2 = Param(domain=Reals, initialize=netw_data['Economics']['gamma2'],
+            b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
+                                             initialize=netw_data['Economics']['gamma2'] * annualization_factor,
                                              units=u.EUR)
         elif netw_data['Economics']['CAPEX_model'] == 2:
-            b_netw.para_CAPEX_gamma1 = Param(domain=Reals, initialize=netw_data['Economics']['gamma1'],
+            b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
+                                             initialize=netw_data['Economics']['gamma1'] * annualization_factor,
                                              units=u.EUR / unit_size / u.km)
-            b_netw.para_CAPEX_gamma2 = Param(domain=Reals, initialize=netw_data['Economics']['gamma2'],
+            b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
+                                             initialize=netw_data['Economics']['gamma2'] * annualization_factor,
                                              units=u.EUR)
         if netw_data['Economics']['CAPEX_model'] == 3:
-            b_netw.para_CAPEX_gamma1 = Param(domain=Reals, initialize=netw_data['Economics']['gamma1'],
+            b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
+                                             initialize=netw_data['Economics']['gamma1'] * annualization_factor,
                                              units=u.EUR / unit_size / u.km)
-            b_netw.para_CAPEX_gamma2 = Param(domain=Reals, initialize=netw_data['Economics']['gamma2'],
+            b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
+                                             initialize=netw_data['Economics']['gamma2'] * annualization_factor,
                                              units=u.EUR / unit_size)
-            b_netw.para_CAPEX_gamma3 = Param(domain=Reals, initialize=netw_data['Economics']['gamma3'],
+            b_netw.para_CAPEX_gamma3 = Param(domain=Reals,
+                                             initialize=netw_data['Economics']['gamma3'] * annualization_factor,
                                              units=u.EUR)
 
         # OPEX
