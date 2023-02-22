@@ -3,11 +3,12 @@ Data Management
 
 Input Data Management
 -----------------------
-Input data management works with the class ``src.data_management.handle_input_data.DataHandle`` class. It lets you import
-and manage input data. The module ``src.data_management.create_templates`` contains functions
-creating empty templates for specifiying the system topology and network. The module
-``src.data_management.import_functions`` contains functions importing data from external
-sources.
+To define an energy system to optimize, you need to (1) define a topology, i.e. which carriers, nodes, technologies and
+networks are part of the system and (2) define the input data, e.g. weather data, technology performance, etc.
+The topology is defined with the class ``src.data_management.handle_topology.SystemTopology``. The input data
+management works with the class ``src.data_management.handle_input_data.DataHandle`` class. It lets you import
+and manage input data. The module ``src.data_management.import_functions`` contains functions importing data from
+external sources.
 
 Input data can be clustered to reduce the spatial resolution. This can be done using a k-means algorithm
 that is provided in the subclass ``src.data_management.handle_input_data.ClusteredDataHandle``. See also below
@@ -16,7 +17,7 @@ for example usage.
 .. toctree::
     :maxdepth: 1
 
-    data_management/CreateTemplates
+    data_management/SystemTopology
     data_management/DataHandle
     data_management/ImportFunctions
 
@@ -31,34 +32,26 @@ Fist, we create an empty topology and fill it with a system design. Hereby note:
 
 .. testcode::
 
-    from src.data_management.create_templates import create_empty_topology
+    import src.data_management as dm
 
-    modeled_year = 2001
-
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
-
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['onshore', 'offshore']
-    topology['technologies'] = {}
-    topology['technologies']['onshore'] = ['battery', 'PV']
-    topology['technologies']['offshore'] = []
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-04 23:00', resolution=1)
+    topology.define_carriers(['electricity', 'heat'])
+    topology.define_nodes(['onshore', 'offshore'])
+    topology.define_new_technologies('onshore', ['battery', 'PV', 'Furnace_NG'])
 
 Let's create an electricity network connecting the onshore and offshore node:
 
 .. testcode::
 
-    from src.data_management.create_templates import create_empty_network_data
+    distance = dm.create_empty_network_matrix(topology.nodes)
+    distance.at['onshore', 'offshore'] = 100
+    distance.at['offshore', 'onshore'] = 100
 
-    topology['networks'] = {}
-    topology['networks']['electricitySimple'] = {}
-    network_data = dm.create_empty_network_data(topology['nodes'])
-    network_data['distance'].at['onshore', 'offshore'] = 100
-    network_data['distance'].at['offshore', 'onshore'] = 100
-    network_data['connection'].at['onshore', 'offshore'] = 1
-    network_data['connection'].at['offshore', 'onshore'] = 1
-    topology['networks']['electricitySimple'] = network_data
+    connection = dm.create_empty_network_matrix(topology.nodes)
+    connection.at['onshore', 'offshore'] = 1
+    connection.at['offshore', 'onshore'] = 1
+    topology.define_new_network('electricitySimple', distance=distance, connections=connection)
 
 The topology has now been defined. We can initialize an instance of the ``src.data_management.handle_input_data.DataHandle``\
 class and read in all input data. Note that data for carriers and nodes not specified will be\
