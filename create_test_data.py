@@ -21,16 +21,11 @@ def create_data_test_data_handle():
     should be infeasible
     """
     data_save_path = './test/test_data/data_handle_test.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['test_node1']
-    topology['technologies'] = {}
-
-    topology['networks'] = {}
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -39,7 +34,7 @@ def create_data_test_data_handle():
     data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology['timesteps'])) * 1
+    electricity_demand = np.ones(len(topology.timesteps)) * 1
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -58,25 +53,21 @@ def create_data_model1():
     should be infeasible
     """
     data_save_path = './test/test_data/model1.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-31 23:00', freq='1h')
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['test_node1', 'test_node2']
-    topology['technologies'] = {}
-    topology['technologies']['test_node1'] = []
-    topology['technologies']['test_node2'] = ['PV']
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1', 'test_node2'])
+    topology.define_new_technologies('test_node2', ['PV'])
 
-    topology['networks'] = {}
-    topology['networks']['electricityTest'] = {}
-    network_data = dm.create_empty_network_data(topology['nodes'])
-    network_data['distance'].at['test_node1', 'test_node2'] = 100
-    network_data['distance'].at['test_node2', 'test_node1'] = 100
-    network_data['connection'].at['test_node1', 'test_node2'] = 1
-    network_data['connection'].at['test_node2', 'test_node1'] = 1
-    topology['networks']['electricityTest'] = network_data
+    distance = dm.create_empty_network_matrix(topology.nodes)
+    distance.at['test_node1', 'test_node2'] = 100
+    distance.at['test_node2', 'test_node1'] = 100
+
+    connection = dm.create_empty_network_matrix(topology.nodes)
+    connection.at['test_node1', 'test_node2'] = 1
+    connection.at['test_node2', 'test_node1'] = 1
+    topology.define_new_network('electricityTest', distance=distance, connections=connection)
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -86,7 +77,7 @@ def create_data_model1():
     data.read_climate_data_from_file('test_node2', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology['timesteps'])) * 100
+    electricity_demand = np.ones(len(topology.timesteps)) * 100
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -105,18 +96,12 @@ def create_data_model2():
     should be feasible
     """
     data_save_path = './test/test_data/model2.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
-
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['heat', 'gas']
-    topology['nodes'] = ['test_node1']
-    topology['technologies'] = {}
-    topology['technologies']['test_node1'] = ['Furnace_NG']
-
-    topology['networks'] = {}
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_carriers(['heat', 'gas'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['Furnace_NG'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -125,15 +110,15 @@ def create_data_model2():
     data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    heat_demand = np.ones(len(topology['timesteps'])) * 10
+    heat_demand = np.ones(len(topology.timesteps)) * 10
     data.read_demand_data('test_node1', 'heat', heat_demand)
 
     # PRICE DATA
-    gas_price = np.ones(len(topology['timesteps'])) * 1
+    gas_price = np.ones(len(topology.timesteps)) * 1
     data.read_import_price_data('test_node1', 'gas', gas_price)
 
     # IMPORT/EXPORT LIMITS
-    gas_import = np.ones(len(topology['timesteps'])) * 100
+    gas_import = np.ones(len(topology.timesteps)) * 100
     data.read_import_limit_data('test_node1', 'gas', gas_import)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -152,26 +137,20 @@ def create_data_emissionbalance1():
     electricity network in between
     """
     data_save_path = './test/test_data/emissionbalance1.p'
-    modeled_year = 2001
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_carriers(['electricity', 'heat', 'gas'])
+    topology.define_nodes(['onshore', 'offshore'])
+    topology.define_new_technologies('onshore', ['Furnace_NG'])
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 01:00', freq='1h')
+    distance = dm.create_empty_network_matrix(topology.nodes)
+    distance.at['onshore', 'offshore'] = 100
+    distance.at['offshore', 'onshore'] = 100
 
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity', 'heat', 'gas']
-    topology['nodes'] = ['onshore', 'offshore']
-    topology['technologies'] = {}
-    topology['technologies']['onshore'] = ['Furnace_NG']
-    topology['technologies']['offshore'] = []
-
-    topology['networks'] = {}
-    topology['networks']['electricityTest'] = {}
-    network_data = dm.create_empty_network_data(topology['nodes'])
-    network_data['distance'].at['onshore', 'offshore'] = 100
-    network_data['distance'].at['offshore', 'onshore'] = 100
-    network_data['connection'].at['onshore', 'offshore'] = 1
-    network_data['connection'].at['offshore', 'onshore'] = 1
-    topology['networks']['electricityTest'] = network_data
+    connection = dm.create_empty_network_matrix(topology.nodes)
+    connection.at['onshore', 'offshore'] = 1
+    connection.at['offshore', 'onshore'] = 1
+    topology.define_new_network('electricityTest', distance=distance, connections=connection)
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -181,19 +160,19 @@ def create_data_emissionbalance1():
     data.read_climate_data_from_file('offshore', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology['timesteps'])) * 10
+    electricity_demand = np.ones(len(topology.timesteps)) * 10
     data.read_demand_data('onshore', 'electricity', electricity_demand)
-    heat_demand = np.ones(len(topology['timesteps'])) * 9
+    heat_demand = np.ones(len(topology.timesteps)) * 9
     data.read_demand_data('onshore', 'heat', heat_demand)
 
     # IMPORT
-    gas_import = np.ones(len(topology['timesteps'])) * 10
+    gas_import = np.ones(len(topology.timesteps)) * 10
     data.read_import_limit_data('onshore', 'gas', gas_import)
-    el_import = np.ones(len(topology['timesteps'])) * 100
+    el_import = np.ones(len(topology.timesteps)) * 100
     data.read_import_limit_data('offshore', 'electricity', el_import)
 
     # EMISSIONS
-    gas_imp_emis = np.ones(len(topology['timesteps'])) * 0.4
+    gas_imp_emis = np.ones(len(topology.timesteps)) * 0.4
     gas_imp_emis[1] = 0
     data.read_import_emissionfactor_data('onshore', 'gas', gas_imp_emis)
 
@@ -211,19 +190,12 @@ def create_data_emissionbalance2():
     electricity demand @ node 1
     """
     data_save_path = './test/test_data/emissionbalance2.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
-                                          end=str(modeled_year) + '-01-10 01:00', freq='1h')
-
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity', 'heat', 'gas', 'hydrogen']
-    topology['nodes'] = ['test_node1']
-    topology['technologies'] = {}
-    topology['technologies']['test_node1'] = ['battery', 'PV', 'testCONV1_1']
-
-    topology['networks'] = {}
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-04 01:00', resolution=1)
+    topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['battery', 'PV', 'testCONV1_1'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -232,15 +204,15 @@ def create_data_emissionbalance2():
     data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology['timesteps'])) * 10
+    electricity_demand = np.ones(len(topology.timesteps)) * 10
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # IMPORT
-    gas_import = np.ones(len(topology['timesteps'])) * 100
+    gas_import = np.ones(len(topology.timesteps)) * 100
     data.read_import_limit_data('test_node1', 'gas', gas_import)
 
     # EMISSIONS
-    gas_imp_emis = np.ones(len(topology['timesteps'])) * 0
+    gas_imp_emis = np.ones(len(topology.timesteps)) * 0
     data.read_import_emissionfactor_data('test_node1', 'gas', gas_imp_emis)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -259,19 +231,12 @@ def create_data_technology_type1_PV():
     Size of PV should be around max electricity demand
     """
     data_save_path = './test/test_data/technology_type1_PV.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
-                                          end=str(modeled_year) + '-12-31 23:00', freq='1h')
-
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['test_node1']
-    topology['technologies'] = {}
-    topology['technologies']['test_node1'] = ['PV']
-
-    topology['networks'] = {}
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['PV'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -280,15 +245,15 @@ def create_data_technology_type1_PV():
     data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    demand = np.ones(len(topology['timesteps'])) * 10
+    demand = np.ones(len(topology.timesteps)) * 10
     data.read_demand_data('test_node1', 'electricity', demand)
 
     # PRICE DATA
-    price = np.ones(len(topology['timesteps'])) * 10000
+    price = np.ones(len(topology.timesteps)) * 10000
     data.read_import_price_data('test_node1', 'electricity', price)
 
     # IMPORT/EXPORT LIMITS
-    import_lim = np.ones(len(topology['timesteps'])) * 10
+    import_lim = np.ones(len(topology.timesteps)) * 10
     data.read_import_limit_data('test_node1', 'electricity', import_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -307,19 +272,12 @@ def create_data_technology_type1_WT():
     Size of WT should be around max electricity demand
     """
     data_save_path = './test/test_data/technology_type1_WT.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
-                                          end=str(modeled_year) + '-12-31 23:00', freq='1h')
-
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['test_node1']
-    topology['technologies'] = {}
-    topology['technologies']['test_node1'] = ['WT_1500']
-
-    topology['networks'] = {}
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['WT_1500'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -328,15 +286,15 @@ def create_data_technology_type1_WT():
     data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    demand = np.ones(len(topology['timesteps'])) * 10
+    demand = np.ones(len(topology.timesteps)) * 10
     data.read_demand_data('test_node1', 'electricity', demand)
 
     # PRICE DATA
-    price = np.ones(len(topology['timesteps'])) * 1000
+    price = np.ones(len(topology.timesteps)) * 1000
     data.read_import_price_data('test_node1', 'electricity', price)
 
     # IMPORT/EXPORT LIMITS
-    import_lim = np.ones(len(topology['timesteps'])) * 10
+    import_lim = np.ones(len(topology.timesteps)) * 10
     data.read_import_limit_data('test_node1', 'electricity', import_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -358,19 +316,12 @@ def create_data_technology_CONV():
     for j in CONV_Type:
         for i in perf_function_type:
             data_save_path = './test/test_data/technology_CONV' + str(j) + '_' + str(i) + '.p'
-            modeled_year = 2001
 
-            topology = {}
-            topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
-                                                  end=str(modeled_year) + '-01-01 01:00', freq='1h')
-
-            topology['timestep_length_h'] = 1
-            topology['carriers'] = ['electricity', 'heat', 'gas', 'hydrogen']
-            topology['nodes'] = ['test_node1']
-            topology['technologies'] = {}
-            topology['technologies']['test_node1'] = ['testCONV' + str(j) + '_' + str(i)]
-
-            topology['networks'] = {}
+            topology = dm.SystemTopology()
+            topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+            topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
+            topology.define_nodes(['test_node1'])
+            topology.define_new_technologies('test_node1', ['testCONV' + str(j) + '_' + str(i)])
 
             # Initialize instance of DataHandle
             data = dm.DataHandle(topology)
@@ -379,22 +330,22 @@ def create_data_technology_CONV():
             data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
 
             # DEMAND
-            demand_h = np.ones(len(topology['timesteps']))
+            demand_h = np.ones(len(topology.timesteps))
             demand_h[0]= 0.75
             demand_h[1] = 0.5
             data.read_demand_data('test_node1', 'heat', demand_h)
 
             # PRICE DATA
             if j != 3:
-                price = np.ones(len(topology['timesteps'])) * 1
+                price = np.ones(len(topology.timesteps)) * 1
                 data.read_import_price_data('test_node1', 'gas', price)
 
             # IMPORT/EXPORT LIMITS
-            import_lim = np.ones(len(topology['timesteps'])) * 10
+            import_lim = np.ones(len(topology.timesteps)) * 10
             data.read_import_limit_data('test_node1', 'gas', import_lim)
-            import_lim = np.ones(len(topology['timesteps'])) * 10
+            import_lim = np.ones(len(topology.timesteps)) * 10
             data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
-            export_lim = np.ones(len(topology['timesteps'])) * 10
+            export_lim = np.ones(len(topology.timesteps)) * 10
             data.read_export_limit_data('test_node1', 'electricity', export_lim)
 
             # READ TECHNOLOGY AND NETWORK DATA
@@ -412,17 +363,12 @@ def create_data_technologySTOR():
     two periods, rated wind speed at first, no wind at second. battery to balance
     """
     data_save_path = './test/test_data/technologySTOR.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-01-01 01:00', freq='1h')
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['test_node1']
-    topology['technologies'] = {}
-    topology['technologies']['test_node1'] = ['WT_4000', 'testSTOR']
-
-    topology['networks'] = {}
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['WT_4000', 'testSTOR'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -433,7 +379,7 @@ def create_data_technologySTOR():
     data.node_data['test_node1']['climate_data']['dataframe']['ws10'][1] = 0
 
     # DEMAND
-    electricity_demand = np.ones(len(topology['timesteps'])) * 1
+    electricity_demand = np.ones(len(topology.timesteps)) * 1
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -450,25 +396,20 @@ def create_data_network():
     electricity demand @ node 2
     """
     data_save_path = './test/test_data/networks.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
-                                          end=str(modeled_year) + '-01-01 01:00', freq='1h')
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_carriers(['electricity', 'hydrogen'])
+    topology.define_nodes(['test_node1', 'test_node2'])
 
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity', 'hydrogen']
-    topology['nodes'] = ['test_node1', 'test_node2']
-    topology['technologies'] = {}
+    distance = dm.create_empty_network_matrix(topology.nodes)
+    distance.at['test_node1', 'test_node2'] = 1
+    distance.at['test_node2', 'test_node1'] = 1
 
-    topology['networks'] = {}
-    topology['networks']['hydrogenTest'] = {}
-    network_data = dm.create_empty_network_data(topology['nodes'])
-    network_data['distance'].at['test_node1', 'test_node2'] = 1
-    network_data['distance'].at['test_node2', 'test_node1'] = 1
-    network_data['connection'].at['test_node1', 'test_node2'] = 1
-    network_data['connection'].at['test_node2', 'test_node1'] = 1
-    topology['networks']['hydrogenTest'] = network_data
+    connection = dm.create_empty_network_matrix(topology.nodes)
+    connection.at['test_node1', 'test_node2'] = 1
+    connection.at['test_node2', 'test_node1'] = 1
+    topology.define_new_network('hydrogenTest', distance=distance, connections=connection)
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -478,35 +419,35 @@ def create_data_network():
     data.read_climate_data_from_file('test_node2', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    demand = np.zeros(len(topology['timesteps']))
+    demand = np.zeros(len(topology.timesteps))
     demand[1] = 10
     data.read_demand_data('test_node1', 'hydrogen', demand)
 
-    demand = np.zeros(len(topology['timesteps']))
+    demand = np.zeros(len(topology.timesteps))
     demand[0] = 10
     data.read_demand_data('test_node2', 'hydrogen', demand)
 
     # PRICE DATA
-    price = np.ones(len(topology['timesteps'])) * 0
+    price = np.ones(len(topology.timesteps)) * 0
     data.read_import_price_data('test_node1', 'hydrogen', price)
     data.read_import_price_data('test_node2', 'hydrogen', price)
-    price = np.ones(len(topology['timesteps'])) * 10
+    price = np.ones(len(topology.timesteps)) * 10
     data.read_import_price_data('test_node1', 'electricity', price)
     data.read_import_price_data('test_node2', 'electricity', price)
 
     # IMPORT/EXPORT LIMITS
-    import_lim = np.zeros(len(topology['timesteps']))
+    import_lim = np.zeros(len(topology.timesteps))
     import_lim[0] = 100
     data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
 
-    import_lim = np.zeros(len(topology['timesteps']))
+    import_lim = np.zeros(len(topology.timesteps))
     import_lim[1] = 100
     data.read_import_limit_data('test_node2', 'hydrogen', import_lim)
 
-    import_lim = np.ones(len(topology['timesteps'])) * 1000
+    import_lim = np.ones(len(topology.timesteps)) * 1000
     data.read_import_limit_data('test_node1', 'electricity', import_lim)
 
-    import_lim = np.ones(len(topology['timesteps'])) * 1000
+    import_lim = np.ones(len(topology.timesteps)) * 1000
     data.read_import_limit_data('test_node2', 'electricity', import_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -524,28 +465,22 @@ def create_data_addtechnology():
     first, WT at node 1, later PV at node 2
     """
     data_save_path = './test/test_data/addtechnology.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
-                                          end=str(modeled_year) + '-12-31 23:00', freq='1h')
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1', 'test_node2'])
+    topology.define_new_technologies('test_node1', ['WT_OS_6000'])
+    topology.define_new_technologies('test_node2', ['battery'])
 
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['test_node1', 'test_node2']
-    topology['technologies'] = {}
-    topology['technologies']['test_node2'] = ['battery']
-    topology['technologies']['test_node1'] = ['WT_OS_6000']
+    distance = dm.create_empty_network_matrix(topology.nodes)
+    distance.at['test_node1', 'test_node2'] = 1
+    distance.at['test_node2', 'test_node1'] = 1
 
-
-    topology['networks'] = {}
-    topology['networks']['electricitySimple'] = {}
-    network_data = dm.create_empty_network_data(topology['nodes'])
-    network_data['distance'].at['test_node1', 'test_node2'] = 1
-    network_data['distance'].at['test_node2', 'test_node1'] = 1
-    network_data['connection'].at['test_node1', 'test_node2'] = 1
-    network_data['connection'].at['test_node2', 'test_node1'] = 1
-    topology['networks']['electricitySimple'] = network_data
+    connection = dm.create_empty_network_matrix(topology.nodes)
+    connection.at['test_node1', 'test_node2'] = 1
+    connection.at['test_node2', 'test_node1'] = 1
+    topology.define_new_network('electricitySimple', distance=distance, connections=connection)
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -555,7 +490,7 @@ def create_data_addtechnology():
     data.read_climate_data_from_file('test_node2', r'./test/test_data/climate_data_test.p')
 
     # DEMAND
-    demand = np.ones(len(topology['timesteps'])) * 10
+    demand = np.ones(len(topology.timesteps)) * 10
     data.read_demand_data('test_node2', 'electricity', demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -574,18 +509,13 @@ def create_data_k_means():
     should be infeasible
     """
     data_save_path = './test/test_data/k_means.p'
-    modeled_year = 2001
 
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year)+'-01-01 00:00', end=str(modeled_year)+'-12-31 23:00', freq='1h')
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['test_node1']
-    topology['technologies'] = {}
-    topology['technologies']['test_node1'] = ['testSTOR', 'PV']
-
-    topology['networks'] = {}
-
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['testSTOR', 'PV'])
+    
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
 
@@ -593,7 +523,7 @@ def create_data_k_means():
     data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_onshore.txt')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology['timesteps'])) * 1
+    electricity_demand = np.ones(len(topology.timesteps)) * 1
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA

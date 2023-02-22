@@ -307,7 +307,7 @@ class ClusteredDataHandle(DataHandle):
         """
         Constructor
         """
-        self.topology = {}
+        self.topology = []
         self.node_data = {}
         self.technology_data = {}
         self.network_data = {}
