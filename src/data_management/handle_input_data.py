@@ -221,8 +221,7 @@ class DataHandle:
                 technology_data = read_technology_data_from_json(tec)
                 technology_data = fit_technology_performance(technology_data,
                                                                   self.node_data[nodename]['climate_data'])
-                key = check_if_key_in_dict(self.technology_data[nodename], tec, 1)
-                self.technology_data[nodename][key] = technology_data
+                self.technology_data[nodename][tec] = technology_data
 
     def read_single_technology_data(self, nodename, technologies):
         """
@@ -234,8 +233,7 @@ class DataHandle:
         for tec in technologies:
             technology_data = read_technology_data_from_json(tec)
             technology_data = fit_technology_performance(technology_data, self.node_data[nodename]['climate_data'])
-            key = check_if_key_in_dict(self.technology_data[nodename], tec, 1)
-            self.technology_data[nodename][key] = technology_data
+            self.technology_data[nodename][tec] = technology_data
 
     def read_network_data(self):
         """
