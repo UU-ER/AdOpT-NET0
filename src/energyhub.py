@@ -77,7 +77,10 @@ class EnergyHub:
             m_config.presolve.clustered_data = 0
 
         def tec_node(set, node):
-            return self.data.technology_data[node].keys()
+            if self.data.technology_data:
+                return self.data.technology_data[node].keys()
+            else:
+                return Set.Skip
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
         self.model.set_networks = Set(initialize=sets['networks'].keys())
 

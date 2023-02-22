@@ -35,25 +35,22 @@ class DataHandle:
 
         self.topology = topology
         # Initialize demand, prices, emission factors = 0 for all timesteps, carriers and nodes
+        variables = ['demand',
+                     'import_prices',
+                     'import_limit',
+                     'import_emissionfactors',
+                     'export_prices',
+                     'export_limit',
+                     'export_emissionfactors']
+
         for nodename in self.topology['nodes']:
             self.node_data[nodename] = {}
-            self.node_data[nodename]['demand'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['import_prices'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['import_limit'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['import_emissionfactors'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['export_prices'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['export_limit'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['export_emissionfactors'] = pd.DataFrame(index=self.topology['timesteps'])
+            for var in variables:
+                self.node_data[nodename][var] = pd.DataFrame(index=self.topology['timesteps'])
 
             for carrier in self.topology['carriers']:
-                self.node_data[nodename]['demand'][carrier] = 0
-                self.node_data[nodename]['import_prices'][carrier] = 0
-                self.node_data[nodename]['import_limit'][carrier] = 0
-                self.node_data[nodename]['import_emissionfactors'][carrier] = 0
-                self.node_data[nodename]['export_prices'][carrier] = 0
-                self.node_data[nodename]['export_limit'][carrier] = 0
-                self.node_data[nodename]['export_emissionfactors'][carrier] = 0
-
+                for var in variables:
+                    self.node_data[nodename][var][carrier] = 0
 
     def read_climate_data_from_api(self, nodename, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=0):
         """
