@@ -15,9 +15,8 @@ class DataHandle:
     Data Handle for loading and performing operations on input data.
 
     The Data Handle class allows data import and modifications of input data to an instance of the energyhub class.
-    The constructor of the class takes a topology dictionary with time indices, networks, technologies, nodes as an \
-    an input. An empty topology dict can be created by using the function \
-     :func:`~src.data_management.create_templates.create_empty_topology`
+    The constructor of the class takes an instance of the SystemTopology class
+    (:func:`~src.data_management.handle_topology.SystemTopology`) as an input.
     """
     def __init__(self, topology):
         """
@@ -26,8 +25,7 @@ class DataHandle:
         Initializes a data handle class and completes demand data for each carrier used (i.e. sets it to zero for all \
         time steps)
 
-        :param dict topology: dictionary with time indices, networks, technologies, nodes. An empty dict can be created \
-        by using the function :func:`~src.data_management.create_templates.create_empty_topology`
+        :param SystemTopology topology: SystemTopology Class :func:`~src.data_management.handle_topology.SystemTopology`
         """
         self.node_data = {}
         self.technology_data = {}
@@ -43,12 +41,12 @@ class DataHandle:
                      'export_limit',
                      'export_emissionfactors']
 
-        for nodename in self.topology['nodes']:
+        for nodename in self.topology.nodes:
             self.node_data[nodename] = {}
             for var in variables:
-                self.node_data[nodename][var] = pd.DataFrame(index=self.topology['timesteps'])
+                self.node_data[nodename][var] = pd.DataFrame(index=self.topology.timesteps)
 
-            for carrier in self.topology['carriers']:
+            for carrier in self.topology.carriers:
                 for var in variables:
                     self.node_data[nodename][var][carrier] = 0
 
@@ -213,15 +211,18 @@ class DataHandle:
         """
         # get all used technologies
         technologies = dict()
-        for nodename in self.topology['technologies']:
-            technologies[nodename] = self.topology['technologies'][nodename]
-            self.technology_data[nodename] = dict()
+        for node in self.topology.nodes:
+            self.technology_data[node] = {}
+            if node in self.topology.technologies_new:
+                technologies[node] = self.topology.technologies_new[node]
+            else:
+                technologies[node] = {}
             # read in data to Data Handle and fit performance functions
-            for tec in technologies[nodename]:
+            for tec in technologies[node]:
                 technology_data = read_technology_data_from_json(tec)
                 technology_data = fit_technology_performance(technology_data,
-                                                                  self.node_data[nodename]['climate_data'])
-                self.technology_data[nodename][tec] = technology_data
+                                                                  self.node_data[node]['climate_data'])
+                self.technology_data[node][tec] = technology_data
 
     def read_single_technology_data(self, nodename, technologies):
         """
@@ -244,11 +245,11 @@ class DataHandle:
 
         :return: self at ``self.technology_data[nodename][tec]``
         """
-        for netw in self.topology['networks']:
+        for netw in self.topology.networks_new:
             with open('./data/network_data/' + netw + '.json') as json_file:
                 network_data = json.load(json_file)
-            network_data['distance'] = self.topology['networks'][netw]['distance']
-            network_data['connection'] = self.topology['networks'][netw]['connection']
+            network_data['connection'] = self.topology.networks_new[netw]['connection']
+            network_data['distance'] = self.topology.networks_new[netw]['distance']
             network_data = dm.fit_netw_performance(network_data)
             self.network_data[netw] = network_data
 
@@ -258,13 +259,13 @@ class DataHandle:
 
         :return: None
         """
-        for nodename in self.topology['nodes']:
+        for nodename in self.topology.nodes:
             print('----- NODE '+ nodename +' -----')
             for inst in self.node_data[nodename]:
                 if not inst == 'climate_data':
                     print('\t ' + inst)
                     print('\t\t' + f"{'':<15}{'Mean':>10}{'Min':>10}{'Max':>10}")
-                    for carrier in self.topology['carriers']:
+                    for carrier in self.topology.carriers:
                         print('\t\t' + f"{carrier:<15}"
                                        f"{str(round(self.node_data[nodename][inst][carrier].mean(), 2)):>10}"
                                        f"{str(round(self.node_data[nodename][inst][carrier].min(), 2)):>10}"
@@ -328,21 +329,19 @@ class ClusteredDataHandle(DataHandle):
         """
         # Take data from old data object
         self.topology = copy.deepcopy(data.topology)
-        self.topology['timesteps'] = range(0, nr_clusters * nr_time_intervals_per_day)
+        self.topology.timesteps = range(0, nr_clusters * nr_time_intervals_per_day)
         self.node_data_full_resolution = data.node_data
 
         # get all used technologies and their capacity factors for RE
         tecs_used = {}
         tecs_flagged_for_clustering = {}
-        for nodename in self.topology['technologies']:
-            tecs_used[nodename] = self.topology['technologies'][nodename]
+        for nodename in self.topology.technologies_new:
+            tecs_used[nodename] = self.topology.technologies_new[nodename]
             self.technology_data[nodename] = {}
             tecs_flagged_for_clustering[nodename] = {}
             # read in data to Data Handle and fit performance functions
             for tec in tecs_used[nodename]:
-                # Read in JSON files
-                with open('./data/technology_data/' + tec + '.json') as json_file:
-                    technology_data = json.load(json_file)
+                technology_data = read_technology_data_from_json(tec)
                 # Fit performance function
                 if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
                         (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
@@ -423,7 +422,7 @@ class ClusteredDataHandle(DataHandle):
         factors = factors.transpose()
         factors.columns = ['timestep', 'factor']
 
-        self.k_means_specs['keys'] = pd.DataFrame(index=data.topology['timesteps'])
+        self.k_means_specs['keys'] = pd.DataFrame(index=data.topology.timesteps)
         self.k_means_specs['keys']['typical_day'] = np.repeat(kmeans.labels_, nr_time_intervals_per_day)
         self.k_means_specs['keys']['hourly_order'] = keys
         self.k_means_specs['factors'] = factors
@@ -449,18 +448,6 @@ class ClusteredDataHandle(DataHandle):
 
 
 
-def fit_technology_performance(technology_data, climate_data):
-    """
-    Fits performance of a single technology
-    """
-    if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
-            (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
-        technology_data = dm.fit_tec_performance(technology_data, tec=technology_data['Name'],
-                                                 climate_data=climate_data)
-    else:
-        technology_data = dm.fit_tec_performance(technology_data)
-    return technology_data
-
 def read_technology_data_from_json(tec):
     """
     Reads technology data from json file
@@ -472,9 +459,14 @@ def read_technology_data_from_json(tec):
     technology_data['Name'] = tec
     return technology_data
 
-def check_if_key_in_dict(dict, key, iteration):
-    new_key = key.split('_', 1)[0] + '_' + str(iteration)
-    if new_key in dict:
-        iteration = iteration + 1
-        new_key = check_if_key_in_dict(dict, key, iteration)
-    return new_key
+def fit_technology_performance(technology_data, climate_data):
+    """
+    Fits performance of a single technology
+    """
+    if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
+            (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
+        technology_data = dm.fit_tec_performance(technology_data, tec=technology_data['Name'],
+                                                 climate_data=climate_data)
+    else:
+        technology_data = dm.fit_tec_performance(technology_data)
+    return technology_data
