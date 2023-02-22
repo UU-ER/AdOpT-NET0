@@ -13,7 +13,7 @@ from src.energyhub import EnergyHub
 
 from src.data_management.fit_technology_performance import fit_piecewise_function
 
-execute = 1
+execute = 0
 if execute == 1:
     data = dm.load_data_handle(r'./test/test_data/emissionbalance1.p')
     data.technology_data['onshore']['Furnace_NG']['TechnologyPerf']['performance_function_type'] = 1
@@ -365,6 +365,3 @@ if execute == 1:
         diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 #endregion
-
-
-

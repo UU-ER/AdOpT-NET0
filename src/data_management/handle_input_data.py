@@ -35,25 +35,22 @@ class DataHandle:
 
         self.topology = topology
         # Initialize demand, prices, emission factors = 0 for all timesteps, carriers and nodes
+        variables = ['demand',
+                     'import_prices',
+                     'import_limit',
+                     'import_emissionfactors',
+                     'export_prices',
+                     'export_limit',
+                     'export_emissionfactors']
+
         for nodename in self.topology['nodes']:
             self.node_data[nodename] = {}
-            self.node_data[nodename]['demand'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['import_prices'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['import_limit'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['import_emissionfactors'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['export_prices'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['export_limit'] = pd.DataFrame(index=self.topology['timesteps'])
-            self.node_data[nodename]['export_emissionfactors'] = pd.DataFrame(index=self.topology['timesteps'])
+            for var in variables:
+                self.node_data[nodename][var] = pd.DataFrame(index=self.topology['timesteps'])
 
             for carrier in self.topology['carriers']:
-                self.node_data[nodename]['demand'][carrier] = 0
-                self.node_data[nodename]['import_prices'][carrier] = 0
-                self.node_data[nodename]['import_limit'][carrier] = 0
-                self.node_data[nodename]['import_emissionfactors'][carrier] = 0
-                self.node_data[nodename]['export_prices'][carrier] = 0
-                self.node_data[nodename]['export_limit'][carrier] = 0
-                self.node_data[nodename]['export_emissionfactors'][carrier] = 0
-
+                for var in variables:
+                    self.node_data[nodename][var][carrier] = 0
 
     def read_climate_data_from_api(self, nodename, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=0):
         """
@@ -215,26 +212,15 @@ class DataHandle:
         :return: self at ``self.technology_data[nodename][tec]``
         """
         # get all used technologies
-        tecs_used = dict()
+        technologies = dict()
         for nodename in self.topology['technologies']:
-            tecs_used[nodename] = self.topology['technologies'][nodename]
+            technologies[nodename] = self.topology['technologies'][nodename]
             self.technology_data[nodename] = dict()
             # read in data to Data Handle and fit performance functions
-            for tec in tecs_used[nodename]:
-                # Read in JSON files
-                with open('./data/technology_data/' + tec + '.json') as json_file:
-                    technology_data = json.load(json_file)
-                # Assign name
-                technology_data['Name'] = tec
-
-                # Fit performance function
-                if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
-                        (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
-                    technology_data = dm.fit_tec_performance(technology_data, tec=tec,
-                                                          climate_data=self.node_data[nodename]['climate_data'])
-                else:
-                    technology_data = dm.fit_tec_performance(technology_data)
-
+            for tec in technologies[nodename]:
+                technology_data = read_technology_data_from_json(tec)
+                technology_data = fit_technology_performance(technology_data,
+                                                                  self.node_data[nodename]['climate_data'])
                 self.technology_data[nodename][tec] = technology_data
 
     def read_single_technology_data(self, nodename, technologies):
@@ -245,19 +231,9 @@ class DataHandle:
         """
 
         for tec in technologies:
-            # Read in JSON files
-            with open('./data/technology_data/' + tec + '.json') as json_file:
-                technology_data = json.load(json_file)
-            # Fit performance function
-            if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
-                    (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
-                technology_data = dm.fit_tec_performance(technology_data, tec=tec,
-                                                         climate_data=self.node_data[nodename]['climate_data'])
-            else:
-                technology_data = dm.fit_tec_performance(technology_data)
-
+            technology_data = read_technology_data_from_json(tec)
+            technology_data = fit_technology_performance(technology_data, self.node_data[nodename]['climate_data'])
             self.technology_data[nodename][tec] = technology_data
-
 
     def read_network_data(self):
         """
@@ -470,3 +446,35 @@ class ClusteredDataHandle(DataHandle):
 
         # Read network data
         self.read_network_data()
+
+
+
+def fit_technology_performance(technology_data, climate_data):
+    """
+    Fits performance of a single technology
+    """
+    if (technology_data['TechnologyPerf']['tec_type'] == 'RES') or \
+            (technology_data['TechnologyPerf']['tec_type'] == 'STOR'):
+        technology_data = dm.fit_tec_performance(technology_data, tec=technology_data['Name'],
+                                                 climate_data=climate_data)
+    else:
+        technology_data = dm.fit_tec_performance(technology_data)
+    return technology_data
+
+def read_technology_data_from_json(tec):
+    """
+    Reads technology data from json file
+    """
+    # Read in JSON files
+    with open('./data/technology_data/' + tec + '.json') as json_file:
+        technology_data = json.load(json_file)
+    # Assign name
+    technology_data['Name'] = tec
+    return technology_data
+
+def check_if_key_in_dict(dict, key, iteration):
+    new_key = key.split('_', 1)[0] + '_' + str(iteration)
+    if new_key in dict:
+        iteration = iteration + 1
+        new_key = check_if_key_in_dict(dict, key, iteration)
+    return new_key

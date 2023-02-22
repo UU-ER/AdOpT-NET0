@@ -40,7 +40,7 @@ topology['networks']['electricitySimple'] = network_data
 data = dm.DataHandle(topology)
 
 # CLIMATE DATA
-from_file = 1
+from_file = 0
 if from_file == 1:
     data.read_climate_data_from_file('onshore', r'.\data\climate_data_onshore.txt')
     data.read_climate_data_from_file('offshore', r'.\data\climate_data_offshore.txt')
