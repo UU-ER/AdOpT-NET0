@@ -46,7 +46,7 @@ def test_load_technologies():
     data = dm.DataHandle(topology)
     lat = 52
     lon = 5.16
-    data.read_climate_data_from_file('testnode', './test/test_data/climate_data_test.p')
+    data.read_climate_data_from_file('testnode', './test/climate_data_test.p')
 
     directory = os.fsencode('./data/technology_data')
 
