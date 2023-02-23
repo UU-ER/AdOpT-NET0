@@ -1,6 +1,7 @@
 # User Folders
 user_data
 results
+test/test_data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -54,7 +55,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-test/test_data
+
 
 # Translations
 *.mo
