@@ -22,6 +22,8 @@ for example usage.
     data_management/ImportFunctions
 
 
+..  _data-management-example-usage:
+
 Example Usage
 ^^^^^^^^^^^^^^^^
 Fist, we create an empty topology and fill it with a system design. Hereby note:
@@ -60,7 +62,7 @@ set to zero.
 .. testcode::
 
     # Initialize instance of DataHandle
-    data = DataHandle(topology)
+    data = dm.DataHandle(topology)
 
     # CLIMATE DATA
     lat = 52
