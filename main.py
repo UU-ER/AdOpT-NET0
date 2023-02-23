@@ -5,11 +5,8 @@
 # TODO: Implement all technologies
 # TODO: Complete ERA5 weather import
 import src.data_management as dm
-from pyomo.environ import units as u
-import pandas as pd
-import numpy as np
 from src.energyhub import EnergyHub
-from pyomo.environ import *
+import numpy as np
 
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
@@ -34,7 +31,7 @@ topology.define_new_network('electricitySimple', distance=distance, connections=
 data = dm.DataHandle(topology)
 
 # CLIMATE DATA
-from_file = 0
+from_file = 1
 if from_file == 1:
     data.read_climate_data_from_file('onshore', r'.\data\climate_data_onshore.txt')
     data.read_climate_data_from_file('offshore', r'.\data\climate_data_offshore.txt')

@@ -153,102 +153,109 @@ def add_networks(model, data):
 
         # region Get options from data
         netw_data = data.network_data[netw]
-        connection = copy.deepcopy(netw_data['connection'][:])
-        distance = netw_data['distance']
+        existing = netw_data.existing
+        size_is_int = netw_data.size_is_int
+        size_min = netw_data.size_min
+        size_max = netw_data.size_max
+        economics = netw_data.economics
+        performance_data = netw_data.performance_data
+        energy_consumption = netw_data.energy_consumption
+        connection = copy.deepcopy(netw_data.connection[:])
+        distance = netw_data.distance
         # endregion
 
         # region PARAMETERS
         # min/max size
         # Todo: Implement unit read from network data file.
-        if netw_data['NetworkPerf']['size_is_int']:
+        if size_is_int:
             unit_size = u.dimensionless
             b_netw.para_rated_capacity =  Param(domain=NonNegativeReals,
-                                                initialize=netw_data['NetworkPerf']['rated_capacity'],
+                                                initialize=performance_data['rated_capacity'],
                                                 units=unit_size)
         else:
             unit_size = u.MW
             b_netw.para_rated_capacity = Param(domain=NonNegativeReals, initialize=1, units=unit_size)
 
-        b_netw.para_size_min = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['size_min'],
+        b_netw.para_size_min = Param(domain=NonNegativeReals, initialize=size_min,
                                      units=unit_size)
-        b_netw.para_size_max = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['size_max'],
+        b_netw.para_size_max = Param(domain=NonNegativeReals, initialize=size_max,
                                      units=unit_size)
 
         b_netw.para_min_transport =  Param(domain=NonNegativeReals,
-                                           initialize= netw_data['NetworkPerf']['min_transport'],
+                                           initialize= performance_data['min_transport'],
                                            units=u.dimensionless)
 
         # CAPEX
-        r = netw_data['Economics']['discount_rate']
-        t = netw_data['Economics']['lifetime']
+        r = economics.discount_rate
+        t = economics.lifetime
         annualization_factor = mc.annualize(r, t)
 
-        if netw_data['Economics']['CAPEX_model'] == 1:
+        if economics.capex_model == 1:
             b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
-                                             initialize=netw_data['Economics']['gamma1'] * annualization_factor,
+                                             initialize=economics.capex_data['gamma1'] * annualization_factor,
                                              units=u.EUR / unit_size)
             b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
-                                             initialize=netw_data['Economics']['gamma2'] * annualization_factor,
+                                             initialize=economics.capex_data['gamma2'] * annualization_factor,
                                              units=u.EUR)
-        elif netw_data['Economics']['CAPEX_model'] == 2:
+        elif economics.capex_model == 2:
             b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
-                                             initialize=netw_data['Economics']['gamma1'] * annualization_factor,
+                                             initialize=economics.capex_data['gamma1'] * annualization_factor,
                                              units=u.EUR / unit_size / u.km)
             b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
-                                             initialize=netw_data['Economics']['gamma2'] * annualization_factor,
+                                             initialize=economics.capex_data['gamma2'] * annualization_factor,
                                              units=u.EUR)
-        if netw_data['Economics']['CAPEX_model'] == 3:
+        if economics.capex_model == 3:
             b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
-                                             initialize=netw_data['Economics']['gamma1'] * annualization_factor,
+                                             initialize=economics.capex_data['gamma1'] * annualization_factor,
                                              units=u.EUR / unit_size / u.km)
             b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
-                                             initialize=netw_data['Economics']['gamma2'] * annualization_factor,
+                                             initialize=economics.capex_data['gamma2'] * annualization_factor,
                                              units=u.EUR / unit_size)
             b_netw.para_CAPEX_gamma3 = Param(domain=Reals,
-                                             initialize=netw_data['Economics']['gamma3'] * annualization_factor,
+                                             initialize=economics.capex_data['gamma3'] * annualization_factor,
                                              units=u.EUR)
 
         # OPEX
-        b_netw.para_OPEX_variable = Param(domain=Reals, initialize=netw_data['Economics']['OPEX_variable'],
+        b_netw.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
                                           units=u.EUR / u.MWh)
-        b_netw.para_OPEX_fixed = Param(domain=Reals, initialize=netw_data['Economics']['OPEX_fixed'],
+        b_netw.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed ,
                                        units=u.EUR / u.EUR)
 
         # Network losses (in % per km and flow)
-        b_netw.para_loss_factor = Param(domain=Reals, initialize=netw_data['NetworkPerf']['loss'],
+        b_netw.para_loss_factor = Param(domain=Reals, initialize=performance_data['loss'],
                                        units=u.dimensionless)
 
         # Energy consumption at sending and receiving nodes
-        b_netw.set_consumed_carriers = Set(initialize=netw_data['EnergyConsumption'].keys())
-        if netw_data['EnergyConsumption']:
+        b_netw.set_consumed_carriers = Set(initialize=energy_consumption.keys())
+        if energy_consumption:
             def init_cons_send1(para, car):
-                return netw_data['EnergyConsumption'][car]['send']['k_flow']
+                return energy_consumption[car]['send']['k_flow']
             b_netw.para_send_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send1,
                                             units=u.dimensionless)
             def init_cons_send2(para, car):
-                return netw_data['EnergyConsumption'][car]['send']['k_flowDistance']
+                return energy_consumption[car]['send']['k_flowDistance']
             b_netw.para_send_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send2,
                                             units=u.dimensionless)
             def init_cons_receive1(para, car):
-                return netw_data['EnergyConsumption'][car]['receive']['k_flow']
+                return energy_consumption[car]['receive']['k_flow']
             b_netw.para_receive_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive1,
                                             units=u.dimensionless)
             def init_cons_receive2(para, car):
-                return netw_data['EnergyConsumption'][car]['receive']['k_flowDistance']
+                return energy_consumption[car]['receive']['k_flowDistance']
             b_netw.para_receive_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive2,
                                             units=u.dimensionless)
 
         # Network emissions
-        b_netw.para_loss2emissions = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['loss2emissions'],
+        b_netw.para_loss2emissions = Param(domain=NonNegativeReals, initialize=performance_data['loss2emissions'],
                                      units=u.t/u.dimensionless)
-        b_netw.para_emissionfactor = Param(domain=NonNegativeReals, initialize=netw_data['NetworkPerf']['emissionfactor'],
+        b_netw.para_emissionfactor = Param(domain=NonNegativeReals, initialize=performance_data['emissionfactor'],
                                            units=u.t / u.MWh)
 
         # endregion
 
         # region SETS
         # Define set of transported carrier
-        b_netw.set_netw_carrier = Set(initialize=[netw_data['NetworkPerf']['carrier']])
+        b_netw.set_netw_carrier = Set(initialize=[performance_data['carrier']])
 
         # Define sets of possible arcs
         def init_arcs_set(set):
@@ -258,7 +265,7 @@ def add_networks(model, data):
                         yield [from_node, to_node]
         b_netw.set_arcs = Set(initialize=init_arcs_set)
 
-        if netw_data['NetworkPerf']['bidirectional'] == 1:
+        if performance_data['bidirectional'] == 1:
             def init_arcs_all(set):
                 for from_node in connection:
                     for to_node in connection[from_node].index:
@@ -325,7 +332,7 @@ def add_networks(model, data):
             b_arc.const_flowlosses = Constraint(model.set_t, rule=init_flowlosses)
 
             # Consumption at nodes
-            if netw_data['EnergyConsumption']:
+            if energy_consumption:
                 b_arc.var_consumption_send = Var(model.set_t, b_netw.set_consumed_carriers,
                                                  domain=NonNegativeReals,
                                                  bounds=(b_netw.para_size_min, b_netw.para_size_max))
@@ -362,15 +369,15 @@ def add_networks(model, data):
             b_arc.const_flow_size_low = Constraint(model.set_t, rule=init_size_const_low)
 
             # CAPEX
-            if netw_data['Economics']['CAPEX_model'] == 1:
+            if economics.capex_model == 1:
                 def init_capex(const):
                     return b_arc.var_CAPEX == b_arc.var_size * \
                            b_netw.para_CAPEX_gamma1 + b_netw.para_CAPEX_gamma2
-            elif netw_data['Economics']['CAPEX_model'] == 2:
+            elif economics.capex_model == 2:
                 def init_capex(const):
                     return b_arc.var_CAPEX == b_arc.var_size * \
                            distance.at[node_from, node_to] * b_netw.para_CAPEX_gamma1 + b_netw.para_CAPEX_gamma2
-            elif netw_data['Economics']['CAPEX_model'] == 3:
+            elif economics.capex_model == 3:
                 def init_capex(const):
                     return b_arc.var_CAPEX == b_arc.var_size * \
                            distance.at[node_from, node_to] * b_netw.para_CAPEX_gamma1 + \
@@ -387,7 +394,7 @@ def add_networks(model, data):
         b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_block_init)
         # endregion
 
-        if netw_data['NetworkPerf']['bidirectional'] == 1:
+        if performance_data['bidirectional'] == 1:
             m_config.presolve.big_m_transformation_required = 1
             """
             bi-directional
@@ -422,7 +429,7 @@ def add_networks(model, data):
                                                                 rule=bind_disjunctions)
 
         # Cost of network
-        if netw_data['NetworkPerf']['bidirectional'] == 1:
+        if performance_data['bidirectional'] == 1:
             arc_set = b_netw.set_arcs_unique
         else:
             arc_set = b_netw.set_arcs
@@ -471,7 +478,7 @@ def add_networks(model, data):
 
         # Establish energy consumption for each node and this network
         def init_network_consumption(const, t, car, node):
-            if netw_data['EnergyConsumption']:
+            if energy_consumption:
                 if car in b_netw.set_consumed_carriers:
                     return b_netw.var_consumption[t, car, node] == \
                            sum(b_netw.arc_block[node, to_node].var_consumption_send[t, car]

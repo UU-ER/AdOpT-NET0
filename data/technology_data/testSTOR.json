@@ -1,5 +1,9 @@
 {
-  "Name": "battery",
+  "tec_type": "STOR",
+  "size_min": 0,
+  "size_max": 1.0E+7,
+  "size_is_int": 0,
+  "decommission": 0,
   "Economics": {
     "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
@@ -11,10 +15,10 @@
     "OPEX_variable": 0,
     "OPEX_fixed": 0,
     "discount_rate": 0,
-    "lifetime": 1
+    "lifetime": 1,
+    "decommission_cost": 0
   },
   "TechnologyPerf": {
-    "tec_type": "STOR",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "electricity"
@@ -23,12 +27,9 @@
     "output_carrier": [
       "electricity"
     ],
-    "size_min": 0,
-    "size_max": 1.0E+7,
-    "size_is_int": 0,
+    "allow_only_one_direction": 1,
     "emission_factor": 0,
     "performance": {
-      "allow_only_one_direction": 1,
       "eta_in": 0.5,
       "eta_out": 0.5,
       "lambda": 0,

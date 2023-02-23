@@ -11,7 +11,7 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 
 
-from src.data_management.fit_technology_performance import fit_piecewise_function
+from src.data_management.components.fit_technology_performance import fit_piecewise_function
 
 execute = 0
 if execute == 1:

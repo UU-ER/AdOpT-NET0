@@ -467,7 +467,7 @@ def create_data_addtechnology():
     data_save_path = './test/test_data/addtechnology.p'
 
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='03-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1', 'test_node2'])
     topology.define_new_technologies('test_node1', ['WT_OS_6000'])
