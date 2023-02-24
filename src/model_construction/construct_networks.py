@@ -243,7 +243,7 @@ def add_networks(model, data):
         # OPEX
         b_netw.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
                                           units=u.EUR / u.MWh)
-        b_netw.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed ,
+        b_netw.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
                                        units=u.EUR / u.EUR)
 
         # Network losses (in % per km and flow)
@@ -307,6 +307,9 @@ def add_networks(model, data):
         b_netw.var_CAPEX = Var(units=u.EUR)
         b_netw.var_OPEX_variable = Var(model.set_t, units=u.EUR)
         b_netw.var_OPEX_fixed = Var(units=u.EUR)
+        if existing:
+            b_netw.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost,
+                                                    units=u.EUR / unit_size)
 
         # Emissions
         b_netw.var_netw_emissions_pos = Var(model.set_t, units=u.t)
@@ -364,7 +367,7 @@ def add_networks(model, data):
                 else:
                     b_arc.var_CAPEX = Var(units=u.EUR)
                     b_arc.const_capex = Constraint(expr= b_arc.var_CAPEX == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size) \
-                                                         * b_arc.para_decommissioning_cost)
+                                                         * b_netw.para_decommissioning_cost)
             else:
                 b_arc.var_CAPEX = Var(units=u.EUR)
                 b_arc.const_CAPEX = Constraint(expr=b_arc.var_CAPEX == b_arc.var_CAPEX_aux)
@@ -431,7 +434,7 @@ def add_networks(model, data):
         b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_block_init)
 
         if performance_data['bidirectional'] == 1:
-            if not decommission or not existing:
+            if decommission or not existing:
                 m_config.presolve.big_m_transformation_required = 1
                 """
                 bi-directional
@@ -482,7 +485,7 @@ def add_networks(model, data):
         b_netw.const_OPEX_fixed = Constraint(rule=init_opex_fixed)
 
         def init_opex_variable(const, t):
-            return sum(b_netw.arc_block[arc].var_OPEX_variable[t] for arc in arc_set) == \
+            return sum(b_netw.arc_block[arc].var_OPEX_variable[t] for arc in b_netw.set_arcs) == \
                    b_netw.var_OPEX_variable[t]
         b_netw.const_OPEX_var = Constraint(model.set_t, rule=init_opex_variable)
 

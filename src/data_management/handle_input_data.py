@@ -250,10 +250,11 @@ class DataHandle:
 
         # Existing Networks
         for network in self.topology.networks_existing:
-            self.network_data[network] = comp.Network(network)
-            self.network_data[network].connection = self.topology.networks_existing[network]['connection']
-            self.network_data[network].distance = self.topology.networks_existing[network]['distance']
-            self.network_data[network].size_initial = self.topology.networks_existing[network]['size']
+            self.network_data[network + '_existing'] = comp.Network(network)
+            self.network_data[network + '_existing'].existing = 1
+            self.network_data[network + '_existing'].connection = self.topology.networks_existing[network]['connection']
+            self.network_data[network + '_existing'].distance = self.topology.networks_existing[network]['distance']
+            self.network_data[network + '_existing'].size_initial = self.topology.networks_existing[network]['size']
             
 
     def pprint(self):

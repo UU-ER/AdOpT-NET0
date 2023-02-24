@@ -82,7 +82,7 @@ class EnergyHub:
             else:
                 return Set.Skip
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=topology.networks_new.keys())
+        self.model.set_networks = Set(initialize=self.data.network_data.keys())
 
         # DEFINE VARIABLES
         # Global cost variables
