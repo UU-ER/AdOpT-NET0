@@ -197,9 +197,9 @@ class ResultsHandle:
             self.detailed_results.nodes[node_name] = {}
             for tec_name in node_data.set_tecsAtNode:
                 tec_data = node_data.tech_blocks_active[tec_name]
-                tec_type = energyhub.data.technology_data[node_name][tec_name]['TechnologyPerf']['tec_type']
+                technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
-                if tec_type == 'STOR':
+                if technology_model == 'STOR':
                     time_set = m.set_t_full
                     if tec_data.find_component('var_input'):
                         input = tec_data.var_input_full_resolution

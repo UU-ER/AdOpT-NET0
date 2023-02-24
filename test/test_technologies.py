@@ -16,6 +16,7 @@ def test_technology_RES_PV():
     Size of PV should be around max electricity demand (i.e. 10)
     """
     data = dm.load_data_handle(r'./test/test_data/technology_type1_PV.p')
+    data.technology_data['test_node1']['PV'].performance_data['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -42,7 +43,7 @@ def test_technology_RES_WT():
     """
     # No curtailment
     data = dm.load_data_handle(r'./test/test_data/technology_type1_WT.p')
-    data.technology_data['test_node1']['WT_1500']['TechnologyPerf']['curtailment'] = 0
+    data.technology_data['test_node1']['WT_1500'].performance_data['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -59,7 +60,7 @@ def test_technology_RES_WT():
     assert 0 == energyhub.model.objective()
 
     # Curtailment
-    data.technology_data['test_node1']['WT_1500']['TechnologyPerf']['curtailment'] = 2
+    data.technology_data['test_node1']['WT_1500'].performance_data['curtailment'] = 2
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()

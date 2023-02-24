@@ -55,6 +55,9 @@ class SystemTopology:
         :param list nodes: List of nodes to use in the analysis
         """
         self.nodes = nodes
+        for node in self.nodes:
+            self.technologies_new[node] = {}
+            self.technologies_existing[node] = {}
 
     def define_new_technologies(self, node, technologies):
         """

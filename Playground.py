@@ -11,7 +11,7 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 
 
-from src.data_management.fit_technology_performance import fit_piecewise_function
+from src.data_management.components.fit_technology_performance import fit_piecewise_function
 
 execute = 0
 if execute == 1:
@@ -365,3 +365,24 @@ if execute == 1:
         diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 #endregion
+
+
+def run_ehub(data, run):
+    energyhub = EnergyHub(data)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    cost = energyhub.model.var_total_cost.value
+    results = energyhub.write_results()
+    results.write_excel(r'.\userData\results' + str(run))
+    return cost
+
+
+data = dm.load_data_handle(r'./test/test_data/existing_tecs1.p')
+cost1 = run_ehub(data, 1)
+data = dm.load_data_handle(r'./test/test_data/existing_tecs2.p')
+cost2 = run_ehub(data, 2)
+data = dm.load_data_handle(r'./test/test_data/existing_tecs3.p')
+cost3 = run_ehub(data, 3)
+

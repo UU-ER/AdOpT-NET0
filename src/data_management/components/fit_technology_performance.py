@@ -2,59 +2,9 @@ import statsmodels.api as sm
 import numpy as np
 from scipy import optimize
 import pvlib
-import datetime
-import pytz
 from timezonefinder import TimezoneFinder
 import pandas as pd
 from scipy.interpolate import interp1d
-
-
-def fit_tec_performance(technology, tec=None, climate_data=None):
-    """
-    Fits the performance parameters for a technology.
-    :param technology: Dict read from json files with performance data and options for performance fits
-    :return: dict of performance coefficients used in the model
-    """
-    # Initialize parameters dict
-    parameters = dict()
-
-    # Get options form file
-    tec_type = technology['TechnologyPerf']['tec_type']
-    if not (tec_type == 'RES'):
-        tec_data = technology['TechnologyPerf']
-
-    # Derive performance parameters for respective performance function type
-    if tec_type == 'RES':  # Renewable technologies
-        if tec == 'PV':
-            if 'system_type' in technology:
-                parameters['fit'] = perform_fitting_PV(climate_data, system_data=technology['system_type'])
-            else:
-                parameters['fit'] = perform_fitting_PV(climate_data)
-        elif tec=='ST':
-            parameters['fit'] = perform_fitting_ST(climate_data)
-        elif 'WT' in tec:
-            if 'hubheight' in technology:
-                hubheight = technology['hubheight']
-            else:
-                hubheight = 120
-            parameters['fit'] = perform_fitting_WT(climate_data, technology['Name'], hubheight)
-
-
-    elif tec_type == 'CONV1': # n inputs -> n output, fuel and output substitution
-        parameters['fit'] = perform_fitting_tec_CONV1(tec_data)
-
-    elif tec_type == 'CONV2': # n inputs -> n output, fuel and output substitution
-        parameters['fit'] = perform_fitting_tec_CONV2(tec_data)
-
-    elif tec_type == 'CONV3': # n inputs -> n output, fixed ratio between inputs and outputs
-        parameters['fit'] = perform_fitting_tec_CONV3(tec_data)
-
-    elif tec_type == 'STOR':  # storage technologies
-        parameters['fit'] = perform_fitting_tec_STOR(tec_data, climate_data)
-
-    parameters['TechnologyPerf'] = technology['TechnologyPerf']
-    parameters['Economics'] = technology['Economics']
-    return parameters
 
 def perform_fitting_PV(climate_data, **kwargs):
     """

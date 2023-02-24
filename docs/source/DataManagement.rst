@@ -42,6 +42,14 @@ Fist, we create an empty topology and fill it with a system design. Hereby note:
     topology.define_nodes(['onshore', 'offshore'])
     topology.define_new_technologies('onshore', ['battery', 'PV', 'Furnace_NG'])
 
+It is also possible to add a technology that exists already at a certain size to a node. Note, that you need to
+pass the technology as a dictonary with the respective size instead of a simple list. You can specify if these technologies
+can be decommissioned and at what cost in the respective json data file.
+
+.. testcode::
+
+    topology.define_existing_technologies('onshore', {'WT_1500': 2, 'PV': 2.4})
+
 Let's create an electricity network connecting the onshore and offshore node:
 
 .. testcode::
