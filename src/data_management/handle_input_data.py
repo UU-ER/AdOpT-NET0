@@ -1,7 +1,6 @@
 import src.data_management as dm
 import src.data_management.components as comp
 
-import json
 import pickle
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -202,7 +201,7 @@ class DataHandle:
 
     def read_technology_data(self):
         """
-        Writes technologies to self and fits performance functions
+        Writes new and existing technologies to self and fits performance functions
 
         Reads in technology data from JSON files located at ``./data/technology_data`` for all technologies specified in \
         the topology.
@@ -235,7 +234,7 @@ class DataHandle:
 
     def read_network_data(self):
         """
-        Writes network to self and fits performance functions
+        Writes newand existing network to self and calculates energy consumption
 
         Reads in network data from JSON files located at ``./data/network_data`` for all technologies specified in \
         the topology.
@@ -371,6 +370,7 @@ class ClusteredDataHandle(DataHandle):
         self.k_means_specs['factors'] = factors
 
         # Read data back in
+        node_data = self.node_data_full_resolution
         for node in node_data:
             self.node_data[node] = {}
             for series in node_data[node]:

@@ -26,6 +26,9 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     - Type STOR: Storage technology (1 input -> 1 output). Constructed with \
       :func:`src.model_construction.generic_technology_constraints.constraints_tec_STOR`
 
+    The following description is true for new technologies. For existing technologies a few adaptions are made
+    (see below).
+
     **Set declarations:**
 
     - Set of input carriers
@@ -64,6 +67,13 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
     .. math::
         OPEXfix_{tec} = CAPEX_{tec} * opex_{fix}
+
+    Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 1) or not (decommission = 0).
+    For technologies that cannot be decommissioned, the size is fixed to the size given in the technology data.
+    For technologies that can be decommissioned, the size can be smaller or equal to the initial size. Reducing the
+    size comes at the decommissioning costs specified in the economics of the technology.
+    The fixed opex is calculated by determining the capex that the technology would have costed if newly build and
+    then taking the respective opex_fixed share of this. This is done with the auxiliary variable var_capex_aux.
 
     :param str nodename: name of node for which technology is installed
     :param object b_node: pyomo block for respective node

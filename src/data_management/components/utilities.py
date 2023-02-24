@@ -1,6 +1,6 @@
 class Economics:
     """
-    Class to manage economic data of technology
+    Class to manage economic data of technologies and networks
     """
     def __init__(self, economics):
         self.capex_model = economics['CAPEX_model']
