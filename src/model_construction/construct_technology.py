@@ -311,14 +311,14 @@ def calculate_output_bounds(tec_data):
     size_max = tec_data.size_max
     performance_data = tec_data.performance_data
     fitted_performance = tec_data.fitted_performance
+    if size_is_int:
+        rated_power = fitted_performance['rated_power']
+    else:
+        rated_power = 1
 
     bounds = {}
 
     if technology_model == 'RES':  # Renewable technology with cap_factor as input
-        if size_is_int:
-            rated_power = fitted_performance['rated_power']
-        else:
-            rated_power = 1
         cap_factor = fitted_performance['capacity_factor']
         for c in performance_data['output_carrier']:
             max_bound = float(size_max * max(cap_factor) * rated_power)
@@ -329,13 +329,13 @@ def calculate_output_bounds(tec_data):
         alpha1 = fitted_performance['out']['alpha1']
         for c in performance_data['output_carrier']:
             if performance_function_type == 1:
-                max_bound = size_max * alpha1
+                max_bound = size_max * alpha1 * rated_power
             if performance_function_type == 2:
                 alpha2 = fitted_performance['out']['alpha2']
-                max_bound = size_max * (alpha1 + alpha2)
+                max_bound = size_max * (alpha1 + alpha2) * rated_power
             if performance_function_type == 3:
                 alpha2 = fitted_performance['out']['alpha2']
-                max_bound = size_max * (alpha1[-1] + alpha2[-1])
+                max_bound = size_max * (alpha1[-1] + alpha2[-1]) * rated_power
             bounds[c] = (0, max_bound)
 
     elif technology_model == 'CONV2':  # n inputs -> n output, fuel and output substitution
@@ -345,13 +345,13 @@ def calculate_output_bounds(tec_data):
         for c in performance_data['performance']['out']:
             alpha1[c] = fitted_performance[c]['alpha1']
             if performance_function_type == 1:
-                max_bound = alpha1[c] * size_max
+                max_bound = alpha1[c] * size_max * rated_power
             if performance_function_type == 2:
                 alpha2[c] = fitted_performance[c]['alpha2']
-                max_bound = size_max * (alpha1[c] + alpha2[c])
+                max_bound = size_max * (alpha1[c] + alpha2[c]) * rated_power
             if performance_function_type == 3:
                 alpha2[c] = fitted_performance[c]['alpha2']
-                max_bound = size_max * (alpha1[c][-1] + alpha2[c][-1])
+                max_bound = size_max * (alpha1[c][-1] + alpha2[c][-1]) * rated_power
             bounds[c] = (0, max_bound)
 
     elif technology_model == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
@@ -362,13 +362,13 @@ def calculate_output_bounds(tec_data):
         for c in performance_data['performance']['out']:
             alpha1[c] = fitted_performance[c]['alpha1']
             if performance_function_type == 1:
-                max_bound = alpha1[c] * size_max
+                max_bound = alpha1[c] * size_max * rated_power
             if performance_function_type == 2:
                 alpha2[c] = fitted_performance[c]['alpha2']
-                max_bound = size_max * (alpha1[c] + alpha2[c])
+                max_bound = size_max * (alpha1[c] + alpha2[c]) * rated_power
             if performance_function_type == 3:
                 alpha2[c] = fitted_performance[c]['alpha2']
-                max_bound = size_max * (alpha1[c][-1] + alpha2[c][-1])
+                max_bound = size_max * (alpha1[c][-1] + alpha2[c][-1]) * rated_power
             bounds[c] = (0, max_bound)
 
     elif technology_model == 'STOR':  # Storage technology (1 input -> 1 output)
