@@ -217,10 +217,10 @@ class DataHandle:
                 self.technology_data[node][technology].fit_technology_performance(self.node_data[node]['climate_data'])
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
-                self.technology_data[node][technology] = comp.Technology(technology)
-                self.technology_data[node][technology].existing = 1
-                self.technology_data[node][technology].size_initial = self.topology.technologies_new[node][technology]
-                self.technology_data[node][technology].fit_technology_performance(self.node_data[node]['climate_data'])
+                self.technology_data[node][technology + '_existing'] = comp.Technology(technology)
+                self.technology_data[node][technology + '_existing'].existing = 1
+                self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
+                self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node]['climate_data'])
 
     def read_single_technology_data(self, node, technologies):
         """
@@ -332,42 +332,12 @@ class ClusteredDataHandle(DataHandle):
         :param int nr_time_intervals_per_day: nr of time intervalls per day in data (full resolution)
         :return: instance of :class:`~ClusteredDataHandle`
         """
+        # new timesteps
         self.topology.timesteps = range(0, nr_clusters * nr_time_intervals_per_day)
-
-        # flag technologies that need to be clustered (RES)
-        tecs_flagged_for_clustering = {}
-        for node in self.topology.nodes:
-            tecs_flagged_for_clustering[node] = {}
-            for technology in self.technology_data[node]:
-                tecs_flagged_for_clustering[node] = {}
-                if self.technology_data[node][technology].technology_model == 'RES':
-                    tecs_flagged_for_clustering[node][technology] = 1
-
-        full_resolution = pd.DataFrame()
-        node_data = self.node_data_full_resolution
-        for node in node_data:
-            for series in node_data[node]:
-                if not series == 'climate_data':
-                    for carrier in node_data[node][series]:
-                        series_names = define_multiindex([
-                                             [node] * nr_time_intervals_per_day,
-                                             [series] * nr_time_intervals_per_day,
-                                             [carrier] * nr_time_intervals_per_day,
-                                             list(range(1, nr_time_intervals_per_day + 1))
-                                             ])
-                        to_add = reshape_df(node_data[node][series][carrier],
-                                                 series_names, nr_time_intervals_per_day)
-                        full_resolution = pd.concat([full_resolution, to_add], axis=1)
-            for tec in tecs_flagged_for_clustering[node]:
-                series_names = define_multiindex([
-                                [node] * nr_time_intervals_per_day,
-                                [tec] * nr_time_intervals_per_day,
-                                ['capacity_factor'] * nr_time_intervals_per_day,
-                                list(range(1, nr_time_intervals_per_day + 1))
-                                 ])
-                to_add = reshape_df(self.technology_data[node][tec].fitted_performance['capacity_factor'],
-                                         series_names, nr_time_intervals_per_day)
-                full_resolution = pd.concat([full_resolution, to_add], axis=1)
+        # flag tecs that contain time-dependent data
+        tecs_flagged_for_clustering = self.flag_tecs_for_clustering()
+        # compile full matrix
+        full_resolution = self.compile_full_resolution_matrix(nr_time_intervals_per_day, tecs_flagged_for_clustering)
 
         # Perform clustering
         kmeans = KMeans(
@@ -415,6 +385,56 @@ class ClusteredDataHandle(DataHandle):
                 series_data = series_data.to_numpy()
                 self.technology_data[node][tec].fitted_performance['capacity_factor'] = \
                     series_data
+
+    def flag_tecs_for_clustering(self):
+        """
+        Creates a dictonary with flags for RES technologies
+
+        These technologies contain time-dependent input data, i.e. capacity factors.
+        :return dict tecs_flagged_for_clustering: flags for technologies and nodes
+
+        """
+        tecs_flagged_for_clustering = {}
+        for node in self.topology.nodes:
+            tecs_flagged_for_clustering[node] = {}
+            for technology in self.technology_data[node]:
+                tecs_flagged_for_clustering[node] = {}
+                if self.technology_data[node][technology].technology_model == 'RES':
+                    tecs_flagged_for_clustering[node][technology] = 1
+        return tecs_flagged_for_clustering
+
+    def compile_full_resolution_matrix(self, nr_time_intervals_per_day, tecs_flagged_for_clustering):
+        """
+        Compiles full resolution matrix to be clustered
+
+        Contains, prices, emission factors, capacity factors,...
+        """
+        full_resolution = pd.DataFrame()
+        node_data = self.node_data_full_resolution
+        for node in node_data:
+            for series in node_data[node]:
+                if not series == 'climate_data':
+                    for carrier in node_data[node][series]:
+                        series_names = define_multiindex([
+                            [node] * nr_time_intervals_per_day,
+                            [series] * nr_time_intervals_per_day,
+                            [carrier] * nr_time_intervals_per_day,
+                            list(range(1, nr_time_intervals_per_day + 1))
+                        ])
+                        to_add = reshape_df(node_data[node][series][carrier],
+                                            series_names, nr_time_intervals_per_day)
+                        full_resolution = pd.concat([full_resolution, to_add], axis=1)
+            for tec in tecs_flagged_for_clustering[node]:
+                series_names = define_multiindex([
+                    [node] * nr_time_intervals_per_day,
+                    [tec] * nr_time_intervals_per_day,
+                    ['capacity_factor'] * nr_time_intervals_per_day,
+                    list(range(1, nr_time_intervals_per_day + 1))
+                ])
+                to_add = reshape_df(self.technology_data[node][tec].fitted_performance['capacity_factor'],
+                                    series_names, nr_time_intervals_per_day)
+                full_resolution = pd.concat([full_resolution, to_add], axis=1)
+        return full_resolution
 
 
 # Transform all data to large dataframe with each row being one day

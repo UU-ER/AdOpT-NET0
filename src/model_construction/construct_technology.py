@@ -73,97 +73,119 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     """
     def init_technology_block(b_tec, tec):
 
-        # Get options from data
+        # TECHNOLOGY DATA
         tec_data = data.technology_data[nodename][tec]
         technology_model = tec_data.technology_model
         existing = tec_data.existing
+        decommission = tec_data.decommission
         size_is_int = tec_data.size_is_int
         size_min = tec_data.size_min
         size_max = tec_data.size_max
         economics = tec_data.economics
         performance_data = tec_data.performance_data
+        if existing:
+            size_initial = tec_data.size_initial
+            size_max = size_initial
 
-        # PARAMETERS
+        # SIZE
         if size_is_int:
             unit_size = u.dimensionless
         else:
             unit_size = u.MW
         b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, units=unit_size)
         b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, units=unit_size)
-        b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=economics.capex_data['unit_capex'],
-                                      units=u.EUR/unit_size)
 
-        r = economics.discount_rate
-        t = economics.lifetime
-        annualization_factor = mc.annualize(r, t)
-        b_tec.para_unit_CAPEX_annual = Param(domain=Reals,
-                                             initialize= annualization_factor * economics.capex_data['unit_capex'],
-                                             units=u.EUR/unit_size)
-        b_tec.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
-                                         units=u.EUR/u.MWh)
-        b_tec.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
-                                      units=u.EUR/u.EUR)
-        b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=performance_data['emission_factor'],
-                                      units=u.t/u.MWh)
+        if existing:
+            b_tec.var_size_initial = Param(within=NonNegativeReals, initialize=size_initial, units=unit_size)
 
-        # SETS
+        if existing and not decommission:
+            # Decommissioning is not possible, size fixed
+            b_tec.var_size = Param(within=NonNegativeReals, initialize=b_tec.var_size_initial, units=unit_size)
+        else:
+            # Decommissioning is possible, size variable
+            if size_is_int:
+                b_tec.var_size = Var(within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
+            else:
+                b_tec.var_size = Var(within=NonNegativeReals, bounds=(b_tec.para_size_min, b_tec.para_size_max),
+                                     units=u.MW)
+
+        # CAPEX auxilliary (used to calculate theoretical CAPEX)
+        # For new technologies, this is equal to actual CAPEX
+        # For existing technologies it is used to calculate fixed OPEX
+        b_tec.var_CAPEX_aux = Var(units=u.EUR)
+        annualization_factor = mc.annualize(economics.discount_rate, economics.lifetime)
+        if economics.capex_model == 1:
+            b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=economics.capex_data['unit_capex'],
+                                          units=u.EUR/unit_size)
+            b_tec.para_unit_CAPEX_annual = Param(domain=Reals,
+                                                 initialize= annualization_factor * economics.capex_data['unit_capex'],
+                                                 units=u.EUR/unit_size)
+            b_tec.const_CAPEX_aux = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX_annual == b_tec.var_CAPEX_aux)
+        elif economics.capex_model == 2:
+            b_tec.para_bp_x = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_x'],
+                                    units=unit_size)
+            b_tec.para_bp_y = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_y'],
+                                    units=u.EUR/unit_size)
+            b_tec.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
+                                                                    economics.capex_data['piecewise_capex']['bp_y'],
+                                           units=u.EUR/unit_size)
+            m_config.presolve.big_m_transformation_required = 1
+            b_tec.const_CAPEX_aux = Piecewise(b_tec.var_CAPEX_aux, b_tec.var_size,
+                                              pw_pts=b_tec.para_bp_x,
+                                              pw_constr_type='EQ',
+                                              f_rule=b_tec.para_bp_y,
+                                              pw_repn='SOS2')
+
+        # CAPEX
+        if existing and not decommission:
+            b_tec.var_CAPEX = Param(domain=Reals, initialize=0, units=u.EUR)
+        else:
+            b_tec.var_CAPEX = Var(units=u.EUR)
+            if existing:
+                b_tec.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost, units=u.EUR/unit_size)
+                b_tec.const_CAPEX = Constraint(expr= b_tec.var_CAPEX == (b_tec.var_size_initial - b_tec.var_size) * b_tec.para_decommissioning_cost)
+            else:
+                b_tec.const_CAPEX = Constraint(expr= b_tec.var_CAPEX == b_tec.var_CAPEX_aux)
+
+        # INPUT
         b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
-        b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])
-
-        # DECISION VARIABLES
-        # Input
-        # TODO: if size is integer units do not work
-        output_bounds = calculate_output_bounds(tec_data)
         input_bounds = calculate_input_bounds(tec_data)
         if not technology_model == 'RES':
             def init_input_bounds(bounds, t, car):
                 return input_bounds[car]
             b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=init_input_bounds, units=u.MW)
-        # Output
+
+        # OUTPUT
+        b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])
+        output_bounds = calculate_output_bounds(tec_data)
         def init_output_bounds(bounds, t, car):
             return output_bounds[car]
         b_tec.var_output = Var(model.set_t, b_tec.set_output_carriers, within=NonNegativeReals,
                                bounds=init_output_bounds, units=u.MW)
 
-        # Emissions
-        b_tec.var_tec_emissions_pos = Var(model.set_t, within=NonNegativeReals, units=u.t)
-        b_tec.var_tec_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
-
-        # Size
-        if size_is_int:
-            b_tec.var_size = Var(within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
-        else:
-            b_tec.var_size = Var(within=NonNegativeReals, bounds=(b_tec.para_size_min, b_tec.para_size_max),
-                                 units=u.MW)
-
-        # Capex/Opex
-        b_tec.var_CAPEX = Var(units=u.EUR)
+        # VARIABLE OPEX
+        b_tec.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
+                                         units=u.EUR/u.MWh)
         b_tec.var_OPEX_variable = Var(model.set_t, units=u.EUR)
-        b_tec.var_OPEX_fixed = Var(units=u.EUR)
-
-        # GENERAL CONSTRAINTS
-        # Capex
-        if economics.capex_model == 1:
-            b_tec.const_CAPEX = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX_annual == b_tec.var_CAPEX)
-        elif economics.capex_model == 2:
-            m_config.presolve.big_m_transformation_required = 1
-            # TODO Implement link between bps and data
-            b_tec.const_CAPEX = Piecewise(b_tec.var_CAPEX, b_tec.var_size,
-                                          pw_pts=bp_x,
-                                          pw_constr_type='EQ',
-                                          f_rule=bp_y,
-                                          pw_repn='SOS2')
-        # fixed Opex
-        b_tec.const_OPEX_fixed = Constraint(expr=b_tec.var_CAPEX * b_tec.para_OPEX_fixed == b_tec.var_OPEX_fixed)
-
-        # variable Opex
         def init_OPEX_variable(const, t):
             return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_OPEX_variable == \
                    b_tec.var_OPEX_variable[t]
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
-        # Emissions
+        # FIXED OPEX
+        b_tec.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
+                                      units=u.EUR/u.EUR)
+        b_tec.var_OPEX_fixed = Var(units=u.EUR)
+        b_tec.const_OPEX_fixed = Constraint(expr=b_tec.var_CAPEX_aux * b_tec.para_OPEX_fixed == b_tec.var_OPEX_fixed)
+
+
+        # EMISSIONS
+        b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=performance_data['emission_factor'],
+                                              units=u.t/u.MWh)
+        b_tec.var_tec_emissions_pos = Var(model.set_t, within=NonNegativeReals, units=u.t)
+        b_tec.var_tec_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
+
         if technology_model == 'RES':
             # Set emissions to zero
             def init_tec_emissions_pos_RES(const, t):
@@ -186,14 +208,14 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             def init_tec_emissions_neg(const, t):
                 if performance_data['emission_factor'] < 0:
                     return b_tec.var_input[t, performance_data['main_input_carrier']] \
-                           (-b_tec.para_tec_emissionfactor) == \
+                               (-b_tec.para_tec_emissionfactor) == \
                            b_tec.var_tec_emissions_neg[t]
                 else:
                     return b_tec.var_tec_emissions_neg[t] == 0
             b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg)
 
 
-        # TECHNOLOGY TYPES
+        # TECHNOLOGY PERFORMANCE
         if technology_model == 'RES': # Renewable technology with cap_factor as input
             b_tec = constraints_tec_RES(model, b_tec, tec_data)
 

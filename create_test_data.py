@@ -533,6 +533,61 @@ def create_data_k_means():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+def create_data_existing_technologies():
+
+    def create_topology():
+        # TOPOLOGY
+        topology = dm.SystemTopology()
+        topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
+        topology.define_carriers(['electricity'])
+        topology.define_nodes(['test_node1'])
+        topology.define_new_technologies('test_node1', ['PV'])
+        return topology
+
+    def create_data(topology):
+        data = dm.DataHandle(topology)
+
+        # CLIMATE DATA
+        data.read_climate_data_from_file('test_node1', r'.\data\climate_data_onshore.txt')
+
+        # DEMAND
+        demand = np.ones(len(topology.timesteps)) * 10
+        data.read_demand_data('test_node1', 'electricity', demand)
+
+        # PRICE DATA
+        price = np.ones(len(topology.timesteps)) * 1000
+        data.read_import_price_data('test_node1', 'electricity', price)
+
+        # IMPORT/EXPORT LIMITS
+        import_lim = np.ones(len(topology.timesteps)) * 10
+        data.read_import_limit_data('test_node1', 'electricity', import_lim)
+
+        # READ TECHNOLOGY AND NETWORK DATA
+        data.read_technology_data()
+        data.read_network_data()
+        return data
+
+    topology1 = create_topology()
+    topology2 = create_topology()
+    topology3 = create_topology()
+
+    topology2.define_existing_technologies('test_node1', {'battery': 4})
+    topology3.define_existing_technologies('test_node1', {'battery': 3000})
+
+    data_save_path1 = './test/test_data/existing_tecs1.p'
+    data_save_path2 = './test/test_data/existing_tecs2.p'
+    data_save_path3 = './test/test_data/existing_tecs3.p'
+
+    data1 = create_data(topology1)
+    data1.save(data_save_path1)
+    data2 = create_data(topology2)
+    data2.save(data_save_path2)
+    data3 = create_data(topology3)
+    data3.technology_data['test_node1']['battery_existing'].decommission = 1
+    data3.save(data_save_path3)
+    data3.technology_data
+
+
 create_data_test_data_handle()
 create_data_model1()
 create_data_model2()
@@ -545,5 +600,6 @@ create_data_network()
 create_data_addtechnology()
 create_data_technologySTOR()
 create_data_k_means()
+create_data_existing_technologies()
 
 
