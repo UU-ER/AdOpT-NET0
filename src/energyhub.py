@@ -64,16 +64,16 @@ class EnergyHub:
         start = time.time()
 
         # DEFINE SETS
-        sets = self.data.topology
-        self.model.set_nodes = Set(initialize=sets['nodes'])
-        self.model.set_carriers = Set(initialize=sets['carriers'])
-        self.model.set_t = RangeSet(1,len(sets['timesteps']))
+        topology = self.data.topology
+        self.model.set_nodes = Set(initialize=topology.nodes)
+        self.model.set_carriers = Set(initialize=topology.carriers)
+        self.model.set_t = RangeSet(1,len(topology.timesteps))
         if hasattr(self.data, 'k_means_specs'):
             # If yes, we are working with clustered data
             self.model.set_t_full = RangeSet(1, len(self.data.k_means_specs['keys']['typical_day']))
             m_config.presolve.clustered_data = 1
         else:
-            self.model.set_t_full = RangeSet(1,len(sets['timesteps']))
+            self.model.set_t_full = RangeSet(1,len(topology.timesteps))
             m_config.presolve.clustered_data = 0
 
         def tec_node(set, node):
@@ -82,7 +82,7 @@ class EnergyHub:
             else:
                 return Set.Skip
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=sets['networks'].keys())
+        self.model.set_networks = Set(initialize=topology.networks_new.keys())
 
         # DEFINE VARIABLES
         # Global cost variables

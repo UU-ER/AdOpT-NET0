@@ -7,13 +7,11 @@
     "OPEX_variable": 1.6E-5,
     "OPEX_fixed": 0,
     "discount_rate": 0.1,
-    "lifetime": 10
+    "lifetime": 10,
+    "decommission_cost": 0
   },
   "NetworkPerf": {
     "carrier": "hydrogen",
-    "size_min": 0,
-    "size_max": 38.628,
-    "size_is_int": 0,
     "bidirectional": 0,
     "loss": 1.25E-7,
     "min_transport": 0,
@@ -31,5 +29,9 @@
         "k_flowDistance": 0.05
       }
     }
-  }
+  },
+  "size_min": 0,
+  "size_max": 38.628,
+  "size_is_int": 0,
+  "decommission": 0
 }

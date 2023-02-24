@@ -14,8 +14,8 @@ def test_networks():
     """
     # Test bidirectional
     data = dm.load_data_handle(r'./test/test_data/networks.p')
-    data.network_data['hydrogenTest']['NetworkPerf']['bidirectional'] = 1
-    data.network_data['hydrogenTest']['EnergyConsumption'] = {}
+    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
+    data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub1 = ehub(data)
     energyhub1.construct_model()
     energyhub1.construct_balances()
@@ -33,8 +33,8 @@ def test_networks():
 
     # Test no bidirectional
     data = dm.load_data_handle(r'./test/test_data/networks.p')
-    data.network_data['hydrogenTest']['NetworkPerf']['bidirectional'] = 0
-    data.network_data['hydrogenTest']['EnergyConsumption'] = {}
+    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
+    data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub2 = ehub(data)
     energyhub2.construct_model()
     energyhub2.construct_balances()
@@ -48,7 +48,7 @@ def test_networks():
 
     # Test consumption at node
     data = dm.load_data_handle(r'./test/test_data/networks.p')
-    data.network_data['hydrogenTest']['NetworkPerf']['bidirectional'] = 0
+    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     energyhub3 = ehub(data)
     energyhub3.construct_model()
     energyhub3.construct_balances()
