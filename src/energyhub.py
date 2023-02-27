@@ -64,30 +64,25 @@ class EnergyHub:
         start = time.time()
 
         # DEFINE SETS
-        sets = self.data.topology
-        self.model.set_nodes = Set(initialize=sets['nodes'])
-        self.model.set_carriers = Set(initialize=sets['carriers'])
-        self.model.set_t = RangeSet(1,len(sets['timesteps']))
-        if hasattr(self.data, 'specifications_time_resolution'):
+        topology = self.data.topology
+        self.model.set_nodes = Set(initialize=topology.nodes)
+        self.model.set_carriers = Set(initialize=topology.carriers)
+        self.model.set_t = RangeSet(1,len(topology.timesteps))
+        if hasattr(self.data, 'k_means_specs'):
             # If yes, we are working with clustered data
-            self.model.set_t_full = RangeSet(1, len(self.data.specifications_time_resolution['keys']['typical_day']))
+            self.model.set_t_full = RangeSet(1, len(self.data.k_means_specs['keys']['typical_day']))
             m_config.presolve.clustered_data = 1
         else:
-            self.model.set_t_full = RangeSet(1,len(sets['timesteps']))
+            self.model.set_t_full = RangeSet(1,len(topology.timesteps))
             m_config.presolve.clustered_data = 0
 
         def tec_node(set, node):
-            if node in self.model.set_nodes:
-                try:
-                    if sets['technologies']:
-                        return sets['technologies'][node]
-                    else:
-                        return Set.Skip
-                except (KeyError, ValueError):
-                    raise Exception('The nodes in the technology sets do not match the node names. The node \'', node,
-                          '\' does not exist.')
+            if self.data.technology_data:
+                return self.data.technology_data[node].keys()
+            else:
+                return Set.Skip
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=sets['networks'].keys())
+        self.model.set_networks = Set(initialize=self.data.network_data.keys())
 
         # DEFINE VARIABLES
         # Global cost variables
@@ -118,7 +113,7 @@ class EnergyHub:
         self.model = mc.add_energybalance(self.model)
 
         if m_config.presolve.clustered_data == 1:
-            occurrence_hour = self.data.specifications_time_resolution['factors']['factor'].to_numpy()
+            occurrence_hour = self.data.k_means_specs['factors']['factor'].to_numpy()
         else:
             occurrence_hour = np.ones(len(self.model.set_t))
 

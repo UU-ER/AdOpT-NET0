@@ -4,6 +4,8 @@ from src.energyhub import EnergyHub as ehub
 from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
+import src.model_construction as mc
+
 
 def test_initializer():
     data = dm.load_data_handle(r'./test/test_data/data_handle_test.p')
@@ -56,22 +58,25 @@ def test_model2():
     # Size of Furnace
     size_res = m.node_blocks['test_node1'].tech_blocks_active['Furnace_NG'].var_size.value
     size_should = max(data.node_data['test_node1']['demand']['heat']) / \
-                  data.technology_data['test_node1']['Furnace_NG']['fit']['heat']['alpha1']
+                  data.technology_data['test_node1']['Furnace_NG'].fitted_performance['heat']['alpha1']
     assert  round(size_res,3) == round(size_should,3)
     # Gas Import in each timestep
     import_res = [value(m.node_blocks['test_node1'].var_import_flow[key, 'gas'].value) for key in m.set_t]
     import_res = pd.Series(import_res)
     import_res = import_res.tolist()
-    import_should = data.node_data['test_node1']['demand']['heat'] / data.technology_data['test_node1']['Furnace_NG']['fit']['heat']['alpha1']
+    import_should = data.node_data['test_node1']['demand']['heat'] / data.technology_data['test_node1']['Furnace_NG'].fitted_performance['heat']['alpha1']
     import_should = import_should.tolist()
     assert [round(num,3) for num in import_res] == [round(num,3) for num in import_should]
     # Total cost
     cost_res = m.objective()
     import_price = data.node_data['test_node1']['import_prices']['gas'].tolist()
     import_cost = sum([i1 * i2 for i1, i2 in zip(import_price, import_res)])
-    capex = data.technology_data['test_node1']['Furnace_NG']['Economics']['unit_CAPEX_annual'] * size_res
-    opex_fix = capex * data.technology_data['test_node1']['Furnace_NG']['Economics']['OPEX_fixed']
-    opex_var = sum(import_res) * data.technology_data['test_node1']['Furnace_NG']['Economics']['OPEX_variable']
+    t = data.technology_data['test_node1']['Furnace_NG'].economics.lifetime
+    r = data.technology_data['test_node1']['Furnace_NG'].economics.discount_rate
+    a = mc.annualize(r,t)
+    capex = data.technology_data['test_node1']['Furnace_NG'].economics.capex_data['unit_capex'] * size_res * a
+    opex_fix = capex * data.technology_data['test_node1']['Furnace_NG'].economics.opex_fixed
+    opex_var = sum(import_res) * data.technology_data['test_node1']['Furnace_NG'].economics.opex_variable
     tec_cost = capex + opex_fix + opex_var
     cost_should = tec_cost + import_cost
     cost_error = abs(cost_should - cost_res) / cost_res
@@ -79,7 +84,7 @@ def test_model2():
     # Emissions
     net_emissions =  energyhub.model.var_emissions_net.value
     emissions_should = sum(import_res) * \
-                       data.technology_data['test_node1']['Furnace_NG']['TechnologyPerf']['emission_factor']
+                       data.technology_data['test_node1']['Furnace_NG'].performance_data['emission_factor']
     assert abs(emissions_should - net_emissions) / net_emissions <= 0.01
 
 def test_addtechnology():
@@ -91,7 +96,7 @@ def test_addtechnology():
     second solve should be cheaper
     """
     data = dm.load_data_handle(r'./test/test_data/addtechnology.p')
-    data.technology_data['test_node1']['WT_OS_6000']['TechnologyPerf']['curtailment'] = 0
+    data.technology_data['test_node1']['WT_OS_6000'].performance_data['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -130,10 +135,10 @@ def test_emission_balance1():
     electricity network in between
     """
     data = dm.load_data_handle(r'./test/test_data/emissionbalance1.p')
-    data.technology_data['onshore']['Furnace_NG']['TechnologyPerf']['performance_function_type'] = 1
-    data.technology_data['onshore']['Furnace_NG']['fit']['heat']['alpha1'] = 0.9
-    data.network_data['electricityTest']['NetworkPerf']['emissionfactor'] = 0.2
-    data.network_data['electricityTest']['NetworkPerf']['loss2emissions'] = 1
+    data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
+    data.technology_data['onshore']['Furnace_NG'].fitted_performance['heat']['alpha1'] = 0.9
+    data.network_data['electricityTest'].performance_data['emissionfactor'] = 0.2
+    data.network_data['electricityTest'].performance_data['loss2emissions'] = 1
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -153,12 +158,12 @@ def test_emission_balance1():
                    for t in energyhub.model.set_t) + \
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_flow[t].value
                    for t in energyhub.model.set_t)) * \
-                        data.network_data['electricityTest']['NetworkPerf']['emissionfactor']
+                        data.network_data['electricityTest'].performance_data['emissionfactor']
     emissionsLossNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore', 'offshore')].var_losses[t].value
                              for t in energyhub.model.set_t) + \
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_losses[t].value
                              for t in energyhub.model.set_t)) * \
-                        data.network_data['electricityTest']['NetworkPerf']['loss2emissions']
+                        data.network_data['electricityTest'].performance_data['loss2emissions']
     assert round(emissionsNETW) == round(emissionsFlowNETW + emissionsLossNETW)
     assert abs(emissionsNETW - 28) / 28 <= 0.01
 
@@ -184,7 +189,7 @@ def test_emission_balance2():
     """
     # Cost optimization
     data = dm.load_data_handle(r'./test/test_data/emissionbalance2.p')
-    data.technology_data['test_node1']['testCONV1_1']['TechnologyPerf']['emission_factor'] = 1
+    data.technology_data['test_node1']['testCONV1_1'].performance_data['emission_factor'] = 1
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -202,3 +207,4 @@ def test_emission_balance2():
 
     assert cost1 < cost2
     assert emissions1 > emissions2
+

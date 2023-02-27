@@ -1,5 +1,4 @@
 {
-  "Name": "heat",
   "Economics": {
     "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 3,
@@ -7,18 +6,22 @@
     "gamma2": 1.5601,
     "gamma3": 1000,
     "OPEX_variable": 1.6E-6,
-    "OPEX_fixed": 0.1
+    "OPEX_fixed": 0.1,
+    "discount_rate": 0.1,
+    "lifetime": 40,
+    "decommission_cost": 0
   },
   "NetworkPerf": {
     "carrier": "heat",
-    "size_min": 0,
-    "size_max": 1000,
-    "size_is_int": 0,
     "bidirectional": 0,
     "loss": 0.00015,
     "min_transport": 0,
     "loss2emissions": 0,
     "emissionfactor": 0,
     "energyconsumption": []
-  }
+  },
+  "size_min": 0,
+  "size_max": 1000,
+  "size_is_int": 0,
+  "decommission": 0
 }

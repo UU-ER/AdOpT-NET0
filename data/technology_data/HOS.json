@@ -1,10 +1,12 @@
 {
-  "Name": "HOS",
+  "size_min": 0,
+  "size_max": 100000,
+  "size_is_int": 0,
   "Economics": {
-    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 2313.52951599,
-    "piecewise_CAPEX_annual": {
+    "unit_CAPEX": 21000,
+    "piecewise_CAPEX": {
       "bp_x": [
         0,
         0.033,
@@ -13,16 +15,18 @@
       ],
       "bp_y": [
         0,
-        75.33292776,
-        5043.02062215,
-        1.2008423933473261E+8
+        683.8,
+        45775.7,
+        1.090009446E+9
       ]
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.03
+    "OPEX_fixed": 0.03,
+    "discount_rate": 0.1,
+    "lifetime": 25,
+    "decommission_cost": 0
   },
   "TechnologyPerf": {
-    "tec_type": "STOR",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "hydrogen"
@@ -31,18 +35,8 @@
     "output_carrier": [
       "hydrogen"
     ],
-    "size_min": [
-      0,
-      0.033,
-      3.333
-    ],
-    "size_max": [
-      0.033,
-      3.333,
-      100000
-    ],
-    "size_is_int": 0,
     "emission_factor": 0,
+    "allow_only_one_direction": 1,
     "performance": {
       "eta_in": 1,
       "eta_out": 1,
@@ -51,5 +45,7 @@
       "charge_max": 0.33333333333333331,
       "discharge_max": 0.33333333333333331
     }
-  }
+  },
+  "tec_type": "STOR",
+  "decommission": 0
 }

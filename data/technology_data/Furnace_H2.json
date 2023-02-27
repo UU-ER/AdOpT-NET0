@@ -1,26 +1,30 @@
 {
-  "Name": "Furnace_H2",
+  "size_min": 0,
+  "size_max": 500,
+  "size_is_int": 0,
   "Economics": {
-    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 2366.52798397,
-    "piecewise_CAPEX_annual": {
+    "unit_CAPEX": 18000,
+    "piecewise_CAPEX": {
       "bp_x": [
         0,
         50,
         500
       ],
       "bp_y": [
-        0.00015777,
-        84104.35355947,
-        488780.6388188
+        0.0012,
+        639704.4,
+        3.7177044E+6
       ]
     },
     "OPEX_variable": 0.1,
-    "OPEX_fixed": 0.09
+    "OPEX_fixed": 0.09,
+    "discount_rate": 0.1,
+    "lifetime": 15,
+    "decommission_cost": 0
   },
   "TechnologyPerf": {
-    "tec_type": "CONV2",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 2,
     "input_carrier": [
@@ -30,15 +34,6 @@
     "output_carrier": [
       "heat"
     ],
-    "size_min": [
-      0,
-      50
-    ],
-    "size_max": [
-      50,
-      500
-    ],
-    "size_is_int": 0,
     "emission_factor": 0,
     "min_part_load": 0.1,
     "performance": {
@@ -53,5 +48,7 @@
         ]
       }
     }
-  }
+  },
+  "tec_type": "CONV2",
+  "decommission": 0
 }

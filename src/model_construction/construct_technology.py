@@ -26,6 +26,9 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     - Type STOR: Storage technology (1 input -> 1 output). Constructed with \
       :func:`src.model_construction.generic_technology_constraints.constraints_tec_STOR`
 
+    The following description is true for new technologies. For existing technologies a few adaptions are made
+    (see below).
+
     **Set declarations:**
 
     - Set of input carriers
@@ -36,7 +39,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     - Min Size
     - Max Size
     - Output max (same as size max)
-    - Unit CAPEX
+    - Unit CAPEX (annualized from given data on up-front CAPEX, lifetime and discount rate)
     - Variable OPEX
     - Fixed OPEX
 
@@ -65,6 +68,13 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     .. math::
         OPEXfix_{tec} = CAPEX_{tec} * opex_{fix}
 
+    Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 1) or not (decommission = 0).
+    For technologies that cannot be decommissioned, the size is fixed to the size given in the technology data.
+    For technologies that can be decommissioned, the size can be smaller or equal to the initial size. Reducing the
+    size comes at the decommissioning costs specified in the economics of the technology.
+    The fixed opex is calculated by determining the capex that the technology would have costed if newly build and
+    then taking the respective opex_fixed share of this. This is done with the auxiliary variable var_capex_aux.
+
     :param str nodename: name of node for which technology is installed
     :param object b_node: pyomo block for respective node
     :param object model: pyomo model
@@ -73,97 +83,120 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     """
     def init_technology_block(b_tec, tec):
 
-        # Get options from data
+        # TECHNOLOGY DATA
         tec_data = data.technology_data[nodename][tec]
-        tec_type = tec_data['TechnologyPerf']['tec_type']
-        capex_model = tec_data['Economics']['CAPEX_model']
-        size_is_integer = tec_data['TechnologyPerf']['size_is_int']
+        technology_model = tec_data.technology_model
+        existing = tec_data.existing
+        decommission = tec_data.decommission
+        size_is_int = tec_data.size_is_int
+        size_min = tec_data.size_min
+        size_max = tec_data.size_max
+        economics = tec_data.economics
+        performance_data = tec_data.performance_data
+        if existing:
+            size_initial = tec_data.size_initial
+            size_max = size_initial
 
-        # PARAMETERS
-        # We need this shit because python does not accept single value in its build-in min function
-        if isinstance(tec_data['TechnologyPerf']['size_min'], numbers.Number):
-            size_min = tec_data['TechnologyPerf']['size_min']
-        else:
-            size_min = min(tec_data['TechnologyPerf']['size_min'])
-        if isinstance(tec_data['TechnologyPerf']['size_max'], numbers.Number):
-            size_max = tec_data['TechnologyPerf']['size_max']
-        else:
-            size_max = max(tec_data['TechnologyPerf']['size_max'])
-
-        if size_is_integer:
+        # SIZE
+        if size_is_int:
             unit_size = u.dimensionless
         else:
             unit_size = u.MW
         b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, units=unit_size)
         b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, units=unit_size)
-        b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=tec_data['Economics']['unit_CAPEX_annual'],
-                                      units=u.EUR/unit_size)
-        b_tec.para_OPEX_variable = Param(domain=Reals, initialize=tec_data['Economics']['OPEX_variable'],
-                                         units=u.EUR/u.MWh)
-        b_tec.para_OPEX_fixed = Param(domain=Reals, initialize=tec_data['Economics']['OPEX_fixed'],
-                                      units=u.EUR/u.EUR)
-        b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=tec_data['TechnologyPerf']['emission_factor'],
-                                      units=u.t/u.MWh)
 
-        # SETS
-        b_tec.set_input_carriers = Set(initialize=tec_data['TechnologyPerf']['input_carrier'])
-        b_tec.set_output_carriers = Set(initialize=tec_data['TechnologyPerf']['output_carrier'])
+        if existing:
+            b_tec.var_size_initial = Param(within=NonNegativeReals, initialize=size_initial, units=unit_size)
 
-        # DECISION VARIABLES
-        # Input
-        # TODO: if size is integer units do not work
-        output_bounds = calculate_output_bounds(tec_type, tec_data, size_max)
-        input_bounds = calculate_input_bounds(tec_type, tec_data, size_max)
-        if not tec_type == 'RES':
+        if existing and not decommission:
+            # Decommissioning is not possible, size fixed
+            b_tec.var_size = Param(within=NonNegativeReals, initialize=b_tec.var_size_initial, units=unit_size)
+        else:
+            # Decommissioning is possible, size variable
+            if size_is_int:
+                b_tec.var_size = Var(within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
+            else:
+                b_tec.var_size = Var(within=NonNegativeReals, bounds=(b_tec.para_size_min, b_tec.para_size_max),
+                                     units=u.MW)
+
+        # CAPEX auxilliary (used to calculate theoretical CAPEX)
+        # For new technologies, this is equal to actual CAPEX
+        # For existing technologies it is used to calculate fixed OPEX
+        b_tec.var_CAPEX_aux = Var(units=u.EUR)
+        annualization_factor = mc.annualize(economics.discount_rate, economics.lifetime)
+        if economics.capex_model == 1:
+            b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=economics.capex_data['unit_capex'],
+                                          units=u.EUR/unit_size)
+            b_tec.para_unit_CAPEX_annual = Param(domain=Reals,
+                                                 initialize= annualization_factor * economics.capex_data['unit_capex'],
+                                                 units=u.EUR/unit_size)
+            b_tec.const_CAPEX_aux = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX_annual == b_tec.var_CAPEX_aux)
+        elif economics.capex_model == 2:
+            b_tec.para_bp_x = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_x'],
+                                    units=unit_size)
+            b_tec.para_bp_y = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_y'],
+                                    units=u.EUR/unit_size)
+            b_tec.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
+                                                                    economics.capex_data['piecewise_capex']['bp_y'],
+                                           units=u.EUR/unit_size)
+            m_config.presolve.big_m_transformation_required = 1
+            b_tec.const_CAPEX_aux = Piecewise(b_tec.var_CAPEX_aux, b_tec.var_size,
+                                              pw_pts=b_tec.para_bp_x,
+                                              pw_constr_type='EQ',
+                                              f_rule=b_tec.para_bp_y,
+                                              pw_repn='SOS2')
+
+        # CAPEX
+        if existing and not decommission:
+            b_tec.var_CAPEX = Param(domain=Reals, initialize=0, units=u.EUR)
+        else:
+            b_tec.var_CAPEX = Var(units=u.EUR)
+            if existing:
+                b_tec.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost, units=u.EUR/unit_size)
+                b_tec.const_CAPEX = Constraint(expr= b_tec.var_CAPEX == (b_tec.var_size_initial - b_tec.var_size) * b_tec.para_decommissioning_cost)
+            else:
+                b_tec.const_CAPEX = Constraint(expr= b_tec.var_CAPEX == b_tec.var_CAPEX_aux)
+
+        # INPUT
+        b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
+        input_bounds = calculate_input_bounds(tec_data)
+        if not technology_model == 'RES':
             def init_input_bounds(bounds, t, car):
                 return input_bounds[car]
             b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=init_input_bounds, units=u.MW)
-        # Output
+
+        # OUTPUT
+        b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])
+        output_bounds = calculate_output_bounds(tec_data)
         def init_output_bounds(bounds, t, car):
             return output_bounds[car]
         b_tec.var_output = Var(model.set_t, b_tec.set_output_carriers, within=NonNegativeReals,
                                bounds=init_output_bounds, units=u.MW)
 
-        # Emissions
-        b_tec.var_tec_emissions_pos = Var(model.set_t, within=NonNegativeReals, units=u.t)
-        b_tec.var_tec_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
-
-        # Size
-        if size_is_integer:
-            b_tec.var_size = Var(within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
-        else:
-            b_tec.var_size = Var(within=NonNegativeReals, bounds=(b_tec.para_size_min, b_tec.para_size_max),
-                                 units=u.MW)
-
-        # Capex/Opex
-        b_tec.var_CAPEX = Var(units=u.EUR)
+        # VARIABLE OPEX
+        b_tec.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
+                                         units=u.EUR/u.MWh)
         b_tec.var_OPEX_variable = Var(model.set_t, units=u.EUR)
-        b_tec.var_OPEX_fixed = Var(units=u.EUR)
-
-        # GENERAL CONSTRAINTS
-        # Capex
-        if capex_model == 1:
-            b_tec.const_CAPEX = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX == b_tec.var_CAPEX)
-        elif capex_model == 2:
-            m_config.presolve.big_m_transformation_required = 1
-            # TODO Implement link between bps and data
-            b_tec.const_CAPEX = Piecewise(b_tec.var_CAPEX, b_tec.var_size,
-                                          pw_pts=bp_x,
-                                          pw_constr_type='EQ',
-                                          f_rule=bp_y,
-                                          pw_repn='SOS2')
-        # fixed Opex
-        b_tec.const_OPEX_fixed = Constraint(expr=b_tec.var_CAPEX * b_tec.para_OPEX_fixed == b_tec.var_OPEX_fixed)
-
-        # variable Opex
         def init_OPEX_variable(const, t):
             return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_OPEX_variable == \
                    b_tec.var_OPEX_variable[t]
         b_tec.const_OPEX_variable = Constraint(model.set_t, rule=init_OPEX_variable)
 
-        # Emissions
-        if tec_type == 'RES':
+        # FIXED OPEX
+        b_tec.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
+                                      units=u.EUR/u.EUR)
+        b_tec.var_OPEX_fixed = Var(units=u.EUR)
+        b_tec.const_OPEX_fixed = Constraint(expr=b_tec.var_CAPEX_aux * b_tec.para_OPEX_fixed == b_tec.var_OPEX_fixed)
+
+
+        # EMISSIONS
+        b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=performance_data['emission_factor'],
+                                              units=u.t/u.MWh)
+        b_tec.var_tec_emissions_pos = Var(model.set_t, within=NonNegativeReals, units=u.t)
+        b_tec.var_tec_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
+
+        if technology_model == 'RES':
             # Set emissions to zero
             def init_tec_emissions_pos_RES(const, t):
                 return b_tec.var_tec_emissions_pos[t] == 0
@@ -174,8 +207,8 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         else:
             # Calculate emissions from emission factor
             def init_tec_emissions_pos(const, t):
-                if tec_data['TechnologyPerf']['emission_factor'] >= 0:
-                    return b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] \
+                if performance_data['emission_factor'] >= 0:
+                    return b_tec.var_input[t, performance_data['main_input_carrier']] \
                            * b_tec.para_tec_emissionfactor \
                            == b_tec.var_tec_emissions_pos[t]
                 else:
@@ -183,29 +216,29 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             b_tec.const_tec_emissions = Constraint(model.set_t, rule=init_tec_emissions_pos)
 
             def init_tec_emissions_neg(const, t):
-                if tec_data['TechnologyPerf']['emission_factor'] < 0:
-                    return b_tec.var_input[t, tec_data['TechnologyPerf']['main_input_carrier']] \
-                           (-b_tec.para_tec_emissionfactor) == \
+                if performance_data['emission_factor'] < 0:
+                    return b_tec.var_input[t, performance_data['main_input_carrier']] \
+                               (-b_tec.para_tec_emissionfactor) == \
                            b_tec.var_tec_emissions_neg[t]
                 else:
                     return b_tec.var_tec_emissions_neg[t] == 0
             b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg)
 
 
-        # TECHNOLOGY TYPES
-        if tec_type == 'RES': # Renewable technology with cap_factor as input
+        # TECHNOLOGY PERFORMANCE
+        if technology_model == 'RES': # Renewable technology with cap_factor as input
             b_tec = constraints_tec_RES(model, b_tec, tec_data)
 
-        elif tec_type == 'CONV1': # n inputs -> n output, fuel and output substitution
+        elif technology_model == 'CONV1': # n inputs -> n output, fuel and output substitution
             b_tec = constraints_tec_CONV1(model, b_tec, tec_data)
 
-        elif tec_type == 'CONV2': # n inputs -> n output, fuel and output substitution
+        elif technology_model == 'CONV2': # n inputs -> n output, fuel and output substitution
             b_tec = constraints_tec_CONV2(model, b_tec, tec_data)
 
-        elif tec_type == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
+        elif technology_model == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
             b_tec = constraints_tec_CONV3(model, b_tec, tec_data)
 
-        elif tec_type == 'STOR': # Storage technology (1 input -> 1 output)
+        elif technology_model == 'STOR': # Storage technology (1 input -> 1 output)
             if m_config.presolve.clustered_data == 1:
                 hourly_order_time_slices = data.specifications_time_resolution['keys']['hourly_order']
             else:
@@ -248,86 +281,98 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
 
 
-def calculate_input_bounds(tec_type, tec_data, max_size):
+def calculate_input_bounds(tec_data):
+    """
+    Calculates bounds for technology inputs for each input carrier
+    """
+    technology_model = tec_data.technology_model
+    size_max = tec_data.size_max
+    performance_data = tec_data.performance_data
+
     bounds = {}
-    performance_data = tec_data['TechnologyPerf']
-    if tec_type == 'CONV3':
+    if technology_model == 'CONV3':
         main_car = performance_data['main_input_carrier']
-        for c in tec_data['TechnologyPerf']['input_carrier']:
+        for c in performance_data['input_carrier']:
             if c == main_car:
-                bounds[c] = (0, max_size)
+                bounds[c] = (0, size_max)
             else:
-                bounds[c] = (0, max_size * performance_data['input_ratios'][c])
+                bounds[c] = (0, size_max * performance_data['input_ratios'][c])
     else:
-        for c in tec_data['TechnologyPerf']['input_carrier']:
-            bounds[c] = (0, max_size)
+        for c in performance_data['input_carrier']:
+            bounds[c] = (0, size_max)
     return bounds
 
-def calculate_output_bounds(tec_type, tec_data, max_size):
-    tec_fit = tec_data['fit']
+def calculate_output_bounds(tec_data):
+    """
+    Calculates bounds for technology outputs for each input carrier
+    """
+    technology_model = tec_data.technology_model
+    size_is_int = tec_data.size_is_int
+    size_max = tec_data.size_max
+    performance_data = tec_data.performance_data
+    fitted_performance = tec_data.fitted_performance
+    if size_is_int:
+        rated_power = fitted_performance['rated_power']
+    else:
+        rated_power = 1
+
     bounds = {}
 
-    if tec_type == 'RES':  # Renewable technology with cap_factor as input
-        if tec_data['TechnologyPerf']['size_is_int']:
-            rated_power = tec_fit['rated_power']
-        else:
-            rated_power = 1
-        cap_factor = tec_fit['capacity_factor']
-        for c in tec_data['TechnologyPerf']['output_carrier']:
-            max_bound = float(max_size * max(cap_factor) * rated_power)
+    if technology_model == 'RES':  # Renewable technology with cap_factor as input
+        cap_factor = fitted_performance['capacity_factor']
+        for c in performance_data['output_carrier']:
+            max_bound = float(size_max * max(cap_factor) * rated_power)
             bounds[c] = (0, max_bound)
 
-    elif tec_type == 'CONV1':  # n inputs -> n output, fuel and output substitution
-        performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
-        alpha1 = tec_fit['out']['alpha1']
-        for c in tec_data['TechnologyPerf']['output_carrier']:
+    elif technology_model == 'CONV1':  # n inputs -> n output, fuel and output substitution
+        performance_function_type = performance_data['performance_function_type']
+        alpha1 = fitted_performance['out']['alpha1']
+        for c in performance_data['output_carrier']:
             if performance_function_type == 1:
-                max_bound = max_size * alpha1
+                max_bound = size_max * alpha1 * rated_power
             if performance_function_type == 2:
-                alpha2 = tec_fit['out']['alpha2']
-                max_bound = max_size * (alpha1 + alpha2)
+                alpha2 = fitted_performance['out']['alpha2']
+                max_bound = size_max * (alpha1 + alpha2) * rated_power
             if performance_function_type == 3:
-                alpha2 = tec_fit['out']['alpha2']
-                max_bound = max_size * (alpha1[-1] + alpha2[-1])
+                alpha2 = fitted_performance['out']['alpha2']
+                max_bound = size_max * (alpha1[-1] + alpha2[-1]) * rated_power
             bounds[c] = (0, max_bound)
 
-    elif tec_type == 'CONV2':  # n inputs -> n output, fuel and output substitution
+    elif technology_model == 'CONV2':  # n inputs -> n output, fuel and output substitution
         alpha1 = {}
         alpha2 = {}
-        performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
-        performance_data = tec_data['TechnologyPerf']
+        performance_function_type = performance_data['performance_function_type']
         for c in performance_data['performance']['out']:
-            alpha1[c] = tec_fit[c]['alpha1']
+            alpha1[c] = fitted_performance[c]['alpha1']
             if performance_function_type == 1:
-                max_bound = alpha1[c] * max_size
+                max_bound = alpha1[c] * size_max * rated_power
             if performance_function_type == 2:
-                alpha2[c] = tec_fit[c]['alpha2']
-                max_bound = max_size * (alpha1[c] + alpha2[c])
+                alpha2[c] = fitted_performance[c]['alpha2']
+                max_bound = size_max * (alpha1[c] + alpha2[c]) * rated_power
             if performance_function_type == 3:
-                alpha2[c] = tec_fit[c]['alpha2']
-                max_bound = max_size * (alpha1[c][-1] + alpha2[c][-1])
+                alpha2[c] = fitted_performance[c]['alpha2']
+                max_bound = size_max * (alpha1[c][-1] + alpha2[c][-1]) * rated_power
             bounds[c] = (0, max_bound)
 
-    elif tec_type == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
+    elif technology_model == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
         alpha1 = {}
         alpha2 = {}
-        performance_function_type = tec_data['TechnologyPerf']['performance_function_type']
-        performance_data = tec_data['TechnologyPerf']
+        performance_function_type = performance_data['performance_function_type']
         # Get performance parameters
         for c in performance_data['performance']['out']:
-            alpha1[c] = tec_fit[c]['alpha1']
+            alpha1[c] = fitted_performance[c]['alpha1']
             if performance_function_type == 1:
-                max_bound = alpha1[c] * max_size
+                max_bound = alpha1[c] * size_max * rated_power
             if performance_function_type == 2:
-                alpha2[c] = tec_fit[c]['alpha2']
-                max_bound = max_size * (alpha1[c] + alpha2[c])
+                alpha2[c] = fitted_performance[c]['alpha2']
+                max_bound = size_max * (alpha1[c] + alpha2[c]) * rated_power
             if performance_function_type == 3:
-                alpha2[c] = tec_fit[c]['alpha2']
-                max_bound = max_size * (alpha1[c][-1] + alpha2[c][-1])
+                alpha2[c] = fitted_performance[c]['alpha2']
+                max_bound = size_max * (alpha1[c][-1] + alpha2[c][-1]) * rated_power
             bounds[c] = (0, max_bound)
 
-    elif tec_type == 'STOR':  # Storage technology (1 input -> 1 output)
-        for c in tec_data['TechnologyPerf']['output_carrier']:
-            bounds[c] = (0, max_size)
+    elif technology_model == 'STOR':  # Storage technology (1 input -> 1 output)
+        for c in performance_data['output_carrier']:
+            bounds[c] = (0, size_max)
 
     return bounds

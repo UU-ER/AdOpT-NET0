@@ -97,7 +97,7 @@ class ResultsHandle:
         net_emissions = m.var_emissions_net.value
         positive_emissions = m.var_emissions_pos.value
         negative_emissions = m.var_emissions_neg.value
-        from_technologies = sum(sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_tec_emissions[t].value *
+        from_technologies = sum(sum(sum(m.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t].value *
                                         occurrence_hour[t - 1]
                                         for t in m.set_t)
                                     for tec in m.node_blocks[node].set_tecsAtNode)
@@ -107,13 +107,13 @@ class ResultsHandle:
                                         for t in m.set_t)
                                     for tec in m.node_blocks[node].set_tecsAtNode)
                                 for node in m.set_nodes)
-        from_carriers = sum(sum(m.node_blocks[node].var_car_emissions[t].value * occurrence_hour[t - 1]
+        from_carriers = sum(sum(m.node_blocks[node].var_car_emissions_pos[t].value * occurrence_hour[t - 1]
                                 for t in m.set_t)
                             for node in m.set_nodes) - \
                         sum(sum(m.node_blocks[node].var_car_emissions_neg[t].value * occurrence_hour[t - 1]
                                 for t in m.set_t)
                             for node in m.set_nodes)
-        from_networks = sum(sum(m.network_block[netw].var_netw_emissions[t].value * occurrence_hour[t - 1]
+        from_networks = sum(sum(m.network_block[netw].var_netw_emissions_pos[t].value * occurrence_hour[t - 1]
                                 for t in m.set_t)
                             for netw in m.set_networks)
         self.emissions.loc[len(self.emissions.index)] = \
@@ -169,14 +169,14 @@ class ResultsHandle:
                                                                             ])
                 node_data = m.node_blocks[node_name]
                 self.energybalance[car][node_name]['Technology_inputs'] = \
-                    [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
-                         for tec in node_data.set_tecsAtNode
-                         if car in node_data.tech_blocks_active[tec].set_output_carriers)
-                     for t in m.set_t]
-                self.energybalance[car][node_name]['Technology_outputs'] = \
                     [sum(node_data.tech_blocks_active[tec].var_input[t, car].value
                          for tec in node_data.set_tecsAtNode
                          if car in node_data.tech_blocks_active[tec].set_input_carriers)
+                     for t in m.set_t]
+                self.energybalance[car][node_name]['Technology_outputs'] = \
+                    [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
+                         for tec in node_data.set_tecsAtNode
+                         if car in node_data.tech_blocks_active[tec].set_output_carriers)
                      for t in m.set_t]
                 self.energybalance[car][node_name]['Network_inflow'] = \
                     [node_data.var_netw_inflow[t, car].value for t in m.set_t]
@@ -197,9 +197,9 @@ class ResultsHandle:
             self.detailed_results.nodes[node_name] = {}
             for tec_name in node_data.set_tecsAtNode:
                 tec_data = node_data.tech_blocks_active[tec_name]
-                tec_type = energyhub.data.technology_data[node_name][tec_name]['TechnologyPerf']['tec_type']
+                technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
-                if tec_type == 'STOR':
+                if technology_model == 'STOR':
                     time_set = m.set_t_full
                     if tec_data.find_component('var_input'):
                         input = tec_data.var_input_full_resolution
@@ -209,7 +209,7 @@ class ResultsHandle:
                     time_set = m.set_t
                     if tec_data.find_component('var_input'):
                         input = tec_data.var_input
-                        output = tec_data.var_output
+                    output = tec_data.var_output
 
                 df = pd.DataFrame()
 

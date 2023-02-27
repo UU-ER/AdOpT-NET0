@@ -1,10 +1,6 @@
-import pytest
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
-from pyomo.environ import units as u
-from pyomo.environ import *
-import pandas as pd
-import src.config_model as m_config
+
 
 def test_networks():
     """
@@ -14,8 +10,8 @@ def test_networks():
     """
     # Test bidirectional
     data = dm.load_data_handle(r'./test/test_data/networks.p')
-    data.network_data['hydrogenTest']['NetworkPerf']['bidirectional'] = 1
-    data.network_data['hydrogenTest']['EnergyConsumption'] = {}
+    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
+    data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub1 = ehub(data)
     energyhub1.construct_model()
     energyhub1.construct_balances()
@@ -33,8 +29,8 @@ def test_networks():
 
     # Test no bidirectional
     data = dm.load_data_handle(r'./test/test_data/networks.p')
-    data.network_data['hydrogenTest']['NetworkPerf']['bidirectional'] = 0
-    data.network_data['hydrogenTest']['EnergyConsumption'] = {}
+    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
+    data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub2 = ehub(data)
     energyhub2.construct_model()
     energyhub2.construct_balances()
@@ -48,7 +44,7 @@ def test_networks():
 
     # Test consumption at node
     data = dm.load_data_handle(r'./test/test_data/networks.p')
-    data.network_data['hydrogenTest']['NetworkPerf']['bidirectional'] = 0
+    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     energyhub3 = ehub(data)
     energyhub3.construct_model()
     energyhub3.construct_balances()
@@ -72,3 +68,39 @@ def test_networks():
 
     # does bidirectional produce double costs?
     assert abs(cost2 / cost1 - 2) <= 0.001
+
+def test_existing_networks():
+    def run_ehub(data):
+        energyhub = ehub(data)
+        energyhub.construct_model()
+        energyhub.construct_balances()
+        energyhub.solve_model()
+        return energyhub
+
+    data_save_path1 = './test/test_data/existing_netw1.p'
+    data_save_path2 = './test/test_data/existing_netw2.p'
+    data_save_path3 = './test/test_data/existing_netw3.p'
+    data_save_path4 = './test/test_data/existing_netw4.p'
+
+    data1 = dm.load_data_handle(data_save_path1)
+    ehub1 = run_ehub(data1)
+    cost1 = ehub1.model.var_total_cost.value
+    assert ehub1.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+
+    data2 = dm.load_data_handle(data_save_path2)
+    ehub2 = run_ehub(data2)
+    cost2 = ehub2.model.var_total_cost.value
+    assert ehub2.solution.solver.termination_condition == 'optimal'
+
+    data3 = dm.load_data_handle(data_save_path3)
+    ehub3 = run_ehub(data3)
+    cost3 = ehub3.model.var_total_cost.value
+    assert ehub3.solution.solver.termination_condition == 'optimal'
+
+    data4 = dm.load_data_handle(data_save_path4)
+    ehub4 = run_ehub(data4)
+    cost4 = ehub4.model.var_total_cost.value
+    assert ehub4.solution.solver.termination_condition == 'optimal'
+
+    assert cost2 > cost3
+    assert cost3 > cost4

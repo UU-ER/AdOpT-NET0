@@ -1,10 +1,12 @@
 {
-  "Name": "PCM",
+  "size_min": 0,
+  "size_max": 280,
+  "size_is_int": 0,
   "Economics": {
-    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX_annual": 6573.68884437,
-    "piecewise_CAPEX_annual": {
+    "unit_CAPEX": 50000,
+    "piecewise_CAPEX": {
       "bp_x": [
         0,
         28,
@@ -13,16 +15,18 @@
       ],
       "bp_y": [
         0,
-        290539.62664565,
-        928553.59901804,
-        1.95158392542291E+6
+        2.2098675E+6,
+        7.0626525E+6,
+        1.48439025E+7
       ]
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.03
+    "OPEX_fixed": 0.03,
+    "discount_rate": 0.1,
+    "lifetime": 15,
+    "decommission_cost": 0
   },
   "TechnologyPerf": {
-    "tec_type": "STOR",
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "heat"
@@ -31,18 +35,8 @@
     "output_carrier": [
       "heat"
     ],
-    "size_min": [
-      0,
-      28,
-      114
-    ],
-    "size_max": [
-      28,
-      114,
-      280
-    ],
-    "size_is_int": 0,
     "emission_factor": 0,
+    "allow_only_one_direction": 1,
     "performance": {
       "eta_in": 0.95,
       "eta_out": 0.95,
@@ -51,5 +45,7 @@
       "charge_max": 0.2,
       "discharge_max": 0.2
     }
-  }
+  },
+  "tec_type": "STOR",
+  "decommission": 0
 }

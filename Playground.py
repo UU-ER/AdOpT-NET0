@@ -11,9 +11,9 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 
 
-from src.data_management.fit_technology_performance import fit_piecewise_function
+from src.data_management.components.fit_technology_performance import fit_piecewise_function
 
-execute = 1
+execute = 0
 if execute == 1:
     data = dm.load_data_handle(r'./test/test_data/emissionbalance1.p')
     data.technology_data['onshore']['Furnace_NG']['TechnologyPerf']['performance_function_type'] = 1

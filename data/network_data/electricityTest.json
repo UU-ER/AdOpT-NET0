@@ -1,18 +1,21 @@
 {
-  "Name": "electricityOnshore",
+  "size_min": 0,
+  "size_max": 10000,
+  "size_is_int": 0,
+  "decommission": 0,
   "Economics": {
     "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 2,
     "gamma1": 1,
     "gamma2": 1000,
     "OPEX_variable": 0,
-    "OPEX_fixed": 0
+    "OPEX_fixed": 0,
+    "discount_rate": 0,
+    "lifetime": 1,
+    "decommission_cost": 0
   },
   "NetworkPerf": {
     "carrier": "electricity",
-    "size_min": 0,
-    "size_max": 10000,
-    "size_is_int": 0,
     "bidirectional": 1,
     "loss": 0.5,
     "min_transport": 0,
