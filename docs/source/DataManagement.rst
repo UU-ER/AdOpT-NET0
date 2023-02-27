@@ -45,6 +45,9 @@ Fist, we create an empty topology and fill it with a system design. Hereby note:
 It is also possible to add a technology that exists already at a certain size to a node. Note, that you need to
 pass the technology as a dictonary with the respective size instead of a simple list. You can specify if these technologies
 can be decommissioned and at what cost in the respective json data file.
+Similarly, it is possible to add an existing network to the model. See the
+:ref:`System Topology Documentation <data-management-system_topology>` for more details.
+
 
 .. testcode::
 
