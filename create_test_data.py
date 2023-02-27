@@ -539,7 +539,7 @@ def create_data_existing_technologies():
         data = dm.DataHandle(topology)
 
         # CLIMATE DATA
-        data.read_climate_data_from_file('test_node1', r'.\data\climate_data_onshore.txt')
+        data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
 
         # DEMAND
         demand = np.ones(len(topology.timesteps)) * 10
