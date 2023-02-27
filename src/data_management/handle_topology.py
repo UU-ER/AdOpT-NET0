@@ -95,7 +95,7 @@ class SystemTopology:
         """
         Defines network that can be constructed in the analysis
 
-        All available networks are in .\data\network_data. Empty connection and distance matrices can be generated
+        All available networks are in ./data/network_data. Empty connection and distance matrices can be generated
         with  :func:`~src.data_management.handle_topology.create_empty_network_matrix`. The resulting matrices can then
         be changed with distance_matrix.at['onshore', 'offshore'] = 100.
 
@@ -111,7 +111,7 @@ class SystemTopology:
         """
         Defines an existing network
 
-        All available networks are in .\data\network_data. Empty size and distance matrices can be generated
+        All available networks are in ./data/network_data. Empty size and distance matrices can be generated
         with  :func:`~src.data_management.handle_topology.create_empty_network_matrix`. The resulting matrices can then
         be changed with distance_matrix.at['onshore', 'offshore'] = 100.
 
@@ -119,10 +119,12 @@ class SystemTopology:
         :param pd size: pandas dataframe with size of network
         :param pd distance: distance matrix between nodes (in km)
         """
-        self.networks_new[network] = {}
-        self.networks_new[network]['size'] = size
-        self.networks_new[network]['distance'] = distance
-
+        self.networks_existing[network] = {}
+        self.networks_existing[network]['size'] = size
+        self.networks_existing[network]['distance'] = distance
+        connection = size.copy(deep=True)
+        connection[connection > 0] = 1
+        self.networks_existing[network]['connection'] = connection
 
 def create_empty_network_matrix(nodes):
     """

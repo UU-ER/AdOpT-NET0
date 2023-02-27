@@ -1,15 +1,6 @@
-import src.data_management as dm
-import pandas as pd
 import numpy as np
-import sys
-
-
-# REMOVE THIS
-import pytest
+import copy
 import src.data_management as dm
-from src.energyhub import EnergyHub as ehub
-from pyomo.environ import units as u
-from pyomo.environ import *
 
 
 def create_data_test_data_handle():
@@ -587,6 +578,71 @@ def create_data_existing_technologies():
     data3.save(data_save_path3)
     data3.technology_data
 
+def create_data_existing_networks():
+    def create_topology():
+        topology = dm.SystemTopology()
+        topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+        topology.define_carriers(['electricity'])
+        topology.define_nodes(['test_node1', 'test_node2'])
+        return topology
+
+    def create_data(topology):
+        # Initialize instance of DataHandle
+        data = dm.DataHandle(topology)
+
+        # CLIMATE DATA
+        data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+        data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
+
+        # DEMAND
+        demand = np.ones(len(topology.timesteps)) * 10
+        data.read_demand_data('test_node1', 'electricity', demand)
+
+        # IMPORT/EXPORT LIMITS
+        import_lim = np.ones(len(topology.timesteps)) * 100
+        data.read_import_limit_data('test_node2', 'electricity', import_lim)
+
+        # READ TECHNOLOGY AND NETWORK DATA
+        data.read_technology_data()
+        data.read_network_data()
+        return data
+
+    topology1 = create_topology()
+
+    topology2 = create_topology()
+    distance = dm.create_empty_network_matrix(topology1.nodes)
+    distance.at['test_node1', 'test_node2'] = 1
+    distance.at['test_node2', 'test_node1'] = 1
+    connection = dm.create_empty_network_matrix(topology1.nodes)
+    connection.at['test_node1', 'test_node2'] = 1
+    connection.at['test_node2', 'test_node1'] = 1
+    topology2.define_new_network('electricityTest', distance=distance, connections=connection)
+
+    topology3 = create_topology()
+    size_initial = dm.create_empty_network_matrix(topology1.nodes)
+    size_initial.at['test_node1', 'test_node2'] = 100
+    size_initial.at['test_node2', 'test_node1'] = 100
+    topology3.define_existing_network('electricityTest', size=size_initial, distance=distance)
+
+    data1 = create_data(topology1)
+    data2 = create_data(topology2)
+    data2.network_data['electricityTest'].economics.opex_fixed = 1
+    data3 = create_data(topology3)
+    data3.network_data['electricityTest_existing'].economics.opex_fixed = 1
+    data4 = copy.deepcopy(data3)
+    data4.network_data['electricityTest_existing'].decommission = 1
+
+    data_save_path1 = './test/test_data/existing_netw1.p'
+    data_save_path2 = './test/test_data/existing_netw2.p'
+    data_save_path3 = './test/test_data/existing_netw3.p'
+    data_save_path4 = './test/test_data/existing_netw4.p'
+
+    data1.save(data_save_path1)
+    data2.save(data_save_path2)
+    data3.save(data_save_path3)
+    data4.save(data_save_path4)
+
+
 
 create_data_test_data_handle()
 create_data_model1()
@@ -601,5 +657,6 @@ create_data_addtechnology()
 create_data_technologySTOR()
 create_data_k_means()
 create_data_existing_technologies()
+create_data_existing_networks()
 
 

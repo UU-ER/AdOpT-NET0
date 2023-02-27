@@ -444,3 +444,22 @@ def test_technology_CONV3():
     energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+
+def test_existing_technologies():
+    def run_ehub(data):
+        energyhub = ehub(data)
+        energyhub.construct_model()
+        energyhub.construct_balances()
+        energyhub.solve_model()
+        assert energyhub.solution.solver.termination_condition == 'optimal'
+        cost = energyhub.model.var_total_cost.value
+        return cost
+
+    data = dm.load_data_handle(r'./test/test_data/existing_tecs1.p')
+    cost1 = run_ehub(data)
+    data = dm.load_data_handle(r'./test/test_data/existing_tecs2.p')
+    cost2 = run_ehub(data)
+    data = dm.load_data_handle(r'./test/test_data/existing_tecs3.p')
+    cost3 = run_ehub(data)
+    assert cost3<cost2
+    assert cost2<cost1
