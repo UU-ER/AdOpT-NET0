@@ -55,7 +55,7 @@ class ResultsHandle:
         m = energyhub.model
 
         if m_config.presolve.clustered_data == 1:
-            occurrence_hour = energyhub.data.specifications_time_resolution['factors']['factor'].to_numpy()
+            occurrence_hour = energyhub.data.averaged_specs['factors']['factor'].to_numpy()
         else:
             occurrence_hour = np.ones(len(m.set_t))
 
@@ -200,7 +200,10 @@ class ResultsHandle:
                 technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
                 if technology_model == 'STOR':
-                    time_set = m.set_t_full
+                    if m_config.presolve.clustered_data:
+                        time_set = tec_data.set_t_full
+                    else:
+                        time_set = m.set_t
                     if tec_data.find_component('var_input'):
                         input = tec_data.var_input_full_resolution
                         output = tec_data.var_output_full_resolution

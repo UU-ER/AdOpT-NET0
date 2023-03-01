@@ -611,7 +611,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices):
+def constraints_tec_STOR(model, b_tec, tec_data, hourly_order):
     """
     Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
@@ -677,14 +677,24 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices):
     else:
         allow_only_one_direction = 0
 
+    if m_config.presolve.clustered_data:
+        # Clustered
+        b_tec.set_t_full = RangeSet(1, len(model.data.k_means_specs.full_resolution))
+        set_t = b_tec.set_t_full
+    else:
+        # Full resolution
+        set_t = model.set_t
+
+    nr_timesteps_averaged = m_config.presolve.averaged_data_specs.nr_timesteps_averaged
+
     # Additional decision variables
-    b_tec.var_storage_level = Var(model.set_t_full, b_tec.set_input_carriers,
+    b_tec.var_storage_level = Var(set_t, b_tec.set_input_carriers,
                                   domain=NonNegativeReals)
-    b_tec.var_input_full_resolution = Var(model.set_t_full, b_tec.set_input_carriers,
+    b_tec.var_input_full_resolution = Var(set_t, b_tec.set_input_carriers,
                                           within=NonNegativeReals,
                                           bounds=(b_tec.para_size_min, b_tec.para_size_max),
                                           units=u.MW)
-    b_tec.var_output_full_resolution = Var(model.set_t_full, b_tec.set_output_carriers,
+    b_tec.var_output_full_resolution = Var(set_t, b_tec.set_output_carriers,
                                            within=NonNegativeReals,
                                            bounds=(b_tec.para_size_min, b_tec.para_size_max),
                                            units=u.MW)
@@ -696,43 +706,44 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices):
     b_tec.para_charge_max = Param(domain=NonNegativeReals, initialize=fitted_performance['charge_max'])
     b_tec.para_discharge_max = Param(domain=NonNegativeReals, initialize=fitted_performance['discharge_max'])
     def init_ambient_loss_factor(para, t):
-        return fitted_performance['ambient_loss_factor'].values[hourly_order_time_slices[t-1] - 1]
-    b_tec.para_ambient_loss_factor = Param(model.set_t_full, domain=NonNegativeReals, rule=init_ambient_loss_factor)
+        return fitted_performance['ambient_loss_factor'][hourly_order[t - 1] - 1]
+    b_tec.para_ambient_loss_factor = Param(set_t, domain=NonNegativeReals, rule=init_ambient_loss_factor)
 
     # Size constraint
     def init_size_constraint(const, t, car):
         return b_tec.var_storage_level[t, car] <= b_tec.var_size
-    b_tec.const_size = Constraint(model.set_t_full, b_tec.set_input_carriers, rule=init_size_constraint)
+    b_tec.const_size = Constraint(set_t, b_tec.set_input_carriers, rule=init_size_constraint)
 
     # Link clustered data with full resolution
     def init_link_full_resolution_input(const, t, car):
         return b_tec.var_input_full_resolution[t, car] \
-               == b_tec.var_input[hourly_order_time_slices[t-1], car]
-    b_tec.const_link_full_resolution_input = Constraint(model.set_t_full, b_tec.set_input_carriers,
+               == b_tec.var_input[hourly_order[t - 1], car]
+    b_tec.const_link_full_resolution_input = Constraint(set_t, b_tec.set_input_carriers,
                                                         rule=init_link_full_resolution_input)
 
     def init_link_full_resolution_output(const, t, car):
         return b_tec.var_output_full_resolution[t, car] \
-               == b_tec.var_output[hourly_order_time_slices[t-1], car]
-    b_tec.const_link_full_resolution_output = Constraint(model.set_t_full, b_tec.set_output_carriers,
+               == b_tec.var_output[hourly_order[t - 1], car]
+    b_tec.const_link_full_resolution_output = Constraint(set_t, b_tec.set_output_carriers,
                                                         rule=init_link_full_resolution_output)
 
     # Storage level calculation
     def init_storage_level(const, t, car):
         if t == 1: # couple first and last time interval
             return b_tec.var_storage_level[t, car] == \
-                  b_tec.var_storage_level[max(model.set_t_full), car] * (1 - b_tec.para_eta_lambda) - \
-                  b_tec.para_ambient_loss_factor[max(model.set_t_full)] * b_tec.var_storage_level[max(model.set_t_full), car] + \
-                  b_tec.para_eta_in * b_tec.var_input_full_resolution[t, car] - \
-                  1 / b_tec.para_eta_out * b_tec.var_output_full_resolution[t, car]
+                  b_tec.var_storage_level[max(set_t), car] * (1 - b_tec.para_eta_lambda) ** nr_timesteps_averaged - \
+                  b_tec.var_storage_level[max(set_t), car] * b_tec.para_ambient_loss_factor[max(set_t)] ** nr_timesteps_averaged + \
+                  (b_tec.para_eta_in * b_tec.var_input_full_resolution[t, car] - \
+                  1 / b_tec.para_eta_out * b_tec.var_output_full_resolution[t, car]) * \
+                  sum((1 - b_tec.para_eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
         else: # all other time intervalls
             return b_tec.var_storage_level[t, car] == \
-                b_tec.var_storage_level[t-1, car] * (1 - b_tec.para_eta_lambda) - \
-                b_tec.para_ambient_loss_factor[t] * b_tec.var_storage_level[t-1, car] + \
-                b_tec.para_eta_in * b_tec.var_input_full_resolution[t, car] - \
-                1/b_tec.para_eta_out * b_tec.var_output_full_resolution[t, car]
-    b_tec.const_storage_level = Constraint(model.set_t_full, b_tec.set_input_carriers, rule=init_storage_level)
-
+                b_tec.var_storage_level[t-1, car] * (1 - b_tec.para_eta_lambda) ** nr_timesteps_averaged - \
+                b_tec.para_ambient_loss_factor[t] * b_tec.para_ambient_loss_factor[max(set_t)] ** nr_timesteps_averaged + \
+                (b_tec.para_eta_in * b_tec.var_input_full_resolution[t, car] - \
+                1/b_tec.para_eta_out * b_tec.var_output_full_resolution[t, car]) * \
+                sum((1 - b_tec.para_eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
+    b_tec.const_storage_level = Constraint(set_t, b_tec.set_input_carriers, rule=init_storage_level)
 
     # This makes sure that only either input or output is larger zero.
     if allow_only_one_direction == 1:
@@ -750,20 +761,20 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices):
                     return b_tec.var_input_full_resolution[t, car_input] == 0
                 dis.const_input_to_zero = Constraint(b_tec.set_input_carriers, rule=init_input_to_zero)
 
-        b_tec.dis_input_output = Disjunct(model.set_t_full, s_indicators, rule=init_input_output)
+        b_tec.dis_input_output = Disjunct(set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
-        b_tec.disjunction_input_output = Disjunction(model.set_t_full, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
     # Maximal charging and discharging rates
     def init_maximal_charge(const,t,car):
         return b_tec.var_input_full_resolution[t, car] <= b_tec.para_charge_max * b_tec.var_size
-    b_tec.const_max_charge = Constraint(model.set_t_full, b_tec.set_input_carriers, rule=init_maximal_charge)
+    b_tec.const_max_charge = Constraint(set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
 
     def init_maximal_discharge(const,t,car):
         return b_tec.var_output_full_resolution[t, car] <= b_tec.para_discharge_max * b_tec.var_size
-    b_tec.const_max_discharge = Constraint(model.set_t_full, b_tec.set_input_carriers, rule=init_maximal_discharge)
+    b_tec.const_max_discharge = Constraint(set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
 
     return b_tec

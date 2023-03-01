@@ -13,9 +13,15 @@ from src.energyhub import EnergyHub
 
 from src.data_management.components.fit_technology_performance import fit_piecewise_function
 
+
+data = dm.load_object(r'./test/test_data/k_means.p')
+clustered_data = dm.ClusteredDataHandle(data)
+nr_days_cluster = 40
+clustered_data.cluster_data(nr_days_cluster)
+
 execute = 0
 if execute == 1:
-    data = dm.load_data_handle(r'./test/test_data/emissionbalance1.p')
+    data = dm.load_object(r'./test/test_data/emissionbalance1.p')
     data.technology_data['onshore']['Furnace_NG']['TechnologyPerf']['performance_function_type'] = 1
     data.technology_data['onshore']['Furnace_NG']['fit']['heat']['alpha1'] = 0.9
     data.network_data['electricityTest']['NetworkPerf']['emissionfactor'] = 0.2

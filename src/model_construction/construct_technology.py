@@ -240,10 +240,10 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         elif technology_model == 'STOR': # Storage technology (1 input -> 1 output)
             if m_config.presolve.clustered_data == 1:
-                hourly_order_time_slices = data.specifications_time_resolution['keys']['hourly_order']
+                hourly_order = data.k_means_specs.full_resolution['hourly_order']
             else:
-                hourly_order_time_slices = np.arange(1, len(model.set_t)+1)
-            b_tec = constraints_tec_STOR(model, b_tec, tec_data, hourly_order_time_slices)
+                hourly_order = np.arange(1, len(model.set_t)+1)
+            b_tec = constraints_tec_STOR(model, b_tec, tec_data, hourly_order)
 
         if m_config.presolve.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)

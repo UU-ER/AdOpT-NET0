@@ -1,7 +1,6 @@
 import src.data_management as dm
 import src.data_management.components as comp
 
-import pickle
 import pandas as pd
 from sklearn.cluster import KMeans
 import copy
@@ -72,11 +71,15 @@ class DataHandle:
         elif dataset == 'ERA5':
             data = dm.import_era5_climate_data(lon, lat, year)
 
+        # Match with timesteps
+        data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
+
+        # Save
         if not save_path==0:
-            with open(save_path, 'wb') as handle:
-                pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            dm.save_object(data, save_path)
 
         self.node_data[node]['climate_data'] = data
+
 
     def read_climate_data_from_file(self, node, file):
         """
@@ -89,9 +92,7 @@ class DataHandle:
         :param str file: path of climate data file
         :return: self at ``self.node_data[node]['climate_data']``
         """
-        with open(file, 'rb') as handle:
-            data = pickle.load(handle)
-
+        data = dm.load_object(file)
         self.node_data[node]['climate_data'] = data
 
     def read_demand_data(self, node, carrier, demand_data):
@@ -284,108 +285,7 @@ class DataHandle:
         :param str path: path to save to
         :return: None
         """
-        with open(path, 'wb') as handle:
-            pickle.dump(self, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def load_data_handle(path):
-    """
-    Loads instance of DataHandle from path.
-
-    :param str path: path to load from
-    :return: instance of :class:`~DataHandle`
-    """
-    with open(path, 'rb') as handle:
-        data = pickle.load(handle)
-
-    return data
-
-
-class ClusteredDataHandle(DataHandle):
-    """
-    DataHandle sub-class for handling k-means clustered data
-
-    This class is used to generate time series of typical days based on a full resolution of input data.
-    """
-    def __init__(self, data):
-        """
-        Constructor
-        """
-        self.topology = copy.deepcopy(data.topology)
-        self.node_data = {}
-        self.technology_data = copy.deepcopy(data.technology_data)
-        self.network_data = copy.deepcopy(data.network_data)
-        self.k_means_specs = {}
-        self.k_means_specs['keys'] = pd.DataFrame(index=data.topology.timesteps)
-        self.node_data_full_resolution = data.node_data
-
-    def cluster_data(self, nr_clusters, nr_days_full_resolution= 365, nr_time_intervals_per_day=24):
-        """
-        Performs the clustering process
-
-        This function performsthe k-means algorithm on the data resulting in a new DataHandle object that can be passed
-        to the energhub class for optimization.
-
-        :param DataHandle data: DataHandle containing data of the full resolution
-        :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
-        :param int nr_days_full_resolution: nr of days in data (full resolution)
-        :param int nr_time_intervals_per_day: nr of time intervalls per day in data (full resolution)
-        :return: instance of :class:`~ClusteredDataHandle`
-        """
-        # new timesteps
-        self.topology.timesteps = range(0, nr_clusters * nr_time_intervals_per_day)
-        # flag tecs that contain time-dependent data
-        tecs_flagged_for_clustering = self.flag_tecs_for_clustering()
-        # compile full matrix
-        full_resolution = self.compile_full_resolution_matrix(nr_time_intervals_per_day, tecs_flagged_for_clustering)
-
-        # Perform clustering
-        kmeans = KMeans(
-            init="random",
-            n_clusters=nr_clusters,
-            n_init=10,
-            max_iter=300,
-            random_state=42
-        )
-
-        kmeans.fit(full_resolution.to_numpy())
-        series_names = pd.MultiIndex.from_tuples(full_resolution.columns.to_list())
-        clustered_data = pd.DataFrame(kmeans.cluster_centers_, columns=series_names)
-
-        # Create keys matching full resolution to clustered data
-        time_slices_cluster = np.arange(1, nr_time_intervals_per_day * nr_clusters+1)
-        time_slices_cluster = time_slices_cluster.reshape((-1, nr_time_intervals_per_day))
-        day_labels = kmeans.labels_
-        keys = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
-        for day in range(0,nr_days_full_resolution):
-            keys[day] = time_slices_cluster[day_labels[day]]
-        keys = keys.reshape((-1, 1))
-
-        # Create factors, indicating how many times an hour occurs
-        factors = pd.DataFrame(np.unique(keys, return_counts=True))
-        factors = factors.transpose()
-        factors.columns = ['timestep', 'factor']
-
-        self.k_means_specs['keys']['typical_day'] = np.repeat(kmeans.labels_, nr_time_intervals_per_day)
-        self.k_means_specs['keys']['hourly_order'] = keys
-        self.k_means_specs['factors'] = factors
-
-        # Read data back in
-        node_data = self.node_data_full_resolution
-        for node in node_data:
-            self.node_data[node] = {}
-            for series in node_data[node]:
-                if not series == 'climate_data':
-                    self.node_data[node][series] = pd.DataFrame()
-                    for carrier in node_data[node][series]:
-                        self.node_data[node][series][carrier]= \
-                            reshape_df(clustered_data[node][series][carrier],
-                                       None, 1)
-            for tec in tecs_flagged_for_clustering[node]:
-                series_data = reshape_df(clustered_data[node][tec]['capacity_factor'], None, 1)
-                series_data = series_data.to_numpy()
-                self.technology_data[node][tec].fitted_performance['capacity_factor'] = \
-                    series_data
+        dm.save_object(self, path)
 
     def flag_tecs_for_clustering(self):
         """
@@ -399,10 +299,96 @@ class ClusteredDataHandle(DataHandle):
         for node in self.topology.nodes:
             tecs_flagged_for_clustering[node] = {}
             for technology in self.technology_data[node]:
-                tecs_flagged_for_clustering[node] = {}
                 if self.technology_data[node][technology].technology_model == 'RES':
-                    tecs_flagged_for_clustering[node][technology] = 1
+                    tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
+                elif self.technology_data[node][technology].technology_model == 'STOR':
+                    tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
         return tecs_flagged_for_clustering
+
+
+class ClusteredDataHandle(DataHandle):
+    """
+    DataHandle sub-class for handling k-means clustered data
+
+    This class is used to generate time series of typical days based on a full resolution of input data.
+    """
+    def __init__(self, data_in, nr_clusters, nr_time_intervals_per_day=24):
+        """
+        Constructor
+        """
+        data = copy.deepcopy(data_in)
+
+        # Copy over data from old object
+        self.node_data = {}
+        self.node_data_full_resolution = data.node_data
+        self.technology_data = data.technology_data
+        self.network_data = data.network_data
+        self.topology = data.topology
+
+        # k-means specs
+        self.k_means_specs = dm.simplification_specs(data.topology.timesteps)
+
+        # perform clustering
+        nr_days_full_resolution = (max(data.topology.timesteps) -  min(data.topology.timesteps)).days + 1
+        self.cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
+
+    def cluster_data(self, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
+        """
+        Performs the clustering process
+
+        This function performs the k-means algorithm on the data resulting in a new DataHandle object that can be passed
+        to the energhub class for optimization.
+
+        :param DataHandle data: DataHandle containing data of the full resolution
+        :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
+        :param int nr_days_full_resolution: nr of days in data (full resolution)
+        :param int nr_time_intervals_per_day: nr of time intervalls per day in data (full resolution)
+        :return: instance of :class:`~ClusteredDataHandle`
+        """
+        # adjust timesteps
+        self.topology.timesteps = range(0, nr_clusters * nr_time_intervals_per_day)
+        # flag tecs that contain time-dependent data
+        tecs_flagged_for_clustering = self.flag_tecs_for_clustering()
+        # compile full matrix to cluster
+        full_resolution = self.compile_full_resolution_matrix(nr_time_intervals_per_day,
+                                                              tecs_flagged_for_clustering)
+        # Perform clustering
+        clustered_data, day_labels = dm.perform_k_means(full_resolution,
+                                                        nr_clusters)
+        # Get order of typical days
+        self.k_means_specs.full_resolution['hourly_order'] = dm.compile_hourly_order(day_labels,
+                                         nr_clusters,
+                                         nr_days_full_resolution,
+                                         nr_time_intervals_per_day)
+        # Match typical day to actual day
+        self.k_means_specs.full_resolution['typical_day'] = np.repeat(day_labels, nr_time_intervals_per_day)
+        # Create factors, indicating how many times an hour occurs
+        self.k_means_specs.reduced_resolution = dm.get_day_factors(self.k_means_specs.full_resolution['hourly_order'])
+        # Read data back in
+        self.read_clustered_data(clustered_data, tecs_flagged_for_clustering)
+
+    def read_clustered_data(self, clustered_data, tecs_flagged_for_clustering):
+        """
+        Reads clustered data back to self
+
+        :param clustered_data: Clustered data
+        :param tecs_flagged_for_clustering: technologies that have time-dependent data
+        """
+        node_data = self.node_data_full_resolution
+        for node in node_data:
+            self.node_data[node] = {}
+            for series in node_data[node]:
+                if not series == 'climate_data':
+                    self.node_data[node][series] = pd.DataFrame()
+                    for carrier in node_data[node][series]:
+                        self.node_data[node][series][carrier] = \
+                            reshape_df(clustered_data[node][series][carrier],
+                                       None, 1)
+            for tec in tecs_flagged_for_clustering[node]:
+                series_data = reshape_df(clustered_data[node][tec][tecs_flagged_for_clustering[node][tec]], None, 1)
+                series_data = series_data.to_numpy()
+                self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]] = \
+                    series_data
 
     def compile_full_resolution_matrix(self, nr_time_intervals_per_day, tecs_flagged_for_clustering):
         """
@@ -429,17 +415,89 @@ class ClusteredDataHandle(DataHandle):
                 series_names = define_multiindex([
                     [node] * nr_time_intervals_per_day,
                     [tec] * nr_time_intervals_per_day,
-                    ['capacity_factor'] * nr_time_intervals_per_day,
+                    [tecs_flagged_for_clustering[node][tec]] * nr_time_intervals_per_day,
                     list(range(1, nr_time_intervals_per_day + 1))
                 ])
-                to_add = reshape_df(self.technology_data[node][tec].fitted_performance['capacity_factor'],
+                to_add = reshape_df(self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]],
                                     series_names, nr_time_intervals_per_day)
                 full_resolution = pd.concat([full_resolution, to_add], axis=1)
         return full_resolution
 
 
-# Transform all data to large dataframe with each row being one day
+class DataHandle_AveragedData(DataHandle):
+    """
+    DataHandle sub-class for handling averaged data
+
+    This class is used to generate time series of averaged data based on a full resolution
+    or clustered input data.
+    """
+    def __init__(self, data_in, nr_timesteps_averaged):
+        """
+        Constructor
+        """
+        data = copy.deepcopy(data_in)
+        # Copy over data from old object
+        self.node_data_full_resolution = data.node_data
+        self.node_data = {}
+        self.technology_data = data.technology_data
+        self.network_data = data.network_data
+        self.topology = data.topology
+
+        if hasattr(data, 'k_means_specs'):
+            self.k_means_specs = data.k_means_specs
+
+        # averaging specs
+        self.averaged_specs = dm.simplification_specs(data.topology.timesteps)
+
+        # perform averaging
+        self.average_data(nr_timesteps_averaged)
+
+    def average_data(self, nr_timesteps_averaged):
+        # adjust timesteps
+        end_interval = max(self.topology.timesteps)
+        start_interval = min(self.topology.timesteps)
+        time_resolution = str(nr_timesteps_averaged) + 'h'
+        self.topology.timestep_length_h = nr_timesteps_averaged
+        self.topology.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
+        # flag tecs that contain time-dependent data
+        tecs_flagged_for_clustering = self.flag_tecs_for_clustering()
+        # Average all time-dependent data and write to self
+        self.perform_averaging(nr_timesteps_averaged, tecs_flagged_for_clustering)
+        # Write averaged specs
+        self.averaged_specs.reduced_resolution = pd.DataFrame(
+            data=np.ones(len(self.topology.timesteps)) * nr_timesteps_averaged,
+            index=self.topology.timesteps,
+            columns=['factor'])
+
+    def perform_averaging(self, nr_timesteps_averaged, tecs_flagged_for_clustering):
+        """
+        Average all time-dependent data
+
+        :param nr_timesteps_averaged: How many time-steps should be averaged?
+        :param tecs_flagged_for_clustering: technologies that have time-dependent data
+        """
+        node_data = self.node_data_full_resolution
+        for node in node_data:
+            self.node_data[node] = {}
+            for series in node_data[node]:
+                self.node_data[node][series] = pd.DataFrame()
+                if not series == 'climate_data':
+                    for carrier in node_data[node][series]:
+                        series_data = dm.reshape_df(node_data[node][series][carrier],
+                                                    None, nr_timesteps_averaged)
+                        self.node_data[node][series][carrier] = series_data.mean(axis=1)
+            for tec in tecs_flagged_for_clustering[node]:
+                series_data = dm.reshape_df(
+                    self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]],
+                    None, nr_timesteps_averaged)
+                self.technology_data[node][tec].fitted_performance[
+                    tecs_flagged_for_clustering[node][tec]] = series_data.mean(axis=1)
+
+
 def reshape_df(series_to_add, column_names, nr_cols):
+    """
+    Transform all data to large dataframe with each row being one day
+    """
     if not type(series_to_add).__module__ == np.__name__:
         transformed_series = series_to_add.to_numpy()
     else:
@@ -448,8 +506,11 @@ def reshape_df(series_to_add, column_names, nr_cols):
     transformed_series = pd.DataFrame(transformed_series, columns=column_names)
     return transformed_series
 
-# Create a multi index from a list
 def define_multiindex(ls):
+    """
+    Create a multi index from a list
+    """
     multi_index = list(zip(*ls))
     multi_index = pd.MultiIndex.from_tuples(multi_index)
     return multi_index
+
