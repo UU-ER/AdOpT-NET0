@@ -45,7 +45,7 @@ def import_jrc_climate_data(lon, lat, year, alt):
             'lat': lat,
             'outputformat': 'json'
         }
-        time_index = pd.date_range(start='2001-01-01 00:00', freq='1h', periods=8760, tz=tz)
+        time_index = pd.date_range(start='2001-01-01 00:00', freq='1h', periods=8760)
     else:
         parameters = {
             'lon': lon,
@@ -53,7 +53,7 @@ def import_jrc_climate_data(lon, lat, year, alt):
             'year': year,
             'outputformat': 'json'
         }
-        time_index = pd.date_range(start=str(year)+'-01-01 00:00', end=str(year)+'-12-31 23:00', freq='1h', tz=tz)
+        time_index = pd.date_range(start=str(year)+'-01-01 00:00', end=str(year)+'-12-31 23:00', freq='1h')
 
     # Get data from JRC dataset
     answer = dict()

@@ -8,14 +8,14 @@ import src.model_construction as mc
 
 
 def test_initializer():
-    data = dm.load_data_handle(r'./test/test_data/data_handle_test.p')
+    data = dm.load_object(r'./test/test_data/data_handle_test.p')
     energyhub = ehub(data)
 
 def test_add_nodes():
     """
     Add a node with no technology, establishes energybalance
     """
-    data = dm.load_data_handle(r'./test/test_data/data_handle_test.p')
+    data = dm.load_object(r'./test/test_data/data_handle_test.p')
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -31,7 +31,7 @@ def test_model1():
     electricity network in between
     should be infeasible
     """
-    data = dm.load_data_handle(r'./test/test_data/model1.p')
+    data = dm.load_object(r'./test/test_data/model1.p')
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -48,7 +48,7 @@ def test_model2():
     - Total costs: 10.01 * unit cost Furnace_NG + Import costs of NG
     - Emissions larger zero
     """
-    data = dm.load_data_handle(r'./test/test_data/model2.p')
+    data = dm.load_object(r'./test/test_data/model2.p')
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -95,7 +95,7 @@ def test_addtechnology():
 
     second solve should be cheaper
     """
-    data = dm.load_data_handle(r'./test/test_data/addtechnology.p')
+    data = dm.load_object(r'./test/test_data/addtechnology.p')
     data.technology_data['test_node1']['WT_OS_6000'].performance_data['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
@@ -134,7 +134,7 @@ def test_emission_balance1():
     offshore wind @ node 2
     electricity network in between
     """
-    data = dm.load_data_handle(r'./test/test_data/emissionbalance1.p')
+    data = dm.load_object(r'./test/test_data/emissionbalance1.p')
     data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
     data.technology_data['onshore']['Furnace_NG'].fitted_performance['heat']['alpha1'] = 0.9
     data.network_data['electricityTest'].performance_data['emissionfactor'] = 0.2
@@ -188,7 +188,7 @@ def test_emission_balance2():
     cost & emission optimization
     """
     # Cost optimization
-    data = dm.load_data_handle(r'./test/test_data/emissionbalance2.p')
+    data = dm.load_object(r'./test/test_data/emissionbalance2.p')
     data.technology_data['test_node1']['testCONV1_1'].performance_data['emission_factor'] = 1
     energyhub = ehub(data)
     energyhub.construct_model()

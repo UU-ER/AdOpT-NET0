@@ -54,11 +54,7 @@ class ResultsHandle:
         """
         m = energyhub.model
 
-        if m_config.presolve.clustered_data == 1:
-            occurrence_hour = energyhub.data.k_means_specs['factors']['factor'].to_numpy()
-        else:
-            occurrence_hour = np.ones(len(m.set_t))
-
+        occurrence_hour = energyhub.calculate_occurance_per_hour()
 
         # Economics
         total_cost = m.var_total_cost.value
@@ -200,7 +196,10 @@ class ResultsHandle:
                 technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
                 if technology_model == 'STOR':
-                    time_set = m.set_t_full
+                    if m_config.presolve.clustered_data:
+                        time_set = tec_data.set_t_full
+                    else:
+                        time_set = m.set_t
                     if tec_data.find_component('var_input'):
                         input = tec_data.var_input_full_resolution
                         output = tec_data.var_output_full_resolution

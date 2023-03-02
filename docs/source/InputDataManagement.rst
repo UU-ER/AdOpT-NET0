@@ -1,18 +1,12 @@
-Data Management
-=====================================
-
 Input Data Management
------------------------
-To define an energy system to optimize, you need to (1) define a topology, i.e. which carriers, nodes, technologies and
-networks are part of the system and (2) define the input data, e.g. weather data, technology performance, etc.
-The topology is defined with the class ``src.data_management.handle_topology.SystemTopology``. The input data
-management works with the class ``src.data_management.handle_input_data.DataHandle`` class. It lets you import
-and manage input data. The module ``src.data_management.import_functions`` contains functions importing data from
-external sources.
-
-Input data can be clustered to reduce the spatial resolution. This can be done using a k-means algorithm
-that is provided in the subclass ``src.data_management.handle_input_data.ClusteredDataHandle``. See also below
-for example usage.
+=====================================
+The input data definition follows a two step approach. First the system topology is defined (i.e.
+carriers used, nodes, technologies at each node, networks, and time-horizon. Second, input data
+is defined. For the topology, the class SystemTopology is used (see :ref:`here <data-management-system_topology>`).
+The topology is passed to the class DataHandle, where you need to define further input data (see
+:ref:`here <data-management-data-handle>`). An example of how to define the system technology and the
+input data can be found :ref:`below <data-management-example-usage>`. Weather data for onshore location
+in Europe can imported from a JRC database using the import functions provided.
 
 .. toctree::
     :maxdepth: 1
@@ -124,25 +118,3 @@ is accounted for. Below is an example of how to use the k-means algorithm:
 
     # Perform clustering
     clustered_data.cluster_data(data, nr_days_cluster)
-
-
-Result Data Management
------------------------
-Result data management works with the class ``src.data_management.handle_optimization_results.ResultsHandle``
-class. It lets you export results to dataframes and to excel.
-
-Example Usage
-^^^^^^^^^^^^^^^^
-To export data from the pyomo model to an instance of the ResultsHandle class, i.e. a class containing
-data frames:
-
-.. testcode::
-
-    results = energyhub.write_results()
-
-To write to a respective excel file:
-
-.. testcode::
-
-    results.write_excel(r'.\userData\results')
-

@@ -231,7 +231,8 @@ def perform_fitting_tec_STOR(tec_data, climate_data):
     theta = tec_data['performance']['theta']
 
     fitting = {}
-    fitting['ambient_loss_factor'] = (65 - climate_data['dataframe']['temp_air']) / (90 - 65) * theta
+    ambient_loss_factor = (65 - climate_data['dataframe']['temp_air']) / (90 - 65) * theta
+    fitting['ambient_loss_factor'] = ambient_loss_factor.to_numpy()
     for par in tec_data['performance']:
         if not par == 'theta':
             fitting[par] = tec_data['performance'][par]

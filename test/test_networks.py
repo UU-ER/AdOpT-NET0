@@ -9,7 +9,7 @@ def test_networks():
     electricity demand @ node 2
     """
     # Test bidirectional
-    data = dm.load_data_handle(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./test/test_data/networks.p')
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
     data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub1 = ehub(data)
@@ -28,7 +28,7 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
 
     # Test no bidirectional
-    data = dm.load_data_handle(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./test/test_data/networks.p')
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub2 = ehub(data)
@@ -43,7 +43,7 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
 
     # Test consumption at node
-    data = dm.load_data_handle(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./test/test_data/networks.p')
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     energyhub3 = ehub(data)
     energyhub3.construct_model()
@@ -82,22 +82,22 @@ def test_existing_networks():
     data_save_path3 = './test/test_data/existing_netw3.p'
     data_save_path4 = './test/test_data/existing_netw4.p'
 
-    data1 = dm.load_data_handle(data_save_path1)
+    data1 = dm.load_object(data_save_path1)
     ehub1 = run_ehub(data1)
     cost1 = ehub1.model.var_total_cost.value
     assert ehub1.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
-    data2 = dm.load_data_handle(data_save_path2)
+    data2 = dm.load_object(data_save_path2)
     ehub2 = run_ehub(data2)
     cost2 = ehub2.model.var_total_cost.value
     assert ehub2.solution.solver.termination_condition == 'optimal'
 
-    data3 = dm.load_data_handle(data_save_path3)
+    data3 = dm.load_object(data_save_path3)
     ehub3 = run_ehub(data3)
     cost3 = ehub3.model.var_total_cost.value
     assert ehub3.solution.solver.termination_condition == 'optimal'
 
-    data4 = dm.load_data_handle(data_save_path4)
+    data4 = dm.load_object(data_save_path4)
     ehub4 = run_ehub(data4)
     cost4 = ehub4.model.var_total_cost.value
     assert ehub4.solution.solver.termination_condition == 'optimal'

@@ -64,7 +64,6 @@ def test_k_means_clustering():
     """
     Test the k-means clustering process
     """
-    data = dm.load_data_handle(r'./test/test_data/k_means.p')
-    clustered_data = dm.ClusteredDataHandle(data)
+    data = dm.load_object(r'./test/test_data/k_means.p')
     nr_days_cluster = 40
-    clustered_data.cluster_data(nr_days_cluster)
+    clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)

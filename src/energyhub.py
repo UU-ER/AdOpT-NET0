@@ -10,6 +10,7 @@ import dill as pickle
 import pandas as pd
 import src.config_model as m_config
 import time
+import copy
 
 
 class EnergyHub:
@@ -31,6 +32,7 @@ class EnergyHub:
         """
         Constructor of the energyhub class.
         """
+        print('_' * 20)
         print('Reading in data...')
         start = time.time()
 
@@ -46,10 +48,36 @@ class EnergyHub:
         except pint.errors.DefinitionSyntaxError:
             pass
 
-        # Initialize solution
+        # INITIALIZE SOLUTION
         self.solution = []
 
+        # SET m_config
+        m_config.presolve.clustered_data = 0
+        m_config.presolve.averaged_data = 0
+        if hasattr(self.data, 'k_means_specs'):
+            # Clustered Data
+            m_config.presolve.clustered_data = 1
+            m_config.presolve.clustered_data_specs.specs = self.data.k_means_specs
+        if hasattr(self.data, 'averaged_specs'):
+            # Averaged Data
+            m_config.presolve.averaged_data = 1
+            m_config.presolve.averaged_data_specs.specs = self.data.averaged_specs
+
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
+        print('_' * 20)
+
+    def quick_solve_model(self, objective = 'cost'):
+        """
+        Quick-solves the model (constructs model and balances and solves model).
+
+        This method lumbs together the following functions for convenience:
+        - :func:`~src.energyhub.construct_model`
+        - :func:`~src.energyhub.construct_balances`
+        - :func:`~src.energyhub.solve_model`
+        """
+        self.construct_model()
+        self.construct_balances()
+        self.solve_model(objective)
 
     def construct_model(self):
         """
@@ -60,6 +88,7 @@ class EnergyHub:
         (:func:`~src.model_construction.construct_nodes.add_nodes` including \
         :func:`~add_technologies`)
         """
+        print('_' * 20)
         print('Constructing Model...')
         start = time.time()
 
@@ -68,13 +97,6 @@ class EnergyHub:
         self.model.set_nodes = Set(initialize=topology.nodes)
         self.model.set_carriers = Set(initialize=topology.carriers)
         self.model.set_t = RangeSet(1,len(topology.timesteps))
-        if hasattr(self.data, 'k_means_specs'):
-            # If yes, we are working with clustered data
-            self.model.set_t_full = RangeSet(1, len(self.data.k_means_specs['keys']['typical_day']))
-            m_config.presolve.clustered_data = 1
-        else:
-            self.model.set_t_full = RangeSet(1,len(topology.timesteps))
-            m_config.presolve.clustered_data = 0
 
         def tec_node(set, node):
             if self.data.technology_data:
@@ -99,7 +121,7 @@ class EnergyHub:
         self.model = mc.add_nodes(self.model, self.data)
 
         print('Constructing model completed in ' + str(time.time() - start) + ' s')
-
+        print('_' * 20)
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
@@ -107,27 +129,25 @@ class EnergyHub:
         Links all components with the constructing the energybalance (:func:`~add_energybalance`),
         the total cost (:func:`~add_system_costs`) and the emission balance (:func:`~add_emissionbalance`)
         """
+        print('_' * 20)
         print('Constructing balances...')
         start = time.time()
 
         self.model = mc.add_energybalance(self.model)
 
-        if m_config.presolve.clustered_data == 1:
-            occurrence_hour = self.data.k_means_specs['factors']['factor'].to_numpy()
-        else:
-            occurrence_hour = np.ones(len(self.model.set_t))
+        occurrence_hour = self.calculate_occurance_per_hour()
 
         self.model = mc.add_emissionbalance(self.model, occurrence_hour)
         self.model = mc.add_system_costs(self.model, occurrence_hour)
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
-
+        print('_' * 20)
     def solve_model(self, objective = 'cost'):
         """
         Defines objective and solves model
 
-        The objective is minimized and can be chosen as total annualized costs, total annualized emissions \
-        multi-objective (emission-cost pareto front).
+        The objective is minimized and can be chosen as total annualized costs ('cost'), total annual emissions
+        ('emissions_net'), and total annual emissions at minimal cost ('emissions_minC').
         """
         # This is a dirty fix as objectives cannot be found with find_component
         try:
@@ -161,6 +181,7 @@ class EnergyHub:
             print('to be implemented')
 
         # Solve model
+        print('_' * 20)
         print('Solving Model...')
         start = time.time()
         solver = SolverFactory(m_config.solver.solver)
@@ -168,6 +189,7 @@ class EnergyHub:
         self.solution.write()
 
         print('Solving model completed in ' + str(time.time() - start) + ' s')
+        print('_' * 20)
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -236,6 +258,111 @@ class EnergyHub:
         results.read_results(self)
         return results
 
+    def calculate_occurance_per_hour(self):
+        """
+        Calculates how many times an hour in the reduced resolution occurs in the full resolution
+        :return np array occurance_hour:
+        """
+        if m_config.presolve.clustered_data and m_config.presolve.averaged_data:
+            occurrence_hour = np.multiply(
+                self.data.k_means_specs.reduced_resolution['factor'].to_numpy(),
+                self.data.averaged_specs.reduced_resolution['factor'].to_numpy())
+        elif m_config.presolve.clustered_data and not m_config.presolve.averaged_data:
+            occurrence_hour = self.data.k_means_specs.reduced_resolution['factor'].to_numpy()
+        elif not m_config.presolve.clustered_data and m_config.presolve.averaged_data:
+            occurrence_hour = self.data.averaged_specs.reduced_resolution['factor'].to_numpy()
+        else:
+            occurrence_hour = np.ones(len(self.model.set_t))
+        return occurrence_hour
+
+class EnergyHubTwoStageTimeAverage(EnergyHub):
+    """
+    Sub-class of the EnergyHub class to perform two stage time averaging optimization based on
+    Weimann, L., & Gazzani, M. (2022). A novel time discretization method for solving complex multi-energy system
+    design and operation problems with high penetration of renewable energy. Computers & Chemical Engineering,
+    107816. https://doi.org/10.1016/J.COMPCHEMENG.2022.107816
+
+    All methods available in the super-class EnergyHub are also available in this subclass.
+    """
+    def __init__(self, data, nr_timesteps_averaged=4):
+        self.full_res_ehub = EnergyHub(data)
+        data_averaged = dm.DataHandle_AveragedData(data,nr_timesteps_averaged)
+        EnergyHub.__init__(self, data_averaged)
+        m_config.presolve.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
+
+    def solve_model(self, objective = 'cost', bounds_on = 'all'):
+        """
+        Solve the model in a two stage time average manner.
+
+        In the first stage, time-steps are averaged and thus the model is optimized with a reduced time frame.
+        In the second stage, the sizes of technologies and networks are constrained with a lower bound. It is possible
+        to only constrain some technologies with the parameter bounds_on (see below)
+
+        :param objective: objective to minimize
+        :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
+        """
+        # Solve reduced resolution model
+        self.construct_model()
+        self.construct_balances()
+        super().solve_model(objective)
+        m_config.presolve.averaged_data = 0
+        m_config.presolve.averaged_data_specs.nr_timesteps_averaged = 1
+
+
+        # Solve full resolution model
+        # Initialize
+        self.full_res_ehub.construct_model()
+        self.full_res_ehub.construct_balances()
+        # Impose additional constraints
+        self.impose_size_constraints(bounds_on)
+        # Solve with additional constraints
+        self.full_res_ehub.solve_model(objective)
+
+    def write_results(self):
+        """
+        Overwrites method of EnergyHub superclass
+        """
+        results = dm.ResultsHandle()
+        results.read_results(self.full_res_ehub)
+        return results
+
+    def impose_size_constraints(self, bounds_on):
+        """
+        Formulates lower bound on technology and network sizes.
+
+        It is possible to exclude storage technologies or networks by specifying bounds_on. Not this function is called
+        from the method solve_model.
+
+        :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
+        """
+
+        m_full = self.full_res_ehub.model
+        m_avg = self.model
+
+        # Technologies
+        if bounds_on == 'all' or bounds_on == 'only_technologies' or bounds_on == 'no_storage':
+            def size_constraint_block_tecs_init(block, node):
+                def size_constraints_tecs_init(const, tec):
+                    if self.data.technology_data[node][tec].technology_model == 'STOR' and bounds_on == 'no_storage':
+                        return Constraint.Skip
+                    else:
+                        return m_avg.node_blocks[node].tech_blocks_active[tec].var_size.value <= \
+                            m_full.node_blocks[node].tech_blocks_active[tec].var_size
+                block.size_constraints_tecs = Constraint(m_full.set_technologies[node], rule=size_constraints_tecs_init)
+            m_full.size_constraint_tecs = Block(m_full.set_nodes, rule=size_constraint_block_tecs_init)
+
+        # Networks
+        if bounds_on == 'all' or bounds_on == 'only_networks' or bounds_on == 'no_storage':
+            def size_constraint_block_netw_init(block, netw):
+                b_netw_full = m_full.network_block[netw]
+                b_netw_avg = m_avg.network_block[netw]
+                def size_constraints_netw_init(const, node_from, node_to):
+                    return b_netw_full.arc_block[node_from, node_to].var_size >= \
+                           b_netw_avg.arc_block[node_to, node_from].var_size.value
+                block.size_constraints_netw = Constraint(b_netw_full.set_arcs_unique, rule=size_constraints_netw_init)
+            m_full.size_constraints_netw = Block(m_full.set_networks, rule=size_constraint_block_netw_init)
+
+
 def load_energyhub_instance(file_path):
     """
     Loads an energyhub instance from file.
@@ -243,7 +370,6 @@ def load_energyhub_instance(file_path):
     :param str file_path: path to previously saved energyhub instance
     :return: energyhub instance
     """
-
     with open(file_path, mode='rb') as file:
         energyhub = pickle.load(file)
     return energyhub
