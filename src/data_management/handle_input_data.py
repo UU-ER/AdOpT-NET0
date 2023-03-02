@@ -13,8 +13,8 @@ class DataHandle:
     Data Handle for loading and performing operations on input data.
 
     The Data Handle class allows data import and modifications of input data to an instance of the energyhub class.
-    The constructor of the class takes an instance of the SystemTopology class
-    (:func:`~src.data_management.handle_topology.SystemTopology`) as an input.
+    The constructor of the class takes an instance of the class
+    :func:`~src.data_management.handle_topology.SystemTopology` as an input.
     """
     def __init__(self, topology):
         """
@@ -308,13 +308,22 @@ class DataHandle:
 
 class ClusteredDataHandle(DataHandle):
     """
-    DataHandle sub-class for handling k-means clustered data
+    Performs the clustering process
 
-    This class is used to generate time series of typical days based on a full resolution of input data.
+    This function performs the k-means algorithm on the data resulting in a new DataHandle object that can be
+    passed to the energhub class for optimization.
+
+    :param DataHandle data_in: DataHandle containing data of the full resolution
+    :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
+    :param int nr_time_intervals_per_day: nr of time intervals per day in data (full resolution)
     """
     def __init__(self, data_in, nr_clusters, nr_time_intervals_per_day=24):
         """
         Constructor
+
+        :param DataHandle data_in: DataHandle containing data of the full resolution
+        :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
+        :param int nr_time_intervals_per_day: nr of time intervals per day in data (full resolution)
         """
         data = copy.deepcopy(data_in)
 

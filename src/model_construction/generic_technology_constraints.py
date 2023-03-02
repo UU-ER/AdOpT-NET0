@@ -679,7 +679,7 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order):
 
     if m_config.presolve.clustered_data:
         # Clustered
-        b_tec.set_t_full = RangeSet(1, len(model.data.k_means_specs.full_resolution))
+        b_tec.set_t_full = RangeSet(1, len(m_config.presolve.clustered_data_specs.specs.full_resolution))
         set_t = b_tec.set_t_full
     else:
         # Full resolution

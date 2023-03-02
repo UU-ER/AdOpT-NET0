@@ -66,8 +66,8 @@ data.read_network_data()
 # data.save(data_save_path)
 
 # # Read data
-# energyhub = EnergyHub_two_stage_time_average(data)
-# energyhub.solve_model()
+energyhub = EnergyHubTwoStageTimeAverage(data)
+energyhub.solve_model()
 #
 # results = energyhub.write_results()
 # results.write_excel(r'.\userData\results_two_stage')

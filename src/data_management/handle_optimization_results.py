@@ -54,11 +54,7 @@ class ResultsHandle:
         """
         m = energyhub.model
 
-        if m_config.presolve.clustered_data == 1:
-            occurrence_hour = energyhub.data.averaged_specs['factors']['factor'].to_numpy()
-        else:
-            occurrence_hour = np.ones(len(m.set_t))
-
+        occurrence_hour = energyhub.calculate_occurance_per_hour()
 
         # Economics
         total_cost = m.var_total_cost.value

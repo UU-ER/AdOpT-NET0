@@ -12,7 +12,7 @@ mathjax_path="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-M
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'EnergyHub'
-copyright = '2022, Jan Wiegner, Julia Tiggeloven'
+copyright = '2023, Jan Wiegner, Julia Tiggeloven'
 author = 'Jan Wiegner, Julia Tiggeloven'
 release = '0.1'
 
