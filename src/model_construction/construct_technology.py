@@ -1,6 +1,5 @@
-import numbers
 import numpy as np
-from src.model_construction.generic_technology_constraints import *
+from src.model_construction.technology_constraints import *
 import src.model_construction as mc
 import src.config_model as m_config
 
@@ -225,7 +224,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg)
 
 
-        # TECHNOLOGY PERFORMANCE
+        # GENERIC TECHNOLOGY CONSTRAINTS
         if technology_model == 'RES': # Renewable technology with cap_factor as input
             b_tec = constraints_tec_RES(model, b_tec, tec_data)
 
@@ -244,6 +243,10 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             else:
                 hourly_order = np.arange(1, len(model.set_t)+1)
             b_tec = constraints_tec_STOR(model, b_tec, tec_data, hourly_order)
+
+        # SPECIFIC TECHNOLOGY CONSTRAINTS
+        elif technology_model == 'DAC_adsorption':
+            b_tec = constraints_tec_dac_adsorption(model, b_tec, tec_data)
 
         if m_config.presolve.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)

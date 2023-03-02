@@ -689,7 +689,8 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order):
 
     # Additional decision variables
     b_tec.var_storage_level = Var(set_t, b_tec.set_input_carriers,
-                                  domain=NonNegativeReals)
+                                  domain=NonNegativeReals,
+                                  bounds=(b_tec.para_size_min, b_tec.para_size_max))
     b_tec.var_input_full_resolution = Var(set_t, b_tec.set_input_carriers,
                                           within=NonNegativeReals,
                                           bounds=(b_tec.para_size_min, b_tec.para_size_max),

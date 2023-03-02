@@ -2,7 +2,7 @@
   "Economics": {
     "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "gamma1": 10,
+    "gamma1": 0.01,
     "gamma2": 0,
     "OPEX_variable": 0,
     "OPEX_fixed": 0,
