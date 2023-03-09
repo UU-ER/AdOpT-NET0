@@ -353,7 +353,7 @@ def fit_piecewise_function(X, Y, nr_segments):
         """
         # Perform fit
         my_pwlf = pwlf.PiecewiseLinFit(x, y)
-        if not x_bp:
+        if x_bp is None:
             my_pwlf.fit(nr_segments)
         else:
             my_pwlf.fit_with_breaks(x_bp)

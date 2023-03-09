@@ -14,18 +14,19 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     This function initializes parameters and decision variables for all technologies at respective node.
     For each technology, it adds one block indexed by the set of all technologies at the node :math:`S_n`.
     This function adds Sets, Parameters, Variables and Constraints that are common for all technologies.
-    For each technology type, individual parts are added. The following technology types are currently available:
+    For each technology type, individual parts are added. The following technology types of generic technologies
+    are currently available
+    (all contained in :func:`src.model_construction.technology_constraints.generic_technology_constraints`):
 
-    - Type RES: Renewable technology with cap_factor as input. Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_RES`
-    - Type CONV1: n inputs -> n output, fuel and output substitution. Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_CONV1`
-    - Type CONV2: n inputs -> n output, fuel substitution. Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_CONV2`
-    - Type CONV2: n inputs -> n output, no fuel and output substitution. Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_CONV3`
-    - Type STOR: Storage technology (1 input -> 1 output). Constructed with \
-      :func:`src.model_construction.generic_technology_constraints.constraints_tec_STOR`
+    - Type RES: Renewable technology with cap_factor as input.
+    - Type CONV1: n inputs -> n output, fuel and output substitution.
+    - Type CONV2: n inputs -> n output, fuel substitution. Constructed with
+    - Type CONV2: n inputs -> n output, no fuel and output substitution.
+    - Type STOR: Storage technology (1 input -> 1 output).
+
+    Additionally, the following specific technologies are available:
+
+    - Type DAC_adsorption: Direct Air Capture technology (adsorption).
 
     The following description is true for new technologies. For existing technologies a few adaptions are made
     (see below).
