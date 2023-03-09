@@ -1,8 +1,10 @@
 import numpy as np
-from src.model_construction.technology_constraints import *
+from pyomo.environ import *
+from pyomo.environ import units as u
+
 import src.model_construction as mc
 import src.config_model as m_config
-
+from src.model_construction.technology_constraints import *
 
 
 def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
@@ -158,7 +160,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         # INPUT
         b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
-        input_bounds = calculate_input_bounds(tec_data)
+        input_bounds = mc.calculate_input_bounds(tec_data)
         if not technology_model == 'RES':
             def init_input_bounds(bounds, t, car):
                 return input_bounds[car]
@@ -167,7 +169,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         # OUTPUT
         b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])
-        output_bounds = calculate_output_bounds(tec_data)
+        output_bounds = mc.calculate_output_bounds(tec_data)
         def init_output_bounds(bounds, t, car):
             return output_bounds[car]
         b_tec.var_output = Var(model.set_t, b_tec.set_output_carriers, within=NonNegativeReals,
@@ -197,14 +199,24 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         if technology_model == 'RES':
             # Set emissions to zero
-            def init_tec_emissions_pos_RES(const, t):
+            def init_tec_emissions_pos(const, t):
                 return b_tec.var_tec_emissions_pos[t] == 0
-            b_tec.const_tec_emissions_pos = Constraint(model.set_t, rule=init_tec_emissions_pos_RES)
-            def init_tec_emissions_neg_RES(const, t):
+            b_tec.const_tec_emissions_pos = Constraint(model.set_t, rule=init_tec_emissions_pos)
+            def init_tec_emissions_neg(const, t):
                 return b_tec.var_tec_emissions_neg[t] == 0
-            b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg_RES)
+            b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg)
+        elif technology_model == 'DAC_adsorption':
+            # Based on output
+            def const_tec_emissions_pos(const, t):
+                return b_tec.var_tec_emissions_pos[t] == 0
+            b_tec.const_tec_emissions_pos = Constraint(model.set_t, rule=const_tec_emissions_pos)
+            def init_tec_emissions_neg(const, t):
+                return b_tec.var_output[t, performance_data['output_carrier']] \
+                           (-b_tec.para_tec_emissionfactor) == \
+                       b_tec.var_tec_emissions_neg[t]
+            b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg)
         else:
-            # Calculate emissions from emission factor
+            # Based on input
             def init_tec_emissions_pos(const, t):
                 if performance_data['emission_factor'] >= 0:
                     return b_tec.var_input[t, performance_data['main_input_carrier']] \
@@ -212,7 +224,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
                            == b_tec.var_tec_emissions_pos[t]
                 else:
                     return b_tec.var_tec_emissions_pos[t] == 0
-            b_tec.const_tec_emissions = Constraint(model.set_t, rule=init_tec_emissions_pos)
+            b_tec.const_tec_emissions_pos = Constraint(model.set_t, rule=init_tec_emissions_pos)
 
             def init_tec_emissions_neg(const, t):
                 if performance_data['emission_factor'] < 0:
@@ -284,98 +296,3 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
 
 
-def calculate_input_bounds(tec_data):
-    """
-    Calculates bounds for technology inputs for each input carrier
-    """
-    technology_model = tec_data.technology_model
-    size_max = tec_data.size_max
-    performance_data = tec_data.performance_data
-
-    bounds = {}
-    if technology_model == 'CONV3':
-        main_car = performance_data['main_input_carrier']
-        for c in performance_data['input_carrier']:
-            if c == main_car:
-                bounds[c] = (0, size_max)
-            else:
-                bounds[c] = (0, size_max * performance_data['input_ratios'][c])
-    else:
-        for c in performance_data['input_carrier']:
-            bounds[c] = (0, size_max)
-    return bounds
-
-def calculate_output_bounds(tec_data):
-    """
-    Calculates bounds for technology outputs for each input carrier
-    """
-    technology_model = tec_data.technology_model
-    size_is_int = tec_data.size_is_int
-    size_max = tec_data.size_max
-    performance_data = tec_data.performance_data
-    fitted_performance = tec_data.fitted_performance
-    if size_is_int:
-        rated_power = fitted_performance['rated_power']
-    else:
-        rated_power = 1
-
-    bounds = {}
-
-    if technology_model == 'RES':  # Renewable technology with cap_factor as input
-        cap_factor = fitted_performance['capacity_factor']
-        for c in performance_data['output_carrier']:
-            max_bound = float(size_max * max(cap_factor) * rated_power)
-            bounds[c] = (0, max_bound)
-
-    elif technology_model == 'CONV1':  # n inputs -> n output, fuel and output substitution
-        performance_function_type = performance_data['performance_function_type']
-        alpha1 = fitted_performance['out']['alpha1']
-        for c in performance_data['output_carrier']:
-            if performance_function_type == 1:
-                max_bound = size_max * alpha1 * rated_power
-            if performance_function_type == 2:
-                alpha2 = fitted_performance['out']['alpha2']
-                max_bound = size_max * (alpha1 + alpha2) * rated_power
-            if performance_function_type == 3:
-                alpha2 = fitted_performance['out']['alpha2']
-                max_bound = size_max * (alpha1[-1] + alpha2[-1]) * rated_power
-            bounds[c] = (0, max_bound)
-
-    elif technology_model == 'CONV2':  # n inputs -> n output, fuel and output substitution
-        alpha1 = {}
-        alpha2 = {}
-        performance_function_type = performance_data['performance_function_type']
-        for c in performance_data['performance']['out']:
-            alpha1[c] = fitted_performance[c]['alpha1']
-            if performance_function_type == 1:
-                max_bound = alpha1[c] * size_max * rated_power
-            if performance_function_type == 2:
-                alpha2[c] = fitted_performance[c]['alpha2']
-                max_bound = size_max * (alpha1[c] + alpha2[c]) * rated_power
-            if performance_function_type == 3:
-                alpha2[c] = fitted_performance[c]['alpha2']
-                max_bound = size_max * (alpha1[c][-1] + alpha2[c][-1]) * rated_power
-            bounds[c] = (0, max_bound)
-
-    elif technology_model == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
-        alpha1 = {}
-        alpha2 = {}
-        performance_function_type = performance_data['performance_function_type']
-        # Get performance parameters
-        for c in performance_data['performance']['out']:
-            alpha1[c] = fitted_performance[c]['alpha1']
-            if performance_function_type == 1:
-                max_bound = alpha1[c] * size_max * rated_power
-            if performance_function_type == 2:
-                alpha2[c] = fitted_performance[c]['alpha2']
-                max_bound = size_max * (alpha1[c] + alpha2[c]) * rated_power
-            if performance_function_type == 3:
-                alpha2[c] = fitted_performance[c]['alpha2']
-                max_bound = size_max * (alpha1[c][-1] + alpha2[c][-1]) * rated_power
-            bounds[c] = (0, max_bound)
-
-    elif technology_model == 'STOR':  # Storage technology (1 input -> 1 output)
-        for c in performance_data['output_carrier']:
-            bounds[c] = (0, size_max)
-
-    return bounds

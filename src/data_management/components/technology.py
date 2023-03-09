@@ -43,6 +43,7 @@ class Technology:
         parameters = {}
 
         # Derive performance parameters for respective performance function type
+        # GENERIC TECHNOLOGIES
         if self.technology_model == 'RES':  # Renewable technologies
             if self.name == 'PV':
                 if 'system_type' in self.performance_data:
@@ -70,6 +71,11 @@ class Technology:
 
         elif self.technology_model == 'STOR':  # storage technologies
             self.fitted_performance = perform_fitting_tec_STOR(self.performance_data, climate_data)
+
+        # SPECIFIC TECHNOLOGIES
+        elif self.technology_model == 'DAC_adsorption':  # DAC adsorption
+            self.fitted_performance = perform_fitting_tec_DAC_adsorption(self.performance_data, climate_data)
+
 
 def read_technology_data_from_json(tec):
     """

@@ -9,15 +9,9 @@ import pandas as pd
 from timezonefinder import TimezoneFinder
 import src.data_management as dm
 from src.energyhub import EnergyHub
-
-
 from src.data_management.components.fit_technology_performance import fit_piecewise_function
+from scipy.interpolate import griddata
 
-
-data = dm.load_object(r'./test/test_data/k_means.p')
-clustered_data = dm.ClusteredDataHandle(data)
-nr_days_cluster = 40
-clustered_data.cluster_data(nr_days_cluster)
 
 execute = 0
 if execute == 1:
@@ -234,11 +228,106 @@ if execute == 1:
 
 #endregion
 
-execute = 0
+execute = 1
 #region How to fit a piece-wise linear function
 if execute == 1:
-    nr_seg = 3
-    tec = 'testPWA'
+    nr_bp = 3
+
+    # Read performance data from file
+    performance_data = pd.read_csv('./data/technology_data/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
+    performance_data = performance_data.rename(columns={"T": "temp_air", "RH": "humidity"})
+
+    # Unit Conversion of input data
+    performance_data.E_tot = performance_data.E_tot.multiply(performance_data.CO2_Out / 3600) # in MWh / h
+    performance_data.E_el = performance_data.E_el.multiply(performance_data.CO2_Out / 3600) # in kwh / h
+    performance_data.E_th = performance_data.E_th.multiply(performance_data.CO2_Out / 3600) # in kwh / h
+    performance_data.CO2_Out = performance_data.CO2_Out / 1000 # in t / h
+
+    # Get humidity and temperature
+    RH = 60
+    T = 15
+
+    # Derive performance points for each timestep
+    def interpolate_performance_point(t, rh, point_data, var):
+        zi = griddata((point_data.temp_air, point_data.humidity), point_data[var], (T, RH), method='linear')
+        return zi
+
+    CO2_Out = np.empty(shape=(1, len(performance_data.Point.unique())))
+    E_tot = np.empty(shape=(1, len(performance_data.Point.unique())))
+    E_el = np.empty(shape=(1, len(performance_data.Point.unique())))
+    for point in performance_data.Point.unique():
+        CO2_Out[:, point-1] = interpolate_performance_point(T, RH,
+                                                   performance_data.loc[performance_data.Point == point],
+                                                   'CO2_Out') *10
+        E_tot[:, point-1] = interpolate_performance_point(T, RH,
+                                                   performance_data.loc[performance_data.Point == point],
+                                                   'E_tot')*10
+        E_el[:, point-1] = interpolate_performance_point(T, RH,
+                                                   performance_data.loc[performance_data.Point == point],
+                                                   'E_el')*10
+
+    # Input-Output relation
+    timestep = 0
+    y = {}
+    x = E_tot[timestep, :].round(4).tolist()
+    y['out'] = CO2_Out[timestep, :].round(4).tolist()
+
+    fitting = fit_piecewise_function(x, y, int(nr_bp))
+
+    pl.plot(x, y['out'], ".")
+    pl.plot(fitting['bp_x'], fitting['out']['bp_y'], "-or")
+
+
+
+
+
+
+
+
+    #
+    # m = ConcreteModel()
+    #
+    # m.set_bps = RangeSet(1, nr_bp, 1)
+    # m.set_datapoints = RangeSet(0, len(x)-1)
+    #
+    # m.bp_x = Var(m.set_bps)
+    # m.bp_y = Var(m.set_bps)
+    # m.SSR = Var()
+    #
+    # def init_x(para, d):
+    #     return x[d]
+    # m.x_data = Param(m.set_datapoints, initialize=init_x)
+    # def init_y(para, d):
+    #     return y[d]
+    # m.y_data = Param(m.set_datapoints, initialize=init_y)
+    #
+    # def init_SSR(const):
+    #
+    # m.const = Constraint(rule=init_SSR)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    nr_seg = 2
+    tec = 'testCONV3_3'
     with open('./data/technology_data/' + tec + '.json') as json_file:
         technology_data = json.load(json_file)
 

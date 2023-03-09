@@ -1,10 +1,14 @@
+import copy
 import statsmodels.api as sm
 import numpy as np
 from scipy import optimize
+from scipy.interpolate import griddata
 import pvlib
 from timezonefinder import TimezoneFinder
 import pandas as pd
 from scipy.interpolate import interp1d
+import pwlf
+
 
 def perform_fitting_PV(climate_data, **kwargs):
     """
@@ -144,10 +148,10 @@ def perform_fitting_tec_CONV1(tec_data):
         linfit = linmodel.fit()
         coeff = linfit.params
         if performance_function_type == 1:
-            fitting['out']['alpha1'] = round(coeff[0], 5)
+            fitting['out']['alpha1'] = coeff[0]
         if performance_function_type == 2:
-            fitting['out']['alpha1'] = round(coeff[1], 5)
-            fitting['out']['alpha2'] = round(coeff[0], 5)
+            fitting['out']['alpha1'] = coeff[1]
+            fitting['out']['alpha2'] = coeff[0]
     elif performance_function_type == 3:  # piecewise performance function
         y = {}
         x = performance_data['in']
@@ -181,10 +185,10 @@ def perform_fitting_tec_CONV2(tec_data):
             linfit = linmodel.fit()
             coeff = linfit.params
             if performance_function_type == 1:
-                fitting[c]['alpha1'] = round(coeff[0], 5)
+                fitting[c]['alpha1'] = coeff[0]
             if performance_function_type == 2:
-                fitting[c]['alpha1'] = round(coeff[1], 5)
-                fitting[c]['alpha2'] = round(coeff[0], 5)
+                fitting[c]['alpha1'] = coeff[1]
+                fitting[c]['alpha2'] = coeff[0]
     elif performance_function_type == 3:  # piecewise performance function
         x = performance_data['in']
         Y =  performance_data['out']
@@ -217,10 +221,10 @@ def perform_fitting_tec_CONV3(tec_data):
             linfit = linmodel.fit()
             coeff = linfit.params
             if performance_function_type == 1:
-                fitting[c]['alpha1'] = round(coeff[0], 5)
+                fitting[c]['alpha1'] = coeff[0]
             if performance_function_type == 2:
-                fitting[c]['alpha1'] = round(coeff[1], 5)
-                fitting[c]['alpha2'] = round(coeff[0], 5)
+                fitting[c]['alpha1'] = coeff[1]
+                fitting[c]['alpha2'] = coeff[0]
     elif performance_function_type == 3:  # piecewise performance function
         x = performance_data['in']
         Y = performance_data['out']
@@ -239,77 +243,150 @@ def perform_fitting_tec_STOR(tec_data, climate_data):
 
     return fitting
 
+def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
+    nr_segments = tec_data['nr_segments']
 
-def fit_piecewise_function(X, Y, nr_seg):
+    # Read performance data from file
+    performance_data = pd.read_csv('./data/technology_data/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
+    performance_data = performance_data.rename(columns={"T": "temp_air", "RH": "humidity"})
+
+    # Unit Conversion of input data
+    performance_data.E_tot = performance_data.E_tot.multiply(performance_data.CO2_Out / 3600) # in MWh / h
+    performance_data.E_el = performance_data.E_el.multiply(performance_data.CO2_Out / 3600) # in kwh / h
+    performance_data.E_th = performance_data.E_th.multiply(performance_data.CO2_Out / 3600) # in kwh / h
+    performance_data.CO2_Out = performance_data.CO2_Out / 1000 # in t / h
+
+    # Get humidity and temperature
+    RH = copy.deepcopy(climate_data['dataframe']['rh'])
+    T = copy.deepcopy(climate_data['dataframe']['temp_air'])
+
+    # Set minimum temperature
+    T.loc[T < min(performance_data.temp_air)] = min(performance_data.temp_air)
+
+    # Derive performance points for each timestep
+    def interpolate_performance_point(t, rh, point_data, var):
+        zi = griddata((point_data.temp_air, point_data.humidity), point_data[var], (T, RH), method='linear')
+        return zi
+
+    CO2_Out = np.empty(shape=(len(T), len(performance_data.Point.unique())))
+    E_tot = np.empty(shape=(len(T), len(performance_data.Point.unique())))
+    E_el = np.empty(shape=(len(T), len(performance_data.Point.unique())))
+    for point in performance_data.Point.unique():
+        CO2_Out[:, point-1] = interpolate_performance_point(T, RH,
+                                                   performance_data.loc[performance_data.Point == point],
+                                                   'CO2_Out')
+        E_tot[:, point-1] = interpolate_performance_point(T, RH,
+                                                   performance_data.loc[performance_data.Point == point],
+                                                   'E_tot')
+        E_el[:, point-1] = interpolate_performance_point(T, RH,
+                                                   performance_data.loc[performance_data.Point == point],
+                                                   'E_el')
+
+    # Derive piecewise definition
+    alpha = np.empty(shape=(len(T), nr_segments))
+    beta = np.empty(shape=(len(T), nr_segments))
+    b = np.empty(shape=(len(T), nr_segments+1))
+    gamma = np.empty(shape=(len(T), nr_segments))
+    delta = np.empty(shape=(len(T), nr_segments))
+    a = np.empty(shape=(len(T), nr_segments+1))
+    el_in_max = np.empty(shape=(len(T)))
+    th_in_max = np.empty(shape=(len(T)))
+    out_max = np.empty(shape=(len(T)))
+    total_in_max = np.empty(shape=(len(T)))
+
+    print('Deriving performance data for DAC...')
+
+    for timestep in range(len(T)):
+        if timestep % 100 == 1:
+            print("\rComplete: ", round(timestep/len(T),2)*100, "%", end="")
+        # Input-Output relation
+        y = {}
+        y['CO2_Out'] = CO2_Out[timestep, :]
+        time_step_fit = fit_piecewise_function(E_tot[timestep, :], y, int(nr_segments))
+        alpha[timestep, :] = time_step_fit['CO2_Out']['alpha1']
+        beta[timestep, :] = time_step_fit['CO2_Out']['alpha2']
+        b[timestep, :] = time_step_fit['bp_x']
+        out_max[timestep] = max(time_step_fit['CO2_Out']['bp_y'])
+        total_in_max[timestep] = max(time_step_fit['bp_x'])
+
+        # Input-Input relation
+        y = {}
+        y['E_el'] = E_el[timestep, :]
+        time_step_fit = fit_piecewise_function(E_tot[timestep, :], y, int(nr_segments))
+        gamma[timestep, :] = time_step_fit['E_el']['alpha1']
+        delta[timestep, :] = time_step_fit['E_el']['alpha2']
+        a[timestep, :] = time_step_fit['bp_x']
+        el_in_max[timestep] = max(time_step_fit['E_el']['bp_y'])
+        th_in_max[timestep] = max(time_step_fit['bp_x'])
+
+    print("Complete: ", 100, "%")
+    fitting = {}
+    fitting['alpha'] = alpha
+    fitting['beta'] = beta
+    fitting['b'] = b
+    fitting['gamma'] = gamma
+    fitting['delta'] = delta
+    fitting['a'] = a
+    fitting['el_in_max'] = el_in_max
+    fitting['th_in_max'] = th_in_max
+    fitting['out_max'] = out_max
+    fitting['rated_power'] = 1
+    return fitting
+
+
+def fit_piecewise_function(X, Y, nr_segments):
     """
-    Returns fitted parameters of a piecewise defined function
+    Returns fitted parameters of a piecewise defined function with multiple y-series
     :param np.array X: x-values of data
     :param np.array Y: y-values of data
     :param nr_seg: number of segments on piecewise defined function
     :return: x and y breakpoints, slope and intercept parameters of piecewise defined function
     """
-    def segments_fit(X, Y, count):
+
+    def regress_piecewise(x, y, nr_segments, x_bp=None):
         """
-        Fits a piecewise defined function to x-y data
-        :param list X: x-values
-        :param dict Y: y-values (can have multiple dimensions)
-        :param count: how many segments
-        :return: x and y coordinates of piecewise defined function
+        Returns fitted parameters of a piecewise defined function
+        :param np.array X: x-values of data
+        :param np.array y: y-values of data
+        :param nr_seg: number of segments on piecewise defined function
+        :return: x and y breakpoints, slope and intercept parameters of piecewise defined function
         """
-        X = np.array(X)
-        xmin = min(X)
-        xmax = max(X)
-        seg = np.full(count - 1, (xmax - xmin) / count)
-        px_init = np.r_[np.r_[xmin, seg].cumsum(), xmax]
-        py_init = np.array([])
-        for car in Y:
-            y = np.array(Y[car])
-            py_init = np.append(py_init, np.interp(px_init, X, y))
+        # Perform fit
+        my_pwlf = pwlf.PiecewiseLinFit(x, y)
+        if not x_bp:
+            my_pwlf.fit(nr_segments)
+        else:
+            my_pwlf.fit_with_breaks(x_bp)
 
-        def err(p):
-            """
-            Calculates root mean square error of multiple curve fittings
-            """
-            # get variables
-            free_x_bp = p[:count - 1]
-            y_bps = p[count - 1:]
-            # Calculate y residuals
-            y_bp = np.empty((0, count+1))
-            y_res = np.empty(0)
-            for idx, car in enumerate(Y):
-                y_bp = np.append(y_bp, np.reshape(y_bps[idx*(count+1):(idx+1)*(count+1)], (1,-1)), axis=0)
-                y_res = np.append(y_res,
-                      np.mean((Y[car] - np.interp(X, np.r_[np.r_[xmin, free_x_bp].cumsum(), xmax], y_bp[idx])) ** 2))
-            return np.sum(y_res)
+        # retrieve data
+        bp_x = my_pwlf.fit_breaks
+        bp_y = my_pwlf.predict(bp_x)
 
-        options = {}
-        options['disp'] = 1
-        options['maxiter'] = 1500
-        r = optimize.minimize(err, x0=np.r_[seg, py_init], method='Nelder-Mead', options=options, tol=10^-6)
-
-        # Retrieve results
-        px = np.r_[xmin, r.x[:count - 1].cumsum(), xmax].round(5)
-        pys = r.x[count - 1:].ravel().round(5)
-        py = {}
-        for idx, car in enumerate(Y):
-            py[car] = pys[idx * (count + 1):(idx + 1) * (count + 1)]
-        return px, py
-
-    fitting = {}
-    px, py = segments_fit(X, Y, nr_seg)
-
-    for idx, car in enumerate(Y):
-        fitting[car] = {}
         alpha1 = []
         alpha2 = []
-        for seg in range(0, nr_seg):
-            al1 = (py[car][seg + 1] - py[car][seg]) / (px[seg + 1] - px[seg]) # Slope
-            al2 = py[car][seg] - (py[car][seg + 1] - py[car][seg]) / (px[seg + 1] - px[seg]) * px[seg] # Intercept
+        for seg in range(0, nr_segments):
+            al1 = (bp_y[seg + 1] - bp_y[seg]) / (bp_x[seg + 1] - bp_x[seg])  # Slope
+            al2 = bp_y[seg] - (bp_y[seg + 1] - bp_y[seg]) / (bp_x[seg + 1] - bp_x[seg]) * bp_x[seg]  # Intercept
             alpha1.append(al1)
             alpha2.append(al2)
+
+        return bp_x, bp_y, alpha1, alpha2
+
+
+    fitting = {}
+    for idx, car in enumerate(Y):
+        fitting[car] = {}
+        y = np.array(Y[car])
+        if idx == 0:
+            bp_x, bp_y, alpha1, alpha2 = regress_piecewise(X, y, nr_segments)
+            bp_x0 = bp_x
+        else:
+            bp_x, bp_y, alpha1, alpha2 = regress_piecewise(X, y, nr_segments, bp_x0)
+
         fitting[car]['alpha1'] = alpha1
         fitting[car]['alpha2'] = alpha2
-        fitting[car]['bp_y'] = py[car]
-        fitting['bp_x'] = px
+        fitting[car]['bp_y'] = bp_y
+        fitting['bp_x'] = bp_x
+
     return fitting
 

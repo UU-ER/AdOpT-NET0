@@ -1,7 +1,6 @@
 # TODO: Include hplib
 # TODO: Implement option for complete linearization
 # TODO: Implement length of time step
-# TODO: Implement Lukas Algorithm
 # TODO: Implement all technologies
 # TODO: Complete ERA5 weather import
 import src.data_management as dm
@@ -14,9 +13,9 @@ data_save_path = r'.\user_data\data_handle_test'
 # # TOPOLOGY
 topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
-topology.define_carriers(['electricity', 'heat'])
-topology.define_nodes(['onshore', 'offshore'])
-topology.define_new_technologies('onshore', ['battery', 'PV', 'WT_1500', 'Furnace_NG'])
+topology.define_carriers(['electricity', 'heat', 'CO2'])
+topology.define_nodes(['onshore'])
+topology.define_new_technologies('onshore', ['DAC_adsorption'])
 
 # distance = dm.create_empty_network_matrix(topology.nodes)
 # distance.at['onshore', 'offshore'] = 100
@@ -34,27 +33,36 @@ data = dm.DataHandle(topology)
 from_file = 0
 if from_file == 1:
     data.read_climate_data_from_file('onshore', r'.\data\climate_data_onshore.txt')
-    data.read_climate_data_from_file('offshore', r'.\data\climate_data_offshore.txt')
+    # data.read_climate_data_from_file('offshore', r'.\data\climate_data_offshore.txt')
 else:
     lat = 52
     lon = 5.16
     data.read_climate_data_from_api('onshore', lon, lat,save_path='.\data\climate_data_onshore.txt')
-    lat = 52.2
-    lon = 4.4
-    data.read_climate_data_from_api('offshore', lon, lat,save_path='.\data\climate_data_offshore.txt')
+    # lat = 52.2
+    # lon = 4.4
+    # data.read_climate_data_from_api('offshore', lon, lat,save_path='.\data\climate_data_offshore.txt')
 
 # DEMAND
-electricity_demand = np.ones(len(topology.timesteps)) * 10
-data.read_demand_data('onshore', 'electricity', electricity_demand)
-heat_demand = np.ones(len(topology.timesteps)) * 10
-data.read_demand_data('onshore', 'heat', heat_demand)
+# electricity_demand = np.ones(len(topology.timesteps)) * 10
+# data.read_demand_data('onshore', 'electricity', electricity_demand)
+# heat_demand = np.ones(len(topology.timesteps)) * 10
+# data.read_demand_data('onshore', 'heat', heat_demand)
+co2 = np.ones(len(topology.timesteps)) * 10000/8760
+data.read_demand_data('onshore', 'CO2', co2)
 
 # IMPORT
-gas_import = np.ones(len(topology.timesteps)) * 50
-data.read_import_limit_data('onshore', 'gas', gas_import)
+import_car = np.ones(len(topology.timesteps)) * 500
+data.read_import_limit_data('onshore', 'heat', import_car)
+data.read_import_limit_data('onshore', 'electricity', import_car)
+# data.read_import_limit_data('onshore', 'CO2', import_car)
 
+# Price
+el_price = np.ones(len(topology.timesteps)) * 0.05*1000
+data.read_import_price_data('onshore', 'electricity', el_price)
+th_price = np.ones(len(topology.timesteps)) * 0.025*1000
+data.read_import_price_data('onshore', 'heat', el_price)
 # PRINT DATA
-data.pprint()
+# data.pprint()
 
 # READ TECHNOLOGY AND NETWORK DATA
 data.read_technology_data()
@@ -66,17 +74,21 @@ data.read_network_data()
 # data.save(data_save_path)
 
 # # Read data
-energyhub = EnergyHubTwoStageTimeAverage(data)
-energyhub.solve_model()
-#
+energyhub = EnergyHub(data)
+energyhub.quick_solve_model()
+# energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()
+results = energyhub.write_results()
+results.write_excel(r'.\userData\DAC')
+
+
 # results = energyhub.write_results()
 # results.write_excel(r'.\userData\results_two_stage')
 
-energyhub1 = EnergyHub(data)
-energyhub1.quick_solve_model()
+# energyhub1 = EnergyHub(data)
+# energyhub1.quick_solve_model()
 
-results = energyhub1.write_results()
-results.write_excel(r'.\userData\results_benchmark')
+# results = energyhub1.write_results()
+# results.write_excel(r'.\userData\results_benchmark')
 # Construct equations
 # energyhub.construct_model()
 # energyhub.construct_balances()
