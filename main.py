@@ -7,6 +7,25 @@ import src.data_management as dm
 from src.energyhub import *
 import numpy as np
 
+topology = dm.SystemTopology()
+topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+topology.define_carriers(['electricity', 'heat'])
+topology.define_nodes(['testnode'])
+
+data = dm.DataHandle(topology)
+lat = 52
+lon = 5.16
+data.read_climate_data_from_api('testnode', lon, lat)
+topology.define_new_technologies('testnode', ['PV'])
+data.read_technology_data()
+
+
+
+
+
+
+
+
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
 #
@@ -15,7 +34,7 @@ topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
 topology.define_carriers(['electricity', 'heat'])
 topology.define_nodes(['onshore'])
-topology.define_new_technologies('onshore', ['HP_air_sourced'])
+topology.define_new_technologies('onshore', ['testCONV1_1'])
 
 # distance = dm.create_empty_network_matrix(topology.nodes)
 # distance.at['onshore', 'offshore'] = 100
