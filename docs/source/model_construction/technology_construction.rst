@@ -27,3 +27,8 @@ Solid Sorbent Direct Air Capture
 ----------------------------------------------
 .. automodule:: src.model_construction.technology_constraints.dac_adsorption
     :members:
+
+Heat Pump
+----------------------------------------------
+.. automodule:: src.model_construction.technology_constraints.hp
+    :members:
