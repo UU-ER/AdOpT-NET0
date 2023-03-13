@@ -1,7 +1,9 @@
+import numpy as np
 from pyomo.gdp import *
 import time
 import src.config_model as m_config
 from pyomo.environ import *
+import numpy as np
 
 
 def perform_disjunct_relaxation(component):
@@ -43,17 +45,23 @@ def calculate_output_bounds(tec_data):
             max_bound = float(size_max * max(cap_factor) * rated_power)
             bounds[c] = (0, max_bound)
 
-    elif technology_model == 'CONV1':  # n inputs -> n output, fuel and output substitution
+    elif technology_model == 'CONV1' or technology_model.startswith('HP_'):  # n inputs -> n output, fuel and output substitution
         performance_function_type = performance_data['performance_function_type']
         alpha1 = fitted_performance['out']['alpha1']
+        if technology_model.startswith('HP_'):
+            alpha1 = np.amax(alpha1, axis=0)
         for c in performance_data['output_carrier']:
             if performance_function_type == 1:
-                max_bound = size_max * alpha1 * rated_power
+                max_bound = size_max * alpha1[-1] * rated_power
             if performance_function_type == 2:
                 alpha2 = fitted_performance['out']['alpha2']
-                max_bound = size_max * (alpha1 + alpha2) * rated_power
+                if technology_model.startswith('HP_'):
+                    alpha2 = np.amax(alpha2, axis=0)
+                max_bound = size_max * (alpha1[-1] + alpha2[-1]) * rated_power
             if performance_function_type == 3:
                 alpha2 = fitted_performance['out']['alpha2']
+                if technology_model.startswith('HP_'):
+                    alpha2 = np.amax(alpha2, axis=0)
                 max_bound = size_max * (alpha1[-1] + alpha2[-1]) * rated_power
             bounds[c] = (0, max_bound)
 
@@ -96,6 +104,7 @@ def calculate_output_bounds(tec_data):
 
     elif technology_model == 'DAC_adsorption':
         bounds['CO2'] = (0, size_max * max(fitted_performance['out_max']))
+
     return bounds
 
 
