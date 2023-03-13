@@ -43,7 +43,7 @@ def test_load_technologies():
     Tests the loading of all technologies contained in the technology folder
     """
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 00:00', resolution=1)
     topology.define_carriers(['electricity', 'heat'])
     topology.define_nodes(['testnode'])
 
