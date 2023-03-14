@@ -7,7 +7,8 @@ import pvlib
 from timezonefinder import TimezoneFinder
 import pandas as pd
 from scipy.interpolate import interp1d
-import pwlf
+
+from src.data_management.components.utilities import *
 
 
 def perform_fitting_PV(climate_data, **kwargs):
@@ -137,27 +138,19 @@ def perform_fitting_tec_CONV1(tec_data):
     else:
         nr_seg = 2
 
-    fitting = {}
-    if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        fitting['out'] = dict()
-        x = performance_data['in']
-        if performance_function_type == 2:
-            x = sm.add_constant(x)
-        y = performance_data['out']
-        linmodel = sm.OLS(y, x)
-        linfit = linmodel.fit()
-        coeff = linfit.params
-        if performance_function_type == 1:
-            fitting['out']['alpha1'] = coeff[0]
-        if performance_function_type == 2:
-            fitting['out']['alpha1'] = coeff[1]
-            fitting['out']['alpha2'] = coeff[0]
-    elif performance_function_type == 3:  # piecewise performance function
-        y = {}
-        x = performance_data['in']
-        y['out'] = performance_data['out']
-        fitting = fit_piecewise_function(x, y, nr_seg)
+    # reshape performance_Data:
+    temp = copy.deepcopy(performance_data['out'])
+    performance_data['out'] = {}
+    performance_data['out']['out'] = temp
+
+    if performance_function_type == 1:
+        fitting = fit_performance_function_type1(performance_data)
+    elif performance_function_type == 2:
+        fitting = fit_performance_function_type2(performance_data)
+    elif performance_function_type == 3:
+        fitting = fit_performance_function_type3(performance_data, nr_seg)
     return fitting
+
 
 def perform_fitting_tec_CONV2(tec_data):
     """
@@ -173,27 +166,14 @@ def perform_fitting_tec_CONV2(tec_data):
     else:
         nr_seg = 2
 
-    fitting = {}
-    if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        x = performance_data['in']
-        if performance_function_type == 2:
-            x = sm.add_constant(x)
-        for c in performance_data['out']:
-            fitting[c] = dict()
-            y = performance_data['out'][c]
-            linmodel = sm.OLS(y, x)
-            linfit = linmodel.fit()
-            coeff = linfit.params
-            if performance_function_type == 1:
-                fitting[c]['alpha1'] = coeff[0]
-            if performance_function_type == 2:
-                fitting[c]['alpha1'] = coeff[1]
-                fitting[c]['alpha2'] = coeff[0]
-    elif performance_function_type == 3:  # piecewise performance function
-        x = performance_data['in']
-        Y =  performance_data['out']
-        fitting = fit_piecewise_function(x, Y, nr_seg)
+    if performance_function_type == 1:
+        fitting = fit_performance_function_type1(performance_data)
+    elif performance_function_type == 2:
+        fitting = fit_performance_function_type2(performance_data)
+    elif performance_function_type == 3:
+        fitting = fit_performance_function_type3(performance_data, nr_seg)
     return fitting
+
 
 def perform_fitting_tec_CONV3(tec_data):
     """
@@ -209,27 +189,14 @@ def perform_fitting_tec_CONV3(tec_data):
     else:
         nr_seg = 2
 
-    fitting = {}
-    if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
-        x = performance_data['in']
-        if performance_function_type == 2:
-            x = sm.add_constant(x)
-        for c in performance_data['out']:
-            fitting[c] = dict()
-            y = performance_data['out'][c]
-            linmodel = sm.OLS(y, x)
-            linfit = linmodel.fit()
-            coeff = linfit.params
-            if performance_function_type == 1:
-                fitting[c]['alpha1'] = coeff[0]
-            if performance_function_type == 2:
-                fitting[c]['alpha1'] = coeff[1]
-                fitting[c]['alpha2'] = coeff[0]
-    elif performance_function_type == 3:  # piecewise performance function
-        x = performance_data['in']
-        Y = performance_data['out']
-        fitting = fit_piecewise_function(x, Y, nr_seg)
+    if performance_function_type == 1:
+        fitting = fit_performance_function_type1(performance_data)
+    elif performance_function_type == 2:
+        fitting = fit_performance_function_type2(performance_data)
+    elif performance_function_type == 3:
+        fitting = fit_performance_function_type3(performance_data, nr_seg)
     return fitting
+
 
 def perform_fitting_tec_STOR(tec_data, climate_data):
     theta = tec_data['performance']['theta']
@@ -244,6 +211,12 @@ def perform_fitting_tec_STOR(tec_data, climate_data):
     return fitting
 
 def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
+    """
+    Performs fitting for technology type DAC_adsorption
+    :param tec_data: technology data
+    :param climate_data: climate data
+    :return:
+    """
     nr_segments = tec_data['nr_segments']
 
     # Read performance data from file
@@ -320,6 +293,7 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
         th_in_max[timestep] = max(time_step_fit['bp_x'])
 
     print("Complete: ", 100, "%")
+
     fitting = {}
     fitting['alpha'] = alpha
     fitting['beta'] = beta
@@ -334,59 +308,92 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
     return fitting
 
 
-def fit_piecewise_function(X, Y, nr_segments):
+def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
     """
-    Returns fitted parameters of a piecewise defined function with multiple y-series
-    :param np.array X: x-values of data
-    :param np.array Y: y-values of data
-    :param nr_seg: number of segments on piecewise defined function
-    :return: x and y breakpoints, slope and intercept parameters of piecewise defined function
+    Performs fitting for technology type HP (heat pump)
+
+    The equations are based on Ruhnau, O., Hirth, L., & Praktiknjo, A. (2019). Time series of heat demand and
+    heat pump efficiency for energy system modeling. Scientific Data, 6(1).
+    https://doi.org/10.1038/s41597-019-0199-y
+
+    :param tec_data: technology data
+    :param climate_data: climate data
+    :return:
     """
+    # Min part-load
+    min_part_load = tec_data['min_part_load']
 
-    def regress_piecewise(x, y, nr_segments, x_bp=None):
-        """
-        Returns fitted parameters of a piecewise defined function
-        :param np.array X: x-values of data
-        :param np.array y: y-values of data
-        :param nr_seg: number of segments on piecewise defined function
-        :return: x and y breakpoints, slope and intercept parameters of piecewise defined function
-        """
-        # Perform fit
-        my_pwlf = pwlf.PiecewiseLinFit(x, y)
-        if x_bp is None:
-            my_pwlf.fit(nr_segments)
-        else:
-            my_pwlf.fit_with_breaks(x_bp)
+    # Performance function type
+    performance_function_type = tec_data['performance_function_type']
 
-        # retrieve data
-        bp_x = my_pwlf.fit_breaks
-        bp_y = my_pwlf.predict(bp_x)
+    # Ambient air temperature
+    T = copy.deepcopy(climate_data['dataframe']['temp_air'])
 
-        alpha1 = []
-        alpha2 = []
-        for seg in range(0, nr_segments):
-            al1 = (bp_y[seg + 1] - bp_y[seg]) / (bp_x[seg + 1] - bp_x[seg])  # Slope
-            al2 = bp_y[seg] - (bp_y[seg + 1] - bp_y[seg]) / (bp_x[seg + 1] - bp_x[seg]) * bp_x[seg]  # Intercept
-            alpha1.append(al1)
-            alpha2.append(al2)
+    # Determine T_out
+    if tec_data['application'] == 'radiator_heating':
+        t_out = 40 - T
+    elif tec_data['application'] == 'floor_heating':
+        t_out = 30 - 0.5 * T
+    else:
+        t_out = tec_data['T_out']
 
-        return bp_x, bp_y, alpha1, alpha2
+    # Determine delta T
+    delta_T = t_out - T
 
+    # Determine COP
+    if HP_type == 'HP_air_sourced':
+        cop = 6.08 - 0.09 * delta_T + 0.0005 * delta_T ** 2
+    elif HP_type == 'HP_ground_sourced':
+        cop = 10.29 - 0.21 * delta_T + 0.0012 * delta_T ** 2
+    elif HP_type == 'HP_water_sourced':
+        cop = 9.97 - 0.20 * delta_T + 0.0012 * delta_T ** 2
 
+    print('Deriving performance data for Heat Pump...')
+
+    if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
+        size_alpha = 1
+    else:
+        size_alpha = 2
     fitting = {}
-    for idx, car in enumerate(Y):
-        fitting[car] = {}
-        y = np.array(Y[car])
-        if idx == 0:
-            bp_x, bp_y, alpha1, alpha2 = regress_piecewise(X, y, nr_segments)
-            bp_x0 = bp_x
-        else:
-            bp_x, bp_y, alpha1, alpha2 = regress_piecewise(X, y, nr_segments, bp_x0)
+    fitting['out'] = {}
+    alpha1 = np.empty(shape=(len(T), size_alpha))
+    alpha2 = np.empty(shape=(len(T), size_alpha))
+    bp_x = np.empty(shape=(len(T), size_alpha + 1))
+    for idx, cop_t in enumerate(cop):
+        if idx % 100 == 1:
+            print("\rComplete: ", round(idx/len(T),2)*100, "%", end="")
 
-        fitting[car]['alpha1'] = alpha1
-        fitting[car]['alpha2'] = alpha2
-        fitting[car]['bp_y'] = bp_y
-        fitting['bp_x'] = bp_x
+        if performance_function_type == 1:
+            x = np.linspace(min_part_load, 1, 9)
+            y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
+            coeff = fit_linear_function(x, y)
+            alpha1[idx, :] = coeff[0]
+        elif performance_function_type == 2:
+            x = np.linspace(min_part_load, 1, 9)
+            y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
+            x = sm.add_constant(x)
+            coeff = fit_linear_function(x, y)
+            alpha1[idx, :] = coeff[1]
+            alpha2[idx, :] = coeff[0]
+        elif performance_function_type == 3:  # piecewise performance function
+            y = {}
+            x = np.linspace(min_part_load, 1, 9)
+            y['out'] = (x / (1 - 0.9 * (1 - x))) * cop_t * x
+            time_step_fit = fit_piecewise_function(x, y, 2)
+            alpha1[idx, :] = time_step_fit['out']['alpha1']
+            alpha2[idx, :] = time_step_fit['out']['alpha2']
+            bp_x[idx, :] = time_step_fit['bp_x']
+    print("Complete: ", 100, "%")
 
+    if performance_function_type == 1:
+        fitting['out']['alpha1'] = alpha1.round(5)
+    elif performance_function_type == 2:  # Linear performance function
+        fitting['out']['alpha1'] = alpha1.round(5)
+        fitting['out']['alpha2'] = alpha2.round(5)
+    elif performance_function_type == 3:  # Linear performance function
+        fitting['out']['alpha1'] = alpha1.round(5)
+        fitting['out']['alpha2'] = alpha2.round(5)
+        fitting['bp_x'] = bp_x.round(5)
     return fitting
+
 

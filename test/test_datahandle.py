@@ -42,11 +42,15 @@ def test_load_technologies():
     """
     Tests the loading of all technologies contained in the technology folder
     """
-    topology = create_topology_sample()
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 00:00', resolution=1)
+    topology.define_carriers(['electricity', 'heat'])
+    topology.define_nodes(['testnode'])
+
     data = dm.DataHandle(topology)
     lat = 52
     lon = 5.16
-    data.read_climate_data_from_file('testnode', './test/climate_data_test.p')
+    data.read_climate_data_from_api('testnode', lon, lat)
 
     directory = os.fsencode('./data/technology_data')
 

@@ -158,5 +158,4 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
         def init_ohmic_heating(const, t):
             return b_tec.var_input_ohmic[t] == 0
         b_tec.const_ohmic_heating = Constraint(model.set_t, rule=init_ohmic_heating)
-    b_tec.pprint()
     return b_tec

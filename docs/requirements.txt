@@ -93,5 +93,4 @@ typing_extensions==4.4.0
 tzwhere==3.0.3
 urllib3==1.26.12
 windpowerlib==0.2.1
-xarray==0.20.2
 zipp==3.10.0

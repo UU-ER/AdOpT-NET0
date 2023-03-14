@@ -261,6 +261,9 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         elif technology_model == 'DAC_adsorption':
             b_tec = constraints_tec_dac_adsorption(model, b_tec, tec_data)
 
+        elif technology_model.startswith('HP_'):  # Heat Pump
+            b_tec = constraints_tec_hp(model, b_tec, tec_data)
+
         if m_config.presolve.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
 

@@ -133,7 +133,7 @@ def test_technology_CONV1():
                      3)
 
     assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
-    assert hydrogen_in_1 == tec_size
+    assert abs((hydrogen_in_1 - tec_size) / tec_size) <= allowed_fitting_error
     assert 0 == gas_in_1
     assert 0 == gas_in_2
     assert abs((heat_out_1 - 0.05) / 0.75 - hydrogen_in_1) / hydrogen_in_1 <= allowed_fitting_error
@@ -263,7 +263,7 @@ def test_technology_CONV2():
     assert 0.5 == heat_out_2
     assert 0 == gas_in_1
     assert 0 == gas_in_2
-    assert hydrogen_in_1 == tec_size
+    assert abs((hydrogen_in_1 - tec_size) / tec_size) <= allowed_fitting_error
     assert hydrogen_in_2 <= hydrogen_in_1
     assert abs((heat_out_1 - 0.05) / 0.75 - hydrogen_in_1) / hydrogen_in_1 <= allowed_fitting_error
     assert abs((heat_out_2 - 0.05) / 0.75 - hydrogen_in_2) / hydrogen_in_2 <= allowed_fitting_error

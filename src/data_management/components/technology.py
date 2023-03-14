@@ -76,6 +76,10 @@ class Technology:
         elif self.technology_model == 'DAC_adsorption':  # DAC adsorption
             self.fitted_performance = perform_fitting_tec_DAC_adsorption(self.performance_data, climate_data)
 
+        elif self.technology_model.startswith('HP_'):  # Heat Pump
+            self.fitted_performance = perform_fitting_tec_HP(self.performance_data, climate_data, self.technology_model)
+
+
 
 def read_technology_data_from_json(tec):
     """

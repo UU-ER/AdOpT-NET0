@@ -13,19 +13,13 @@ from src.data_management.components.fit_technology_performance import fit_piecew
 from scipy.interpolate import griddata
 
 
-execute = 0
-if execute == 1:
-    data = dm.load_object(r'./test/test_data/emissionbalance1.p')
-    data.technology_data['onshore']['Furnace_NG']['TechnologyPerf']['performance_function_type'] = 1
-    data.technology_data['onshore']['Furnace_NG']['fit']['heat']['alpha1'] = 0.9
-    data.network_data['electricityTest']['NetworkPerf']['emissionfactor'] = 0.2
-    data.network_data['electricityTest']['NetworkPerf']['loss2emissions'] = 1
-    energyhub = EnergyHub(data)
-    energyhub.construct_model()
-    energyhub.construct_balances()
-    energyhub.solve_model()
-    results = energyhub.write_results()
 
+execute = 0
+# region: HPlib use
+if execute == 1:
+    paras = hp.get_parameters(model = 'Generic', group_id=1, t_in=0, t_out=40, p_th=5)
+    perf = hp.simulate(t_in_primary=-2, t_in_secondary=30, parameters=paras, t_amb=-5, mode= 1, p_th_min = 0)
+# endregion
 
 execute = 0
 # region: how to k-means cluster
@@ -89,8 +83,6 @@ if execute == 1:
     energyhub.solve_model()
     results2 = energyhub.write_results()
     results2.write_excel(r'.\userData\results_full')
-
-
 
 execute = 0
 #region How to formulate hierarchical models with blocks
@@ -228,7 +220,7 @@ if execute == 1:
 
 #endregion
 
-execute = 1
+execute = 0
 #region How to fit a piece-wise linear function
 if execute == 1:
     nr_bp = 3
