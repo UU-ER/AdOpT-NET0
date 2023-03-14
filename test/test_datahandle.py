@@ -23,8 +23,8 @@ def test_initializer():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-04 23:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas'])
     topology.define_nodes(['testnode', 'offshore'])
-    topology.define_new_technologies('testnode', ['PV', 'Furnace_NG', 'battery'])
-    topology.define_new_technologies('offshore', ['WT_OS_11000'])
+    topology.define_new_technologies('testnode', ['Photovoltaic', 'Furnace_NG', 'Storage_Battery'])
+    topology.define_new_technologies('offshore', ['WindTurbine_Offshore_11000'])
 
     distance = dm.create_empty_network_matrix(topology.nodes)
     distance.at['onshore', 'offshore'] = 100

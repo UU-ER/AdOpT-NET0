@@ -8,8 +8,8 @@ def constraints_tec_hp(model, b_tec, tec_data):
     """
     Adds constraints to technology blocks for tec_type HP (Heat Pump)
 
-    Three different types of heat pumps are possible: air sourced ('HP_air_sourced'), ground sourced
-    ('HP_air_sourced') and water sourced ('HP_water_sourced'). Additionally, a heating curve is determined for
+    Three different types of heat pumps are possible: air sourced ('HeatPump_AirSourced'), ground sourced
+    ('HeatPump_GroundSourced') and water sourced ('HeatPump_WaterSourced'). Additionally, a heating curve is determined for
     heating for buildings. Then, the application needs to be set to either 'floor_heating' or 'radiator_heating'
     in the data file. Otherwise, the output temperature of the heat pump can also be set to a given temperature.
     The coefficient of performance at full load is calculated in the respective fitting function with the equations

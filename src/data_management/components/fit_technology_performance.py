@@ -341,11 +341,11 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
     delta_T = t_out - T
 
     # Determine COP
-    if HP_type == 'HP_air_sourced':
+    if HP_type == 'HeatPump_AirSourced':
         cop = 6.08 - 0.09 * delta_T + 0.0005 * delta_T ** 2
-    elif HP_type == 'HP_ground_sourced':
+    elif HP_type == 'HeatPump_GroundSourced':
         cop = 10.29 - 0.21 * delta_T + 0.0012 * delta_T ** 2
-    elif HP_type == 'HP_water_sourced':
+    elif HP_type == 'HeatPump_WaterSourced':
         cop = 9.97 - 0.20 * delta_T + 0.0012 * delta_T ** 2
 
     print('Deriving performance data for Heat Pump...')

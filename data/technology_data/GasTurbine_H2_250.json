@@ -1,5 +1,5 @@
 {
-  "tec_type": "HP_water_sourced",
+  "tec_type": "GasTurbine_H2_250",
   "size_min": 0.02,
   "size_max": 2,
   "size_is_int": 1,
@@ -7,7 +7,7 @@
   "Economics": {
     "comment": "CAPEX in EUR/unit/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 8.82113172E+7,
+    "unit_CAPEX": 6.0539676E+7,
     "OPEX_variable": 0,
     "OPEX_fixed": 0.05,
     "discount_rate": 0.1,
@@ -16,16 +16,13 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "input_carrier": [
-      "gas",
-      "hydrogen"
-    ],
+    "input_carrier": "hydrogen",
     "output_carrier": [
       "electricity",
       "heat"
     ],
     "alpha": 0.0005486,
-    "beta": -169.291,
+    "beta": -93.085,
     "gamma": [
       0.0064,
       -0.0971

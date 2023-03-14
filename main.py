@@ -99,7 +99,7 @@ results.write_excel(r'.\userData\HP')
 # results.write_excel(r'.\userData\results')
 
 # # Add technology to model and solve again
-# energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
+# energyhub.add_technology_to_node('onshore', ['WindTurbine_Offshore_11000'])
 # energyhub.construct_balances()
 # energyhub.solve_model()
 #

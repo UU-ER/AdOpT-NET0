@@ -16,20 +16,20 @@ def test_technology_RES_PV():
     Size of PV should be around max electricity demand (i.e. 10)
     """
     data = dm.load_object(r'./test/test_data/technology_type1_PV.p')
-    data.technology_data['test_node1']['PV'].performance_data['curtailment'] = 0
+    data.technology_data['test_node1']['Photovoltaic'].performance_data['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
-    assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
+    assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['Photovoltaic'].var_size.value
+    assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks_active['Photovoltaic'].var_size.value
 
     for t in energyhub.model.set_t:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['PV'].var_size.value
+    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['Photovoltaic'].var_size.value
     assert 0 == energyhub.model.objective()
 
 
@@ -43,30 +43,30 @@ def test_technology_RES_WT():
     """
     # No curtailment
     data = dm.load_object(r'./test/test_data/technology_type1_WT.p')
-    data.technology_data['test_node1']['WT_1500'].performance_data['curtailment'] = 0
+    data.technology_data['test_node1']['WindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value
+    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
 
     # Import at zero price
     for t in energyhub.model.set_t:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value
+    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
     assert 0 == energyhub.model.objective()
 
     # Curtailment
-    data.technology_data['test_node1']['WT_1500'].performance_data['curtailment'] = 2
+    data.technology_data['test_node1']['WindTurbine_Onshore_1500'].performance_data['curtailment'] = 2
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_1500'].var_size.value
+    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
 
 def test_technology_CONV1():
     """

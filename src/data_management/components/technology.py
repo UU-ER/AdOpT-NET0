@@ -45,13 +45,13 @@ class Technology:
         # Derive performance parameters for respective performance function type
         # GENERIC TECHNOLOGIES
         if self.technology_model == 'RES':  # Renewable technologies
-            if self.name == 'PV':
+            if self.name == 'Photovoltaic':
                 if 'system_type' in self.performance_data:
                     self.fitted_performance = perform_fitting_PV(climate_data,
                                                            system_data=self.performance_data['system_type'])
                 else:
                     self.fitted_performance = perform_fitting_PV(climate_data)
-            elif self.name == 'ST':
+            elif self.name == 'SolarThermal':
                 self.fitted_performance = perform_fitting_ST(climate_data)
             elif 'WT' in self.name:
                 if 'hubheight' in self.performance_data:
@@ -76,7 +76,7 @@ class Technology:
         elif self.technology_model == 'DAC_adsorption':  # DAC adsorption
             self.fitted_performance = perform_fitting_tec_DAC_adsorption(self.performance_data, climate_data)
 
-        elif self.technology_model.startswith('HP_'):  # Heat Pump
+        elif self.technology_model.startswith('HeatPump_'):  # Heat Pump
             self.fitted_performance = perform_fitting_tec_HP(self.performance_data, climate_data, self.technology_model)
 
 

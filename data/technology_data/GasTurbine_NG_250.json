@@ -1,5 +1,5 @@
 {
-  "tec_type": "HP_water_sourced",
+  "tec_type": "GasTurbine_NG_250",
   "size_min": 0.02,
   "size_max": 2,
   "size_is_int": 1,
@@ -7,7 +7,7 @@
   "Economics": {
     "comment": "CAPEX in EUR/unit/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 4.587174E+6,
+    "unit_CAPEX": 5.0449730000000007E+7,
     "OPEX_variable": 0,
     "OPEX_fixed": 0.05,
     "discount_rate": 0.1,
@@ -24,8 +24,8 @@
       "electricity",
       "heat"
     ],
-    "alpha": 0.00040260000000000003,
-    "beta": -3.0104,
+    "alpha": 0.0005488,
+    "beta": -104.969,
     "gamma": [
       0.0064,
       -0.0971
