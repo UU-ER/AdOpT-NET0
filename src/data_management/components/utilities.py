@@ -25,7 +25,7 @@ class Economics:
         self.decommission_cost = economics['decommission_cost']
 
 
-def fit_performance_function_type1(performance_data):
+def fit_performance_function_type1(performance_data, time_steps):
     """
     Fits performance function for input-output data for type 1
 
@@ -34,15 +34,26 @@ def fit_performance_function_type1(performance_data):
     """
     fitting = {}
     x = performance_data['in']
+    # Fit performance
     for c in performance_data['out']:
         fitting[c] = dict()
         y = performance_data['out'][c]
         coeff = fit_linear_function(x, y)
-        fitting[c]['alpha1'] = coeff[0]
+        fitting[c]['alpha1'] = round(coeff[0], 6)
+
+    # Calculate input bounds
+    fitting['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   np.ones(shape=(time_steps))))
+
+    fitting['output_bounds'] = {}
+    for c in performance_data['out']:
+        # Calculate output bounds
+        fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fitting[c]['alpha1']))
 
     return fitting
 
-def fit_performance_function_type2(performance_data):
+def fit_performance_function_type2(performance_data, time_steps):
     """
     Fits performance function for input-output data for type 2
 
@@ -52,17 +63,28 @@ def fit_performance_function_type2(performance_data):
     fitting = {}
     x = performance_data['in']
     x = sm.add_constant(x)
+    fitting['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                  np.ones(shape=(time_steps))))
     for c in performance_data['out']:
         fitting[c] = dict()
         y = performance_data['out'][c]
         coeff = fit_linear_function(x, y)
-        fitting[c]['alpha1'] = coeff[1]
-        fitting[c]['alpha2'] = coeff[0]
+        fitting[c]['alpha1'] = round(coeff[1], 6)
+        fitting[c]['alpha2'] = round(coeff[0], 6)
 
+    # Calculate input bounds
+    fitting['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))))
+    fitting['output_bounds'] = {}
+    for c in performance_data['out']:
+        # Calculate output bounds
+        fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fitting[c]['alpha1'] + \
+                                                       fitting[c]['alpha2']))
     return fitting
 
 
-def fit_performance_function_type3(performance_data, nr_seg):
+def fit_performance_function_type3(performance_data, nr_seg, time_steps):
     """
     Fits performance function for input-output data for type 1
 
@@ -72,6 +94,16 @@ def fit_performance_function_type3(performance_data, nr_seg):
     x = performance_data['in']
     Y = performance_data['out']
     fitting = fit_piecewise_function(x, Y, nr_seg)
+
+    # Calculate input bounds
+    fitting['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))))
+    fitting['output_bounds'] = {}
+    for c in performance_data['out']:
+        # Calculate output bounds
+        fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fitting[c]['alpha1'][-1] + \
+                                                       fitting[c]['alpha2'][-1]))
 
     return fitting
 

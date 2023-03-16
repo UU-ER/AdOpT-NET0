@@ -53,7 +53,7 @@ class Technology:
                     self.fitted_performance = perform_fitting_PV(climate_data)
             elif self.name == 'SolarThermal':
                 self.fitted_performance = perform_fitting_ST(climate_data)
-            elif 'WT' in self.name:
+            elif 'WindTurbine' in self.name:
                 if 'hubheight' in self.performance_data:
                     hubheight = self.performance_data['hubheight']
                 else:
@@ -61,23 +61,26 @@ class Technology:
                 self.fitted_performance = perform_fitting_WT(climate_data, self.name, hubheight)
 
         elif self.technology_model == 'CONV1':  # n inputs -> n output, fuel and output substitution
-            self.fitted_performance = perform_fitting_tec_CONV1(self.performance_data)
+            self.fitted_performance = perform_fitting_tec_CONV1(self.performance_data, climate_data)
 
         elif self.technology_model == 'CONV2':  # n inputs -> n output, fuel and output substitution
-            self.fitted_performance = perform_fitting_tec_CONV2(self.performance_data)
+            self.fitted_performance = perform_fitting_tec_CONV2(self.performance_data, climate_data)
 
         elif self.technology_model == 'CONV3':  # n inputs -> n output, fixed ratio between inputs and outputs
-            self.fitted_performance = perform_fitting_tec_CONV3(self.performance_data)
+            self.fitted_performance = perform_fitting_tec_CONV3(self.performance_data, climate_data)
 
         elif self.technology_model == 'STOR':  # storage technologies
             self.fitted_performance = perform_fitting_tec_STOR(self.performance_data, climate_data)
 
         # SPECIFIC TECHNOLOGIES
-        elif self.technology_model == 'DAC_adsorption':  # DAC adsorption
+        elif self.technology_model == 'DAC_Adsorption':  # DAC adsorption
             self.fitted_performance = perform_fitting_tec_DAC_adsorption(self.performance_data, climate_data)
 
         elif self.technology_model.startswith('HeatPump_'):  # Heat Pump
             self.fitted_performance = perform_fitting_tec_HP(self.performance_data, climate_data, self.technology_model)
+
+        elif self.technology_model.startswith('GasTurbine_'):  # Gas Turbine
+            self.fitted_performance = perform_fitting_tec_GT(self.performance_data, climate_data)
 
 
 

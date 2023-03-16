@@ -1,5 +1,4 @@
 {
-  "tec_type": "RES",
   "size_min": 0,
   "size_max": 500,
   "size_is_int": 1,
@@ -25,5 +24,6 @@
     ],
     "curtailment": 2,
     "emission_factor": 0
-  }
+  },
+  "tec_type": "RES"
 }

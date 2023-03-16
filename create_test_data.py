@@ -574,7 +574,7 @@ def create_data_existing_technologies():
     data2 = create_data(topology2)
     data2.save(data_save_path2)
     data3 = create_data(topology3)
-    data3.technology_data['test_node1']['battery_existing'].decommission = 1
+    data3.technology_data['test_node1']['Storage_Battery_existing'].decommission = 1
     data3.save(data_save_path3)
     data3.technology_data
 

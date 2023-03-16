@@ -95,6 +95,8 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         size_max = tec_data.size_max
         economics = tec_data.economics
         performance_data = tec_data.performance_data
+        fitted_performance = tec_data.fitted_performance
+
         if existing:
             size_initial = tec_data.size_initial
             size_max = size_initial
@@ -161,18 +163,16 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         # INPUT
         b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
-        input_bounds = mc.calculate_input_bounds(tec_data)
         if not technology_model == 'RES':
             def init_input_bounds(bounds, t, car):
-                return input_bounds[car]
+                return tuple(fitted_performance['input_bounds'][car][t-1,:] * size_max)
             b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=init_input_bounds, units=u.MW)
 
         # OUTPUT
         b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])
-        output_bounds = mc.calculate_output_bounds(tec_data)
         def init_output_bounds(bounds, t, car):
-            return output_bounds[car]
+            return tuple(fitted_performance['output_bounds'][car][t-1,:] * size_max)
         b_tec.var_output = Var(model.set_t, b_tec.set_output_carriers, within=NonNegativeReals,
                                bounds=init_output_bounds, units=u.MW)
 
@@ -263,6 +263,9 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
 
         elif technology_model.startswith('HeatPump_'):  # Heat Pump
             b_tec = constraints_tec_hp(model, b_tec, tec_data)
+
+        elif technology_model.startswith('GasTurbine_'):  # Gas Turbine
+            b_tec = constraints_tec_gt(model, b_tec, tec_data)
 
         if m_config.presolve.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)

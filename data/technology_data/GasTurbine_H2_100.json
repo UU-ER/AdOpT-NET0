@@ -1,7 +1,6 @@
 {
-  "tec_type": "GasTurbine_H2_100",
-  "size_min": 0.02,
-  "size_max": 2,
+  "size_min": 0,
+  "size_max": 100,
   "size_is_int": 1,
   "decommission": 0,
   "Economics": {
@@ -16,12 +15,18 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "input_carrier": "hydrogen",
+    "input_carrier": [
+      "hydrogen"
+    ],
+    "main_input_carrier": "gas",
     "output_carrier": [
       "electricity",
       "heat"
     ],
-    "alpha": 0.0004633,
+    "rated_power": 100,
+    "in_min": 129.04,
+    "in_max": 226.884,
+    "alpha": 0.4633,
     "beta": -15.458,
     "gamma": [
       0.0064,
@@ -33,7 +38,7 @@
     ],
     "T_iso": 15,
     "epsilon": 0.95511511511511515,
-    "emission_factor": 0.185,
-    "min_part_load": 0.2
-  }
+    "emission_factor": 0.185
+  },
+  "tec_type": "GasTurbine_H2_100"
 }

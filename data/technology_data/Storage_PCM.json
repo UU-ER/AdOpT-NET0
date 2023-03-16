@@ -1,5 +1,4 @@
 {
-  "tec_type": "STOR",
   "size_min": 0,
   "size_max": 280,
   "size_is_int": 0,
@@ -47,5 +46,6 @@
       "charge_max": 0.2,
       "discharge_max": 0.2
     }
-  }
+  },
+  "tec_type": "STOR"
 }

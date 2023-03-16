@@ -75,10 +75,17 @@ def perform_fitting_PV(climate_data, **kwargs):
     power = pv_model.results.ac.p_mp
     capacity_factor = power / peakpower
 
+    # Calculate output bounds
+    lower_output_bound = np.zeros(shape=(len(climate_data['dataframe'])))
+    upper_output_bound = capacity_factor.to_numpy()
+    output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
+
     # return fit
-    fitting = dict()
+    fitting = {}
     fitting['capacity_factor'] = capacity_factor
     fitting['specific_area'] = specific_area
+    fitting['output_bounds'] = {}
+    fitting['output_bounds']['electricity'] = output_bounds
     return fitting
 
 def perform_fitting_ST(climate_data):
@@ -116,15 +123,22 @@ def perform_fitting_WT(climate_data, turbine_model, hubheight):
     f = interp1d(x, y)
     capacity_factor = f(ws) / rated_power
 
+    # Calculate output bounds
+    lower_output_bound = np.zeros(shape=(len(climate_data['dataframe'])))
+    upper_output_bound = capacity_factor[0]
+    output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
+
     # return fit
-    fitting = dict()
+    fitting = {}
     fitting['capacity_factor'] = capacity_factor[0]
     fitting['rated_power'] = rated_power / 1000
+    fitting['output_bounds'] = {}
+    fitting['output_bounds']['electricity'] = output_bounds
 
     return fitting
 
 
-def perform_fitting_tec_CONV1(tec_data):
+def perform_fitting_tec_CONV1(tec_data, climate_data):
     """
     Fits conversion technology type 1 and returns fitted parameters as a dict
     :param performance_data: contains X and y data of technology performance
@@ -143,16 +157,32 @@ def perform_fitting_tec_CONV1(tec_data):
     performance_data['out'] = {}
     performance_data['out']['out'] = temp
 
+    # Number of timesteps:
+    time_steps = len(climate_data['dataframe'])
+
     if performance_function_type == 1:
-        fitting = fit_performance_function_type1(performance_data)
+        fitting = fit_performance_function_type1(performance_data, time_steps)
     elif performance_function_type == 2:
-        fitting = fit_performance_function_type2(performance_data)
+        fitting = fit_performance_function_type2(performance_data, time_steps)
     elif performance_function_type == 3:
-        fitting = fit_performance_function_type3(performance_data, nr_seg)
+        fitting = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+
+    # Realculate bounds
+    input_bounds = fitting['input_bounds']
+    fitting['input_bounds'] = {}
+    for c in tec_data['input_carrier']:
+        fitting['input_bounds'][c] = input_bounds
+
+    output_bounds = fitting['output_bounds']['out']
+    fitting['output_bounds'].pop('out')
+    fitting['output_bounds'] = {}
+    for c in tec_data['output_carrier']:
+        fitting['output_bounds'][c] = output_bounds
+
     return fitting
 
 
-def perform_fitting_tec_CONV2(tec_data):
+def perform_fitting_tec_CONV2(tec_data, climate_data):
     """
     Fits conversion technology type 2 and returns fitted parameters as a dict
     :param performance_data: contains X and y data of technology performance
@@ -166,16 +196,26 @@ def perform_fitting_tec_CONV2(tec_data):
     else:
         nr_seg = 2
 
+    # Number of timesteps:
+    time_steps = len(climate_data['dataframe'])
+
     if performance_function_type == 1:
-        fitting = fit_performance_function_type1(performance_data)
+        fitting = fit_performance_function_type1(performance_data, time_steps)
     elif performance_function_type == 2:
-        fitting = fit_performance_function_type2(performance_data)
+        fitting = fit_performance_function_type2(performance_data, time_steps)
     elif performance_function_type == 3:
-        fitting = fit_performance_function_type3(performance_data, nr_seg)
+        fitting = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+
+    # Realculate bounds
+    input_bounds = fitting['input_bounds']
+    fitting['input_bounds'] = {}
+    for c in tec_data['input_carrier']:
+        fitting['input_bounds'][c] = input_bounds
+
     return fitting
 
 
-def perform_fitting_tec_CONV3(tec_data):
+def perform_fitting_tec_CONV3(tec_data, climate_data):
     """
     Fits conversion technology type 3 and returns fitted parameters as a dict
     :param performance_data: contains X and y data of technology performance
@@ -189,17 +229,30 @@ def perform_fitting_tec_CONV3(tec_data):
     else:
         nr_seg = 2
 
+    # Number of timesteps:
+    time_steps = len(climate_data['dataframe'])
+
     if performance_function_type == 1:
-        fitting = fit_performance_function_type1(performance_data)
+        fitting = fit_performance_function_type1(performance_data, time_steps)
     elif performance_function_type == 2:
-        fitting = fit_performance_function_type2(performance_data)
+        fitting = fit_performance_function_type2(performance_data, time_steps)
     elif performance_function_type == 3:
-        fitting = fit_performance_function_type3(performance_data, nr_seg)
+        fitting = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+
+    # Realculate input bounds
+    input_bounds = fitting['input_bounds']
+    fitting['input_bounds'] = {}
+    fitting['input_bounds'][tec_data['main_input_carrier']] = input_bounds
+    for c in tec_data['input_carrier']:
+        fitting['input_bounds'][c] = input_bounds * tec_data['input_ratios'][c]
     return fitting
 
 
 def perform_fitting_tec_STOR(tec_data, climate_data):
     theta = tec_data['performance']['theta']
+
+    # Number of timesteps:
+    time_steps = len(climate_data['dataframe'])
 
     fitting = {}
     ambient_loss_factor = (65 - climate_data['dataframe']['temp_air']) / (90 - 65) * theta
@@ -208,6 +261,16 @@ def perform_fitting_tec_STOR(tec_data, climate_data):
         if not par == 'theta':
             fitting[par] = tec_data['performance'][par]
 
+    # Calculate bounds
+    fitting['input_bounds'] = {}
+    for c in tec_data['input_carrier']:
+        fitting['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))*fitting['charge_max']))
+
+    fitting['output_bounds'] = {}
+    for c in tec_data['output_carrier']:
+        fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))*fitting['discharge_max']))
     return fitting
 
 def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
@@ -301,16 +364,26 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
     fitting['gamma'] = gamma
     fitting['delta'] = delta
     fitting['a'] = a
-    fitting['el_in_max'] = el_in_max
-    fitting['th_in_max'] = th_in_max
-    fitting['out_max'] = out_max
     fitting['rated_power'] = 1
+
+    # Number of timesteps:
+    time_steps = len(climate_data['dataframe'])
+
+    # Calculate bounds
+    fitting['input_bounds'] = {}
+    fitting['output_bounds'] = {}
+    fitting['input_bounds']['electricity'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   el_in_max + th_in_max / tec_data['performance']['eta_elth']))
+    fitting['input_bounds']['heat'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   th_in_max))
+    fitting['output_bounds']['CO2'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   out_max))
     return fitting
 
 
 def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
     """
-    Performs fitting for technology type HP (heat pump)
+    Performs fitting for technology type HeatPump
 
     The equations are based on Ruhnau, O., Hirth, L., & Praktiknjo, A. (2019). Time series of heat demand and
     heat pump efficiency for energy system modeling. Scientific Data, 6(1).
@@ -328,6 +401,9 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
 
     # Ambient air temperature
     T = copy.deepcopy(climate_data['dataframe']['temp_air'])
+
+    # Number of timesteps:
+    time_steps = len(climate_data['dataframe'])
 
     # Determine T_out
     if tec_data['application'] == 'radiator_heating':
@@ -356,12 +432,12 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
         size_alpha = 2
     fitting = {}
     fitting['out'] = {}
-    alpha1 = np.empty(shape=(len(T), size_alpha))
-    alpha2 = np.empty(shape=(len(T), size_alpha))
-    bp_x = np.empty(shape=(len(T), size_alpha + 1))
+    alpha1 = np.empty(shape=(time_steps, size_alpha))
+    alpha2 = np.empty(shape=(time_steps, size_alpha))
+    bp_x = np.empty(shape=(time_steps, size_alpha + 1))
     for idx, cop_t in enumerate(cop):
         if idx % 100 == 1:
-            print("\rComplete: ", round(idx/len(T),2)*100, "%", end="")
+            print("\rComplete: ", round(idx/time_steps,2)*100, "%", end="")
 
         if performance_function_type == 1:
             x = np.linspace(min_part_load, 1, 9)
@@ -385,15 +461,94 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
             bp_x[idx, :] = time_step_fit['bp_x']
     print("Complete: ", 100, "%")
 
+    # Calculate input bounds
+
+    fitting['input_bounds'] = {}
+    for c in tec_data['input_carrier']:
+        fitting['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   np.ones(shape=(time_steps))))
+
+    fitting['output_bounds'] = {}
+
     if performance_function_type == 1:
         fitting['out']['alpha1'] = alpha1.round(5)
+        for c in tec_data['output_carrier']:
+            fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps)) * fitting['out']['alpha1']))
     elif performance_function_type == 2:  # Linear performance function
         fitting['out']['alpha1'] = alpha1.round(5)
         fitting['out']['alpha2'] = alpha2.round(5)
-    elif performance_function_type == 3:  # Linear performance function
+        for c in tec_data['output_carrier']:
+            fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fitting['out']['alpha1'] + \
+                                                       fitting['out']['alpha2']))
+    elif performance_function_type == 3:  # Piecewise performance function
         fitting['out']['alpha1'] = alpha1.round(5)
         fitting['out']['alpha2'] = alpha2.round(5)
         fitting['bp_x'] = bp_x.round(5)
+        for c in tec_data['output_carrier']:
+            fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       fitting['out']['alpha1'][:,-1] + \
+                                                       fitting['out']['alpha2'][:,-1]))
+
     return fitting
+
+def perform_fitting_tec_GT(tec_data, climate_data):
+    """
+    Performs fitting for technology type GasTurbine
+
+    The equations and data are based on Weimann, L., Ellerker, M., Kramer, G. J., & Gazzani, M. (2019). Modeling gas
+    turbines in multi-energy systems: A linear model accounting for part-load operation, fuel, temperature,
+    and sizing effects. International Conference on Applied Energy. https://doi.org/10.46855/energy-proceedings-5280
+
+    :param tec_data: technology data
+    :param climate_data: climate data
+    :return:
+    """
+    # Ambient air temperature
+    T = copy.deepcopy(climate_data['dataframe']['temp_air'])
+
+    # Number of timesteps:
+    time_steps = len(climate_data['dataframe'])
+
+    # Temperature correction factors
+    f = np.empty(shape=(time_steps))
+    f[T <= 6] =  tec_data['gamma'][0] * (T[T <= 6] / tec_data['T_iso']) + tec_data['delta'][0]
+    f[T > 6] =  tec_data['gamma'][1] * (T[T > 6] / tec_data['T_iso']) + tec_data['delta'][1]
+
+    # Derive return
+    fitting = {}
+    fitting['rated_power'] = tec_data['rated_power']
+    fitting['f'] = f.round(5)
+    fitting['alpha'] = round(tec_data['alpha'], 5)
+    fitting['beta'] = round(tec_data['beta'], 5)
+    fitting['epsilon'] = round(tec_data['epsilon'], 5)
+    fitting['in_min'] = round(tec_data['in_min'], 5)
+    fitting['in_max'] = round(tec_data['in_max'], 5)
+
+    if len(tec_data['input_carrier']) == 1:
+        H2_admixture = 1
+    else:
+        H2_admixture = tec_data['max_H2_admixture']
+
+    # Input bounds
+    fitting['input_bounds'] = {}
+    for c in tec_data['input_carrier']:
+        if c == 'hydrogen':
+            fitting['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           np.ones(shape=(time_steps)) * tec_data['in_max'] * H2_admixture))
+        else:
+            fitting['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           np.ones(shape=(time_steps)) * tec_data['in_max']))
+
+    # Output bounds
+    fitting['output_bounds'] = {}
+    fitting['output_bounds']['electricity'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           f * (tec_data['in_max'] * fitting['alpha'] + fitting['beta'])))
+    fitting['output_bounds']['heat'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           fitting['epsilon'] * fitting['in_max'] -
+                                                        f * (tec_data['in_max'] * fitting['alpha'] + fitting['beta'])))
+    return fitting
+
 
 

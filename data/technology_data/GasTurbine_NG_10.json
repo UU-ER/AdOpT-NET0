@@ -1,7 +1,6 @@
 {
-  "tec_type": "GasTurbine_NG_10",
-  "size_min": 0.02,
-  "size_max": 2,
+  "size_min": 0,
+  "size_max": 100,
   "size_is_int": 1,
   "decommission": 0,
   "Economics": {
@@ -20,11 +19,16 @@
       "gas",
       "hydrogen"
     ],
+    "max_H2_admixture": 0.05,
+    "main_input_carrier": "gas",
     "output_carrier": [
       "electricity",
       "heat"
     ],
-    "alpha": 0.00040260000000000003,
+    "rated_power": 10,
+    "in_min": 19.907,
+    "in_max": 32.376,
+    "alpha": 0.4026,
     "beta": -3.0104,
     "gamma": [
       0.0064,
@@ -36,7 +40,7 @@
     ],
     "T_iso": 15,
     "epsilon": 0.871207034372502,
-    "emission_factor": 0.185,
-    "min_part_load": 0.2
-  }
+    "emission_factor": 0.185
+  },
+  "tec_type": "GasTurbine_NG_10"
 }

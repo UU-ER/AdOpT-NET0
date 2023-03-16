@@ -1,5 +1,4 @@
 {
-  "tec_type": "CONV2",
   "size_min": 1,
   "size_max": 100000,
   "size_is_int": 0,
@@ -55,5 +54,6 @@
         ]
       }
     }
-  }
+  },
+  "tec_type": "CONV2"
 }
