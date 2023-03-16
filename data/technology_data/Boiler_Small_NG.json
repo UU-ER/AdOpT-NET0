@@ -1,7 +1,6 @@
 {
-  "tec_type": "CONV2",
   "size_min": 0,
-  "size_max": 250,
+  "size_max": 2.5,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
@@ -13,13 +12,13 @@
         0,
         0.07,
         0.2,
-        250
+        2.5
       ],
       "bp_y": [
         0,
         12647,
         23446,
-        1.6310406E+7
+        173406
       ]
     },
     "OPEX_variable": 0,
@@ -52,5 +51,6 @@
         ]
       }
     }
-  }
+  },
+  "tec_type": "CONV2"
 }

@@ -33,8 +33,8 @@ if execute == 1:
     topology['carriers'] = ['electricity']
     topology['nodes'] = ['test_node1']
     topology['technologies'] = {}
-    # topology['technologies']['test_node1'] = ['PV', 'testSTOR']
-    topology['technologies']['test_node1'] = ['PV']
+    # topology['technologies']['test_node1'] = ['Photovoltaic', 'testSTOR']
+    topology['technologies']['test_node1'] = ['Photovoltaic']
 
     topology['networks'] = {}
 

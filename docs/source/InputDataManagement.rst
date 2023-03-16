@@ -34,7 +34,7 @@ Fist, we create an empty topology and fill it with a system design. Hereby note:
     topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-04 23:00', resolution=1)
     topology.define_carriers(['electricity', 'heat'])
     topology.define_nodes(['onshore', 'offshore'])
-    topology.define_new_technologies('onshore', ['battery', 'PV', 'Furnace_NG'])
+    topology.define_new_technologies('onshore', ['Storage_Battery', 'Photovoltaic', 'Furnace_NG'])
 
 It is also possible to add a technology that exists already at a certain size to a node. Note, that you need to
 pass the technology as a dictonary with the respective size instead of a simple list. You can specify if these technologies
@@ -45,7 +45,7 @@ Similarly, it is possible to add an existing network to the model. See the
 
 .. testcode::
 
-    topology.define_existing_technologies('onshore', {'WT_1500': 2, 'PV': 2.4})
+    topology.define_existing_technologies('onshore', {'WindTurbine_Onshore_1500': 2, 'Photovoltaic': 2.4})
 
 Let's create an electricity network connecting the onshore and offshore node:
 

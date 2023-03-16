@@ -30,5 +30,10 @@ Solid Sorbent Direct Air Capture
 
 Heat Pump
 ----------------------------------------------
-.. automodule:: src.model_construction.technology_constraints.hp
+.. automodule:: src.model_construction.technology_constraints.heat_pump
+    :members:
+
+Gas Turbine
+----------------------------------------------
+.. automodule:: src.model_construction.technology_constraints.gas_turbine
     :members:

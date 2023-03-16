@@ -7,15 +7,16 @@ import src.data_management as dm
 from src.energyhub import *
 import numpy as np
 
+
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
 #
 # # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
-topology.define_carriers(['electricity', 'heat'])
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
 topology.define_nodes(['onshore'])
-topology.define_new_technologies('onshore', ['testCONV1_1'])
+topology.define_new_technologies('onshore', ['GasTurbine_NG_10'])
 
 # distance = dm.create_empty_network_matrix(topology.nodes)
 # distance.at['onshore', 'offshore'] = 100
@@ -53,14 +54,18 @@ data.read_demand_data('onshore', 'heat', heat_demand)
 # IMPORT
 import_car = np.ones(len(topology.timesteps)) * 500
 # data.read_import_limit_data('onshore', 'heat', import_car)
-data.read_import_limit_data('onshore', 'electricity', import_car)
+data.read_import_limit_data('onshore', 'gas', import_car)
+data.read_import_limit_data('onshore', 'hydrogen', import_car)
 # data.read_import_limit_data('onshore', 'CO2', import_car)
 
+data.read_export_limit_data('onshore', 'electricity', import_car)
+data.read_export_limit_data('onshore', 'heat', import_car)
+
 # Price
-el_price = np.ones(len(topology.timesteps)) * 0.05*1000
-data.read_import_price_data('onshore', 'electricity', el_price)
-th_price = np.ones(len(topology.timesteps)) * 1000000000
-data.read_import_price_data('onshore', 'heat', el_price)
+h2_price = np.ones(len(topology.timesteps)) * 0.02*1000
+data.read_import_price_data('onshore', 'hydrogen', h2_price)
+gas_price = np.ones(len(topology.timesteps)) * 0.05*1000
+data.read_import_price_data('onshore', 'gas', gas_price)
 # PRINT DATA
 # data.pprint()
 
@@ -76,9 +81,10 @@ data.read_network_data()
 # # Read data
 energyhub = EnergyHub(data)
 energyhub.quick_solve_model()
+energyhub.model.pprint()
 # energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()
 results = energyhub.write_results()
-results.write_excel(r'.\userData\HP')
+results.write_excel(r'.\userData\GT')
 
 
 # results = energyhub.write_results()
@@ -99,7 +105,7 @@ results.write_excel(r'.\userData\HP')
 # results.write_excel(r'.\userData\results')
 
 # # Add technology to model and solve again
-# energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
+# energyhub.add_technology_to_node('onshore', ['WindTurbine_Offshore_11000'])
 # energyhub.construct_balances()
 # energyhub.solve_model()
 #

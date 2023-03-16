@@ -63,7 +63,7 @@ class SystemTopology:
         """
         Defines technologies that can be constructed in the analysis
 
-        Can be for example ['PV', 'battery']. All technologies available can be found in ./data/technology_data
+        Can be for example ['Photovoltaic', 'Storage_Battery']. All technologies available can be found in ./data/technology_data
         These technologies come at a size of zero. Its optimal size is determined in the optimization.
         They are added to the node specified.
 
@@ -79,7 +79,7 @@ class SystemTopology:
         """
         Defines an existing technologies at a node
 
-        Can be for example {'PV': 3, 'WT_OS_6000': 4}. All technologies available can be found in ./data/technology_data
+        Can be for example {'Photovoltaic': 3, 'WindTurbine_Offshore_6000': 4}. All technologies available can be found in ./data/technology_data
         These technologies come at a size of zero. Its optimal size is determined in the optimization.
         They are added to the node specified.
 

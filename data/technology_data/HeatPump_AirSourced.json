@@ -1,5 +1,4 @@
 {
-  "tec_type": "HP_air_sourced",
   "size_min": 0.02,
   "size_max": 2,
   "size_is_int": 0,
@@ -42,5 +41,6 @@
     "min_part_load": 0.2,
     "application": "radiator_heating",
     "T_out": 39
-  }
+  },
+  "tec_type": "HeatPump_AirSourced"
 }

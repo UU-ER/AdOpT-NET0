@@ -1,5 +1,4 @@
 {
-  "tec_type": "HP_water_sourced",
   "size_min": 0.02,
   "size_max": 2,
   "size_is_int": 0,
@@ -45,5 +44,6 @@
     "performance": {
       "T_in": 10
     }
-  }
+  },
+  "tec_type": "HeatPump_GroundSourced"
 }
