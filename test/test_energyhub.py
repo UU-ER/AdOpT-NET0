@@ -96,7 +96,7 @@ def test_addtechnology():
     second solve should be cheaper
     """
     data = dm.load_object(r'./test/test_data/addtechnology.p')
-    data.technology_data['test_node1']['WT_OS_6000'].performance_data['curtailment'] = 0
+    data.technology_data['test_node1']['WindTurbine_Offshore_6000'].performance_data['curtailment'] = 0
     energyhub = ehub(data)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -104,23 +104,23 @@ def test_addtechnology():
 
     obj1 = energyhub.model.objective()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    sizeWT1 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_OS_6000'].var_size.value
-    sizeBattery1 = energyhub.model.node_blocks['test_node2'].tech_blocks_active['battery'].var_size.value
+    sizeWT1 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Offshore_6000'].var_size.value
+    sizeBattery1 = energyhub.model.node_blocks['test_node2'].tech_blocks_active['Storage_Battery'].var_size.value
     assert 0 <= sizeWT1
     assert 0 <= sizeBattery1
-    should = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_OS_6000'].var_size.value * 6
+    should = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Offshore_6000'].var_size.value * 6
     res = energyhub.model.network_block['electricitySimple'].arc_block['test_node1', 'test_node2'].var_size.value
     assert should * 0.8 <= res
     assert res <= 1.01 * should
     assert energyhub.model.var_emissions_net.value == 0
 
-    energyhub.add_technology_to_node('test_node2', ['PV'])
+    energyhub.add_technology_to_node('test_node2', ['Photovoltaic'])
     energyhub.construct_balances()
     energyhub.solve_model()
 
     obj2 = energyhub.model.objective()
-    sizeWT2 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WT_OS_6000'].var_size.value
-    sizeBattery2 = energyhub.model.node_blocks['test_node2'].tech_blocks_active['battery'].var_size.value
+    sizeWT2 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Offshore_6000'].var_size.value
+    sizeBattery2 = energyhub.model.node_blocks['test_node2'].tech_blocks_active['Storage_Battery'].var_size.value
     assert energyhub.solution.solver.termination_condition == 'optimal'
     assert sizeWT2 <= sizeWT1
     assert (obj2 - obj1) / obj1 <= 0.8

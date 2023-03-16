@@ -1,29 +1,29 @@
 {
   "size_min": 0,
-  "size_max": 500,
-  "size_is_int": 1,
+  "size_max": 1000,
+  "size_is_int": 0,
+  "decommission": 0,
   "Economics": {
     "comment": "CAPEX in EUR/module/year, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 1.510463918E+7,
-    "OPEX_variable": 2.6,
-    "OPEX_fixed": 0.23,
+    "unit_CAPEX": 119.36,
+    "OPEX_variable": 16.937521,
+    "OPEX_fixed": 0,
     "discount_rate": 0.1,
-    "lifetime": 25,
+    "lifetime": 20,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
-      "wind"
+      "solar"
     ],
-    "main_input_carrier": "wind",
+    "main_input_carrier": "solar",
     "output_carrier": [
       "electricity"
     ],
-    "curtailment": 2,
+    "curtailment": 1,
     "emission_factor": 0
   },
-  "tec_type": "RES",
-  "decommission": 0
+  "tec_type": "RES"
 }

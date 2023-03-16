@@ -49,7 +49,7 @@ def create_data_model1():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1', 'test_node2'])
-    topology.define_new_technologies('test_node2', ['PV'])
+    topology.define_new_technologies('test_node2', ['Photovoltaic'])
 
     distance = dm.create_empty_network_matrix(topology.nodes)
     distance.at['test_node1', 'test_node2'] = 100
@@ -89,7 +89,7 @@ def create_data_model2():
     data_save_path = './test/test_data/model2.p'
 
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-02 23:00', resolution=1)
     topology.define_carriers(['heat', 'gas'])
     topology.define_nodes(['test_node1'])
     topology.define_new_technologies('test_node1', ['Furnace_NG'])
@@ -186,7 +186,7 @@ def create_data_emissionbalance2():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-04 01:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['battery', 'PV', 'testCONV1_1'])
+    topology.define_new_technologies('test_node1', ['Storage_Battery', 'Photovoltaic', 'testCONV1_1'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -227,7 +227,7 @@ def create_data_technology_type1_PV():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['PV'])
+    topology.define_new_technologies('test_node1', ['Photovoltaic'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -268,7 +268,7 @@ def create_data_technology_type1_WT():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['WT_1500'])
+    topology.define_new_technologies('test_node1', ['WindTurbine_Onshore_1500'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -359,7 +359,7 @@ def create_data_technologySTOR():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['WT_4000', 'testSTOR'])
+    topology.define_new_technologies('test_node1', ['WindTurbine_Onshore_4000', 'testSTOR'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -461,8 +461,8 @@ def create_data_addtechnology():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='03-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1', 'test_node2'])
-    topology.define_new_technologies('test_node1', ['WT_OS_6000'])
-    topology.define_new_technologies('test_node2', ['battery'])
+    topology.define_new_technologies('test_node1', ['WindTurbine_Offshore_6000'])
+    topology.define_new_technologies('test_node2', ['Storage_Battery'])
 
     distance = dm.create_empty_network_matrix(topology.nodes)
     distance.at['test_node1', 'test_node2'] = 1
@@ -505,7 +505,7 @@ def create_data_k_means():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['testSTOR', 'PV'])
+    topology.define_new_technologies('test_node1', ['testSTOR', 'Photovoltaic'])
     
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -532,7 +532,7 @@ def create_data_existing_technologies():
         topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
         topology.define_carriers(['electricity'])
         topology.define_nodes(['test_node1'])
-        topology.define_new_technologies('test_node1', ['PV'])
+        topology.define_new_technologies('test_node1', ['Photovoltaic'])
         return topology
 
     def create_data(topology):
@@ -562,8 +562,8 @@ def create_data_existing_technologies():
     topology2 = create_topology()
     topology3 = create_topology()
 
-    topology2.define_existing_technologies('test_node1', {'battery': 4})
-    topology3.define_existing_technologies('test_node1', {'battery': 3000})
+    topology2.define_existing_technologies('test_node1', {'Storage_Battery': 4})
+    topology3.define_existing_technologies('test_node1', {'Storage_Battery': 3000})
 
     data_save_path1 = './test/test_data/existing_tecs1.p'
     data_save_path2 = './test/test_data/existing_tecs2.p'
@@ -574,7 +574,7 @@ def create_data_existing_technologies():
     data2 = create_data(topology2)
     data2.save(data_save_path2)
     data3 = create_data(topology3)
-    data3.technology_data['test_node1']['battery_existing'].decommission = 1
+    data3.technology_data['test_node1']['Storage_Battery_existing'].decommission = 1
     data3.save(data_save_path3)
     data3.technology_data
 

@@ -23,8 +23,8 @@ def test_initializer():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-04 23:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas'])
     topology.define_nodes(['testnode', 'offshore'])
-    topology.define_new_technologies('testnode', ['PV', 'Furnace_NG', 'battery'])
-    topology.define_new_technologies('offshore', ['WT_OS_11000'])
+    topology.define_new_technologies('testnode', ['Photovoltaic', 'Furnace_NG', 'Storage_Battery'])
+    topology.define_new_technologies('offshore', ['WindTurbine_Offshore_11000'])
 
     distance = dm.create_empty_network_matrix(topology.nodes)
     distance.at['onshore', 'offshore'] = 100
@@ -42,11 +42,15 @@ def test_load_technologies():
     """
     Tests the loading of all technologies contained in the technology folder
     """
-    topology = create_topology_sample()
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 00:00', resolution=1)
+    topology.define_carriers(['electricity', 'heat'])
+    topology.define_nodes(['testnode'])
+
     data = dm.DataHandle(topology)
     lat = 52
     lon = 5.16
-    data.read_climate_data_from_file('testnode', './test/climate_data_test.p')
+    data.read_climate_data_from_api('testnode', lon, lat)
 
     directory = os.fsencode('./data/technology_data')
 

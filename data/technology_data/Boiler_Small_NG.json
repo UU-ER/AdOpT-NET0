@@ -1,59 +1,56 @@
 {
-  "size_min": 1,
-  "size_max": 100000,
+  "size_min": 0,
+  "size_max": 2.5,
   "size_is_int": 0,
+  "decommission": 0,
   "Economics": {
     "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": -1000,
+    "unit_CAPEX": 300000,
     "piecewise_CAPEX": {
       "bp_x": [
-        1,
-        20,
-        100000
+        0,
+        0.07,
+        0.2,
+        2.5
       ],
       "bp_y": [
-        1.003E+7,
-        1.98E+7,
-        2.4015E+10
+        0,
+        12647,
+        23446,
+        173406
       ]
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.04,
+    "OPEX_fixed": 0.02,
     "discount_rate": 0.1,
-    "lifetime": 20,
+    "lifetime": 25,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 2,
+    "performance_function_type": 1,
     "input_carrier": [
       "gas"
     ],
     "main_input_carrier": "gas",
     "output_carrier": [
-      "hydrogen",
-      "electricity"
+      "heat"
     ],
     "emission_factor": 0.185,
-    "min_part_load": 0.9,
+    "min_part_load": 0,
     "performance": {
       "in": [
         0,
         1
       ],
       "out": {
-        "hydrogen": [
+        "heat": [
           0,
-          0.75
-        ],
-        "electricity": [
-          0,
-          0.025
+          0.92
         ]
       }
     }
   },
-  "tec_type": "CONV2",
-  "decommission": 0
+  "tec_type": "CONV2"
 }
