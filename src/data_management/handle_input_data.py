@@ -48,6 +48,14 @@ class DataHandle:
                 for var in variables:
                     self.node_data[node][var][carrier] = 0
 
+            self.node_data[node]['production_profile'] = {}
+            for carrier in self.topology.carriers:
+                self.node_data[node]['production_profile'][carrier] = {}
+                self.node_data[node]['production_profile'][carrier]['production_data'] \
+                    = pd.DataFrame(index=self.topology.timesteps)
+                self.node_data[node]['production_profile'][carrier]['production_data'] = 0
+                self.node_data[node]['production_profile'][carrier]['curtailment'] = 0
+
     def read_climate_data_from_api(self, node, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=0):
         """
         Reads in climate data for a full year
@@ -109,6 +117,23 @@ class DataHandle:
         """
 
         self.node_data[node]['demand'][carrier] = demand_data
+
+    def read_production_profile(self, node, carrier, production_data, curtailment):
+        """
+        Reads a production profile for one carrier to a node.
+
+        If curtailment is 1, the production profile can be curtailed, if 0, then not.
+
+        :param str node: node name as specified in the topology
+        :param str carrier: carrier name as specified in the topology
+        :param list demand_data: list of demand data. Needs to have the same length as number of \
+        time steps.
+        :return: self at ``self.node_data[node]['demand'][carrier]``
+        """
+        data = {}
+        data['production_data'] = production_data
+        data['curtailment'] = curtailment
+        self.node_data[node]['production_profile'][carrier] = data
 
     def read_import_price_data(self, node, carrier, price_data):
         """

@@ -60,12 +60,16 @@ def add_nodes(model, data):
 
         # PARAMETERS
         # Demand
-        # TODO: check if or for
         def init_demand(para, t, car):
-            if nodename in data.node_data:
-                return data.node_data[nodename]['demand'][car][t - 1]
+            return data.node_data[nodename]['demand'][car][t - 1]
         b_node.para_demand = Param(model.set_t, model.set_carriers,
                                    rule=init_demand, units=u.MWh)
+
+        # Generic production profile
+        def init_production_profile(para, t, car):
+                return data.node_data[nodename]['production_profile'][car]['production_data'][t - 1]
+        b_node.para_production_profile = Param(model.set_t, model.set_carriers,
+                                       rule=init_production_profile, units=u.MWh)
 
         # Import Prices
         def init_import_price(para, t, car):
@@ -118,6 +122,9 @@ def add_nodes(model, data):
         b_node.var_netw_outflow = Var(model.set_t, model.set_carriers, units=u.MWh)
         b_node.var_netw_consumption = Var(model.set_t, model.set_carriers, units=u.MWh)
 
+        # Generic production profile
+        b_node.var_generic_production = Var(model.set_t, model.set_carriers, within=NonNegativeReals, units=u.MWh)
+
         # Emissions
         b_node.var_import_emissions_pos = Var(model.set_t, model.set_carriers, units=u.t)
         b_node.var_import_emissions_neg = Var(model.set_t, model.set_carriers, units=u.t)
@@ -127,6 +134,14 @@ def add_nodes(model, data):
         b_node.var_car_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
 
         # CONSTRAINTS
+        # Generic production constraint
+        def init_generic_production(const, t, car):
+            if data.node_data[nodename]['production_profile'][car]['curtailment'] == 0:
+                return b_node.para_production_profile[t, car] == b_node.var_generic_production[t, car]
+            elif data.node_data[nodename]['production_profile'][car]['curtailment'] == 1:
+                return b_node.para_production_profile[t, car] >= b_node.var_generic_production[t, car]
+        b_node.const_generic_production = Constraint(model.set_t, model.set_carriers, rule=init_generic_production)
+
         # Emission constraints
         def init_import_emissions_pos(const, t, car):
             if data.node_data[nodename]['import_emissionfactors'][car][t - 1] >= 0:
