@@ -32,6 +32,7 @@ class DataHandle:
         self.topology = topology
         # Initialize demand, prices, emission factors = 0 for all timesteps, carriers and nodes
         variables = ['demand',
+                     'production_profile',
                      'import_prices',
                      'import_limit',
                      'import_emissionfactors',
@@ -41,20 +42,13 @@ class DataHandle:
 
         for node in self.topology.nodes:
             self.node_data[node] = {}
+            self.node_data[node]['production_profile_curtailment'] = {}
             for var in variables:
                 self.node_data[node][var] = pd.DataFrame(index=self.topology.timesteps)
-
             for carrier in self.topology.carriers:
+                self.node_data[node]['production_profile_curtailment'][carrier] = 0
                 for var in variables:
                     self.node_data[node][var][carrier] = 0
-
-            self.node_data[node]['production_profile'] = {}
-            for carrier in self.topology.carriers:
-                self.node_data[node]['production_profile'][carrier] = {}
-                self.node_data[node]['production_profile'][carrier]['production_data'] \
-                    = pd.DataFrame(index=self.topology.timesteps)
-                self.node_data[node]['production_profile'][carrier]['production_data'] = 0
-                self.node_data[node]['production_profile'][carrier]['curtailment'] = 0
 
     def read_climate_data_from_api(self, node, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=0):
         """
@@ -130,10 +124,8 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
-        data = {}
-        data['production_data'] = production_data
-        data['curtailment'] = curtailment
-        self.node_data[node]['production_profile'][carrier] = data
+        self.node_data[node]['production_profile'][carrier] = production_data
+        self.node_data[node]['production_profile_curtailment'][carrier] = curtailment
 
     def read_import_price_data(self, node, carrier, price_data):
         """
@@ -412,7 +404,7 @@ class ClusteredDataHandle(DataHandle):
         for node in node_data:
             self.node_data[node] = {}
             for series in node_data[node]:
-                if not series == 'climate_data':
+                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     self.node_data[node][series] = pd.DataFrame()
                     for carrier in node_data[node][series]:
                         self.node_data[node][series][carrier] = \
@@ -434,7 +426,7 @@ class ClusteredDataHandle(DataHandle):
         node_data = self.node_data_full_resolution
         for node in node_data:
             for series in node_data[node]:
-                if not series == 'climate_data':
+                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     for carrier in node_data[node][series]:
                         series_names = define_multiindex([
                             [node] * nr_time_intervals_per_day,
@@ -515,7 +507,7 @@ class DataHandle_AveragedData(DataHandle):
             self.node_data[node] = {}
             for series in node_data[node]:
                 self.node_data[node][series] = pd.DataFrame()
-                if not series == 'climate_data':
+                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     for carrier in node_data[node][series]:
                         series_data = dm.reshape_df(node_data[node][series][carrier],
                                                     None, nr_timesteps_averaged)

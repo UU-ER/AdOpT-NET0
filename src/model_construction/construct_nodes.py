@@ -67,7 +67,7 @@ def add_nodes(model, data):
 
         # Generic production profile
         def init_production_profile(para, t, car):
-                return data.node_data[nodename]['production_profile'][car]['production_data'][t - 1]
+                return data.node_data[nodename]['production_profile'][car][t - 1]
         b_node.para_production_profile = Param(model.set_t, model.set_carriers,
                                        rule=init_production_profile, units=u.MWh)
 
@@ -136,9 +136,9 @@ def add_nodes(model, data):
         # CONSTRAINTS
         # Generic production constraint
         def init_generic_production(const, t, car):
-            if data.node_data[nodename]['production_profile'][car]['curtailment'] == 0:
+            if data.node_data[nodename]['production_profile_curtailment'][car] == 0:
                 return b_node.para_production_profile[t, car] == b_node.var_generic_production[t, car]
-            elif data.node_data[nodename]['production_profile'][car]['curtailment'] == 1:
+            elif data.node_data[nodename]['production_profile_curtailment'][car] == 1:
                 return b_node.para_production_profile[t, car] >= b_node.var_generic_production[t, car]
         b_node.const_generic_production = Constraint(model.set_t, model.set_carriers, rule=init_generic_production)
 
