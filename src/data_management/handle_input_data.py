@@ -55,9 +55,7 @@ class DataHandle:
         Reads in climate data for a full year
 
         Reads in climate data for a full year from the specified source \
-        (`JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_ or \
-        `ERA5 <https://cds.climate.copernicus.eu/cdsapp#!/home>`_). For access to the ERA5 api, \
-        an api key is required. Refer to `<https://cds.climate.copernicus.eu/api-how-to>`_
+        (currently only `JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_
 
         :param str node: node as specified in the topology
         :param float lon: longitude of node - the api will read data for this location
@@ -70,8 +68,6 @@ class DataHandle:
         """
         if dataset == 'JRC':
             data = dm.import_jrc_climate_data(lon, lat, year, alt)
-        elif dataset == 'ERA5':
-            data = dm.import_era5_climate_data(lon, lat, year)
 
         # Match with timesteps
         data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
