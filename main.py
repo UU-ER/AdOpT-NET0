@@ -7,6 +7,10 @@ import src.data_management as dm
 from src.energyhub import *
 import numpy as np
 
+data = dm.load_object(r'./test/test_data/k_means.p')
+nr_days_cluster = 40
+clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
+
 
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
@@ -14,9 +18,8 @@ data_save_path = r'.\user_data\data_handle_test'
 # # TOPOLOGY
 topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
-topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
+topology.define_carriers(['electricity'])
 topology.define_nodes(['onshore'])
-topology.define_new_technologies('onshore', ['GasTurbine_NG_10'])
 
 # distance = dm.create_empty_network_matrix(topology.nodes)
 # distance.at['onshore', 'offshore'] = 100
@@ -44,28 +47,32 @@ else:
     # data.read_climate_data_from_api('offshore', lon, lat,save_path='.\data\climate_data_offshore.txt')
 
 # DEMAND
-# electricity_demand = np.ones(len(topology.timesteps)) * 10
-# data.read_demand_data('onshore', 'electricity', electricity_demand)
-heat_demand = np.ones(len(topology.timesteps)) * 10
-data.read_demand_data('onshore', 'heat', heat_demand)
+electricity_demand = np.ones(len(topology.timesteps)) * 10
+data.read_demand_data('onshore', 'electricity', electricity_demand)
+
+production_prof = np.ones(len(topology.timesteps)) * 11
+
+data.read_production_profile('onshore', 'electricity', production_prof, 1)
+# heat_demand = np.ones(len(topology.timesteps)) * 10
+# data.read_demand_data('onshore', 'heat', heat_demand)
 # co2 = np.ones(len(topology.timesteps)) * 10000/8760
 # data.read_demand_data('onshore', 'CO2', co2)
 
 # IMPORT
-import_car = np.ones(len(topology.timesteps)) * 500
+# import_car = np.ones(len(topology.timesteps)) * 500
 # data.read_import_limit_data('onshore', 'heat', import_car)
-data.read_import_limit_data('onshore', 'gas', import_car)
-data.read_import_limit_data('onshore', 'hydrogen', import_car)
+# data.read_import_limit_data('onshore', 'gas', import_car)
+# data.read_import_limit_data('onshore', 'hydrogen', import_car)
 # data.read_import_limit_data('onshore', 'CO2', import_car)
 
-data.read_export_limit_data('onshore', 'electricity', import_car)
-data.read_export_limit_data('onshore', 'heat', import_car)
+# data.read_export_limit_data('onshore', 'electricity', import_car)
+# data.read_export_limit_data('onshore', 'heat', import_car)
 
 # Price
-h2_price = np.ones(len(topology.timesteps)) * 0.02*1000
-data.read_import_price_data('onshore', 'hydrogen', h2_price)
-gas_price = np.ones(len(topology.timesteps)) * 0.05*1000
-data.read_import_price_data('onshore', 'gas', gas_price)
+# h2_price = np.ones(len(topology.timesteps)) * 0.02*1000
+# data.read_import_price_data('onshore', 'hydrogen', h2_price)
+# gas_price = np.ones(len(topology.timesteps)) * 0.05*1000
+# data.read_import_price_data('onshore', 'gas', gas_price)
 # PRINT DATA
 # data.pprint()
 

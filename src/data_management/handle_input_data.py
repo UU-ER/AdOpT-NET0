@@ -32,6 +32,7 @@ class DataHandle:
         self.topology = topology
         # Initialize demand, prices, emission factors = 0 for all timesteps, carriers and nodes
         variables = ['demand',
+                     'production_profile',
                      'import_prices',
                      'import_limit',
                      'import_emissionfactors',
@@ -41,10 +42,11 @@ class DataHandle:
 
         for node in self.topology.nodes:
             self.node_data[node] = {}
+            self.node_data[node]['production_profile_curtailment'] = {}
             for var in variables:
                 self.node_data[node][var] = pd.DataFrame(index=self.topology.timesteps)
-
             for carrier in self.topology.carriers:
+                self.node_data[node]['production_profile_curtailment'][carrier] = 0
                 for var in variables:
                     self.node_data[node][var][carrier] = 0
 
@@ -53,9 +55,7 @@ class DataHandle:
         Reads in climate data for a full year
 
         Reads in climate data for a full year from the specified source \
-        (`JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_ or \
-        `ERA5 <https://cds.climate.copernicus.eu/cdsapp#!/home>`_). For access to the ERA5 api, \
-        an api key is required. Refer to `<https://cds.climate.copernicus.eu/api-how-to>`_
+        (currently only `JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_
 
         :param str node: node as specified in the topology
         :param float lon: longitude of node - the api will read data for this location
@@ -68,8 +68,6 @@ class DataHandle:
         """
         if dataset == 'JRC':
             data = dm.import_jrc_climate_data(lon, lat, year, alt)
-        elif dataset == 'ERA5':
-            data = dm.import_era5_climate_data(lon, lat, year)
 
         # Match with timesteps
         data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
@@ -109,6 +107,21 @@ class DataHandle:
         """
 
         self.node_data[node]['demand'][carrier] = demand_data
+
+    def read_production_profile(self, node, carrier, production_data, curtailment):
+        """
+        Reads a production profile for one carrier to a node.
+
+        If curtailment is 1, the production profile can be curtailed, if 0, then not.
+
+        :param str node: node name as specified in the topology
+        :param str carrier: carrier name as specified in the topology
+        :param list demand_data: list of demand data. Needs to have the same length as number of \
+        time steps.
+        :return: self at ``self.node_data[node]['demand'][carrier]``
+        """
+        self.node_data[node]['production_profile'][carrier] = production_data
+        self.node_data[node]['production_profile_curtailment'][carrier] = curtailment
 
     def read_import_price_data(self, node, carrier, price_data):
         """
@@ -387,7 +400,7 @@ class ClusteredDataHandle(DataHandle):
         for node in node_data:
             self.node_data[node] = {}
             for series in node_data[node]:
-                if not series == 'climate_data':
+                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     self.node_data[node][series] = pd.DataFrame()
                     for carrier in node_data[node][series]:
                         self.node_data[node][series][carrier] = \
@@ -409,7 +422,7 @@ class ClusteredDataHandle(DataHandle):
         node_data = self.node_data_full_resolution
         for node in node_data:
             for series in node_data[node]:
-                if not series == 'climate_data':
+                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     for carrier in node_data[node][series]:
                         series_names = define_multiindex([
                             [node] * nr_time_intervals_per_day,
@@ -490,7 +503,7 @@ class DataHandle_AveragedData(DataHandle):
             self.node_data[node] = {}
             for series in node_data[node]:
                 self.node_data[node][series] = pd.DataFrame()
-                if not series == 'climate_data':
+                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     for carrier in node_data[node][series]:
                         series_data = dm.reshape_df(node_data[node][series][carrier],
                                                     None, nr_timesteps_averaged)

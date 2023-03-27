@@ -11,15 +11,8 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 from src.data_management.components.fit_technology_performance import fit_piecewise_function
 from scipy.interpolate import griddata
-
-
-
-execute = 0
-# region: HPlib use
-if execute == 1:
-    paras = hp.get_parameters(model = 'Generic', group_id=1, t_in=0, t_out=40, p_th=5)
-    perf = hp.simulate(t_in_primary=-2, t_in_secondary=30, parameters=paras, t_amb=-5, mode= 1, p_th_min = 0)
-# endregion
+import cdsapi
+from netCDF4 import Dataset
 
 execute = 0
 # region: how to k-means cluster
@@ -452,6 +445,89 @@ if execute == 1:
         diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 #endregion
+
+execute = 1
+#region How to make an API request for ERA5
+if execute == 1:
+    lon = 8
+    lat = 45
+    year = 2021
+
+    area = [lat + 0.1, lon - 0.1, lat - 0.1, lon + 0.1]
+    #
+    cds_client = cdsapi.Client()
+    #
+    # print('Retrieving ERA5 data, this might take a while!')
+    data = cds_client.retrieve(
+        'reanalysis-era5-single-levels',
+        {
+            'product_type': 'reanalysis',
+            'format': 'grib',
+            'variable': [
+                "100u",  # 100m_u-component_of_wind
+                "100v",  # 100m_v-component_of_wind
+                "fsr",  # forecast_surface_roughness
+                "sp",  # surface_pressure
+                "fdir",  # total_sky_direct_solar_radiation_at_surface
+                "ssrd",  # surface_solar_radiation_downwards
+                "2t",  # 2m_temperature
+                "2d", # 2m_dewpoint_temperature
+                "10u",  # 10m_u-component_of_wind
+                "10v",  # 10m_v-component_of_wind
+            ],
+            'year': year,
+            'month': [
+                '01'
+            ],
+            'day': [
+                '01', '02', '03',
+                '04', '05', '06',
+                '07', '08', '09',
+                '10', '11', '12',
+                '13', '14', '15',
+                '16', '17', '18',
+                '19', '20', '21',
+                '22', '23', '24',
+                '25', '26', '27',
+                '28', '29', '30',
+                '31',
+            ],
+            'time': [
+                '00:00', '01:00', '02:00',
+                '03:00', '04:00', '05:00',
+                '06:00', '07:00', '08:00',
+                '09:00', '10:00', '11:00',
+                '12:00', '13:00', '14:00',
+                '15:00', '16:00', '17:00',
+                '18:00', '19:00', '20:00',
+                '21:00', '22:00', '23:00',
+            ],
+            'area': area,
+        },
+        'download.grib')
+
+    data.download("C:/Users/6574114/Documents/Research/EHUB-Py/output2.nc")
+    filepath = "C:/Users/6574114/Documents/Research/EHUB-Py/output2.nc"
+    rootgrp = Dataset("test.nc", "w", format="NETCDF4")
+    print(rootgrp.data_model)
+    #
+    # climate_data = data['outputs']['tmy_hourly']
+    # temperature2m = dict()
+    # relative_humidity = dict()
+    # global_horizontal_irr = dict()
+    # direct_normal_irr = dict()
+    # diffuse_horizontal_irr = dict()
+    # wind_speed10m = dict()
+    #
+    # for t_interval in climate_data:
+    #     print(t_interval)
+    #     temperature2m[t_interval['time(UTC)']] = t_interval['T2m']
+    #     relative_humidity[t_interval['time(UTC)']] = t_interval['RH']
+    #     global_horizontal_irr[t_interval['time(UTC)']] = t_interval['G(h)']
+    #     direct_normal_irr[t_interval['time(UTC)']] = t_interval['Gb(n)']
+    #     diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
+    #     wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
+
 
 
 

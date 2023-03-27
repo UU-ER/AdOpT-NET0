@@ -12,7 +12,7 @@ def add_energybalance(model):
     .. math::
         outputFromTechnologies - inputToTechnologies + \\
         inflowFromNetwork - outflowToNetwork + \\
-        imports - exports = demand
+        imports - exports = demand - genericProductionProfile
 
 
     """
@@ -38,7 +38,7 @@ def add_energybalance(model):
             tec_output - tec_input + \
             netw_inflow - netw_outflow - netw_consumption + \
             import_flow - export_flow == \
-            node_block.para_demand[t, car]
+            node_block.para_demand[t, car] - node_block.var_generic_production[t, car]
     model.const_energybalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_energybalance)
 
     return model
