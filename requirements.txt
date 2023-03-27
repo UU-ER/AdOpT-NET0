@@ -16,3 +16,4 @@ sphinx_rtd_theme
 pytest
 scikit-learn
 piecewise_regression
+pwlf
