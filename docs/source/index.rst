@@ -5,14 +5,16 @@
 
 Welcome to EnergyHub's documentation!
 =====================================
-Energyhub is a Python Libarary for bottom-up multi energy system modeling. It can
+Energyhub is a Python Library for bottom-up multi energy system modeling. It can
 model conversion technologies and networks for any carrier.
 
 To define an energy system to optimize, you need to
 
-#. define a topology, i.e. which carriers, nodes, technologies and networks are part of the system (see
+#. Define a topology, i.e. which carriers, nodes, technologies and networks are part of the system (see
    documentation :ref:`here <data-management-system_topology>`) and the input data, e.g. weather data,
    technology performance, etc. (see documentation :ref:`here <data-management-data-handle>`).
+
+#. Define the modeling configuration, i.e. objective, global optimization settings, solver options, etc. (see documentation :ref:`here <model_configuration>`).
 
 #. construct the model (see documentation :ref:`here <model_constructing>`).
 
@@ -27,6 +29,7 @@ Table of Content
    :maxdepth: 2
 
    InputDataManagement
+   ModelConfiguration
    ModelConstruction
    ModelSolve
    ResultDataManagement
