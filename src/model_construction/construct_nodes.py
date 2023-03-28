@@ -211,7 +211,7 @@ def add_nodes(model, data, configuration):
 
         # BLOCKS
         # Add technologies as blocks
-        b_node = mc.add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node, configuration)
+        b_node = mc.add_technologies(nodename, b_node.set_tecsAtNode, model, data, configuration, b_node)
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 

@@ -6,7 +6,7 @@ import src.model_construction as mc
 from src.model_construction.technology_constraints import *
 
 
-def add_technologies(nodename, set_tecsToAdd, model, data, b_node, configuration):
+def add_technologies(nodename, set_tecsToAdd, model, data, configuration, b_node):
     r"""
     Adds all technologies as model blocks to respective node.
 
@@ -81,6 +81,10 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node, configuration
     :param object model: pyomo model
     :param DataHandle data:  instance of a DataHandle
     :return: model
+
+    Parameters
+    ----------
+    configuration
     """
     def init_technology_block(b_tec, tec):
 

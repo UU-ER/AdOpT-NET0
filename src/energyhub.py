@@ -210,7 +210,7 @@ class EnergyHub:
         """
         self.data.read_single_technology_data(nodename, technologies)
         node_block = self.model.node_blocks[nodename]
-        mc.add_technologies(nodename, technologies, self.model, self.data, node_block)
+        mc.add_technologies(nodename, technologies, self.model, self.data, self.configuration, node_block)
 
     def save_model(self, file_path, file_name):
         """
