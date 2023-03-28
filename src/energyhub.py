@@ -149,7 +149,7 @@ class EnergyHub:
         """
         Defines objective and solves model
 
-        The objective is minimized and can be chosen as total annualized costs ('cost'), total annual emissions
+        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual emissions
         ('emissions_net'), and total annual emissions at minimal cost ('emissions_minC').
         """
         # This is a dirty fix as objectives cannot be found with find_component
@@ -157,6 +157,7 @@ class EnergyHub:
             self.model.del_component(self.model.objective)
         except:
             pass
+
 
         objective = self.configuration.optimization.objective
 
@@ -309,7 +310,7 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         # Solve reduced resolution model
         self.construct_model()
         self.construct_balances()
-        super().solve_model(objective)
+        super().solve_model()
         m_config.presolve.averaged_data = 0
         m_config.presolve.averaged_data_specs.nr_timesteps_averaged = 1
 
@@ -321,7 +322,7 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         # Impose additional constraints
         self.impose_size_constraints(bounds_on)
         # Solve with additional constraints
-        self.full_res_ehub.solve_model(objective)
+        self.full_res_ehub.solve_model()
 
     def write_results(self):
         """
