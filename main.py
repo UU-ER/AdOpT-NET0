@@ -21,6 +21,9 @@ topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01
 topology.define_carriers(['electricity'])
 topology.define_nodes(['onshore'])
 
+configuration = mc.ModelConfiguration()
+
+
 # distance = dm.create_empty_network_matrix(topology.nodes)
 # distance.at['onshore', 'offshore'] = 100
 # distance.at['offshore', 'onshore'] = 100
@@ -86,7 +89,7 @@ data.read_network_data()
 # data.save(data_save_path)
 
 # # Read data
-energyhub = EnergyHub(data)
+energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()
 energyhub.model.pprint()
 # energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()

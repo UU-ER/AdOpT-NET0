@@ -28,7 +28,7 @@ class EnergyHub:
     - Set of technologies at each node :math:`S_n, n \in N`
 
     """
-    def __init__(self, data):
+    def __init__(self, data, configuration):
         """
         Constructor of the energyhub class.
         """
@@ -38,6 +38,9 @@ class EnergyHub:
 
         # READ IN DATA
         self.data = data
+
+        # READ IN MODEL CONFIGURATION
+        self.configuration = configuration
 
         # INITIALIZE MODEL
         self.model = ConcreteModel()
@@ -66,7 +69,7 @@ class EnergyHub:
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
 
-    def quick_solve_model(self, objective = 'cost'):
+    def quick_solve_model(self):
         """
         Quick-solves the model (constructs model and balances and solves model).
 
@@ -77,7 +80,7 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
-        self.solve_model(objective)
+        self.solve_model()
 
     def construct_model(self):
         """
@@ -142,7 +145,7 @@ class EnergyHub:
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
-    def solve_model(self, objective = 'cost'):
+    def solve_model(self):
         """
         Defines objective and solves model
 
@@ -155,8 +158,10 @@ class EnergyHub:
         except:
             pass
 
+        objective = self.configuration.optimization.objective
+
         # Define Objective Function
-        if objective == 'cost':
+        if objective == 'costs':
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
