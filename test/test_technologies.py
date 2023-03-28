@@ -2,6 +2,7 @@ import pytest
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
+from src.model_configuration import ModelConfiguration
 from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
@@ -17,7 +18,7 @@ def test_technology_RES_PV():
     Size of PV should be around max electricity demand (i.e. 10)
     """
     data = dm.load_object(r'./test/test_data/technology_type1_PV.p')
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
     data.technology_data['test_node1']['Photovoltaic'].performance_data['curtailment'] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -45,7 +46,7 @@ def test_technology_RES_WT():
     """
     # No curtailment
     data = dm.load_object(r'./test/test_data/technology_type1_WT.p')
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
     data.technology_data['test_node1']['WindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -78,7 +79,7 @@ def test_technology_CONV1():
     """
     # performance through origin
     data = dm.load_object(r'./test/test_data/technology_CONV1_1.p')
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
     tecname = 'testCONV1_1'
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -115,7 +116,7 @@ def test_technology_CONV1():
     # performance not through origin
     allowed_fitting_error = 0.1
     data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
     tecname = 'testCONV1_2'
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -209,7 +210,7 @@ def test_technology_CONV2():
     # performance through origin
     allowed_fitting_error = 0.05
     data = dm.load_object(r'./test/test_data/technology_CONV2_1.p')
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
     tecname = 'testCONV2_1'
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -333,7 +334,7 @@ def test_technology_CONV3():
     """
     # Piecewise definition
     data = dm.load_object(r'./test/test_data/technology_CONV3_3.p')
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
     tecname = 'testCONV3_3'
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -462,7 +463,7 @@ def test_existing_technologies():
         cost = energyhub.model.var_total_cost.value
         return cost
 
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
     data = dm.load_object(r'./test/test_data/existing_tecs1.p')
     cost1 = run_ehub(data, configuration)
     data = dm.load_object(r'./test/test_data/existing_tecs2.p')

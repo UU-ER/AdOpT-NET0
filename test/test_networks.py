@@ -1,6 +1,7 @@
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
+from src.model_configuration import ModelConfiguration
 
 
 def test_networks():
@@ -11,7 +12,7 @@ def test_networks():
     """
     # Test bidirectional
     data = dm.load_object(r'./test/test_data/networks.p')
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
     data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub1 = ehub(data, configuration)
@@ -84,7 +85,7 @@ def test_existing_networks():
     data_save_path3 = './test/test_data/existing_netw3.p'
     data_save_path4 = './test/test_data/existing_netw4.p'
 
-    configuration = mc.ModelConfiguration()
+    configuration = ModelConfiguration()
 
     data1 = dm.load_object(data_save_path1)
     ehub1 = run_ehub(data1, configuration)
