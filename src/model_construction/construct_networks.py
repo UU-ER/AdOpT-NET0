@@ -3,10 +3,9 @@ from pyomo.environ import units as u
 from pyomo.gdp import *
 import copy
 
-import src.config_model as m_config
 import src.model_construction as mc
 
-def add_networks(model, data):
+def add_networks(model, data, configuration):
     r"""
         Adds all networks as model blocks to respective node.
 
@@ -435,7 +434,7 @@ def add_networks(model, data):
 
         if performance_data['bidirectional'] == 1:
             if decommission or not existing:
-                m_config.presolve.big_m_transformation_required = 1
+                configuration._ModelConfiguration__big_m_transformation_required = 1
                 """
                 bi-directional
                     size(from, to) = size(to, from)
@@ -533,7 +532,7 @@ def add_networks(model, data):
         b_netw.const_netw_consumption = Constraint(model.set_t, model.set_carriers, model.set_nodes,
                                          rule=init_network_consumption)
 
-        if m_config.presolve.big_m_transformation_required:
+        if configuration._ModelConfiguration__big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_netw)
 
         return b_netw

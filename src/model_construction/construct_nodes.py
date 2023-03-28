@@ -3,7 +3,7 @@ import src.model_construction as mc
 from pyomo.environ import *
 from pyomo.environ import units as u
 
-def add_nodes(model, data):
+def add_nodes(model, data, configuration):
     r"""
     Adds all nodes with respective data to the model
 
@@ -211,7 +211,7 @@ def add_nodes(model, data):
 
         # BLOCKS
         # Add technologies as blocks
-        b_node = mc.add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node)
+        b_node = mc.add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node, configuration)
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 

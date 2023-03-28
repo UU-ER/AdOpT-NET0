@@ -48,7 +48,7 @@ def perform_k_means(full_resolution, nr_clusters):
 
     :param full_resolution: matrix of full resolution matrix
     :param nr_clusters: how many clusters
-    :return clustered_data: matrix with clustered data
+    :return __clustered_data: matrix with clustered data
     :return labels: labels for each clustered day
     """
     kmeans = KMeans(

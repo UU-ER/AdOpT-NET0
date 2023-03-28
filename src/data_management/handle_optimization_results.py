@@ -2,7 +2,7 @@ from types import SimpleNamespace
 import pandas as pd
 import numpy as np
 
-import src.config_model as m_config
+# import src.config_model as m_config
 
 
 class ResultsHandle:
@@ -196,7 +196,7 @@ class ResultsHandle:
                 technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
                 if technology_model == 'STOR':
-                    if m_config.presolve.clustered_data:
+                    if energyhub.configuration._ModelConfiguration__clustered_data:
                         time_set = tec_data.set_t_full
                     else:
                         time_set = m.set_t

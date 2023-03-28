@@ -1,6 +1,5 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
-import src.config_model as m_config
 import numpy as np
 
 

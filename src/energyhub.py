@@ -8,7 +8,7 @@ import pint
 import numpy as np
 import dill as pickle
 import pandas as pd
-import src.config_model as m_config
+# import src.config_model as m_config
 import time
 import copy
 
@@ -55,16 +55,16 @@ class EnergyHub:
         self.solution = []
 
         # SET m_config
-        m_config.presolve.clustered_data = 0
-        m_config.presolve.averaged_data = 0
+        self.configuration._ModelConfiguration__clustered_data = 0
+        self.configuration._ModelConfiguration__averaged_data = 0
         if hasattr(self.data, 'k_means_specs'):
             # Clustered Data
-            m_config.presolve.clustered_data = 1
-            m_config.presolve.clustered_data_specs.specs = self.data.k_means_specs
+            self.configuration._ModelConfiguration__clustered_data = 1
+            self.configuration._ModelConfiguration__clustered_data_specs.specs = self.data.k_means_specs
         if hasattr(self.data, 'averaged_specs'):
             # Averaged Data
-            m_config.presolve.averaged_data = 1
-            m_config.presolve.averaged_data_specs.specs = self.data.averaged_specs
+            self.configuration._ModelConfiguration__averaged_data = 1
+            self.configuration._ModelConfiguration__averaged_data_specs.specs = self.data.averaged_specs
 
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -120,8 +120,8 @@ class EnergyHub:
         self.model.var_emissions_net = Var()
 
         # Model construction
-        self.model = mc.add_networks(self.model, self.data)
-        self.model = mc.add_nodes(self.model, self.data)
+        self.model = mc.add_networks(self.model, self.data, self.configuration)
+        self.model = mc.add_nodes(self.model, self.data, self.configuration)
 
         print('Constructing model completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -190,7 +190,7 @@ class EnergyHub:
         print('_' * 20)
         print('Solving Model...')
         start = time.time()
-        solver = SolverFactory(m_config.solver.solver)
+        solver = SolverFactory(self.configuration.solveroptions.solver)
         self.solution = solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
 
@@ -269,13 +269,13 @@ class EnergyHub:
         Calculates how many times an hour in the reduced resolution occurs in the full resolution
         :return np array occurance_hour:
         """
-        if m_config.presolve.clustered_data and m_config.presolve.averaged_data:
+        if self.configuration._ModelConfiguration__clustered_data and self.configuration._ModelConfiguration__averaged_data:
             occurrence_hour = np.multiply(
                 self.data.k_means_specs.reduced_resolution['factor'].to_numpy(),
                 self.data.averaged_specs.reduced_resolution['factor'].to_numpy())
-        elif m_config.presolve.clustered_data and not m_config.presolve.averaged_data:
+        elif self.configuration._ModelConfiguration__clustered_data and not self.configuration._ModelConfiguration__averaged_data:
             occurrence_hour = self.data.k_means_specs.reduced_resolution['factor'].to_numpy()
-        elif not m_config.presolve.clustered_data and m_config.presolve.averaged_data:
+        elif not self.configuration._ModelConfiguration__clustered_data and self.configuration._ModelConfiguration__averaged_data:
             occurrence_hour = self.data.averaged_specs.reduced_resolution['factor'].to_numpy()
         else:
             occurrence_hour = np.ones(len(self.model.set_t))
@@ -294,7 +294,7 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         self.full_res_ehub = EnergyHub(data)
         data_averaged = dm.DataHandle_AveragedData(data,nr_timesteps_averaged)
         EnergyHub.__init__(self, data_averaged)
-        m_config.presolve.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
+        self.configuration._ModelConfiguration__averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
     def solve_model(self, objective = 'cost', bounds_on = 'all'):
         """
@@ -311,8 +311,8 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         self.construct_model()
         self.construct_balances()
         super().solve_model()
-        m_config.presolve.averaged_data = 0
-        m_config.presolve.averaged_data_specs.nr_timesteps_averaged = 1
+        self.configuration._ModelConfiguration__averaged_data = 0
+        self.configuration._ModelConfiguration__averaged_data_specs.nr_timesteps_averaged = 1
 
 
         # Solve full resolution model
