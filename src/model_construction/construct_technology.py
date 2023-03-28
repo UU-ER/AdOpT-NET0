@@ -241,30 +241,30 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node, configuration
             b_tec = constraints_tec_RES(model, b_tec, tec_data)
 
         elif technology_model == 'CONV1': # n inputs -> n output, fuel and output substitution
-            b_tec = constraints_tec_CONV1(model, b_tec, tec_data)
+            b_tec = constraints_tec_CONV1(model, b_tec, tec_data, configuration)
 
         elif technology_model == 'CONV2': # n inputs -> n output, fuel and output substitution
-            b_tec = constraints_tec_CONV2(model, b_tec, tec_data)
+            b_tec = constraints_tec_CONV2(model, b_tec, tec_data, configuration)
 
         elif technology_model == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
-            b_tec = constraints_tec_CONV3(model, b_tec, tec_data)
+            b_tec = constraints_tec_CONV3(model, b_tec, tec_data, configuration)
 
         elif technology_model == 'STOR': # Storage technology (1 input -> 1 output)
             if configuration._ModelConfiguration__clustered_data == 1:
                 hourly_order = data.k_means_specs.full_resolution['hourly_order']
             else:
                 hourly_order = np.arange(1, len(model.set_t)+1)
-            b_tec = constraints_tec_STOR(model, b_tec, tec_data, hourly_order)
+            b_tec = constraints_tec_STOR(model, b_tec, tec_data, hourly_order, configuration)
 
         # SPECIFIC TECHNOLOGY CONSTRAINTS
         elif technology_model == 'DAC_adsorption':
-            b_tec = constraints_tec_dac_adsorption(model, b_tec, tec_data)
+            b_tec = constraints_tec_dac_adsorption(model, b_tec, tec_data, configuration)
 
         elif technology_model.startswith('HeatPump_'):  # Heat Pump
-            b_tec = constraints_tec_hp(model, b_tec, tec_data)
+            b_tec = constraints_tec_hp(model, b_tec, tec_data, configuration)
 
         elif technology_model.startswith('GasTurbine_'):  # Gas Turbine
-            b_tec = constraints_tec_gt(model, b_tec, tec_data)
+            b_tec = constraints_tec_gt(model, b_tec, tec_data, configuration)
 
         if configuration._ModelConfiguration__big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)

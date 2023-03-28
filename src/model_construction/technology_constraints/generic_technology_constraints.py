@@ -2,7 +2,6 @@ from pyomo.environ import *
 from pyomo.environ import units as u
 from pyomo.gdp import *
 import warnings
-import src.config_model as m_config
 
 
 def constraints_tec_RES(model, b_tec, tec_data):
@@ -77,7 +76,7 @@ def constraints_tec_RES(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_CONV1(model, b_tec, tec_data):
+def constraints_tec_CONV1(model, b_tec, tec_data, configuration):
     """
     Adds constraints to technology blocks for tec_type CONV1, i.e. :math:`\sum(output) = f(\sum(inputs))`
 
@@ -143,7 +142,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
         min_part_load = 0
 
     if performance_function_type >= 2:
-        m_config.presolve.big_m_transformation_required = 1
+        configuration._ModelConfiguration__big_m_transformation_required = 1
 
     # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:
@@ -247,7 +246,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_CONV2(model, b_tec, tec_data):
+def constraints_tec_CONV2(model, b_tec, tec_data, configuration):
     """
     Adds constraints to technology blocks for tec_type CONV2, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
 
@@ -317,7 +316,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
         min_part_load = 0
 
     if performance_function_type >= 2:
-        m_config.presolve.big_m_transformation_required = 1
+        configuration._ModelConfiguration__big_m_transformation_required = 1
 
     # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:
@@ -423,7 +422,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_CONV3(model, b_tec, tec_data):
+def constraints_tec_CONV3(model, b_tec, tec_data, configuration):
     """
     Adds constraints to technology blocks for tec_type CONV3, i.e. :math:`output_{car} = f_{car}(input_{maincarrier})`
 
@@ -517,7 +516,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
 
     # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
-        m_config.presolve.big_m_transformation_required = 1
+        configuration._ModelConfiguration__big_m_transformation_required = 1
         if min_part_load == 0:
             warnings.warn(
                 'Having performance_function_type = 2 with no part-load usually makes no sense.')
@@ -556,7 +555,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
 
     # piecewise affine function
     elif performance_function_type == 3:
-        m_config.presolve.big_m_transformation_required = 1
+        configuration._ModelConfiguration__big_m_transformation_required = 1
         s_indicators = range(0, len(bp_x))
 
         def init_input_output(dis, t, ind):
@@ -611,7 +610,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_STOR(model, b_tec, tec_data, hourly_order):
+def constraints_tec_STOR(model, b_tec, tec_data, hourly_order, configuration):
     """
     Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
@@ -677,15 +676,15 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order):
     else:
         allow_only_one_direction = 0
 
-    if m_config.presolve.__clustered_data:
+    if configuration._ModelConfiguration__clustered_data:
         # Clustered
-        b_tec.set_t_full = RangeSet(1, len(m_config.presolve.clustered_data_specs.specs.full_resolution))
+        b_tec.set_t_full = RangeSet(1, len(configuration._ModelConfiguration__clustered_data_specs.specs.full_resolution))
         set_t = b_tec.set_t_full
     else:
         # Full resolution
         set_t = model.set_t
 
-    nr_timesteps_averaged = m_config.presolve.averaged_data_specs.nr_timesteps_averaged
+    nr_timesteps_averaged = configuration._ModelConfiguration__averaged_data_specs.nr_timesteps_averaged
 
     # Additional decision variables
     b_tec.var_storage_level = Var(set_t, b_tec.set_input_carriers,
@@ -748,7 +747,7 @@ def constraints_tec_STOR(model, b_tec, tec_data, hourly_order):
 
     # This makes sure that only either input or output is larger zero.
     if allow_only_one_direction == 1:
-        m_config.presolve.big_m_transformation_required = 1
+        configuration._ModelConfiguration__big_m_transformation_required = 1
         s_indicators = range(0, 2)
 
         def init_input_output(dis, t, ind):
