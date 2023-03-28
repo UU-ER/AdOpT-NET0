@@ -3,8 +3,9 @@
 # TODO: Implement length of time step
 # TODO: Implement all technologies
 # TODO: Complete ERA5 weather import
+from src.model_configuration import ModelConfiguration
 import src.data_management as dm
-from src.energyhub import *
+from src.energyhub import EnergyHub
 import numpy as np
 
 data = dm.load_object(r'./test/test_data/k_means.p')
@@ -21,7 +22,7 @@ topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01
 topology.define_carriers(['electricity'])
 topology.define_nodes(['onshore'])
 
-configuration = mc.ModelConfiguration()
+configuration = ModelConfiguration()
 
 
 # distance = dm.create_empty_network_matrix(topology.nodes)
