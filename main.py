@@ -6,6 +6,7 @@
 import src.data_management as dm
 from src.energyhub import *
 import numpy as np
+import pyomo.environ
 
 data = dm.load_object(r'./test/test_data/k_means.p')
 nr_days_cluster = 40
@@ -53,6 +54,9 @@ data.read_demand_data('onshore', 'electricity', electricity_demand)
 production_prof = np.ones(len(topology.timesteps)) * 11
 
 data.read_production_profile('onshore', 'electricity', production_prof, 1)
+
+carbontax = np.ones(len(topology.timesteps)) * 11
+data.read_carbon_tax_data(carbontax)
 # heat_demand = np.ones(len(topology.timesteps)) * 10
 # data.read_demand_data('onshore', 'heat', heat_demand)
 # co2 = np.ones(len(topology.timesteps)) * 10000/8760

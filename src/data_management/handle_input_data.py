@@ -43,6 +43,7 @@ class DataHandle:
         for node in self.topology.nodes:
             self.node_data[node] = {}
             self.node_data[node]['production_profile_curtailment'] = {}
+            self.node_data[node]['carbon_tax'] = pd.DataFrame(np.zeros(len(self.topology.timesteps)), index=self.topology.timesteps)
             for var in variables:
                 self.node_data[node][var] = pd.DataFrame(index=self.topology.timesteps)
             for carrier in self.topology.carriers:
@@ -182,6 +183,24 @@ class DataHandle:
         """
 
         self.node_data[node]['import_limit'][carrier] = import_limit_data
+
+    def read_carbon_tax_data(self, carbon_tax_data, node=None):
+        """
+        Reads carbon tax data.
+
+        Note that prices for all carriers not specified is zero.
+
+        :param str node: node name as specified in the topology
+        :param str carrier: carrier name as specified in the topology
+        :param list price_data: list of price data for respective carrier. Needs to have the same length as number of \
+        time steps.
+        :return: self at ``self.node_data[node]['import_prices'][carrier]``
+        """
+        if node is None:
+            for node_key in self.node_data.keys():
+                self.node_data[node_key]['carbon_tax'] = carbon_tax_data
+        else:
+            self.node_data[node]['carbon_tax'] = carbon_tax_data
 
     def read_export_emissionfactor_data(self, node, carrier, export_emissionfactor_data):
         """

@@ -195,7 +195,7 @@ class EnergyHub:
         """
         Adds technologies retrospectively to the model.
 
-        After adding a technology to a node, the anergy and emission balance need to be re-constructed, as well as the
+        After adding a technology to a node, the energy and emission balance need to be re-constructed, as well as the
         costs recalculated. To solve the model, :func:`~construct_balances` and then solve again.
 
         :param str nodename: name of node for which technology is installed
