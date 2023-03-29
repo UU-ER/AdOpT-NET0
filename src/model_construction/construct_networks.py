@@ -5,8 +5,8 @@ import copy
 import src.global_variables as global_variables
 import src.model_construction as mc
 
-def add_networks(model, data, configuration):
-    r"""
+def add_networks(self):
+    """
         Adds all networks as model blocks to respective node.
 
         This function initializes parameters and decision variables for all networks.
@@ -537,5 +537,4 @@ def add_networks(model, data, configuration):
             mc.perform_disjunct_relaxation(b_netw)
 
         return b_netw
-    model.network_block = Block(model.set_networks, rule=init_network)
-    return model
+    self.model.network_block = Block(self.model.set_networks, rule=init_network)

@@ -1,7 +1,6 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
 from pyomo.gdp import *
-
 import src.model_construction as mc
 import src.data_management as dm
 import pint
@@ -11,6 +10,8 @@ import pandas as pd
 import src.global_variables as global_variables
 import time
 import copy
+
+from src.model_construction.construct_networks import add_networks
 
 
 class EnergyHub:
@@ -28,6 +29,7 @@ class EnergyHub:
     - Set of technologies at each node :math:`S_n, n \in N`
 
     """
+    add_networks = add_networks
     def __init__(self, data, configuration):
         """
         Constructor of the energyhub class.
@@ -120,7 +122,7 @@ class EnergyHub:
         self.model.var_emissions_net = Var()
 
         # Model construction
-        self.model = mc.add_networks(self.model, self.data, self.configuration)
+        self.add_networks()
         self.model = mc.add_nodes(self.model, self.data, self.configuration)
 
         print('Constructing model completed in ' + str(time.time() - start) + ' s')
