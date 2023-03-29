@@ -4,7 +4,7 @@ from pyomo.environ import units as u
 import src.model_construction as mc
 import src.global_variables as global_variables
 
-def constraints_tec_gt(model, b_tec, tec_data, configuration):
+def constraints_tec_gt(model, b_tec, tec_data):
     """
     Adds constraints to technology blocks for gas turbines
 

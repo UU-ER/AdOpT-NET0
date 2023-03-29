@@ -4,7 +4,7 @@ import src.global_variables as global_variables
 import src.model_construction as mc
 
 
-def constraints_tec_hp(model, b_tec, tec_data, configuration):
+def constraints_tec_hp(model, b_tec, tec_data):
     """
     Adds constraints to technology blocks for tec_type HP (Heat Pump)
 

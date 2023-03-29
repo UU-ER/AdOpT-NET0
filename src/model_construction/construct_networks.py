@@ -5,7 +5,7 @@ import copy
 import src.global_variables as global_variables
 import src.model_construction as mc
 
-def add_networks(model, data, configuration):
+def add_networks(energyhub):
     r"""
         Adds all networks as model blocks to respective node.
 
@@ -148,6 +148,11 @@ def add_networks(model, data, configuration):
         :param DataHandle data:  instance of a DataHandle
         :return: model
         """
+
+    # COLLECT OBJECTS FROM ENERGYHUB
+    data = energyhub.data
+    model = energyhub.model
+
     def init_network(b_netw, netw):
 
         # NETWORK DATA

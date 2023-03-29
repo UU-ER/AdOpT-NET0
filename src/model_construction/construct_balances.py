@@ -3,7 +3,7 @@ from pyomo.environ import units as u
 import numpy as np
 
 
-def add_energybalance(model):
+def add_energybalance(energyhub):
     # TODO: formulate energybalance to include global balance
     """
     Calculates the energy balance for each node and carrier as:
@@ -15,6 +15,9 @@ def add_energybalance(model):
 
 
     """
+
+    # COLLECT OBJECTS FROM ENERGYHUB
+    model = energyhub.model
 
     # Delete previously initialized constraints
     if model.find_component('const_energybalance'):
@@ -43,11 +46,14 @@ def add_energybalance(model):
     return model
 
 
-def add_emissionbalance(model, occurrence_hour):
+def add_emissionbalance(energyhub, occurrence_hour):
     """
     Calculates the total and the net CO_2 balance.
 
     """
+    # COLLECT OBJECTS FROM ENERGYHUB
+    model = energyhub.model
+
     # Delete previously initialized constraints
     if model.find_component('const_emissions_pos'):
         model.del_component(model.const_emissions_pos)
@@ -94,7 +100,7 @@ def add_emissionbalance(model, occurrence_hour):
     return model
 
 
-def add_system_costs(model, occurrence_hour):
+def add_system_costs(energyhub, occurrence_hour):
     """
     Calculates total system costs in three steps.
 
@@ -102,6 +108,10 @@ def add_system_costs(model, occurrence_hour):
     - Calculates cost of all networks
     - Adds up cost of networks and node costs
     """
+
+    # COLLECT OBJECTS FROM ENERGYHUB
+    model = energyhub.model
+
     # Delete previously initialized constraints
     if model.find_component('const_node_cost'):
         model.del_component(model.const_node_cost)

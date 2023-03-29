@@ -76,7 +76,7 @@ def constraints_tec_RES(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_CONV1(model, b_tec, tec_data, configuration):
+def constraints_tec_CONV1(model, b_tec, tec_data):
     """
     Adds constraints to technology blocks for tec_type CONV1, i.e. :math:`\sum(output) = f(\sum(inputs))`
 
@@ -246,7 +246,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data, configuration):
 
     return b_tec
 
-def constraints_tec_CONV2(model, b_tec, tec_data, configuration):
+def constraints_tec_CONV2(model, b_tec, tec_data):
     """
     Adds constraints to technology blocks for tec_type CONV2, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
 
@@ -422,7 +422,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data, configuration):
 
     return b_tec
 
-def constraints_tec_CONV3(model, b_tec, tec_data, configuration):
+def constraints_tec_CONV3(model, b_tec, tec_data):
     """
     Adds constraints to technology blocks for tec_type CONV3, i.e. :math:`output_{car} = f_{car}(input_{maincarrier})`
 
@@ -610,7 +610,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data, configuration):
 
     return b_tec
 
-def constraints_tec_STOR(model, b_tec, tec_data, hourly_order, configuration):
+def constraints_tec_STOR(model, b_tec, tec_data, hourly_order):
     """
     Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 

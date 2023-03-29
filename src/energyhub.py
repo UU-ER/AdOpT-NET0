@@ -120,8 +120,8 @@ class EnergyHub:
         self.model.var_emissions_net = Var()
 
         # Model construction
-        self.model = mc.add_networks(self.model, self.data, self.configuration)
-        self.model = mc.add_nodes(self.model, self.data, self.configuration)
+        self.model = mc.add_networks(self)
+        self.model = mc.add_nodes(self)
 
         print('Constructing model completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -136,12 +136,12 @@ class EnergyHub:
         print('Constructing balances...')
         start = time.time()
 
-        self.model = mc.add_energybalance(self.model)
+        self.model = mc.add_energybalance(self)
 
         occurrence_hour = self.calculate_occurance_per_hour()
 
-        self.model = mc.add_emissionbalance(self.model, occurrence_hour)
-        self.model = mc.add_system_costs(self.model, occurrence_hour)
+        self.model = mc.add_emissionbalance(self, occurrence_hour)
+        self.model = mc.add_system_costs(self, occurrence_hour)
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -157,7 +157,6 @@ class EnergyHub:
             self.model.del_component(self.model.objective)
         except:
             pass
-
 
         objective = self.configuration.optimization.objective
 
@@ -210,7 +209,7 @@ class EnergyHub:
         """
         self.data.read_single_technology_data(nodename, technologies)
         node_block = self.model.node_blocks[nodename]
-        mc.add_technologies(nodename, technologies, self.model, self.data, self.configuration, node_block)
+        mc.add_technologies(self, nodename, technologies, node_block)
 
     def save_model(self, file_path, file_name):
         """
