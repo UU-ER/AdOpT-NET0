@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 import pandas as pd
+import src.global_variables as global_variables
 import numpy as np
 
 # import src.config_model as m_config
@@ -196,7 +197,7 @@ class ResultsHandle:
                 technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
                 if technology_model == 'STOR':
-                    if energyhub.configuration._ModelConfiguration__clustered_data:
+                    if global_variables.clustered_data:
                         time_set = tec_data.set_t_full
                     else:
                         time_set = m.set_t

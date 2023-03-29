@@ -8,7 +8,7 @@ import pint
 import numpy as np
 import dill as pickle
 import pandas as pd
-# import src.config_model as m_config
+import src.global_variables as global_variables
 import time
 import copy
 
@@ -54,17 +54,17 @@ class EnergyHub:
         # INITIALIZE SOLUTION
         self.solution = []
 
-        # SET m_config
-        self.configuration._ModelConfiguration__clustered_data = 0
-        self.configuration._ModelConfiguration__averaged_data = 0
+        # SET GLOBAL VARIABLES
+        global_variables.clustered_data = 0
+        global_variables.averaged_data = 0
         if hasattr(self.data, 'k_means_specs'):
             # Clustered Data
-            self.configuration._ModelConfiguration__clustered_data = 1
-            self.configuration._ModelConfiguration__clustered_data_specs.specs = self.data.k_means_specs
+            global_variables.clustered_data = 1
+            global_variables.clustered_data_specs.specs = self.data.k_means_specs
         if hasattr(self.data, 'averaged_specs'):
             # Averaged Data
-            self.configuration._ModelConfiguration__averaged_data = 1
-            self.configuration._ModelConfiguration__averaged_data_specs.specs = self.data.averaged_specs
+            global_variables.averaged_data = 1
+            global_variables.averaged_data_specs.specs = self.data.averaged_specs
 
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -269,13 +269,13 @@ class EnergyHub:
         Calculates how many times an hour in the reduced resolution occurs in the full resolution
         :return np array occurance_hour:
         """
-        if self.configuration._ModelConfiguration__clustered_data and self.configuration._ModelConfiguration__averaged_data:
+        if global_variables.clustered_data and global_variables.averaged_data:
             occurrence_hour = np.multiply(
                 self.data.k_means_specs.reduced_resolution['factor'].to_numpy(),
                 self.data.averaged_specs.reduced_resolution['factor'].to_numpy())
-        elif self.configuration._ModelConfiguration__clustered_data and not self.configuration._ModelConfiguration__averaged_data:
+        elif global_variables.clustered_data and not global_variables.averaged_data:
             occurrence_hour = self.data.k_means_specs.reduced_resolution['factor'].to_numpy()
-        elif not self.configuration._ModelConfiguration__clustered_data and self.configuration._ModelConfiguration__averaged_data:
+        elif not global_variables.clustered_data and global_variables.averaged_data:
             occurrence_hour = self.data.averaged_specs.reduced_resolution['factor'].to_numpy()
         else:
             occurrence_hour = np.ones(len(self.model.set_t))
@@ -294,7 +294,7 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         self.full_res_ehub = EnergyHub(data)
         data_averaged = dm.DataHandle_AveragedData(data,nr_timesteps_averaged)
         EnergyHub.__init__(self, data_averaged)
-        self.configuration._ModelConfiguration__averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
+        global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
     def solve_model(self, objective = 'cost', bounds_on = 'all'):
         """
@@ -311,8 +311,8 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         self.construct_model()
         self.construct_balances()
         super().solve_model()
-        self.configuration._ModelConfiguration__averaged_data = 0
-        self.configuration._ModelConfiguration__averaged_data_specs.nr_timesteps_averaged = 1
+        global_variables.averaged_data = 0
+        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
 
 
         # Solve full resolution model

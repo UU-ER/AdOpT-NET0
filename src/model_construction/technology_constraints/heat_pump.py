@@ -1,5 +1,6 @@
 from pyomo.environ import *
 from pyomo.gdp import *
+import src.global_variables as global_variables
 import src.model_construction as mc
 
 
@@ -56,7 +57,7 @@ def constraints_tec_hp(model, b_tec, tec_data, configuration):
         min_part_load = 0
 
     if performance_function_type >= 2:
-        configuration._ModelConfiguration__big_m_transformation_required = 1
+        global_variables.big_m_transformation_required = 1
 
     # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:

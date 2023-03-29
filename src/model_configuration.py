@@ -38,15 +38,6 @@ class ModelConfiguration:
         # self.performance.globalconversiontype = 0
         # self.performance.dynamics = 0
 
-        self.__big_m_transformation_required = 0
-        self.__clustered_data = 0
-        self.__clustered_data_specs = SimpleNamespace()
-        self.__clustered_data_specs.specs = []
-        self.__averaged_data = 0
-        self.__averaged_data_specs = SimpleNamespace()
-        self.__averaged_data_specs.nr_timesteps_averaged = 1
-        self.__averaged_data_specs.specs = []
-
     def define_montecarlo(self, range, N):
         """
         Function to define the range within the variables are varied (+/-) and the number of simulations

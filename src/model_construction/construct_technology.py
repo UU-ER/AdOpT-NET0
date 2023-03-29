@@ -1,7 +1,7 @@
 import numpy as np
 from pyomo.environ import *
 from pyomo.environ import units as u
-
+import src.global_variables as global_variables
 import src.model_construction as mc
 from src.model_construction.technology_constraints import *
 
@@ -84,7 +84,6 @@ def add_technologies(nodename, set_tecsToAdd, model, data, configuration, b_node
 
     Parameters
     ----------
-    configuration
     """
     def init_technology_block(b_tec, tec):
 
@@ -146,7 +145,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, configuration, b_node
             b_tec.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
                                                                     economics.capex_data['piecewise_capex']['bp_y'],
                                            units=u.EUR/unit_size)
-            configuration._ModelConfiguration__big_m_transformation_required = 1
+            global_variables.big_m_transformation_required = 1
             b_tec.const_CAPEX_aux = Piecewise(b_tec.var_CAPEX_aux, b_tec.var_size,
                                               pw_pts=b_tec.para_bp_x,
                                               pw_constr_type='EQ',
@@ -254,7 +253,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, configuration, b_node
             b_tec = constraints_tec_CONV3(model, b_tec, tec_data, configuration)
 
         elif technology_model == 'STOR': # Storage technology (1 input -> 1 output)
-            if configuration._ModelConfiguration__clustered_data == 1:
+            if global_variables.clustered_data == 1:
                 hourly_order = data.k_means_specs.full_resolution['hourly_order']
             else:
                 hourly_order = np.arange(1, len(model.set_t)+1)
@@ -270,7 +269,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, configuration, b_node
         elif technology_model.startswith('GasTurbine_'):  # Gas Turbine
             b_tec = constraints_tec_gt(model, b_tec, tec_data, configuration)
 
-        if configuration._ModelConfiguration__big_m_transformation_required:
+        if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
 
         return b_tec

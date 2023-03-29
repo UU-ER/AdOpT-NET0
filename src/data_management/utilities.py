@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np
 
+
 def save_object(data, save_path):
     """
     Save object to path
@@ -48,7 +49,7 @@ def perform_k_means(full_resolution, nr_clusters):
 
     :param full_resolution: matrix of full resolution matrix
     :param nr_clusters: how many clusters
-    :return __clustered_data: matrix with clustered data
+    :return clustered_data: matrix with clustered data
     :return labels: labels for each clustered day
     """
     kmeans = KMeans(
