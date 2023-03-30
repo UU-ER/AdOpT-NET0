@@ -38,7 +38,7 @@ def construct_network_energyconsumption(model, b_netw, energy_consumption):
                                               units=u.dimensionless)
 
     # Consumption at each node
-    b_netw.var_consumption = Var(model.set_t, model.set_consumed_carriers, model.set_nodes,
+    b_netw.var_consumption = Var(model.set_t, b_netw.set_consumed_carriers, model.set_nodes,
                                  domain=NonNegativeReals)
 
     return b_netw
@@ -548,7 +548,7 @@ def add_networks(energyhub):
                            for to_node in b_netw.set_sends_to[node]) + \
                        sum(b_netw.arc_block[from_node, node].var_consumption_receive[t, car]
                            for from_node in b_netw.set_receives_from[node])
-            b_netw.const_netw_consumption = Constraint(model.set_t, model.set_consumed_carriers, model.set_nodes,
+            b_netw.const_netw_consumption = Constraint(model.set_t, b_netw.set_consumed_carriers, model.set_nodes,
                                              rule=init_network_consumption)
 
         if global_variables.big_m_transformation_required:
