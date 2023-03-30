@@ -2,11 +2,10 @@ from pyomo.environ import *
 from pyomo.environ import units as u
 from pyomo.gdp import *
 import copy
-
-import src.config_model as m_config
+import src.global_variables as global_variables
 import src.model_construction as mc
 
-def add_networks(model, data):
+def add_networks(energyhub):
     r"""
         Adds all networks as model blocks to respective node.
 
@@ -145,10 +144,14 @@ def add_networks(model, data):
 
         - Energy consumption of other carriers at each node.
 
-        :param object model: pyomo model
-        :param DataHandle data:  instance of a DataHandle
+        :param EnergyHub energyhub: instance of the energyhub
         :return: model
         """
+
+    # COLLECT OBJECTS FROM ENERGYHUB
+    data = energyhub.data
+    model = energyhub.model
+
     def init_network(b_netw, netw):
 
         # NETWORK DATA
@@ -434,7 +437,7 @@ def add_networks(model, data):
         b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_block_init)
 
         if performance_data['bidirectional'] == 1:
-            m_config.presolve.big_m_transformation_required = 1
+            global_variables.big_m_transformation_required = 1
 
             if decommission or not existing:
                 """
@@ -534,7 +537,7 @@ def add_networks(model, data):
         b_netw.const_netw_consumption = Constraint(model.set_t, model.set_carriers, model.set_nodes,
                                          rule=init_network_consumption)
 
-        if m_config.presolve.big_m_transformation_required:
+        if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_netw)
 
         return b_netw

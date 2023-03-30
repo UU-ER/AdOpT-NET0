@@ -1,6 +1,6 @@
 from pyomo.environ import *
 from pyomo.gdp import *
-import src.config_model as m_config
+import src.global_variables as global_variables
 import src.model_construction as mc
 
 
@@ -85,7 +85,7 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
 
     b_tec.para_eta_elth = Param(initialize=performance_data['performance']['eta_elth'])
 
-    m_config.presolve.big_m_transformation_required = 1
+    global_variables.big_m_transformation_required = 1
 
     # Input-Output relationship (eq. 1-5)
     def init_input_output(dis, t, ind):

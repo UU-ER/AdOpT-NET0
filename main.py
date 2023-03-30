@@ -3,8 +3,9 @@
 # TODO: Implement length of time step
 # TODO: Implement all technologies
 # TODO: Complete ERA5 weather import
+from src.model_configuration import ModelConfiguration
 import src.data_management as dm
-from src.energyhub import *
+from src.energyhub import EnergyHub
 import numpy as np
 
 data = dm.load_object(r'./test/test_data/k_means.p')
@@ -21,6 +22,9 @@ topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01
 topology.define_carriers(['electricity'])
 topology.define_nodes(['onshore'])
 
+configuration = ModelConfiguration()
+
+
 # distance = dm.create_empty_network_matrix(topology.nodes)
 # distance.at['onshore', 'offshore'] = 100
 # distance.at['offshore', 'onshore'] = 100
@@ -34,7 +38,7 @@ topology.define_nodes(['onshore'])
 data = dm.DataHandle(topology)
 
 # CLIMATE DATA
-from_file = 0
+from_file = 1
 if from_file == 1:
     data.read_climate_data_from_file('onshore', r'.\data\climate_data_onshore.txt')
     # data.read_climate_data_from_file('offshore', r'.\data\climate_data_offshore.txt')
@@ -86,7 +90,7 @@ data.read_network_data()
 # data.save(data_save_path)
 
 # # Read data
-energyhub = EnergyHub(data)
+energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()
 energyhub.model.pprint()
 # energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()

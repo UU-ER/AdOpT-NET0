@@ -1,9 +1,8 @@
 from pyomo.environ import *
 from pyomo.gdp import *
 from pyomo.environ import units as u
-import src.config_model as m_config
 import src.model_construction as mc
-
+import src.global_variables as global_variables
 
 def constraints_tec_gt(model, b_tec, tec_data):
     """
@@ -93,7 +92,7 @@ def constraints_tec_gt(model, b_tec, tec_data):
     b_tec.para_epsilon = Param(domain=NonNegativeReals, initialize=fitted_performance['epsilon'])
     f  = fitted_performance['f']
 
-    m_config.presolve.big_m_transformation_required = 1
+    global_variables.big_m_transformation_required = 1
 
     # Additional decision variables
     size_max = tec_data.size_max

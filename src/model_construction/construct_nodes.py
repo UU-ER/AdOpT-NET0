@@ -3,7 +3,7 @@ import src.model_construction as mc
 from pyomo.environ import *
 from pyomo.environ import units as u
 
-def add_nodes(model, data):
+def add_nodes(energyhub):
     r"""
     Adds all nodes with respective data to the model
 
@@ -49,10 +49,14 @@ def add_nodes(model, data):
 
     - Technologies at node
 
-    :param obj model: instance of a pyomo model
-    :param DataHandle data: instance of a DataHandle
+    :param EnergyHub energyhub: instance of the energyhub
     :return: model
     """
+
+    # COLLECT OBJECTS FROM ENERGYHUB
+    data = energyhub.data
+    model = energyhub.model
+
     def init_node_block(b_node, nodename):
 
         # SETS: Get technologies for each node and make it a set for the block
@@ -211,7 +215,7 @@ def add_nodes(model, data):
 
         # BLOCKS
         # Add technologies as blocks
-        b_node = mc.add_technologies(nodename, b_node.set_tecsAtNode, model, data, b_node)
+        b_node = mc.add_technologies(energyhub, nodename, b_node.set_tecsAtNode)
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 

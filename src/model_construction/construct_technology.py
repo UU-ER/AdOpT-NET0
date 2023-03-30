@@ -1,13 +1,12 @@
 import numpy as np
 from pyomo.environ import *
 from pyomo.environ import units as u
-
+import src.global_variables as global_variables
 import src.model_construction as mc
-import src.config_model as m_config
 from src.model_construction.technology_constraints import *
 
 
-def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
+def add_technologies(energyhub, nodename, set_tecsToAdd):
     r"""
     Adds all technologies as model blocks to respective node.
 
@@ -78,11 +77,16 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
     then taking the respective opex_fixed share of this. This is done with the auxiliary variable var_capex_aux.
 
     :param str nodename: name of node for which technology is installed
-    :param object b_node: pyomo block for respective node
-    :param object model: pyomo model
-    :param DataHandle data:  instance of a DataHandle
-    :return: model
+    :param list set_tecsToAdd: list of technologies to add
+    :param EnergyHub energyhub: instance of the energyhub
+    :return: b_node
+    ----------
     """
+
+    # COLLECT OBJECTS FROM ENERGYHUB
+    data = energyhub.data
+    model = energyhub.model
+
     def init_technology_block(b_tec, tec):
 
         # TECHNOLOGY DATA
@@ -143,7 +147,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             b_tec.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
                                                                     economics.capex_data['piecewise_capex']['bp_y'],
                                            units=u.EUR/unit_size)
-            m_config.presolve.big_m_transformation_required = 1
+            global_variables.big_m_transformation_required = 1
             b_tec.const_CAPEX_aux = Piecewise(b_tec.var_CAPEX_aux, b_tec.var_size,
                                               pw_pts=b_tec.para_bp_x,
                                               pw_constr_type='EQ',
@@ -251,7 +255,7 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
             b_tec = constraints_tec_CONV3(model, b_tec, tec_data)
 
         elif technology_model == 'STOR': # Storage technology (1 input -> 1 output)
-            if m_config.presolve.clustered_data == 1:
+            if global_variables.clustered_data == 1:
                 hourly_order = data.k_means_specs.full_resolution['hourly_order']
             else:
                 hourly_order = np.arange(1, len(model.set_t)+1)
@@ -267,12 +271,14 @@ def add_technologies(nodename, set_tecsToAdd, model, data, b_node):
         elif technology_model.startswith('GasTurbine_'):  # Gas Turbine
             b_tec = constraints_tec_gt(model, b_tec, tec_data)
 
-        if m_config.presolve.big_m_transformation_required:
+        if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
 
         return b_tec
 
     # Create a new block containing all new technologies.
+    b_node = energyhub.model.node_blocks[nodename]
+
     if b_node.find_component('tech_blocks_new'):
         b_node.del_component(b_node.tech_blocks_new)
     b_node.tech_blocks_new = Block(set_tecsToAdd, rule=init_technology_block)

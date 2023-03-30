@@ -8,7 +8,7 @@ import pint
 import numpy as np
 import dill as pickle
 import pandas as pd
-import src.config_model as m_config
+import src.global_variables as global_variables
 import time
 import copy
 
@@ -28,7 +28,7 @@ class EnergyHub:
     - Set of technologies at each node :math:`S_n, n \in N`
 
     """
-    def __init__(self, data):
+    def __init__(self, data, configuration):
         """
         Constructor of the energyhub class.
         """
@@ -38,6 +38,9 @@ class EnergyHub:
 
         # READ IN DATA
         self.data = data
+
+        # READ IN MODEL CONFIGURATION
+        self.configuration = configuration
 
         # INITIALIZE MODEL
         self.model = ConcreteModel()
@@ -51,22 +54,22 @@ class EnergyHub:
         # INITIALIZE SOLUTION
         self.solution = []
 
-        # SET m_config
-        m_config.presolve.clustered_data = 0
-        m_config.presolve.averaged_data = 0
+        # SET GLOBAL VARIABLES
+        global_variables.clustered_data = 0
+        global_variables.averaged_data = 0
         if hasattr(self.data, 'k_means_specs'):
             # Clustered Data
-            m_config.presolve.clustered_data = 1
-            m_config.presolve.clustered_data_specs.specs = self.data.k_means_specs
+            global_variables.clustered_data = 1
+            global_variables.clustered_data_specs.specs = self.data.k_means_specs
         if hasattr(self.data, 'averaged_specs'):
             # Averaged Data
-            m_config.presolve.averaged_data = 1
-            m_config.presolve.averaged_data_specs.specs = self.data.averaged_specs
+            global_variables.averaged_data = 1
+            global_variables.averaged_data_specs.specs = self.data.averaged_specs
 
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
 
-    def quick_solve_model(self, objective = 'cost'):
+    def quick_solve_model(self):
         """
         Quick-solves the model (constructs model and balances and solves model).
 
@@ -77,7 +80,7 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
-        self.solve_model(objective)
+        self.solve_model()
 
     def construct_model(self):
         """
@@ -117,8 +120,8 @@ class EnergyHub:
         self.model.var_emissions_net = Var()
 
         # Model construction
-        self.model = mc.add_networks(self.model, self.data)
-        self.model = mc.add_nodes(self.model, self.data)
+        self.model = mc.add_networks(self)
+        self.model = mc.add_nodes(self)
 
         print('Constructing model completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -133,20 +136,18 @@ class EnergyHub:
         print('Constructing balances...')
         start = time.time()
 
-        self.model = mc.add_energybalance(self.model)
+        self.model = mc.add_energybalance(self)
 
-        occurrence_hour = self.calculate_occurance_per_hour()
-
-        self.model = mc.add_emissionbalance(self.model, occurrence_hour)
-        self.model = mc.add_system_costs(self.model, occurrence_hour)
+        self.model = mc.add_emissionbalance(self)
+        self.model = mc.add_system_costs(self)
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
-    def solve_model(self, objective = 'cost'):
+    def solve_model(self):
         """
         Defines objective and solves model
 
-        The objective is minimized and can be chosen as total annualized costs ('cost'), total annual emissions
+        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual emissions
         ('emissions_net'), and total annual emissions at minimal cost ('emissions_minC').
         """
         # This is a dirty fix as objectives cannot be found with find_component
@@ -155,8 +156,10 @@ class EnergyHub:
         except:
             pass
 
+        objective = self.configuration.optimization.objective
+
         # Define Objective Function
-        if objective == 'cost':
+        if objective == 'costs':
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
@@ -184,7 +187,7 @@ class EnergyHub:
         print('_' * 20)
         print('Solving Model...')
         start = time.time()
-        solver = SolverFactory(m_config.solver.solver)
+        solver = SolverFactory(self.configuration.solveroptions.solver)
         self.solution = solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
 
@@ -203,8 +206,7 @@ class EnergyHub:
         :return: None
         """
         self.data.read_single_technology_data(nodename, technologies)
-        node_block = self.model.node_blocks[nodename]
-        mc.add_technologies(nodename, technologies, self.model, self.data, node_block)
+        mc.add_technologies(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
         """
@@ -263,13 +265,13 @@ class EnergyHub:
         Calculates how many times an hour in the reduced resolution occurs in the full resolution
         :return np array occurance_hour:
         """
-        if m_config.presolve.clustered_data and m_config.presolve.averaged_data:
+        if global_variables.clustered_data and global_variables.averaged_data:
             occurrence_hour = np.multiply(
                 self.data.k_means_specs.reduced_resolution['factor'].to_numpy(),
                 self.data.averaged_specs.reduced_resolution['factor'].to_numpy())
-        elif m_config.presolve.clustered_data and not m_config.presolve.averaged_data:
+        elif global_variables.clustered_data and not global_variables.averaged_data:
             occurrence_hour = self.data.k_means_specs.reduced_resolution['factor'].to_numpy()
-        elif not m_config.presolve.clustered_data and m_config.presolve.averaged_data:
+        elif not global_variables.clustered_data and global_variables.averaged_data:
             occurrence_hour = self.data.averaged_specs.reduced_resolution['factor'].to_numpy()
         else:
             occurrence_hour = np.ones(len(self.model.set_t))
@@ -288,7 +290,7 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         self.full_res_ehub = EnergyHub(data)
         data_averaged = dm.DataHandle_AveragedData(data,nr_timesteps_averaged)
         EnergyHub.__init__(self, data_averaged)
-        m_config.presolve.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
+        global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
     def solve_model(self, objective = 'cost', bounds_on = 'all'):
         """
@@ -304,9 +306,9 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         # Solve reduced resolution model
         self.construct_model()
         self.construct_balances()
-        super().solve_model(objective)
-        m_config.presolve.averaged_data = 0
-        m_config.presolve.averaged_data_specs.nr_timesteps_averaged = 1
+        super().solve_model()
+        global_variables.averaged_data = 0
+        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
 
 
         # Solve full resolution model
@@ -316,7 +318,7 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         # Impose additional constraints
         self.impose_size_constraints(bounds_on)
         # Solve with additional constraints
-        self.full_res_ehub.solve_model(objective)
+        self.full_res_ehub.solve_model()
 
     def write_results(self):
         """

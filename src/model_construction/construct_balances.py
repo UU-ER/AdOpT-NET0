@@ -1,10 +1,9 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
-import src.config_model as m_config
 import numpy as np
 
 
-def add_energybalance(model):
+def add_energybalance(energyhub):
     # TODO: formulate energybalance to include global balance
     """
     Calculates the energy balance for each node and carrier as:
@@ -14,8 +13,14 @@ def add_energybalance(model):
         inflowFromNetwork - outflowToNetwork + \\
         imports - exports = demand - genericProductionProfile
 
+    :param EnergyHub energyhub: instance of the energyhub
+    :return: model
+
 
     """
+
+    # COLLECT OBJECTS FROM ENERGYHUB
+    model = energyhub.model
 
     # Delete previously initialized constraints
     if model.find_component('const_energybalance'):
@@ -44,11 +49,17 @@ def add_energybalance(model):
     return model
 
 
-def add_emissionbalance(model, occurrence_hour):
+def add_emissionbalance(energyhub):
     """
     Calculates the total and the net CO_2 balance.
 
+    :param EnergyHub energyhub: instance of the energyhub
+    :return: model
     """
+    # COLLECT OBJECTS FROM ENERGYHUB
+    model = energyhub.model
+    occurrence_hour = energyhub.calculate_occurance_per_hour()
+
     # Delete previously initialized constraints
     if model.find_component('const_emissions_pos'):
         model.del_component(model.const_emissions_pos)
@@ -95,14 +106,22 @@ def add_emissionbalance(model, occurrence_hour):
     return model
 
 
-def add_system_costs(model, occurrence_hour):
+def add_system_costs(energyhub):
     """
     Calculates total system costs in three steps.
 
     - Calculates cost at all nodes as the sum of technology costs, import costs and export revenues
     - Calculates cost of all networks
     - Adds up cost of networks and node costs
+
+    :param EnergyHub energyhub: instance of the energyhub
+    :return: model
     """
+
+    # COLLECT OBJECTS FROM ENERGYHUB
+    model = energyhub.model
+    occurrence_hour = energyhub.calculate_occurance_per_hour()
+
     # Delete previously initialized constraints
     if model.find_component('const_node_cost'):
         model.del_component(model.const_node_cost)

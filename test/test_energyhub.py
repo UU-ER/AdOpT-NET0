@@ -5,18 +5,21 @@ from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
 import src.model_construction as mc
+from src.model_configuration import ModelConfiguration
 
 
 def test_initializer():
     data = dm.load_object(r'./test/test_data/data_handle_test.p')
-    energyhub = ehub(data)
+    configuration = ModelConfiguration()
+    energyhub = ehub(data, configuration)
 
 def test_add_nodes():
     """
     Add a node with no technology, establishes energybalance
     """
     data = dm.load_object(r'./test/test_data/data_handle_test.p')
-    energyhub = ehub(data)
+    configuration = ModelConfiguration()
+    energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -32,7 +35,8 @@ def test_model1():
     should be infeasible
     """
     data = dm.load_object(r'./test/test_data/model1.p')
-    energyhub = ehub(data)
+    configuration = ModelConfiguration()
+    energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -49,7 +53,8 @@ def test_model2():
     - Emissions larger zero
     """
     data = dm.load_object(r'./test/test_data/model2.p')
-    energyhub = ehub(data)
+    configuration = ModelConfiguration()
+    energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -96,8 +101,9 @@ def test_addtechnology():
     second solve should be cheaper
     """
     data = dm.load_object(r'./test/test_data/addtechnology.p')
+    configuration = ModelConfiguration()
     data.technology_data['test_node1']['WindTurbine_Offshore_6000'].performance_data['curtailment'] = 0
-    energyhub = ehub(data)
+    energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -135,11 +141,12 @@ def test_emission_balance1():
     electricity network in between
     """
     data = dm.load_object(r'./test/test_data/emissionbalance1.p')
+    configuration = ModelConfiguration()
     data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
     data.technology_data['onshore']['Furnace_NG'].fitted_performance['heat']['alpha1'] = 0.9
     data.network_data['electricityTest'].performance_data['emissionfactor'] = 0.2
     data.network_data['electricityTest'].performance_data['loss2emissions'] = 1
-    energyhub = ehub(data)
+    energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -189,8 +196,9 @@ def test_emission_balance2():
     """
     # Cost optimization
     data = dm.load_object(r'./test/test_data/emissionbalance2.p')
+    configuration = ModelConfiguration()
     data.technology_data['test_node1']['testCONV1_1'].performance_data['emission_factor'] = 1
-    energyhub = ehub(data)
+    energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -200,7 +208,8 @@ def test_emission_balance2():
     emissions1 = energyhub.model.var_emissions_net.value
 
     # Emission Optimization
-    energyhub.solve_model(objective='emissions_pos')
+    energyhub.configuration.optimization.objective = 'emissions_pos'
+    energyhub.solve_model()
     cost2 = energyhub.model.var_total_cost.value
     emissions2 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == 'optimal'
