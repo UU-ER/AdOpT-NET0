@@ -20,11 +20,11 @@
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
-      "CO2"
+      "hydrogen"
     ],
-    "main_input_carrier": "CO2",
+    "main_input_carrier": "hydrogen",
     "output_carrier": [
-      "CO2"
+      "hydrogen"
     ],
     "emission_factor": 0,
     "allow_only_one_direction": 1,
