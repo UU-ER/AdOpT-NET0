@@ -121,6 +121,7 @@ def perform_fitting_WT(climate_data, turbine_model, hubheight):
     y = y.to_numpy()
 
     f = interp1d(x, y)
+    ws[ws < 0] = 0
     capacity_factor = f(ws) / rated_power
 
     # Calculate output bounds

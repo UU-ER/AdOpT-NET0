@@ -74,13 +74,13 @@ class ResultsHandle:
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car].value *
                                   model.node_blocks[node].para_import_price[t, car].value *
                                   occurrence_hour[t - 1]
-                                  for car in model.set_carriers)
+                                  for car in model.node_blocks[node].set_carriers)
                               for t in model.set_t)
                           for node in model.set_nodes)
         export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car].value *
                                      model.node_blocks[node].para_export_price[t, car].value *
                                      occurrence_hour[t - 1]
-                                     for car in model.set_carriers)
+                                     for car in model.node_blocks[node].set_carriers)
                                  for t in model.set_t)
                              for node in model.set_nodes)
         netw_cost = model.var_netw_cost.value
@@ -148,12 +148,13 @@ class ResultsHandle:
                     [netw_name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow]
 
         # Energy Balance @ each node
-        for car in model.set_carriers:
-            self.energybalance[car] = {}
-            for node_name in model.set_nodes:
-                self.energybalance[car][node_name] = pd.DataFrame(columns=[
+        for node_name in model.set_nodes:
+            self.energybalance[node_name] = {}
+            for car in model.node_blocks[node_name].set_carriers:
+                self.energybalance[node_name][car] = pd.DataFrame(columns=[
                                                                             'Technology_inputs',
                                                                             'Technology_outputs',
+                                                                            'Generic_production',
                                                                             'Network_inflow',
                                                                             'Network_outflow',
                                                                             'Network_consumption',
@@ -162,27 +163,29 @@ class ResultsHandle:
                                                                             'Demand'
                                                                             ])
                 node_data = model.node_blocks[node_name]
-                self.energybalance[car][node_name]['Technology_inputs'] = \
+                self.energybalance[node_name][car]['Technology_inputs'] = \
                     [sum(node_data.tech_blocks_active[tec].var_input[t, car].value
                          for tec in node_data.set_tecsAtNode
                          if car in node_data.tech_blocks_active[tec].set_input_carriers)
                      for t in model.set_t]
-                self.energybalance[car][node_name]['Technology_outputs'] = \
+                self.energybalance[node_name][car]['Technology_outputs'] = \
                     [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
                          for tec in node_data.set_tecsAtNode
                          if car in node_data.tech_blocks_active[tec].set_output_carriers)
                      for t in model.set_t]
-                self.energybalance[car][node_name]['Network_inflow'] = \
+                self.energybalance[node_name][car]['Generic_production'] = \
+                    [node_data.var_generic_production[t, car].value for t in m.set_t]
+                self.energybalance[node_name][car]['Network_inflow'] = \
                     [node_data.var_netw_inflow[t, car].value for t in model.set_t]
-                self.energybalance[car][node_name]['Network_outflow'] = \
+                self.energybalance[node_name][car]['Network_outflow'] = \
                     [node_data.var_netw_outflow[t, car].value for t in model.set_t]
-                self.energybalance[car][node_name]['Network_consumption'] = \
+                self.energybalance[node_name][car]['Network_consumption'] = \
                     [node_data.var_netw_consumption[t, car].value for t in model.set_t]
-                self.energybalance[car][node_name]['Import'] = \
+                self.energybalance[node_name][car]['Import'] = \
                     [node_data.var_import_flow[t, car].value for t in model.set_t]
-                self.energybalance[car][node_name]['Export'] = \
+                self.energybalance[node_name][car]['Export'] = \
                     [node_data.var_export_flow[t, car].value for t in model.set_t]
-                self.energybalance[car][node_name]['Demand'] = \
+                self.energybalance[node_name][car]['Demand'] = \
                     [node_data.para_demand[t, car].value for t in model.set_t]
 
         # Detailed results for technologies
@@ -255,10 +258,10 @@ class ResultsHandle:
             self.emissions.to_excel(writer, sheet_name='Emissions')
             self.technologies.to_excel(writer, sheet_name='TechnologySizes')
             self.networks.to_excel(writer, sheet_name='Networks')
-            for car in self.energybalance:
-                for node_name in self.energybalance[car]:
-                    self.energybalance[car][node_name].to_excel(writer, sheet_name='Balance_' + node_name + '_' + car)
-            for node_name in self.detailed_results.nodes:
-                for tec_name in self.detailed_results.nodes[node_name]:
-                    self.detailed_results.nodes[node_name][tec_name].to_excel(writer, sheet_name=
-                                                                              'DetTec_' + node_name + '_' + tec_name)
+            for node in self.energybalance:
+                for car in self.energybalance[node]:
+                    self.energybalance[node][car].to_excel(writer, sheet_name='Balance_' + node + '_' + car)
+            for node in self.detailed_results.nodes:
+                for tec_name in self.detailed_results.nodes[node]:
+                    self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=
+                                                                              'Tec_' + node + '_' + tec_name)

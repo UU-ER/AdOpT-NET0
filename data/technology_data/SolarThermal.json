@@ -15,10 +15,6 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "input_carrier": [
-      "solar"
-    ],
-    "main_input_carrier": "solar",
     "output_carrier": [
       "heat"
     ],
