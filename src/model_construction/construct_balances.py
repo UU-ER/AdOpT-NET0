@@ -13,6 +13,9 @@ def add_energybalance(energyhub):
         inflowFromNetwork - outflowToNetwork + \\
         imports - exports = demand - genericProductionProfile
 
+    :param EnergyHub energyhub: instance of the energyhub
+    :return: model
+
 
     """
 
@@ -46,13 +49,16 @@ def add_energybalance(energyhub):
     return model
 
 
-def add_emissionbalance(energyhub, occurrence_hour):
+def add_emissionbalance(energyhub):
     """
     Calculates the total and the net CO_2 balance.
 
+    :param EnergyHub energyhub: instance of the energyhub
+    :return: model
     """
     # COLLECT OBJECTS FROM ENERGYHUB
     model = energyhub.model
+    occurrence_hour = energyhub.calculate_occurance_per_hour()
 
     # Delete previously initialized constraints
     if model.find_component('const_emissions_pos'):
@@ -100,17 +106,21 @@ def add_emissionbalance(energyhub, occurrence_hour):
     return model
 
 
-def add_system_costs(energyhub, occurrence_hour):
+def add_system_costs(energyhub):
     """
     Calculates total system costs in three steps.
 
     - Calculates cost at all nodes as the sum of technology costs, import costs and export revenues
     - Calculates cost of all networks
     - Adds up cost of networks and node costs
+
+    :param EnergyHub energyhub: instance of the energyhub
+    :return: model
     """
 
     # COLLECT OBJECTS FROM ENERGYHUB
     model = energyhub.model
+    occurrence_hour = energyhub.calculate_occurance_per_hour()
 
     # Delete previously initialized constraints
     if model.find_component('const_node_cost'):

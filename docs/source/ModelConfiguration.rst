@@ -80,24 +80,10 @@ The framework includes a standard configuration of the modeling settings. You ca
 
     from src.model_configuration import ModelConfiguration
 
+    # Initialize an instance of the model configuration class
     configuration = ModelConfiguration()
 
-    configuration.solveroptions.solver = 'gurobi'
-    configuration.solveroptions.mipgap = 0.01
+    # Change some settings, while maintaining other settings
     configuration.solveroptions.timelim = 10
+    configuration.economic.globalinterest = 0.05
 
-    configuration.optimization.objective = 'costs'
-    configuration.optimization.montecarlo.range = 0.2
-    configuration.optimization.montecarlo.N = 100
-    configuration.optimization.pareto.N = 5
-    configuration.optimization.timestaging = 0
-    configuration.optimization.tecstaging = 0
-
-    configuration.energybalance.violation = 0
-    configuration.energybalance.copperplate = 0
-
-    configuration.economic.globalinterest = 0
-    configuration.economic.globalcosttype = 0
-
-    configuration.performance.globalconversiontype = 0
-    configuration.performance.dynamics = 0

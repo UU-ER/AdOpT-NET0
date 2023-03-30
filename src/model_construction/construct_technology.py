@@ -6,7 +6,7 @@ import src.model_construction as mc
 from src.model_construction.technology_constraints import *
 
 
-def add_technologies(energyhub, nodename, set_tecsToAdd, b_node):
+def add_technologies(energyhub, nodename, set_tecsToAdd):
     r"""
     Adds all technologies as model blocks to respective node.
 
@@ -77,12 +77,9 @@ def add_technologies(energyhub, nodename, set_tecsToAdd, b_node):
     then taking the respective opex_fixed share of this. This is done with the auxiliary variable var_capex_aux.
 
     :param str nodename: name of node for which technology is installed
-    :param object b_node: pyomo block for respective node
-    :param object model: pyomo model
-    :param DataHandle data:  instance of a DataHandle
-    :return: model
-
-    Parameters
+    :param list set_tecsToAdd: list of technologies to add
+    :param EnergyHub energyhub: instance of the energyhub
+    :return: b_node
     ----------
     """
 
@@ -280,6 +277,8 @@ def add_technologies(energyhub, nodename, set_tecsToAdd, b_node):
         return b_tec
 
     # Create a new block containing all new technologies.
+    b_node = energyhub.model.node_blocks[nodename]
+
     if b_node.find_component('tech_blocks_new'):
         b_node.del_component(b_node.tech_blocks_new)
     b_node.tech_blocks_new = Block(set_tecsToAdd, rule=init_technology_block)

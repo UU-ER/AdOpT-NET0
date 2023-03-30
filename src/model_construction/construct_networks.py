@@ -144,8 +144,7 @@ def add_networks(energyhub):
 
         - Energy consumption of other carriers at each node.
 
-        :param object model: pyomo model
-        :param DataHandle data:  instance of a DataHandle
+        :param EnergyHub energyhub: instance of the energyhub
         :return: model
         """
 

@@ -138,10 +138,8 @@ class EnergyHub:
 
         self.model = mc.add_energybalance(self)
 
-        occurrence_hour = self.calculate_occurance_per_hour()
-
-        self.model = mc.add_emissionbalance(self, occurrence_hour)
-        self.model = mc.add_system_costs(self, occurrence_hour)
+        self.model = mc.add_emissionbalance(self)
+        self.model = mc.add_system_costs(self)
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -208,8 +206,7 @@ class EnergyHub:
         :return: None
         """
         self.data.read_single_technology_data(nodename, technologies)
-        node_block = self.model.node_blocks[nodename]
-        mc.add_technologies(self, nodename, technologies, node_block)
+        mc.add_technologies(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
         """

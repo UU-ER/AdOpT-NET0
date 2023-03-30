@@ -49,8 +49,7 @@ def add_nodes(energyhub):
 
     - Technologies at node
 
-    :param obj model: instance of a pyomo model
-    :param DataHandle data: instance of a DataHandle
+    :param EnergyHub energyhub: instance of the energyhub
     :return: model
     """
 
@@ -216,7 +215,7 @@ def add_nodes(energyhub):
 
         # BLOCKS
         # Add technologies as blocks
-        b_node = mc.add_technologies(energyhub, nodename, b_node.set_tecsAtNode, b_node)
+        b_node = mc.add_technologies(energyhub, nodename, b_node.set_tecsAtNode)
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 

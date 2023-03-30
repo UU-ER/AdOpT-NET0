@@ -3,9 +3,6 @@ import pandas as pd
 import src.global_variables as global_variables
 import numpy as np
 
-# import src.config_model as m_config
-
-
 class ResultsHandle:
     """
     Class to handle optimization results
