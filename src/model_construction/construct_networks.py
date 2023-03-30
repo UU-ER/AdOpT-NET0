@@ -5,6 +5,46 @@ import copy
 import src.global_variables as global_variables
 import src.model_construction as mc
 
+def construct_network_energyconsumption(model, b_netw, energy_consumption):
+    """
+    Constructs constraints for network energy consumption
+    """
+    # Set of consumed carriers
+    b_netw.set_consumed_carriers = Set(initialize=energy_consumption.keys())
+
+    # Parameters
+    def init_cons_send1(para, car):
+        return energy_consumption[car]['send']['k_flow']
+
+    b_netw.para_send_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send1,
+                                   units=u.dimensionless)
+
+    def init_cons_send2(para, car):
+        return energy_consumption[car]['send']['k_flowDistance']
+
+    b_netw.para_send_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send2,
+                                           units=u.dimensionless)
+
+    def init_cons_receive1(para, car):
+        return energy_consumption[car]['receive']['k_flow']
+
+    b_netw.para_receive_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive1,
+                                      units=u.dimensionless)
+
+    def init_cons_receive2(para, car):
+        return energy_consumption[car]['receive']['k_flowDistance']
+
+    b_netw.para_receive_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive2,
+                                              units=u.dimensionless)
+
+    # Consumption at each node
+    b_netw.var_consumption = Var(model.set_t, model.set_consumed_carriers, model.set_nodes,
+                                 domain=NonNegativeReals)
+
+    return b_netw
+
+
+
 def add_networks(energyhub):
     r"""
         Adds all networks as model blocks to respective node.
@@ -253,26 +293,6 @@ def add_networks(energyhub):
         b_netw.para_loss_factor = Param(domain=Reals, initialize=performance_data['loss'],
                                        units=u.dimensionless)
 
-        # Energy consumption at sending and receiving nodes
-        b_netw.set_consumed_carriers = Set(initialize=energy_consumption.keys())
-        if energy_consumption:
-            def init_cons_send1(para, car):
-                return energy_consumption[car]['send']['k_flow']
-            b_netw.para_send_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send1,
-                                            units=u.dimensionless)
-            def init_cons_send2(para, car):
-                return energy_consumption[car]['send']['k_flowDistance']
-            b_netw.para_send_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send2,
-                                            units=u.dimensionless)
-            def init_cons_receive1(para, car):
-                return energy_consumption[car]['receive']['k_flow']
-            b_netw.para_receive_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive1,
-                                            units=u.dimensionless)
-            def init_cons_receive2(para, car):
-                return energy_consumption[car]['receive']['k_flowDistance']
-            b_netw.para_receive_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive2,
-                                            units=u.dimensionless)
-
         # Network emissions
         b_netw.para_loss2emissions = Param(domain=NonNegativeReals, initialize=performance_data['loss2emissions'],
                                      units=u.t/u.dimensionless)
@@ -303,8 +323,6 @@ def add_networks(energyhub):
         # DECISION VARIABLES
         b_netw.var_inflow = Var(model.set_t, b_netw.set_netw_carrier, model.set_nodes, domain=NonNegativeReals)
         b_netw.var_outflow = Var(model.set_t, b_netw.set_netw_carrier, model.set_nodes, domain=NonNegativeReals)
-        b_netw.var_consumption = Var(model.set_t, model.set_carriers, model.set_nodes,
-                                         domain=NonNegativeReals)
 
         # Capex/Opex
         b_netw.var_CAPEX = Var(units=u.EUR)
@@ -316,6 +334,10 @@ def add_networks(energyhub):
 
         # Emissions
         b_netw.var_netw_emissions_pos = Var(model.set_t, units=u.t)
+
+        # Energyconsumption of network
+        if energy_consumption:
+            b_netw = construct_network_energyconsumption(model, b_netw, energy_consumption)
 
         # Arcs
         def arc_block_init(b_arc, node_from, node_to):
@@ -438,7 +460,6 @@ def add_networks(energyhub):
 
         if performance_data['bidirectional'] == 1:
             global_variables.big_m_transformation_required = 1
-
             if decommission or not existing:
                 """
                 bi-directional
@@ -453,7 +474,6 @@ def add_networks(energyhub):
                 b_netw.const_size_bidirectional = Constraint(b_netw.set_arcs_unique, rule=init_size_bidirectional)
 
             s_indicators = range(0, 2)
-
             def init_bidirectional(dis, t, node_from, node_to, ind):
                 if ind == 0:
                     def init_bidirectional1(const):
@@ -521,21 +541,15 @@ def add_networks(energyhub):
         b_netw.const_netw_emissions = Constraint(model.set_t, rule=init_netw_emissions)
 
         # Establish energy consumption for each node and this network
-        def init_network_consumption(const, t, car, node):
-            if energy_consumption:
-                if car in b_netw.set_consumed_carriers:
-                    return b_netw.var_consumption[t, car, node] == \
-                           sum(b_netw.arc_block[node, to_node].var_consumption_send[t, car]
-                               for to_node in b_netw.set_sends_to[node]) + \
-                           sum(b_netw.arc_block[from_node, node].var_consumption_receive[t, car]
-                               for from_node in b_netw.set_receives_from[node])
-                else:
-                    return b_netw.var_consumption[t, car, node] == 0
-            else:
-                return b_netw.var_consumption[t, car, node] == 0
-
-        b_netw.const_netw_consumption = Constraint(model.set_t, model.set_carriers, model.set_nodes,
-                                         rule=init_network_consumption)
+        if energy_consumption:
+            def init_network_consumption(const, t, car, node):
+                return b_netw.var_consumption[t, car, node] == \
+                       sum(b_netw.arc_block[node, to_node].var_consumption_send[t, car]
+                           for to_node in b_netw.set_sends_to[node]) + \
+                       sum(b_netw.arc_block[from_node, node].var_consumption_receive[t, car]
+                           for from_node in b_netw.set_receives_from[node])
+            b_netw.const_netw_consumption = Constraint(model.set_t, model.set_consumed_carriers, model.set_nodes,
+                                             rule=init_network_consumption)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_netw)

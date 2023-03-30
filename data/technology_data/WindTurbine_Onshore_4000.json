@@ -15,10 +15,6 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "input_carrier": [
-      "wind"
-    ],
-    "main_input_carrier": "wind",
     "output_carrier": [
       "electricity"
     ],

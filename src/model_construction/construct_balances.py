@@ -29,21 +29,27 @@ def add_energybalance(energyhub):
 
     # energybalance at each node
     def init_energybalance(const, t, car, node):
-        node_block = model.node_blocks[node]
-        tec_output = sum(node_block.tech_blocks_active[tec].var_output[t, car] for tec in node_block.set_tecsAtNode if
-                         car in node_block.tech_blocks_active[tec].set_output_carriers)
-        tec_input = sum(node_block.tech_blocks_active[tec].var_input[t, car] for tec in node_block.set_tecsAtNode if
-                        car in node_block.tech_blocks_active[tec].set_input_carriers)
-        netw_inflow = node_block.var_netw_inflow[t, car]
-        netw_outflow = node_block.var_netw_outflow[t, car]
-        netw_consumption = node_block.var_netw_consumption[t, car]
-        import_flow = node_block.var_import_flow[t, car]
-        export_flow = node_block.var_export_flow[t, car]
-        return \
-            tec_output - tec_input + \
-            netw_inflow - netw_outflow - netw_consumption + \
-            import_flow - export_flow == \
-            node_block.para_demand[t, car] - node_block.var_generic_production[t, car]
+        if car in model.node_blocks[node].set_carriers:
+            node_block = model.node_blocks[node]
+            tec_output = sum(node_block.tech_blocks_active[tec].var_output[t, car] for tec in node_block.set_tecsAtNode if
+                             car in node_block.tech_blocks_active[tec].set_output_carriers)
+            tec_input = sum(node_block.tech_blocks_active[tec].var_input[t, car] for tec in node_block.set_tecsAtNode if
+                            car in node_block.tech_blocks_active[tec].set_input_carriers)
+            netw_inflow = node_block.var_netw_inflow[t, car]
+            netw_outflow = node_block.var_netw_outflow[t, car]
+            if hasattr(node_block, 'var_netw_consumption'):
+                netw_consumption = node_block.var_netw_consumption[t, car]
+            else:
+                netw_consumption = 0
+            import_flow = node_block.var_import_flow[t, car]
+            export_flow = node_block.var_export_flow[t, car]
+            return \
+                tec_output - tec_input + \
+                netw_inflow - netw_outflow - netw_consumption + \
+                import_flow - export_flow == \
+                node_block.para_demand[t, car] - node_block.var_generic_production[t, car]
+        else:
+            return Constraint.Skip
     model.const_energybalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_energybalance)
 
     return model
@@ -144,13 +150,13 @@ def add_system_costs(energyhub):
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
                                     model.node_blocks[node].para_import_price[t, car] *
                                     occurrence_hour[t - 1]
-                                  for car in model.set_carriers)
+                                  for car in model.node_blocks[node].set_carriers)
                               for t in model.set_t)
                           for node in model.set_nodes)
         export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car] *
                                      model.node_blocks[node].para_export_price[t, car] *
                                      occurrence_hour[t - 1]
-                                    for car in model.set_carriers)
+                                    for car in model.node_blocks[node].set_carriers)
                                  for t in model.set_t)
                              for node in model.set_nodes)
         return tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed + import_cost - export_revenue == model.var_node_cost
