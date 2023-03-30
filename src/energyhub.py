@@ -183,11 +183,29 @@ class EnergyHub:
         elif objective == 'pareto':
             print('to be implemented')
 
+
+
+        # Define solver settings
+        solver = SolverFactory(self.configuration.solveroptions.solver)
+        solver.options['TimeLimit'] = self.configuration.solveroptions.timelim * 3600
+        solver.options['MIPGap'] = self.configuration.solveroptions.mipgap
+        solver.options['MIPFocus'] = self.configuration.solveroptions.mipfocus
+        solver.options['Threads'] = self.configuration.solveroptions.threads
+        solver.options['LogFile'] = self.configuration.solveroptions.logfile
+        solver.options['NodefileStart'] = self.configuration.solveroptions.nodefilestart
+        solver.options['Method'] = self.configuration.solveroptions.method
+        solver.options['Heuristics'] = self.configuration.solveroptions.heuristics
+        solver.options['Presolve'] = self.configuration.solveroptions.presolve
+        solver.options['BranchDir'] = self.configuration.solveroptions.branchdir
+        solver.options['LPWarmStart'] = self.configuration.solveroptions.lpwarmstart
+        solver.options['IntFeasTol'] = self.configuration.solveroptions.intfeastol
+        solver.options['Cuts'] = self.configuration.solveroptions.cuts
+
         # Solve model
         print('_' * 20)
         print('Solving Model...')
+
         start = time.time()
-        solver = SolverFactory(self.configuration.solveroptions.solver)
         self.solution = solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
 
