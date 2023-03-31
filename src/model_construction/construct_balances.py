@@ -1,6 +1,5 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
-import numpy as np
 
 
 def add_energybalance(energyhub):

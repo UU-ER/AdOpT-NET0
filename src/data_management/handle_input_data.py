@@ -2,7 +2,6 @@ import src.data_management as dm
 import src.data_management.components as comp
 
 import pandas as pd
-from sklearn.cluster import KMeans
 import copy
 import numpy as np
 

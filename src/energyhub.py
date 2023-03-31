@@ -1,16 +1,14 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
-from pyomo.gdp import *
 
 import src.model_construction as mc
 import src.data_management as dm
+from src.utilities import *
 import pint
 import numpy as np
 import dill as pickle
-import pandas as pd
 import src.global_variables as global_variables
 import time
-import copy
 
 
 class EnergyHub:
@@ -186,20 +184,8 @@ class EnergyHub:
 
 
         # Define solver settings
-        solver = SolverFactory(self.configuration.solveroptions.solver)
-        solver.options['TimeLimit'] = self.configuration.solveroptions.timelim * 3600
-        solver.options['MIPGap'] = self.configuration.solveroptions.mipgap
-        solver.options['MIPFocus'] = self.configuration.solveroptions.mipfocus
-        solver.options['Threads'] = self.configuration.solveroptions.threads
-        solver.options['LogFile'] = self.configuration.solveroptions.logfile
-        solver.options['NodefileStart'] = self.configuration.solveroptions.nodefilestart
-        solver.options['Method'] = self.configuration.solveroptions.method
-        solver.options['Heuristics'] = self.configuration.solveroptions.heuristics
-        solver.options['Presolve'] = self.configuration.solveroptions.presolve
-        solver.options['BranchDir'] = self.configuration.solveroptions.branchdir
-        solver.options['LPWarmStart'] = self.configuration.solveroptions.lpwarmstart
-        solver.options['IntFeasTol'] = self.configuration.solveroptions.intfeastol
-        solver.options['Cuts'] = self.configuration.solveroptions.cuts
+        if self.configuration.solveroptions.solver == 'gurobi':
+            solver = get_gurobi_parameters(self.configuration.solveroptions)
 
         # Solve model
         print('_' * 20)
