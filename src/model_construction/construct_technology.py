@@ -86,6 +86,7 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
     # COLLECT OBJECTS FROM ENERGYHUB
     data = energyhub.data
     model = energyhub.model
+    configuration = energyhub.configuration
 
     def init_technology_block(b_tec, tec):
 
@@ -241,6 +242,16 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
                 else:
                     return b_tec.var_tec_emissions_neg[t] == 0
             b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg)
+
+        # CHECK FOR GLOBAL PERFORMANCE
+        if technology_model in {'CONV1', 'CONV2', 'CONV3'}:
+            if configuration.performance.globalconversiontype:
+                if configuration.performance.globalconversiontype == 1:
+                    tec_data.performance_data['performance_function_type'] = 1
+                if configuration.performance.globalconversiontype == 2:
+                    tec_data.performance_data['performance_function_type'] = 2
+                if configuration.performance.globalconversiontype == 3:
+                    tec_data.performance_data['performance_function_type'] = 3
 
 
         # GENERIC TECHNOLOGY CONSTRAINTS

@@ -60,13 +60,13 @@ class ModelConfiguration:
 
     List of technology and network performance settings that can be specified:
 
-    +----------------------+------------------------------------------------+---------+---------+
-    | Name                 | Definition                                     | Options | Default |
-    +----------------------+------------------------------------------------+---------+---------+
-    | globalconversiontype | Determines if a global conversion type is used | {0,1}   | 0       |
-    +----------------------+------------------------------------------------+---------+---------+
-    | dynamics             | Determines if dynamics are used                | {0,1}   | 0       |
-    +----------------------+------------------------------------------------+---------+---------+
+    +----------------------+--------------------------------------------------------+-------------+---------+
+    | Name                 | Definition                                             | Options     | Default |
+    +----------------------+--------------------------------------------------------+-------------+---------+
+    | globalconversiontype | Determines if and which global conversion type is used | {0,1,2,3}   | 0       |
+    +----------------------+--------------------------------------------------------+-------------+---------+
+    | dynamics             | Determines if dynamics are used                        | {0,1}       | 0       |
+    +----------------------+--------------------------------------------------------+-------------+---------+
     """
 
     def __init__(self):
@@ -97,7 +97,7 @@ class ModelConfiguration:
         # self.economic.globalcosttype = 0
 
         self.performance = SimpleNamespace()
-        # self.performance.globalconversiontype = 0
+        self.performance.globalconversiontype = 2
         # self.performance.dynamics = 0
 
     def define_montecarlo(self, range, N):
