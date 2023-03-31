@@ -25,6 +25,8 @@ class ModelConfiguration:
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | techstaging      | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
+    | typicaldays      | Determines number of typical days (0 = off)  |                                             | 0       |
+    +------------------+----------------------------------------------+---------------------------------------------+---------+
 
     List of solver settings that can be specified (see also https://www.gurobi.com/documentation/9.5/refman/parameter_descriptions.html):
 
@@ -120,6 +122,7 @@ class ModelConfiguration:
         # self.optimization.pareto.N = 5
         # self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0
+        # self.optimization.typicaldays = 0
 
         self.energybalance = SimpleNamespace()
         # self.energybalance.violation = 0
