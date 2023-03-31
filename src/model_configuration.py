@@ -50,13 +50,13 @@ class ModelConfiguration:
 
     List of economic settings that can be specified:
 
-    +----------------+----------------------------------------------+---------+---------+
-    | Name           | Definition                                   | Options | Default |
-    +----------------+----------------------------------------------+---------+---------+
-    | globalinterest | Determines if a global interest rate is used | {0,1}   | 0       |
-    +----------------+----------------------------------------------+---------+---------+
-    | globalcosttype | Determines if a global cost function is used | {0,1}   | 0       |
-    +----------------+----------------------------------------------+---------+---------+
+    +--------------------+--------------------------------------------------------+---------+---------+
+    | Name               | Definition                                             | Options | Default |
+    +--------------------+--------------------------------------------------------+---------+---------+
+    | globaldiscountrate | Determines if and which global discount rate is used   |         | -1      |
+    +--------------------+--------------------------------------------------------+---------+---------+
+    | globalteccosttype  | Determines if and which global cost function is used   | {0,1,2} | 0       |
+    +--------------------+--------------------------------------------------------+---------+---------+
 
     List of technology and network performance settings that can be specified:
 
@@ -93,11 +93,11 @@ class ModelConfiguration:
         # self.energybalance.copperplate = 0
 
         self.economic = SimpleNamespace()
-        # self.economic.globalinterest = 0
-        # self.economic.globalcosttype = 0
+        self.economic.globaldiscountrate = -1
+        self.economic.globalteccosttype = 0
 
         self.performance = SimpleNamespace()
-        self.performance.globalconversiontype = 2
+        self.performance.globalconversiontype = 0
         # self.performance.dynamics = 0
 
     def define_montecarlo(self, range, N):

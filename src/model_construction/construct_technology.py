@@ -128,7 +128,13 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
                 b_tec.var_size = Var(within=NonNegativeReals, bounds=(b_tec.para_size_min, b_tec.para_size_max),
                                      units=u.MW)
 
-        # CAPEX auxilliary (used to calculate theoretical CAPEX)
+        # CHECK FOR GLOBAL ECONOMIC SETTINGS
+        if configuration.economic.globaldiscountrate > -1:
+            economics.discount_rate = configuration.economic.globaldiscountrate
+        if configuration.economic.globalteccosttype:
+            economics.capex_model = configuration.economic.globalteccosttype
+
+        # CAPEX auxiliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
         b_tec.var_CAPEX_aux = Var(units=u.EUR)
@@ -246,13 +252,7 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
         # CHECK FOR GLOBAL PERFORMANCE
         if technology_model in {'CONV1', 'CONV2', 'CONV3'}:
             if configuration.performance.globalconversiontype:
-                if configuration.performance.globalconversiontype == 1:
-                    tec_data.performance_data['performance_function_type'] = 1
-                if configuration.performance.globalconversiontype == 2:
-                    tec_data.performance_data['performance_function_type'] = 2
-                if configuration.performance.globalconversiontype == 3:
-                    tec_data.performance_data['performance_function_type'] = 3
-
+                tec_data.performance_data['performance_function_type'] = configuration.performance.globalconversiontype
 
         # GENERIC TECHNOLOGY CONSTRAINTS
         if technology_model == 'RES': # Renewable technology with cap_factor as input

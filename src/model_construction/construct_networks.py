@@ -191,6 +191,7 @@ def add_networks(energyhub):
     # COLLECT OBJECTS FROM ENERGYHUB
     data = energyhub.data
     model = energyhub.model
+    configuration = energyhub.configuration
 
     def init_network(b_netw, netw):
 
@@ -254,6 +255,10 @@ def add_networks(energyhub):
                 for from_node in size_initial:
                     for to_node in size_initial[from_node].index:
                         assert size_initial.at[from_node, to_node] == size_initial.at[to_node, from_node]
+
+        # CHECK FOR GLOBAL ECONOMIC OPTIONS
+        if configuration.economic.globaldiscountrate > -1:
+            economics.discount_rate = configuration.economic.globaldiscountrate
 
         # CAPEX
         annualization_factor = mc.annualize(economics.discount_rate, economics.lifetime)
