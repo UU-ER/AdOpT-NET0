@@ -1,0 +1,19 @@
+from pyomo.environ import *
+from pyomo.environ import units as u
+
+def get_gurobi_parameters(solveroptions):
+    solver = SolverFactory(solveroptions.solver)
+    solver.options['TimeLimit'] = solveroptions.timelim * 3600
+    solver.options['MIPGap'] = solveroptions.mipgap
+    solver.options['MIPFocus'] = solveroptions.mipfocus
+    solver.options['Threads'] = solveroptions.threads
+    solver.options['LogFile'] = solveroptions.logfile
+    solver.options['NodefileStart'] = solveroptions.nodefilestart
+    solver.options['Method'] = solveroptions.method
+    solver.options['Heuristics'] = solveroptions.heuristics
+    solver.options['Presolve'] = solveroptions.presolve
+    solver.options['BranchDir'] = solveroptions.branchdir
+    solver.options['LPWarmStart'] = solveroptions.lpwarmstart
+    solver.options['IntFeasTol'] = solveroptions.intfeastol
+    solver.options['Cuts'] = solveroptions.cuts
+    return solver

@@ -1,16 +1,14 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
-from pyomo.gdp import *
 
 import src.model_construction as mc
 import src.data_management as dm
+from src.utilities import *
 import pint
 import numpy as np
 import dill as pickle
-import pandas as pd
 import src.global_variables as global_variables
 import time
-import copy
 
 
 class EnergyHub:
@@ -183,11 +181,17 @@ class EnergyHub:
         elif objective == 'pareto':
             print('to be implemented')
 
+
+
+        # Define solver settings
+        if self.configuration.solveroptions.solver == 'gurobi':
+            solver = get_gurobi_parameters(self.configuration.solveroptions)
+
         # Solve model
         print('_' * 20)
         print('Solving Model...')
+
         start = time.time()
-        solver = SolverFactory(self.configuration.solveroptions.solver)
         self.solution = solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
 
