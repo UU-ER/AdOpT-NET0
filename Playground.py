@@ -19,19 +19,6 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-execute = 10
-
-if execute == 10:
-    data = dm.load_object(r'./test/test_data/networks.p')
-    configuration = ModelConfiguration()
-    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
-    data.network_data['hydrogenTest'].energy_consumption = {}
-    energyhub1 = ehub(data, configuration)
-    energyhub1.construct_model()
-    energyhub1.construct_balances()
-    energyhub1.solve_model()
-
-
 execute = 0
 # region: how to k-means cluster
 if execute == 1:
