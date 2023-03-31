@@ -19,52 +19,36 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-execute = 10
 
-if execute == 10:
-    data = dm.load_object(r'./test/test_data/networks.p')
-    configuration = ModelConfiguration()
-    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
-    data.network_data['hydrogenTest'].energy_consumption = {}
-    energyhub1 = ehub(data, configuration)
-    energyhub1.construct_model()
-    energyhub1.construct_balances()
-    energyhub1.solve_model()
+execute = 1
 
-
-execute = 0
 # region: how to k-means cluster
 if execute == 1:
     # Load data handle from file
-    modeled_year = 2001
-    topology = {}
-    topology['timesteps'] = pd.date_range(start=str(modeled_year) + '-01-01 00:00',
-                                          end=str(modeled_year) + '-12-31 23:00', freq='1h')
-    topology['timestep_length_h'] = 1
-    topology['carriers'] = ['electricity']
-    topology['nodes'] = ['test_node1']
-    topology['technologies'] = {}
-    # topology['technologies']['test_node1'] = ['Photovoltaic', 'testSTOR']
-    topology['technologies']['test_node1'] = ['Photovoltaic']
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
 
-    topology['networks'] = {}
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', 'Photovoltaic')
+
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_test.p')
+    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_onshore.p')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology['timesteps'])) * 1
+    electricity_demand = np.ones(len(topology.timesteps)) * 10
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # IMPORT
-    electricity_import = np.ones(len(topology['timesteps'])) * 10
+    electricity_import = np.ones(len(topology.timesteps)) * 10
     data.read_import_limit_data('test_node1', 'electricity', electricity_import)
 
     # IMPORT Prices
-    electricity_price = np.ones(len(topology['timesteps'])) * 1000
+    electricity_price = np.ones(len(topology.timesteps)) * 1000
     data.read_import_price_data('test_node1', 'electricity', electricity_price)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -72,7 +56,7 @@ if execute == 1:
     data.read_network_data()
 
     # SOLVE WITH CLUSTERED DATA
-    clustered_data = dm.DataHandle_KMeans()
+    clustered_data = dm.ClusteredDataHandle()
     nr_days_cluster = 5
     clustered_data.cluster_data(data, nr_days_cluster)
 
