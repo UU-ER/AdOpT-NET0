@@ -25,18 +25,42 @@ class ModelConfiguration:
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | techstaging      | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
+    | typicaldays      | Determines number of typical days (0 = off)  |                                             | 0       |
+    +------------------+----------------------------------------------+---------------------------------------------+---------+
 
-    List of solver settings that can be specified:
+    List of solver settings that can be specified (see also https://www.gurobi.com/documentation/9.5/refman/parameter_descriptions.html):
 
-    +---------+-------------------------------------+----------+----------+
-    | Name    | Definition                          | Options  | Default  |
-    +---------+-------------------------------------+----------+----------+
-    | solver  | String specifying the solver used   | 'gurobi' | 'gurobi' |
-    +---------+-------------------------------------+----------+----------+
-    | mipgap  | Value to define MIP gap             |          | 0.01     |
-    +---------+-------------------------------------+----------+----------+
-    | timelim | Value to define time limit in hours |          | 10       |
-    +---------+-------------------------------------+----------+----------+
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | Name          | Definition                                                          | Options                | Default  |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | solver        | String specifying the solver used                                   | 'gurobi'               | 'gurobi' |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | threads       | Value to define MIP gap                                             |                        | 0.001    |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | timelim       | Value to define time limit in hours                                 |                        | 10       |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | threads       | Value to define number of threads (default is maximum available)    |                        | 0        |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | mipfocus      | Modifies high level solution strategy                               | {0,1,2,3}              | 0        |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | logfile       | String to define the location of the logfile                        |                        | ""       |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | nodefilestart | Parameter to decide when nodes are compressed and written to disk   |                        | 60       |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | method        | Defines algorithm used to solve continuous models                   | {-1, 0, 1, 2, 3, 4, 5} | -1       |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | heuristics    | Parameter to determine amount of time spend in MIP heuristics       |                        | 0.05     |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | presolve      | Controls the presolve level                                         | {-1, 0, 1, 2}          | -1       |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | branchdir     | Determines which child node is explored first in the branch-and-cut | {-1, 0, 1}             | 0        |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | lpwarmstart   | Controls whether and how warm start information is used for LP      | {0, 1, 2}              | 0        |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | intfeastol    | Value that determines the integer feasibility tolerance             |                        | 1e-5     |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | cuts          | Setting defining the aggressiveness of the global cut               | {-1, 0, 1, 2, 3}       | -1       |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
 
     List of energy balance settings that can be specified:
 
@@ -76,8 +100,19 @@ class ModelConfiguration:
 
         self.solveroptions = SimpleNamespace()
         self.solveroptions.solver = 'gurobi'
-        # self.solveroptions.mipgap = 0.01
-        # self.solveroptions.timelim = 10
+        self.solveroptions.mipgap = 0.001
+        self.solveroptions.timelim = 10
+        self.solveroptions.threads = 0
+        self.solveroptions.mipfocus = 0
+        self.solveroptions.logfile = ""
+        self.solveroptions.nodefilestart = 0.5
+        self.solveroptions.method = -1
+        self.solveroptions.heuristics = 0.05
+        self.solveroptions.presolve = -1
+        self.solveroptions.branchdir = 0
+        self.solveroptions.lpwarmstart = 0
+        self.solveroptions.intfeastol = 1e-5
+        self.solveroptions.cuts = -1
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
@@ -87,6 +122,7 @@ class ModelConfiguration:
         # self.optimization.pareto.N = 5
         # self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0
+        # self.optimization.typicaldays = 0
 
         self.energybalance = SimpleNamespace()
         # self.energybalance.violation = 0
