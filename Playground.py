@@ -22,9 +22,8 @@ from src.model_configuration import ModelConfiguration
 execute = 1
 
 if execute == 1:
-    # data = dm.load_object(r'./test/test_data/model2.p')
-    # nr_days_cluster = 40
-    # clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
+    # data = dm.load_object(r'./test/test_data/k_means.p')
+
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)

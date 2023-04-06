@@ -24,3 +24,6 @@ The framework includes a standard configuration of the modeling settings. You ca
     configuration.solveroptions.timelim = 10
     configuration.economic.globalinterest = 0.05
 
+    # Configure to cluster for 40 typical days
+    configuration.optimization.typicaldays = 40
+

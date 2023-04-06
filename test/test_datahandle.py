@@ -3,6 +3,8 @@ import pandas as pd
 import src.data_management as dm
 import sys
 import os
+from src.model_configuration import ModelConfiguration
+from src.energyhub import EnergyHub
 
 def create_topology_sample():
     """
@@ -69,5 +71,9 @@ def test_k_means_clustering():
     Test the k-means clustering process
     """
     data = dm.load_object(r'./test/test_data/k_means.p')
-    nr_days_cluster = 40
-    clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
+    configuration = ModelConfiguration()
+    configuration.optimization.typicaldays = 10
+
+    energyhub = EnergyHub(data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
