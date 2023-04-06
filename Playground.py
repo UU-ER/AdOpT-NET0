@@ -19,8 +19,24 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-
 execute = 1
+
+if execute == 1:
+    data = dm.load_object(r'./test/test_data/k_means.p')
+    nr_days_cluster = 40
+    clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
+
+    # INITIALIZE MODEL CONFIGURATION
+    configuration = ModelConfiguration()
+
+    energyhub = EnergyHub(clustered_data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+
+    # Solve model
+    energyhub.solve_model()
+
+execute = 0
 
 # region: how to k-means cluster
 if execute == 1:
