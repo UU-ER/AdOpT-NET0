@@ -21,7 +21,7 @@ class ModelConfiguration:
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | pareto.N         | Number of Pareto points                      |                                             | 5       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | timestaging      | Switch to turn timestaging on/off            | {0,1}                                       | 0       |
+    | timestaging      | Defines number of daily intervals (0 = off)  |                                             | 0       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | techstaging      | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
@@ -120,9 +120,9 @@ class ModelConfiguration:
         # self.optimization.montecarlo.range = 0.2
         # self.optimization.montecarlo.N = 100
         # self.optimization.pareto.N = 5
-        # self.optimization.timestaging = 0
+        self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0
-        # self.optimization.typicaldays = 0
+        self.optimization.typicaldays = 0
 
         self.energybalance = SimpleNamespace()
         # self.energybalance.violation = 0
