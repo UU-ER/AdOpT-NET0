@@ -174,13 +174,14 @@ class ResultsHandle:
                          if car in node_data.tech_blocks_active[tec].set_output_carriers)
                      for t in model.set_t]
                 self.energybalance[node_name][car]['Generic_production'] = \
-                    [node_data.var_generic_production[t, car].value for t in m.set_t]
+                    [node_data.var_generic_production[t, car].value for t in model.set_t]
                 self.energybalance[node_name][car]['Network_inflow'] = \
                     [node_data.var_netw_inflow[t, car].value for t in model.set_t]
                 self.energybalance[node_name][car]['Network_outflow'] = \
                     [node_data.var_netw_outflow[t, car].value for t in model.set_t]
-                self.energybalance[node_name][car]['Network_consumption'] = \
-                    [node_data.var_netw_consumption[t, car].value for t in model.set_t]
+                if hasattr(node_data, 'var_netw_consumption'):
+                    self.energybalance[node_name][car]['Network_consumption'] = \
+                        [node_data.var_netw_consumption[t, car].value for t in model.set_t]
                 self.energybalance[node_name][car]['Import'] = \
                     [node_data.var_import_flow[t, car].value for t in model.set_t]
                 self.energybalance[node_name][car]['Export'] = \

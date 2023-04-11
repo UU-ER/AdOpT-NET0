@@ -41,6 +41,19 @@ def determine_carriers_at_node(energyhub, node):
                 carriers.append(car)
     return carriers
 
+def determine_generic_production_profile(energyhub, node):
+    # COLLECT OBJECTS FROM ENERGYHUB
+    data = energyhub.data
+    model = energyhub.model
+
+    used = False
+
+    for car in data.node_data[node]['production_profile']:
+        if np.any(data.node_data[node]['production_profile'][car]):
+            used = True
+
+    return used
+
 def determine_network_energy_consumption(energyhub):
     """
     Determines if there is network consumption for a network
@@ -114,6 +127,7 @@ def add_nodes(energyhub):
     def init_node_block(b_node, nodename):
         # SETS: Get technologies for each node and make it a set for the block
         carriers = determine_carriers_at_node(energyhub, nodename)
+        generic_production_profile_used = determine_generic_production_profile(energyhub, nodename)
         network_energy_consumption = determine_network_energy_consumption(energyhub)
         b_node.set_carriers = Set(initialize=list(set(carriers)))
         b_node.set_tecsAtNode = Set(initialize=model.set_technologies[nodename])
@@ -126,10 +140,11 @@ def add_nodes(energyhub):
                                    rule=init_demand, units=u.MWh)
 
         # Generic production profile
-        def init_production_profile(para, t, car):
-                return data.node_data[nodename]['production_profile'][car][t - 1]
-        b_node.para_production_profile = Param(model.set_t, b_node.set_carriers,
-                                       rule=init_production_profile, units=u.MWh)
+        if generic_production_profile_used:
+            def init_production_profile(para, t, car):
+                    return data.node_data[nodename]['production_profile'][car][t - 1]
+            b_node.para_production_profile = Param(model.set_t, b_node.set_carriers,
+                                           rule=init_production_profile, units=u.MWh)
 
         # Import Prices
         def init_import_price(para, t, car):
@@ -185,7 +200,8 @@ def add_nodes(energyhub):
             b_node.var_netw_consumption = Var(model.set_t, b_node.set_carriers, units=u.MWh)
 
         # Generic production profile
-        b_node.var_generic_production = Var(model.set_t, b_node.set_carriers, within=NonNegativeReals, units=u.MWh)
+        if generic_production_profile_used:
+            b_node.var_generic_production = Var(model.set_t, b_node.set_carriers, within=NonNegativeReals, units=u.MWh)
 
         # Emissions
         b_node.var_import_emissions_pos = Var(model.set_t, b_node.set_carriers, units=u.t)
@@ -197,12 +213,13 @@ def add_nodes(energyhub):
 
         # CONSTRAINTS
         # Generic production constraint
-        def init_generic_production(const, t, car):
-            if data.node_data[nodename]['production_profile_curtailment'][car] == 0:
-                return b_node.para_production_profile[t, car] == b_node.var_generic_production[t, car]
-            elif data.node_data[nodename]['production_profile_curtailment'][car] == 1:
-                return b_node.para_production_profile[t, car] >= b_node.var_generic_production[t, car]
-        b_node.const_generic_production = Constraint(model.set_t, b_node.set_carriers, rule=init_generic_production)
+        if generic_production_profile_used:
+            def init_generic_production(const, t, car):
+                if data.node_data[nodename]['production_profile_curtailment'][car] == 0:
+                    return b_node.para_production_profile[t, car] == b_node.var_generic_production[t, car]
+                elif data.node_data[nodename]['production_profile_curtailment'][car] == 1:
+                    return b_node.para_production_profile[t, car] >= b_node.var_generic_production[t, car]
+            b_node.const_generic_production = Constraint(model.set_t, b_node.set_carriers, rule=init_generic_production)
 
         # Emission constraints
         def init_import_emissions_pos(const, t, car):
