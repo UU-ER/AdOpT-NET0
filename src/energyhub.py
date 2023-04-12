@@ -145,8 +145,9 @@ class EnergyHub:
         """
         Defines objective and solves model
 
-        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual emissions
-        ('emissions_net'), and total annual emissions at minimal cost ('emissions_minC').
+        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual net emissions
+        ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
+        ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
         # This is a dirty fix as objectives cannot be found with find_component
         try:
@@ -161,42 +162,32 @@ class EnergyHub:
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+            self.optimize()
         elif objective == 'emissions_pos':
             def init_emission_pos_objective(obj):
                 return self.model.var_emissions_pos
             self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+            self.optimize()
         elif objective == 'emissions_net':
             def init_emission_net_objective(obj):
                 return self.model.var_emissions_net
             self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+            self.optimize()
         elif objective == 'emissions_minC':
             def init_emission_minC_objective(obj):
                 return self.model.var_emissions_pos
             self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
+            self.optimize()
             emission_limit = self.model.var_emissions_pos.value
             self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
+            self.model.del_component(self.model.objective)
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+            self.optimize()
         elif objective == 'pareto':
             print('to be implemented')
 
-
-
-        # Define solver settings
-        if self.configuration.solveroptions.solver == 'gurobi':
-            solver = get_gurobi_parameters(self.configuration.solveroptions)
-
-        # Solve model
-        print('_' * 20)
-        print('Solving Model...')
-
-        start = time.time()
-        self.solution = solver.solve(self.model, tee=True, warmstart=True)
-        self.solution.write()
-
-        print('Solving model completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -280,6 +271,27 @@ class EnergyHub:
         else:
             occurrence_hour = np.ones(len(self.model.set_t))
         return occurrence_hour
+
+    def optimize(self):
+        """
+        Solves the model
+        :return:
+        """
+
+        # Define solver settings
+        if self.configuration.solveroptions.solver == 'gurobi':
+            solver = get_gurobi_parameters(self.configuration.solveroptions)
+
+        # Solve model
+        print('_' * 20)
+        print('Solving Model...')
+
+        start = time.time()
+        self.solution = solver.solve(self.model, tee=True, warmstart=True)
+        self.solution.write()
+
+        print('Solving model completed in ' + str(time.time() - start) + ' s')
+        print('_' * 20)
 
 class EnergyHubTwoStageTimeAverage(EnergyHub):
     """
