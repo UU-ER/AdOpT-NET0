@@ -260,11 +260,13 @@ def add_networks(energyhub):
                         assert size_initial.at[from_node, to_node] == size_initial.at[to_node, from_node]
 
         # CHECK FOR GLOBAL ECONOMIC OPTIONS
-        if configuration.economic.globaldiscountrate > -1:
-            economics.discount_rate = configuration.economic.globaldiscountrate
+        if not configuration.economic.global_discountrate == -1:
+            discount_rate = configuration.economic.global_discountrate
+        else:
+            discount_rate = economics.discount_rate
 
         # CAPEX
-        annualization_factor = mc.annualize(economics.discount_rate, economics.lifetime)
+        annualization_factor = mc.annualize(discount_rate, economics.lifetime)
 
         if economics.capex_model == 1:
             b_netw.para_CAPEX_gamma1 = Param(domain=Reals,

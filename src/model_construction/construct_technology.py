@@ -129,24 +129,29 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
                                      units=u.MW)
 
         # CHECK FOR GLOBAL ECONOMIC SETTINGS
-        if configuration.economic.globaldiscountrate > -1:
-            economics.discount_rate = configuration.economic.globaldiscountrate
-        if configuration.economic.globalteccosttype:
-            economics.capex_model = configuration.economic.globalteccosttype
+        if not configuration.economic.global_discountrate == -1:
+            discount_rate = configuration.economic.global_discountrate
+        else:
+            discount_rate = economics.discount_rate
+
+        if configuration.economic.global_simple_capex_model:
+            capex_model = 1
+        else:
+            capex_model = economics.capex_model
 
         # CAPEX auxiliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
         b_tec.var_CAPEX_aux = Var(units=u.EUR)
-        annualization_factor = mc.annualize(economics.discount_rate, economics.lifetime)
-        if economics.capex_model == 1:
+        annualization_factor = mc.annualize(discount_rate, economics.lifetime)
+        if capex_model == 1:
             b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=economics.capex_data['unit_capex'],
                                           units=u.EUR/unit_size)
             b_tec.para_unit_CAPEX_annual = Param(domain=Reals,
                                                  initialize= annualization_factor * economics.capex_data['unit_capex'],
                                                  units=u.EUR/unit_size)
             b_tec.const_CAPEX_aux = Constraint(expr=b_tec.var_size * b_tec.para_unit_CAPEX_annual == b_tec.var_CAPEX_aux)
-        elif economics.capex_model == 2:
+        elif capex_model == 2:
             b_tec.para_bp_x = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_x'],
                                     units=unit_size)
             b_tec.para_bp_y = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_y'],

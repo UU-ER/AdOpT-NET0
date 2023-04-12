@@ -74,13 +74,16 @@ class ModelConfiguration:
 
     List of economic settings that can be specified:
 
-    +--------------------+--------------------------------------------------------+---------+---------+
-    | Name               | Definition                                             | Options | Default |
-    +--------------------+--------------------------------------------------------+---------+---------+
-    | globaldiscountrate | Determines if and which global discount rate is used   |         | -1      |
-    +--------------------+--------------------------------------------------------+---------+---------+
-    | globalteccosttype  | Determines if and which global cost function is used   | {0,1,2} | 0       |
-    +--------------------+--------------------------------------------------------+---------+---------+
+    +----------------------------+--------------------------------------------------------+---------+---------+
+    | Name                       | Definition                                             | Options | Default |
+    +----------------------------+--------------------------------------------------------+---------+---------+
+    | global_discountrate        | Determines if and which global discount rate is used.  |         | -1      |
+    |                            | This holds for the CAPEX of all technologies and       |         |         |
+    |                            | networks                                               |         |         |
+    +----------------------------+--------------------------------------------------------+---------+---------+
+    | global_simple_capex_model  | Determines if capex model of technologies is set to 1  | {0,1}   | 0       |
+    | global_simple_capex_model  | for all technologies                                   |         |         |
+    +----------------------------+--------------------------------------------------------+---------+---------+
 
     List of technology and network performance settings that can be specified:
 
@@ -129,8 +132,8 @@ class ModelConfiguration:
         # self.energybalance.copperplate = 0
 
         self.economic = SimpleNamespace()
-        self.economic.globaldiscountrate = -1
-        self.economic.globalteccosttype = 0
+        self.economic.global_discountrate = -1
+        self.economic.global_simple_capex_model = 0
 
         self.performance = SimpleNamespace()
         self.performance.globalconversiontype = 0

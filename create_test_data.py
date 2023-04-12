@@ -501,21 +501,19 @@ def create_data_time_algorithms():
     data_save_path = './test/test_data/time_algorithms.p'
 
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='03-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['testSTOR', 'Photovoltaic'])
-    
+    topology.define_new_technologies('test_node1', ['Photovoltaic', 'WindTurbine_Onshore_1500', 'Storage_Battery'])
+
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    lat = 52
-    lon = 5.16
-    data.read_climate_data_from_api('test_node1', lon, lat)
+    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology.timesteps)) * 1
+    electricity_demand = np.ones(len(topology.timesteps)) * 100
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -645,17 +643,17 @@ def create_data_existing_networks():
 
 
 
-# create_data_test_data_handle()
-# create_data_model1()
-# create_data_model2()
-# create_data_emissionbalance1()
-# create_data_emissionbalance2()
-# create_data_technology_type1_PV()
-# create_data_technology_type1_WT()
-# create_data_technology_CONV()
-# create_data_network()
-# create_data_addtechnology()
-# create_data_technologySTOR()
+create_data_test_data_handle()
+create_data_model1()
+create_data_model2()
+create_data_emissionbalance1()
+create_data_emissionbalance2()
+create_data_technology_type1_PV()
+create_data_technology_type1_WT()
+create_data_technology_CONV()
+create_data_network()
+create_data_addtechnology()
+create_data_technologySTOR()
 create_data_time_algorithms()
 create_data_existing_technologies()
 create_data_existing_networks()

@@ -6,7 +6,6 @@ import src.data_management as dm
 from src.utilities import *
 import pint
 import numpy as np
-import pandas as pd
 import dill as pickle
 import src.global_variables as global_variables
 import time
@@ -36,9 +35,6 @@ class EnergyHub:
         print('Reading in data...')
         start = time.time()
 
-        # READ IN DATA
-        self.data = data
-
         # READ IN MODEL CONFIGURATION
         self.configuration = configuration
 
@@ -54,28 +50,27 @@ class EnergyHub:
         # INITIALIZE SOLUTION
         self.solution = []
 
-        # ENABLE TYPICAL DAYS AND/OR TIMESTAGING AND COMPUTE NEW DATASET
-        if self.configuration.optimization.typicaldays:
-            self.data = ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
-        if self.configuration.optimization.timestaging:
-            nr_timesteps_averaged = self.configuration.optimization.timestaging
-            self.configuration.optimization.timestaging = 0
-            self.full_res_ehub = EnergyHub(data, configuration)
-            data_averaged = DataHandle_AveragedData(data, nr_timesteps_averaged)
-            EnergyHub.__init__(self, data_averaged, configuration)
-            global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
-
-        # SET GLOBAL VARIABLES
-        global_variables.clustered_data = 0
-        global_variables.averaged_data = 0
-        if hasattr(self.data, 'k_means_specs'):
-            # Clustered Data
+        # READ IN DATA
+        if not self.configuration.optimization.typicaldays == 0:
+            print('Clustering Data...')
+            self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
             global_variables.clustered_data = 1
             global_variables.clustered_data_specs.specs = self.data.k_means_specs
-        if hasattr(self, 'full_res_ehub') and hasattr(self.data, 'averaged_specs'):
-            # Averaged Data
+            print('Clustering Data completed')
+        else:
+            global_variables.clustered_data = 0
+            self.data = data
+
+        if self.configuration.optimization.timestaging:
+            print('Averaging Data...')
+            self.data_full_res = self.data
+            self.data = dm.DataHandle_AveragedData(self.data_full_res, self.configuration.optimization.timestaging)
             global_variables.averaged_data = 1
             global_variables.averaged_data_specs.specs = self.data.averaged_specs
+            self.model_first_stage = []
+            self.solution_first_stage = []
+            print('Averaging Data completed')
+
 
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -136,6 +131,7 @@ class EnergyHub:
 
         print('Constructing model completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
+
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
@@ -154,12 +150,14 @@ class EnergyHub:
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
+
     def solve_model(self):
         """
         Defines objective and solves model
 
-        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual emissions
-        ('emissions_net'), and total annual emissions at minimal cost ('emissions_minC').
+        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual net emissions
+        ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
+        ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
         # This is a dirty fix as objectives cannot be found with find_component
         try:
@@ -174,40 +172,46 @@ class EnergyHub:
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+            self.__optimize()
         elif objective == 'emissions_pos':
             def init_emission_pos_objective(obj):
                 return self.model.var_emissions_pos
             self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+            self.__optimize()
         elif objective == 'emissions_net':
             def init_emission_net_objective(obj):
                 return self.model.var_emissions_net
             self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+            self.__optimize()
         elif objective == 'emissions_minC':
             def init_emission_minC_objective(obj):
                 return self.model.var_emissions_pos
             self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
+            self.__optimize()
             emission_limit = self.model.var_emissions_pos.value
             self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
+            self.model.del_component(self.model.objective)
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+            self.__optimize()
         elif objective == 'pareto':
             print('to be implemented')
 
-        # Define solver settings
-        if self.configuration.solveroptions.solver == 'gurobi':
-            solver = get_gurobi_parameters(self.configuration.solveroptions)
+        if self.configuration.optimization.timestaging and not global_variables.averaged_data_specs.last_stage:
+            global_variables.averaged_data = 0
+            global_variables.averaged_data_specs.last_stage = 1
+            bounds_on = 'all'
+            self.model_first_stage = self.model
+            self.solution_first_stage = copy.deepcopy(self.solution)
+            self.model = ConcreteModel()
+            self.solution = []
+            self.data = self.data_full_res
+            self.construct_model()
+            self.construct_balances()
+            self.__impose_size_constraints(bounds_on)
+            self.solve_model()
 
-        # Solve model
-        print('_' * 20)
-        print('Solving Model...')
-
-        start = time.time()
-        self.solution = solver.solve(self.model, tee=True, warmstart=True)
-        self.solution.write()
-
-        print('Solving model completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -292,58 +296,28 @@ class EnergyHub:
             occurrence_hour = np.ones(len(self.model.set_t))
         return occurrence_hour
 
-class EnergyHubTwoStageTimeAverage(EnergyHub):
-    """
-    Sub-class of the EnergyHub class to perform two stage time averaging optimization based on
-    Weimann, L., & Gazzani, M. (2022). A novel time discretization method for solving complex multi-energy system
-    design and operation problems with high penetration of renewable energy. Computers & Chemical Engineering,
-    107816. https://doi.org/10.1016/J.COMPCHEMENG.2022.107816
-
-    All methods available in the super-class EnergyHub are also available in this subclass.
-    """
-    def __init__(self, data, configuration, nr_timesteps_averaged=4):
-        self.full_res_ehub = EnergyHub(data, configuration)
-        data_averaged = DataHandle_AveragedData(data, nr_timesteps_averaged)
-        EnergyHub.__init__(self, data_averaged, configuration)
-        global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
-
-    def solve_model(self, objective = 'cost', bounds_on = 'all'):
+    def __optimize(self):
         """
-        Solve the model in a two stage time average manner.
-
-        In the first stage, time-steps are averaged and thus the model is optimized with a reduced time frame.
-        In the second stage, the sizes of technologies and networks are constrained with a lower bound. It is possible
-        to only constrain some technologies with the parameter bounds_on (see below)
-
-        :param objective: objective to minimize
-        :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
+        Solves the model
+        :return:
         """
-        # Solve reduced resolution model
-        self.construct_model()
-        self.construct_balances()
-        super().solve_model()
-        global_variables.averaged_data = 0
-        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
 
+        # Define solver settings
+        if self.configuration.solveroptions.solver == 'gurobi':
+            solver = get_gurobi_parameters(self.configuration.solveroptions)
 
-        # Solve full resolution model
-        # Initialize
-        self.full_res_ehub.construct_model()
-        self.full_res_ehub.construct_balances()
-        # Impose additional constraints
-        self.impose_size_constraints(bounds_on)
-        # Solve with additional constraints
-        self.full_res_ehub.solve_model()
+        # Solve model
+        print('_' * 20)
+        print('Solving Model...')
 
-    def write_results(self):
-        """
-        Overwrites method of EnergyHub superclass
-        """
-        results = dm.ResultsHandle()
-        results.read_results(self.full_res_ehub)
-        return results
+        start = time.time()
+        self.solution = solver.solve(self.model, tee=True, warmstart=True)
+        self.solution.write()
 
-    def impose_size_constraints(self, bounds_on):
+        print('Solving model completed in ' + str(time.time() - start) + ' s')
+        print('_' * 20)
+
+    def __impose_size_constraints(self, bounds_on):
         """
         Formulates lower bound on technology and network sizes.
 
@@ -353,8 +327,8 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
         """
 
-        m_full = self.full_res_ehub.model
-        m_avg = self.model
+        m_full = self.model
+        m_avg = self.model_first_stage
 
         # Technologies
         if bounds_on == 'all' or bounds_on == 'only_technologies' or bounds_on == 'no_storage':
@@ -390,211 +364,3 @@ def load_energyhub_instance(file_path):
     with open(file_path, mode='rb') as file:
         energyhub = pickle.load(file)
     return energyhub
-
-class ClusteredDataHandle(EnergyHub):
-    """
-    Performs the clustering process
-
-    This function performs the k-means algorithm on the data resulting in a new DataHandle object that can be
-    passed to the energhub class for optimization.
-
-    :param DataHandle data_in: DataHandle containing data of the full resolution
-    :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
-    :param int nr_time_intervals_per_day: nr of time intervals per day in data (full resolution)
-    """
-    def __init__(self, data_in, nr_clusters, nr_time_intervals_per_day=24):
-        """
-        Constructor
-
-        :param DataHandle data_in: DataHandle containing data of the full resolution
-        :param int nr_clusters: nr of clusters (typical days) the data contains after the algorithm
-        :param int nr_time_intervals_per_day: nr of time intervals per day in data (full resolution)
-        """
-        data = copy.deepcopy(data_in)
-
-        # Copy over data from old object
-        self.node_data = {}
-        self.node_data_full_resolution = data.node_data
-        self.technology_data = data.technology_data
-        self.network_data = data.network_data
-        self.topology = data.topology
-
-        # k-means specs
-        self.k_means_specs = dm.simplification_specs(data.topology.timesteps)
-
-        # flag tecs that contain time-dependent data
-        self.tecs_flagged_for_clustering = dm.flag_tecs_for_clustering(self)
-
-        # perform clustering
-        nr_days_full_resolution = (max(data.topology.timesteps) -  min(data.topology.timesteps)).days + 1
-        if nr_days_full_resolution < nr_clusters:
-            raise KeyError('Number of days in the full resolution is smaller than the number of clusters.')
-        self.cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
-
-    def cluster_data(self, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
-        """
-        Performs the clustering process
-
-        This function performs the k-means algorithm on the data resulting in a new DataHandle object that can be passed
-        to the energhub class for optimization.
-
-        :param DataHandle data: DataHandle containing data of the full resolution
-        :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
-        :param int nr_days_full_resolution: nr of days in data (full resolution)
-        :param int nr_time_intervals_per_day: nr of time intervalls per day in data (full resolution)
-        :return: instance of :class:`~ClusteredDataHandle`
-        """
-        # adjust timesteps
-        self.topology.timesteps = range(0, nr_clusters * nr_time_intervals_per_day)
-        # flag tecs that contain time-dependent data
-        tecs_flagged_for_clustering = self.tecs_flagged_for_clustering
-        # compile full matrix to cluster
-        full_resolution = self.compile_full_resolution_matrix(nr_time_intervals_per_day,
-                                                              tecs_flagged_for_clustering)
-        # Perform clustering
-        clustered_data, day_labels = dm.perform_k_means(full_resolution,
-                                                        nr_clusters)
-        # Get order of typical days
-        self.k_means_specs.full_resolution['hourly_order'] = dm.compile_hourly_order(day_labels,
-                                         nr_clusters,
-                                         nr_days_full_resolution,
-                                         nr_time_intervals_per_day)
-        # Match typical day to actual day
-        self.k_means_specs.full_resolution['typical_day'] = np.repeat(day_labels, nr_time_intervals_per_day)
-        # Create factors, indicating how many times an hour occurs
-        self.k_means_specs.reduced_resolution = dm.get_day_factors(self.k_means_specs.full_resolution['hourly_order'])
-        # Read data back in
-        self.read_clustered_data(clustered_data, tecs_flagged_for_clustering)
-
-    def read_clustered_data(self, clustered_data, tecs_flagged_for_clustering):
-        """
-        Reads clustered data back to self
-
-        :param clustered_data: Clustered data
-        :param tecs_flagged_for_clustering: technologies that have time-dependent data
-        """
-        node_data = self.node_data_full_resolution
-        for node in node_data:
-            self.node_data[node] = {}
-            for series in node_data[node]:
-                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
-                    self.node_data[node][series] = pd.DataFrame()
-                    for carrier in node_data[node][series]:
-                        self.node_data[node][series][carrier] = \
-                            dm.reshape_df(clustered_data[node][series][carrier],
-                                       None, 1)
-            for tec in tecs_flagged_for_clustering[node]:
-                series_data = dm.reshape_df(clustered_data[node][tec][tecs_flagged_for_clustering[node][tec]], None, 1)
-                series_data = series_data.to_numpy()
-                self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]] = \
-                    series_data
-            self.node_data[node]['production_profile_curtailment'] = node_data[node]['production_profile_curtailment']
-
-
-    def compile_full_resolution_matrix(self, nr_time_intervals_per_day, tecs_flagged_for_clustering):
-        """
-        Compiles full resolution matrix to be clustered
-
-        Contains, prices, emission factors, capacity factors,...
-        """
-        full_resolution = pd.DataFrame()
-        node_data = self.node_data_full_resolution
-        for node in node_data:
-            for series in node_data[node]:
-                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
-                    for carrier in node_data[node][series]:
-                        series_names = dm.define_multiindex([
-                            [node] * nr_time_intervals_per_day,
-                            [series] * nr_time_intervals_per_day,
-                            [carrier] * nr_time_intervals_per_day,
-                            list(range(1, nr_time_intervals_per_day + 1))
-                        ])
-                        to_add = dm.reshape_df(node_data[node][series][carrier],
-                                            series_names, nr_time_intervals_per_day)
-                        full_resolution = pd.concat([full_resolution, to_add], axis=1)
-            for tec in tecs_flagged_for_clustering[node]:
-                series_names = dm.define_multiindex([
-                    [node] * nr_time_intervals_per_day,
-                    [tec] * nr_time_intervals_per_day,
-                    [tecs_flagged_for_clustering[node][tec]] * nr_time_intervals_per_day,
-                    list(range(1, nr_time_intervals_per_day + 1))
-                ])
-                to_add = dm.reshape_df(self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]],
-                                    series_names, nr_time_intervals_per_day)
-                full_resolution = pd.concat([full_resolution, to_add], axis=1)
-        return full_resolution
-
-class DataHandle_AveragedData(EnergyHub):
-    """
-    DataHandle sub-class for handling averaged data
-
-    This class is used to generate time series of averaged data based on a full resolution
-    or clustered input data.
-    """
-    def __init__(self, data_in, nr_timesteps_averaged):
-        """
-        Constructor
-        """
-        data = copy.deepcopy(data_in)
-        # Copy over data from old object
-        self.node_data_full_resolution = data.node_data
-        self.node_data = {}
-        self.technology_data = data.technology_data
-        self.network_data = data.network_data
-        self.topology = data.topology
-
-        if hasattr(data, 'k_means_specs'):
-            self.k_means_specs = data.k_means_specs
-
-        # flag tecs that contain time-dependent data
-        self.tecs_flagged_for_clustering = dm.flag_tecs_for_clustering(self)
-
-        # averaging specs
-        self.averaged_specs = dm.simplification_specs(data.topology.timesteps)
-
-        # perform averaging
-        self.average_data(nr_timesteps_averaged)
-
-    def average_data(self, nr_timesteps_averaged):
-        # adjust timesteps
-        end_interval = max(self.topology.timesteps)
-        start_interval = min(self.topology.timesteps)
-        time_resolution = str(nr_timesteps_averaged) + 'h'
-        self.topology.timestep_length_h = nr_timesteps_averaged
-        self.topology.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
-        # flag tecs that contain time-dependent data
-        tecs_flagged_for_clustering = self.tecs_flagged_for_clustering
-        # Average all time-dependent data and write to self
-        self.perform_averaging(nr_timesteps_averaged, tecs_flagged_for_clustering)
-        # Write averaged specs
-        self.averaged_specs.reduced_resolution = pd.DataFrame(
-            data=np.ones(len(self.topology.timesteps)) * nr_timesteps_averaged,
-            index=self.topology.timesteps,
-            columns=['factor'])
-
-    def perform_averaging(self, nr_timesteps_averaged, tecs_flagged_for_clustering):
-        """
-        Average all time-dependent data
-
-        :param nr_timesteps_averaged: How many time-steps should be averaged?
-        :param tecs_flagged_for_clustering: technologies that have time-dependent data
-        """
-        node_data = self.node_data_full_resolution
-        for node in node_data:
-            self.node_data[node] = {}
-            for series in node_data[node]:
-                self.node_data[node][series] = pd.DataFrame()
-                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
-                    for carrier in node_data[node][series]:
-                        series_data = dm.reshape_df(node_data[node][series][carrier],
-                                                    None, nr_timesteps_averaged)
-                        self.node_data[node][series][carrier] = series_data.mean(axis=1)
-            for tec in tecs_flagged_for_clustering[node]:
-                series_data = dm.reshape_df(
-                    self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]],
-                    None, nr_timesteps_averaged)
-                self.technology_data[node][tec].fitted_performance[
-                    tecs_flagged_for_clustering[node][tec]] = series_data.mean(axis=1)
-            self.node_data[node]['production_profile_curtailment'] = node_data[node]['production_profile_curtailment']
-
-

@@ -8,21 +8,20 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 import numpy as np
 
-data = dm.load_object(r'./test/test_data/k_means.p')
-nr_days_cluster = 40
-clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
-
-
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
 #
 # # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
 topology.define_carriers(['electricity'])
 topology.define_nodes(['onshore'])
+topology.define_new_technologies('onshore', ['Photovoltaic', 'WindTurbine_Onshore_1500', 'Storage_Battery'])
 
 configuration = ModelConfiguration()
+
+# configuration.optimization.typicaldays = 10
+configuration.optimization.timestaging = 1
 
 
 # distance = dm.create_empty_network_matrix(topology.nodes)
@@ -38,7 +37,7 @@ configuration = ModelConfiguration()
 data = dm.DataHandle(topology)
 
 # CLIMATE DATA
-from_file = 1
+from_file = 0
 if from_file == 1:
     data.read_climate_data_from_file('onshore', r'.\data\climate_data_onshore.txt')
     # data.read_climate_data_from_file('offshore', r'.\data\climate_data_offshore.txt')
@@ -51,34 +50,8 @@ else:
     # data.read_climate_data_from_api('offshore', lon, lat,save_path='.\data\climate_data_offshore.txt')
 
 # DEMAND
-electricity_demand = np.ones(len(topology.timesteps)) * 10
+electricity_demand = np.ones(len(topology.timesteps)) * 100
 data.read_demand_data('onshore', 'electricity', electricity_demand)
-
-production_prof = np.ones(len(topology.timesteps)) * 11
-
-data.read_production_profile('onshore', 'electricity', production_prof, 1)
-# heat_demand = np.ones(len(topology.timesteps)) * 10
-# data.read_demand_data('onshore', 'heat', heat_demand)
-# co2 = np.ones(len(topology.timesteps)) * 10000/8760
-# data.read_demand_data('onshore', 'CO2', co2)
-
-# IMPORT
-# import_car = np.ones(len(topology.timesteps)) * 500
-# data.read_import_limit_data('onshore', 'heat', import_car)
-# data.read_import_limit_data('onshore', 'gas', import_car)
-# data.read_import_limit_data('onshore', 'hydrogen', import_car)
-# data.read_import_limit_data('onshore', 'CO2', import_car)
-
-# data.read_export_limit_data('onshore', 'electricity', import_car)
-# data.read_export_limit_data('onshore', 'heat', import_car)
-
-# Price
-# h2_price = np.ones(len(topology.timesteps)) * 0.02*1000
-# data.read_import_price_data('onshore', 'hydrogen', h2_price)
-# gas_price = np.ones(len(topology.timesteps)) * 0.05*1000
-# data.read_import_price_data('onshore', 'gas', gas_price)
-# PRINT DATA
-# data.pprint()
 
 # READ TECHNOLOGY AND NETWORK DATA
 data.read_technology_data()
@@ -92,10 +65,10 @@ data.read_network_data()
 # # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()
-energyhub.model.pprint()
+# energyhub.model.pprint()
 # energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()
 results = energyhub.write_results()
-results.write_excel(r'.\userData\GT')
+results.write_excel(r'.\userData\test')
 
 
 # results = energyhub.write_results()

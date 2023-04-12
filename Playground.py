@@ -11,54 +11,12 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 from src.data_management.components.fit_technology_performance import fit_piecewise_function
 from scipy.interpolate import griddata
-import cdsapi
 # from netCDF4 import Dataset
 
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
-
-execute = 1
-
-if execute == 1:
-    data = dm.load_object(r'./test/test_data/time_algorithms.p')
-
-
-    # topology = dm.SystemTopology()
-    # topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
-    # topology.define_carriers(['heat', 'gas'])
-    # topology.define_nodes(['onshore'])
-    # topology.define_new_technologies('onshore', ['Furnace_NG'])
-    #
-    # data = dm.DataHandle(topology)
-    #
-    # #demand and import
-    # heat_demand = np.ones(len(topology.timesteps)) * 10
-    # data.read_demand_data('onshore', 'heat', heat_demand)
-    #
-    # gas_import = np.ones(len(topology.timesteps)) * 15
-    # data.read_import_limit_data('onshore', 'gas', gas_import)
-    #
-    # lat = 52
-    # lon = 5.16
-    # data.read_climate_data_from_api('onshore', lon, lat, save_path='.\data\climate_data_test.txt')
-    #
-    # data.read_technology_data()
-    # data.read_network_data()
-
-
-    # INITIALIZE MODEL CONFIGURATION
-    configuration = ModelConfiguration()
-    configuration.optimization.timestaging = 4
-    # configuration.optimization.typicaldays = 10
-
-    energyhub = EnergyHub(data, configuration)
-    energyhub.construct_model()
-    energyhub.construct_balances()
-
-    # Solve model
-    energyhub.solve_model()
 
 execute = 0
 
