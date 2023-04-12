@@ -70,10 +70,19 @@ def test_k_means_clustering():
     """
     Test the k-means clustering process
     """
-    data = dm.load_object(r'./test/test_data/k_means.p')
+    data = dm.load_object(r'./test/test_data/time_algorithms.p')
     configuration = ModelConfiguration()
     configuration.optimization.typicaldays = 10
 
     energyhub = EnergyHub(data, configuration)
-    energyhub.construct_model()
-    energyhub.construct_balances()
+
+
+def test_timestaging():
+    """
+    Test the time staging process
+    """
+    data = dm.load_object(r'./test/test_data/time_algorithms.p')
+    configuration = ModelConfiguration()
+    configuration.optimization.timestaging = 4
+
+    energyhub = EnergyHub(data, configuration)

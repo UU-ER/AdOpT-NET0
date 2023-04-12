@@ -491,18 +491,17 @@ def create_data_addtechnology():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-def create_data_k_means():
+def create_data_time_algorithms():
     """
-    Creates dataset for a model with two nodes.
-    PV @ node 2
+    Creates dataset for a model with one node.
+    Temporal resolution 31 days.
     electricity demand @ node 1
-    electricity network in between
-    should be infeasible
+    Technologies are PV and storage
     """
-    data_save_path = './test/test_data/k_means.p'
+    data_save_path = './test/test_data/time_algorithms.p'
 
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
     topology.define_new_technologies('test_node1', ['testSTOR', 'Photovoltaic'])
@@ -511,7 +510,9 @@ def create_data_k_means():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    lat = 52
+    lon = 5.16
+    data.read_climate_data_from_api('test_node1', lon, lat)
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 1
@@ -644,18 +645,18 @@ def create_data_existing_networks():
 
 
 
-create_data_test_data_handle()
-create_data_model1()
-create_data_model2()
-create_data_emissionbalance1()
-create_data_emissionbalance2()
-create_data_technology_type1_PV()
-create_data_technology_type1_WT()
-create_data_technology_CONV()
-create_data_network()
-create_data_addtechnology()
-create_data_technologySTOR()
-create_data_k_means()
+# create_data_test_data_handle()
+# create_data_model1()
+# create_data_model2()
+# create_data_emissionbalance1()
+# create_data_emissionbalance2()
+# create_data_technology_type1_PV()
+# create_data_technology_type1_WT()
+# create_data_technology_CONV()
+# create_data_network()
+# create_data_addtechnology()
+# create_data_technologySTOR()
+create_data_time_algorithms()
 create_data_existing_technologies()
 create_data_existing_networks()
 
