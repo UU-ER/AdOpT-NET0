@@ -427,6 +427,8 @@ class ClusteredDataHandle(EnergyHub):
 
         # perform clustering
         nr_days_full_resolution = (max(data.topology.timesteps) -  min(data.topology.timesteps)).days + 1
+        if nr_days_full_resolution < nr_clusters:
+            raise KeyError('Number of days in the full resolution is smaller than the number of clusters.')
         self.cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
 
     def cluster_data(self, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
