@@ -217,3 +217,37 @@ def test_emission_balance2():
     assert cost1 < cost2
     assert emissions1 > emissions2
 
+
+def test_optimization_types():
+    # Cost optimization
+    data = dm.load_object(r'./test/test_data/optimization_types.p')
+    configuration = ModelConfiguration()
+    energyhub = ehub(data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve_model()
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    cost1 = energyhub.model.var_total_cost.value
+    emissions1 = energyhub.model.var_emissions_net.value
+
+    # Emission Optimization
+    energyhub.configuration.optimization.objective = 'emissions_pos'
+    energyhub.solve_model()
+    cost2 = energyhub.model.var_total_cost.value
+    emissions2 = energyhub.model.var_emissions_net.value
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    assert cost1 < cost2
+    assert emissions1 > emissions2
+
+    # Emission & Cost Optimization
+    energyhub.configuration.optimization.objective = 'emissions_minC'
+    energyhub.solve_model()
+    cost3 = energyhub.model.var_total_cost.value
+    emissions3 = energyhub.model.var_emissions_net.value
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    assert cost3 <= cost2
+    assert emissions3 <= emissions2
+
