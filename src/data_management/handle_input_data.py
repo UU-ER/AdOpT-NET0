@@ -299,26 +299,6 @@ class DataHandle:
         """
         dm.save_object(self, path)
 
-    def flag_tecs_for_clustering(self):
-        """
-        Creates a dictonary with flags for RES technologies
-
-        These technologies contain time-dependent input data, i.e. capacity factors.
-        :return dict tecs_flagged_for_clustering: flags for technologies and nodes
-
-        """
-        tecs_flagged_for_clustering = {}
-        for node in self.topology.nodes:
-            tecs_flagged_for_clustering[node] = {}
-            for technology in self.technology_data[node]:
-                if self.technology_data[node][technology].technology_model == 'RES':
-                    tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
-                elif self.technology_data[node][technology].technology_model == 'STOR':
-                    tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
-        return tecs_flagged_for_clustering
-
-
-
 def reshape_df(series_to_add, column_names, nr_cols):
     """
     Transform all data to large dataframe with each row being one day

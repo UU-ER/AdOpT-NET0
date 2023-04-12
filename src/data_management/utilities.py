@@ -94,3 +94,20 @@ def get_day_factors(keys):
     factors.columns = ['timestep', 'factor']
     return factors
 
+def flag_tecs_for_clustering(data):
+    """
+    Creates a dictonary with flags for RES technologies
+
+    These technologies contain time-dependent input data, i.e. capacity factors.
+    :return dict tecs_flagged_for_clustering: flags for technologies and nodes
+
+    """
+    tecs_flagged_for_clustering = {}
+    for node in data.topology.nodes:
+        tecs_flagged_for_clustering[node] = {}
+        for technology in data.technology_data[node]:
+            if data.technology_data[node][technology].technology_model == 'RES':
+                tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
+            elif data.technology_data[node][technology].technology_model == 'STOR':
+                tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
+    return tecs_flagged_for_clustering

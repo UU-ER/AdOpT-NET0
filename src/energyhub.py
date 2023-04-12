@@ -58,10 +58,12 @@ class EnergyHub:
         if self.configuration.optimization.typicaldays:
             self.data = ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
         if self.configuration.optimization.timestaging:
-            numberofstages = self.configuration.optimization.timestaging
+            nr_timesteps_averaged = self.configuration.optimization.timestaging
             self.configuration.optimization.timestaging = 0
-            self = EnergyHubTwoStageTimeAverage(data, configuration, numberofstages)
-            self.configuration.optimization.timestaging = numberofstages
+            self.full_res_ehub = EnergyHub(data, configuration)
+            data_averaged = DataHandle_AveragedData(data, nr_timesteps_averaged)
+            EnergyHub.__init__(self, data_averaged, configuration)
+            global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
         # SET GLOBAL VARIABLES
         global_variables.clustered_data = 0
@@ -70,7 +72,7 @@ class EnergyHub:
             # Clustered Data
             global_variables.clustered_data = 1
             global_variables.clustered_data_specs.specs = self.data.k_means_specs
-        if hasattr(self.data, 'averaged_specs'):
+        if hasattr(self, 'full_res_ehub') and hasattr(self.data, 'averaged_specs'):
             # Averaged Data
             global_variables.averaged_data = 1
             global_variables.averaged_data_specs.specs = self.data.averaged_specs
@@ -421,7 +423,7 @@ class ClusteredDataHandle(EnergyHub):
         self.k_means_specs = dm.simplification_specs(data.topology.timesteps)
 
         # flag tecs that contain time-dependent data
-        self.tecs_flagged_for_clustering = dm.DataHandle.flag_tecs_for_clustering(data)
+        self.tecs_flagged_for_clustering = dm.flag_tecs_for_clustering(self)
 
         # perform clustering
         nr_days_full_resolution = (max(data.topology.timesteps) -  min(data.topology.timesteps)).days + 1
@@ -472,9 +474,6 @@ class ClusteredDataHandle(EnergyHub):
         node_data = self.node_data_full_resolution
         for node in node_data:
             self.node_data[node] = {}
-            self.node_data[node]['production_profile_curtailment'] = {}
-            for car in node_data[node]['production_profile_curtailment']:
-                self.node_data[node]['production_profile_curtailment'][car] = node_data[node]['production_profile_curtailment'][car]
             for series in node_data[node]:
                 if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     self.node_data[node][series] = pd.DataFrame()
@@ -487,6 +486,7 @@ class ClusteredDataHandle(EnergyHub):
                 series_data = series_data.to_numpy()
                 self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]] = \
                     series_data
+            self.node_data[node]['production_profile_curtailment'] = node_data[node]['production_profile_curtailment']
 
 
     def compile_full_resolution_matrix(self, nr_time_intervals_per_day, tecs_flagged_for_clustering):
@@ -545,7 +545,7 @@ class DataHandle_AveragedData(EnergyHub):
             self.k_means_specs = data.k_means_specs
 
         # flag tecs that contain time-dependent data
-        self.tecs_flagged_for_clustering = dm.DataHandle.flag_tecs_for_clustering(data)
+        self.tecs_flagged_for_clustering = dm.flag_tecs_for_clustering(self)
 
         # averaging specs
         self.averaged_specs = dm.simplification_specs(data.topology.timesteps)
@@ -593,3 +593,6 @@ class DataHandle_AveragedData(EnergyHub):
                     None, nr_timesteps_averaged)
                 self.technology_data[node][tec].fitted_performance[
                     tecs_flagged_for_clustering[node][tec]] = series_data.mean(axis=1)
+            self.node_data[node]['production_profile_curtailment'] = node_data[node]['production_profile_curtailment']
+
+
