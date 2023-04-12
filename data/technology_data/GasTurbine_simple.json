@@ -17,7 +17,8 @@
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 1,
     "input_carrier": [
-      "gas"
+      "gas",
+      "hydrogen"
     ],
     "main_input_carrier": "gas",
     "output_carrier": [
@@ -34,6 +35,9 @@
           0,
           0.5
         ]
+    },
+    "max_input": {
+      "hydrogen": 0.05
     }
   },
   "tec_type": "CONV1"
