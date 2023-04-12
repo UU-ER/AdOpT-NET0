@@ -86,6 +86,12 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
 
     **Constraint declarations:**
 
+    - It is possible to limit the maximum input of a carrier. This needs to be specified in the technology JSON files.
+      Then it holds:
+
+      .. math::
+        Input_{t, car} <= max_in_{car} * \sum(Input_{t, car})
+
     - ``performance_function_type == 1``: Linear through origin, i.e.:
 
       .. math::
@@ -244,6 +250,14 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
                <= b_tec.var_size * rated_power
     b_tec.const_size = Constraint(model.set_t, rule=init_size_constraint)
 
+    # Maximum input of carriers
+    if 'max_input' in performance_data:
+        b_tec.set_max_input_carriers = Set(initialize=performance_data['max_input'].keys())
+        def init_max_input(const, t, car):
+            return b_tec.var_input[t, car] <= performance_data['max_input'][car] * \
+                sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers)
+        b_tec.const_max_input = Constraint(model.set_t, b_tec.set_max_input_carriers, rule=init_max_input)
+
     return b_tec
 
 def constraints_tec_CONV2(model, b_tec, tec_data):
@@ -256,6 +270,12 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
     functions are fitted in ``src.model_construction.technology_performance_fitting``.
 
     **Constraint declarations:**
+
+    - It is possible to limit the maximum input of a carrier. This needs to be specified in the technology JSON files.
+      Then it holds:
+
+      .. math::
+        Input_{t, car} <= max_in_{car} * \sum(Input_{t, car})
 
     - ``performance_function_type == 1``: Linear through origin, i.e.:
 
@@ -419,6 +439,14 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
         return sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers) \
                <= b_tec.var_size * rated_power
     b_tec.const_size = Constraint(model.set_t, rule=init_size_constraint)
+
+    # Maximum input of carriers
+    if 'max_input' in performance_data:
+        b_tec.set_max_input_carriers = Set(initialize=performance_data['max_input'].keys())
+        def init_max_input(const, t, car):
+            return b_tec.var_input[t, car] <= performance_data['max_input'][car] * \
+                sum(b_tec.var_input[t, car_input] for car_input in b_tec.set_input_carriers)
+        b_tec.const_max_input = Constraint(model.set_t, b_tec.set_max_input_carriers, rule=init_max_input)
 
     return b_tec
 
