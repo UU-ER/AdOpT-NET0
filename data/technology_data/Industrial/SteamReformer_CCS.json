@@ -68,7 +68,7 @@
     "output_carrier": {
       "hydrogen": "MW",
       "electricity": "MW",
-      "CO2": "MW"
+      "CO2": "tonne/hr"
     }
   },
   "tec_type": "CONV2"
