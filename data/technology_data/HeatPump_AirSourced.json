@@ -42,5 +42,14 @@
     "application": "radiator_heating",
     "T_out": 39
   },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "electricity": "MW"
+    },
+    "output_carrier": {
+      "heat": "MW"
+    }
+  },
   "tec_type": "HeatPump_AirSourced"
 }

@@ -34,5 +34,15 @@
       "eta_elth": 0.97
     }
   },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "electricity": "MW",
+      "heat": "MW"
+    },
+    "output_carrier": {
+      "CO2": "tonne/hr"
+    }
+  },
   "tec_type": "DAC_Adsorption"
 }

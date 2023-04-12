@@ -67,5 +67,16 @@
       "gas": 1,
       "hydrogen": 2
     }
+  },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "gas": "MW",
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "heat": "MW",
+      "electricity": "MW"
+    }
   }
 }

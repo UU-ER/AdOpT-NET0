@@ -37,5 +37,14 @@
       "discharge_max": 1
     }
   },
+  "Units": {
+    "size": "MWh",
+    "input_carrier": {
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "hydrogen": "MW"
+    }
+  },
   "tec_type": "STOR"
 }

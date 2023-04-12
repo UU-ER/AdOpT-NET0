@@ -47,5 +47,14 @@
       "discharge_max": 0.2
     }
   },
+  "Units": {
+    "size": "MWh",
+    "input_carrier": {
+      "heat": "MW"
+    },
+    "output_carrier": {
+      "heat": "MW"
+    }
+  },
   "tec_type": "STOR"
 }

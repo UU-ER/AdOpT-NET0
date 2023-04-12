@@ -37,5 +37,14 @@
       "charge_max": 1,
       "discharge_max": 1
     }
+  },
+  "Units": {
+    "size": "MWh",
+    "input_carrier": {
+      "electricity": "MW"
+    },
+    "output_carrier": {
+      "electricity": "MW"
+    }
   }
 }

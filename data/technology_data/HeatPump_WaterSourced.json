@@ -45,5 +45,14 @@
       "T_in": 10
     }
   },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "electricity": "MW"
+    },
+    "output_carrier": {
+      "heat": "MW"
+    }
+  },
   "tec_type": "HeatPump_WaterSourced"
 }

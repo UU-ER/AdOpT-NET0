@@ -50,5 +50,14 @@
       }
     }
   },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "heat": "MW"
+    }
+  },
   "tec_type": "CONV2"
 }

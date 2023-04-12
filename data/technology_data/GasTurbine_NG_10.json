@@ -42,5 +42,16 @@
     "epsilon": 0.871207034372502,
     "emission_factor": 0.185
   },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "gas": "MW",
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "electricity": "MW",
+      "heat": "MW"
+    }
+  },
   "tec_type": "GasTurbine_NG_10"
 }

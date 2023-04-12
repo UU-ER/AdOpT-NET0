@@ -170,10 +170,9 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
             b_tec.set_input_carriers = Set(initialize=[])
         else:
             b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
-            def init_input_bounds(bounds, t, car):
+        def init_input_bounds(bounds, t, car):
                 return tuple(fitted_performance['input_bounds'][car][t-1,:] * size_max)
-            b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals,
-                                  bounds=init_input_bounds, units=u.MW)
+        b_tec.var_input = Var(model.set_t, b_tec.set_input_carriers, within=NonNegativeReals, bounds=init_input_bounds, units=u.MW)
 
         # OUTPUT
         b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])

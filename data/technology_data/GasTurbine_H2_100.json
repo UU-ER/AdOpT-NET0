@@ -40,5 +40,15 @@
     "epsilon": 0.95511511511511515,
     "emission_factor": 0.185
   },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "electricity": "MW",
+      "heat": "MW"
+    }
+  },
   "tec_type": "GasTurbine_H2_100"
 }

@@ -37,5 +37,14 @@
       "discharge_max": 1
     }
   },
+  "Units": {
+    "size": "MWh",
+    "input_carrier": {
+      "gas": "MW"
+    },
+    "output_carrier": {
+      "gas": "MW"
+    }
+  },
   "tec_type": "STOR"
 }

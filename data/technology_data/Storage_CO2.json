@@ -37,5 +37,14 @@
       "discharge_max": 1
     }
   },
+  "Units": {
+    "size": "tonne",
+    "input_carrier": {
+      "CO2": "tonne/hr"
+    },
+    "output_carrier": {
+      "CO2": "tonne/hr"
+    }
+  },
   "tec_type": "STOR"
 }

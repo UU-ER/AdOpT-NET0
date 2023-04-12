@@ -21,5 +21,11 @@
     "curtailment": 1,
     "emission_factor": 0
   },
+  "Units": {
+    "size": "MW",
+    "output_carrier": {
+      "heat": "MW"
+    }
+  },
   "tec_type": "RES"
 }

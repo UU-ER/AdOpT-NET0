@@ -55,5 +55,15 @@
       }
     }
   },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "gas": "MW"
+    },
+    "output_carrier": {
+      "hydrogen": "MW",
+      "electricity": "MW"
+    }
+  },
   "tec_type": "CONV2"
 }
