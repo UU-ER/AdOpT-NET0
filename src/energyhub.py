@@ -52,25 +52,21 @@ class EnergyHub:
 
         # READ IN DATA
         if not self.configuration.optimization.typicaldays == 0:
-            print('Clustering Data...')
-            self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
+            # Clustered Data (typical days)
             global_variables.clustered_data = 1
-            global_variables.clustered_data_specs.specs = self.data.k_means_specs
-            print('Clustering Data completed')
+            self.__cluster_data(data)
         else:
+            # Full Resolution
             global_variables.clustered_data = 0
             self.data = data
 
         if self.configuration.optimization.timestaging:
-            print('Averaging Data...')
-            self.data_full_res = self.data
-            self.data = dm.DataHandle_AveragedData(self.data_full_res, self.configuration.optimization.timestaging)
+            # Time Averaging Algorithm
             global_variables.averaged_data = 1
-            global_variables.averaged_data_specs.specs = self.data.averaged_specs
-            self.model_first_stage = []
-            self.solution_first_stage = []
-            print('Averaging Data completed')
+            self.__average_data()
 
+        if self.configuration.optimization.objective == 'pareto':
+            self.pareto_results = []
 
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -144,7 +140,6 @@ class EnergyHub:
         start = time.time()
 
         self.model = mc.add_energybalance(self)
-
         self.model = mc.add_emissionbalance(self)
         self.model = mc.add_system_costs(self)
 
@@ -159,59 +154,23 @@ class EnergyHub:
         ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
         ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
-        # This is a dirty fix as objectives cannot be found with find_component
-        try:
-            self.model.del_component(self.model.objective)
-        except:
-            pass
-
         objective = self.configuration.optimization.objective
 
         # Define Objective Function
         if objective == 'costs':
-            def init_cost_objective(obj):
-                return self.model.var_total_cost
-            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-            self.__optimize()
+            self.__minimize_cost()
         elif objective == 'emissions_pos':
-            def init_emission_pos_objective(obj):
-                return self.model.var_emissions_pos
-            self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
-            self.__optimize()
+            self.__minimize_emissions_pos()
         elif objective == 'emissions_net':
-            def init_emission_net_objective(obj):
-                return self.model.var_emissions_net
-            self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
-            self.__optimize()
+            self.__minimize_emissions_net()
         elif objective == 'emissions_minC':
-            def init_emission_minC_objective(obj):
-                return self.model.var_emissions_pos
-            self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
-            self.__optimize()
-            emission_limit = self.model.var_emissions_pos.value
-            self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
-            self.model.del_component(self.model.objective)
-            def init_cost_objective(obj):
-                return self.model.var_total_cost
-            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-            self.__optimize()
+            self.__minimize_emissions_minC()
         elif objective == 'pareto':
-            print('to be implemented')
+            self.__minimize_pareto()
 
+        # Second stage of time averaging algorithm
         if self.configuration.optimization.timestaging and not global_variables.averaged_data_specs.last_stage:
-            global_variables.averaged_data = 0
-            global_variables.averaged_data_specs.last_stage = 1
-            bounds_on = 'all'
-            self.model_first_stage = self.model
-            self.solution_first_stage = copy.deepcopy(self.solution)
-            self.model = ConcreteModel()
-            self.solution = []
-            self.data = self.data_full_res
-            self.construct_model()
-            self.construct_balances()
-            self.__impose_size_constraints(bounds_on)
-            self.solve_model()
-
+            self.__minimize_time_averaging_second_stage()
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -240,37 +199,6 @@ class EnergyHub:
         with open(file_path + '/' + file_name, mode='wb') as file:
             pickle.dump(self, file)
 
-    def print_topology(self):
-        print('----- SET OF CARRIERS -----')
-        for car in self.model.set_carriers:
-            print('- ' + car)
-        print('----- NODE DATA -----')
-        for node in self.model.set_nodes:
-            print('\t -----------------------------------------------------')
-            print('\t nodename: '+ node)
-            print('\t\ttechnologies installed:')
-            for tec in self.model.set_technologies[node]:
-                print('\t\t - ' + tec)
-            print('\t\taverage demand:')
-            for car in self.model.set_carriers:
-                avg = round(self.data.demand[node][car].mean(), 2)
-                print('\t\t - ' + car + ': ' + str(avg))
-            print('\t\taverage of climate data:')
-            for ser in self.data.climate_data[node]['dataframe']:
-                avg = round(self.data.climate_data[node]['dataframe'][ser].mean(),2)
-                print('\t\t - ' + ser + ': ' + str(avg))
-        print('----- NETWORK DATA -----')
-        for car in self.data.topology['networks']:
-            print('\t -----------------------------------------------------')
-            print('\t carrier: '+ car)
-            for netw in self.data.topology['networks'][car]:
-                print('\t\t - ' + netw)
-                connection = self.data.topology['networks'][car][netw]['connection']
-                for from_node in connection:
-                    for to_node in connection[from_node].index:
-                        if connection.at[from_node, to_node] == 1:
-                            print('\t\t\t' + from_node  + '---' +  to_node)
-
     def write_results(self):
         """
         Exports results to an instance of ResultsHandle to be further exported or viewed
@@ -296,6 +224,28 @@ class EnergyHub:
             occurrence_hour = np.ones(len(self.model.set_t))
         return occurrence_hour
 
+    def __cluster_data(self, data):
+        """
+        Clusters the data according to a k-means algorithm
+        :param data DataHandle: instance of the DataHandle class
+        """
+        print('Clustering Data...')
+        self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
+        global_variables.clustered_data_specs.specs = self.data.k_means_specs
+        print('Clustering Data completed')
+
+    def __average_data(self):
+        """
+        Averages the data for a two-stage time average algorithm
+        """
+        print('Averaging Data...')
+        self.data_full_res = self.data
+        self.data = dm.DataHandle_AveragedData(self.data_full_res, self.configuration.optimization.timestaging)
+        global_variables.averaged_data_specs.specs = self.data.averaged_specs
+        self.model_first_stage = []
+        self.solution_first_stage = []
+        print('Averaging Data completed')
+
     def __optimize(self):
         """
         Solves the model
@@ -316,6 +266,99 @@ class EnergyHub:
 
         print('Solving model completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
+
+
+    def __minimize_cost(self):
+        """
+        Minimizes Costs
+        """
+        self.__delete_objective()
+
+        def init_cost_objective(obj):
+            return self.model.var_total_cost
+        self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+        self.__optimize()
+
+    def __minimize_emissions_pos(self):
+        """
+        Minimizes positive emission
+        """
+        self.__delete_objective()
+
+        def init_emission_pos_objective(obj):
+            return self.model.var_emissions_pos
+        self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+        self.__optimize()
+
+    def __minimize_emissions_net(self):
+        """
+        Minimize net emissions
+        """
+        self.__delete_objective()
+
+        def init_emission_net_objective(obj):
+            return self.model.var_emissions_net
+        self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+        self.__optimize()
+
+    def __minimize_emissions_minC(self):
+        """
+        Minimize costs at minimum emissions
+        """
+        self.__minimize_emissions_net()
+        emission_limit = self.model.var_emissions_net.value
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.0001)
+        self.__minimize_cost()
+
+    def __minimize_pareto(self):
+        """
+        Optimize the pareto front
+        """
+        # Min Cost
+        pareto_points = self.configuration.optimization.pareto_points
+        self.pareto_results = [None] * pareto_points
+        self.__minimize_cost()
+        self.pareto_results[pareto_points - 1] = self.write_results()
+        emissions_max = self.model.var_emissions_net.value
+        # Min Emissions
+        self.__minimize_emissions_minC()
+        emissions_min = self.model.var_emissions_net.value
+        self.pareto_results[0] = self.write_results()
+        # Emission limit
+        emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
+        for pareto_point in range(1, pareto_points - 1):
+            self.model.del_component(self.model.const_emission_limit)
+            self.model.const_emission_limit = Constraint(
+                expr=self.model.var_emissions_net <= emission_limits[pareto_point])
+            self.__minimize_cost()
+            self.pareto_results[pareto_point] = self.write_results()
+
+
+    def __delete_objective(self):
+        """
+        Delete the objective function
+        """
+        try:
+            self.model.del_component(self.model.objective)
+        except:
+            pass
+
+    def __minimize_time_averaging_second_stage(self):
+        """
+        Optimizes the second stage of the time_averaging algorithm
+        """
+        global_variables.averaged_data = 0
+        global_variables.averaged_data_specs.last_stage = 1
+        bounds_on = 'all'
+        self.model_first_stage = self.model
+        self.solution_first_stage = copy.deepcopy(self.solution)
+        self.model = ConcreteModel()
+        self.solution = []
+        self.data = self.data_full_res
+        self.construct_model()
+        self.construct_balances()
+        self.__impose_size_constraints(bounds_on)
+        self.solve_model()
 
     def __impose_size_constraints(self, bounds_on):
         """

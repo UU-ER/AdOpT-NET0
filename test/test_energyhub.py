@@ -251,6 +251,10 @@ def test_optimization_types():
     assert cost3 <= cost2
     assert emissions3 <= emissions2
 
+    # Pareto Optimization
+    energyhub.configuration.optimization.objective = 'pareto'
+    energyhub.solve_model()
+
 
 def test_k_means():
     data = dm.load_object(r'./test/test_data/time_algorithms.p')

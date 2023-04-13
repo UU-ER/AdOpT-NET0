@@ -18,6 +18,50 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
+# Load data handle from file
+topology = dm.SystemTopology()
+topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
+
+topology.define_carriers(['electricity'])
+topology.define_nodes(['test_node1'])
+topology.define_new_technologies('test_node1', ['WindTurbine_Onshore_1500'])
+
+# INITIALIZE MODEL CONFIGURATION
+configuration = ModelConfiguration()
+
+# Initialize instance of DataHandle
+data = dm.DataHandle(topology)
+
+# CLIMATE DATA
+data.read_climate_data_from_file('test_node1', r'.\data\climate_data_onshore.txt')
+
+distance = dm.create_empty_network_matrix(topology.nodes)
+distance.at['onshore', 'offshore'] = 100
+distance.at['offshore', 'onshore'] = 100
+
+connection = dm.create_empty_network_matrix(topology.nodes)
+connection.at['onshore', 'offshore'] = 1
+connection.at['offshore', 'onshore'] = 1
+topology.define_new_network('electricitySimple', distance=distance, connections=connection)
+
+# DEMAND
+electricity_demand = np.ones(len(topology.timesteps)) * 10
+data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+# IMPORT
+electricity_import = np.ones(len(topology.timesteps)) * 10
+data.read_import_limit_data('test_node1', 'electricity', electricity_import)
+
+# IMPORT Prices
+electricity_price = np.ones(len(topology.timesteps)) * 1000
+data.read_import_price_data('test_node1', 'electricity', electricity_price)
+
+# READ TECHNOLOGY AND NETWORK DATA
+data.read_technology_data()
+data.read_network_data()
+
+data.pprint()
+
 execute = 0
 
 # region: how to k-means cluster
@@ -447,89 +491,3 @@ if execute == 1:
         diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 #endregion
-
-execute = 1
-#region How to make an API request for ERA5
-if execute == 1:
-    lon = 8
-    lat = 45
-    year = 2021
-
-    area = [lat + 0.1, lon - 0.1, lat - 0.1, lon + 0.1]
-    #
-    cds_client = cdsapi.Client()
-    #
-    # print('Retrieving ERA5 data, this might take a while!')
-    data = cds_client.retrieve(
-        'reanalysis-era5-single-levels',
-        {
-            'product_type': 'reanalysis',
-            'format': 'grib',
-            'variable': [
-                "100u",  # 100m_u-component_of_wind
-                "100v",  # 100m_v-component_of_wind
-                "fsr",  # forecast_surface_roughness
-                "sp",  # surface_pressure
-                "fdir",  # total_sky_direct_solar_radiation_at_surface
-                "ssrd",  # surface_solar_radiation_downwards
-                "2t",  # 2m_temperature
-                "2d", # 2m_dewpoint_temperature
-                "10u",  # 10m_u-component_of_wind
-                "10v",  # 10m_v-component_of_wind
-            ],
-            'year': year,
-            'month': [
-                '01'
-            ],
-            'day': [
-                '01', '02', '03',
-                '04', '05', '06',
-                '07', '08', '09',
-                '10', '11', '12',
-                '13', '14', '15',
-                '16', '17', '18',
-                '19', '20', '21',
-                '22', '23', '24',
-                '25', '26', '27',
-                '28', '29', '30',
-                '31',
-            ],
-            'time': [
-                '00:00', '01:00', '02:00',
-                '03:00', '04:00', '05:00',
-                '06:00', '07:00', '08:00',
-                '09:00', '10:00', '11:00',
-                '12:00', '13:00', '14:00',
-                '15:00', '16:00', '17:00',
-                '18:00', '19:00', '20:00',
-                '21:00', '22:00', '23:00',
-            ],
-            'area': area,
-        },
-        'download.grib')
-
-    data.download("C:/Users/6574114/Documents/Research/EHUB-Py/output2.nc")
-    filepath = "C:/Users/6574114/Documents/Research/EHUB-Py/output2.nc"
-    rootgrp = Dataset("test.nc", "w", format="NETCDF4")
-    print(rootgrp.data_model)
-    #
-    # climate_data = data['outputs']['tmy_hourly']
-    # temperature2m = dict()
-    # relative_humidity = dict()
-    # global_horizontal_irr = dict()
-    # direct_normal_irr = dict()
-    # diffuse_horizontal_irr = dict()
-    # wind_speed10m = dict()
-    #
-    # for t_interval in climate_data:
-    #     print(t_interval)
-    #     temperature2m[t_interval['time(UTC)']] = t_interval['T2m']
-    #     relative_humidity[t_interval['time(UTC)']] = t_interval['RH']
-    #     global_horizontal_irr[t_interval['time(UTC)']] = t_interval['G(h)']
-    #     direct_normal_irr[t_interval['time(UTC)']] = t_interval['Gb(n)']
-    #     diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
-    #     wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
-
-
-
-

@@ -278,17 +278,50 @@ class DataHandle:
 
         :return: None
         """
-        for node in self.topology.nodes:
-            print('----- NODE '+ node +' -----')
-            for inst in self.node_data[node]:
-                if not inst == 'climate_data':
-                    print('\t ' + inst)
-                    print('\t\t' + f"{'':<15}{'Mean':>10}{'Min':>10}{'Max':>10}")
-                    for carrier in self.topology.carriers:
-                        print('\t\t' + f"{carrier:<15}"
-                                       f"{str(round(self.node_data[node][inst][carrier].mean(), 2)):>10}"
-                                       f"{str(round(self.node_data[node][inst][carrier].min(), 2)):>10}"
-                                       f"{str(round(self.node_data[node][inst][carrier].max(), 2)):>10}")
+
+        print('----- SET OF CARRIERS -----')
+        for car in self.topology.carriers:
+            print('- ' + car)
+        print('----- NODE DATA -----')
+        for node in self.node_data:
+            print('\t -----------------------------------------------------')
+            print('\t Nodename: '+ node)
+            print('\t\tNew technologies:')
+            for tec in self.topology.technologies_new[node]:
+                print('\t\t - ' + tec)
+            print('\t\tExisting technologies:')
+            for tec in self.topology.technologies_existing[node]:
+                print('\t\t - ' + tec)
+
+            variables = ['demand',
+                         'production_profile',
+                         'import_prices',
+                         'import_limit',
+                         'import_emissionfactors',
+                         'export_prices',
+                         'export_limit',
+                         'export_emissionfactors']
+
+            print('\t\tOther Node data:')
+            for var in variables:
+                print('\t\t\tAverage of ' + var + ':')
+                for car in self.topology.carriers:
+                    avg = round(self.node_data[node][var][car].mean(), 2)
+                    print('\t\t\t - ' + car + ': ' + str(avg))
+            print('\t\t\tAverage of climate data:')
+            for ser in self.node_data[node]['climate_data']['dataframe']:
+                avg = round(self.node_data[node]['climate_data']['dataframe'][ser].mean(),2)
+                print('\t\t\t - ' + ser + ': ' + str(avg))
+        print('----- NETWORK DATA -----')
+        for netw in self.topology.networks_new:
+            print('\t -----------------------------------------------------')
+            print('\t'+ netw)
+            connection = self.topology.networks_new[netw]['connection']
+            for from_node in connection:
+                for to_node in connection[from_node].index:
+                    if connection.at[from_node, to_node] == 1:
+                        print('\t\t\t' + from_node  + ' - ' +  to_node)
+
 
     def save(self, path):
         """

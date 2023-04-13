@@ -122,7 +122,7 @@ class ModelConfiguration:
         # self.optimization.montecarlo = SimpleNamespace()
         # self.optimization.montecarlo.range = 0.2
         # self.optimization.montecarlo.N = 100
-        # self.optimization.pareto.N = 5
+        self.optimization.pareto_points = 5
         self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0
         self.optimization.typicaldays = 0

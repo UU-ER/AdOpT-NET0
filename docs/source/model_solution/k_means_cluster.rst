@@ -15,15 +15,13 @@ an instance of the :func:`.ClusteredDataHandle` class and pass it to the :func:`
 
     import src.data_management as dm
 
-    # Perform Clustering
-    typical_days = 10
-    data_clustered = dm.ClusteredDataHandle(data, typical_days)
+    # Define topology and data (not shown here)
+
+    # Set configuration (cluster into 40 typical days)
+    configuration = ModelConfiguration()
+    configuration.optimization.typicaldays = 40
+
 
     # Construct Model and solve
-    ehub = EnergyHub(data_clustered)
+    energyhub = EnergyHub(data, configuration)
     ehub.quick_solve_model()
-
-
-ClusteredDataHandle Class
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: src.data_management.handle_input_data.ClusteredDataHandle
