@@ -529,7 +529,7 @@ def create_data_optimization_types():
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
-    topology.define_carriers(['electricity', 'gas'])
+    topology.define_carriers(['electricity', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1'])
     topology.define_new_technologies('test_node1', ['Photovoltaic', 'GasTurbine_simple'])
 
