@@ -4,7 +4,8 @@ from types import SimpleNamespace
 class ModelConfiguration:
     """
     Class to specify all global modeling settings (e.g. objective, high-level algorithms, energy balance violation, \
-     costs and performances) and solver configurations.
+     costs and performances) and solver configurations. The time staging algorithm is further described \
+     :ref:`here <time_averaging>` and the clustering algorithm is further described :ref:`here <clustering>`.
 
     List of optimization settings that can be specified:
 
@@ -90,8 +91,6 @@ class ModelConfiguration:
     +----------------------+--------------------------------------------------------+-------------+---------+
     | Name                 | Definition                                             | Options     | Default |
     +----------------------+--------------------------------------------------------+-------------+---------+
-    | globalconversiontype | Determines if and which global conversion type is used | {0,1,2,3}   | 0       |
-    +----------------------+--------------------------------------------------------+-------------+---------+
     | dynamics             | Determines if dynamics are used                        | {0,1}       | 0       |
     +----------------------+--------------------------------------------------------+-------------+---------+
     """
@@ -136,7 +135,6 @@ class ModelConfiguration:
         self.economic.global_simple_capex_model = 0
 
         self.performance = SimpleNamespace()
-        self.performance.globalconversiontype = 0
         # self.performance.dynamics = 0
 
     def define_montecarlo(self, range, N):

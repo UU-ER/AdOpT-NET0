@@ -1,3 +1,5 @@
+.. _time_averaging:
+
 Two-stage time averaging algorithm
 =====================================
 This algorithm solves the model in two stages. In the first stage, input data is averaged over multiple hours and the

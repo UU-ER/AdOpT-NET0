@@ -254,11 +254,6 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
                     return b_tec.var_tec_emissions_neg[t] == 0
             b_tec.const_tec_emissions_neg = Constraint(model.set_t, rule=init_tec_emissions_neg)
 
-        # CHECK FOR GLOBAL PERFORMANCE
-        if technology_model in {'CONV1', 'CONV2', 'CONV3'}:
-            if configuration.performance.globalconversiontype:
-                tec_data.performance_data['performance_function_type'] = configuration.performance.globalconversiontype
-
         # GENERIC TECHNOLOGY CONSTRAINTS
         if technology_model == 'RES': # Renewable technology with cap_factor as input
             b_tec = constraints_tec_RES(model, b_tec, tec_data)
