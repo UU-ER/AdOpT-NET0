@@ -23,10 +23,12 @@ class ModelConfiguration:
     | pareto.N         | Number of Pareto points                      |                                             | 5       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | timestaging      | Defines number of daily intervals (0 = off)  |                                             | 0       |
+    |                  | :ref:`check here <time_averaging>`           |                                             |         |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | techstaging      | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | typicaldays      | Determines number of typical days (0 = off)  |                                             | 0       |
+    |                  | :ref:`check here <clustering>`               |                                             |         |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
 
     List of solver settings that can be specified (see also https://www.gurobi.com/documentation/9.5/refman/parameter_descriptions.html):
