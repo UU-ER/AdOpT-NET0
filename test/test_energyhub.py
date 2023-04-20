@@ -284,7 +284,3 @@ def test_k_means():
 
     assert abs(cost1 - cost2) / cost1 <= 0.1
     assert abs(cost1 - cost3) / cost1 <= 0.1
-
-
-
-

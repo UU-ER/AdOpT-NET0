@@ -210,6 +210,7 @@ def define_opex_parameters(b_netw, netw_data, set_t):
     """
     economics = netw_data.economics
     existing = netw_data.existing
+    size_is_int = netw_data.size_is_int
 
     b_netw.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
                                       units=u.EUR / u.MWh)
@@ -219,6 +220,10 @@ def define_opex_parameters(b_netw, netw_data, set_t):
     b_netw.var_OPEX_variable = Var(set_t, units=u.EUR)
     b_netw.var_OPEX_fixed = Var(units=u.EUR)
     if existing:
+        if size_is_int:
+            unit_size = u.dimensionless
+        else:
+            unit_size = u.MW
         b_netw.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost,
                                                  units=u.EUR / unit_size)
 
@@ -296,6 +301,7 @@ def define_size_arc(b_arc, b_netw, netw_data, node_from, node_to):
     existing = netw_data.existing
     decommission = netw_data.decommission
     size_is_int = netw_data.size_is_int
+
 
     if size_is_int:
         size_domain = NonNegativeIntegers
@@ -556,7 +562,7 @@ def define_emission_constraints(b_netw, set_t):
     b_netw.const_netw_emissions = Constraint(set_t, rule=init_netw_emissions)
     return b_netw
 
-def define_energyconsumption_total(b_netw, set_t):
+def define_energyconsumption_total(b_netw, energyhub, set_t):
     """
     Defines network consumption at each node
     """
@@ -814,7 +820,7 @@ def add_networks(energyhub):
 
         # ENERGYCONSUMPTION AT NODES
         if energy_consumption:
-            b_netw = define_energyconsumption_total(b_netw, set_t)
+            b_netw = define_energyconsumption_total(b_netw, energyhub, set_t)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_netw)

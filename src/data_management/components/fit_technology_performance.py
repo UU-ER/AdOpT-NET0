@@ -472,25 +472,25 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
     fitting['output_bounds'] = {}
 
     if performance_function_type == 1:
-        fitting['out']['alpha1'] = alpha1.round(5)
+        fitting['alpha1'] = alpha1.round(5)
         for c in tec_data['output_carrier']:
             fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps)) * fitting['out']['alpha1']))
+                                                       np.ones(shape=(time_steps)) * fitting['alpha1']))
     elif performance_function_type == 2:  # Linear performance function
-        fitting['out']['alpha1'] = alpha1.round(5)
-        fitting['out']['alpha2'] = alpha2.round(5)
+        fitting['alpha1'] = alpha1.round(5)
+        fitting['alpha2'] = alpha2.round(5)
         for c in tec_data['output_carrier']:
             fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps))*fitting['out']['alpha1'] + \
-                                                       fitting['out']['alpha2']))
+                                                       np.ones(shape=(time_steps))*fitting['alpha1'] + \
+                                                       fitting['alpha2']))
     elif performance_function_type == 3:  # Piecewise performance function
-        fitting['out']['alpha1'] = alpha1.round(5)
-        fitting['out']['alpha2'] = alpha2.round(5)
+        fitting['alpha1'] = alpha1.round(5)
+        fitting['alpha2'] = alpha2.round(5)
         fitting['bp_x'] = bp_x.round(5)
         for c in tec_data['output_carrier']:
             fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       fitting['out']['alpha1'][:,-1] + \
-                                                       fitting['out']['alpha2'][:,-1]))
+                                                       fitting['alpha1'][:,-1] + \
+                                                       fitting['alpha2'][:,-1]))
 
     return fitting
 

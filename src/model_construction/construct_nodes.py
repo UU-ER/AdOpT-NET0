@@ -285,7 +285,7 @@ def add_nodes(energyhub):
 
         # BLOCKS
         # Add technologies as blocks
-        b_node = mc.add_technologies(energyhub, nodename, b_node.set_tecsAtNode)
+        b_node = mc.add_technology(energyhub, nodename, b_node.set_tecsAtNode)
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 

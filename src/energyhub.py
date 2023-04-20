@@ -193,7 +193,7 @@ class EnergyHub:
         :return: None
         """
         self.data_full.read_single_technology_data(nodename, technologies)
-        mc.add_technologies(self, nodename, technologies)
+        mc.add_technology(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
         """
@@ -356,7 +356,7 @@ class EnergyHub:
         """
         global_variables.averaged_data = 0
         global_variables.averaged_data_specs.last_stage = 1
-        bounds_on = 'all'
+        bounds_on = 'no_storage'
         self.model_first_stage = self.model
         self.solution_first_stage = copy.deepcopy(self.solution)
         self.model = ConcreteModel()

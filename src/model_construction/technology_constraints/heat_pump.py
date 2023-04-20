@@ -44,12 +44,12 @@ def constraints_tec_hp(model, b_tec, tec_data):
         rated_power = 1
 
     # Get performance parameters
-    alpha1 = fitted_performance['out']['alpha1']
+    alpha1 = fitted_performance['alpha1']
     if performance_function_type == 2:
-        alpha2 = fitted_performance['out']['alpha2']
+        alpha2 = fitted_performance['alpha2']
     if performance_function_type == 3:
         bp_x = fitted_performance['bp_x']
-        alpha2 = fitted_performance['out']['alpha2']
+        alpha2 = fitted_performance['alpha2']
 
     if 'min_part_load' in performance_data:
         min_part_load = performance_data['min_part_load']

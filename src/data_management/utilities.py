@@ -110,6 +110,16 @@ def flag_tecs_for_clustering(data):
                 tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
             elif data.technology_data[node][technology].technology_model == 'STOR':
                 tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
+            elif data.technology_data[node][technology].technology_model == 'DAC_Adsorption':
+                tecs_flagged_for_clustering[node][technology] = ['alpha','beta','b','gamma','delta','a']
+            elif data.technology_data[node][technology].technology_model.startswith('HeatPump_'):
+                if data.technology_data[node][technology].performance_data['performance_function_type'] == 1:
+                    tecs_flagged_for_clustering[node][technology] = ['alpha1']
+                else:
+                    tecs_flagged_for_clustering[node][technology] = ['alpha1','alpha2']
+            elif data.technology_data[node][technology].technology_model.startswith('GasTurbine_'):
+                tecs_flagged_for_clustering[node][technology] = ['alpha','beta','epsilon','f']
+
     return tecs_flagged_for_clustering
 
 def reshape_df(series_to_add, column_names, nr_cols):

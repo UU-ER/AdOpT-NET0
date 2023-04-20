@@ -334,7 +334,7 @@ def define_auxiliary_vars(b_tec, tec_data, energyhub):
     
     return b_tec
 
-def add_technologies(energyhub, nodename, set_tecsToAdd):
+def add_technology(energyhub, nodename, set_tecsToAdd):
     r"""
     Adds all technologies as model blocks to respective node.
 
@@ -406,9 +406,8 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
 
     :param str nodename: name of node for which technology is installed
     :param list set_tecsToAdd: list of technologies to add
-    :param EnergyHub energyhub: instance of the energyhub
+    :param energyhub EnergyHub: instance of the energyhub
     :return: b_node
-    ----------
     """
 
     # COLLECT OBJECTS FROM ENERGYHUB
