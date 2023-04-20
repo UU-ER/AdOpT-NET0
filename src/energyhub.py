@@ -9,6 +9,7 @@ import numpy as np
 import dill as pickle
 import src.global_variables as global_variables
 import time
+import copy
 
 
 class EnergyHub:
@@ -34,9 +35,6 @@ class EnergyHub:
         print('Reading in data...')
         start = time.time()
 
-        # READ IN DATA
-        self.data = data
-
         # READ IN MODEL CONFIGURATION
         self.configuration = configuration
 
@@ -52,17 +50,27 @@ class EnergyHub:
         # INITIALIZE SOLUTION
         self.solution = []
 
-        # SET GLOBAL VARIABLES
-        global_variables.clustered_data = 0
-        global_variables.averaged_data = 0
-        if hasattr(self.data, 'k_means_specs'):
-            # Clustered Data
+        # READ IN DATA
+        if not self.configuration.optimization.typicaldays == 0:
+            print('Clustering Data...')
+            self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
             global_variables.clustered_data = 1
             global_variables.clustered_data_specs.specs = self.data.k_means_specs
-        if hasattr(self.data, 'averaged_specs'):
-            # Averaged Data
+            print('Clustering Data completed')
+        else:
+            global_variables.clustered_data = 0
+            self.data = data
+
+        if self.configuration.optimization.timestaging:
+            print('Averaging Data...')
+            self.data_full_res = self.data
+            self.data = dm.DataHandle_AveragedData(self.data_full_res, self.configuration.optimization.timestaging)
             global_variables.averaged_data = 1
             global_variables.averaged_data_specs.specs = self.data.averaged_specs
+            self.model_first_stage = []
+            self.solution_first_stage = []
+            print('Averaging Data completed')
+
 
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -123,6 +131,7 @@ class EnergyHub:
 
         print('Constructing model completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
+
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
@@ -141,12 +150,14 @@ class EnergyHub:
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
+
     def solve_model(self):
         """
         Defines objective and solves model
 
-        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual emissions
-        ('emissions_net'), and total annual emissions at minimal cost ('emissions_minC').
+        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual net emissions
+        ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
+        ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
         # This is a dirty fix as objectives cannot be found with find_component
         try:
@@ -161,42 +172,46 @@ class EnergyHub:
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+            self.__optimize()
         elif objective == 'emissions_pos':
             def init_emission_pos_objective(obj):
                 return self.model.var_emissions_pos
             self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+            self.__optimize()
         elif objective == 'emissions_net':
             def init_emission_net_objective(obj):
                 return self.model.var_emissions_net
             self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+            self.__optimize()
         elif objective == 'emissions_minC':
             def init_emission_minC_objective(obj):
                 return self.model.var_emissions_pos
             self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
+            self.__optimize()
             emission_limit = self.model.var_emissions_pos.value
             self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
+            self.model.del_component(self.model.objective)
             def init_cost_objective(obj):
                 return self.model.var_total_cost
             self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+            self.__optimize()
         elif objective == 'pareto':
             print('to be implemented')
 
+        if self.configuration.optimization.timestaging and not global_variables.averaged_data_specs.last_stage:
+            global_variables.averaged_data = 0
+            global_variables.averaged_data_specs.last_stage = 1
+            bounds_on = 'all'
+            self.model_first_stage = self.model
+            self.solution_first_stage = copy.deepcopy(self.solution)
+            self.model = ConcreteModel()
+            self.solution = []
+            self.data = self.data_full_res
+            self.construct_model()
+            self.construct_balances()
+            self.__impose_size_constraints(bounds_on)
+            self.solve_model()
 
-
-        # Define solver settings
-        if self.configuration.solveroptions.solver == 'gurobi':
-            solver = get_gurobi_parameters(self.configuration.solveroptions)
-
-        # Solve model
-        print('_' * 20)
-        print('Solving Model...')
-
-        start = time.time()
-        self.solution = solver.solve(self.model, tee=True, warmstart=True)
-        self.solution.write()
-
-        print('Solving model completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -281,58 +296,28 @@ class EnergyHub:
             occurrence_hour = np.ones(len(self.model.set_t))
         return occurrence_hour
 
-class EnergyHubTwoStageTimeAverage(EnergyHub):
-    """
-    Sub-class of the EnergyHub class to perform two stage time averaging optimization based on
-    Weimann, L., & Gazzani, M. (2022). A novel time discretization method for solving complex multi-energy system
-    design and operation problems with high penetration of renewable energy. Computers & Chemical Engineering,
-    107816. https://doi.org/10.1016/J.COMPCHEMENG.2022.107816
-
-    All methods available in the super-class EnergyHub are also available in this subclass.
-    """
-    def __init__(self, data, nr_timesteps_averaged=4):
-        self.full_res_ehub = EnergyHub(data)
-        data_averaged = dm.DataHandle_AveragedData(data,nr_timesteps_averaged)
-        EnergyHub.__init__(self, data_averaged)
-        global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
-
-    def solve_model(self, objective = 'cost', bounds_on = 'all'):
+    def __optimize(self):
         """
-        Solve the model in a two stage time average manner.
-
-        In the first stage, time-steps are averaged and thus the model is optimized with a reduced time frame.
-        In the second stage, the sizes of technologies and networks are constrained with a lower bound. It is possible
-        to only constrain some technologies with the parameter bounds_on (see below)
-
-        :param objective: objective to minimize
-        :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
+        Solves the model
+        :return:
         """
-        # Solve reduced resolution model
-        self.construct_model()
-        self.construct_balances()
-        super().solve_model()
-        global_variables.averaged_data = 0
-        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
 
+        # Define solver settings
+        if self.configuration.solveroptions.solver == 'gurobi':
+            solver = get_gurobi_parameters(self.configuration.solveroptions)
 
-        # Solve full resolution model
-        # Initialize
-        self.full_res_ehub.construct_model()
-        self.full_res_ehub.construct_balances()
-        # Impose additional constraints
-        self.impose_size_constraints(bounds_on)
-        # Solve with additional constraints
-        self.full_res_ehub.solve_model()
+        # Solve model
+        print('_' * 20)
+        print('Solving Model...')
 
-    def write_results(self):
-        """
-        Overwrites method of EnergyHub superclass
-        """
-        results = dm.ResultsHandle()
-        results.read_results(self.full_res_ehub)
-        return results
+        start = time.time()
+        self.solution = solver.solve(self.model, tee=True, warmstart=True)
+        self.solution.write()
 
-    def impose_size_constraints(self, bounds_on):
+        print('Solving model completed in ' + str(time.time() - start) + ' s')
+        print('_' * 20)
+
+    def __impose_size_constraints(self, bounds_on):
         """
         Formulates lower bound on technology and network sizes.
 
@@ -342,8 +327,8 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
         """
 
-        m_full = self.full_res_ehub.model
-        m_avg = self.model
+        m_full = self.model
+        m_avg = self.model_first_stage
 
         # Technologies
         if bounds_on == 'all' or bounds_on == 'only_technologies' or bounds_on == 'no_storage':

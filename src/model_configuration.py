@@ -4,7 +4,8 @@ from types import SimpleNamespace
 class ModelConfiguration:
     """
     Class to specify all global modeling settings (e.g. objective, high-level algorithms, energy balance violation, \
-     costs and performances) and solver configurations.
+     costs and performances) and solver configurations. The time staging algorithm is further described \
+     :ref:`here <time_averaging>` and the clustering algorithm is further described :ref:`here <clustering>`.
 
     List of optimization settings that can be specified:
 
@@ -21,11 +22,13 @@ class ModelConfiguration:
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | pareto.N         | Number of Pareto points                      |                                             | 5       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | timestaging      | Switch to turn timestaging on/off            | {0,1}                                       | 0       |
+    | timestaging      | Defines number of daily intervals (0 = off)  |                                             | 0       |
+    |                  | :ref:`check here <time_averaging>`           |                                             |         |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | techstaging      | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | typicaldays      | Determines number of typical days (0 = off)  |                                             | 0       |
+    |                  | :ref:`check here <clustering>`               |                                             |         |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
 
     List of solver settings that can be specified (see also https://www.gurobi.com/documentation/9.5/refman/parameter_descriptions.html):
@@ -74,23 +77,24 @@ class ModelConfiguration:
 
     List of economic settings that can be specified:
 
-    +----------------+----------------------------------------------+---------+---------+
-    | Name           | Definition                                   | Options | Default |
-    +----------------+----------------------------------------------+---------+---------+
-    | globalinterest | Determines if a global interest rate is used | {0,1}   | 0       |
-    +----------------+----------------------------------------------+---------+---------+
-    | globalcosttype | Determines if a global cost function is used | {0,1}   | 0       |
-    +----------------+----------------------------------------------+---------+---------+
+    +----------------------------+--------------------------------------------------------+---------+---------+
+    | Name                       | Definition                                             | Options | Default |
+    +----------------------------+--------------------------------------------------------+---------+---------+
+    | global_discountrate        | Determines if and which global discount rate is used.  |         | -1      |
+    |                            | This holds for the CAPEX of all technologies and       |         |         |
+    |                            | networks                                               |         |         |
+    +----------------------------+--------------------------------------------------------+---------+---------+
+    | global_simple_capex_model  | Determines if capex model of technologies is set to 1  | {0,1}   | 0       |
+    | global_simple_capex_model  | for all technologies                                   |         |         |
+    +----------------------------+--------------------------------------------------------+---------+---------+
 
     List of technology and network performance settings that can be specified:
 
-    +----------------------+------------------------------------------------+---------+---------+
-    | Name                 | Definition                                     | Options | Default |
-    +----------------------+------------------------------------------------+---------+---------+
-    | globalconversiontype | Determines if a global conversion type is used | {0,1}   | 0       |
-    +----------------------+------------------------------------------------+---------+---------+
-    | dynamics             | Determines if dynamics are used                | {0,1}   | 0       |
-    +----------------------+------------------------------------------------+---------+---------+
+    +----------------------+--------------------------------------------------------+-------------+---------+
+    | Name                 | Definition                                             | Options     | Default |
+    +----------------------+--------------------------------------------------------+-------------+---------+
+    | dynamics             | Determines if dynamics are used                        | {0,1}       | 0       |
+    +----------------------+--------------------------------------------------------+-------------+---------+
     """
 
     def __init__(self):
@@ -120,20 +124,19 @@ class ModelConfiguration:
         # self.optimization.montecarlo.range = 0.2
         # self.optimization.montecarlo.N = 100
         # self.optimization.pareto.N = 5
-        # self.optimization.timestaging = 0
+        self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0
-        # self.optimization.typicaldays = 0
+        self.optimization.typicaldays = 0
 
         self.energybalance = SimpleNamespace()
         # self.energybalance.violation = 0
         # self.energybalance.copperplate = 0
 
         self.economic = SimpleNamespace()
-        # self.economic.globalinterest = 0
-        # self.economic.globalcosttype = 0
+        self.economic.global_discountrate = -1
+        self.economic.global_simple_capex_model = 0
 
         self.performance = SimpleNamespace()
-        # self.performance.globalconversiontype = 0
         # self.performance.dynamics = 0
 
     def define_montecarlo(self, range, N):

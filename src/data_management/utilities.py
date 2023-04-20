@@ -94,3 +94,40 @@ def get_day_factors(keys):
     factors.columns = ['timestep', 'factor']
     return factors
 
+def flag_tecs_for_clustering(data):
+    """
+    Creates a dictonary with flags for RES technologies
+
+    These technologies contain time-dependent input data, i.e. capacity factors.
+    :return dict tecs_flagged_for_clustering: flags for technologies and nodes
+
+    """
+    tecs_flagged_for_clustering = {}
+    for node in data.topology.nodes:
+        tecs_flagged_for_clustering[node] = {}
+        for technology in data.technology_data[node]:
+            if data.technology_data[node][technology].technology_model == 'RES':
+                tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
+            elif data.technology_data[node][technology].technology_model == 'STOR':
+                tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
+    return tecs_flagged_for_clustering
+
+def reshape_df(series_to_add, column_names, nr_cols):
+    """
+    Transform all data to large dataframe with each row being one day
+    """
+    if not type(series_to_add).__module__ == np.__name__:
+        transformed_series = series_to_add.to_numpy()
+    else:
+        transformed_series = series_to_add
+    transformed_series = transformed_series.reshape((-1, nr_cols))
+    transformed_series = pd.DataFrame(transformed_series, columns=column_names)
+    return transformed_series
+
+def define_multiindex(ls):
+    """
+    Create a multi index from a list
+    """
+    multi_index = list(zip(*ls))
+    multi_index = pd.MultiIndex.from_tuples(multi_index)
+    return multi_index

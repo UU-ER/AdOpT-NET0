@@ -11,7 +11,6 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 from src.data_management.components.fit_technology_performance import fit_piecewise_function
 from scipy.interpolate import griddata
-import cdsapi
 # from netCDF4 import Dataset
 
 import src.data_management as dm
@@ -19,41 +18,26 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-execute = 1
-
-if execute == 1:
-    data = dm.load_object(r'./test/test_data/k_means.p')
-    nr_days_cluster = 40
-    clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
-
-    # INITIALIZE MODEL CONFIGURATION
-    configuration = ModelConfiguration()
-
-    energyhub = EnergyHub(clustered_data, configuration)
-    energyhub.construct_model()
-    energyhub.construct_balances()
-
-    # Solve model
-    energyhub.solve_model()
-
 execute = 0
 
 # region: how to k-means cluster
 if execute == 1:
     # Load data handle from file
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
 
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', 'Photovoltaic')
+    topology.define_new_technologies('test_node1', ['WindTurbine_Onshore_1500'])
 
+    # INITIALIZE MODEL CONFIGURATION
+    configuration = ModelConfiguration()
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/test_data/climate_data_onshore.p')
+    data.read_climate_data_from_file('test_node1', r'.\data\climate_data_onshore.txt')
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 10
@@ -72,11 +56,10 @@ if execute == 1:
     data.read_network_data()
 
     # SOLVE WITH CLUSTERED DATA
-    clustered_data = dm.ClusteredDataHandle()
     nr_days_cluster = 5
-    clustered_data.cluster_data(data, nr_days_cluster)
+    clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
 
-    energyhub_clustered = EnergyHub(clustered_data)
+    energyhub_clustered = EnergyHub(clustered_data, configuration)
     energyhub_clustered.construct_model()
     energyhub_clustered.construct_balances()
 
@@ -85,8 +68,9 @@ if execute == 1:
     results1 = energyhub_clustered.write_results()
     results1.write_excel(r'.\userData\results_clustered')
 
+
     # SOLVE WITH FULL RESOLUTION
-    energyhub = EnergyHub(data)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
 

@@ -491,22 +491,21 @@ def create_data_addtechnology():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-def create_data_k_means():
+def create_data_time_algorithms():
     """
-    Creates dataset for a model with two nodes.
-    PV @ node 2
+    Creates dataset for a model with one node.
+    Temporal resolution 31 days.
     electricity demand @ node 1
-    electricity network in between
-    should be infeasible
+    Technologies are PV and storage
     """
-    data_save_path = './test/test_data/k_means.p'
+    data_save_path = './test/test_data/time_algorithms.p'
 
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='03-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['testSTOR', 'Photovoltaic'])
-    
+    topology.define_new_technologies('test_node1', ['Photovoltaic', 'WindTurbine_Onshore_1500', 'Storage_Battery'])
+
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
 
@@ -514,7 +513,7 @@ def create_data_k_means():
     data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology.timesteps)) * 1
+    electricity_demand = np.ones(len(topology.timesteps)) * 100
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -523,6 +522,41 @@ def create_data_k_means():
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
+
+def create_data_optimization_types():
+
+    data_save_path = './test/test_data/optimization_types.p'
+
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
+    topology.define_carriers(['electricity', 'gas'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['Photovoltaic', 'GasTurbine_simple'])
+
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+
+    # DEMAND
+    demand = np.ones(len(topology.timesteps)) * 10
+    data.read_demand_data('test_node1', 'electricity', demand)
+
+    # PRICE DATA
+    price = np.ones(len(topology.timesteps)) * 0
+    data.read_import_price_data('test_node1', 'gas', price)
+
+    # IMPORT/EXPORT LIMITS
+    import_lim = np.ones(len(topology.timesteps)) * 10000
+    data.read_import_limit_data('test_node1', 'gas', import_lim)
+
+    data.read_technology_data()
+    data.read_network_data()
+
+    data.technology_data['test_node1']['Photovoltaic'].economics.capex_data['unit_capex'] = 200
+    data.technology_data['test_node1']['GasTurbine_simple'].economics.capex_data['unit_capex'] = 10
+    data.save(data_save_path)
+
 
 def create_data_existing_technologies():
 
@@ -576,7 +610,6 @@ def create_data_existing_technologies():
     data3 = create_data(topology3)
     data3.technology_data['test_node1']['Storage_Battery_existing'].decommission = 1
     data3.save(data_save_path3)
-    data3.technology_data
 
 def create_data_existing_networks():
     def create_topology():
@@ -655,7 +688,8 @@ create_data_technology_CONV()
 create_data_network()
 create_data_addtechnology()
 create_data_technologySTOR()
-create_data_k_means()
+create_data_time_algorithms()
+create_data_optimization_types()
 create_data_existing_technologies()
 create_data_existing_networks()
 
