@@ -4,7 +4,8 @@ from types import SimpleNamespace
 class ModelConfiguration:
     """
     Class to specify all global modeling settings (e.g. objective, high-level algorithms, energy balance violation, \
-     costs and performances) and solver configurations.
+     costs and performances) and solver configurations. The time staging algorithm is further described \
+     :ref:`here <time_averaging>` and the clustering algorithm is further described :ref:`here <clustering>`.
 
     List of optimization settings that can be specified:
 
@@ -22,10 +23,12 @@ class ModelConfiguration:
     | pareto.N         | Number of Pareto points                      |                                             | 5       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | timestaging      | Defines number of daily intervals (0 = off)  |                                             | 0       |
+    |                  | :ref:`check here <time_averaging>`           |                                             |         |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | techstaging      | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | typicaldays      | Determines number of typical days (0 = off)  |                                             | 0       |
+    |                  | :ref:`check here <clustering>`               |                                             |         |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
 
     List of solver settings that can be specified (see also https://www.gurobi.com/documentation/9.5/refman/parameter_descriptions.html):
@@ -90,8 +93,6 @@ class ModelConfiguration:
     +----------------------+--------------------------------------------------------+-------------+---------+
     | Name                 | Definition                                             | Options     | Default |
     +----------------------+--------------------------------------------------------+-------------+---------+
-    | globalconversiontype | Determines if and which global conversion type is used | {0,1,2,3}   | 0       |
-    +----------------------+--------------------------------------------------------+-------------+---------+
     | dynamics             | Determines if dynamics are used                        | {0,1}       | 0       |
     +----------------------+--------------------------------------------------------+-------------+---------+
     """
@@ -136,7 +137,6 @@ class ModelConfiguration:
         self.economic.global_simple_capex_model = 0
 
         self.performance = SimpleNamespace()
-        self.performance.globalconversiontype = 0
         # self.performance.dynamics = 0
 
     def define_montecarlo(self, range, N):

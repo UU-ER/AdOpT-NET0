@@ -1,3 +1,5 @@
+.. _clustering:
+
 Typical Day Clustering
 =====================================
 To reduce the temporal resolution of the model, the input data can be clustered into typical design days as described in
