@@ -90,6 +90,8 @@ class DataHandle:
         :return: self at ``self.node_data[node]['climate_data']``
         """
         data = dm.load_object(file)
+        data['dataframe'] = data['dataframe'][0:len(self.topology.timesteps)]
+
         self.node_data[node]['climate_data'] = data
 
     def read_demand_data(self, node, carrier, demand_data):
@@ -299,23 +301,6 @@ class DataHandle:
         """
         dm.save_object(self, path)
 
-    def flag_tecs_for_clustering(self):
-        """
-        Creates a dictonary with flags for RES technologies
-
-        These technologies contain time-dependent input data, i.e. capacity factors.
-        :return dict tecs_flagged_for_clustering: flags for technologies and nodes
-
-        """
-        tecs_flagged_for_clustering = {}
-        for node in self.topology.nodes:
-            tecs_flagged_for_clustering[node] = {}
-            for technology in self.technology_data[node]:
-                if self.technology_data[node][technology].technology_model == 'RES':
-                    tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
-                elif self.technology_data[node][technology].technology_model == 'STOR':
-                    tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
-        return tecs_flagged_for_clustering
 
 
 class ClusteredDataHandle(DataHandle):
@@ -369,7 +354,7 @@ class ClusteredDataHandle(DataHandle):
         # adjust timesteps
         self.topology.timesteps = range(0, nr_clusters * nr_time_intervals_per_day)
         # flag tecs that contain time-dependent data
-        tecs_flagged_for_clustering = self.flag_tecs_for_clustering()
+        tecs_flagged_for_clustering = dm.flag_tecs_for_clustering(self)
         # compile full matrix to cluster
         full_resolution = self.compile_full_resolution_matrix(nr_time_intervals_per_day,
                                                               tecs_flagged_for_clustering)
@@ -398,15 +383,16 @@ class ClusteredDataHandle(DataHandle):
         node_data = self.node_data_full_resolution
         for node in node_data:
             self.node_data[node] = {}
+            self.node_data[node]['production_profile_curtailment'] = node_data[node]['production_profile_curtailment']
             for series in node_data[node]:
                 if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     self.node_data[node][series] = pd.DataFrame()
                     for carrier in node_data[node][series]:
                         self.node_data[node][series][carrier] = \
-                            reshape_df(clustered_data[node][series][carrier],
+                            dm.reshape_df(clustered_data[node][series][carrier],
                                        None, 1)
             for tec in tecs_flagged_for_clustering[node]:
-                series_data = reshape_df(clustered_data[node][tec][tecs_flagged_for_clustering[node][tec]], None, 1)
+                series_data = dm.reshape_df(clustered_data[node][tec][tecs_flagged_for_clustering[node][tec]], None, 1)
                 series_data = series_data.to_numpy()
                 self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]] = \
                     series_data
@@ -423,23 +409,23 @@ class ClusteredDataHandle(DataHandle):
             for series in node_data[node]:
                 if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
                     for carrier in node_data[node][series]:
-                        series_names = define_multiindex([
+                        series_names = dm.define_multiindex([
                             [node] * nr_time_intervals_per_day,
                             [series] * nr_time_intervals_per_day,
                             [carrier] * nr_time_intervals_per_day,
                             list(range(1, nr_time_intervals_per_day + 1))
                         ])
-                        to_add = reshape_df(node_data[node][series][carrier],
+                        to_add = dm.reshape_df(node_data[node][series][carrier],
                                             series_names, nr_time_intervals_per_day)
                         full_resolution = pd.concat([full_resolution, to_add], axis=1)
             for tec in tecs_flagged_for_clustering[node]:
-                series_names = define_multiindex([
+                series_names = dm.define_multiindex([
                     [node] * nr_time_intervals_per_day,
                     [tec] * nr_time_intervals_per_day,
                     [tecs_flagged_for_clustering[node][tec]] * nr_time_intervals_per_day,
                     list(range(1, nr_time_intervals_per_day + 1))
                 ])
-                to_add = reshape_df(self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]],
+                to_add = dm.reshape_df(self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]],
                                     series_names, nr_time_intervals_per_day)
                 full_resolution = pd.concat([full_resolution, to_add], axis=1)
         return full_resolution
@@ -481,7 +467,7 @@ class DataHandle_AveragedData(DataHandle):
         self.topology.timestep_length_h = nr_timesteps_averaged
         self.topology.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
         # flag tecs that contain time-dependent data
-        tecs_flagged_for_clustering = self.flag_tecs_for_clustering()
+        tecs_flagged_for_clustering = dm.flag_tecs_for_clustering(self)
         # Average all time-dependent data and write to self
         self.perform_averaging(nr_timesteps_averaged, tecs_flagged_for_clustering)
         # Write averaged specs
@@ -500,9 +486,10 @@ class DataHandle_AveragedData(DataHandle):
         node_data = self.node_data_full_resolution
         for node in node_data:
             self.node_data[node] = {}
+            self.node_data[node]['production_profile_curtailment'] = node_data[node]['production_profile_curtailment']
             for series in node_data[node]:
-                self.node_data[node][series] = pd.DataFrame()
                 if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
+                    self.node_data[node][series] = pd.DataFrame()
                     for carrier in node_data[node][series]:
                         series_data = dm.reshape_df(node_data[node][series][carrier],
                                                     None, nr_timesteps_averaged)
@@ -515,23 +502,7 @@ class DataHandle_AveragedData(DataHandle):
                     tecs_flagged_for_clustering[node][tec]] = series_data.mean(axis=1)
 
 
-def reshape_df(series_to_add, column_names, nr_cols):
-    """
-    Transform all data to large dataframe with each row being one day
-    """
-    if not type(series_to_add).__module__ == np.__name__:
-        transformed_series = series_to_add.to_numpy()
-    else:
-        transformed_series = series_to_add
-    transformed_series = transformed_series.reshape((-1, nr_cols))
-    transformed_series = pd.DataFrame(transformed_series, columns=column_names)
-    return transformed_series
 
-def define_multiindex(ls):
-    """
-    Create a multi index from a list
-    """
-    multi_index = list(zip(*ls))
-    multi_index = pd.MultiIndex.from_tuples(multi_index)
-    return multi_index
+
+
 

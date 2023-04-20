@@ -251,3 +251,36 @@ def test_optimization_types():
     assert cost3 <= cost2
     assert emissions3 <= emissions2
 
+
+def test_k_means():
+    data = dm.load_object(r'./test/test_data/time_algorithms.p')
+
+    # Full resolution
+    configuration = ModelConfiguration()
+    energyhub1 = ehub(data, configuration)
+    energyhub1.quick_solve_model()
+    cost1 = energyhub1.model.var_total_cost.value
+    assert energyhub1.solution.solver.termination_condition == 'optimal'
+
+    # k_means
+    configuration = ModelConfiguration()
+    configuration.optimization.typicaldays = 40
+    energyhub2 = ehub(data, configuration)
+    energyhub2.quick_solve_model()
+    cost2 = energyhub2.model.var_total_cost.value
+    assert energyhub2.solution.solver.termination_condition == 'optimal'
+
+    # time_averaging
+    configuration = ModelConfiguration()
+    configuration.optimization.timestaging = 1
+    energyhub3 = ehub(data, configuration)
+    energyhub3.quick_solve_model()
+    cost3 = energyhub3.model.var_total_cost.value
+    assert energyhub3.solution.solver.termination_condition == 'optimal'
+
+    assert abs(cost1 - cost2) / cost1 <= 0.1
+    assert abs(cost1 - cost3) / cost1 <= 0.1
+
+
+
+
