@@ -276,7 +276,7 @@ def test_k_means():
 
     # time_averaging
     configuration = ModelConfiguration()
-    configuration.optimization.timestaging = 1
+    configuration.optimization.timestaging = 4
     energyhub3 = ehub(data, configuration)
     energyhub3.quick_solve_model()
     cost3 = energyhub3.model.var_total_cost.value

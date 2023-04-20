@@ -30,22 +30,22 @@ def define_size(b_tec, tec_data):
 
     if size_is_int:
         unit_size = u.dimensionless
+        size_domain = NonNegativeIntegers
     else:
         unit_size = u.MW
+        size_domain = NonNegativeReals
+
     b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, units=unit_size)
     b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, units=unit_size)
     if existing:
-        b_tec.para_size_initial = Param(within=NonNegativeReals, initialize=size_initial, units=unit_size)
+        b_tec.para_size_initial = Param(within=size_domain, initialize=size_initial, units=unit_size)
     if existing and not decommission:
         # Decommissioning is not possible, size fixed
-        b_tec.var_size = Param(within=NonNegativeReals, initialize=b_tec.para_size_initial, units=unit_size)
+        b_tec.var_size = Param(within=size_domain, initialize=b_tec.para_size_initial, units=unit_size)
     else:
         # Decommissioning is possible, size variable
-        if size_is_int:
-            b_tec.var_size = Var(within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
-        else:
-            b_tec.var_size = Var(within=NonNegativeReals, bounds=(b_tec.para_size_min, b_tec.para_size_max),
-                                 units=u.MW)
+            b_tec.var_size = Var(within=size_domain, bounds=(b_tec.para_size_min, b_tec.para_size_max), units=unit_size)
+
     return b_tec
 
 def define_capex(b_tec, tec_data, energyhub):
@@ -296,7 +296,8 @@ def define_auxiliary_vars(b_tec, tec_data, energyhub):
     """
     Defines auxiliary variables, that are required for the modelling of clustered data 
     """
-    set_t = energyhub.model.set_t_full
+    set_t_clustered = energyhub.model.set_t_clustered
+    set_t_full = energyhub.model.set_t_full
     fitted_performance = tec_data.fitted_performance
     technology_model = tec_data.technology_model
     existing = tec_data.existing
@@ -311,25 +312,25 @@ def define_auxiliary_vars(b_tec, tec_data, energyhub):
 
         def init_input_bounds(bounds, t, car):
                 return (0, fitted_performance['input_bounds'][car].max() * size_max)
-        b_tec.var_input_aux = Var(set_t, b_tec.set_input_carriers, within=NonNegativeReals,
+        b_tec.var_input_aux = Var(set_t_clustered, b_tec.set_input_carriers, within=NonNegativeReals,
                               bounds=init_input_bounds, units=u.MW)
 
         b_tec.const_link_full_resolution_input = mc.link_full_resolution_to_clustered(b_tec.var_input_aux,
                                                                                    b_tec.var_input,
-                                                                                   set_t,
-                                                                                   b_tec.set_input_carriers,
-                                                                                   sequence)
+                                                                                   set_t_full,
+                                                                                   sequence,
+                                                                                   b_tec.set_input_carriers)
 
         def init_output_bounds(bounds, t, car):
             return (0, fitted_performance['output_bounds'][car].max() * size_max)
-        b_tec.var_output_aux = Var(set_t, b_tec.set_output_carriers, within=NonNegativeReals,
+        b_tec.var_output_aux = Var(set_t_clustered, b_tec.set_output_carriers, within=NonNegativeReals,
                                   bounds=init_output_bounds, units=u.MW)
 
         b_tec.const_link_full_resolution_output = mc.link_full_resolution_to_clustered(b_tec.var_output_aux,
                                                                                       b_tec.var_output,
-                                                                                      set_t,
-                                                                                      b_tec.set_output_carriers,
-                                                                                      sequence)
+                                                                                      set_t_full,
+                                                                                      sequence,
+                                                                                      b_tec.set_output_carriers)
     
     return b_tec
 

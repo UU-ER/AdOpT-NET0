@@ -16,12 +16,10 @@ topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
 topology.define_nodes(['onshore', 'offshore'])
-topology.define_new_technologies('onshore', ['Storage_Battery', 'GasTurbine_simple'])
+topology.define_new_technologies('onshore', ['Storage_Battery'])
 topology.define_new_technologies('offshore', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
+# topology.define_carriers(['electricity'])
 
-configuration = ModelConfiguration()
-
-configuration.optimization.typicaldays = 10
 # configuration.optimization.timestaging = 1
 
 
@@ -51,15 +49,15 @@ else:
     data.read_climate_data_from_api('offshore', lon, lat,save_path='.\data\climate_data_offshore.txt')
 
 # DEMAND
-electricity_demand = np.ones(len(topology.timesteps)) * 100
+electricity_demand = np.ones(len(topology.timesteps)) * 1
 data.read_demand_data('onshore', 'electricity', electricity_demand)
 
 # IMPORT
-gas_import = np.ones(len(topology.timesteps)) * 100
-data.read_import_limit_data('onshore', 'gas', gas_import)
-
-gas_price = np.ones(len(topology.timesteps)) * 1000
-data.read_import_price_data('onshore', 'gas', gas_price)
+# gas_import = np.ones(len(topology.timesteps)) * 100
+# data.read_import_limit_data('offshore', 'gas', gas_import)
+#
+# gas_price = np.ones(len(topology.timesteps)) * 1000
+# data.read_import_price_data('onshore', 'gas', gas_price)
 
 # READ TECHNOLOGY AND NETWORK DATA
 data.read_technology_data()
@@ -68,7 +66,18 @@ data.read_network_data()
 
 # # SAVING/LOADING DATA FILE
 # data.save(data_save_path)
+configuration = ModelConfiguration()
+configuration.optimization.typicaldays = 0
+# # Read data
+energyhub = EnergyHub(data, configuration)
+energyhub.quick_solve_model()
+# energyhub.model.pprint()
+# energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()
+results = energyhub.write_results()
+results.write_excel(r'.\userData\test_full')
 
+configuration = ModelConfiguration()
+configuration.optimization.typicaldays = 20
 # # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()

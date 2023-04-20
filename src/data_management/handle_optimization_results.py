@@ -52,8 +52,6 @@ class ResultsHandle:
         """
         model = energyhub.model
 
-        occurrence_hour = energyhub.calculate_occurance_per_hour()
-
         # Economics
         total_cost = model.var_total_cost.value
         # emission_cost = model.var_emission_cost.value
@@ -133,11 +131,19 @@ class ResultsHandle:
                 toNode = arc[1]
                 s = arc_data.var_size.value
                 capex = arc_data.var_CAPEX.value
-                opex_var = sum(arc_data.var_OPEX_variable[t]
-                               for t in set_t)
+                if global_variables.clustered_data:
+                    sequence = energyhub.data_clustered.k_means_specs.full_resolution['sequence']
+                    opex_var = sum(arc_data.var_OPEX_variable[sequence[t - 1]].value
+                                   for t in set_t)
+                    total_flow = sum(arc_data.var_flow[sequence[t - 1]].value
+                                     for t in set_t)
+                else:
+                    opex_var = sum(arc_data.var_OPEX_variable[t]
+                                   for t in set_t)
+                    total_flow = sum(arc_data.var_flow[t].value
+                                     for t in set_t)
                 opex_fix = capex * netw_data.para_OPEX_fixed.value
-                total_flow = sum(arc_data.var_flow[t].value
-                                 for t in set_t)
+
                 self.networks.loc[len(self.networks.index)] = \
                     [netw_name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow]
 
@@ -229,14 +235,25 @@ class ResultsHandle:
                 arc_data = netw_data.arc_block[arc]
                 df = pd.DataFrame()
 
-                df['flow'] = [arc_data.var_flow[t].value for t in set_t]
-                df['losses'] = [arc_data.var_losses[t].value for t in set_t]
-                if tec_data.find_component('var_consumption_send'):
-                    for car in netw_data.set_consumed_carriers:
-                        df['consumption_send' + car] = \
-                            [arc_data.var_consumption_send[t, car].value for t in set_t]
-                        df['consumption_receive' + car] = \
-                            [arc_data.var_consumption_receive[t, car].value for t in set_t]
+                if global_variables.clustered_data:
+                    sequence = energyhub.data_clustered.k_means_specs.full_resolution['sequence']
+                    df['flow'] = [arc_data.var_flow[sequence[t - 1]].value for t in set_t]
+                    df['losses'] = [arc_data.var_losses[sequence[t - 1]].value for t in set_t]
+                    if netw_data.find_component('var_consumption_send'):
+                        for car in netw_data.set_consumed_carriers:
+                            df['consumption_send' + car] = \
+                                [arc_data.var_consumption_send[sequence[t - 1], car].value for t in set_t]
+                            df['consumption_receive' + car] = \
+                                [arc_data.var_consumption_receive[sequence[t - 1], car].value for t in set_t]
+                else:
+                    df['flow'] = [arc_data.var_flow[t].value for t in set_t]
+                    df['losses'] = [arc_data.var_losses[t].value for t in set_t]
+                    if netw_data.find_component('var_consumption_send'):
+                        for car in netw_data.set_consumed_carriers:
+                            df['consumption_send' + car] = \
+                                [arc_data.var_consumption_send[t, car].value for t in set_t]
+                            df['consumption_receive' + car] = \
+                                [arc_data.var_consumption_receive[t, car].value for t in set_t]
 
                 self.detailed_results.networks[netw_name]['_'.join(arc)] = df
 
