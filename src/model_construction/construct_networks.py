@@ -6,14 +6,11 @@ import src.global_variables as global_variables
 import src.model_construction as mc
 
 
-def define_energyconsumption_parameters(model, b_netw, energy_consumption):
+def define_energyconsumption_parameters(b_netw, energy_consumption, energyhub):
     """
     Constructs constraints for network energy consumption
     """
-    if global_variables.clustered_data == 1:
-        set_t = model.set_t_clustered
-    else:
-        set_t = model.set_t_full
+    set_t = energyhub.model.set_t_full
     # Set of consumed carriers
     b_netw.set_consumed_carriers = Set(initialize=energy_consumption.keys())
 
@@ -43,7 +40,7 @@ def define_energyconsumption_parameters(model, b_netw, energy_consumption):
                                               units=u.dimensionless)
 
     # Consumption at each node
-    b_netw.var_consumption = Var(set_t, b_netw.set_consumed_carriers, model.set_nodes,
+    b_netw.var_consumption = Var(set_t, b_netw.set_consumed_carriers, energyhub.model.set_nodes,
                                  domain=NonNegativeReals)
 
     return b_netw
@@ -199,7 +196,7 @@ def define_capex_parameters(b_netw, netw_data, energyhub):
 
     return b_netw
 
-def define_opex_parameters(b_netw, netw_data, energyhub):
+def define_opex_parameters(b_netw, netw_data, set_t):
     """
     Defines OPEX parameters (fixed and variable)
 
@@ -214,8 +211,6 @@ def define_opex_parameters(b_netw, netw_data, energyhub):
     economics = netw_data.economics
     existing = netw_data.existing
 
-    set_t = energyhub.model.set_t_full
-
     b_netw.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
                                       units=u.EUR / u.MWh)
     b_netw.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
@@ -229,7 +224,7 @@ def define_opex_parameters(b_netw, netw_data, energyhub):
 
     return b_netw
 
-def define_emission_vars(b_netw, netw_data, energyhub):
+def define_emission_vars(b_netw, netw_data, set_t):
     """
     Defines network emissions
 
@@ -238,8 +233,6 @@ def define_emission_vars(b_netw, netw_data, energyhub):
     - emissionfactor
     """
     performance_data = netw_data.performance_data
-
-    set_t = energyhub.model.set_t_full
 
     b_netw.para_loss2emissions = Param(domain=NonNegativeReals, initialize=performance_data['loss2emissions'],
                                        units=u.t / u.dimensionless)
@@ -292,53 +285,6 @@ def define_outflow_vars(b_netw, energyhub):
     b_netw.var_outflow = Var(set_t, b_netw.set_netw_carrier, energyhub.model.set_nodes, domain=NonNegativeReals)
     return b_netw
 
-
-def define_auxiliary_vars(b_netw, netw_data, energyhub):
-    """
-    Defines auxiliary variables, that are required for the modelling of clustered data
-
-    This is done for OPEX, Inflow and Outflow
-    """
-    energy_consumption = netw_data.energy_consumption
-
-    set_t_full = energyhub.model.set_t_full
-    set_t_clustered = energyhub.model.set_t_clustered
-    sequence = energyhub.data_clustered.k_means_specs.full_resolution['sequence']
-
-    b_netw.var_inflow_aux = Var(set_t_clustered, b_netw.set_netw_carrier, energyhub.model.set_nodes, within=NonNegativeReals)
-    b_netw.var_outflow_aux = Var(set_t_clustered, b_netw.set_netw_carrier, energyhub.model.set_nodes, within=NonNegativeReals)
-    b_netw.var_OPEX_variable_aux = Var(set_t_clustered, within=NonNegativeReals)
-    b_netw.var_netw_emissions_pos_aux = Var(set_t_clustered, within=NonNegativeReals)
-
-    b_netw.const_link_full_resolution_inflow = mc.link_full_resolution_to_clustered(b_netw.var_inflow_aux,
-                                                              b_netw.var_inflow,
-                                                                set_t_full,
-                                                                sequence,
-                                                                b_netw.set_netw_carrier, energyhub.model.set_nodes)
-
-    b_netw.const_link_full_resolution_outflow = mc.link_full_resolution_to_clustered(b_netw.var_outflow_aux,
-                                                               b_netw.var_outflow,
-                                                                set_t_full,
-                                                                sequence,
-                                                                b_netw.set_netw_carrier, energyhub.model.set_nodes)
-
-    b_netw.const_link_full_resolution_opex_variable = mc.link_full_resolution_to_clustered(b_netw.var_OPEX_variable_aux,
-                                                                                   b_netw.var_OPEX_variable,
-                                                                                   set_t_full,
-                                                                                   sequence)
-
-    b_netw.const_link_full_resolution_emissions_pos = mc.link_full_resolution_to_clustered(b_netw.var_netw_emissions_pos_aux,
-                                                                                   b_netw.var_netw_emissions_pos,
-                                                                                   set_t_full,
-                                                                                   sequence)
-
-    if energy_consumption:
-        b_netw.var_consumption_aux = Var(set_t_clustered, within=NonNegativeReals)
-        b_netw.const_link_full_resolution_consumption = mc.link_full_resolution_to_clustered(b_netw.var_consumption_aux,
-                                                                                        b_netw.var_consumption,
-                                                                                        set_t_full,
-                                                                                        sequence)
-    return b_netw
 
 def define_size_arc(b_arc, b_netw, netw_data, node_from, node_to):
     """
@@ -435,7 +381,6 @@ def define_flow(b_arc, b_netw, set_t):
     # Losses
     def init_flowlosses(const, t):
         return b_arc.var_losses[t] == b_arc.var_flow[t] * b_netw.para_loss_factor
-
     b_arc.const_flowlosses = Constraint(set_t, rule=init_flowlosses)
 
     # Flow-size-constraint
@@ -555,7 +500,7 @@ def define_capex_total(b_netw, bidirectional):
 
     return b_netw
 
-def define_opex_total(b_netw, bidirectional, energyhub):
+def define_opex_total(b_netw, bidirectional, set_t):
     """
     Defines total OPEX of network
     """
@@ -564,13 +509,6 @@ def define_opex_total(b_netw, bidirectional, energyhub):
     else:
         arc_set = b_netw.set_arcs
 
-    if global_variables.clustered_data:
-        OPEX_variable = b_netw.var_OPEX_variable_aux
-        set_t = energyhub.model.set_t_clustered
-    else:
-        OPEX_variable = b_netw.var_OPEX_variable
-        set_t = energyhub.model.set_t_full
-
     def init_opex_fixed(const):
         return b_netw.para_OPEX_fixed * sum(b_netw.arc_block[arc].var_CAPEX_aux for arc in arc_set) == \
                b_netw.var_OPEX_fixed
@@ -578,81 +516,52 @@ def define_opex_total(b_netw, bidirectional, energyhub):
 
     def init_opex_variable(const, t):
         return sum(b_netw.arc_block[arc].var_OPEX_variable[t] for arc in b_netw.set_arcs) == \
-               OPEX_variable[t]
+               b_netw.var_OPEX_variable[t]
     b_netw.const_OPEX_var = Constraint(set_t, rule=init_opex_variable)
     return b_netw
 
-def define_inflow_constraints(b_netw, energyhub):
+def define_inflow_constraints(b_netw, energyhub, set_t):
     """
     Connects the arc flows to inflow at each node
     inflow = sum(arc_block(from,node).flow - arc_block(from,node).losses for from in set_node_receives_from)
     """
-
-    if global_variables.clustered_data:
-        inflow = b_netw.var_inflow_aux
-        set_t = energyhub.model.set_t_clustered
-    else:
-        inflow = b_netw.var_inflow
-        set_t = energyhub.model.set_t_full
-
     def init_inflow(const, t, car, node):
-        return inflow[t, car, node] == sum(b_netw.arc_block[from_node, node].var_flow[t] - \
+        return b_netw.var_inflow[t, car, node] == sum(b_netw.arc_block[from_node, node].var_flow[t] - \
                                                       b_netw.arc_block[from_node, node].var_losses[t]
                                                       for from_node in b_netw.set_receives_from[node])
     b_netw.const_inflow = Constraint(set_t, b_netw.set_netw_carrier, energyhub.model.set_nodes, rule=init_inflow)
     return b_netw
 
-def define_outflow_constraints(b_netw, energyhub):
+def define_outflow_constraints(b_netw, energyhub, set_t):
     """
     Connects the arc flows to outflow at each node
     outflow = sum(arc_block(node,to).flow for from in set_node_sends_to)
     """
-    if global_variables.clustered_data:
-        outflow = b_netw.var_outflow_aux
-        set_t = energyhub.model.set_t_clustered
-    else:
-        outflow = b_netw.var_outflow
-        set_t = energyhub.model.set_t_full
-
     def init_outflow(const, t, car, node):
-        return outflow[t, car, node] == sum(b_netw.arc_block[node, to_node].var_flow[t] \
+        return  b_netw.var_outflow[t, car, node] == sum(b_netw.arc_block[node, to_node].var_flow[t] \
                                                        for to_node in b_netw.set_sends_to[node])
     b_netw.const_outflow = Constraint(set_t, b_netw.set_netw_carrier, energyhub.model.set_nodes, rule=init_outflow)
     return b_netw
 
-def define_emission_constraints(b_netw, energyhub):
+def define_emission_constraints(b_netw, set_t):
     """
     Defines Emissions from network
     """
-    if global_variables.clustered_data:
-        emissions_pos = b_netw.var_netw_emissions_pos_aux
-        set_t = energyhub.model.set_t_clustered
-    else:
-        emissions_pos = b_netw.var_netw_emissions_pos
-        set_t = energyhub.model.set_t_full
-
     def init_netw_emissions(const, t):
         return sum(b_netw.arc_block[arc].var_flow[t] for arc in b_netw.set_arcs) * \
                b_netw.para_emissionfactor + \
                sum(b_netw.arc_block[arc].var_losses[t] for arc in b_netw.set_arcs) * \
                b_netw.para_loss2emissions \
-               == emissions_pos[t]
+               == b_netw.var_netw_emissions_pos[t]
     b_netw.const_netw_emissions = Constraint(set_t, rule=init_netw_emissions)
     return b_netw
 
-def define_energyconsumption_total(b_netw, energyhub):
+def define_energyconsumption_total(b_netw, set_t):
     """
     Defines network consumption at each node
     """
-    if global_variables.clustered_data:
-        consumption = b_netw.var_consumption_aux
-        set_t = energyhub.model.set_t_clustered
-    else:
-        consumption = b_netw.var_consumption
-        set_t = energyhub.model.set_t_full
-
     def init_network_consumption(const, t, car, node):
-        return consumption[t, car, node] == \
+        return b_netw.var_consumption[t, car, node] == \
                sum(b_netw.arc_block[node, to_node].var_consumption_send[t, car]
                    for to_node in b_netw.set_sends_to[node]) + \
                sum(b_netw.arc_block[from_node, node].var_consumption_receive[t, car]
@@ -808,8 +717,6 @@ def add_networks(energyhub):
         data = energyhub.data_averaged
     else:
         data = energyhub.data_full
-    if global_variables.clustered_data == 1:
-        data_clustered = energyhub.data_clustered
 
     model = energyhub.model
 
@@ -824,10 +731,7 @@ def add_networks(energyhub):
         bidirectional = performance_data['bidirectional']
 
         # SET_T
-        if global_variables.clustered_data == 1:
-            set_t = energyhub.model.set_t_clustered
-        else:
-            set_t = energyhub.model.set_t_full
+        set_t = energyhub.model.set_t_full
 
         # ARCS
         # Define sets of possible arcs
@@ -844,10 +748,10 @@ def add_networks(energyhub):
         b_netw = define_capex_parameters(b_netw, netw_data, energyhub)
 
         # OPEX PARAMETERS
-        b_netw = define_opex_parameters(b_netw, netw_data, energyhub)
+        b_netw = define_opex_parameters(b_netw, netw_data, set_t)
 
         # EMISSIONS
-        b_netw = define_emission_vars(b_netw, netw_data, energyhub)
+        b_netw = define_emission_vars(b_netw, netw_data, set_t)
 
         # NETWORK CHARACTERISTICS
         b_netw = define_network_characteristics(b_netw, netw_data)
@@ -856,13 +760,9 @@ def add_networks(energyhub):
         b_netw = define_inflow_vars(b_netw, energyhub)
         b_netw = define_outflow_vars(b_netw, energyhub)
 
-        # DEFINE AUXILIARY VARIABLES FOR CLUSTERED DATA
-        if global_variables.clustered_data:
-            b_netw = define_auxiliary_vars(b_netw, netw_data, energyhub)
-
         # ENERGYCONSUMPTION AT NODES
         if energy_consumption:
-            b_netw = define_energyconsumption_parameters(model, b_netw, energy_consumption)
+            b_netw = define_energyconsumption_parameters(b_netw, energy_consumption, energyhub)
 
         # ARCS
         def arc_block_init(b_arc, node_from, node_to):
@@ -903,18 +803,18 @@ def add_networks(energyhub):
         b_netw = define_capex_total(b_netw, bidirectional)
 
         # OPEX
-        b_netw = define_opex_total(b_netw, bidirectional, energyhub)
+        b_netw = define_opex_total(b_netw, bidirectional, set_t)
 
         # TOTAL IN AND OUTFLOW PER NODE
-        b_netw = define_inflow_constraints(b_netw, energyhub)
-        b_netw = define_outflow_constraints(b_netw, energyhub)
+        b_netw = define_inflow_constraints(b_netw, energyhub, set_t)
+        b_netw = define_outflow_constraints(b_netw, energyhub, set_t)
 
         # EMISSIONS
-        b_netw = define_emission_constraints(b_netw, energyhub)
+        b_netw = define_emission_constraints(b_netw, set_t)
 
         # ENERGYCONSUMPTION AT NODES
         if energy_consumption:
-            b_netw = define_energyconsumption_total(b_netw, energyhub)
+            b_netw = define_energyconsumption_total(b_netw, set_t)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_netw)
