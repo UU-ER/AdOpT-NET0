@@ -66,7 +66,7 @@ def test_model2():
                   data.technology_data['test_node1']['Furnace_NG'].fitted_performance['heat']['alpha1']
     assert  round(size_res,3) == round(size_should,3)
     # Gas Import in each timestep
-    import_res = [value(m.node_blocks['test_node1'].var_import_flow[key, 'gas'].value) for key in m.set_t]
+    import_res = [value(m.node_blocks['test_node1'].var_import_flow[key, 'gas'].value) for key in m.set_t_full]
     import_res = pd.Series(import_res)
     import_res = import_res.tolist()
     import_should = data.node_data['test_node1']['demand']['heat'] / data.technology_data['test_node1']['Furnace_NG'].fitted_performance['heat']['alpha1']
@@ -160,16 +160,16 @@ def test_emission_balance1():
 
     #network emissions
     emissionsNETW = sum(energyhub.model.network_block['electricityTest'].var_netw_emissions_pos[t].value
-                        for t in energyhub.model.set_t)
+                        for t in energyhub.model.set_t_full)
     emissionsFlowNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore','offshore')].var_flow[t].value
-                   for t in energyhub.model.set_t) + \
+                   for t in energyhub.model.set_t_full) + \
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_flow[t].value
-                   for t in energyhub.model.set_t)) * \
+                   for t in energyhub.model.set_t_full)) * \
                         data.network_data['electricityTest'].performance_data['emissionfactor']
     emissionsLossNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore', 'offshore')].var_losses[t].value
-                             for t in energyhub.model.set_t) + \
+                             for t in energyhub.model.set_t_full) + \
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_losses[t].value
-                             for t in energyhub.model.set_t)) * \
+                             for t in energyhub.model.set_t_full)) * \
                         data.network_data['electricityTest'].performance_data['loss2emissions']
     assert round(emissionsNETW) == round(emissionsFlowNETW + emissionsLossNETW)
     assert abs(emissionsNETW - 28) / 28 <= 0.01
@@ -177,12 +177,12 @@ def test_emission_balance1():
     # technology emissions
     tec_emissions = 9/0.9*0.185*2
     assert abs(sum(energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions_pos[t].value
-               for t in energyhub.model.set_t)-tec_emissions)/tec_emissions <= 0.01
+               for t in energyhub.model.set_t_full)-tec_emissions)/tec_emissions <= 0.01
 
     # import emissions
     import_emissions = 10*0.4
     assert abs(sum(energyhub.model.node_blocks['onshore'].var_car_emissions_pos[t].value
-               for t in energyhub.model.set_t)-import_emissions)/import_emissions <= 0.01
+               for t in energyhub.model.set_t_full)-import_emissions)/import_emissions <= 0.01
 
     # total emissions
     assert abs(tec_emissions + import_emissions + emissionsNETW - emissionsTOT)/ emissionsTOT <= 0.01

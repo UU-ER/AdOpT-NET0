@@ -62,8 +62,8 @@ def constraints_tec_hp(model, b_tec, tec_data):
     # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:
         def init_input_output(const, t):
-            return b_tec.var_output[t, 'heat'] == alpha1[t-1] * b_tec.var_input[t, 'electricity']
-        b_tec.const_input_output = Constraint(model.set_t, rule=init_input_output)
+            return output[t, 'heat'] == alpha1[t-1] * input[t, 'electricity']
+        b_tec.const_input_output = Constraint(b_tec.set_t, rule=init_input_output)
 
     # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
@@ -73,31 +73,31 @@ def constraints_tec_hp(model, b_tec, tec_data):
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
                 def init_input_off(const):
-                    return b_tec.var_input[t, 'electricity'] == 0
+                    return input[t, 'electricity'] == 0
                 dis.const_input = Constraint(rule=init_input_off)
 
                 def init_output_off(const):
-                    return b_tec.var_output[t, 'heat'] == 0
+                    return output[t, 'heat'] == 0
                 dis.const_output_off = Constraint(rule=init_output_off)
             else:  # technology on
                 # input-output relation
                 def init_input_output_on(const):
-                    return b_tec.var_output[t, 'heat'] == alpha1[t-1] * b_tec.var_input[t, 'electricity'] + \
+                    return output[t, 'heat'] == alpha1[t-1] * input[t, 'electricity'] + \
                            alpha2[t-1] * b_tec.var_size * rated_power
                 dis.const_input_output_on = Constraint(rule=init_input_output_on)
 
                 # min part load relation
                 def init_min_partload(const):
-                    return b_tec.var_input[t, 'electricity'] >= \
+                    return input[t, 'electricity'] >= \
                            min_part_load * b_tec.var_size * rated_power
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
+        b_tec.dis_input_output = Disjunct(b_tec.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
-        b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = Disjunction(b_tec.set_t, rule=bind_disjunctions)
 
     # PIECEWISE-AFFINE
     elif performance_function_type == 3:
@@ -106,47 +106,47 @@ def constraints_tec_hp(model, b_tec, tec_data):
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
                 def init_input_off(const):
-                    return b_tec.var_input[t, 'electricity'] == 0
+                    return input[t, 'electricity'] == 0
                 dis.const_input_off = Constraint(rule=init_input_off)
 
                 def init_output_off(const):
-                    return b_tec.var_output[t, 'heat'] == 0
+                    return output[t, 'heat'] == 0
                 dis.const_output_off = Constraint( rule=init_output_off)
 
             else:  # piecewise definition
                 def init_input_on1(const):
-                    return b_tec.var_input[t, 'electricity'] >= \
+                    return input[t, 'electricity'] >= \
                            bp_x[t-1, ind] * b_tec.var_size * rated_power
                 dis.const_input_on1 = Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
-                    return b_tec.var_input[t, 'electricity'] <= \
+                    return input[t, 'electricity'] <= \
                            bp_x[t-1, ind+1] * b_tec.var_size * rated_power
                 dis.const_input_on2 = Constraint(rule=init_input_on2)
 
                 def init_output_on(const):
-                    return b_tec.var_output[t, 'heat']  == \
-                           alpha1[t-1, ind - 1] * b_tec.var_input[t, 'electricity'] + \
+                    return output[t, 'heat']  == \
+                           alpha1[t-1, ind - 1] * input[t, 'electricity'] + \
                            alpha2[t-1, ind - 1] * b_tec.var_size * rated_power
                 dis.const_input_output_on = Constraint(rule=init_output_on)
 
                 # min part load relation
                 def init_min_partload(const):
-                    return b_tec.var_input[t, 'electricity'] >= \
+                    return input[t, 'electricity'] >= \
                            min_part_load * b_tec.var_size * rated_power
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
+        b_tec.dis_input_output = Disjunct(b_tec.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
-        b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = Disjunction(b_tec.set_t, rule=bind_disjunctions)
 
     # size constraint based on sum of inputs
     def init_size_constraint(const, t):
-        return b_tec.var_input[t, 'electricity'] <= b_tec.var_size * rated_power
-    b_tec.const_size = Constraint(model.set_t, rule=init_size_constraint)
+        return input[t, 'electricity'] <= b_tec.var_size * rated_power
+    b_tec.const_size = Constraint(b_tec.set_t, rule=init_size_constraint)
 
 
     return b_tec

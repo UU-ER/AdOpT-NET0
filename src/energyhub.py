@@ -35,38 +35,39 @@ class EnergyHub:
         print('Reading in data...')
         start = time.time()
 
+        # Define units
+        define_units()
+
         # READ IN MODEL CONFIGURATION
         self.configuration = configuration
 
         # INITIALIZE MODEL
         self.model = ConcreteModel()
 
-        # Define units
-        try:
-            u.load_definitions_from_strings(['EUR = [currency]'])
-        except pint.errors.DefinitionSyntaxError:
-            pass
+        # INITIALIZE DATA
+        self.data_full = data
+
+        # INITIALIZE GLOBAL OPTIONS
+        global_variables.clustered_data = 0
+        global_variables.averaged_data = 0
 
         # INITIALIZE SOLUTION
-        self.solution = []
+        self.solution = None
 
-        # READ IN DATA
+        # COMPUTE CLUSTERED DATA
         if not self.configuration.optimization.typicaldays == 0:
-            # Clustered Data (typical days)
             global_variables.clustered_data = 1
             self.__cluster_data(data)
-        else:
-            # Full Resolution
-            global_variables.clustered_data = 0
-            self.data = data
 
+        # COMPUTE AVERAGED DATA
         if self.configuration.optimization.timestaging:
-            # Time Averaging Algorithm
             global_variables.averaged_data = 1
+            self.model_first_stage = None
+            self.solution_first_stage = None
             self.__average_data()
 
-        if self.configuration.optimization.objective == 'pareto':
-            self.pareto_results = []
+        # INITIALIZE RESULTS
+        self.results = None
 
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -98,18 +99,26 @@ class EnergyHub:
         start = time.time()
 
         # DEFINE SETS
-        topology = self.data.topology
+        # Nodes, Carriers, Technologies, Networks
+        topology = self.data_full.topology
         self.model.set_nodes = Set(initialize=topology.nodes)
         self.model.set_carriers = Set(initialize=topology.carriers)
-        self.model.set_t = RangeSet(1,len(topology.timesteps))
-
         def tec_node(set, node):
-            if self.data.technology_data:
-                return self.data.technology_data[node].keys()
+            if self.data_full.technology_data:
+                return self.data_full.technology_data[node].keys()
             else:
                 return Set.Skip
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=self.data.network_data.keys())
+        self.model.set_networks = Set(initialize=self.data_full.network_data.keys())
+
+        # Time Frame
+        if global_variables.averaged_data == 1:
+            self.model.set_t_full = RangeSet(1,len(self.data_averaged.topology.timesteps))
+        else:
+            self.model.set_t_full = RangeSet(1,len(self.data_full.topology.timesteps))
+
+        if global_variables.clustered_data == 1:
+            self.model.set_t_clustered = RangeSet(1,len(self.data_clustered.topology.timesteps))
 
         # DEFINE VARIABLES
         # Global cost variables
@@ -183,7 +192,7 @@ class EnergyHub:
         :param list technologies: list of technologies that should be added to nodename
         :return: None
         """
-        self.data.read_single_technology_data(nodename, technologies)
+        self.data_full.read_single_technology_data(nodename, technologies)
         mc.add_technologies(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
@@ -213,15 +222,16 @@ class EnergyHub:
         :return np array occurance_hour:
         """
         if global_variables.clustered_data and global_variables.averaged_data:
-            occurrence_hour = np.multiply(
-                self.data.k_means_specs.reduced_resolution['factor'].to_numpy(),
-                self.data.averaged_specs.reduced_resolution['factor'].to_numpy())
+            pass
+            # occurrence_hour = np.multiply(
+            #     self.data_clustered.k_means_specs.reduced_resolution['factor'].to_numpy(),
+            #     self.data_averaged.averaged_specs.reduced_resolution['factor'].to_numpy())
         elif global_variables.clustered_data and not global_variables.averaged_data:
-            occurrence_hour = self.data.k_means_specs.reduced_resolution['factor'].to_numpy()
+            occurrence_hour = self.data_clustered.k_means_specs.reduced_resolution['factor'].to_numpy()
         elif not global_variables.clustered_data and global_variables.averaged_data:
-            occurrence_hour = self.data.averaged_specs.reduced_resolution['factor'].to_numpy()
+            occurrence_hour = self.data_clustered.averaged_specs.reduced_resolution['factor'].to_numpy()
         else:
-            occurrence_hour = np.ones(len(self.model.set_t))
+            occurrence_hour = np.ones(len(self.model.set_t_full))
         return occurrence_hour
 
     def __cluster_data(self, data):
@@ -230,8 +240,8 @@ class EnergyHub:
         :param data DataHandle: instance of the DataHandle class
         """
         print('Clustering Data...')
-        self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
-        global_variables.clustered_data_specs.specs = self.data.k_means_specs
+        self.data_clustered = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
+        global_variables.clustered_data_specs.specs = self.data_clustered.k_means_specs
         print('Clustering Data completed')
 
     def __average_data(self):
@@ -239,11 +249,8 @@ class EnergyHub:
         Averages the data for a two-stage time average algorithm
         """
         print('Averaging Data...')
-        self.data_full_res = self.data
-        self.data = dm.DataHandle_AveragedData(self.data_full_res, self.configuration.optimization.timestaging)
-        global_variables.averaged_data_specs.specs = self.data.averaged_specs
-        self.model_first_stage = []
-        self.solution_first_stage = []
+        self.data_averaged = dm.DataHandle_AveragedData(self.data_full, self.configuration.optimization.timestaging)
+        global_variables.averaged_data_specs.specs = self.data_averaged.averaged_specs
         print('Averaging Data completed')
 
     def __optimize(self):
@@ -253,8 +260,8 @@ class EnergyHub:
         """
 
         # Define solver settings
-        if self.configuration.solveroptions.solver == 'gurobi':
-            solver = get_gurobi_parameters(self.configuration.solveroptions)
+        # if self.configuration.solveroptions.solver == 'gurobi':
+        solver = get_gurobi_parameters(self.configuration.solveroptions)
 
         # Solve model
         print('_' * 20)
@@ -316,14 +323,14 @@ class EnergyHub:
         """
         # Min Cost
         pareto_points = self.configuration.optimization.pareto_points
-        self.pareto_results = [None] * pareto_points
+        self.results = [None] * pareto_points
         self.__minimize_cost()
-        self.pareto_results[pareto_points - 1] = self.write_results()
+        self.results[pareto_points - 1] = self.write_results()
         emissions_max = self.model.var_emissions_net.value
         # Min Emissions
         self.__minimize_emissions_minC()
         emissions_min = self.model.var_emissions_net.value
-        self.pareto_results[0] = self.write_results()
+        self.results[0] = self.write_results()
         # Emission limit
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
         for pareto_point in range(1, pareto_points - 1):
@@ -331,7 +338,7 @@ class EnergyHub:
             self.model.const_emission_limit = Constraint(
                 expr=self.model.var_emissions_net <= emission_limits[pareto_point])
             self.__minimize_cost()
-            self.pareto_results[pareto_point] = self.write_results()
+            self.results[pareto_point] = self.write_results()
 
 
     def __delete_objective(self):
@@ -354,7 +361,7 @@ class EnergyHub:
         self.solution_first_stage = copy.deepcopy(self.solution)
         self.model = ConcreteModel()
         self.solution = []
-        self.data = self.data_full_res
+        self.data = self.data_full
         self.construct_model()
         self.construct_balances()
         self.__impose_size_constraints(bounds_on)
@@ -377,7 +384,7 @@ class EnergyHub:
         if bounds_on == 'all' or bounds_on == 'only_technologies' or bounds_on == 'no_storage':
             def size_constraint_block_tecs_init(block, node):
                 def size_constraints_tecs_init(const, tec):
-                    if self.data.technology_data[node][tec].technology_model == 'STOR' and bounds_on == 'no_storage':
+                    if self.data_full.technology_data[node][tec].technology_model == 'STOR' and bounds_on == 'no_storage':
                         return Constraint.Skip
                     else:
                         return m_avg.node_blocks[node].tech_blocks_active[tec].var_size.value <= \

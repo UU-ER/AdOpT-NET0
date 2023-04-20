@@ -1,5 +1,6 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
+import pint
 
 def get_gurobi_parameters(solveroptions):
     solver = SolverFactory(solveroptions.solver)
@@ -17,3 +18,9 @@ def get_gurobi_parameters(solveroptions):
     solver.options['IntFeasTol'] = solveroptions.intfeastol
     solver.options['Cuts'] = solveroptions.cuts
     return solver
+
+def define_units():
+    try:
+        u.load_definitions_from_strings(['EUR = [currency]'])
+    except pint.errors.DefinitionSyntaxError:
+        pass

@@ -65,22 +65,22 @@ def perform_k_means(full_resolution, nr_clusters):
     return clustered_data, kmeans.labels_
 
 
-def compile_hourly_order(day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
+def compile_sequence(day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
     """
 
     :param day_labels: labels for each typical day
     :param nr_clusters: how many clusters (i.e. typical days)
     :param nr_days_full_resolution: how many days in full resolution
     :param nr_time_intervals_per_day: how many time-intervals per day
-    :return hourly_order: Hourly order of typical days/hours in full resolution
+    :return sequence: Hourly order of typical days/hours in full resolution
     """
     time_slices_cluster = np.arange(1, nr_time_intervals_per_day * nr_clusters + 1)
     time_slices_cluster = time_slices_cluster.reshape((-1, nr_time_intervals_per_day))
-    hourly_order = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
+    sequence = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
     for day in range(0, nr_days_full_resolution):
-        hourly_order[day] = time_slices_cluster[day_labels[day]]
-    hourly_order = hourly_order.reshape((-1, 1))
-    return hourly_order
+        sequence[day] = time_slices_cluster[day_labels[day]]
+    sequence = sequence.reshape((-1, 1))
+    return sequence
 
 def get_day_factors(keys):
     """

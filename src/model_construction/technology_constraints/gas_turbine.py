@@ -102,23 +102,23 @@ def constraints_tec_gt(model, b_tec, tec_data):
         else:
             car = 'hydrogen'
         return tuple(fitted_performance['input_bounds'][car][t - 1, :] * size_max)
-    b_tec.var_total_input = Var(model.set_t, within=NonNegativeReals,
+    b_tec.var_total_input = Var(b_tec.set_t, within=NonNegativeReals,
                                 bounds=init_input_bounds, units=u.MW)
 
-    b_tec.var_units_on = Var(model.set_t, within=NonNegativeIntegers,
+    b_tec.var_units_on = Var(b_tec.set_t, within=NonNegativeIntegers,
                              bounds=(0, size_max))
 
     # Calculate total input
     def init_total_input(const, t):
-        return b_tec.var_total_input[t] == sum(b_tec.var_input[t, car_input]
+        return b_tec.var_total_input[t] == sum(input[t, car_input]
                                                for car_input in b_tec.set_input_carriers)
-    b_tec.const_total_input = Constraint(model.set_t, rule=init_total_input)
+    b_tec.const_total_input = Constraint(b_tec.set_t, rule=init_total_input)
 
     # Constrain hydrogen input
     if len(performance_data['input_carrier']) == 2:
         def init_h2_input(const, t):
-            return b_tec.var_input[t, 'hydrogen'] <= b_tec.var_total_input[t] * b_tec.para_max_H2_admixture
-        b_tec.const_h2_input = Constraint(model.set_t, rule=init_h2_input)
+            return input[t, 'hydrogen'] <= b_tec.var_total_input[t] * b_tec.para_max_H2_admixture
+        b_tec.const_h2_input = Constraint(b_tec.set_t, rule=init_h2_input)
 
     # LINEAR, MINIMAL PARTLOAD
     s_indicators = range(0, 2)
@@ -126,23 +126,23 @@ def constraints_tec_gt(model, b_tec, tec_data):
     def init_input_output(dis, t, ind):
         if ind == 0:  # technology off
             def init_input_off(const, car):
-                return b_tec.var_input[t, car] == 0
+                return input[t, car] == 0
             dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
             def init_output_off(const, car):
-                return b_tec.var_output[t, car] == 0
+                return output[t, car] == 0
             dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
 
         else:  # technology on
             # input-output relation
             def init_input_output_on_el(const):
-                return b_tec.var_output[t, 'electricity'] == (b_tec.para_alpha * b_tec.var_total_input[t] + \
+                return output[t, 'electricity'] == (b_tec.para_alpha * b_tec.var_total_input[t] + \
                                                               b_tec.para_beta * b_tec.var_units_on[t]) * f[t-1]
             dis.const_input_output_on_el = Constraint(rule=init_input_output_on_el)
 
             def init_input_output_on_th(const):
-                return b_tec.var_output[t, 'heat'] == b_tec.para_epsilon * b_tec.var_total_input[t] - \
-                       b_tec.var_output[t, 'electricity']
+                return output[t, 'heat'] == b_tec.para_epsilon * b_tec.var_total_input[t] - \
+                       output[t, 'electricity']
             dis.const_input_output_on_th = Constraint(rule=init_input_output_on_th)
 
             # min part load relation
@@ -156,16 +156,16 @@ def constraints_tec_gt(model, b_tec, tec_data):
                        b_tec.para_in_max * b_tec.var_units_on[t]
             dis.const_max_input = Constraint(rule=init_max_input)
 
-    b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
+    b_tec.dis_input_output = Disjunct(b_tec.set_t, s_indicators, rule=init_input_output)
 
     # Bind disjuncts
     def bind_disjunctions(dis, t):
         return [b_tec.dis_input_output[t, i] for i in s_indicators]
-    b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
+    b_tec.disjunction_input_output = Disjunction(b_tec.set_t, rule=bind_disjunctions)
 
     # Technologies on
     def init_n_on(const, t):
         return b_tec.var_units_on[t] <= b_tec.var_size
-    b_tec.const_n_on = Constraint(model.set_t, rule=init_n_on)
+    b_tec.const_n_on = Constraint(b_tec.set_t, rule=init_n_on)
 
     return b_tec

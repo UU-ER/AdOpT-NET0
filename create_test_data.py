@@ -516,6 +516,11 @@ def create_data_time_algorithms():
     electricity_demand = np.ones(len(topology.timesteps)) * 100
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
+    # # Import Limit
+    # data.read_import_limit_data('test_node1', 'electricity', electricity_demand)
+    # data.read_import_price_data('test_node1', 'electricity', electricity_demand)
+
+
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data()
     data.read_network_data()
@@ -676,21 +681,21 @@ def create_data_existing_networks():
     data4.save(data_save_path4)
 
 
-
-create_data_test_data_handle()
-create_data_model1()
-create_data_model2()
-create_data_emissionbalance1()
-create_data_emissionbalance2()
-create_data_technology_type1_PV()
-create_data_technology_type1_WT()
-create_data_technology_CONV()
-create_data_network()
-create_data_addtechnology()
-create_data_technologySTOR()
+#
+# create_data_test_data_handle()
+# create_data_model1()
+# create_data_model2()
+# create_data_emissionbalance1()
+# create_data_emissionbalance2()
+# create_data_technology_type1_PV()
+# create_data_technology_type1_WT()
+# create_data_technology_CONV()
+# create_data_network()
+# create_data_addtechnology()
+# create_data_technologySTOR()
 create_data_time_algorithms()
-create_data_optimization_types()
-create_data_existing_technologies()
-create_data_existing_networks()
+# create_data_optimization_types()
+# create_data_existing_technologies()
+# create_data_existing_networks()
 
 

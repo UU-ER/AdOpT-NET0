@@ -28,7 +28,7 @@ def test_technology_RES_PV():
     assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['Photovoltaic'].var_size.value
     assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks_active['Photovoltaic'].var_size.value
 
-    for t in energyhub.model.set_t:
+    for t in energyhub.model.set_t_full:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -56,7 +56,7 @@ def test_technology_RES_WT():
     assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
 
     # Import at zero price
-    for t in energyhub.model.set_t:
+    for t in energyhub.model.set_t_full:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'optimal'

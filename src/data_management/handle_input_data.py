@@ -395,14 +395,14 @@ class ClusteredDataHandle(DataHandle):
         clustered_data, day_labels = dm.perform_k_means(full_resolution,
                                                         nr_clusters)
         # Get order of typical days
-        self.k_means_specs.full_resolution['hourly_order'] = dm.compile_hourly_order(day_labels,
+        self.k_means_specs.full_resolution['sequence'] = dm.compile_sequence(day_labels,
                                          nr_clusters,
                                          nr_days_full_resolution,
                                          nr_time_intervals_per_day)
         # Match typical day to actual day
         self.k_means_specs.full_resolution['typical_day'] = np.repeat(day_labels, nr_time_intervals_per_day)
         # Create factors, indicating how many times an hour occurs
-        self.k_means_specs.reduced_resolution = dm.get_day_factors(self.k_means_specs.full_resolution['hourly_order'])
+        self.k_means_specs.reduced_resolution = dm.get_day_factors(self.k_means_specs.full_resolution['sequence'])
         # Read data back in
         self.read_clustered_data(clustered_data, tecs_flagged_for_clustering)
 

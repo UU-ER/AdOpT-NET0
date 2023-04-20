@@ -11,56 +11,85 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 from src.data_management.components.fit_technology_performance import fit_piecewise_function
 from scipy.interpolate import griddata
-# from netCDF4 import Dataset
+import sys
 
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-# Load data handle from file
-topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
+data = dm.load_object(r'./test/test_data/time_algorithms.p')
 
-topology.define_carriers(['electricity'])
-topology.define_nodes(['test_node1'])
-topology.define_new_technologies('test_node1', ['WindTurbine_Onshore_1500'])
-
-# INITIALIZE MODEL CONFIGURATION
+# Full resolution
 configuration = ModelConfiguration()
+energyhub1 = ehub(data, configuration)
+energyhub1.quick_solve_model()
+cost1 = energyhub1.model.var_total_cost.value
+assert energyhub1.solution.solver.termination_condition == 'optimal'
+results = energyhub1.write_results()
+# f = open(r'userData\A.txt', 'w')
+# sys.stdout = f
+# energyhub1.model.pprint()
+# f.close()
 
-# Initialize instance of DataHandle
-data = dm.DataHandle(topology)
+results.write_excel(r'.\userData\test1')
 
-# CLIMATE DATA
-data.read_climate_data_from_file('test_node1', r'.\data\climate_data_onshore.txt')
+# k_means
+configuration = ModelConfiguration()
+configuration.optimization.typicaldays = 1
+energyhub2 = ehub(data, configuration)
+energyhub2.quick_solve_model()
+cost2 = energyhub2.model.var_total_cost.value
+assert energyhub2.solution.solver.termination_condition == 'optimal'
+results = energyhub2.write_results()
+# f = open(r'userData\B.txt', 'w')
+# sys.stdout = f
+# energyhub2.model.pprint()
+# f.close()
+#
+results.write_excel(r'.\userData\test2')
 
-distance = dm.create_empty_network_matrix(topology.nodes)
-distance.at['onshore', 'offshore'] = 100
-distance.at['offshore', 'onshore'] = 100
-
-connection = dm.create_empty_network_matrix(topology.nodes)
-connection.at['onshore', 'offshore'] = 1
-connection.at['offshore', 'onshore'] = 1
-topology.define_new_network('electricitySimple', distance=distance, connections=connection)
-
-# DEMAND
-electricity_demand = np.ones(len(topology.timesteps)) * 10
-data.read_demand_data('test_node1', 'electricity', electricity_demand)
-
-# IMPORT
-electricity_import = np.ones(len(topology.timesteps)) * 10
-data.read_import_limit_data('test_node1', 'electricity', electricity_import)
-
-# IMPORT Prices
-electricity_price = np.ones(len(topology.timesteps)) * 1000
-data.read_import_price_data('test_node1', 'electricity', electricity_price)
-
-# READ TECHNOLOGY AND NETWORK DATA
-data.read_technology_data()
-data.read_network_data()
-
-data.pprint()
+#
+# # Full resolution
+# # configuration = ModelConfiguration()
+# # energyhub1 = ehub(data, configuration)
+# # energyhub1.construct_model()
+# # energyhub1.construct_balances()
+# # f = open(r'userData\A.txt', 'w')
+# # sys.stdout = f
+# # energyhub1.model.pprint()
+# # f.close()
+# #
+# # cost1 = energyhub1.model.var_total_cost.value
+# # assert energyhub1.solution.solver.termination_condition == 'optimal'
+#
+# # f = open(r'userData\A.txt', 'w')
+# # sys.stdout = f
+# # energyhub1.model.pprint()
+# # f.close()
+# #
+# # results = energyhub1.write_results()
+# #
+# # results.write_excel(r'.\userData\test1')
+# #
+# # # k_means
+# configuration = ModelConfiguration()
+# configuration.optimization.typicaldays = 1
+# energyhub2 = ehub(data, configuration)
+# energyhub2.construct_model()
+# energyhub2.construct_balances()
+# f = open(r'userData\B.txt', 'w')
+# sys.stdout = f
+# energyhub2.model.pprint()
+# f.close()
+# #
+# # cost2 = energyhub2.model.var_total_cost.value
+# # assert energyhub2.solution.solver.termination_condition == 'optimal'
+# # f = open(r'userData\B.txt', 'w')
+# # sys.stdout = f
+# # energyhub2.model.pprint()
+# # f.close()
+# # results = energyhub2.write_results()
 
 execute = 0
 
