@@ -186,8 +186,8 @@ def test_technology_CONV1():
 
     # Min partload
     data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    data.node_data['test_node1']['demand']['heat'][1] = 0.001
-    data.node_data['test_node1']['export_limit']['electricity'][1] = 0
+    data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
+    data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -197,8 +197,8 @@ def test_technology_CONV1():
 
     # Min partload
     data = dm.load_object(r'./test/test_data/technology_CONV1_3.p')
-    data.node_data['test_node1']['demand']['heat'][1] = 0.001
-    data.node_data['test_node1']['export_limit']['electricity'][1] = 0
+    data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
+    data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -309,8 +309,8 @@ def test_technology_CONV2():
 
     # Min partload
     data = dm.load_object(r'./test/test_data/technology_CONV2_2.p')
-    data.node_data['test_node1']['demand']['heat'][1] = 0.001
-    data.node_data['test_node1']['export_limit']['electricity'][1] = 0
+    data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
+    data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.solve_model()
@@ -318,8 +318,8 @@ def test_technology_CONV2():
 
     # Min partload
     data = dm.load_object(r'./test/test_data/technology_CONV2_3.p')
-    data.node_data['test_node1']['demand']['heat'][1] = 0.001
-    data.node_data['test_node1']['export_limit']['electricity'][1] = 0
+    data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
+    data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -435,8 +435,8 @@ def test_technology_CONV3():
 
     # Min partload
     data = dm.load_object(r'./test/test_data/technology_CONV3_2.p')
-    data.node_data['test_node1']['demand']['heat'][1] = 0.001
-    data.node_data['test_node1']['export_limit']['electricity'][1] = 0
+    data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
+    data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -445,8 +445,8 @@ def test_technology_CONV3():
 
     # Min partload
     data = dm.load_object(r'./test/test_data/technology_CONV3_3.p')
-    data.node_data['test_node1']['demand']['heat'][1] = 0.001
-    data.node_data['test_node1']['export_limit']['electricity'][1] = 0
+    data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
+    data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()

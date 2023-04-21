@@ -11,7 +11,7 @@ def determine_carriers_at_node(energyhub, node):
     Determines carriers that are used at respective node
     """
     # COLLECT OBJECTS FROM ENERGYHUB
-    data = energyhub.data_full
+    data = energyhub.data
     model = energyhub.model
 
     # Carriers that need to be considered at node
@@ -20,8 +20,8 @@ def determine_carriers_at_node(energyhub, node):
     # From time series
     time_series = ['demand', 'production_profile', 'import_limit', 'export_limit']
     for series in time_series:
-        for car in data.node_data[node][series]:
-            if np.any(data.node_data[node][series][car]):
+        for car in data.node_data[node].data[series]:
+            if np.any(data.node_data[node].data[series][car]):
                 carriers.append(car)
 
     # From technologies
@@ -47,7 +47,7 @@ def determine_network_energy_consumption(energyhub):
     Determines if there is network consumption for a network
     """
     # COLLECT OBJECTS FROM ENERGYHUB
-    data = energyhub.data_full
+    data = energyhub.data
     model = energyhub.model
 
     # From networks
@@ -112,7 +112,7 @@ def add_nodes(energyhub):
     if global_variables.averaged_data == 1:
         data = energyhub.data_averaged
     else:
-        data = energyhub.data_full
+        data = energyhub.data
     model = energyhub.model
 
     def init_node_block(b_node, nodename):
@@ -128,54 +128,54 @@ def add_nodes(energyhub):
         # PARAMETERS
         # Demand
         def init_demand(para, t, car):
-            return node_data['demand'][car][t - 1]
+            return node_data.data['demand'][car][t - 1]
         b_node.para_demand = Param(set_t, b_node.set_carriers,
                                    rule=init_demand, units=u.MWh)
 
         # Generic production profile
         def init_production_profile(para, t, car):
-                return node_data['production_profile'][car][t - 1]
+                return node_data.data['production_profile'][car][t - 1]
         b_node.para_production_profile = Param(set_t, b_node.set_carriers,
                                        rule=init_production_profile, units=u.MWh)
 
         # Import Prices
         def init_import_price(para, t, car):
             if nodename in data.node_data:
-                return node_data['import_prices'][car][t - 1]
+                return node_data.data['import_prices'][car][t - 1]
         b_node.para_import_price = Param(set_t, b_node.set_carriers,
                                          rule=init_import_price, units=u.EUR / u.MWh)
 
         # Export Prices
         def init_export_price_init(para, t, car):
             if nodename in data.node_data:
-                return node_data['export_prices'][car][t - 1]
+                return node_data.data['export_prices'][car][t - 1]
         b_node.para_export_price = Param(set_t, b_node.set_carriers,
                                          rule=init_export_price_init, units=u.EUR / u.MWh)
 
         # Import Limit
         def init_import_limit(para, t, car):
             if nodename in data.node_data:
-                return node_data['import_limit'][car][t - 1]
+                return node_data.data['import_limit'][car][t - 1]
         b_node.para_import_limit = Param(set_t, b_node.set_carriers,
                                          rule=init_import_limit, units=u.MWh)
 
         # Export Limit
         def init_export_limit(para, t, car):
             if nodename in data.node_data:
-                return node_data['export_limit'][car][t - 1]
+                return node_data.data['export_limit'][car][t - 1]
         b_node.para_export_limit = Param(set_t, b_node.set_carriers,
                                          rule=init_export_limit, units=u.MWh)
 
         # Emission Factor
         def init_import_emissionfactor(para, t, car):
             if nodename in data.node_data:
-                return node_data['import_emissionfactors'][car][t - 1]
+                return node_data.data['import_emissionfactors'][car][t - 1]
         b_node.para_import_emissionfactors = Param(set_t, b_node.set_carriers,
                                                    rule=init_import_emissionfactor, units=u.t / u.MWh)
 
         def init_export_emissionfactor(para, t, car):
             if nodename in data.node_data:
-                return node_data['export_emissionfactors'][car][t - 1]
+                return node_data.data['export_emissionfactors'][car][t - 1]
         b_node.para_export_emissionfactors = Param(set_t, b_node.set_carriers,
                                                    rule=init_export_emissionfactor, units=u.t / u.MWh)
 
@@ -209,15 +209,15 @@ def add_nodes(energyhub):
         # CONSTRAINTS
         # Generic production constraint
         def init_generic_production(const, t, car):
-            if node_data['production_profile_curtailment'][car] == 0:
+            if node_data.options.production_profile_curtailment[car] == 0:
                 return b_node.para_production_profile[t, car] == b_node.var_generic_production[t, car]
-            elif node_data['production_profile_curtailment'][car] == 1:
+            elif node_data.options.production_profile_curtailment[car] == 1:
                 return b_node.para_production_profile[t, car] >= b_node.var_generic_production[t, car]
         b_node.const_generic_production = Constraint(set_t, b_node.set_carriers, rule=init_generic_production)
 
         # Emission constraints
         def init_import_emissions_pos(const, t, car):
-            if node_data['import_emissionfactors'][car][t - 1] >= 0:
+            if node_data.data['import_emissionfactors'][car][t - 1] >= 0:
                 return b_node.var_import_flow[t, car] * b_node.para_import_emissionfactors[t, car] \
                     == b_node.var_import_emissions_pos[t, car]
             else:
@@ -226,7 +226,7 @@ def add_nodes(energyhub):
                                                        rule=init_import_emissions_pos)
 
         def init_export_emissions_pos(const, t, car):
-            if node_data['export_emissionfactors'][car][t - 1] >= 0:
+            if node_data.data['export_emissionfactors'][car][t - 1] >= 0:
                 return b_node.var_export_flow[t, car] * b_node.para_export_emissionfactors[t, car] \
                     == b_node.var_export_emissions_pos[t, car]
             else:
@@ -234,7 +234,7 @@ def add_nodes(energyhub):
         b_node.const_export_emissions_pos = Constraint(set_t, b_node.set_carriers, rule=init_export_emissions_pos)
 
         def init_import_emissions_neg(const, t, car):
-            if node_data['import_emissionfactors'][car][t - 1] < 0:
+            if node_data.data['import_emissionfactors'][car][t - 1] < 0:
                 return b_node.var_import_flow[t, car] * (-b_node.para_import_emissionfactors[t, car]) \
                     == b_node.var_import_emissions_neg[t, car]
             else:
@@ -243,7 +243,7 @@ def add_nodes(energyhub):
                                                        rule=init_import_emissions_neg)
 
         def init_export_emissions_neg(const, t, car):
-            if node_data['export_emissionfactors'][car][t - 1] < 0:
+            if node_data.data['export_emissionfactors'][car][t - 1] < 0:
                 return b_node.var_export_flow[t, car] * (-b_node.para_export_emissionfactors[t, car]) \
                     == b_node.var_export_emissions_neg[t, car]
             else:

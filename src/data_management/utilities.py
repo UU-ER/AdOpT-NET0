@@ -2,6 +2,7 @@ import pickle
 import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np
+from types import SimpleNamespace
 
 
 def save_object(data, save_path):
@@ -141,3 +142,40 @@ def define_multiindex(ls):
     multi_index = list(zip(*ls))
     multi_index = pd.MultiIndex.from_tuples(multi_index)
     return multi_index
+
+
+class NodeData():
+    """
+    Class to handle node data
+    """
+    def __init__(self, topology):
+        # Initialize Node Data (all time-dependent input data goes here)
+        self.data = {}
+        self.data_clustered = {}
+        variables = ['demand',
+                     'production_profile',
+                     'import_prices',
+                     'import_limit',
+                     'import_emissionfactors',
+                     'export_prices',
+                     'export_limit',
+                     'export_emissionfactors']
+
+        for var in variables:
+            self.data[var] = pd.DataFrame(index=topology.timesteps)
+            for carrier in topology.carriers:
+                self.data[var][carrier] = 0
+        self.data['climate_data'] = pd.DataFrame(index=topology.timesteps)
+
+        self.options = SimpleNamespace()
+        self.options.production_profile_curtailment = {}
+        for carrier in topology.carriers:
+            self.options.production_profile_curtailment[carrier]= 0
+
+        self.location = SimpleNamespace()
+        self.location.lon = None
+        self.location.lat = None
+        self.location.altitude = None
+
+
+

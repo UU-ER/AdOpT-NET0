@@ -366,8 +366,8 @@ def create_data_technologySTOR():
 
     # CLIMATE DATA
     data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.node_data['test_node1']['climate_data']['dataframe']['ws10'][0] = 15
-    data.node_data['test_node1']['climate_data']['dataframe']['ws10'][1] = 0
+    data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
+    data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 1
@@ -697,5 +697,3 @@ create_data_time_algorithms()
 create_data_optimization_types()
 create_data_existing_technologies()
 create_data_existing_networks()
-
-

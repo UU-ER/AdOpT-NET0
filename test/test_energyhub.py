@@ -62,19 +62,19 @@ def test_model2():
     assert energyhub.solution.solver.termination_condition == 'optimal'
     # Size of Furnace
     size_res = m.node_blocks['test_node1'].tech_blocks_active['Furnace_NG'].var_size.value
-    size_should = max(data.node_data['test_node1']['demand']['heat']) / \
-                  data.technology_data['test_node1']['Furnace_NG'].fitted_performance['heat']['alpha1']
+    size_should = max(data.node_data['test_node1'].data['demand']['heat']) / \
+                  data.technology_data['test_node1']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1']
     assert  round(size_res,3) == round(size_should,3)
     # Gas Import in each timestep
     import_res = [value(m.node_blocks['test_node1'].var_import_flow[key, 'gas'].value) for key in m.set_t_full]
     import_res = pd.Series(import_res)
     import_res = import_res.tolist()
-    import_should = data.node_data['test_node1']['demand']['heat'] / data.technology_data['test_node1']['Furnace_NG'].fitted_performance['heat']['alpha1']
+    import_should = data.node_data['test_node1'].data['demand']['heat'] / data.technology_data['test_node1']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1']
     import_should = import_should.tolist()
     assert [round(num,3) for num in import_res] == [round(num,3) for num in import_should]
     # Total cost
     cost_res = m.objective()
-    import_price = data.node_data['test_node1']['import_prices']['gas'].tolist()
+    import_price = data.node_data['test_node1'].data['import_prices']['gas'].tolist()
     import_cost = sum([i1 * i2 for i1, i2 in zip(import_price, import_res)])
     t = data.technology_data['test_node1']['Furnace_NG'].economics.lifetime
     r = data.technology_data['test_node1']['Furnace_NG'].economics.discount_rate
@@ -143,7 +143,7 @@ def test_emission_balance1():
     data = dm.load_object(r'./test/test_data/emissionbalance1.p')
     configuration = ModelConfiguration()
     data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
-    data.technology_data['onshore']['Furnace_NG'].fitted_performance['heat']['alpha1'] = 0.9
+    data.technology_data['onshore']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1'] = 0.9
     data.network_data['electricityTest'].performance_data['emissionfactor'] = 0.2
     data.network_data['electricityTest'].performance_data['loss2emissions'] = 1
     energyhub = ehub(data, configuration)

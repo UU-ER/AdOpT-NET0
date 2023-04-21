@@ -24,64 +24,73 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
     :return: technology block
     """
     # Comments on the equations refer to the equation numbers in the paper. All equations can be looked up there.
-
     # DATA OF TECHNOLOGY
-    fitted_performance = tec_data.fitted_performance
     performance_data = tec_data.performance_data
+    coeff = tec_data.fitted_performance.coefficients
+    bounds = tec_data.fitted_performance.bounds
+    modelled_with_full_res = tec_data.modelled_with_full_res
 
-    nr_segments = tec_data.performance_data['nr_segments']
-    ohmic_heating = tec_data.performance_data['ohmic_heating']
+
+    # Full or reduced resolution
+    if global_variables.clustered_data and not modelled_with_full_res:
+        input = b_tec.var_input_aux
+        output = b_tec.var_output_aux
+        set_t = model.set_t_clustered
+    else:
+        input = b_tec.var_input
+        output = b_tec.var_output
+        set_t = model.set_t_full
+
+    nr_segments = performance_data['nr_segments']
+    ohmic_heating = performance_data['ohmic_heating']
 
     # Additional sets
     b_tec.set_pieces = RangeSet(1, nr_segments)
 
-    # Get variable bounds again
-    input_bounds = mc.calculate_input_bounds(tec_data)
-    input_bounds['total'] = [sum(x) for x in zip(input_bounds['heat'],input_bounds['electricity'])]
-
     # Additional decision variables
-    b_tec.var_modules_on = Var(b_tec.set_t,
+    b_tec.var_modules_on = Var(set_t,
                                domain=NonNegativeIntegers,
                                bounds=(b_tec.para_size_min, b_tec.para_size_max))
-    b_tec.var_input_total = Var(b_tec.set_t,
+    b_tec.var_input_total = Var(set_t,
                                 domain=NonNegativeReals,
-                                bounds=input_bounds['total'])
-    b_tec.var_input_el = Var(b_tec.set_t,
+                                bounds=bounds['input']['total'])
+    b_tec.var_input_el = Var(set_t,
                                domain=NonNegativeReals,
-                                bounds=input_bounds['electricity'])
-    b_tec.var_input_th = Var(b_tec.set_t,
+                                bounds=bounds['input']['electricity'])
+    b_tec.var_input_th = Var(set_t,
                                domain=NonNegativeReals,
-                                bounds=input_bounds['heat'])
-    b_tec.var_input_ohmic = Var(b_tec.set_t,
+                                bounds=bounds['input']['heat'])
+    b_tec.var_input_ohmic = Var(set_t,
                                domain=NonNegativeReals,
-                                bounds=tuple(el - th for el, th in zip(input_bounds['electricity'], input_bounds['heat'])))
+                                bounds=tuple(el - th for el, th in zip(bounds['input']['electricity'],
+                                                                       bounds['input']['heat'])))
 
     # Additional parameters
     def init_alpha(para, t, ind):
-        return fitted_performance['alpha'][t-1, ind-1]
-    b_tec.para_alpha = Param(b_tec.set_t, b_tec.set_pieces, domain=Reals, rule=init_alpha)
+        return coeff['alpha'][t-1, ind-1]
+    b_tec.para_alpha = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_alpha)
     def init_beta(para, t, ind):
-        return fitted_performance['beta'][t-1, ind-1]
-    b_tec.para_beta = Param(b_tec.set_t, b_tec.set_pieces, domain=Reals, rule=init_beta)
+        return coeff['beta'][t-1, ind-1]
+    b_tec.para_beta = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_beta)
     def init_b_low(para, t, ind):
-        return fitted_performance['b'][t-1, ind-1]
-    b_tec.para_b_low = Param(b_tec.set_t, b_tec.set_pieces, domain=Reals, rule=init_b_low)
+        return coeff['b'][t-1, ind-1]
+    b_tec.para_b_low = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_b_low)
     def init_b_up(para, t, ind):
-        return fitted_performance['b'][t-1, ind]
-    b_tec.para_b_up = Param(b_tec.set_t, b_tec.set_pieces, domain=Reals, rule=init_b_up)
+        return coeff['b'][t-1, ind]
+    b_tec.para_b_up = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_b_up)
 
     def init_gamma(para, t, ind):
-        return fitted_performance['gamma'][t-1, ind-1]
-    b_tec.para_gamma = Param(b_tec.set_t, b_tec.set_pieces, domain=Reals, rule=init_gamma)
+        return coeff['gamma'][t-1, ind-1]
+    b_tec.para_gamma = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_gamma)
     def init_delta(para, t, ind):
-        return fitted_performance['delta'][t-1, ind-1]
-    b_tec.para_delta = Param(b_tec.set_t, b_tec.set_pieces, domain=Reals, rule=init_delta)
+        return coeff['delta'][t-1, ind-1]
+    b_tec.para_delta = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_delta)
     def init_a_low(para, t, ind):
-        return fitted_performance['a'][t-1, ind-1]
-    b_tec.para_a_low = Param(b_tec.set_t, b_tec.set_pieces, domain=Reals, rule=init_a_low)
+        return coeff['a'][t-1, ind-1]
+    b_tec.para_a_low = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_a_low)
     def init_a_up(para, t, ind):
-        return fitted_performance['a'][t-1, ind]
-    b_tec.para_a_up = Param(b_tec.set_t, b_tec.set_pieces, domain=Reals, rule=init_a_up)
+        return coeff['a'][t-1, ind]
+    b_tec.para_a_up = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_a_up)
 
     b_tec.para_eta_elth = Param(initialize=performance_data['performance']['eta_elth'])
 
@@ -102,11 +111,11 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
         def init_input_up_bound(const):
             return b_tec.var_input_total[t] <= b_tec.para_b_up[t, ind] * b_tec.var_modules_on[t]
         dis.const_input_on2 = Constraint(rule=init_input_up_bound)
-    b_tec.dis_input_output = Disjunct(b_tec.set_t, b_tec.set_pieces, rule=init_input_output)
+    b_tec.dis_input_output = Disjunct(set_t, b_tec.set_pieces, rule=init_input_output)
     # Bind disjuncts
     def bind_disjunctions(dis, t):
         return [b_tec.dis_input_output[t, i] for i in b_tec.set_pieces]
-    b_tec.disjunction_input_output = Disjunction(b_tec.set_t, rule=bind_disjunctions)
+    b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
     # Electricity-Heat relationship (eq. 7-10)
     def init_input_input(dis, t, ind):
@@ -126,36 +135,36 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
         def init_input_up_bound(const):
             return b_tec.var_input_total[t] <= b_tec.para_a_up[t, ind] * b_tec.var_modules_on[t]
         dis.const_input_on2 = Constraint(rule=init_input_up_bound)
-    b_tec.dis_input_input = Disjunct(b_tec.set_t, b_tec.set_pieces, rule=init_input_input)
+    b_tec.dis_input_input = Disjunct(set_t, b_tec.set_pieces, rule=init_input_input)
 
     # Bind disjuncts
     def bind_disjunctions(dis, t):
         return [b_tec.dis_input_input[t, i] for i in b_tec.set_pieces]
-    b_tec.disjunction_input_input = Disjunction(b_tec.set_t, rule=bind_disjunctions)
+    b_tec.disjunction_input_input = Disjunction(set_t, rule=bind_disjunctions)
 
 
     # Constraint of number of working modules (eq. 6)
     def init_modules_on(const, t):
         return b_tec.var_modules_on[t] <= b_tec.var_size
-    b_tec.const_var_modules_on = Constraint(b_tec.set_t, rule=init_modules_on)
+    b_tec.const_var_modules_on = Constraint(set_t, rule=init_modules_on)
 
     # Connection thermal and electric energy demand (eq. 11)
     def init_thermal_energy(const, t):
         return b_tec.var_input_th[t] == b_tec.var_input_total[t] - b_tec.var_input_el[t]
-    b_tec.const_thermal_energy = Constraint(b_tec.set_t, rule=init_thermal_energy)
+    b_tec.const_thermal_energy = Constraint(set_t, rule=init_thermal_energy)
 
     # Account for ohmic heating (eq. 12)
     def init_input_el(const, t):
         return input[t, 'electricity'] == b_tec.var_input_ohmic[t] + b_tec.var_input_el[t]
-    b_tec.const_input_el = Constraint(b_tec.set_t, rule=init_input_el)
+    b_tec.const_input_el = Constraint(set_t, rule=init_input_el)
 
     def init_input_th(const, t):
         return input[t, 'heat'] == b_tec.var_input_th[t] - b_tec.var_input_ohmic[t] * b_tec.para_eta_elth
-    b_tec.const_input_th = Constraint(b_tec.set_t, rule=init_input_th)
+    b_tec.const_input_th = Constraint(set_t, rule=init_input_th)
 
     # If ohmic heating not allowed, set to zero
     if not ohmic_heating:
         def init_ohmic_heating(const, t):
             return b_tec.var_input_ohmic[t] == 0
-        b_tec.const_ohmic_heating = Constraint(b_tec.set_t, rule=init_ohmic_heating)
+        b_tec.const_ohmic_heating = Constraint(set_t, rule=init_ohmic_heating)
     return b_tec

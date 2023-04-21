@@ -140,10 +140,12 @@ def define_input(b_tec, tec_data, energyhub):
     performance_data = tec_data.performance_data
     fitted_performance = tec_data.fitted_performance
     technology_model = tec_data.technology_model
-    size_is_int = tec_data.size_is_int
+    modelled_with_full_res = tec_data.modelled_with_full_res
 
-    # set_t
+    # set_t and sequence
     set_t = energyhub.model.set_t_full
+    if global_variables.clustered_data and not modelled_with_full_res:
+        sequence = energyhub.data.k_means_specs.full_resolution['sequence']
 
     if existing:
         size_initial = tec_data.size_initial
@@ -151,21 +153,18 @@ def define_input(b_tec, tec_data, energyhub):
     else:
         size_max = tec_data.size_max
 
-    if size_is_int:
-        rated_power = fitted_performance['rated_power']
-    else:
-        rated_power = 1
+    rated_power = fitted_performance.rated_power
+
 
     if technology_model == 'RES':
         b_tec.set_input_carriers = Set(initialize=[])
     else:
         b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
-
         def init_input_bounds(bounds, t, car):
-            if global_variables.clustered_data == 1:
-                return (0, fitted_performance['input_bounds'][car].max() * size_max * rated_power)
+            if global_variables.clustered_data and not modelled_with_full_res:
+                return tuple(fitted_performance.bounds['input'][car][sequence[t - 1], :] * size_max * rated_power)
             else:
-                return tuple(fitted_performance['input_bounds'][car][t - 1, :] * size_max * rated_power)
+                return tuple(fitted_performance.bounds['input'][car][t - 1, :] * size_max * rated_power)
         b_tec.var_input = Var(set_t, b_tec.set_input_carriers, within=NonNegativeReals,
                               bounds=init_input_bounds, units=u.MW)
     return b_tec
@@ -180,15 +179,14 @@ def define_output(b_tec, tec_data, energyhub):
     existing = tec_data.existing
     performance_data = tec_data.performance_data
     fitted_performance = tec_data.fitted_performance
-    size_is_int = tec_data.size_is_int
+    modelled_with_full_res = tec_data.modelled_with_full_res
 
-    if size_is_int:
-        rated_power = fitted_performance['rated_power']
-    else:
-        rated_power = 1
+    rated_power = fitted_performance.rated_power
 
     # set_t
     set_t = energyhub.model.set_t_full
+    if global_variables.clustered_data and not modelled_with_full_res:
+        sequence = energyhub.data.k_means_specs.full_resolution['sequence']
 
     if existing:
         size_initial = tec_data.size_initial
@@ -199,10 +197,10 @@ def define_output(b_tec, tec_data, energyhub):
     b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])
 
     def init_output_bounds(bounds, t, car):
-        if global_variables.clustered_data == 1:
-            return (0, fitted_performance['output_bounds'][car].max() * size_max * rated_power)
+        if global_variables.clustered_data and not modelled_with_full_res:
+            return tuple(fitted_performance.bounds['output'][car][sequence[t - 1], :] * size_max * rated_power)
         else:
-            return tuple(fitted_performance['output_bounds'][car][t - 1, :] * size_max * rated_power)
+            return tuple(fitted_performance.bounds['output'][car][t - 1, :] * size_max * rated_power)
     b_tec.var_output = Var(set_t, b_tec.set_output_carriers, within=NonNegativeReals,
                            bounds=init_output_bounds, units=u.MW)
     return b_tec
@@ -259,14 +257,12 @@ def define_emissions(b_tec, tec_data, energyhub):
         # Based on output
         def const_tec_emissions_pos(const, t):
             return b_tec.var_tec_emissions_pos[t] == 0
-
         b_tec.const_tec_emissions_pos = Constraint(set_t, rule=const_tec_emissions_pos)
 
         def init_tec_emissions_neg(const, t):
             return b_tec.var_output[t, performance_data['output_carrier']] \
                        (-b_tec.para_tec_emissionfactor) == \
                    b_tec.var_tec_emissions_neg[t]
-
         b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
     else:
         # Based on input
@@ -307,30 +303,31 @@ def define_auxiliary_vars(b_tec, tec_data, energyhub):
     else:
         size_max = tec_data.size_max
 
-    if not technology_model == 'RES' and not technology_model == 'STOR':
-        sequence = energyhub.data_clustered.k_means_specs.full_resolution['sequence']
+    rated_power = fitted_performance.rated_power
 
-        def init_input_bounds(bounds, t, car):
-                return (0, fitted_performance['input_bounds'][car].max() * size_max)
-        b_tec.var_input_aux = Var(set_t_clustered, b_tec.set_input_carriers, within=NonNegativeReals,
-                              bounds=init_input_bounds, units=u.MW)
+    sequence = energyhub.data_clustered.k_means_specs.full_resolution['sequence']
 
-        b_tec.const_link_full_resolution_input = mc.link_full_resolution_to_clustered(b_tec.var_input_aux,
-                                                                                   b_tec.var_input,
-                                                                                   set_t_full,
-                                                                                   sequence,
-                                                                                   b_tec.set_input_carriers)
+    def init_input_bounds(bounds, t, car):
+            return tuple(fitted_performance.bounds['input'][car][t - 1, :] * size_max * rated_power)
+    b_tec.var_input_aux = Var(set_t_clustered, b_tec.set_input_carriers, within=NonNegativeReals,
+                          bounds=init_input_bounds, units=u.MW)
 
-        def init_output_bounds(bounds, t, car):
-            return (0, fitted_performance['output_bounds'][car].max() * size_max)
-        b_tec.var_output_aux = Var(set_t_clustered, b_tec.set_output_carriers, within=NonNegativeReals,
-                                  bounds=init_output_bounds, units=u.MW)
+    b_tec.const_link_full_resolution_input = mc.link_full_resolution_to_clustered(b_tec.var_input_aux,
+                                                                               b_tec.var_input,
+                                                                               set_t_full,
+                                                                               sequence,
+                                                                               b_tec.set_input_carriers)
 
-        b_tec.const_link_full_resolution_output = mc.link_full_resolution_to_clustered(b_tec.var_output_aux,
-                                                                                      b_tec.var_output,
-                                                                                      set_t_full,
-                                                                                      sequence,
-                                                                                      b_tec.set_output_carriers)
+    def init_output_bounds(bounds, t, car):
+        return tuple(fitted_performance.bounds['output'][car][t - 1, :] * size_max * rated_power)
+    b_tec.var_output_aux = Var(set_t_clustered, b_tec.set_output_carriers, within=NonNegativeReals,
+                              bounds=init_output_bounds, units=u.MW)
+
+    b_tec.const_link_full_resolution_output = mc.link_full_resolution_to_clustered(b_tec.var_output_aux,
+                                                                                  b_tec.var_output,
+                                                                                  set_t_full,
+                                                                                  sequence,
+                                                                                  b_tec.set_output_carriers)
     
     return b_tec
 
@@ -405,7 +402,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
     then taking the respective opex_fixed share of this. This is done with the auxiliary variable var_capex_aux.
 
     :param str nodename: name of node for which technology is installed
-    :param list set_tecsToAdd: list of technologies to add
+    :param set set_tecsToAdd: list of technologies to add
     :param energyhub EnergyHub: instance of the energyhub
     :return: b_node
     """
@@ -414,7 +411,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
     if global_variables.averaged_data == 1:
         data = energyhub.data_averaged
     else:
-        data = energyhub.data_full
+        data = energyhub.data
 
     model = energyhub.model
 
@@ -424,6 +421,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         # TECHNOLOGY DATA
         tec_data = data.technology_data[nodename][tec]
         technology_model = tec_data.technology_model
+        modelled_with_full_res = tec_data.modelled_with_full_res
 
         # SIZE
         b_tec = define_size(b_tec, tec_data)
@@ -442,7 +440,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         b_tec = define_emissions(b_tec, tec_data, energyhub)
 
         # DEFINE AUXILIARY VARIABLES FOR CLUSTERED DATA
-        if global_variables.clustered_data:
+        if global_variables.clustered_data and not modelled_with_full_res:
             b_tec = define_auxiliary_vars(b_tec, tec_data, energyhub)
 
         # GENERIC TECHNOLOGY CONSTRAINTS

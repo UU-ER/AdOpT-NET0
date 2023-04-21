@@ -132,7 +132,7 @@ class ResultsHandle:
                 s = arc_data.var_size.value
                 capex = arc_data.var_CAPEX.value
                 if global_variables.clustered_data:
-                    sequence = energyhub.data_clustered.k_means_specs.full_resolution['sequence']
+                    sequence = energyhub.data.k_means_specs.full_resolution['sequence']
                     opex_var = sum(arc_data.var_OPEX_variable[sequence[t - 1]].value
                                    for t in set_t)
                     total_flow = sum(arc_data.var_flow[sequence[t - 1]].value
@@ -195,7 +195,7 @@ class ResultsHandle:
             self.detailed_results.nodes[node_name] = {}
             for tec_name in node_data.set_tecsAtNode:
                 tec_data = node_data.tech_blocks_active[tec_name]
-                technology_model = energyhub.data_full.technology_data[node_name][tec_name].technology_model
+                technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
                 if technology_model == 'STOR':
                     if global_variables.clustered_data:
@@ -236,7 +236,7 @@ class ResultsHandle:
                 df = pd.DataFrame()
 
                 if global_variables.clustered_data:
-                    sequence = energyhub.data_clustered.k_means_specs.full_resolution['sequence']
+                    sequence = energyhub.data.k_means_specs.full_resolution['sequence']
                     df['flow'] = [arc_data.var_flow[sequence[t - 1]].value for t in set_t]
                     df['losses'] = [arc_data.var_losses[sequence[t - 1]].value for t in set_t]
                     if netw_data.find_component('var_consumption_send'):

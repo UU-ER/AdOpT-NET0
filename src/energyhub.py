@@ -16,7 +16,11 @@ class EnergyHub:
     r"""
     Class to construct and manipulate an energy system model.
 
-    When constructing an instance, it reads data to the instance and defines relevant model sets:
+    When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
+    class:
+    - self.configuration: Contains options for the optimization and is passed to the constructor
+    - self.model: A concrete Pyomo model
+    -
 
     **Set declarations:**
 
@@ -44,9 +48,6 @@ class EnergyHub:
         # INITIALIZE MODEL
         self.model = ConcreteModel()
 
-        # INITIALIZE DATA
-        self.data_full = data
-
         # INITIALIZE GLOBAL OPTIONS
         global_variables.clustered_data = 0
         global_variables.averaged_data = 0
@@ -54,12 +55,16 @@ class EnergyHub:
         # INITIALIZE SOLUTION
         self.solution = None
 
-        # COMPUTE CLUSTERED DATA
+        # INITIALIZE DATA
         if not self.configuration.optimization.typicaldays == 0:
+            # If clustered
             global_variables.clustered_data = 1
             self.__cluster_data(data)
+        else:
+            # If not clustered
+            self.data = data
 
-        # COMPUTE AVERAGED DATA
+        # INITIALIZE DATA
         if self.configuration.optimization.timestaging:
             global_variables.averaged_data = 1
             self.model_first_stage = None
@@ -100,25 +105,25 @@ class EnergyHub:
 
         # DEFINE SETS
         # Nodes, Carriers, Technologies, Networks
-        topology = self.data_full.topology
+        topology = self.data.topology
         self.model.set_nodes = Set(initialize=topology.nodes)
         self.model.set_carriers = Set(initialize=topology.carriers)
         def tec_node(set, node):
-            if self.data_full.technology_data:
-                return self.data_full.technology_data[node].keys()
+            if self.data.technology_data:
+                return self.data.technology_data[node].keys()
             else:
                 return Set.Skip
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=self.data_full.network_data.keys())
+        self.model.set_networks = Set(initialize=self.data.network_data.keys())
 
         # Time Frame
         if global_variables.averaged_data == 1:
             self.model.set_t_full = RangeSet(1,len(self.data_averaged.topology.timesteps))
         else:
-            self.model.set_t_full = RangeSet(1,len(self.data_full.topology.timesteps))
+            self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
 
         if global_variables.clustered_data == 1:
-            self.model.set_t_clustered = RangeSet(1,len(self.data_clustered.topology.timesteps))
+            self.model.set_t_clustered = RangeSet(1,len(self.data.topology.timesteps_clustered))
 
         # DEFINE VARIABLES
         # Global cost variables
@@ -192,7 +197,7 @@ class EnergyHub:
         :param list technologies: list of technologies that should be added to nodename
         :return: None
         """
-        self.data_full.read_single_technology_data(nodename, technologies)
+        self.data.read_single_technology_data(nodename, technologies)
         mc.add_technology(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
@@ -240,8 +245,8 @@ class EnergyHub:
         :param data DataHandle: instance of the DataHandle class
         """
         print('Clustering Data...')
-        self.data_clustered = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
-        global_variables.clustered_data_specs.specs = self.data_clustered.k_means_specs
+        self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
+        global_variables.clustered_data_specs.specs = self.data.k_means_specs
         print('Clustering Data completed')
 
     def __average_data(self):
@@ -249,7 +254,7 @@ class EnergyHub:
         Averages the data for a two-stage time average algorithm
         """
         print('Averaging Data...')
-        self.data_averaged = dm.DataHandle_AveragedData(self.data_full, self.configuration.optimization.timestaging)
+        self.data_averaged = dm.DataHandle_AveragedData(self.data, self.configuration.optimization.timestaging)
         global_variables.averaged_data_specs.specs = self.data_averaged.averaged_specs
         print('Averaging Data completed')
 
@@ -361,7 +366,7 @@ class EnergyHub:
         self.solution_first_stage = copy.deepcopy(self.solution)
         self.model = ConcreteModel()
         self.solution = []
-        self.data = self.data_full
+        self.data = self.data
         self.construct_model()
         self.construct_balances()
         self.__impose_size_constraints(bounds_on)
@@ -384,7 +389,7 @@ class EnergyHub:
         if bounds_on == 'all' or bounds_on == 'only_technologies' or bounds_on == 'no_storage':
             def size_constraint_block_tecs_init(block, node):
                 def size_constraints_tecs_init(const, tec):
-                    if self.data_full.technology_data[node][tec].technology_model == 'STOR' and bounds_on == 'no_storage':
+                    if self.data.technology_data[node][tec].technology_model == 'STOR' and bounds_on == 'no_storage':
                         return Constraint.Skip
                     else:
                         return m_avg.node_blocks[node].tech_blocks_active[tec].var_size.value <= \

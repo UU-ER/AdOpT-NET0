@@ -722,7 +722,7 @@ def add_networks(energyhub):
     if global_variables.averaged_data == 1:
         data = energyhub.data_averaged
     else:
-        data = energyhub.data_full
+        data = energyhub.data
 
     model = energyhub.model
 

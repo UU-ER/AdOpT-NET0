@@ -18,78 +18,89 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-data = dm.load_object(r'./test/test_data/time_algorithms.p')
-
-# Full resolution
+"""
+heat demand @ node 1
+Technology type 1, gas,H2 -> heat, electricity
+"""
+# performance through origin
+data = dm.load_object(r'./test/test_data/technology_CONV1_1.p')
 configuration = ModelConfiguration()
-energyhub1 = ehub(data, configuration)
-energyhub1.quick_solve_model()
-cost1 = energyhub1.model.var_total_cost.value
-assert energyhub1.solution.solver.termination_condition == 'optimal'
-results = energyhub1.write_results()
-# f = open(r'userData\A.txt', 'w')
-# sys.stdout = f
-# energyhub1.model.pprint()
-# f.close()
+tecname = 'testCONV1_1'
+energyhub = ehub(data, configuration)
+energyhub.construct_model()
+energyhub.construct_balances()
+energyhub.solve_model()
+allowed_fitting_error = 0.1
 
-results.write_excel(r'.\userData\test1')
+assert energyhub.solution.solver.termination_condition == 'optimal'
+objective_value = round(energyhub.model.objective(), 3)
+tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+hydrogen_in_1 = round(
+    energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
+    3)
+gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+hydrogen_in_2 = round(
+    energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
+    3)
+heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+el_out_1 = round(
+    energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
+    3)
+heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+el_out_2 = round(
+    energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
+    3)
+assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
+assert hydrogen_in_1 == tec_size
+assert 0 == gas_in_1
+assert 0 == gas_in_2
+assert abs(0.75 / 0.8145 - hydrogen_in_1) / 0.75 / 0.8145 <= allowed_fitting_error
+assert abs(heat_out_2 / 0.8145 - hydrogen_in_2) / heat_out_2 / 0.8145 <= allowed_fitting_error
+assert 0.75 == heat_out_1
+assert 0 == el_out_1
+assert 0.5 == heat_out_2
+assert 0 == el_out_2
 
-# k_means
+# performance not through origin
+allowed_fitting_error = 0.1
+data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
 configuration = ModelConfiguration()
-configuration.optimization.typicaldays = 1
-energyhub2 = ehub(data, configuration)
-energyhub2.quick_solve_model()
-cost2 = energyhub2.model.var_total_cost.value
-assert energyhub2.solution.solver.termination_condition == 'optimal'
-results = energyhub2.write_results()
-# f = open(r'userData\B.txt', 'w')
-# sys.stdout = f
-# energyhub2.model.pprint()
-# f.close()
-#
-results.write_excel(r'.\userData\test2')
+tecname = 'testCONV1_2'
+energyhub = ehub(data, configuration)
+energyhub.construct_model()
+energyhub.construct_balances()
+energyhub.solve_model()
+assert energyhub.solution.solver.termination_condition == 'optimal'
+objective_value = round(energyhub.model.objective(), 3)
+tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+hydrogen_in_1 = round(
+    energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
+    3)
+gas_in_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+hydrogen_in_2 = round(
+    energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
+    3)
+heat_out_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+el_out_1 = round(
+    energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
+    3)
+heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+el_out_2 = round(
+    energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
+    3)
 
-#
-# # Full resolution
-# # configuration = ModelConfiguration()
-# # energyhub1 = ehub(data, configuration)
-# # energyhub1.construct_model()
-# # energyhub1.construct_balances()
-# # f = open(r'userData\A.txt', 'w')
-# # sys.stdout = f
-# # energyhub1.model.pprint()
-# # f.close()
-# #
-# # cost1 = energyhub1.model.var_total_cost.value
-# # assert energyhub1.solution.solver.termination_condition == 'optimal'
-#
-# # f = open(r'userData\A.txt', 'w')
-# # sys.stdout = f
-# # energyhub1.model.pprint()
-# # f.close()
-# #
-# # results = energyhub1.write_results()
-# #
-# # results.write_excel(r'.\userData\test1')
-# #
-# # # k_means
-# configuration = ModelConfiguration()
-# configuration.optimization.typicaldays = 1
-# energyhub2 = ehub(data, configuration)
-# energyhub2.construct_model()
-# energyhub2.construct_balances()
-# f = open(r'userData\B.txt', 'w')
-# sys.stdout = f
-# energyhub2.model.pprint()
-# f.close()
-# #
-# # cost2 = energyhub2.model.var_total_cost.value
-# # assert energyhub2.solution.solver.termination_condition == 'optimal'
-# # f = open(r'userData\B.txt', 'w')
-# # sys.stdout = f
-# # energyhub2.model.pprint()
-# # f.close()
-# # results = energyhub2.write_results()
+assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
+assert abs((hydrogen_in_1 - tec_size) / tec_size) <= allowed_fitting_error
+assert 0 == gas_in_1
+assert 0 == gas_in_2
+assert abs((heat_out_1 - 0.05) / 0.75 - hydrogen_in_1) / hydrogen_in_1 <= allowed_fitting_error
+assert abs((heat_out_2 - 0.05) / 0.75 - hydrogen_in_2) / hydrogen_in_2 <= allowed_fitting_error
+assert 0.75 == heat_out_1
+assert 0 == el_out_1
+assert 0.5 == heat_out_2
+assert 0 == el_out_2
 
 execute = 0
 

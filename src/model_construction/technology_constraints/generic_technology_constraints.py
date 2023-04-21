@@ -29,28 +29,28 @@ def constraints_tec_RES(model, b_tec, tec_data):
     :return: technology block
     """
     # DATA OF TECHNOLOGY
-    size_is_int = tec_data.size_is_int
     performance_data = tec_data.performance_data
-    fitted_performance = tec_data.fitted_performance
-
-    if size_is_int:
-        rated_power = fitted_performance['rated_power']
-    else:
-        rated_power = 1
+    coeff = tec_data.fitted_performance.coefficients
+    rated_power = tec_data.fitted_performance.rated_power
+    modelled_with_full_res = tec_data.modelled_with_full_res
 
     if 'curtailment' in performance_data:
         curtailment = performance_data['curtailment']
     else:
         curtailment = 0
 
-    output = b_tec.var_output
-    set_t = model.set_t_full
-
+    # Full or reduced resolution
+    if global_variables.clustered_data and not modelled_with_full_res:
+        output = b_tec.var_output_aux
+        set_t = model.set_t_clustered
+    else:
+        output = b_tec.var_output
+        set_t = model.set_t_full
 
     # PARAMETERS
     # Set capacity factors as a parameter
     def init_capfactors(para, t):
-        return fitted_performance['capacity_factor'][t - 1]
+        return coeff['capfactor'][t - 1]
     b_tec.para_capfactor = Param(set_t, domain=Reals, rule=init_capfactors)
 
     # CONSTRAINTS
@@ -127,16 +127,15 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
-    size_is_int = tec_data.size_is_int
+    # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
-    fitted_performance = tec_data.fitted_performance
+    coeff = tec_data.fitted_performance.coefficients
+    rated_power = tec_data.fitted_performance.rated_power
+    modelled_with_full_res = tec_data.modelled_with_full_res
 
-    if size_is_int:
-        rated_power = fitted_performance['rated_power']
-    else:
-        rated_power = 1
 
-    if global_variables.clustered_data:
+    # Full or reduced resolution
+    if global_variables.clustered_data and not modelled_with_full_res:
         input = b_tec.var_input_aux
         output = b_tec.var_output_aux
         set_t = model.set_t_clustered
@@ -145,21 +144,17 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
         output = b_tec.var_output
         set_t = model.set_t_full
 
-
     performance_function_type = performance_data['performance_function_type']
 
     # Get performance parameters
-    alpha1 = fitted_performance['out']['alpha1']
+    alpha1 = coeff['out']['alpha1']
     if performance_function_type == 2:
-        alpha2 = fitted_performance['out']['alpha2']
+        alpha2 = coeff['out']['alpha2']
     if performance_function_type == 3:
-        bp_x = fitted_performance['bp_x']
-        alpha2 = fitted_performance['out']['alpha2']
+        bp_x = coeff['bp_x']
+        alpha2 = coeff['out']['alpha2']
 
-    if 'min_part_load' in performance_data:
-        min_part_load = performance_data['min_part_load']
-    else:
-        min_part_load = 0
+    min_part_load = performance_data['min_part_load']
 
     if performance_function_type >= 2:
         global_variables.big_m_transformation_required = 1
@@ -322,16 +317,14 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
-    size_is_int = tec_data.size_is_int
+    # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
-    fitted_performance = tec_data.fitted_performance
+    coeff = tec_data.fitted_performance.coefficients
+    rated_power = tec_data.fitted_performance.rated_power
+    modelled_with_full_res = tec_data.modelled_with_full_res
 
-    if size_is_int:
-        rated_power = fitted_performance['rated_power']
-    else:
-        rated_power = 1
-
-    if global_variables.clustered_data:
+    # Full or reduced resolution
+    if global_variables.clustered_data and not modelled_with_full_res:
         input = b_tec.var_input_aux
         output = b_tec.var_output_aux
         set_t = model.set_t_clustered
@@ -346,17 +339,14 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
     alpha2 = {}
     # Get performance parameters
     for c in performance_data['performance']['out']:
-        alpha1[c] = fitted_performance[c]['alpha1']
+        alpha1[c] = coeff[c]['alpha1']
         if performance_function_type == 2:
-            alpha2[c] = fitted_performance[c]['alpha2']
+            alpha2[c] = coeff[c]['alpha2']
         if performance_function_type == 3:
-            bp_x = fitted_performance['bp_x']
-            alpha2[c] = fitted_performance[c]['alpha2']
+            bp_x = coeff['bp_x']
+            alpha2[c] = coeff[c]['alpha2']
 
-    if 'min_part_load' in performance_data:
-        min_part_load = performance_data['min_part_load']
-    else:
-        min_part_load = 0
+    min_part_load = performance_data['min_part_load']
 
     if performance_function_type >= 2:
         global_variables.big_m_transformation_required = 1
@@ -520,16 +510,14 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
-    size_is_int = tec_data.size_is_int
+    # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
-    fitted_performance = tec_data.fitted_performance
+    coeff = tec_data.fitted_performance.coefficients
+    rated_power = tec_data.fitted_performance.rated_power
+    modelled_with_full_res = tec_data.modelled_with_full_res
 
-    if size_is_int:
-        rated_power = fitted_performance['rated_power']
-    else:
-        rated_power = 1
-
-    if global_variables.clustered_data:
+    # Full or reduced resolution
+    if global_variables.clustered_data and not modelled_with_full_res:
         input = b_tec.var_input_aux
         output = b_tec.var_output_aux
         set_t = model.set_t_clustered
@@ -545,17 +533,14 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
     phi = {}
     # Get performance parameters
     for c in performance_data['performance']['out']:
-        alpha1[c] = fitted_performance[c]['alpha1']
+        alpha1[c] = coeff[c]['alpha1']
         if performance_function_type == 2:
-            alpha2[c] = fitted_performance[c]['alpha2']
+            alpha2[c] = coeff[c]['alpha2']
         if performance_function_type == 3:
-            bp_x = fitted_performance['bp_x']
-            alpha2[c] = fitted_performance[c]['alpha2']
+            bp_x = coeff['bp_x']
+            alpha2[c] = coeff[c]['alpha2']
 
-    if 'min_part_load' in fitted_performance:
-        min_part_load = fitted_performance['min_part_load']
-    else:
-        min_part_load = 0
+    min_part_load = performance_data['min_part_load']
 
     if 'input_ratios' in performance_data:
         main_car = performance_data['main_input_carrier']
@@ -728,9 +713,12 @@ def constraints_tec_STOR(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
-    fitted_performance = tec_data.fitted_performance
+    coeff = tec_data.fitted_performance.coefficients
+    modelled_with_full_res = tec_data.modelled_with_full_res
 
+    # Full resolution
     input = b_tec.var_input
     output = b_tec.var_output
     set_t = model.set_t_full
@@ -748,13 +736,13 @@ def constraints_tec_STOR(model, b_tec, tec_data):
                                   bounds=(b_tec.para_size_min, b_tec.para_size_max))
 
     # Additional parameters
-    b_tec.para_eta_in = Param(domain=NonNegativeReals, initialize=fitted_performance['eta_in'])
-    b_tec.para_eta_out = Param(domain=NonNegativeReals, initialize=fitted_performance['eta_out'])
-    b_tec.para_eta_lambda = Param(domain=NonNegativeReals, initialize=fitted_performance['lambda'])
-    b_tec.para_charge_max = Param(domain=NonNegativeReals, initialize=fitted_performance['charge_max'])
-    b_tec.para_discharge_max = Param(domain=NonNegativeReals, initialize=fitted_performance['discharge_max'])
+    b_tec.para_eta_in = Param(domain=NonNegativeReals, initialize=coeff['eta_in'])
+    b_tec.para_eta_out = Param(domain=NonNegativeReals, initialize=coeff['eta_out'])
+    b_tec.para_eta_lambda = Param(domain=NonNegativeReals, initialize=coeff['lambda'])
+    b_tec.para_charge_max = Param(domain=NonNegativeReals, initialize=coeff['charge_max'])
+    b_tec.para_discharge_max = Param(domain=NonNegativeReals, initialize=coeff['discharge_max'])
     def init_ambient_loss_factor(para, t):
-        return fitted_performance['ambient_loss_factor'][t - 1]
+        return coeff['ambient_loss_factor'][t - 1]
     b_tec.para_ambient_loss_factor = Param(set_t, domain=NonNegativeReals, rule=init_ambient_loss_factor)
 
     # Size constraint

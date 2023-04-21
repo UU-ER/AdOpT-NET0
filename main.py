@@ -60,6 +60,7 @@ data.read_demand_data('onshore', 'electricity', electricity_demand)
 # data.read_import_price_data('onshore', 'gas', gas_price)
 
 # READ TECHNOLOGY AND NETWORK DATA
+
 data.read_technology_data()
 data.read_network_data()
 
@@ -67,7 +68,7 @@ data.read_network_data()
 # # SAVING/LOADING DATA FILE
 # data.save(data_save_path)
 configuration = ModelConfiguration()
-configuration.optimization.typicaldays = 0
+configuration.optimization.typicaldays = 1
 # # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()
