@@ -101,6 +101,7 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
         economics = tec_data.economics
         performance_data = tec_data.performance_data
         fitted_performance = tec_data.fitted_performance
+        units = tec_data.units
 
         if existing:
             size_initial = tec_data.size_initial
@@ -110,7 +111,7 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
         if size_is_int:
             unit_size = u.dimensionless
         else:
-            unit_size = u.MW
+            unit_size = eval(units['size'])
         b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, units=unit_size)
         b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, units=unit_size)
 
@@ -126,7 +127,7 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
                 b_tec.var_size = Var(within=NonNegativeIntegers, bounds=(b_tec.para_size_min, b_tec.para_size_max))
             else:
                 b_tec.var_size = Var(within=NonNegativeReals, bounds=(b_tec.para_size_min, b_tec.para_size_max),
-                                     units=u.MW)
+                                     units=unit_size)
 
         # CHECK FOR GLOBAL ECONOMIC SETTINGS
         if not configuration.economic.global_discountrate == -1:

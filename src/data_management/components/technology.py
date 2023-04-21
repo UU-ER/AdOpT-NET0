@@ -17,6 +17,7 @@ class Technology:
         :param str technology: name of technology to read data
         """
         tec_data = read_technology_data_from_json(technology)
+        units = read_units(tec_data['Units'])
 
         # General information
         self.name = technology
@@ -34,6 +35,9 @@ class Technology:
         # Technology Performance
         self.performance_data = tec_data['TechnologyPerf']
         self.fitted_performance = []
+
+        # Units
+        self.units = units
 
     def fit_technology_performance(self, climate_data):
         """
@@ -105,3 +109,17 @@ def read_technology_data_from_json(tec):
     # Assign name
     technology_data['Name'] = tec
     return technology_data
+
+def read_units(units_in):
+    for key in units_in.keys():
+        if 'size' in key:
+            temp = "/"
+            temp = temp.join([item.replace(item, 'u.' + item) for item in units_in['size'].split('/')])
+            units_in['size'] = temp
+        if 'carrier' in key:
+            for car in units_in[key]:
+                temp = "/"
+                temp = temp.join([item.replace(item, 'u.' + item) for item in units_in[key][car].split('/')])
+                units_in[key][car] = temp
+
+    return units_in
