@@ -213,8 +213,8 @@ def add_technologies(energyhub, nodename, set_tecsToAdd):
         # EMISSIONS
         b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=performance_data['emission_factor'],
                                               units=u.t/u.MWh)
-        b_tec.var_tec_emissions_pos = Var(model.set_t, within=NonNegativeReals, units=u.t)
-        b_tec.var_tec_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.t)
+        b_tec.var_tec_emissions_pos = Var(model.set_t, within=NonNegativeReals, units=u.tonne)
+        b_tec.var_tec_emissions_neg = Var(model.set_t, within=NonNegativeReals, units=u.tonne)
 
         if technology_model == 'RES':
             # Set emissions to zero
