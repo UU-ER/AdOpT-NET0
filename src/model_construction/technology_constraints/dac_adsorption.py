@@ -51,19 +51,23 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
     b_tec.var_modules_on = Var(set_t,
                                domain=NonNegativeIntegers,
                                bounds=(b_tec.para_size_min, b_tec.para_size_max))
-    b_tec.var_input_total = Var(set_t,
-                                domain=NonNegativeReals,
-                                bounds=bounds['input']['total'])
-    b_tec.var_input_el = Var(set_t,
-                               domain=NonNegativeReals,
-                                bounds=bounds['input']['electricity'])
-    b_tec.var_input_th = Var(set_t,
-                               domain=NonNegativeReals,
-                                bounds=bounds['input']['heat'])
-    b_tec.var_input_ohmic = Var(set_t,
-                               domain=NonNegativeReals,
-                                bounds=tuple(el - th for el, th in zip(bounds['input']['electricity'],
-                                                                       bounds['input']['heat'])))
+
+    def init_input_total_bounds(bds, t):
+        return tuple(bounds['input']['total'][t - 1] * b_tec.para_size_max)
+    b_tec.var_input_total = Var(set_t, within=NonNegativeReals, bounds=init_input_total_bounds)
+
+    def init_input_el_bounds(bds, t):
+        return tuple(bounds['input']['electricity'][t - 1] * b_tec.para_size_max)
+    b_tec.var_input_el = Var(set_t, within=NonNegativeReals, bounds=init_input_el_bounds)
+
+    def init_input_th_bounds(bds, t):
+        return tuple(bounds['input']['heat'][t - 1] * b_tec.para_size_max)
+    b_tec.var_input_th = Var(set_t, within=NonNegativeReals, bounds=init_input_th_bounds)
+
+    def init_input_ohmic_bounds(bds, t):
+        return tuple((el - th for el, th in zip(bounds['input']['electricity'][t - 1] * b_tec.para_size_max,
+                                                   bounds['input']['heat'][t - 1] * b_tec.para_size_max)))
+    b_tec.var_input_ohmic = Var(set_t, within=NonNegativeReals, bounds=init_input_ohmic_bounds)
 
     # Additional parameters
     def init_alpha(para, t, ind):
@@ -167,4 +171,5 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
         def init_ohmic_heating(const, t):
             return b_tec.var_input_ohmic[t] == 0
         b_tec.const_ohmic_heating = Constraint(set_t, rule=init_ohmic_heating)
+
     return b_tec

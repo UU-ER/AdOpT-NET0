@@ -162,7 +162,7 @@ def define_input(b_tec, tec_data, energyhub):
         b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
         def init_input_bounds(bounds, t, car):
             if global_variables.clustered_data and not modelled_with_full_res:
-                return tuple(fitted_performance.bounds['input'][car][sequence[t - 1], :] * size_max * rated_power)
+                return tuple(fitted_performance.bounds['input'][car][sequence[t - 1]-1, :] * size_max * rated_power)
             else:
                 return tuple(fitted_performance.bounds['input'][car][t - 1, :] * size_max * rated_power)
         b_tec.var_input = Var(set_t, b_tec.set_input_carriers, within=NonNegativeReals,
@@ -198,7 +198,7 @@ def define_output(b_tec, tec_data, energyhub):
 
     def init_output_bounds(bounds, t, car):
         if global_variables.clustered_data and not modelled_with_full_res:
-            return tuple(fitted_performance.bounds['output'][car][sequence[t - 1], :] * size_max * rated_power)
+            return tuple(fitted_performance.bounds['output'][car][sequence[t - 1]-1, :] * size_max * rated_power)
         else:
             return tuple(fitted_performance.bounds['output'][car][t - 1, :] * size_max * rated_power)
     b_tec.var_output = Var(set_t, b_tec.set_output_carriers, within=NonNegativeReals,
@@ -253,15 +253,15 @@ def define_emissions(b_tec, tec_data, energyhub):
             return b_tec.var_tec_emissions_neg[t] == 0
 
         b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
-    elif technology_model == 'DAC_adsorption':
+    elif technology_model == 'DAC_Adsorption':
         # Based on output
         def const_tec_emissions_pos(const, t):
             return b_tec.var_tec_emissions_pos[t] == 0
         b_tec.const_tec_emissions_pos = Constraint(set_t, rule=const_tec_emissions_pos)
 
         def init_tec_emissions_neg(const, t):
-            return b_tec.var_output[t, performance_data['output_carrier']] \
-                       (-b_tec.para_tec_emissionfactor) == \
+            return b_tec.var_output[t, 'CO2'] \
+                       * (-b_tec.para_tec_emissionfactor) == \
                    b_tec.var_tec_emissions_neg[t]
         b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
     else:
@@ -305,7 +305,7 @@ def define_auxiliary_vars(b_tec, tec_data, energyhub):
 
     rated_power = fitted_performance.rated_power
 
-    sequence = energyhub.data_clustered.k_means_specs.full_resolution['sequence']
+    sequence = energyhub.data.k_means_specs.full_resolution['sequence']
 
     def init_input_bounds(bounds, t, car):
             return tuple(fitted_performance.bounds['input'][car][t - 1, :] * size_max * rated_power)
@@ -460,7 +460,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
             b_tec = constraints_tec_STOR(model, b_tec, tec_data)
 
         # SPECIFIC TECHNOLOGY CONSTRAINTS
-        elif technology_model == 'DAC_adsorption':
+        elif technology_model == 'DAC_Adsorption':
             b_tec = constraints_tec_dac_adsorption(model, b_tec, tec_data)
 
         elif technology_model.startswith('HeatPump_'):  # Heat Pump

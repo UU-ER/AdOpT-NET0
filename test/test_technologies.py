@@ -453,6 +453,27 @@ def test_technology_CONV3():
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
+def test_dac():
+    # data.save(data_save_path)
+    data = dm.load_object(r'./test/test_data/dac.p')
+
+    configuration = ModelConfiguration()
+    configuration.optimization.typicaldays = 0
+    # # Read data
+    energyhub = ehub(data, configuration)
+    energyhub.quick_solve_model()
+    cost1 = energyhub.model.var_total_cost.value
+
+    configuration = ModelConfiguration()
+    configuration.optimization.typicaldays = 4
+    # # Read data
+    energyhub = ehub(data, configuration)
+    energyhub.quick_solve_model()
+    cost2 = energyhub.model.var_total_cost.value
+
+    assert abs(cost1 - cost2) / cost1 <= 0.1
+
+
 def test_existing_technologies():
     def run_ehub(data, configuration):
         energyhub = ehub(data, configuration)
