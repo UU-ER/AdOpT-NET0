@@ -20,7 +20,7 @@ class ModelConfiguration:
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | montecarlo.N     | Number of Monte Carlo simulations            |                                             | 100     |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | pareto.N         | Number of Pareto points                      |                                             | 5       |
+    | pareto_points    | Number of Pareto points                      |                                             | 5       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | timestaging      | Defines number of daily intervals (0 = off)  |                                             | 0       |
     |                  | :ref:`check here <time_averaging>`           |                                             |         |
