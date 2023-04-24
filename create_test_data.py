@@ -704,11 +704,11 @@ def create_test_data_dac():
 
     # DEMAND
     co2demand = np.ones(len(topology.timesteps)) * 0.01
-    data.read_demand_data('onshore', 'CO2', co2demand)
+    data.read_demand_data('test_node1', 'CO2', co2demand)
 
     # IMPORT
     heat_import = np.ones(len(topology.timesteps)) * 100
-    data.read_import_limit_data('onshore', 'heat', heat_import)
+    data.read_import_limit_data('test_node1', 'heat', heat_import)
 
     data.read_technology_data()
     data.read_network_data()

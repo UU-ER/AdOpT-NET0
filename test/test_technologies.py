@@ -1,6 +1,6 @@
 import pytest
 import src.data_management as dm
-from src.energyhub import EnergyHub as ehub
+from src.energyhub import EnergyHub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 from pyomo.environ import units as u
@@ -20,7 +20,7 @@ def test_technology_RES_PV():
     data = dm.load_object(r'./test/test_data/technology_type1_PV.p')
     configuration = ModelConfiguration()
     data.technology_data['test_node1']['Photovoltaic'].performance_data['curtailment'] = 0
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -48,7 +48,7 @@ def test_technology_RES_WT():
     data = dm.load_object(r'./test/test_data/technology_type1_WT.p')
     configuration = ModelConfiguration()
     data.technology_data['test_node1']['WindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -65,7 +65,7 @@ def test_technology_RES_WT():
 
     # Curtailment
     data.technology_data['test_node1']['WindTurbine_Onshore_1500'].performance_data['curtailment'] = 2
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -81,7 +81,7 @@ def test_technology_CONV1():
     data = dm.load_object(r'./test/test_data/technology_CONV1_1.p')
     configuration = ModelConfiguration()
     tecname = 'testCONV1_1'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -118,7 +118,7 @@ def test_technology_CONV1():
     data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
     configuration = ModelConfiguration()
     tecname = 'testCONV1_2'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -153,7 +153,7 @@ def test_technology_CONV1():
     allowed_fitting_error = 0.1
     data = dm.load_object(r'./test/test_data/technology_CONV1_3.p')
     tecname = 'testCONV1_3'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -188,7 +188,7 @@ def test_technology_CONV1():
     data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -199,7 +199,7 @@ def test_technology_CONV1():
     data = dm.load_object(r'./test/test_data/technology_CONV1_3.p')
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -212,7 +212,7 @@ def test_technology_CONV2():
     data = dm.load_object(r'./test/test_data/technology_CONV2_1.p')
     configuration = ModelConfiguration()
     tecname = 'testCONV2_1'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -246,7 +246,7 @@ def test_technology_CONV2():
     allowed_fitting_error = 0.05
     data = dm.load_object(r'./test/test_data/technology_CONV2_2.p')
     tecname = 'testCONV2_2'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -278,7 +278,7 @@ def test_technology_CONV2():
     # piecewise
     data = dm.load_object(r'./test/test_data/technology_CONV2_3.p')
     tecname = 'testCONV2_3'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -311,7 +311,7 @@ def test_technology_CONV2():
     data = dm.load_object(r'./test/test_data/technology_CONV2_2.p')
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.solve_model()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
@@ -320,7 +320,7 @@ def test_technology_CONV2():
     data = dm.load_object(r'./test/test_data/technology_CONV2_3.p')
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -336,7 +336,7 @@ def test_technology_CONV3():
     data = dm.load_object(r'./test/test_data/technology_CONV3_3.p')
     configuration = ModelConfiguration()
     tecname = 'testCONV3_3'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -370,7 +370,7 @@ def test_technology_CONV3():
     allowed_fitting_error = 0.25
     data = dm.load_object(r'./test/test_data/technology_CONV3_1.p')
     tecname = 'testCONV3_1'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -403,7 +403,7 @@ def test_technology_CONV3():
     # performance not through origin
     data = dm.load_object(r'./test/test_data/technology_CONV3_2.p')
     tecname = 'testCONV3_2'
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -437,7 +437,7 @@ def test_technology_CONV3():
     data = dm.load_object(r'./test/test_data/technology_CONV3_2.p')
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -447,7 +447,7 @@ def test_technology_CONV3():
     data = dm.load_object(r'./test/test_data/technology_CONV3_3.p')
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve_model()
@@ -460,14 +460,14 @@ def test_dac():
     configuration = ModelConfiguration()
     configuration.optimization.typicaldays = 0
     # # Read data
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve_model()
     cost1 = energyhub.model.var_total_cost.value
 
     configuration = ModelConfiguration()
     configuration.optimization.typicaldays = 4
     # # Read data
-    energyhub = ehub(data, configuration)
+    energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve_model()
     cost2 = energyhub.model.var_total_cost.value
 
@@ -475,8 +475,8 @@ def test_dac():
 
 
 def test_existing_technologies():
-    def run_ehub(data, configuration):
-        energyhub = ehub(data, configuration)
+    def run_EnergyHub(data, configuration):
+        energyhub = EnergyHub(data, configuration)
         energyhub.construct_model()
         energyhub.construct_balances()
         energyhub.solve_model()
@@ -486,10 +486,10 @@ def test_existing_technologies():
 
     configuration = ModelConfiguration()
     data = dm.load_object(r'./test/test_data/existing_tecs1.p')
-    cost1 = run_ehub(data, configuration)
+    cost1 = run_EnergyHub(data, configuration)
     data = dm.load_object(r'./test/test_data/existing_tecs2.p')
-    cost2 = run_ehub(data, configuration)
+    cost2 = run_EnergyHub(data, configuration)
     data = dm.load_object(r'./test/test_data/existing_tecs3.p')
-    cost3 = run_ehub(data, configuration)
+    cost3 = run_EnergyHub(data, configuration)
     assert cost3<cost2
     assert cost2<cost1
