@@ -68,7 +68,7 @@ data.read_network_data()
 # # SAVING/LOADING DATA FILE
 # data.save(data_save_path)
 configuration = ModelConfiguration()
-configuration.optimization.typicaldays = 1
+configuration.optimization.typicaldays = 0
 # # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()
@@ -86,38 +86,3 @@ energyhub.quick_solve_model()
 # energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()
 results = energyhub.write_results()
 results.write_excel(r'.\userData\test_reduced')
-
-
-# results = energyhub.write_results()
-# results.write_excel(r'.\userData\results_two_stage')
-
-# energyhub1 = EnergyHub(data)
-# energyhub1.quick_solve_model()
-
-# results = energyhub1.write_results()
-# results.write_excel(r'.\userData\results_benchmark')
-# Construct equations
-# energyhub.construct_model()
-# energyhub.construct_balances()
-
-# Solve model
-# energyhub.solve_model()
-# results = energyhub.write_results()
-# results.write_excel(r'.\userData\results')
-
-# # Add technology to model and solve again
-# energyhub.add_technology_to_node('onshore', ['WindTurbine_Offshore_11000'])
-# energyhub.construct_balances()
-# energyhub.solve_model()
-#
-# # Write results
-# results = energyhub.write_results()
-
-# print('done')
-# energyhub.model.display()
-#
-# # Save model
-# print('Saving Model...')
-# start = time.time()
-# energyhub.save_model('./data/ehub_instances', 'test_non_transformed')
-# print('Saving Model completed in ' + str(time.time()-start) + ' s')
