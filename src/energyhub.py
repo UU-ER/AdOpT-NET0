@@ -246,7 +246,6 @@ class EnergyHub:
         """
         print('Clustering Data...')
         self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
-        global_variables.clustered_data_specs.specs = self.data.k_means_specs
         print('Clustering Data completed')
 
     def __average_data(self):

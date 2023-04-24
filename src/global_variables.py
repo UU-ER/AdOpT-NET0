@@ -3,8 +3,6 @@ from types import SimpleNamespace
 big_m_transformation_required = 0
 
 clustered_data = 0
-clustered_data_specs = SimpleNamespace()
-clustered_data_specs.specs = []
 
 averaged_data = 0
 averaged_data_specs = SimpleNamespace()
