@@ -13,7 +13,15 @@ class DataHandle:
 
     The Data Handle class allows data import and modifications of input data to an instance of the energyhub class.
     The constructor of the class takes an instance of the class
-    :func:`~src.data_management.handle_topology.SystemTopology` as an input.
+    :func:`~src.data_management.handle_topology.SystemTopology` as an input. The DataHandle class is structured
+    as follows:
+    - node_data contains (mainly time-dependent) data on all nodes, e.g. demand, prices, import/export limit,...
+    - technology_data contains data on all technologies. The data is read for all technologies in the topology
+      with the function :func:`~src.data_management.handle_input_data.read_technology_data()`
+    - network_data contains data on the networks. Similar to technolog_data, this is read with the respective function
+      :func:`~src.data_management.handle_input_data.read_network_data()`
+    - topology: contains data on the systems topology (see class
+      :func:`~src.data_management.handle_topology.SystemTopology`)
     """
     def __init__(self, topology):
         """
