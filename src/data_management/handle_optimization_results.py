@@ -58,11 +58,13 @@ class ResultsHandle:
         # Todo: Add this here, if it is done
         emission_cost = 0
         set_t = model.set_t_full
+        nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
         tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX.value
                             for tec in model.node_blocks[node].set_tecsAtNode)
                         for node in model.set_nodes)
-        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t].value
+        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t].value *
+                                        nr_timesteps_averaged
                                         for tec in model.node_blocks[node].set_tecsAtNode)
                                     for t in set_t)
                                 for node in model.set_nodes)
@@ -71,12 +73,14 @@ class ResultsHandle:
                              for node in model.set_nodes)
         tec_cost = tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car].value *
-                                  model.node_blocks[node].para_import_price[t, car].value
+                                  model.node_blocks[node].para_import_price[t, car].value *
+                                        nr_timesteps_averaged
                                   for car in model.node_blocks[node].set_carriers)
                               for t in set_t)
                           for node in model.set_nodes)
         export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car].value *
-                                     model.node_blocks[node].para_export_price[t, car].value
+                                     model.node_blocks[node].para_export_price[t, car].value *
+                                        nr_timesteps_averaged
                                      for car in model.node_blocks[node].set_carriers)
                                  for t in set_t)
                              for node in model.set_nodes)
@@ -88,21 +92,26 @@ class ResultsHandle:
         net_emissions = model.var_emissions_net.value
         positive_emissions = model.var_emissions_pos.value
         negative_emissions = model.var_emissions_neg.value
-        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t].value
+        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t].value *
+                                        nr_timesteps_averaged
                                         for t in set_t)
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes) - \
-                            sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t].value
+                            sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t].value *
+                                        nr_timesteps_averaged
                                         for t in set_t)
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes)
-        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t].value
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t].value *
+                                        nr_timesteps_averaged
                                 for t in set_t)
                             for node in model.set_nodes) - \
-                        sum(sum(model.node_blocks[node].var_car_emissions_neg[t].value
+                        sum(sum(model.node_blocks[node].var_car_emissions_neg[t].value *
+                                        nr_timesteps_averaged
                                 for t in set_t)
                             for node in model.set_nodes)
-        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t].value
+        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t].value *
+                                        nr_timesteps_averaged
                                 for t in set_t)
                             for netw in model.set_networks)
         self.emissions.loc[len(self.emissions.index)] = \
