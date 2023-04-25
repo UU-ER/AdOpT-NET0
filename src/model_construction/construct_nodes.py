@@ -109,10 +109,7 @@ def add_nodes(energyhub):
     """
 
     # COLLECT OBJECTS FROM ENERGYHUB
-    if global_variables.averaged_data == 1:
-        data = energyhub.data_averaged
-    else:
-        data = energyhub.data
+    data = energyhub.data
     model = energyhub.model
 
     def init_node_block(b_node, nodename):

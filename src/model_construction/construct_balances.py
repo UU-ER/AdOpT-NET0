@@ -70,6 +70,8 @@ def add_emissionbalance(energyhub):
     # Emissionbalance is always at full resolution
     set_t = model.set_t_full
 
+    nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+
     # Delete previously initialized constraints
     if model.find_component('const_emissions_pos'):
         model.del_component(model.const_emissions_pos)
@@ -83,14 +85,17 @@ def add_emissionbalance(energyhub):
 
     # calculate total emissions from technologies, networks and importing/exporting carriers
     def init_emissions_pos(const):
-        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t]
+        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t] *
+                                        nr_timesteps_averaged
                                         for t in set_t)
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes)
-        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t]
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t] *
+                                        nr_timesteps_averaged
                                 for t in set_t)
                             for node in model.set_nodes)
-        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t]
+        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t] *
+                                        nr_timesteps_averaged
                                 for t in set_t)
                             for netw in model.set_networks)
         return from_technologies + from_carriers + from_networks == model.var_emissions_pos
@@ -98,11 +103,13 @@ def add_emissionbalance(energyhub):
 
     # calculate negative emissions from technologies and import/export
     def init_emissions_neg(const):
-        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t]
+        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t] *
+                                        nr_timesteps_averaged
                                     for t in set_t)
                                 for tec in model.node_blocks[node].set_tecsAtNode)
                             for node in model.set_nodes)
-        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_neg[t]
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_neg[t] *
+                                        nr_timesteps_averaged
                                 for t in set_t)
                             for node in model.set_nodes)
         return from_technologies + from_carriers == model.var_emissions_neg
@@ -137,13 +144,15 @@ def add_system_costs(energyhub):
 
     # Cost is always at full resolution
     set_t = model.set_t_full
+    nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
     # Cost at each node
     def init_node_cost(const):
         tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX
                             for tec in model.node_blocks[node].set_tecsAtNode)
                         for node in model.set_nodes)
-        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t]
+        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t] *
+                                        nr_timesteps_averaged
                                         for tec in model.node_blocks[node].set_tecsAtNode)
                                     for t in set_t)
                                 for node in model.set_nodes)
@@ -151,12 +160,14 @@ def add_system_costs(energyhub):
                                 for tec in model.node_blocks[node].set_tecsAtNode)
                              for node in model.set_nodes)
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
-                                    model.node_blocks[node].para_import_price[t, car]
+                                    model.node_blocks[node].para_import_price[t, car] *
+                                        nr_timesteps_averaged
                                   for car in model.node_blocks[node].set_carriers)
                               for t in set_t)
                           for node in model.set_nodes)
         export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car] *
-                                     model.node_blocks[node].para_export_price[t, car]
+                                     model.node_blocks[node].para_export_price[t, car] *
+                                        nr_timesteps_averaged
                                     for car in model.node_blocks[node].set_carriers)
                                  for t in set_t)
                              for node in model.set_nodes)
@@ -167,7 +178,8 @@ def add_system_costs(energyhub):
     def init_netw_cost(const):
         netw_CAPEX = sum(model.network_block[netw].var_CAPEX
                          for netw in model.set_networks)
-        netw_OPEX_variable = sum(sum(model.network_block[netw].var_OPEX_variable[t]
+        netw_OPEX_variable = sum(sum(model.network_block[netw].var_OPEX_variable[t] *
+                                        nr_timesteps_averaged
                                      for netw in model.set_networks)
                                  for t in set_t)
         netw_OPEX_fixed = sum(model.network_block[netw].var_OPEX_fixed

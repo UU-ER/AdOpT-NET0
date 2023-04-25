@@ -63,24 +63,20 @@ data.read_technology_data()
 data.read_network_data()
 
 
-# # SAVING/LOADING DATA FILE
-# data.save(data_save_path)
+# SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
 configuration.optimization.typicaldays = 0
+
 # # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()
-# energyhub.model.pprint()
-# energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()
 results = energyhub.write_results()
 results.write_excel(r'.\userData\test_full')
 
 configuration = ModelConfiguration()
-configuration.optimization.typicaldays = 20
+configuration.optimization.timestaging = 4
 # # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()
-# energyhub.model.pprint()
-# energyhub.model.node_blocks['onshore'].tech_blocks_active['DAC_adsorption'].pprint()
 results = energyhub.write_results()
 results.write_excel(r'.\userData\test_reduced')
