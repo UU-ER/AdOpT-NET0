@@ -56,20 +56,24 @@ class EnergyHub:
         self.solution = None
 
         # INITIALIZE DATA
+        self.data_storage = []
         if not self.configuration.optimization.typicaldays == 0:
             # If clustered
             global_variables.clustered_data = 1
-            self.__cluster_data(data)
+            self.data_storage.append(dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays))
         else:
-            # If not clustered
-            self.data = data
+            self.data_storage.append(data)
 
-        # INITIALIZE DATA
         if self.configuration.optimization.timestaging:
+            # Average data
             global_variables.averaged_data = 1
             self.model_first_stage = None
             self.solution_first_stage = None
-            self.__average_data()
+            self.data_storage.append(dm.DataHandle_AveragedData(self.data_storage[0], self.configuration.optimization.timestaging))
+            self.data = self.data_storage[1]
+        else:
+            # Write data to self
+            self.data = self.data_storage[0]
 
         # INITIALIZE RESULTS
         self.results = None
@@ -117,10 +121,7 @@ class EnergyHub:
         self.model.set_networks = Set(initialize=self.data.network_data.keys())
 
         # Time Frame
-        if global_variables.averaged_data == 1:
-            self.model.set_t_full = RangeSet(1,len(self.data_averaged.topology.timesteps))
-        else:
-            self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
+        self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
 
         if global_variables.clustered_data == 1:
             self.model.set_t_clustered = RangeSet(1,len(self.data.topology.timesteps_clustered))
@@ -183,7 +184,8 @@ class EnergyHub:
             self.__minimize_pareto()
 
         # Second stage of time averaging algorithm
-        if self.configuration.optimization.timestaging and not global_variables.averaged_data_specs.last_stage:
+
+        if global_variables.averaged_data and global_variables.averaged_data_specs.stage == 0:
             self.__minimize_time_averaging_second_stage()
 
     def add_technology_to_node(self, nodename, technologies):
@@ -220,42 +222,6 @@ class EnergyHub:
         results = dm.ResultsHandle()
         results.read_results(self)
         return results
-
-    def calculate_occurance_per_hour(self):
-        """
-        Calculates how many times an hour in the reduced resolution occurs in the full resolution
-        :return np array occurance_hour:
-        """
-        if global_variables.clustered_data and global_variables.averaged_data:
-            pass
-            # occurrence_hour = np.multiply(
-            #     self.data_clustered.k_means_specs.reduced_resolution['factor'].to_numpy(),
-            #     self.data_averaged.averaged_specs.reduced_resolution['factor'].to_numpy())
-        elif global_variables.clustered_data and not global_variables.averaged_data:
-            occurrence_hour = self.data_clustered.k_means_specs.reduced_resolution['factor'].to_numpy()
-        elif not global_variables.clustered_data and global_variables.averaged_data:
-            occurrence_hour = self.data_clustered.averaged_specs.reduced_resolution['factor'].to_numpy()
-        else:
-            occurrence_hour = np.ones(len(self.model.set_t_full))
-        return occurrence_hour
-
-    def __cluster_data(self, data):
-        """
-        Clusters the data according to a k-means algorithm
-        :param data DataHandle: instance of the DataHandle class
-        """
-        print('Clustering Data...')
-        self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
-        print('Clustering Data completed')
-
-    def __average_data(self):
-        """
-        Averages the data for a two-stage time average algorithm
-        """
-        print('Averaging Data...')
-        self.data_averaged = dm.DataHandle_AveragedData(self.data, self.configuration.optimization.timestaging)
-        global_variables.averaged_data_specs.specs = self.data_averaged.averaged_specs
-        print('Averaging Data completed')
 
     def __optimize(self):
         """
@@ -358,14 +324,14 @@ class EnergyHub:
         """
         Optimizes the second stage of the time_averaging algorithm
         """
-        global_variables.averaged_data = 0
-        global_variables.averaged_data_specs.last_stage = 1
+        global_variables.averaged_data_specs.stage += 1
+        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
         bounds_on = 'no_storage'
         self.model_first_stage = self.model
         self.solution_first_stage = copy.deepcopy(self.solution)
         self.model = ConcreteModel()
         self.solution = []
-        self.data = self.data
+        self.data = self.data_storage[0]
         self.construct_model()
         self.construct_balances()
         self.__impose_size_constraints(bounds_on)

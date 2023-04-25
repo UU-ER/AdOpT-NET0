@@ -26,13 +26,17 @@ class Technology:
         self.size_min = tec_data['size_min']
         self.size_max = tec_data['size_max']
         self.decommission = tec_data['decommission']
-        self.modelled_with_full_res = None
+        self.modelled_with_full_res = 1
 
         # Economics
         self.economics = Economics(tec_data['Economics'])
 
         # Technology Performance
         self.performance_data = tec_data['TechnologyPerf']
+        technologies_modelled_with_full_res = ['RES', 'STOR']
+        if global_variables.clustered_data and (self.technology_model not in technologies_modelled_with_full_res):
+            self.modelled_with_full_res = 0
+
         self.fitted_performance = None
 
     def fit_technology_performance(self, node_data):
@@ -44,17 +48,10 @@ class Technology:
         location = node_data.location
 
         # Which tecs are modelled with full resolution?
-        if global_variables.clustered_data:
-            technologies_modelled_with_full_res = ['RES', 'STOR']
-            if self.technology_model in technologies_modelled_with_full_res:
-                self.modelled_with_full_res = 1
-                climate_data = node_data.data['climate_data']
-            else:
-                self.modelled_with_full_res = 0
-                climate_data = node_data.data_clustered['climate_data']
-        else:
-            self.modelled_with_full_res = 1
+        if self.modelled_with_full_res:
             climate_data = node_data.data['climate_data']
+        else:
+            climate_data = node_data.data_clustered['climate_data']
 
         # Derive performance parameters for respective performance function type
         # GENERIC TECHNOLOGIES

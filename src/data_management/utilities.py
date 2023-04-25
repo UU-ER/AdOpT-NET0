@@ -95,33 +95,6 @@ def get_day_factors(keys):
     factors.columns = ['timestep', 'factor']
     return factors
 
-def flag_tecs_for_clustering(data):
-    """
-    Creates a dictonary with flags for RES technologies
-
-    These technologies contain time-dependent input data, i.e. capacity factors.
-    :return dict tecs_flagged_for_clustering: flags for technologies and nodes
-
-    """
-    tecs_flagged_for_clustering = {}
-    for node in data.topology.nodes:
-        tecs_flagged_for_clustering[node] = {}
-        for technology in data.technology_data[node]:
-            if data.technology_data[node][technology].technology_model == 'RES':
-                tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
-            elif data.technology_data[node][technology].technology_model == 'STOR':
-                tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
-            elif data.technology_data[node][technology].technology_model == 'DAC_Adsorption':
-                tecs_flagged_for_clustering[node][technology] = ['alpha','beta','b','gamma','delta','a']
-            elif data.technology_data[node][technology].technology_model.startswith('HeatPump_'):
-                if data.technology_data[node][technology].performance_data['performance_function_type'] == 1:
-                    tecs_flagged_for_clustering[node][technology] = ['alpha1']
-                else:
-                    tecs_flagged_for_clustering[node][technology] = ['alpha1','alpha2']
-            elif data.technology_data[node][technology].technology_model.startswith('GasTurbine_'):
-                tecs_flagged_for_clustering[node][technology] = ['alpha','beta','epsilon','f']
-
-    return tecs_flagged_for_clustering
 
 def reshape_df(series_to_add, column_names, nr_cols):
     """
@@ -135,6 +108,7 @@ def reshape_df(series_to_add, column_names, nr_cols):
     transformed_series = pd.DataFrame(transformed_series, columns=column_names)
     return transformed_series
 
+
 def define_multiindex(ls):
     """
     Create a multi index from a list
@@ -142,6 +116,16 @@ def define_multiindex(ls):
     multi_index = list(zip(*ls))
     multi_index = pd.MultiIndex.from_tuples(multi_index)
     return multi_index
+
+
+def average_series(series, nr_timesteps_averaged):
+    """
+    Averages a number of timesteps
+    """
+    to_average = reshape_df(series, None, nr_timesteps_averaged)
+    average =  np.array(to_average.mean(axis=1))
+
+    return average
 
 
 class NodeData():
