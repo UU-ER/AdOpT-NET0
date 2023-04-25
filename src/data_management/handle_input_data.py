@@ -439,7 +439,7 @@ class DataHandle_AveragedData(DataHandle):
         Constructor
         """
         # Copy over data from old object
-        self.topology = data.topology
+        self.topology = copy.deepcopy(data.topology)
         self.node_data = {}
         self.technology_data = {}
         self.network_data = data.network_data
@@ -490,26 +490,23 @@ class DataHandle_AveragedData(DataHandle):
             for series1 in node_data[node].data:
                 self.node_data[node].data[series1] = pd.DataFrame(index=self.topology.timesteps)
                 for series2 in node_data[node].data[series1]:
-                    series_data = dm.reshape_df(node_data[node].data[series1][series2],
-                                                None, nr_timesteps_averaged)
-                    self.node_data[node].data[series1][series2] = np.array(series_data.mean(axis=1))
+                    self.node_data[node].data[series1][series2] = \
+                        dm.average_series(node_data[node].data[series1][series2], nr_timesteps_averaged)
 
         # Average data for clustered resolution
         if global_variables.clustered_data == 1:
             # adjust timesteps
             end_interval = max(self.topology.timesteps_clustered)
             start_interval = min(self.topology.timesteps_clustered)
-            time_resolution = str(nr_timesteps_averaged) + 'h'
-            self.topology.timestep_length_h = nr_timesteps_averaged
-            self.topology.timesteps_clustered = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
+            self.topology.timesteps_clustered = range(start_interval, int((end_interval+1) / nr_timesteps_averaged))
+
 
             for node in node_data:
                 for series1 in node_data[node].data:
                     self.node_data[node].data_clustered[series1] = pd.DataFrame(self.topology.timesteps_clustered)
                     for series2 in node_data[node].data[series1]:
-                        series_data = dm.reshape_df(node_data[node].data_clustered[series1][series2],
-                                                    None, nr_timesteps_averaged)
-                        self.node_data[node].data_clustered[series1][series2] = np.array(series_data.mean(axis=1))
+                        self.node_data[node].data_clustered[series1][series2] = \
+                            dm.average_series(node_data[node].data_clustered[series1][series2], nr_timesteps_averaged)
 
 
     def __read_technology_data(self, data_full_resolution, nr_timesteps_averaged):
@@ -528,8 +525,7 @@ class DataHandle_AveragedData(DataHandle):
                     # Fit performance based on full resolution and average capacity factor
                     self.technology_data[node][technology].fit_technology_performance(data_full_resolution.node_data[node])
                     cap_factor = self.technology_data[node][technology].fitted_performance.coefficients['capfactor']
-                    series_data = dm.reshape_df(cap_factor, None, nr_timesteps_averaged)
-                    new_cap_factor = series_data.mean(axis=1)
+                    new_cap_factor = dm.average_series(cap_factor, nr_timesteps_averaged)
                     self.technology_data[node][technology].fitted_performance.coefficients['capfactor'] = \
                         new_cap_factor
 
@@ -552,8 +548,8 @@ class DataHandle_AveragedData(DataHandle):
                     # Fit performance based on full resolution and average capacity factor
                     self.technology_data[node][technology + '_existing'].fit_technology_performance(data_full_resolution.node_data[node])
                     cap_factor = self.technology_data[node][technology + '_existing'].fitted_performance.coefficients['capfactor']
-                    series_data = dm.reshape_df(cap_factor, None, nr_timesteps_averaged)
-                    new_cap_factor = series_data.mean(axis=1)
+                    new_cap_factor = dm.average_series(cap_factor, nr_timesteps_averaged)
+
                     self.technology_data[node][technology + '_existing'].fitted_performance.coefficients['capfactor'] = \
                         new_cap_factor
 
