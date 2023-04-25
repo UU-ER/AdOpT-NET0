@@ -9,13 +9,18 @@ import numpy as np
 import dill as pickle
 import src.global_variables as global_variables
 import time
+import copy
 
 
 class EnergyHub:
     r"""
     Class to construct and manipulate an energy system model.
 
-    When constructing an instance, it reads data to the instance and defines relevant model sets:
+    When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
+    class:
+    - self.configuration: Contains options for the optimization and is passed to the constructor
+    - self.model: A concrete Pyomo model
+    -
 
     **Set declarations:**
 
@@ -34,8 +39,8 @@ class EnergyHub:
         print('Reading in data...')
         start = time.time()
 
-        # READ IN DATA
-        self.data = data
+        # Define units
+        define_units()
 
         # READ IN MODEL CONFIGURATION
         self.configuration = configuration
@@ -43,26 +48,31 @@ class EnergyHub:
         # INITIALIZE MODEL
         self.model = ConcreteModel()
 
-        # Define units
-        try:
-            u.load_definitions_from_strings(['EUR = [currency]'])
-        except pint.errors.DefinitionSyntaxError:
-            pass
-
-        # INITIALIZE SOLUTION
-        self.solution = []
-
-        # SET GLOBAL VARIABLES
+        # INITIALIZE GLOBAL OPTIONS
         global_variables.clustered_data = 0
         global_variables.averaged_data = 0
-        if hasattr(self.data, 'k_means_specs'):
-            # Clustered Data
+
+        # INITIALIZE SOLUTION
+        self.solution = None
+
+        # INITIALIZE DATA
+        if not self.configuration.optimization.typicaldays == 0:
+            # If clustered
             global_variables.clustered_data = 1
-            global_variables.clustered_data_specs.specs = self.data.k_means_specs
-        if hasattr(self.data, 'averaged_specs'):
-            # Averaged Data
+            self.__cluster_data(data)
+        else:
+            # If not clustered
+            self.data = data
+
+        # INITIALIZE DATA
+        if self.configuration.optimization.timestaging:
             global_variables.averaged_data = 1
-            global_variables.averaged_data_specs.specs = self.data.averaged_specs
+            self.model_first_stage = None
+            self.solution_first_stage = None
+            self.__average_data()
+
+        # INITIALIZE RESULTS
+        self.results = None
 
         print('Reading in data completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
@@ -94,11 +104,10 @@ class EnergyHub:
         start = time.time()
 
         # DEFINE SETS
+        # Nodes, Carriers, Technologies, Networks
         topology = self.data.topology
         self.model.set_nodes = Set(initialize=topology.nodes)
         self.model.set_carriers = Set(initialize=topology.carriers)
-        self.model.set_t = RangeSet(1,len(topology.timesteps))
-
         def tec_node(set, node):
             if self.data.technology_data:
                 return self.data.technology_data[node].keys()
@@ -106,6 +115,15 @@ class EnergyHub:
                 return Set.Skip
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
         self.model.set_networks = Set(initialize=self.data.network_data.keys())
+
+        # Time Frame
+        if global_variables.averaged_data == 1:
+            self.model.set_t_full = RangeSet(1,len(self.data_averaged.topology.timesteps))
+        else:
+            self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
+
+        if global_variables.clustered_data == 1:
+            self.model.set_t_clustered = RangeSet(1,len(self.data.topology.timesteps_clustered))
 
         # DEFINE VARIABLES
         # Global cost variables
@@ -123,6 +141,7 @@ class EnergyHub:
 
         print('Constructing model completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
+
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
@@ -135,68 +154,37 @@ class EnergyHub:
         start = time.time()
 
         self.model = mc.add_energybalance(self)
-
         self.model = mc.add_emissionbalance(self)
         self.model = mc.add_system_costs(self)
 
         print('Constructing balances completed in ' + str(time.time() - start) + ' s')
         print('_' * 20)
+
     def solve_model(self):
         """
         Defines objective and solves model
 
-        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual emissions
-        ('emissions_net'), and total annual emissions at minimal cost ('emissions_minC').
+        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual net emissions
+        ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
+        ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
-        # This is a dirty fix as objectives cannot be found with find_component
-        try:
-            self.model.del_component(self.model.objective)
-        except:
-            pass
-
         objective = self.configuration.optimization.objective
 
         # Define Objective Function
         if objective == 'costs':
-            def init_cost_objective(obj):
-                return self.model.var_total_cost
-            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+            self.__minimize_cost()
         elif objective == 'emissions_pos':
-            def init_emission_pos_objective(obj):
-                return self.model.var_emissions_pos
-            self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+            self.__minimize_emissions_pos()
         elif objective == 'emissions_net':
-            def init_emission_net_objective(obj):
-                return self.model.var_emissions_net
-            self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+            self.__minimize_emissions_net()
         elif objective == 'emissions_minC':
-            def init_emission_minC_objective(obj):
-                return self.model.var_emissions_pos
-            self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
-            emission_limit = self.model.var_emissions_pos.value
-            self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
-            def init_cost_objective(obj):
-                return self.model.var_total_cost
-            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+            self.__minimize_emissions_minC()
         elif objective == 'pareto':
-            print('to be implemented')
+            self.__minimize_pareto()
 
-
-
-        # Define solver settings
-        if self.configuration.solveroptions.solver == 'gurobi':
-            solver = get_gurobi_parameters(self.configuration.solveroptions)
-
-        # Solve model
-        print('_' * 20)
-        print('Solving Model...')
-
-        start = time.time()
-        self.solution = solver.solve(self.model, tee=True, warmstart=True)
-        self.solution.write()
-
-        print('Solving model completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
+        # Second stage of time averaging algorithm
+        if self.configuration.optimization.timestaging and not global_variables.averaged_data_specs.last_stage:
+            self.__minimize_time_averaging_second_stage()
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -210,7 +198,7 @@ class EnergyHub:
         :return: None
         """
         self.data.read_single_technology_data(nodename, technologies)
-        mc.add_technologies(self, nodename, technologies)
+        mc.add_technology(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
         """
@@ -224,37 +212,6 @@ class EnergyHub:
         """
         with open(file_path + '/' + file_name, mode='wb') as file:
             pickle.dump(self, file)
-
-    def print_topology(self):
-        print('----- SET OF CARRIERS -----')
-        for car in self.model.set_carriers:
-            print('- ' + car)
-        print('----- NODE DATA -----')
-        for node in self.model.set_nodes:
-            print('\t -----------------------------------------------------')
-            print('\t nodename: '+ node)
-            print('\t\ttechnologies installed:')
-            for tec in self.model.set_technologies[node]:
-                print('\t\t - ' + tec)
-            print('\t\taverage demand:')
-            for car in self.model.set_carriers:
-                avg = round(self.data.demand[node][car].mean(), 2)
-                print('\t\t - ' + car + ': ' + str(avg))
-            print('\t\taverage of climate data:')
-            for ser in self.data.climate_data[node]['dataframe']:
-                avg = round(self.data.climate_data[node]['dataframe'][ser].mean(),2)
-                print('\t\t - ' + ser + ': ' + str(avg))
-        print('----- NETWORK DATA -----')
-        for car in self.data.topology['networks']:
-            print('\t -----------------------------------------------------')
-            print('\t carrier: '+ car)
-            for netw in self.data.topology['networks'][car]:
-                print('\t\t - ' + netw)
-                connection = self.data.topology['networks'][car][netw]['connection']
-                for from_node in connection:
-                    for to_node in connection[from_node].index:
-                        if connection.at[from_node, to_node] == 1:
-                            print('\t\t\t' + from_node  + '---' +  to_node)
 
     def write_results(self):
         """
@@ -270,69 +227,151 @@ class EnergyHub:
         :return np array occurance_hour:
         """
         if global_variables.clustered_data and global_variables.averaged_data:
-            occurrence_hour = np.multiply(
-                self.data.k_means_specs.reduced_resolution['factor'].to_numpy(),
-                self.data.averaged_specs.reduced_resolution['factor'].to_numpy())
+            pass
+            # occurrence_hour = np.multiply(
+            #     self.data_clustered.k_means_specs.reduced_resolution['factor'].to_numpy(),
+            #     self.data_averaged.averaged_specs.reduced_resolution['factor'].to_numpy())
         elif global_variables.clustered_data and not global_variables.averaged_data:
-            occurrence_hour = self.data.k_means_specs.reduced_resolution['factor'].to_numpy()
+            occurrence_hour = self.data_clustered.k_means_specs.reduced_resolution['factor'].to_numpy()
         elif not global_variables.clustered_data and global_variables.averaged_data:
-            occurrence_hour = self.data.averaged_specs.reduced_resolution['factor'].to_numpy()
+            occurrence_hour = self.data_clustered.averaged_specs.reduced_resolution['factor'].to_numpy()
         else:
-            occurrence_hour = np.ones(len(self.model.set_t))
+            occurrence_hour = np.ones(len(self.model.set_t_full))
         return occurrence_hour
 
-class EnergyHubTwoStageTimeAverage(EnergyHub):
-    """
-    Sub-class of the EnergyHub class to perform two stage time averaging optimization based on
-    Weimann, L., & Gazzani, M. (2022). A novel time discretization method for solving complex multi-energy system
-    design and operation problems with high penetration of renewable energy. Computers & Chemical Engineering,
-    107816. https://doi.org/10.1016/J.COMPCHEMENG.2022.107816
-
-    All methods available in the super-class EnergyHub are also available in this subclass.
-    """
-    def __init__(self, data, nr_timesteps_averaged=4):
-        self.full_res_ehub = EnergyHub(data)
-        data_averaged = dm.DataHandle_AveragedData(data,nr_timesteps_averaged)
-        EnergyHub.__init__(self, data_averaged)
-        global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
-
-    def solve_model(self, objective = 'cost', bounds_on = 'all'):
+    def __cluster_data(self, data):
         """
-        Solve the model in a two stage time average manner.
-
-        In the first stage, time-steps are averaged and thus the model is optimized with a reduced time frame.
-        In the second stage, the sizes of technologies and networks are constrained with a lower bound. It is possible
-        to only constrain some technologies with the parameter bounds_on (see below)
-
-        :param objective: objective to minimize
-        :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
+        Clusters the data according to a k-means algorithm
+        :param data DataHandle: instance of the DataHandle class
         """
-        # Solve reduced resolution model
+        print('Clustering Data...')
+        self.data = dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays)
+        print('Clustering Data completed')
+
+    def __average_data(self):
+        """
+        Averages the data for a two-stage time average algorithm
+        """
+        print('Averaging Data...')
+        self.data_averaged = dm.DataHandle_AveragedData(self.data, self.configuration.optimization.timestaging)
+        global_variables.averaged_data_specs.specs = self.data_averaged.averaged_specs
+        print('Averaging Data completed')
+
+    def __optimize(self):
+        """
+        Solves the model
+        :return:
+        """
+
+        # Define solver settings
+        # if self.configuration.solveroptions.solver == 'gurobi':
+        solver = get_gurobi_parameters(self.configuration.solveroptions)
+
+        # Solve model
+        print('_' * 20)
+        print('Solving Model...')
+
+        start = time.time()
+        self.solution = solver.solve(self.model, tee=True, warmstart=True)
+        self.solution.write()
+
+        print('Solving model completed in ' + str(time.time() - start) + ' s')
+        print('_' * 20)
+
+
+    def __minimize_cost(self):
+        """
+        Minimizes Costs
+        """
+        self.__delete_objective()
+
+        def init_cost_objective(obj):
+            return self.model.var_total_cost
+        self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+        self.__optimize()
+
+    def __minimize_emissions_pos(self):
+        """
+        Minimizes positive emission
+        """
+        self.__delete_objective()
+
+        def init_emission_pos_objective(obj):
+            return self.model.var_emissions_pos
+        self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+        self.__optimize()
+
+    def __minimize_emissions_net(self):
+        """
+        Minimize net emissions
+        """
+        self.__delete_objective()
+
+        def init_emission_net_objective(obj):
+            return self.model.var_emissions_net
+        self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+        self.__optimize()
+
+    def __minimize_emissions_minC(self):
+        """
+        Minimize costs at minimum emissions
+        """
+        self.__minimize_emissions_net()
+        emission_limit = self.model.var_emissions_net.value
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.0001)
+        self.__minimize_cost()
+
+    def __minimize_pareto(self):
+        """
+        Optimize the pareto front
+        """
+        # Min Cost
+        pareto_points = self.configuration.optimization.pareto_points
+        self.results = [None] * pareto_points
+        self.__minimize_cost()
+        self.results[pareto_points - 1] = self.write_results()
+        emissions_max = self.model.var_emissions_net.value
+        # Min Emissions
+        self.__minimize_emissions_minC()
+        emissions_min = self.model.var_emissions_net.value
+        self.results[0] = self.write_results()
+        # Emission limit
+        emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
+        for pareto_point in range(1, pareto_points - 1):
+            self.model.del_component(self.model.const_emission_limit)
+            self.model.const_emission_limit = Constraint(
+                expr=self.model.var_emissions_net <= emission_limits[pareto_point])
+            self.__minimize_cost()
+            self.results[pareto_point] = self.write_results()
+
+
+    def __delete_objective(self):
+        """
+        Delete the objective function
+        """
+        try:
+            self.model.del_component(self.model.objective)
+        except:
+            pass
+
+    def __minimize_time_averaging_second_stage(self):
+        """
+        Optimizes the second stage of the time_averaging algorithm
+        """
+        global_variables.averaged_data = 0
+        global_variables.averaged_data_specs.last_stage = 1
+        bounds_on = 'no_storage'
+        self.model_first_stage = self.model
+        self.solution_first_stage = copy.deepcopy(self.solution)
+        self.model = ConcreteModel()
+        self.solution = []
+        self.data = self.data
         self.construct_model()
         self.construct_balances()
-        super().solve_model()
-        global_variables.averaged_data = 0
-        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
+        self.__impose_size_constraints(bounds_on)
+        self.solve_model()
 
-
-        # Solve full resolution model
-        # Initialize
-        self.full_res_ehub.construct_model()
-        self.full_res_ehub.construct_balances()
-        # Impose additional constraints
-        self.impose_size_constraints(bounds_on)
-        # Solve with additional constraints
-        self.full_res_ehub.solve_model()
-
-    def write_results(self):
-        """
-        Overwrites method of EnergyHub superclass
-        """
-        results = dm.ResultsHandle()
-        results.read_results(self.full_res_ehub)
-        return results
-
-    def impose_size_constraints(self, bounds_on):
+    def __impose_size_constraints(self, bounds_on):
         """
         Formulates lower bound on technology and network sizes.
 
@@ -342,8 +381,8 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
         """
 
-        m_full = self.full_res_ehub.model
-        m_avg = self.model
+        m_full = self.model
+        m_avg = self.model_first_stage
 
         # Technologies
         if bounds_on == 'all' or bounds_on == 'only_technologies' or bounds_on == 'no_storage':

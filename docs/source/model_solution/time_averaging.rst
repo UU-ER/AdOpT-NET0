@@ -1,3 +1,5 @@
+.. _time_averaging:
+
 Two-stage time averaging algorithm
 =====================================
 This algorithm solves the model in two stages. In the first stage, input data is averaged over multiple hours and the
@@ -19,13 +21,16 @@ to the :func:`.EnergyHub` class:
 
     from src.energyhub import *
 
-    # Construct Model and solve in two stages
-    energyhub = EnergyHub_two_stage_time_average(data)
-    energyhub.solve_model()
+
+    import src.data_management as dm
+
+    # Define topology and data (not shown here)
+
+    # Set configuration (use time-staging algorithm)
+    configuration = ModelConfiguration()
+    configuration.optimization.timestaging = 1
 
 
-EnergyHubTwoStageTimeAverage Class
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: src.energyhub.EnergyHubTwoStageTimeAverage
-    :members:
-    :exclude-members: impose_size_constraints, write_results
+    # Construct Model and solve
+    energyhub = EnergyHub(data, configuration)
+    ehub.quick_solve_model()

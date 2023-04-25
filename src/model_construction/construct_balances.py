@@ -1,5 +1,6 @@
 from pyomo.environ import *
 from pyomo.environ import units as u
+import src.global_variables as global_variables
 
 
 def add_energybalance(energyhub):
@@ -26,7 +27,9 @@ def add_energybalance(energyhub):
         model.del_component(model.const_energybalance)
         model.del_component(model.const_energybalance_index)
 
-    # energybalance at each node
+    # energybalance at each node (always at full resolution)
+    set_t = model.set_t_full
+
     def init_energybalance(const, t, car, node):
         if car in model.node_blocks[node].set_carriers:
             node_block = model.node_blocks[node]
@@ -55,7 +58,7 @@ def add_energybalance(energyhub):
                 node_block.para_demand[t, car] - generic_production
         else:
             return Constraint.Skip
-    model.const_energybalance = Constraint(model.set_t, model.set_carriers, model.set_nodes, rule=init_energybalance)
+    model.const_energybalance = Constraint(set_t, model.set_carriers, model.set_nodes, rule=init_energybalance)
 
     return model
 
@@ -69,7 +72,9 @@ def add_emissionbalance(energyhub):
     """
     # COLLECT OBJECTS FROM ENERGYHUB
     model = energyhub.model
-    occurrence_hour = energyhub.calculate_occurance_per_hour()
+
+    # Emissionbalance is always at full resolution
+    set_t = model.set_t_full
 
     # Delete previously initialized constraints
     if model.find_component('const_emissions_pos'):
@@ -84,29 +89,27 @@ def add_emissionbalance(energyhub):
 
     # calculate total emissions from technologies, networks and importing/exporting carriers
     def init_emissions_pos(const):
-        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t] *
-                                        occurrence_hour[t - 1]
-                                        for t in model.set_t)
+        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t]
+                                        for t in set_t)
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes)
-        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t] * occurrence_hour[t - 1]
-                                for t in model.set_t)
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t]
+                                for t in set_t)
                             for node in model.set_nodes)
-        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t] * occurrence_hour[t - 1]
-                                for t in model.set_t)
+        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t]
+                                for t in set_t)
                             for netw in model.set_networks)
         return from_technologies + from_carriers + from_networks == model.var_emissions_pos
     model.const_emissions_tot = Constraint(rule=init_emissions_pos)
 
     # calculate negative emissions from technologies and import/export
     def init_emissions_neg(const):
-        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t] *
-                                        occurrence_hour[t - 1]
-                                    for t in model.set_t)
+        from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t]
+                                    for t in set_t)
                                 for tec in model.node_blocks[node].set_tecsAtNode)
                             for node in model.set_nodes)
-        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_neg[t] * occurrence_hour[t - 1]
-                                for t in model.set_t)
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_neg[t]
+                                for t in set_t)
                             for node in model.set_nodes)
         return from_technologies + from_carriers == model.var_emissions_neg
     model.const_emissions_neg = Constraint(rule=init_emissions_neg)
@@ -131,7 +134,6 @@ def add_system_costs(energyhub):
 
     # COLLECT OBJECTS FROM ENERGYHUB
     model = energyhub.model
-    occurrence_hour = energyhub.calculate_occurance_per_hour()
 
     # Delete previously initialized constraints
     if model.find_component('const_node_cost'):
@@ -139,30 +141,30 @@ def add_system_costs(energyhub):
         model.del_component(model.const_netw_cost)
         model.del_component(model.const_cost)
 
+    # Cost is always at full resolution
+    set_t = model.set_t_full
+
     # Cost at each node
     def init_node_cost(const):
         tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX
                             for tec in model.node_blocks[node].set_tecsAtNode)
                         for node in model.set_nodes)
-        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t] *
-                                        occurrence_hour[t - 1]
+        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t]
                                         for tec in model.node_blocks[node].set_tecsAtNode)
-                                    for t in model.set_t)
+                                    for t in set_t)
                                 for node in model.set_nodes)
         tec_OPEX_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_fixed
                                 for tec in model.node_blocks[node].set_tecsAtNode)
                              for node in model.set_nodes)
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
-                                    model.node_blocks[node].para_import_price[t, car] *
-                                    occurrence_hour[t - 1]
+                                    model.node_blocks[node].para_import_price[t, car]
                                   for car in model.node_blocks[node].set_carriers)
-                              for t in model.set_t)
+                              for t in set_t)
                           for node in model.set_nodes)
         export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car] *
-                                     model.node_blocks[node].para_export_price[t, car] *
-                                     occurrence_hour[t - 1]
+                                     model.node_blocks[node].para_export_price[t, car]
                                     for car in model.node_blocks[node].set_carriers)
-                                 for t in model.set_t)
+                                 for t in set_t)
                              for node in model.set_nodes)
         return tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed + import_cost - export_revenue == model.var_node_cost
     model.const_node_cost = Constraint(rule=init_node_cost)
@@ -171,10 +173,9 @@ def add_system_costs(energyhub):
     def init_netw_cost(const):
         netw_CAPEX = sum(model.network_block[netw].var_CAPEX
                          for netw in model.set_networks)
-        netw_OPEX_variable = sum(sum(model.network_block[netw].var_OPEX_variable[t] *
-                                        occurrence_hour[t - 1]
+        netw_OPEX_variable = sum(sum(model.network_block[netw].var_OPEX_variable[t]
                                      for netw in model.set_networks)
-                                 for t in model.set_t)
+                                 for t in set_t)
         netw_OPEX_fixed = sum(model.network_block[netw].var_OPEX_fixed
                          for netw in model.set_networks)
         return netw_CAPEX + netw_OPEX_variable + netw_OPEX_fixed == \

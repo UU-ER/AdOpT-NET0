@@ -13,7 +13,15 @@ class DataHandle:
 
     The Data Handle class allows data import and modifications of input data to an instance of the energyhub class.
     The constructor of the class takes an instance of the class
-    :func:`~src.data_management.handle_topology.SystemTopology` as an input.
+    :func:`~src.data_management.handle_topology.SystemTopology` as an input. The DataHandle class is structured
+    as follows:
+    - node_data contains (mainly time-dependent) data on all nodes, e.g. demand, prices, import/export limit,...
+    - technology_data contains data on all technologies. The data is read for all technologies in the topology
+      with the function :func:`~src.data_management.handle_input_data.read_technology_data()`
+    - network_data contains data on the networks. Similar to technolog_data, this is read with the respective function
+      :func:`~src.data_management.handle_input_data.read_network_data()`
+    - topology: contains data on the systems topology (see class
+      :func:`~src.data_management.handle_topology.SystemTopology`)
     """
     def __init__(self, topology):
         """
@@ -29,25 +37,10 @@ class DataHandle:
         self.network_data = {}
 
         self.topology = topology
-        # Initialize demand, prices, emission factors = 0 for all timesteps, carriers and nodes
-        variables = ['demand',
-                     'production_profile',
-                     'import_prices',
-                     'import_limit',
-                     'import_emissionfactors',
-                     'export_prices',
-                     'export_limit',
-                     'export_emissionfactors']
 
+        # Initialize Node data
         for node in self.topology.nodes:
-            self.node_data[node] = {}
-            self.node_data[node]['production_profile_curtailment'] = {}
-            for var in variables:
-                self.node_data[node][var] = pd.DataFrame(index=self.topology.timesteps)
-            for carrier in self.topology.carriers:
-                self.node_data[node]['production_profile_curtailment'][carrier] = 0
-                for var in variables:
-                    self.node_data[node][var][carrier] = 0
+            self.node_data[node] = dm.NodeData(topology)
 
     def read_climate_data_from_api(self, node, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=0):
         """
@@ -67,6 +60,8 @@ class DataHandle:
         """
         if dataset == 'JRC':
             data = dm.import_jrc_climate_data(lon, lat, year, alt)
+        else:
+            raise Exception('Other APIs are not available')
 
         # Match with timesteps
         data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
@@ -75,8 +70,11 @@ class DataHandle:
         if not save_path==0:
             dm.save_object(data, save_path)
 
-        self.node_data[node]['climate_data'] = data
-
+        # Write to DataHandle
+        self.node_data[node].data['climate_data'] = data['dataframe']
+        self.node_data[node].location.lon = data['longitude']
+        self.node_data[node].location.lat = data['latitude']
+        self.node_data[node].location.altitude = data['altitude']
 
     def read_climate_data_from_file(self, node, file):
         """
@@ -90,7 +88,12 @@ class DataHandle:
         :return: self at ``self.node_data[node]['climate_data']``
         """
         data = dm.load_object(file)
-        self.node_data[node]['climate_data'] = data
+        data['dataframe'] = data['dataframe'][0:len(self.topology.timesteps)]
+
+        self.node_data[node].data['climate_data'] = data['dataframe']
+        self.node_data[node].location.lon = data['longitude']
+        self.node_data[node].location.lat = data['latitude']
+        self.node_data[node].location.altitude = data['altitude']
 
     def read_demand_data(self, node, carrier, demand_data):
         """
@@ -105,7 +108,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
 
-        self.node_data[node]['demand'][carrier] = demand_data
+        self.node_data[node].data['demand'][carrier] = demand_data
 
     def read_production_profile(self, node, carrier, production_data, curtailment):
         """
@@ -119,8 +122,8 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
-        self.node_data[node]['production_profile'][carrier] = production_data
-        self.node_data[node]['production_profile_curtailment'][carrier] = curtailment
+        self.node_data[node].data['production_profile'][carrier] = production_data
+        self.node_data[node].data.options.production_profile_curtailment[carrier] = curtailment
 
     def read_import_price_data(self, node, carrier, price_data):
         """
@@ -135,7 +138,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['import_prices'][carrier]``
         """
 
-        self.node_data[node]['import_prices'][carrier] = price_data
+        self.node_data[node].data['import_prices'][carrier] = price_data
 
     def read_export_price_data(self, node, carrier, price_data):
         """
@@ -150,7 +153,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['export_prices'][carrier]``
         """
 
-        self.node_data[node]['export_prices'][carrier] = price_data
+        self.node_data[node].data['export_prices'][carrier] = price_data
 
     def read_export_limit_data(self, node, carrier, export_limit_data):
         """
@@ -165,7 +168,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['export_limit'][carrier]``
         """
 
-        self.node_data[node]['export_limit'][carrier] = export_limit_data
+        self.node_data[node].data['export_limit'][carrier] = export_limit_data
 
     def read_import_limit_data(self, node, carrier, import_limit_data):
         """
@@ -180,7 +183,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['import_limit'][carrier]``
         """
 
-        self.node_data[node]['import_limit'][carrier] = import_limit_data
+        self.node_data[node].data['import_limit'][carrier] = import_limit_data
 
     def read_export_emissionfactor_data(self, node, carrier, export_emissionfactor_data):
         """
@@ -195,7 +198,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['export_emissionfactors'][carrier]``
         """
 
-        self.node_data[node]['export_emissionfactors'][carrier] = export_emissionfactor_data
+        self.node_data[node].data['export_emissionfactors'][carrier] = export_emissionfactor_data
 
     def read_import_emissionfactor_data(self, node, carrier, import_emissionfactor_data):
         """
@@ -210,7 +213,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['import_emissionfactors'][carrier]``
         """
 
-        self.node_data[node]['import_emissionfactors'][carrier] = import_emissionfactor_data
+        self.node_data[node].data['import_emissionfactors'][carrier] = import_emissionfactor_data
 
     def read_technology_data(self):
         """
@@ -226,13 +229,13 @@ class DataHandle:
             # New technologies
             for technology in self.topology.technologies_new[node]:
                 self.technology_data[node][technology] = comp.Technology(technology)
-                self.technology_data[node][technology].fit_technology_performance(self.node_data[node]['climate_data'])
+                self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
                 self.technology_data[node][technology + '_existing'] = comp.Technology(technology)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
-                self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node]['climate_data'])
+                self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
 
     def read_single_technology_data(self, node, technologies):
         """
@@ -243,7 +246,7 @@ class DataHandle:
 
         for technology in technologies:
             self.technology_data[node][technology] = comp.Technology(technology)
-            self.technology_data[node][technology].fit_technology_performance(self.node_data[node]['climate_data'])
+            self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
 
     def read_network_data(self):
         """
@@ -276,17 +279,36 @@ class DataHandle:
 
         :return: None
         """
-        for node in self.topology.nodes:
-            print('----- NODE '+ node +' -----')
-            for inst in self.node_data[node]:
-                if not inst == 'climate_data':
-                    print('\t ' + inst)
-                    print('\t\t' + f"{'':<15}{'Mean':>10}{'Min':>10}{'Max':>10}")
-                    for carrier in self.topology.carriers:
-                        print('\t\t' + f"{carrier:<15}"
-                                       f"{str(round(self.node_data[node][inst][carrier].mean(), 2)):>10}"
-                                       f"{str(round(self.node_data[node][inst][carrier].min(), 2)):>10}"
-                                       f"{str(round(self.node_data[node][inst][carrier].max(), 2)):>10}")
+
+        print('----- SET OF CARRIERS -----')
+        for car in self.topology.carriers:
+            print('- ' + car)
+        print('----- NODE DATA -----')
+        for node in self.node_data:
+            print('\t -----------------------------------------------------')
+            print('\t Nodename: '+ node)
+            print('\t\tNew technologies:')
+            for tec in self.topology.technologies_new[node]:
+                print('\t\t - ' + tec)
+            print('\t\tExisting technologies:')
+            for tec in self.topology.technologies_existing[node]:
+                print('\t\t - ' + tec)
+            print('\t\tOther Node data:')
+            for var in self.node_data[node].data:
+                print('\t\t\tAverage of ' + var + ':')
+                for ser in self.node_data[node].data[var]:
+                    avg = round(self.node_data[node].data[var][ser].mean(), 2)
+                    print('\t\t\t - ' + ser + ': ' + str(avg))
+        print('----- NETWORK DATA -----')
+        for netw in self.topology.networks_new:
+            print('\t -----------------------------------------------------')
+            print('\t'+ netw)
+            connection = self.topology.networks_new[netw]['connection']
+            for from_node in connection:
+                for to_node in connection[from_node].index:
+                    if connection.at[from_node, to_node] == 1:
+                        print('\t\t\t' + from_node  + ' - ' +  to_node)
+
 
     def save(self, path):
         """
@@ -299,23 +321,6 @@ class DataHandle:
         """
         dm.save_object(self, path)
 
-    def flag_tecs_for_clustering(self):
-        """
-        Creates a dictonary with flags for RES technologies
-
-        These technologies contain time-dependent input data, i.e. capacity factors.
-        :return dict tecs_flagged_for_clustering: flags for technologies and nodes
-
-        """
-        tecs_flagged_for_clustering = {}
-        for node in self.topology.nodes:
-            tecs_flagged_for_clustering[node] = {}
-            for technology in self.technology_data[node]:
-                if self.technology_data[node][technology].technology_model == 'RES':
-                    tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
-                elif self.technology_data[node][technology].technology_model == 'STOR':
-                    tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
-        return tecs_flagged_for_clustering
 
 
 class ClusteredDataHandle(DataHandle):
@@ -325,35 +330,32 @@ class ClusteredDataHandle(DataHandle):
     This function performs the k-means algorithm on the data resulting in a new DataHandle object that can be
     passed to the energhub class for optimization.
 
-    :param DataHandle data_in: DataHandle containing data of the full resolution
+    :param DataHandle data: DataHandle containing data of the full resolution
     :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
     :param int nr_time_intervals_per_day: nr of time intervals per day in data (full resolution)
     """
-    def __init__(self, data_in, nr_clusters, nr_time_intervals_per_day=24):
+    def __init__(self, data, nr_clusters, nr_time_intervals_per_day=24):
         """
         Constructor
 
-        :param DataHandle data_in: DataHandle containing data of the full resolution
+        :param DataHandle data: DataHandle containing data of the full resolution
         :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
         :param int nr_time_intervals_per_day: nr of time intervals per day in data (full resolution)
         """
-        data = copy.deepcopy(data_in)
-
         # Copy over data from old object
-        self.node_data = {}
-        self.node_data_full_resolution = data.node_data
-        self.technology_data = data.technology_data
-        self.network_data = data.network_data
         self.topology = data.topology
+        self.node_data = data.node_data
+        self.technology_data = {}
+        self.network_data = data.network_data
 
         # k-means specs
         self.k_means_specs = dm.simplification_specs(data.topology.timesteps)
 
         # perform clustering
         nr_days_full_resolution = (max(data.topology.timesteps) -  min(data.topology.timesteps)).days + 1
-        self.cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
+        self.__cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
 
-    def cluster_data(self, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
+    def __cluster_data(self, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
         """
         Performs the clustering process
 
@@ -367,81 +369,60 @@ class ClusteredDataHandle(DataHandle):
         :return: instance of :class:`~ClusteredDataHandle`
         """
         # adjust timesteps
-        self.topology.timesteps = range(0, nr_clusters * nr_time_intervals_per_day)
-        # flag tecs that contain time-dependent data
-        tecs_flagged_for_clustering = self.flag_tecs_for_clustering()
+        self.topology.timesteps_clustered = range(0, nr_clusters * nr_time_intervals_per_day)
         # compile full matrix to cluster
-        full_resolution = self.compile_full_resolution_matrix(nr_time_intervals_per_day,
-                                                              tecs_flagged_for_clustering)
+        full_resolution = self.__compile_full_resolution_matrix(nr_time_intervals_per_day)
         # Perform clustering
         clustered_data, day_labels = dm.perform_k_means(full_resolution,
                                                         nr_clusters)
         # Get order of typical days
-        self.k_means_specs.full_resolution['hourly_order'] = dm.compile_hourly_order(day_labels,
+        self.k_means_specs.full_resolution['sequence'] = dm.compile_sequence(day_labels,
                                          nr_clusters,
                                          nr_days_full_resolution,
                                          nr_time_intervals_per_day)
         # Match typical day to actual day
         self.k_means_specs.full_resolution['typical_day'] = np.repeat(day_labels, nr_time_intervals_per_day)
         # Create factors, indicating how many times an hour occurs
-        self.k_means_specs.reduced_resolution = dm.get_day_factors(self.k_means_specs.full_resolution['hourly_order'])
+        self.k_means_specs.reduced_resolution = dm.get_day_factors(self.k_means_specs.full_resolution['sequence'])
         # Read data back in
-        self.read_clustered_data(clustered_data, tecs_flagged_for_clustering)
+        self.__read_clustered_data(clustered_data)
 
-    def read_clustered_data(self, clustered_data, tecs_flagged_for_clustering):
+        self.read_technology_data()
+
+    def __read_clustered_data(self, clustered_data):
         """
         Reads clustered data back to self
 
         :param clustered_data: Clustered data
-        :param tecs_flagged_for_clustering: technologies that have time-dependent data
         """
-        node_data = self.node_data_full_resolution
+        node_data = self.node_data
         for node in node_data:
-            self.node_data[node] = {}
-            for series in node_data[node]:
-                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
-                    self.node_data[node][series] = pd.DataFrame()
-                    for carrier in node_data[node][series]:
-                        self.node_data[node][series][carrier] = \
-                            reshape_df(clustered_data[node][series][carrier],
-                                       None, 1)
-            for tec in tecs_flagged_for_clustering[node]:
-                series_data = reshape_df(clustered_data[node][tec][tecs_flagged_for_clustering[node][tec]], None, 1)
-                series_data = series_data.to_numpy()
-                self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]] = \
-                    series_data
+            for series1 in node_data[node].data:
+                self.node_data[node].data_clustered[series1] = pd.DataFrame(index=self.topology.timesteps_clustered)
+                for series2 in node_data[node].data[series1]:
+                    self.node_data[node].data_clustered[series1][series2] = \
+                        dm.reshape_df(clustered_data[node][series1][series2], None, 1)
 
-    def compile_full_resolution_matrix(self, nr_time_intervals_per_day, tecs_flagged_for_clustering):
+    def __compile_full_resolution_matrix(self, nr_time_intervals_per_day):
         """
         Compiles full resolution matrix to be clustered
 
         Contains, prices, emission factors, capacity factors,...
         """
         full_resolution = pd.DataFrame()
-        node_data = self.node_data_full_resolution
+        node_data = self.node_data
         for node in node_data:
-            for series in node_data[node]:
-                if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
-                    for carrier in node_data[node][series]:
-                        series_names = define_multiindex([
+            for series1 in node_data[node].data:
+                    for series2 in node_data[node].data[series1]:
+                        series_names = dm.define_multiindex([
                             [node] * nr_time_intervals_per_day,
-                            [series] * nr_time_intervals_per_day,
-                            [carrier] * nr_time_intervals_per_day,
+                            [series1] * nr_time_intervals_per_day,
+                            [series2] * nr_time_intervals_per_day,
                             list(range(1, nr_time_intervals_per_day + 1))
                         ])
-                        to_add = reshape_df(node_data[node][series][carrier],
+                        to_add = dm.reshape_df(node_data[node].data[series1][series2],
                                             series_names, nr_time_intervals_per_day)
                         full_resolution = pd.concat([full_resolution, to_add], axis=1)
-            for tec in tecs_flagged_for_clustering[node]:
-                series_names = define_multiindex([
-                    [node] * nr_time_intervals_per_day,
-                    [tec] * nr_time_intervals_per_day,
-                    [tecs_flagged_for_clustering[node][tec]] * nr_time_intervals_per_day,
-                    list(range(1, nr_time_intervals_per_day + 1))
-                ])
-                to_add = reshape_df(self.technology_data[node][tec].fitted_performance[tecs_flagged_for_clustering[node][tec]],
-                                    series_names, nr_time_intervals_per_day)
-                full_resolution = pd.concat([full_resolution, to_add], axis=1)
         return full_resolution
 
 
@@ -481,7 +462,7 @@ class DataHandle_AveragedData(DataHandle):
         self.topology.timestep_length_h = nr_timesteps_averaged
         self.topology.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
         # flag tecs that contain time-dependent data
-        tecs_flagged_for_clustering = self.flag_tecs_for_clustering()
+        tecs_flagged_for_clustering = dm.flag_tecs_for_clustering(self)
         # Average all time-dependent data and write to self
         self.perform_averaging(nr_timesteps_averaged, tecs_flagged_for_clustering)
         # Write averaged specs
@@ -500,9 +481,11 @@ class DataHandle_AveragedData(DataHandle):
         node_data = self.node_data_full_resolution
         for node in node_data:
             self.node_data[node] = {}
+            self.node_data[node].options.production_profile_curtailment = \
+                node_data[node].options.production_profile_curtailment
             for series in node_data[node]:
-                self.node_data[node][series] = pd.DataFrame()
                 if not (series == 'climate_data') and not (series == 'production_profile_curtailment'):
+                    self.node_data[node][series] = pd.DataFrame()
                     for carrier in node_data[node][series]:
                         series_data = dm.reshape_df(node_data[node][series][carrier],
                                                     None, nr_timesteps_averaged)
@@ -515,23 +498,7 @@ class DataHandle_AveragedData(DataHandle):
                     tecs_flagged_for_clustering[node][tec]] = series_data.mean(axis=1)
 
 
-def reshape_df(series_to_add, column_names, nr_cols):
-    """
-    Transform all data to large dataframe with each row being one day
-    """
-    if not type(series_to_add).__module__ == np.__name__:
-        transformed_series = series_to_add.to_numpy()
-    else:
-        transformed_series = series_to_add
-    transformed_series = transformed_series.reshape((-1, nr_cols))
-    transformed_series = pd.DataFrame(transformed_series, columns=column_names)
-    return transformed_series
 
-def define_multiindex(ls):
-    """
-    Create a multi index from a list
-    """
-    multi_index = list(zip(*ls))
-    multi_index = pd.MultiIndex.from_tuples(multi_index)
-    return multi_index
+
+
 
