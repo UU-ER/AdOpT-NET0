@@ -123,7 +123,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
         self.node_data[node].data['production_profile'][carrier] = production_data
-        self.node_data[node].data.options.production_profile_curtailment[carrier] = curtailment
+        self.node_data[node].options.production_profile_curtailment[carrier] = curtailment
 
     def read_import_price_data(self, node, carrier, price_data):
         """
