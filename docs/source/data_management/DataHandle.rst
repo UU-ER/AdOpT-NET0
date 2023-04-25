@@ -8,6 +8,4 @@ and manipulate data consistent with the model.
 .. automodule:: src.data_management.handle_input_data
     :members:
     :exclude-members: define_multiindex, reshape_df, DataHandle_AveragedData,
-                      DataHandle_AveragedData, ClusteredDataHandle, flag_tecs_for_clustering
-
-
+                      ClusteredDataHandle, flag_tecs_for_clustering

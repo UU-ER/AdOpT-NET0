@@ -2,6 +2,7 @@ import pickle
 import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np
+from types import SimpleNamespace
 
 
 def save_object(data, save_path):
@@ -65,22 +66,22 @@ def perform_k_means(full_resolution, nr_clusters):
     return clustered_data, kmeans.labels_
 
 
-def compile_hourly_order(day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
+def compile_sequence(day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
     """
 
     :param day_labels: labels for each typical day
     :param nr_clusters: how many clusters (i.e. typical days)
     :param nr_days_full_resolution: how many days in full resolution
     :param nr_time_intervals_per_day: how many time-intervals per day
-    :return hourly_order: Hourly order of typical days/hours in full resolution
+    :return sequence: Hourly order of typical days/hours in full resolution
     """
     time_slices_cluster = np.arange(1, nr_time_intervals_per_day * nr_clusters + 1)
     time_slices_cluster = time_slices_cluster.reshape((-1, nr_time_intervals_per_day))
-    hourly_order = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
+    sequence = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
     for day in range(0, nr_days_full_resolution):
-        hourly_order[day] = time_slices_cluster[day_labels[day]]
-    hourly_order = hourly_order.reshape((-1, 1))
-    return hourly_order
+        sequence[day] = time_slices_cluster[day_labels[day]]
+    sequence = sequence.reshape((-1, 1))
+    return sequence
 
 def get_day_factors(keys):
     """
@@ -110,6 +111,16 @@ def flag_tecs_for_clustering(data):
                 tecs_flagged_for_clustering[node][technology] = 'capacity_factor'
             elif data.technology_data[node][technology].technology_model == 'STOR':
                 tecs_flagged_for_clustering[node][technology] = 'ambient_loss_factor'
+            elif data.technology_data[node][technology].technology_model == 'DAC_Adsorption':
+                tecs_flagged_for_clustering[node][technology] = ['alpha','beta','b','gamma','delta','a']
+            elif data.technology_data[node][technology].technology_model.startswith('HeatPump_'):
+                if data.technology_data[node][technology].performance_data['performance_function_type'] == 1:
+                    tecs_flagged_for_clustering[node][technology] = ['alpha1']
+                else:
+                    tecs_flagged_for_clustering[node][technology] = ['alpha1','alpha2']
+            elif data.technology_data[node][technology].technology_model.startswith('GasTurbine_'):
+                tecs_flagged_for_clustering[node][technology] = ['alpha','beta','epsilon','f']
+
     return tecs_flagged_for_clustering
 
 def reshape_df(series_to_add, column_names, nr_cols):
@@ -131,3 +142,40 @@ def define_multiindex(ls):
     multi_index = list(zip(*ls))
     multi_index = pd.MultiIndex.from_tuples(multi_index)
     return multi_index
+
+
+class NodeData():
+    """
+    Class to handle node data
+    """
+    def __init__(self, topology):
+        # Initialize Node Data (all time-dependent input data goes here)
+        self.data = {}
+        self.data_clustered = {}
+        variables = ['demand',
+                     'production_profile',
+                     'import_prices',
+                     'import_limit',
+                     'import_emissionfactors',
+                     'export_prices',
+                     'export_limit',
+                     'export_emissionfactors']
+
+        for var in variables:
+            self.data[var] = pd.DataFrame(index=topology.timesteps)
+            for carrier in topology.carriers:
+                self.data[var][carrier] = 0
+        self.data['climate_data'] = pd.DataFrame(index=topology.timesteps)
+
+        self.options = SimpleNamespace()
+        self.options.production_profile_curtailment = {}
+        for carrier in topology.carriers:
+            self.options.production_profile_curtailment[carrier]= 0
+
+        self.location = SimpleNamespace()
+        self.location.lon = None
+        self.location.lat = None
+        self.location.altitude = None
+
+
+

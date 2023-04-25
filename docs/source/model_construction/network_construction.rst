@@ -4,4 +4,4 @@ The module ``src.model_construction.network_technology.py`` contains the rule to
 network.
 
 .. automodule:: src.model_construction.construct_networks
-    :members:
+    :members: add_networks

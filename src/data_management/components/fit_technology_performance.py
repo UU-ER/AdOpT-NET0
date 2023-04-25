@@ -11,10 +11,25 @@ from scipy.interpolate import interp1d
 from src.data_management.components.utilities import *
 
 
-def perform_fitting_PV(climate_data, **kwargs):
+class FittedPerformance:
+    """
+    Class to manage performance of technologies
+    """
+    def __init__(self):
+        self.rated_power = 1
+        self.bounds = {}
+        self.bounds['output'] = {}
+        self.bounds['input'] = {}
+        self.coefficients = {}
+        self.time_dependent_coefficients = 0
+        self.other = {}
+
+
+def perform_fitting_PV(climate_data, location, **kwargs):
     """
     Calculates capacity factors and specific area requirements for a PV system
-    :param climate_data: contains information on weather data, and location
+    :param climate_data: contains information on weather data
+    :param location: contains lon, lat and altitude
     :param PV_type: (optional) can specify a certain type of module
     :return: returns capacity factors and specific area requirements
     """
@@ -56,9 +71,9 @@ def perform_fitting_PV(climate_data, **kwargs):
         return pv_model, peakpower, specific_area
 
     # Define parameters for convinience
-    lon = climate_data['longitude']
-    lat = climate_data['latitude']
-    alt = climate_data['altitude']
+    lon = location.lon
+    lat = location.lat
+    alt = location.altitude
 
     # Get location
     tf = TimezoneFinder()
@@ -69,28 +84,34 @@ def perform_fitting_PV(climate_data, **kwargs):
     pv_model, peakpower, specific_area = define_pv_system(location, system_data)
 
     # Run system with climate data
-    pv_model.run_model(climate_data['dataframe'])
+    pv_model.run_model(climate_data)
 
     # Calculate cap factors
     power = pv_model.results.ac.p_mp
     capacity_factor = power / peakpower
 
     # Calculate output bounds
-    lower_output_bound = np.zeros(shape=(len(climate_data['dataframe'])))
+    lower_output_bound = np.zeros(shape=(len(climate_data)))
     upper_output_bound = capacity_factor.to_numpy()
     output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
 
     # return fit
-    fitting = {}
-    fitting['capacity_factor'] = capacity_factor
-    fitting['specific_area'] = specific_area
-    fitting['output_bounds'] = {}
-    fitting['output_bounds']['electricity'] = output_bounds
+    fitting = FittedPerformance()
+    # Output Bounds
+    fitting.bounds['output']['electricity'] = output_bounds
+    # Coefficients
+    fitting.coefficients['capfactor'] = capacity_factor
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 1
+    # Other Data
+    fitting.other['specific_area'] = specific_area
     return fitting
+
 
 def perform_fitting_ST(climate_data):
     # Todo: code this
     print('Not coded yet')
+
 
 def perform_fitting_WT(climate_data, turbine_model, hubheight):
     # Load data for wind turbine type
@@ -98,7 +119,7 @@ def perform_fitting_WT(climate_data, turbine_model, hubheight):
     WT_data = WT_data[WT_data['TurbineName'] == turbine_model]
 
     # Load wind speed and correct for height
-    ws = climate_data['dataframe']['ws10']
+    ws = climate_data['ws10']
 
     #TODO: make power exponent choice possible
     #TODO: Make different heights possible
@@ -125,17 +146,20 @@ def perform_fitting_WT(climate_data, turbine_model, hubheight):
     capacity_factor = f(ws) / rated_power
 
     # Calculate output bounds
-    lower_output_bound = np.zeros(shape=(len(climate_data['dataframe'])))
+    lower_output_bound = np.zeros(shape=(len(climate_data)))
     upper_output_bound = capacity_factor[0]
     output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
 
     # return fit
-    fitting = {}
-    fitting['capacity_factor'] = capacity_factor[0]
-    fitting['rated_power'] = rated_power / 1000
-    fitting['output_bounds'] = {}
-    fitting['output_bounds']['electricity'] = output_bounds
-
+    fitting = FittedPerformance()
+    # Output Bounds
+    fitting.bounds['output']['electricity'] = output_bounds
+    # Coefficients
+    fitting.coefficients['capfactor'] = capacity_factor[0]
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 1
+    # Other Data
+    fitting.rated_power = rated_power / 1000
     return fitting
 
 
@@ -159,26 +183,37 @@ def perform_fitting_tec_CONV1(tec_data, climate_data):
     performance_data['out']['out'] = temp
 
     # Number of timesteps:
-    time_steps = len(climate_data['dataframe'])
+    time_steps = len(climate_data)
 
     if performance_function_type == 1:
-        fitting = fit_performance_function_type1(performance_data, time_steps)
+        fit = fit_performance_function_type1(performance_data, time_steps)
     elif performance_function_type == 2:
-        fitting = fit_performance_function_type2(performance_data, time_steps)
+        fit = fit_performance_function_type2(performance_data, time_steps)
     elif performance_function_type == 3:
-        fitting = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+        fit = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+    else:
+        raise Exception("performance_function_type must be an integer between 1 and 3")
 
-    # Realculate bounds
-    input_bounds = fitting['input_bounds']
-    fitting['input_bounds'] = {}
-    for c in tec_data['input_carrier']:
-        fitting['input_bounds'][c] = input_bounds
+    if 'min_part_load' in performance_data:
+        fit['min_part_load'] = tec_data['min_part_load']
+    else:
+        fit['min_part_load'] = 0
 
-    output_bounds = fitting['output_bounds']['out']
-    fitting['output_bounds'].pop('out')
-    fitting['output_bounds'] = {}
-    for c in tec_data['output_carrier']:
-        fitting['output_bounds'][c] = output_bounds
+    # return fit
+    fitting = FittedPerformance()
+    # Rated Power
+    if 'rated_power' in tec_data:
+        fitting.rated_power = tec_data['rated_power']
+    # Output Bounds
+    for car in tec_data['output_carrier']:
+        fitting.bounds['output'][car] = fit['output_bounds']['out']
+    # Input Bounds
+    for car in tec_data['input_carrier']:
+        fitting.bounds['input'][car] = fit['input_bounds']
+    # Coefficients
+    fitting.coefficients = fit['coeff']
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 0
 
     return fitting
 
@@ -198,20 +233,37 @@ def perform_fitting_tec_CONV2(tec_data, climate_data):
         nr_seg = 2
 
     # Number of timesteps:
-    time_steps = len(climate_data['dataframe'])
+    time_steps = len(climate_data)
 
     if performance_function_type == 1:
-        fitting = fit_performance_function_type1(performance_data, time_steps)
+        fit = fit_performance_function_type1(performance_data, time_steps)
     elif performance_function_type == 2:
-        fitting = fit_performance_function_type2(performance_data, time_steps)
+        fit = fit_performance_function_type2(performance_data, time_steps)
     elif performance_function_type == 3:
-        fitting = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+        fit = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+    else:
+        raise Exception("performance_function_type must be an integer between 1 and 3")\
 
-    # Realculate bounds
-    input_bounds = fitting['input_bounds']
-    fitting['input_bounds'] = {}
-    for c in tec_data['input_carrier']:
-        fitting['input_bounds'][c] = input_bounds
+    if 'min_part_load' in performance_data:
+        fit['min_part_load'] = tec_data['min_part_load']
+    else:
+        fit['min_part_load'] = 0
+
+    # return fit
+    fitting = FittedPerformance()
+    # Rated Power
+    if 'rated_power' in tec_data:
+        fitting.rated_power = tec_data['rated_power']
+    # Output Bounds
+    for car in tec_data['output_carrier']:
+        fitting.bounds['output'][car] = fit['output_bounds'][car]
+    # Input Bounds
+    for car in tec_data['input_carrier']:
+        fitting.bounds['input'][car] = fit['input_bounds']
+    # Coefficients
+    fitting.coefficients = fit['coeff']
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 0
 
     return fitting
 
@@ -231,47 +283,67 @@ def perform_fitting_tec_CONV3(tec_data, climate_data):
         nr_seg = 2
 
     # Number of timesteps:
-    time_steps = len(climate_data['dataframe'])
+    time_steps = len(climate_data)
 
     if performance_function_type == 1:
-        fitting = fit_performance_function_type1(performance_data, time_steps)
+        fit = fit_performance_function_type1(performance_data, time_steps)
     elif performance_function_type == 2:
-        fitting = fit_performance_function_type2(performance_data, time_steps)
+        fit = fit_performance_function_type2(performance_data, time_steps)
     elif performance_function_type == 3:
-        fitting = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+        fit = fit_performance_function_type3(performance_data, nr_seg, time_steps)
+    else:
+        raise Exception("performance_function_type must be an integer between 1 and 3")
 
-    # Realculate input bounds
-    input_bounds = fitting['input_bounds']
-    fitting['input_bounds'] = {}
-    fitting['input_bounds'][tec_data['main_input_carrier']] = input_bounds
-    for c in tec_data['input_carrier']:
-        fitting['input_bounds'][c] = input_bounds * tec_data['input_ratios'][c]
+    if 'min_part_load' in performance_data:
+        fit['min_part_load'] = tec_data['min_part_load']
+    else:
+        fit['min_part_load'] = 0
+
+    # return fit
+    fitting = FittedPerformance()
+    # Rated Power
+    if 'rated_power' in tec_data:
+        fitting.rated_power = tec_data['rated_power']
+    # Output Bounds
+    for car in tec_data['output_carrier']:
+        fitting.bounds['output'][car] = fit['output_bounds'][car]
+    # Input Bounds
+    for car in tec_data['input_carrier']:
+        fitting.bounds['input'][car] = fit['input_bounds'] * tec_data['input_ratios'][car]
+    fitting.bounds['input'][tec_data['main_input_carrier']] = fit['input_bounds']
+    # Coefficients
+    fitting.coefficients = fit['coeff']
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 0
+
     return fitting
 
 
 def perform_fitting_tec_STOR(tec_data, climate_data):
+
+    time_steps = len(climate_data)
+    # Calculate ambient loss factor
     theta = tec_data['performance']['theta']
+    ambient_loss_factor = (65 - climate_data['temp_air']) / (90 - 65) * theta
 
-    # Number of timesteps:
-    time_steps = len(climate_data['dataframe'])
-
-    fitting = {}
-    ambient_loss_factor = (65 - climate_data['dataframe']['temp_air']) / (90 - 65) * theta
-    fitting['ambient_loss_factor'] = ambient_loss_factor.to_numpy()
+    # return fit
+    fitting = FittedPerformance()
+    # Output Bounds
+    for car in tec_data['output_carrier']:
+        fitting.bounds['output'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))*tec_data['performance']['discharge_max']))
+    # Input Bounds
+    for car in tec_data['input_carrier']:
+        fitting.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))*tec_data['performance']['charge_max']))
+    # Coefficients
+    fitting.coefficients['ambient_loss_factor'] = ambient_loss_factor.to_numpy()
     for par in tec_data['performance']:
         if not par == 'theta':
-            fitting[par] = tec_data['performance'][par]
+            fitting.coefficients[par] = tec_data['performance'][par]
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 1
 
-    # Calculate bounds
-    fitting['input_bounds'] = {}
-    for c in tec_data['input_carrier']:
-        fitting['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                               np.ones(shape=(time_steps))*fitting['charge_max']))
-
-    fitting['output_bounds'] = {}
-    for c in tec_data['output_carrier']:
-        fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                               np.ones(shape=(time_steps))*fitting['discharge_max']))
     return fitting
 
 def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
@@ -281,6 +353,11 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
     :param climate_data: climate data
     :return:
     """
+
+    # Number of timesteps
+    time_steps = len(climate_data)
+
+    # Number of segments
     nr_segments = tec_data['nr_segments']
 
     # Read performance data from file
@@ -294,8 +371,8 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
     performance_data.CO2_Out = performance_data.CO2_Out / 1000 # in t / h
 
     # Get humidity and temperature
-    RH = copy.deepcopy(climate_data['dataframe']['rh'])
-    T = copy.deepcopy(climate_data['dataframe']['temp_air'])
+    RH = copy.deepcopy(climate_data['rh'])
+    T = copy.deepcopy(climate_data['temp_air'])
 
     # Set minimum temperature
     T.loc[T < min(performance_data.temp_air)] = min(performance_data.temp_air)
@@ -340,45 +417,46 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
         y = {}
         y['CO2_Out'] = CO2_Out[timestep, :]
         time_step_fit = fit_piecewise_function(E_tot[timestep, :], y, int(nr_segments))
-        alpha[timestep, :] = time_step_fit['CO2_Out']['alpha1']
-        beta[timestep, :] = time_step_fit['CO2_Out']['alpha2']
-        b[timestep, :] = time_step_fit['bp_x']
-        out_max[timestep] = max(time_step_fit['CO2_Out']['bp_y'])
-        total_in_max[timestep] = max(time_step_fit['bp_x'])
+        alpha[timestep, :] = time_step_fit['coeff']['CO2_Out']['alpha1']
+        beta[timestep, :] = time_step_fit['coeff']['CO2_Out']['alpha2']
+        b[timestep, :] = time_step_fit['coeff']['bp_x']
+        out_max[timestep] = max(time_step_fit['coeff']['CO2_Out']['bp_y'])
+        total_in_max[timestep] = max(time_step_fit['coeff']['bp_x'])
 
         # Input-Input relation
         y = {}
         y['E_el'] = E_el[timestep, :]
         time_step_fit = fit_piecewise_function(E_tot[timestep, :], y, int(nr_segments))
-        gamma[timestep, :] = time_step_fit['E_el']['alpha1']
-        delta[timestep, :] = time_step_fit['E_el']['alpha2']
-        a[timestep, :] = time_step_fit['bp_x']
-        el_in_max[timestep] = max(time_step_fit['E_el']['bp_y'])
-        th_in_max[timestep] = max(time_step_fit['bp_x'])
+        gamma[timestep, :] = time_step_fit['coeff']['E_el']['alpha1']
+        delta[timestep, :] = time_step_fit['coeff']['E_el']['alpha2']
+        a[timestep, :] = time_step_fit['coeff']['bp_x']
+        el_in_max[timestep] = max(time_step_fit['coeff']['E_el']['bp_y'])
+        th_in_max[timestep] = max(time_step_fit['coeff']['bp_x'])
 
     print("Complete: ", 100, "%")
 
-    fitting = {}
-    fitting['alpha'] = alpha
-    fitting['beta'] = beta
-    fitting['b'] = b
-    fitting['gamma'] = gamma
-    fitting['delta'] = delta
-    fitting['a'] = a
-    fitting['rated_power'] = 1
-
-    # Number of timesteps:
-    time_steps = len(climate_data['dataframe'])
-
-    # Calculate bounds
-    fitting['input_bounds'] = {}
-    fitting['output_bounds'] = {}
-    fitting['input_bounds']['electricity'] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                   el_in_max + th_in_max / tec_data['performance']['eta_elth']))
-    fitting['input_bounds']['heat'] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                   th_in_max))
-    fitting['output_bounds']['CO2'] = np.column_stack((np.zeros(shape=(time_steps)),
+    # return fit
+    fitting = FittedPerformance()
+    # Output Bounds
+    fitting.bounds['output']['CO2'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                    out_max))
+    # Input Bounds
+    fitting.bounds['input']['electricity'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   el_in_max + th_in_max / tec_data['performance']['eta_elth']))
+    fitting.bounds['input']['heat'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   th_in_max))
+    fitting.bounds['input']['total'] = [sum(x) for x in zip(fitting.bounds['input']['heat'],
+                                                            fitting.bounds['input']['electricity'])]
+    # Coefficients
+    fitting.coefficients['alpha'] = alpha
+    fitting.coefficients['beta'] = beta
+    fitting.coefficients['b'] = b
+    fitting.coefficients['gamma'] = gamma
+    fitting.coefficients['delta'] = delta
+    fitting.coefficients['a'] = a
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 1
+
     return fitting
 
 
@@ -401,10 +479,10 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
     performance_function_type = tec_data['performance_function_type']
 
     # Ambient air temperature
-    T = copy.deepcopy(climate_data['dataframe']['temp_air'])
+    T = copy.deepcopy(climate_data['temp_air'])
 
     # Number of timesteps:
-    time_steps = len(climate_data['dataframe'])
+    time_steps = len(climate_data)
 
     # Determine T_out
     if tec_data['application'] == 'radiator_heating':
@@ -429,10 +507,13 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
 
     if performance_function_type == 1 or performance_function_type == 2:  # Linear performance function
         size_alpha = 1
-    else:
+    elif performance_function_type == 3:
         size_alpha = 2
-    fitting = {}
-    fitting['out'] = {}
+    else:
+        raise Exception("performance_function_type must be an integer between 1 and 3")
+
+    fit = {}
+    fit['out'] = {}
     alpha1 = np.empty(shape=(time_steps, size_alpha))
     alpha2 = np.empty(shape=(time_steps, size_alpha))
     bp_x = np.empty(shape=(time_steps, size_alpha + 1))
@@ -457,40 +538,47 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
             x = np.linspace(min_part_load, 1, 9)
             y['out'] = (x / (1 - 0.9 * (1 - x))) * cop_t * x
             time_step_fit = fit_piecewise_function(x, y, 2)
-            alpha1[idx, :] = time_step_fit['out']['alpha1']
-            alpha2[idx, :] = time_step_fit['out']['alpha2']
-            bp_x[idx, :] = time_step_fit['bp_x']
+            alpha1[idx, :] = time_step_fit['coeff']['out']['alpha1']
+            alpha2[idx, :] = time_step_fit['coeff']['out']['alpha2']
+            bp_x[idx, :] = time_step_fit['coeff']['bp_x']
     print("Complete: ", 100, "%")
 
     # Calculate input bounds
-
-    fitting['input_bounds'] = {}
-    for c in tec_data['input_carrier']:
-        fitting['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                   np.ones(shape=(time_steps))))
-
-    fitting['output_bounds'] = {}
-
+    fit['output_bounds'] = {}
+    fit['coeff'] = {}
     if performance_function_type == 1:
-        fitting['out']['alpha1'] = alpha1.round(5)
+        fit['coeff']['alpha1'] = alpha1.round(5)
         for c in tec_data['output_carrier']:
-            fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps)) * fitting['out']['alpha1']))
+            fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps)) * fit['coeff']['alpha1']))
     elif performance_function_type == 2:  # Linear performance function
-        fitting['out']['alpha1'] = alpha1.round(5)
-        fitting['out']['alpha2'] = alpha2.round(5)
+        fit['coeff']['alpha1'] = alpha1.round(5)
+        fit['coeff']['alpha2'] = alpha2.round(5)
         for c in tec_data['output_carrier']:
-            fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps))*fitting['out']['alpha1'] + \
-                                                       fitting['out']['alpha2']))
+            fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fit['coeff']['alpha1'] + \
+                                                       fit['coeff']['alpha2']))
     elif performance_function_type == 3:  # Piecewise performance function
-        fitting['out']['alpha1'] = alpha1.round(5)
-        fitting['out']['alpha2'] = alpha2.round(5)
-        fitting['bp_x'] = bp_x.round(5)
+        fit['coeff']['alpha1'] = alpha1.round(5)
+        fit['coeff']['alpha2'] = alpha2.round(5)
+        fit['coeff']['bp_x'] = bp_x.round(5)
         for c in tec_data['output_carrier']:
-            fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       fitting['out']['alpha1'][:,-1] + \
-                                                       fitting['out']['alpha2'][:,-1]))
+            fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       fit['coeff']['alpha1'][:,-1] + \
+                                                       fit['coeff']['alpha2'][:,-1]))
+
+    # return fit
+    fitting = FittedPerformance()
+    # Output Bounds
+    fitting.bounds['output'] = fit['output_bounds']
+    # Input Bounds
+    for car in tec_data['input_carrier']:
+        fitting.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   np.ones(shape=(time_steps))))
+    # Coefficients
+    fitting.coefficients = fit['coeff']
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 1
 
     return fitting
 
@@ -507,10 +595,10 @@ def perform_fitting_tec_GT(tec_data, climate_data):
     :return:
     """
     # Ambient air temperature
-    T = copy.deepcopy(climate_data['dataframe']['temp_air'])
+    T = copy.deepcopy(climate_data['temp_air'])
 
     # Number of timesteps:
-    time_steps = len(climate_data['dataframe'])
+    time_steps = len(climate_data)
 
     # Temperature correction factors
     f = np.empty(shape=(time_steps))
@@ -518,37 +606,53 @@ def perform_fitting_tec_GT(tec_data, climate_data):
     f[T > 6] =  tec_data['gamma'][1] * (T[T > 6] / tec_data['T_iso']) + tec_data['delta'][1]
 
     # Derive return
-    fitting = {}
-    fitting['rated_power'] = tec_data['rated_power']
-    fitting['f'] = f.round(5)
-    fitting['alpha'] = round(tec_data['alpha'], 5)
-    fitting['beta'] = round(tec_data['beta'], 5)
-    fitting['epsilon'] = round(tec_data['epsilon'], 5)
-    fitting['in_min'] = round(tec_data['in_min'], 5)
-    fitting['in_max'] = round(tec_data['in_max'], 5)
-
-    if len(tec_data['input_carrier']) == 1:
-        H2_admixture = 1
+    fit = {}
+    fit['coeff'] = {}
+    fit['coeff']['f'] = f.round(5)
+    fit['coeff']['alpha'] = round(tec_data['alpha'], 5)
+    fit['coeff']['beta'] = round(tec_data['beta'], 5)
+    fit['coeff']['epsilon'] = round(tec_data['epsilon'], 5)
+    fit['coeff']['in_min'] = round(tec_data['in_min'], 5)
+    fit['coeff']['in_max'] = round(tec_data['in_max'], 5)
+    if len(tec_data['input_carrier']) == 2:
+        fit['coeff']['max_H2_admixture'] = tec_data['max_H2_admixture']
     else:
-        H2_admixture = tec_data['max_H2_admixture']
+        fit['coeff']['max_H2_admixture'] = 1
 
     # Input bounds
-    fitting['input_bounds'] = {}
+    fit['input_bounds'] = {}
     for c in tec_data['input_carrier']:
         if c == 'hydrogen':
-            fitting['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                           np.ones(shape=(time_steps)) * tec_data['in_max'] * H2_admixture))
+            fit['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           np.ones(shape=(time_steps)) * tec_data['in_max'] *
+                                                      fit['coeff']['max_H2_admixture']))
         else:
-            fitting['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+            fit['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
                                                            np.ones(shape=(time_steps)) * tec_data['in_max']))
 
     # Output bounds
-    fitting['output_bounds'] = {}
-    fitting['output_bounds']['electricity'] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                           f * (tec_data['in_max'] * fitting['alpha'] + fitting['beta'])))
-    fitting['output_bounds']['heat'] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                           fitting['epsilon'] * fitting['in_max'] -
-                                                        f * (tec_data['in_max'] * fitting['alpha'] + fitting['beta'])))
+    fit['output_bounds'] = {}
+    fit['output_bounds']['electricity'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           f * (tec_data['in_max'] * fit['coeff']['alpha'] + fit['coeff']['beta'])))
+    fit['output_bounds']['heat'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           fit['coeff']['epsilon'] * fit['coeff']['in_max'] -
+                                                        f * (tec_data['in_max'] * fit['coeff']['alpha'] + fit['coeff']['beta'])))
+
+
+    # return fit
+    fitting = FittedPerformance()
+    fitting.rated_power = tec_data['rated_power']
+    # Output Bounds
+    fitting.bounds['output'] = fit['output_bounds']
+    # Input Bounds
+    for car in tec_data['input_carrier']:
+        fitting.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                   np.ones(shape=(time_steps))))
+    # Coefficients
+    fitting.coefficients = fit['coeff']
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 1
+
     return fitting
 
 
