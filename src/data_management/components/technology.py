@@ -50,19 +50,10 @@ class Technology:
         location = node_data.location
 
         # Which tecs are modelled with full resolution?
-        """
-        - clustered vs. not-clustered data
-        - averaged vs. not-averaged data
-        - RES vs not RES        
-        """
-
-
-
         if self.modelled_with_full_res:
             climate_data = node_data.data['climate_data']
         else:
             climate_data = node_data.data_clustered['climate_data']
-
 
         # Derive performance parameters for respective performance function type
         # GENERIC TECHNOLOGIES
