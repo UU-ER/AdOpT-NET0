@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np
 from types import SimpleNamespace
+import pvlib
 
 
 def save_object(data, save_path):
@@ -126,6 +127,20 @@ def average_series(series, nr_timesteps_averaged):
     average =  np.array(to_average.mean(axis=1))
 
     return average
+
+
+def calculate_dni(data, lon, lat):
+    """
+    Calculate direct normal irradiance from ghi and dhi
+    :param DataFrame data: climate data
+    :return: data: climate data including dni
+    """
+    zenith = pvlib.solarposition.get_solarposition(data.index, lat, lon)
+    data['dni'] = pvlib.irradiance.dni(data['ghi'].to_numpy(), data['dhi'].to_numpy(), zenith['zenith'].to_numpy())
+    data['dni'] = data['dni'].fillna(0)
+    data['dni'] = data['dni'].where(data['dni'] > 0, 0)
+
+    return data['dni']
 
 
 class NodeData():

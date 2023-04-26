@@ -89,12 +89,46 @@ class DataHandle:
         :return: self at ``self.node_data[node]['climate_data']``
         """
         data = dm.load_object(file)
+
+        # Match with timesteps
         data['dataframe'] = data['dataframe'][0:len(self.topology.timesteps)]
 
         self.node_data[node].data['climate_data'] = data['dataframe']
         self.node_data[node].location.lon = data['longitude']
         self.node_data[node].location.lat = data['latitude']
         self.node_data[node].location.altitude = data['altitude']
+
+    def read_climate_data_from_csv(self, node, file, lon, lat, alt=10):
+        """
+        Reads climate data from file
+
+        Reads previously saved climate data (imported and saved with :func:`~read_climate_data_from_api`) from a file to \
+        the respective node. This can save time, if api imports take too long
+
+        :param str node: node as specified in the topology
+        :param str file: path of csv data file. The csv needs to contain the following column headers:
+                'ghi', 'dni', 'dhi', 'temp_air', 'rh', 'ws10'
+        :param float lon: longitude of node
+        :param float lat: latitude of node
+        :param float alt: altitude of node
+        :return: self at ``self.node_data[node]['climate_data']``
+        """
+        data = pd.read_csv(file, index_col=0)
+
+        # Create Datatime Index
+        data.index = pd.to_datetime(data.index)
+
+        # Calculate dni from ghi and dhi if not there
+        if 'dni' not in data:
+            data['dni'] = dm.calculate_dni(data, lon, lat)
+
+        # Match with timesteps
+        data = data[0:len(self.topology.timesteps)]
+
+        self.node_data[node].data['climate_data'] = data
+        self.node_data[node].location.lon = lon
+        self.node_data[node].location.lat = lat
+        self.node_data[node].location.altitude = alt
 
     def read_demand_data(self, node, carrier, demand_data):
         """
@@ -124,7 +158,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
         self.node_data[node].data['production_profile'][carrier] = production_data
-        self.node_data[node].data.options.production_profile_curtailment[carrier] = curtailment
+        self.node_data[node].options.production_profile_curtailment[carrier] = curtailment
 
     def read_import_price_data(self, node, carrier, price_data):
         """
