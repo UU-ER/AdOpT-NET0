@@ -277,7 +277,7 @@ def add_nodes(energyhub):
             def init_netw_consumption(const, t, car):
                 return b_node.var_netw_consumption[t,car] == sum(model.network_block[netw].var_consumption[t,car,nodename]
                                                             for netw in model.set_networks
-                                                            if data.network_data[netw].energy_consumption and
+                                                             if data.network_data[netw].energy_consumption and
                                                                  car in model.network_block[netw].set_consumed_carriers)
             b_node.const_netw_consumption = Constraint(set_t, b_node.set_carriers, rule=init_netw_consumption)
 

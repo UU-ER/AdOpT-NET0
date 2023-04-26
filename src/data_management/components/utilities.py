@@ -36,21 +36,21 @@ def fit_performance_function_type1(performance_data, time_steps):
     
     x = performance_data['in']
     # Fit performance
-    for c in performance_data['out']:
-        fit['coeff'][c] = {}
-        y = performance_data['out'][c]
+    for car in performance_data['out']:
+        fit['coeff'][car] = {}
+        y = performance_data['out'][car]
         coeff = fit_linear_function(x, y)
-        fit['coeff'][c]['alpha1'] = round(coeff[0], 6)
+        fit['coeff'][car]['alpha1'] = round(coeff[0], 6)
 
     # Calculate input bounds
     fit['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                    np.ones(shape=(time_steps))))
 
     fit['output_bounds'] = {}
-    for c in performance_data['out']:
+    for car in performance_data['out']:
         # Calculate output bounds
-        fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps))*fit['coeff'][c]['alpha1']))
+        fit['output_bounds'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fit['coeff'][car]['alpha1']))
 
     return fit
 
@@ -68,22 +68,22 @@ def fit_performance_function_type2(performance_data, time_steps):
     x = sm.add_constant(x)
     fit['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                   np.ones(shape=(time_steps))))
-    for c in performance_data['out']:
-        fit['coeff'][c] = {}
-        y = performance_data['out'][c]
+    for car in performance_data['out']:
+        fit['coeff'][car] = {}
+        y = performance_data['out'][car]
         coeff = fit_linear_function(x, y)
-        fit['coeff'][c]['alpha1'] = round(coeff[1], 6)
-        fit['coeff'][c]['alpha2'] = round(coeff[0], 6)
+        fit['coeff'][car]['alpha1'] = round(coeff[1], 6)
+        fit['coeff'][car]['alpha2'] = round(coeff[0], 6)
 
     # Calculate input bounds
     fit['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                np.ones(shape=(time_steps))))
     fit['output_bounds'] = {}
-    for c in performance_data['out']:
+    for car in performance_data['out']:
         # Calculate output bounds
-        fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps))*fit['coeff'][c]['alpha1'] + \
-                                                       fit['coeff'][c]['alpha2']))
+        fit['output_bounds'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fit['coeff'][car]['alpha1'] + \
+                                                       fit['coeff'][car]['alpha2']))
     return fit
 
 
@@ -102,11 +102,11 @@ def fit_performance_function_type3(performance_data, nr_seg, time_steps):
     fit['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                np.ones(shape=(time_steps))))
     fit['output_bounds'] = {}
-    for c in performance_data['out']:
+    for car in performance_data['out']:
         # Calculate output bounds
-        fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps))*fit['coeff'][c]['alpha1'][-1] + \
-                                                       fit['coeff'][c]['alpha2'][-1]))
+        fit['output_bounds'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fit['coeff'][car]['alpha1'][-1] + \
+                                                       fit['coeff'][car]['alpha2'][-1]))
 
     return fit
 

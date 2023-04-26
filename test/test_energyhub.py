@@ -256,7 +256,7 @@ def test_optimization_types():
     energyhub.solve_model()
 
 
-def test_k_means():
+def test_simplification_algorithms():
     data = dm.load_object(r'./test/test_data/time_algorithms.p')
 
     # Full resolution
@@ -276,23 +276,12 @@ def test_k_means():
 
     assert abs(cost1 - cost2) / cost1 <= 0.1
 
-#
-# def test_time_averaging():
-#     data = dm.load_object(r'./test/test_data/time_algorithms.p')
-#
-#     # Full resolution
-#     configuration = ModelConfiguration()
-#     energyhub1 = ehub(data, configuration)
-#     energyhub1.quick_solve_model()
-#     cost1 = energyhub1.model.var_total_cost.value
-#     assert energyhub1.solution.solver.termination_condition == 'optimal'
-#
-#     # time_averaging
-#     configuration = ModelConfiguration()
-#     configuration.optimization.timestaging = 4
-#     energyhub3 = ehub(data, configuration)
-#     energyhub3.quick_solve_model()
-#     cost3 = energyhub3.model.var_total_cost.value
-#     assert energyhub3.solution.solver.termination_condition == 'optimal'
-#
-#     assert abs(cost1 - cost3) / cost1 <= 0.1
+    # time_averaging
+    configuration = ModelConfiguration()
+    configuration.optimization.timestaging = 4
+    energyhub3 = ehub(data, configuration)
+    energyhub3.quick_solve_model()
+    cost3 = energyhub3.model.var_total_cost.value
+    assert energyhub3.solution.solver.termination_condition == 'optimal'
+
+    assert abs(cost1 - cost3) / cost1 <= 0.1
