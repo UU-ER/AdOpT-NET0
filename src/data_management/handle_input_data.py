@@ -60,22 +60,22 @@ class DataHandle:
         :return: self at ``self.node_data[node]['climate_data']``
         """
         if dataset == 'JRC':
-            data = dm.import_jrc_climate_data(lon, lat, year, alt)
+            data_from_api = dm.import_jrc_climate_data(lon, lat, year, alt)
         else:
             raise Exception('Other APIs are not available')
 
         # Match with timesteps
-        data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
+        data_from_api['dataframe'] = data_from_api['dataframe'].loc[self.topology.timesteps]
 
         # Save
         if not save_path==0:
-            dm.save_object(data, save_path)
+            dm.save_object(data_from_api, save_path)
 
         # Write to DataHandle
-        self.node_data[node].data['climate_data'] = data['dataframe']
-        self.node_data[node].location.lon = data['longitude']
-        self.node_data[node].location.lat = data['latitude']
-        self.node_data[node].location.altitude = data['altitude']
+        self.node_data[node].data['climate_data'] = data_from_api['dataframe']
+        self.node_data[node].location.lon = data_from_api['longitude']
+        self.node_data[node].location.lat = data_from_api['latitude']
+        self.node_data[node].location.altitude = data_from_api['altitude']
 
     def read_climate_data_from_file(self, node, file):
         """

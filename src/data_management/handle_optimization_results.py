@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 import pandas as pd
 import src.global_variables as global_variables
-import numpy as np
+import src.result_management as rm
 
 class ResultsHandle:
     """
@@ -286,3 +286,9 @@ class ResultsHandle:
                 for tec_name in self.detailed_results.nodes[node]:
                     self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=
                                                                               'Tec_' + node + '_' + tec_name)
+
+    def create_dashboard(self):
+        """
+        Creates a dashboard that can be accessed in a browser under http://localhost:8050/
+        """
+        rm.create_dashboard(self)

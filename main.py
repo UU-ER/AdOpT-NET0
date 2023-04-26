@@ -71,12 +71,14 @@ configuration.optimization.typicaldays = 0
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve_model()
 results = energyhub.write_results()
-results.write_excel(r'.\userData\test_full')
+results.create_dashboard()
+# results.write_excel(r'.\userData\test_full')
 
-configuration = ModelConfiguration()
-configuration.optimization.timestaging = 4
-# # Read data
-energyhub = EnergyHub(data, configuration)
-energyhub.quick_solve_model()
-results = energyhub.write_results()
-results.write_excel(r'.\userData\test_reduced')
+
+# configuration = ModelConfiguration()
+# configuration.optimization.timestaging = 4
+# # # Read data
+# energyhub = EnergyHub(data, configuration)
+# energyhub.quick_solve_model()
+# results = energyhub.write_results()
+# results.write_excel(r'.\userData\test_reduced')
