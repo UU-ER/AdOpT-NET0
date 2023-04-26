@@ -441,29 +441,29 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
         # GENERIC TECHNOLOGY CONSTRAINTS
         if technology_model == 'RES': # Renewable technology with cap_factor as input
-            b_tec = constraints_tec_RES(model, b_tec, tec_data)
+            b_tec = constraints_tec_RES(b_tec, tec_data, energyhub)
 
         elif technology_model == 'CONV1': # n inputs -> n output, fuel and output substitution
-            b_tec = constraints_tec_CONV1(model, b_tec, tec_data)
+            b_tec = constraints_tec_CONV1(b_tec, tec_data, energyhub)
 
         elif technology_model == 'CONV2': # n inputs -> n output, fuel and output substitution
-            b_tec = constraints_tec_CONV2(model, b_tec, tec_data)
+            b_tec = constraints_tec_CONV2(b_tec, tec_data, energyhub)
 
         elif technology_model == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
-            b_tec = constraints_tec_CONV3(model, b_tec, tec_data)
+            b_tec = constraints_tec_CONV3(b_tec, tec_data, energyhub)
 
         elif technology_model == 'STOR': # Storage technology (1 input -> 1 output)
-            b_tec = constraints_tec_STOR(model, b_tec, tec_data)
+            b_tec = constraints_tec_STOR(b_tec, tec_data, energyhub)
 
         # SPECIFIC TECHNOLOGY CONSTRAINTS
         elif technology_model == 'DAC_Adsorption':
-            b_tec = constraints_tec_dac_adsorption(model, b_tec, tec_data)
+            b_tec = constraints_tec_dac_adsorption(b_tec, tec_data, energyhub)
 
         elif technology_model.startswith('HeatPump_'):  # Heat Pump
-            b_tec = constraints_tec_hp(model, b_tec, tec_data)
+            b_tec = constraints_tec_hp(b_tec, tec_data, energyhub)
 
         elif technology_model.startswith('GasTurbine_'):  # Gas Turbine
-            b_tec = constraints_tec_gt(model, b_tec, tec_data)
+            b_tec = constraints_tec_gt(b_tec, tec_data, energyhub)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
