@@ -4,7 +4,7 @@ import src.global_variables as global_variables
 import src.model_construction as mc
 
 
-def constraints_tec_hp(model, b_tec, tec_data):
+def constraints_tec_hp(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for tec_type HP (Heat Pump)
 
@@ -29,7 +29,8 @@ def constraints_tec_hp(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
-    
+    model = energyhub.model
+
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients

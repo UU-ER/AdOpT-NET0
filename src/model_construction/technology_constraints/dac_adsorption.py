@@ -4,7 +4,7 @@ import src.global_variables as global_variables
 import src.model_construction as mc
 
 
-def constraints_tec_dac_adsorption(model, b_tec, tec_data):
+def constraints_tec_dac_adsorption(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for tec_type DAC_adsorption
 
@@ -25,6 +25,8 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
     """
     # Comments on the equations refer to the equation numbers in the paper. All equations can be looked up there.
     # DATA OF TECHNOLOGY
+    model = energyhub.model
+
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
     bounds = tec_data.fitted_performance.bounds
@@ -70,33 +72,13 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
     b_tec.var_input_ohmic = Var(set_t, within=NonNegativeReals, bounds=init_input_ohmic_bounds)
 
     # Additional parameters
-    def init_alpha(para, t, ind):
-        return coeff['alpha'][t-1, ind-1]
-    b_tec.para_alpha = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_alpha)
-    def init_beta(para, t, ind):
-        return coeff['beta'][t-1, ind-1]
-    b_tec.para_beta = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_beta)
-    def init_b_low(para, t, ind):
-        return coeff['b'][t-1, ind-1]
-    b_tec.para_b_low = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_b_low)
-    def init_b_up(para, t, ind):
-        return coeff['b'][t-1, ind]
-    b_tec.para_b_up = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_b_up)
-
-    def init_gamma(para, t, ind):
-        return coeff['gamma'][t-1, ind-1]
-    b_tec.para_gamma = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_gamma)
-    def init_delta(para, t, ind):
-        return coeff['delta'][t-1, ind-1]
-    b_tec.para_delta = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_delta)
-    def init_a_low(para, t, ind):
-        return coeff['a'][t-1, ind-1]
-    b_tec.para_a_low = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_a_low)
-    def init_a_up(para, t, ind):
-        return coeff['a'][t-1, ind]
-    b_tec.para_a_up = Param(set_t, b_tec.set_pieces, domain=Reals, rule=init_a_up)
-
-    b_tec.para_eta_elth = Param(initialize=performance_data['performance']['eta_elth'])
+    alpha = coeff['alpha']
+    beta = coeff['beta']
+    b_point = coeff['b']
+    gamma = coeff['gamma']
+    delta = coeff['delta']
+    a_point = coeff['a']
+    eta_elth = performance_data['performance']['eta_elth']
 
     global_variables.big_m_transformation_required = 1
 
@@ -105,15 +87,15 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
         # Input-output (eq. 2)
         def init_output(const):
             return output[t, 'CO2'] == \
-                   b_tec.para_alpha[t, ind] * b_tec.var_input_total[t] + b_tec.para_beta[t, ind] * b_tec.var_modules_on[t]
+                   alpha[t-1, ind-1] * b_tec.var_input_total[t] + beta[t-1, ind-1] * b_tec.var_modules_on[t]
         dis.const_output = Constraint(rule=init_output)
         # Lower bound on the energy input (eq. 5)
         def init_input_low_bound(const):
-            return b_tec.para_b_low[t, ind] * b_tec.var_modules_on[t] <= b_tec.var_input_total[t]
+            return b_point[t-1, ind-1] * b_tec.var_modules_on[t] <= b_tec.var_input_total[t]
         dis.const_input_on1 = Constraint(rule=init_input_low_bound)
         # Upper bound on the energy input (eq. 5)
         def init_input_up_bound(const):
-            return b_tec.var_input_total[t] <= b_tec.para_b_up[t, ind] * b_tec.var_modules_on[t]
+            return b_tec.var_input_total[t] <= b_point[t-1, ind] * b_tec.var_modules_on[t]
         dis.const_input_on2 = Constraint(rule=init_input_up_bound)
     b_tec.dis_input_output = Disjunct(set_t, b_tec.set_pieces, rule=init_input_output)
     # Bind disjuncts
@@ -126,18 +108,18 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
         # Input-output (eq. 7)
         def init_input(const):
             return b_tec.var_input_el[t] == \
-                   b_tec.para_gamma[t, ind] * b_tec.var_input_total[t] + \
-                   b_tec.para_delta[t, ind] * b_tec.var_modules_on[t]
+                   gamma[t-1, ind-1] * b_tec.var_input_total[t] + \
+                   delta[t-1, ind-1] * b_tec.var_modules_on[t]
         dis.const_output = Constraint(rule=init_input)
 
         # Lower bound on the energy input (eq. 10)
         def init_input_low_bound(const):
-            return b_tec.para_a_low[t, ind] * b_tec.var_modules_on[t] <= b_tec.var_input_total[t]
+            return a_point[t-1, ind-1] * b_tec.var_modules_on[t] <= b_tec.var_input_total[t]
         dis.const_input_on1 = Constraint(rule=init_input_low_bound)
 
         # Upper bound on the energy input (eq. 10)
         def init_input_up_bound(const):
-            return b_tec.var_input_total[t] <= b_tec.para_a_up[t, ind] * b_tec.var_modules_on[t]
+            return b_tec.var_input_total[t] <= a_point[t-1, ind] * b_tec.var_modules_on[t]
         dis.const_input_on2 = Constraint(rule=init_input_up_bound)
     b_tec.dis_input_input = Disjunct(set_t, b_tec.set_pieces, rule=init_input_input)
 
@@ -163,7 +145,7 @@ def constraints_tec_dac_adsorption(model, b_tec, tec_data):
     b_tec.const_input_el = Constraint(set_t, rule=init_input_el)
 
     def init_input_th(const, t):
-        return input[t, 'heat'] == b_tec.var_input_th[t] - b_tec.var_input_ohmic[t] * b_tec.para_eta_elth
+        return input[t, 'heat'] == b_tec.var_input_th[t] - b_tec.var_input_ohmic[t] * eta_elth
     b_tec.const_input_th = Constraint(set_t, rule=init_input_th)
 
     # If ohmic heating not allowed, set to zero
