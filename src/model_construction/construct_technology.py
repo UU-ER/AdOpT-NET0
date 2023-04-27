@@ -413,6 +413,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
 
     def init_technology_block(b_tec, tec):
+        print('\t - Adding Technology ' + tec)
 
         # TECHNOLOGY DATA
         tec_data = data.technology_data[nodename][tec]
