@@ -6,13 +6,13 @@
   "Economics": {
     "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 2000,
+    "unit_CAPEX": 100000,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
-    "OPEX_variable": 0,
-    "OPEX_fixed": 0.17,
+    "OPEX_variable": 1,
+    "OPEX_fixed": 0.01,
     "discount_rate": 0.1,
     "lifetime": 25,
     "decommission_cost": 0
@@ -33,8 +33,8 @@
       "eta_out": 1,
       "lambda": 0,
       "theta": 0,
-      "charge_max": 1,
-      "discharge_max": 1
+      "charge_max": 0.02,
+      "discharge_max": 0.02
     }
   },
   "tec_type": "STOR"

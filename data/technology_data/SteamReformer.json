@@ -8,36 +8,27 @@
     "CAPEX_model": 1,
     "unit_CAPEX": 500000,
     "piecewise_CAPEX": {
-      "bp_x": [
-        1,
-        20,
-        100000
-      ],
-      "bp_y": [
-        1.003E+7,
-        1.98E+7,
-        2.4015E+10
-      ]
+      "bp_x": ["not defined"],
+      "bp_y": ["not defined"]
     },
-    "OPEX_variable": 0,
-    "OPEX_fixed": 0.33,
+    "OPEX_variable": 3,
+    "OPEX_fixed": 0.004,
     "discount_rate": 0.1,
     "lifetime": 20,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 2,
+    "performance_function_type": 1,
     "input_carrier": [
       "gas"
     ],
     "main_input_carrier": "gas",
     "output_carrier": [
-      "hydrogen",
-      "electricity"
+      "hydrogen"
     ],
     "emission_factor": 0.185,
-    "min_part_load": 0.9,
+    "min_part_load": 0,
     "performance": {
       "in": [
         0,
@@ -47,10 +38,6 @@
         "hydrogen": [
           0,
           0.75
-        ],
-        "electricity": [
-          0,
-          0.025
         ]
       }
     }

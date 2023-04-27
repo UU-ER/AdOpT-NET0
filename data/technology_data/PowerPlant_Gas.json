@@ -8,25 +8,15 @@
   "Economics": {
     "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 0,
+    "unit_CAPEX": 880000,
     "piecewise_CAPEX": {
-      "bp_x": [
-        0,
-        0.07,
-        0.2,
-        250
-      ],
-      "bp_y": [
-        0,
-        1393.29560899,
-        2583.00062057,
-        1.79688598565655E+6
-      ]
+      "bp_x": ["not defined"],
+      "bp_y": ["not defined"]
     },
-    "OPEX_variable": 10,
-    "OPEX_fixed": 0.2,
+    "OPEX_variable": 4.4,
+    "OPEX_fixed": 0.0037,
     "discount_rate": 0.1,
-    "lifetime": 30,
+    "lifetime": 25,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
@@ -40,7 +30,7 @@
     "output_carrier": [
       "electricity"
     ],
-    "emission_factor": 0.3,
+    "emission_factor": 0.185,
     "min_part_load": 0,
     "performance": {
       "in": [

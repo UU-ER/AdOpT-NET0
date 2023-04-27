@@ -64,12 +64,12 @@ class DataHandle:
         else:
             raise Exception('Other APIs are not available')
 
-        # Match with timesteps
-        data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
-
         # Save
         if not save_path==0:
             dm.save_object(data, save_path)
+
+        # Match with timesteps
+        data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
 
         # Write to DataHandle
         self.node_data[node].data['climate_data'] = data['dataframe']
@@ -339,6 +339,14 @@ class DataHandle:
             print('\t -----------------------------------------------------')
             print('\t'+ netw)
             connection = self.topology.networks_new[netw]['connection']
+            for from_node in connection:
+                for to_node in connection[from_node].index:
+                    if connection.at[from_node, to_node] == 1:
+                        print('\t\t\t' + from_node  + ' - ' +  to_node)
+        for netw in self.topology.networks_existing:
+            print('\t -----------------------------------------------------')
+            print('\t'+ netw)
+            connection = self.topology.networks_existing[netw]['connection']
             for from_node in connection:
                 for to_node in connection[from_node].index:
                     if connection.at[from_node, to_node] == 1:

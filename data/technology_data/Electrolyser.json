@@ -8,19 +8,11 @@
     "CAPEX_model": 1,
     "unit_CAPEX": 650000,
     "piecewise_CAPEX": {
-      "bp_x": [
-        0,
-        50,
-        500
-      ],
-      "bp_y": [
-        0.0012,
-        639704.4,
-        3.7177044E+6
-      ]
+      "bp_x": ["not defined"],
+      "bp_y": ["not defined"]
     },
-    "OPEX_variable": 0,
-    "OPEX_fixed": 0.36,
+    "OPEX_variable": 1,
+    "OPEX_fixed": 0.01,
     "discount_rate": 0.1,
     "lifetime": 25,
     "decommission_cost": 0
