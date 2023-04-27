@@ -1,10 +1,4 @@
-# TODO: Include hplib
-# TODO: Implement option for complete linearization
-# TODO: Implement time index for set_t
-# TODO: Implement length of time step
-# TODO: Implement design days (retain extremes)
-# TODO: Implement Lukas Algorithm
-from cases.NorthSea.preprocessing import create_data
+from cases.NorthSea.preprocessing_simple import create_data
 from src.energyhub import *
 from src.model_configuration import ModelConfiguration
 from src.data_management import load_object
@@ -22,28 +16,27 @@ data.read_technology_data()
 data.read_network_data()
 
 data.save(data_save_path)
-data.pprint()
 
-
-
-# # Read data
+# Read data
 configuration = ModelConfiguration()
+configuration.optimization.objective = 'pareto'
+# configuration.optimization.typicaldays = 10
 
 data = load_object(data_save_path)
 
 energyhub = EnergyHub(data, configuration)
 
 # Construct equations
-energyhub.construct_model()
-energyhub.construct_balances()
+energyhub.quick_solve_model()
 
-energyhub.solve_model()
-energyhub.construct_balances()
-
-# Solve model
-energyhub.solve_model()
-results = energyhub.write_results()
-results.write_excel(r'.\user_data\CaseStudyNorthSea')
+if configuration.optimization.objective == 'pareto':
+    i = 0
+    for result in energyhub.results:
+        result.write_excel(r'.\user_data\CaseStudyNorthSea' + str(i))
+        i += 1
+else:
+    results = energyhub.write_results()
+    results.write_excel(r'.\user_data\CaseStudyNorthSea_persistent')
 # # Add technology to model and solve again
 # energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
 # energyhub.construct_balances()
@@ -52,7 +45,6 @@ results.write_excel(r'.\user_data\CaseStudyNorthSea')
 # # Write results
 # results = energyhub.write_results()
 
-print('done')
 # energyhub.model.display()
 #
 # # energyhub.model.pprint()

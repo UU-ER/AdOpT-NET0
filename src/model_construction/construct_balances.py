@@ -45,17 +45,11 @@ def add_energybalance(energyhub):
                 netw_consumption = 0
             import_flow = node_block.var_import_flow[t, car]
             export_flow = node_block.var_export_flow[t, car]
-
-            if hasattr(node_block,'var_generic_production'):
-                generic_production = node_block.var_generic_production[t, car]
-            else:
-                generic_production = 0
-
             return \
                 tec_output - tec_input + \
                 netw_inflow - netw_outflow - netw_consumption + \
                 import_flow - export_flow == \
-                node_block.para_demand[t, car] - generic_production
+                node_block.para_demand[t, car] - node_block.var_generic_production[t, car]
         else:
             return Constraint.Skip
     model.const_energybalance = Constraint(set_t, model.set_carriers, model.set_nodes, rule=init_energybalance)

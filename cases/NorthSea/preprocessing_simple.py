@@ -10,7 +10,7 @@ def create_data():
     topology.define_time_horizon(year=2022, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
 
     # Carriers
-    topology.define_carriers(['electricity', 'gas', 'nuclear', 'coal'])
+    topology.define_carriers(['electricity', 'gas', 'nuclear', 'hydrogen'])
 
     # Get output from wind parks
     load_path = 'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/data/climate_data/'
@@ -18,6 +18,7 @@ def create_data():
     park_data = pd.read_csv(data_path)
     park_data_2030 = park_data[park_data.YEAR <= 2030]
     offshore_nodes = park_data_2030['Transformer Platform'].unique().tolist()
+    offshore_nodes = [offshore_nodes[2]]
 
     # Output per transformer station (easy)
     output_per_substation = pd.DataFrame()
@@ -49,6 +50,7 @@ def create_data():
                      'NL_on_East',
                      'NL_on_North',
                      ]
+    onshore_nodes = [onshore_nodes[0]]
     nodes = onshore_nodes + offshore_nodes
 
     topology.define_nodes(nodes)
@@ -59,27 +61,15 @@ def create_data():
     eta_coal = 0.55
     eta_gas = 0.55
 
-    topology.define_existing_technologies('NL_on_Borssele', {'PowerPlant_Nuclear': 485/eta_nuc,
-                                                 'PowerPlant_Gas': (455+2*435)/eta_gas})
-    topology.define_existing_technologies('NL_on_Brabant', {'PowerPlant_Gas': 766/eta_gas})
-    topology.define_existing_technologies('NL_on_South', {'PowerPlant_Gas': (1304+209)/eta_gas})
-    topology.define_existing_technologies('NL_on_Holland_S', {'PowerPlant_Coal': (1070+731)/eta_coal,
-                                                 'PowerPlant_Gas': 2602/eta_gas})
-    topology.define_existing_technologies('NL_on_Holland_N', {'PowerPlant_Gas': 3338/eta_gas})
-    topology.define_existing_technologies('NL_on_North', {'PowerPlant_Coal': 1580/eta_coal,
-                                                          'PowerPlant_Gas': 3965/eta_gas})
+    topology.define_existing_technologies('NL_on_Borssele', {
+                                                'Photovoltaic': 12000,
+                                                'WindTurbine_Onshore_4000': 6200 / 4,
+                                                'PowerPlant_Nuclear': 485/eta_nuc,
+                                                'PowerPlant_Gas': (455+2*435)/eta_gas})
 
-
-
-
-    # for node in onshore_nodes:
-    #     topology.define_existing_technologies(node, {'Photovoltaic': 19000,
-    #                                                  'WindTurbine_Onshore_4000': 6200/4,
-    #                                                  'PowerPlant_Nuclear': 486/0.5,
-    #                                                  'PowerPlant_Coal': 4000/0.5,
-    #                                                  'PowerPlant_Gas': 19000/0.5})
-    #     new_technologies = ['Storage_Battery', 'Electrolyser']
-    #     topology.define_new_technologies(node, new_technologies)
+    for node in onshore_nodes:
+        new_technologies = ['Storage_Battery', 'Electrolyser', 'Storage_H2', 'FuelCell', 'SteamReformer']
+        topology.define_new_technologies(node, new_technologies)
 
 
     # Networks
@@ -107,6 +97,7 @@ def create_data():
                 size.at[node1, node2] = size_matrix[node1][node2]
                 size.at[node2, node1] = size_matrix[node1][node2]
     topology.define_existing_network('electricitySimple', size= size,distance=distance)
+    topology.define_existing_network('hydrogenPipelineOffshore', size= size,distance=distance)
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -116,7 +107,7 @@ def create_data():
     # Production at offshore nodes
     for node in offshore_nodes:
         genericoutput = output_per_substation[node][0:len(topology.timesteps)].tolist()
-        data.read_production_profile(node, 'electricity', genericoutput,1)
+        data.read_production_profile(node, 'electricity', genericoutput, 1)
 
     # DEMAND
     electricity_demand = pd.read_csv("./data/demand_data/Electricity Load NL2018.csv")
@@ -128,7 +119,9 @@ def create_data():
     for node in nodes:
         lat = 52
         lon = 5.16
-        data.read_climate_data_from_api(node, lon, lat, year=2022, save_path='.\data\climate_data_onshore.txt')
+        # data.read_climate_data_from_api(node, lon, lat, year=2022, save_path='.\data\climate_data_'+ node +'.txt')
+        # else:
+        data.read_climate_data_from_file(node, '.\data\climate_data_'+ node +'.txt')
 
     # Replacing nan values
     ok = ~np.isnan(electricity_demand)
@@ -136,30 +129,23 @@ def create_data():
     fp = electricity_demand[~np.isnan(electricity_demand)]
     x = np.isnan(electricity_demand).ravel().nonzero()[0]
     electricity_demand[np.isnan(electricity_demand)] = np.interp(x, xp, fp)
-    h2_demand = np.ones(len(topology.timesteps)) * 1000
+    h2_demand = np.ones(len(topology.timesteps)) * 200
 
     import_limit = np.ones(len(topology.timesteps)) * 50000
     data.read_import_limit_data('NL_on_Borssele', 'gas', import_limit)
-    data.read_import_limit_data('NL_on_Brabant', 'gas', import_limit)
-    data.read_import_limit_data('NL_on_South', 'gas', import_limit)
-    data.read_import_limit_data('NL_on_Holland_S', 'gas', import_limit)
-    data.read_import_limit_data('NL_on_Holland_N', 'gas', import_limit)
-    data.read_import_limit_data('NL_on_North', 'gas', import_limit)
 
     data.read_import_limit_data('NL_on_Borssele', 'nuclear', import_limit)
 
-    data.read_import_limit_data('NL_on_Holland_S', 'coal', import_limit)
-    data.read_import_limit_data('NL_on_North', 'coal', import_limit)
 
     for node in onshore_nodes:
-        data.read_demand_data(node, 'electricity', electricity_demand/len(onshore_nodes))
-        # data.read_demand_data(node, 'hydrogen', h2_demand)
+        data.read_demand_data(node, 'electricity', electricity_demand/3)
+        data.read_demand_data(node, 'hydrogen', h2_demand)
 
         gas_price = np.ones(len(topology.timesteps)) * 100
         coal_price = np.ones(len(topology.timesteps)) * 80
         nuclear_price = np.ones(len(topology.timesteps)) * 10
         data.read_import_price_data(node, 'gas', gas_price)
-        data.read_import_price_data(node, 'coal', coal_price)
+        # data.read_import_price_data(node, 'coal', coal_price)
         data.read_import_price_data(node, 'nuclear', nuclear_price)
 
     return data

@@ -10,7 +10,7 @@ def create_data():
     topology.define_time_horizon(year=2022, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
 
     # Carriers
-    topology.define_carriers(['electricity', 'gas', 'nuclear', 'coal'])
+    topology.define_carriers(['electricity', 'gas', 'nuclear', 'coal', 'hydrogen'])
 
     # Get output from wind parks
     load_path = 'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/data/climate_data/'
@@ -18,6 +18,7 @@ def create_data():
     park_data = pd.read_csv(data_path)
     park_data_2030 = park_data[park_data.YEAR <= 2030]
     offshore_nodes = park_data_2030['Transformer Platform'].unique().tolist()
+
 
     # Output per transformer station (easy)
     output_per_substation = pd.DataFrame()
@@ -40,15 +41,16 @@ def create_data():
         output_per_substation[station] = output
 
     # Nodes 2030
-    onshore_nodes = ['NL_on_Borssele',
-                     'NL_on_Rilland',
-                     'NL_on_Brabant',
-                     'NL_on_South',
-                     'NL_on_Holland_S',
-                     'NL_on_Holland_N',
-                     'NL_on_East',
-                     'NL_on_North',
-                     ]
+    onshore_nodes = [
+        # 'NL_on_Borssele',
+         # 'NL_on_Rilland',
+         'NL_on_Brabant',
+         # 'NL_on_South',
+         'NL_on_Holland_S',
+         'NL_on_Holland_N',
+         # 'NL_on_East',
+         # 'NL_on_North',
+         ]
     nodes = onshore_nodes + offshore_nodes
 
     topology.define_nodes(nodes)
