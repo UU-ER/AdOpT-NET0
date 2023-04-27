@@ -55,6 +55,9 @@ class EnergyHub:
         # INITIALIZE SOLUTION
         self.solution = None
 
+        # INITIALIZE SOLVER
+        self.solver = None
+
         # INITIALIZE DATA
         self.data_storage = []
         if not self.configuration.optimization.typicaldays == 0:
@@ -171,6 +174,14 @@ class EnergyHub:
         """
         objective = self.configuration.optimization.objective
 
+        # Define solver settings
+        if self.configuration.solveroptions.solver in ['gurobi', 'gurobi_persistent']:
+            if objective in ['emissions_minC', 'pareto']:
+                self.configuration.solveroptions.solver = 'gurobi_persistent'
+            self.solver = get_gurobi_parameters(self.configuration.solveroptions)
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                    self.solver.set_instance(self.model)
+
         # Define Objective Function
         if objective == 'costs':
             self.__minimize_cost()
@@ -182,6 +193,8 @@ class EnergyHub:
             self.__minimize_emissions_minC()
         elif objective == 'pareto':
             self.__minimize_pareto()
+        else:
+            raise Exception("objective in Configurations is incorrect")
 
         # Second stage of time averaging algorithm
 
@@ -229,16 +242,14 @@ class EnergyHub:
         :return:
         """
 
-        # Define solver settings
-        # if self.configuration.solveroptions.solver == 'gurobi':
-        solver = get_gurobi_parameters(self.configuration.solveroptions)
-
         # Solve model
         print('_' * 20)
         print('Solving Model...')
 
         start = time.time()
-        self.solution = solver.solve(self.model, tee=True, warmstart=True)
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.set_objective(self.model.objective)
+        self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
 
         print('Solving model completed in ' + str(time.time() - start) + ' s')
@@ -284,7 +295,9 @@ class EnergyHub:
         """
         self.__minimize_emissions_net()
         emission_limit = self.model.var_emissions_net.value
-        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.0001)
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.005)
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.add_constraint(self.model.const_emission_limit)
         self.__minimize_cost()
 
     def __minimize_pareto(self):
@@ -297,16 +310,22 @@ class EnergyHub:
         self.__minimize_cost()
         self.results[pareto_points - 1] = self.write_results()
         emissions_max = self.model.var_emissions_net.value
+
         # Min Emissions
         self.__minimize_emissions_minC()
         emissions_min = self.model.var_emissions_net.value
         self.results[0] = self.write_results()
+
         # Emission limit
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
         for pareto_point in range(1, pareto_points - 1):
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
             self.model.const_emission_limit = Constraint(
-                expr=self.model.var_emissions_net <= emission_limits[pareto_point])
+                expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.005)
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.add_constraint(self.model.const_emission_limit)
             self.__minimize_cost()
             self.results[pareto_point] = self.write_results()
 
