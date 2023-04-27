@@ -4,7 +4,7 @@ from pyomo.gdp import *
 import warnings
 import src.global_variables as global_variables
 
-def constraints_tec_RES(model, b_tec, tec_data):
+def constraints_tec_RES(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for tec_type RES (renewable technology)
 
@@ -28,6 +28,8 @@ def constraints_tec_RES(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    model = energyhub.model
+
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
@@ -49,21 +51,19 @@ def constraints_tec_RES(model, b_tec, tec_data):
 
     # PARAMETERS
     # Set capacity factors as a parameter
-    def init_capfactors(para, t):
-        return coeff['capfactor'][t - 1]
-    b_tec.para_capfactor = Param(set_t, domain=Reals, rule=init_capfactors)
+    capfactor = coeff['capfactor']
 
     # CONSTRAINTS
     if curtailment == 0:  # no curtailment allowed (default)
         def init_input_output(const, t, c_output):
             return output[t, c_output] == \
-                   b_tec.para_capfactor[t] * b_tec.var_size * rated_power
+                   capfactor[t-1] * b_tec.var_size * rated_power
         b_tec.const_input_output = Constraint(set_t, b_tec.set_output_carriers, rule=init_input_output)
 
     elif curtailment == 1:  # continuous curtailment
         def init_input_output(const, t, c_output):
             return output[t, c_output] <= \
-                   b_tec.para_capfactor[t] * b_tec.var_size * rated_power
+                  capfactor[t-1] * b_tec.var_size * rated_power
         b_tec.const_input_output = Constraint(set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
 
@@ -74,13 +74,13 @@ def constraints_tec_RES(model, b_tec, tec_data):
         b_tec.const_curtailed_units = Constraint(set_t, rule=init_curtailed_units)
         def init_input_output(const, t, c_output):
             return output[t, c_output] == \
-                   b_tec.para_capfactor[t] * b_tec.var_size_on[t] * rated_power
+                  capfactor[t-1] * b_tec.var_size_on[t] * rated_power
         b_tec.const_input_output = Constraint(set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
 
     return b_tec
 
-def constraints_tec_CONV1(model, b_tec, tec_data):
+def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for tec_type CONV1, i.e. :math:`\sum(output) = f(\sum(inputs))`
 
@@ -127,6 +127,8 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    model = energyhub.model
+
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
@@ -269,7 +271,7 @@ def constraints_tec_CONV1(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_CONV2(model, b_tec, tec_data):
+def constraints_tec_CONV2(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for tec_type CONV2, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
 
@@ -317,6 +319,8 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    model = energyhub.model
+
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
@@ -463,7 +467,7 @@ def constraints_tec_CONV2(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_CONV3(model, b_tec, tec_data):
+def constraints_tec_CONV3(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for tec_type CONV3, i.e. :math:`output_{car} = f_{car}(input_{maincarrier})`
 
@@ -510,6 +514,8 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    model = energyhub.model
+
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
@@ -655,7 +661,7 @@ def constraints_tec_CONV3(model, b_tec, tec_data):
 
     return b_tec
 
-def constraints_tec_STOR(model, b_tec, tec_data):
+def constraints_tec_STOR(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
@@ -713,6 +719,8 @@ def constraints_tec_STOR(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    model = energyhub.model
+
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
@@ -735,15 +743,13 @@ def constraints_tec_STOR(model, b_tec, tec_data):
                                   domain=NonNegativeReals,
                                   bounds=(b_tec.para_size_min, b_tec.para_size_max))
 
-    # Additional parameters
-    b_tec.para_eta_in = Param(domain=NonNegativeReals, initialize=coeff['eta_in'])
-    b_tec.para_eta_out = Param(domain=NonNegativeReals, initialize=coeff['eta_out'])
-    b_tec.para_eta_lambda = Param(domain=NonNegativeReals, initialize=coeff['lambda'])
-    b_tec.para_charge_max = Param(domain=NonNegativeReals, initialize=coeff['charge_max'])
-    b_tec.para_discharge_max = Param(domain=NonNegativeReals, initialize=coeff['discharge_max'])
-    def init_ambient_loss_factor(para, t):
-        return coeff['ambient_loss_factor'][t - 1]
-    b_tec.para_ambient_loss_factor = Param(set_t, domain=NonNegativeReals, rule=init_ambient_loss_factor)
+    # Abdditional parameters
+    eta_in = coeff['eta_in']
+    eta_out = coeff['eta_out']
+    eta_lambda = coeff['lambda']
+    charge_max = coeff['charge_max']
+    discharge_max = coeff['discharge_max']
+    ambient_loss_factor = coeff['ambient_loss_factor']
 
     # Size constraint
     def init_size_constraint(const, t, car):
@@ -754,18 +760,16 @@ def constraints_tec_STOR(model, b_tec, tec_data):
     def init_storage_level(const, t, car):
         if t == 1: # couple first and last time interval
             return b_tec.var_storage_level[t, car] == \
-                  b_tec.var_storage_level[max(set_t), car] * (1 - b_tec.para_eta_lambda) ** nr_timesteps_averaged - \
-                  b_tec.var_storage_level[max(set_t), car] * b_tec.para_ambient_loss_factor[max(set_t)] ** nr_timesteps_averaged + \
-                  (b_tec.para_eta_in * input[t, car] - \
-                  1 / b_tec.para_eta_out * output[t, car]) * \
-                  sum((1 - b_tec.para_eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
+                  b_tec.var_storage_level[max(set_t), car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                  b_tec.var_storage_level[max(set_t), car] * ambient_loss_factor[max(set_t)-1] ** nr_timesteps_averaged + \
+                  (eta_in * input[t, car] - 1 / eta_out * output[t, car]) * \
+                  sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
         else: # all other time intervalls
             return b_tec.var_storage_level[t, car] == \
-                b_tec.var_storage_level[t-1, car] * (1 - b_tec.para_eta_lambda) ** nr_timesteps_averaged - \
-                b_tec.para_ambient_loss_factor[t] * b_tec.para_ambient_loss_factor[max(set_t)] ** nr_timesteps_averaged + \
-                (b_tec.para_eta_in * input[t, car] - \
-                1/b_tec.para_eta_out * output[t, car]) * \
-                sum((1 - b_tec.para_eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
+                b_tec.var_storage_level[t-1, car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                ambient_loss_factor[t-1] * ambient_loss_factor[max(set_t)-1] ** nr_timesteps_averaged + \
+                (eta_in * input[t, car] - 1/eta_out * output[t, car]) * \
+                sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
     b_tec.const_storage_level = Constraint(set_t, b_tec.set_input_carriers, rule=init_storage_level)
 
     # This makes sure that only either input or output is larger zero.
@@ -793,11 +797,11 @@ def constraints_tec_STOR(model, b_tec, tec_data):
 
     # Maximal charging and discharging rates
     def init_maximal_charge(const,t,car):
-        return input[t, car] <= b_tec.para_charge_max * b_tec.var_size
+        return input[t, car] <= charge_max * b_tec.var_size
     b_tec.const_max_charge = Constraint(set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
 
     def init_maximal_discharge(const,t,car):
-        return output[t, car] <= b_tec.para_discharge_max * b_tec.var_size
+        return output[t, car] <= discharge_max * b_tec.var_size
     b_tec.const_max_discharge = Constraint(set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
 
     return b_tec

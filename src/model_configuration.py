@@ -65,6 +65,11 @@ class ModelConfiguration:
     | cuts          | Setting defining the aggressiveness of the global cut               | {-1, 0, 1, 2, 3}       | -1       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
 
+    List of model construction settings that can be specified:
+    +------------------+------------------------------------------------------------------------------------------------------------------+---------+---------+
+    | Name             | Definition                                                                                                       | Options | Default |
+    +------------------+------------------------------------------------------------------------------------------------------------------+---------+---------+
+
     List of energy balance settings that can be specified:
 
     +-------------+--------------------------------------------------+---------+---------+
@@ -127,6 +132,8 @@ class ModelConfiguration:
         self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0
         self.optimization.typicaldays = 0
+
+        self.modelconstruction = SimpleNamespace()
 
         self.energybalance = SimpleNamespace()
         # self.energybalance.violation = 0

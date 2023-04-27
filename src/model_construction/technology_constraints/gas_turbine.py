@@ -4,7 +4,7 @@ from pyomo.environ import units as u
 import src.model_construction as mc
 import src.global_variables as global_variables
 
-def constraints_tec_gt(model, b_tec, tec_data):
+def constraints_tec_gt(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for gas turbines
 
@@ -78,6 +78,8 @@ def constraints_tec_gt(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    model = energyhub.model
+
     global_variables.big_m_transformation_required = 1
 
     # DATA OF TECHNOLOGY
@@ -97,12 +99,12 @@ def constraints_tec_gt(model, b_tec, tec_data):
         set_t = model.set_t_full
 
     # Parameter declaration
-    b_tec.para_in_min = Param(domain=NonNegativeReals, initialize=coeff['in_min'])
-    b_tec.para_in_max = Param(domain=NonNegativeReals, initialize=coeff['in_max'])
-    b_tec.para_max_H2_admixture = Param(domain=NonNegativeReals, initialize=coeff['max_H2_admixture'])
-    b_tec.para_alpha = Param(domain=Reals, initialize=coeff['alpha'])
-    b_tec.para_beta = Param(domain=Reals, initialize=coeff['beta'])
-    b_tec.para_epsilon = Param(domain=NonNegativeReals, initialize=coeff['epsilon'])
+    in_min = coeff['in_min']
+    in_max = coeff['in_max']
+    max_H2_admixture = coeff['max_H2_admixture']
+    alpha = coeff['alpha']
+    beta = coeff['beta']
+    epsilon = coeff['epsilon']
     f  = coeff['f']
 
     # Additional decision variables
@@ -128,7 +130,7 @@ def constraints_tec_gt(model, b_tec, tec_data):
     # Constrain hydrogen input
     if len(performance_data['input_carrier']) == 2:
         def init_h2_input(const, t):
-            return input[t, 'hydrogen'] <= b_tec.var_total_input[t] * b_tec.para_max_H2_admixture
+            return input[t, 'hydrogen'] <= b_tec.var_total_input[t] * max_H2_admixture
         b_tec.const_h2_input = Constraint(set_t, rule=init_h2_input)
 
     # LINEAR, MINIMAL PARTLOAD
@@ -147,24 +149,24 @@ def constraints_tec_gt(model, b_tec, tec_data):
         else:  # technology on
             # input-output relation
             def init_input_output_on_el(const):
-                return output[t, 'electricity'] == (b_tec.para_alpha * b_tec.var_total_input[t] + \
-                                                              b_tec.para_beta * b_tec.var_units_on[t]) * f[t-1]
+                return output[t, 'electricity'] == (alpha * b_tec.var_total_input[t] + \
+                                                              beta * b_tec.var_units_on[t]) * f[t-1]
             dis.const_input_output_on_el = Constraint(rule=init_input_output_on_el)
 
             def init_input_output_on_th(const):
-                return output[t, 'heat'] == b_tec.para_epsilon * b_tec.var_total_input[t] - \
+                return output[t, 'heat'] == epsilon * b_tec.var_total_input[t] - \
                        output[t, 'electricity']
             dis.const_input_output_on_th = Constraint(rule=init_input_output_on_th)
 
             # min part load relation
             def init_min_input(const):
                 return b_tec.var_total_input[t] >= \
-                       b_tec.para_in_min * b_tec.var_units_on[t]
+                       in_min * b_tec.var_units_on[t]
             dis.const_min_input = Constraint(rule=init_min_input)
 
             def init_max_input(const):
                 return b_tec.var_total_input[t] <= \
-                       b_tec.para_in_max * b_tec.var_units_on[t]
+                       in_max * b_tec.var_units_on[t]
             dis.const_max_input = Constraint(rule=init_max_input)
 
     b_tec.dis_input_output = Disjunct(set_t, s_indicators, rule=init_input_output)
