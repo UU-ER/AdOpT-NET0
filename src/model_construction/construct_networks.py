@@ -721,8 +721,11 @@ def add_networks(energyhub):
     # COLLECT OBJECTS FROM ENERGYHUB
     data = energyhub.data
     model = energyhub.model
+    print('_' * 60)
+    print('--- Adding Networks... ---')
 
     def init_network(b_netw, netw):
+        print('\t - Adding Network ' + netw)
 
         # NETWORK DATA
         netw_data = data.network_data[netw]

@@ -35,7 +35,7 @@ class EnergyHub:
         """
         Constructor of the energyhub class.
         """
-        print('_' * 20)
+        print('_' * 60)
         print('Reading in data...')
         start = time.time()
 
@@ -81,8 +81,8 @@ class EnergyHub:
         # INITIALIZE RESULTS
         self.results = None
 
-        print('Reading in data completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
+        print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
+        print('_' * 60)
 
     def quick_solve_model(self):
         """
@@ -106,7 +106,7 @@ class EnergyHub:
         (:func:`~src.model_construction.construct_nodes.add_nodes` including \
         :func:`~add_technologies`)
         """
-        print('_' * 20)
+        print('_' * 60)
         print('Constructing Model...')
         start = time.time()
 
@@ -143,8 +143,8 @@ class EnergyHub:
         self.model = mc.add_networks(self)
         self.model = mc.add_nodes(self)
 
-        print('Constructing model completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
+
+        print('Constructing model completed in ' + str(round(time.time() - start)) + ' s')
 
     def construct_balances(self):
         """
@@ -153,7 +153,7 @@ class EnergyHub:
         Links all components with the constructing the energybalance (:func:`~add_energybalance`),
         the total cost (:func:`~add_system_costs`) and the emission balance (:func:`~add_emissionbalance`)
         """
-        print('_' * 20)
+        print('_' * 60)
         print('Constructing balances...')
         start = time.time()
 
@@ -161,8 +161,7 @@ class EnergyHub:
         self.model = mc.add_emissionbalance(self)
         self.model = mc.add_system_costs(self)
 
-        print('Constructing balances completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
+        print('Constructing balances completed in ' + str(round(time.time() - start)) + ' s')
 
     def solve_model(self):
         """
@@ -243,7 +242,7 @@ class EnergyHub:
         """
 
         # Solve model
-        print('_' * 20)
+        print('_' * 60)
         print('Solving Model...')
 
         start = time.time()
@@ -252,8 +251,8 @@ class EnergyHub:
         self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
 
-        print('Solving model completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
+        print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
+        print('_' * 60)
 
 
     def __minimize_cost(self):
