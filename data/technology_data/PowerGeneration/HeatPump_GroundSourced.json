@@ -1,48 +1,58 @@
 {
-  "tec_type": "DAC_Adsorption",
-  "size_min": 0,
-  "size_max": 200,
-  "size_is_int": 1,
+  "tec_type": "HeatPump_GroundSourced",
+  "size_min": 0.02,
+  "size_max": 2,
+  "size_is_int": 0,
   "decommission": 0,
   "Economics": {
     "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 4.5385E+7,
+    "unit_CAPEX": 800000,
     "piecewise_CAPEX": {
-      "bp_x": "not defined",
-      "bp_y": "not defined"
+      "bp_x": [
+        0.02,
+        0.05,
+        0.3,
+        2
+      ],
+      "bp_y": [
+        41764,
+        104412,
+        409715,
+        1.992245E+6
+      ]
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.02,
+    "OPEX_fixed": 0.015,
     "discount_rate": 0.1,
-    "lifetime": 25,
+    "lifetime": 15,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "performance_function_type": 3,
     "input_carrier": [
-      "electricity",
-      "heat"
+      "electricity"
     ],
     "main_input_carrier": "electricity",
     "output_carrier": [
-      "CO2"
+      "heat"
     ],
-    "nr_segments": 3,
-    "ohmic_heating": 1,
-    "emission_factor": -1,
+    "emission_factor": 0,
+    "min_part_load": 0.2,
+    "application": "radiator_heating",
+    "T_out": 39,
     "performance": {
-      "eta_elth": 0.97
+      "T_in": 10
     }
   },
   "Units": {
     "size": "MW",
     "input_carrier": {
-      "electricity": "MW",
-      "heat": "MW"
+      "electricity": "MW"
     },
     "output_carrier": {
-      "CO2": "tonne/hr"
+      "heat": "MW"
     }
   }
 }

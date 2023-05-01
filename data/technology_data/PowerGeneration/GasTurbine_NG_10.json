@@ -1,10 +1,11 @@
 {
+  "tec_type": "GasTurbine_NG_10",
   "size_min": 0,
   "size_max": 100,
   "size_is_int": 1,
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX in EUR/unit/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
     "unit_CAPEX": 4.587174E+6,
     "OPEX_variable": 0,
@@ -52,6 +53,5 @@
       "electricity": "MW",
       "heat": "MW"
     }
-  },
-  "tec_type": "GasTurbine_NG_10"
+  }
 }
