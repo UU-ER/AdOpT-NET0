@@ -1,4 +1,5 @@
 {
+  "tec_type": "CONV1",
   "size_min": 0,
   "size_max": 10000,
   "size_is_int": 0,
@@ -40,5 +41,16 @@
       "hydrogen": 0.05
     }
   },
-  "tec_type": "CONV1"
+
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "gas": "MW",
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "electricity": "MW",
+      "heat": "MW"
+    }
+  }
 }

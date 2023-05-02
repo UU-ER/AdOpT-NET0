@@ -40,6 +40,7 @@ class Technology:
         if global_variables.clustered_data and (self.technology_model not in technologies_modelled_with_full_res):
             self.modelled_with_full_res = 0
 
+        self.unit = units
 
         self.fitted_performance = None
 
