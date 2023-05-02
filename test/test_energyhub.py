@@ -22,7 +22,7 @@ def test_add_nodes():
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
 
@@ -39,7 +39,7 @@ def test_model1():
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
 def test_model2():
@@ -57,7 +57,7 @@ def test_model2():
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     m = energyhub.model
     assert energyhub.solution.solver.termination_condition == 'optimal'
     # Size of Furnace
@@ -106,7 +106,7 @@ def test_addtechnology():
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
 
     obj1 = energyhub.model.objective()
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -122,7 +122,7 @@ def test_addtechnology():
 
     energyhub.add_technology_to_node('test_node2', ['Photovoltaic'])
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
 
     obj2 = energyhub.model.objective()
     sizeWT2 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Offshore_6000'].var_size.value
@@ -149,7 +149,7 @@ def test_emission_balance1():
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
 
@@ -201,7 +201,7 @@ def test_emission_balance2():
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
 
     cost1 = energyhub.model.var_total_cost.value
@@ -209,7 +209,7 @@ def test_emission_balance2():
 
     # Emission Optimization
     energyhub.configuration.optimization.objective = 'emissions_pos'
-    energyhub.solve_model()
+    energyhub.solve()
     cost2 = energyhub.model.var_total_cost.value
     emissions2 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -225,7 +225,7 @@ def test_optimization_types():
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
 
     cost1 = energyhub.model.var_total_cost.value
@@ -233,7 +233,7 @@ def test_optimization_types():
 
     # Emission Optimization
     energyhub.configuration.optimization.objective = 'emissions_pos'
-    energyhub.solve_model()
+    energyhub.solve()
     cost2 = energyhub.model.var_total_cost.value
     emissions2 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -243,7 +243,7 @@ def test_optimization_types():
 
     # Emission & Cost Optimization
     energyhub.configuration.optimization.objective = 'emissions_minC'
-    energyhub.solve_model()
+    energyhub.solve()
     cost3 = energyhub.model.var_total_cost.value
     emissions3 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -253,7 +253,7 @@ def test_optimization_types():
 
     # Pareto Optimization
     energyhub.configuration.optimization.objective = 'pareto'
-    energyhub.solve_model()
+    energyhub.solve()
 
 
 def test_simplification_algorithms():
@@ -262,7 +262,7 @@ def test_simplification_algorithms():
     # Full resolution
     configuration = ModelConfiguration()
     energyhub1 = ehub(data, configuration)
-    energyhub1.quick_solve_model()
+    energyhub1.quick_solve()
     cost1 = energyhub1.model.var_total_cost.value
     assert energyhub1.solution.solver.termination_condition == 'optimal'
 
@@ -270,7 +270,7 @@ def test_simplification_algorithms():
     configuration = ModelConfiguration()
     configuration.optimization.typicaldays = 40
     energyhub2 = ehub(data, configuration)
-    energyhub2.quick_solve_model()
+    energyhub2.quick_solve()
     cost2 = energyhub2.model.var_total_cost.value
     assert energyhub2.solution.solver.termination_condition == 'optimal'
 
@@ -280,7 +280,7 @@ def test_simplification_algorithms():
     configuration = ModelConfiguration()
     configuration.optimization.timestaging = 4
     energyhub3 = ehub(data, configuration)
-    energyhub3.quick_solve_model()
+    energyhub3.quick_solve()
     cost3 = energyhub3.model.var_total_cost.value
     assert energyhub3.solution.solver.termination_condition == 'optimal'
 

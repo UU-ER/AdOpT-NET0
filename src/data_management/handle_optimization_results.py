@@ -60,15 +60,15 @@ class ResultsHandle:
         set_t = model.set_t_full
         nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
-        tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX.value
+        tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex.value
                             for tec in model.node_blocks[node].set_tecsAtNode)
                         for node in model.set_nodes)
-        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t].value *
+        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t].value *
                                         nr_timesteps_averaged
                                         for tec in model.node_blocks[node].set_tecsAtNode)
                                     for t in set_t)
                                 for node in model.set_nodes)
-        tec_OPEX_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_fixed.value
+        tec_OPEX_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed.value
                                  for tec in model.node_blocks[node].set_tecsAtNode)
                              for node in model.set_nodes)
         tec_cost = tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed
@@ -124,9 +124,9 @@ class ResultsHandle:
             for tec_name in node_data.set_tecsAtNode:
                 tec_data = node_data.tech_blocks_active[tec_name]
                 s = tec_data.var_size.value
-                capex = tec_data.var_CAPEX.value
-                opex_fix = tec_data.var_OPEX_fixed.value
-                opex_var = sum(tec_data.var_OPEX_variable[t].value
+                capex = tec_data.var_capex.value
+                opex_fix = tec_data.var_opex_fixed.value
+                opex_var = sum(tec_data.var_opex_variable[t].value
                                for t in set_t)
                 self.technologies.loc[len(self.technologies.index)] = \
                     [node_name, tec_name, s, capex, opex_fix, opex_var]
@@ -139,15 +139,15 @@ class ResultsHandle:
                 fromNode = arc[0]
                 toNode = arc[1]
                 s = arc_data.var_size.value
-                capex = arc_data.var_CAPEX.value
+                capex = arc_data.var_capex.value
                 if global_variables.clustered_data:
                     sequence = energyhub.data.k_means_specs.full_resolution['sequence']
-                    opex_var = sum(arc_data.var_OPEX_variable[sequence[t - 1]].value
+                    opex_var = sum(arc_data.var_opex_variable[sequence[t - 1]].value
                                    for t in set_t)
                     total_flow = sum(arc_data.var_flow[sequence[t - 1]].value
                                      for t in set_t)
                 else:
-                    opex_var = sum(arc_data.var_OPEX_variable[t]
+                    opex_var = sum(arc_data.var_opex_variable[t]
                                    for t in set_t)
                     total_flow = sum(arc_data.var_flow[t].value
                                      for t in set_t)

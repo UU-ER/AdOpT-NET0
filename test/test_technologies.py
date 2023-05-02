@@ -23,14 +23,14 @@ def test_technology_RES_PV():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     assert 10 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['Photovoltaic'].var_size.value
     assert 15 >= energyhub.model.node_blocks['test_node1'].tech_blocks_active['Photovoltaic'].var_size.value
 
     for t in energyhub.model.set_t_full:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['Photovoltaic'].var_size.value
     assert 0 == energyhub.model.objective()
@@ -51,14 +51,14 @@ def test_technology_RES_WT():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
 
     # Import at zero price
     for t in energyhub.model.set_t_full:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
     assert 0 == energyhub.model.objective()
@@ -68,7 +68,7 @@ def test_technology_RES_WT():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
 
@@ -84,7 +84,7 @@ def test_technology_CONV1():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     allowed_fitting_error = 0.1
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -121,7 +121,7 @@ def test_technology_CONV1():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
@@ -156,7 +156,7 @@ def test_technology_CONV1():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
@@ -191,7 +191,7 @@ def test_technology_CONV1():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     energyhub.model.pprint()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
@@ -202,7 +202,7 @@ def test_technology_CONV1():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     energyhub.model.pprint()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
@@ -215,7 +215,7 @@ def test_technology_CONV2():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
@@ -249,7 +249,7 @@ def test_technology_CONV2():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
@@ -281,7 +281,7 @@ def test_technology_CONV2():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
@@ -313,7 +313,7 @@ def test_technology_CONV2():
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
     # Min partload
@@ -323,7 +323,7 @@ def test_technology_CONV2():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
 
@@ -339,7 +339,7 @@ def test_technology_CONV3():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
@@ -373,7 +373,7 @@ def test_technology_CONV3():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
@@ -406,7 +406,7 @@ def test_technology_CONV3():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
     objective_value = round(energyhub.model.objective(), 3)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
@@ -440,7 +440,7 @@ def test_technology_CONV3():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
     # Min partload
@@ -450,7 +450,7 @@ def test_technology_CONV3():
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
 def test_dac():
@@ -461,14 +461,14 @@ def test_dac():
     configuration.optimization.typicaldays = 0
     # # Read data
     energyhub = EnergyHub(data, configuration)
-    energyhub.quick_solve_model()
+    energyhub.quick_solve()
     cost1 = energyhub.model.var_total_cost.value
 
     configuration = ModelConfiguration()
     configuration.optimization.typicaldays = 4
     # # Read data
     energyhub = EnergyHub(data, configuration)
-    energyhub.quick_solve_model()
+    energyhub.quick_solve()
     cost2 = energyhub.model.var_total_cost.value
 
     assert abs(cost1 - cost2) / cost1 <= 0.1
@@ -479,7 +479,7 @@ def test_existing_technologies():
         energyhub = EnergyHub(data, configuration)
         energyhub.construct_model()
         energyhub.construct_balances()
-        energyhub.solve_model()
+        energyhub.solve()
         assert energyhub.solution.solver.termination_condition == 'optimal'
         cost = energyhub.model.var_total_cost.value
         return cost

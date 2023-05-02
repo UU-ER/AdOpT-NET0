@@ -148,15 +148,15 @@ def add_system_costs(energyhub):
 
     # Cost at each node
     def init_node_cost(const):
-        tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX
+        tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
                             for tec in model.node_blocks[node].set_tecsAtNode)
                         for node in model.set_nodes)
-        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t] *
+        tec_opex_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t] *
                                         nr_timesteps_averaged
                                         for tec in model.node_blocks[node].set_tecsAtNode)
                                     for t in set_t)
                                 for node in model.set_nodes)
-        tec_OPEX_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_fixed
+        tec_opex_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
                                 for tec in model.node_blocks[node].set_tecsAtNode)
                              for node in model.set_nodes)
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
@@ -171,20 +171,20 @@ def add_system_costs(energyhub):
                                     for car in model.node_blocks[node].set_carriers)
                                  for t in set_t)
                              for node in model.set_nodes)
-        return tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed + import_cost - export_revenue == model.var_node_cost
+        return tec_capex + tec_opex_variable + tec_opex_fixed + import_cost - export_revenue == model.var_node_cost
     model.const_node_cost = Constraint(rule=init_node_cost)
 
     # Calculates network costs
     def init_netw_cost(const):
-        netw_CAPEX = sum(model.network_block[netw].var_CAPEX
+        netw_capex = sum(model.network_block[netw].var_capex
                          for netw in model.set_networks)
-        netw_OPEX_variable = sum(sum(model.network_block[netw].var_OPEX_variable[t] *
+        netw_opex_variable = sum(sum(model.network_block[netw].var_opex_variable[t] *
                                         nr_timesteps_averaged
                                      for netw in model.set_networks)
                                  for t in set_t)
-        netw_OPEX_fixed = sum(model.network_block[netw].var_OPEX_fixed
+        netw_opex_fixed = sum(model.network_block[netw].var_opex_fixed
                          for netw in model.set_networks)
-        return netw_CAPEX + netw_OPEX_variable + netw_OPEX_fixed == \
+        return netw_capex + netw_opex_variable + netw_opex_fixed == \
                model.var_netw_cost
     model.const_netw_cost = Constraint(rule=init_netw_cost)
 

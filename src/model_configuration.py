@@ -9,27 +9,40 @@ class ModelConfiguration:
 
     List of optimization settings that can be specified:
 
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | Name             | Definition                                   | Options                                     | Default |
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | objective        | String specifying the objective/type         | 'costs', 'emissions_pos', 'emissions_neg',  | 'costs' |
-    |                  | of optimization                              | 'emissions_minC', 'pareto'                  |         |
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | montecarlo.range | Value defining the range in which variables  |                                             | 0.2     |
-    |                  | are varied in Monte Carlo simulations        |                                             |         |
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | montecarlo.N     | Number of Monte Carlo simulations            |                                             | 100     |
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | pareto_points    | Number of Pareto points                      |                                             | 5       |
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | timestaging      | Defines number of daily intervals (0 = off)  |                                             | 0       |
-    |                  | :ref:`check here <time_averaging>`           |                                             |         |
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | techstaging      | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | typicaldays      | Determines number of typical days (0 = off)  |                                             | 0       |
-    |                  | :ref:`check here <clustering>`               |                                             |         |
-    +------------------+----------------------------------------------+---------------------------------------------+---------+
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | Name               | Definition                                   | Options                                     | Default |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | objective          | String specifying the objective/type         | 'costs', 'emissions_pos', 'emissions_neg',  | 'costs' |
+    |                    | of optimization                              | 'emissions_minC', 'pareto'                  |         |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | monte_carlo.sd     | Value defining the range in which variables  |                                             | 0.2     |
+    |                    | are varied in Monte Carlo simulations        |                                             |         |
+    |                    | (defined as the standard deviation of the    |                                             |         |
+    |                    | original value)                              |                                             |         |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | monte_carlo.on     | Turn monte carlo simulation on               |                                             | 0       |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | monte_carlo.N      | Number of Monte Carlo simulations            |                                             | 100     |
+     +-------------------+----------------------------------------------+---------------------------------------------+---------+
+    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'Networks', 'ImportPrices', | all     |
+    |                    |                                              | 'ExportPrices'                              |         |
+     +-------------------+----------------------------------------------+---------------------------------------------+---------+
+    | monte_carlo.save   | What information is saved from each          | 'basic', 'all'                              |         |
+    |                    | monte carlo run                              |                                             |         |
+    |                    | basic: saves only technology/network sizes,  |                                             |         |
+    |                    | costs and emissions as individual excel      |                                             |         |
+    |                    | all: saves full information in excel         |                                             |         |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | pareto_points      | Number of Pareto points                      |                                             | 5       |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | timestaging        | Defines number of daily intervals (0 = off)  |                                             | 0       |
+    |                    | :ref:`check here <time_averaging>`           |                                             |         |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | techstaging        | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | typicaldays        | Determines number of typical days (0 = off)  |                                             | 0       |
+    |                    | :ref:`check here <clustering>`               |                                             |         |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
 
     List of solver settings that can be specified (see also https://www.gurobi.com/documentation/9.5/refman/parameter_descriptions.html):
 
@@ -90,7 +103,7 @@ class ModelConfiguration:
     |                            | networks                                               |         |         |
     +----------------------------+--------------------------------------------------------+---------+---------+
     | global_simple_capex_model  | Determines if capex model of technologies is set to 1  | {0,1}   | 0       |
-    | global_simple_capex_model  | for all technologies                                   |         |         |
+    |                            | for all technologies                                   |         |         |
     +----------------------------+--------------------------------------------------------+---------+---------+
 
     List of technology and network performance settings that can be specified:
@@ -125,9 +138,15 @@ class ModelConfiguration:
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
-        # self.optimization.montecarlo = SimpleNamespace()
-        # self.optimization.montecarlo.range = 0.2
-        # self.optimization.montecarlo.N = 100
+        self.optimization.monte_carlo = SimpleNamespace()
+        self.optimization.monte_carlo.on = 0
+        self.optimization.monte_carlo.sd = 0.2
+        self.optimization.monte_carlo.N = 2
+        self.optimization.monte_carlo.on_what = ['Technologies',
+                                                'Networks',
+                                                'ImportPrices',
+                                                'ExportPrices']
+        self.optimization.monte_carlo.save = 'basic'
         self.optimization.pareto_points = 5
         self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0
@@ -146,7 +165,7 @@ class ModelConfiguration:
         self.performance = SimpleNamespace()
         # self.performance.dynamics = 0
 
-    def define_montecarlo(self, range, N):
+    def define_monte_carlo(self, range, N):
         """
         Function to define the range within the variables are varied (+/-) and the number of simulations
         for the Monte Carlo simulation.
@@ -155,5 +174,5 @@ class ModelConfiguration:
         :param int N: number of simulations
         """
 
-        self.optimization.montecarlo.range = range
-        self.optimization.montecarlo.N = N
+        self.optimization.monte_carlo.range = range
+        self.optimization.monte_carlo.N = N
