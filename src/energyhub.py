@@ -12,7 +12,6 @@ import time
 import copy
 import warnings
 
-#TODO: refactor monte carlo functions to separate module
 #TODO: fix pareto + monte carlo
 #TODO: code export and reporting with monte carlo
 #TODO: Fix test functions
@@ -423,7 +422,7 @@ class EnergyHub:
         if capex_model == 1:
             # UNIT CAPEX
             # Update parameter
-            unit_CAPEX = tec_data.economics.capex_data['unit_capex'] * sd_random
+            unit_capex = tec_data.economics.capex_data['unit_capex'] * sd_random
             self.model.node_blocks[node].tech_blocks_active[tec].para_unit_capex = unit_capex
             self.model.node_blocks[node].tech_blocks_active[tec].para_unit_capex_annual = unit_capex * annualization_factor
 
@@ -449,7 +448,6 @@ class EnergyHub:
 
         netw_data = self.data.network_data[netw]
         economics = netw_data.economics
-        distance = netw_data.distance
         discount_rate = set_discount_rate(self.configuration, economics)
         capex_model = economics.capex_model
         annualization_factor = annualize(discount_rate, economics.lifetime)
@@ -457,17 +455,17 @@ class EnergyHub:
         b_netw =self.model.network_block[netw]
 
         if capex_model == 1:
-            b_netw.para_CAPEX_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
-            b_netw.para_CAPEX_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
 
         elif capex_model == 2:
-            b_netw.para_CAPEX_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
-            b_netw.para_CAPEX_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
 
         elif capex_model == 3:
-            b_netw.para_CAPEX_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
-            b_netw.para_CAPEX_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
-            b_netw.para_CAPEX_gamma3 = economics.capex_data['gamma3'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma3 = economics.capex_data['gamma3'] * annualization_factor * sd_random
 
         for arc in b_netw.set_arcs:
             b_arc = b_netw.arc_block[arc]
@@ -480,15 +478,15 @@ class EnergyHub:
             def init_capex(const):
                 if economics.capex_model == 1:
                     return b_arc.var_capex_aux == b_arc.var_size * \
-                           b_netw.para_CAPEX_gamma1 + b_netw.para_CAPEX_gamma2
+                           b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
                 elif economics.capex_model == 2:
                     return b_arc.var_capex_aux == b_arc.var_size * \
-                           b_arc.distance * b_netw.para_CAPEX_gamma1 + b_netw.para_CAPEX_gamma2
+                           b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
                 elif economics.capex_model == 3:
                     return b_arc.var_capex_aux == b_arc.var_size * \
-                           b_arc.distance * b_netw.para_CAPEX_gamma1 + \
-                           b_arc.var_size * b_netw.para_CAPEX_gamma2 + \
-                           b_netw.para_CAPEX_gamma3
+                           b_arc.distance * b_netw.para_capex_gamma1 + \
+                           b_arc.var_size * b_netw.para_capex_gamma2 + \
+                           b_netw.para_capex_gamma3
             b_arc.const_capex_aux = Constraint(rule=init_capex)
             self.solver.add_constraint(b_arc.const_capex_aux)
 
@@ -517,7 +515,7 @@ class EnergyHub:
             nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
             def init_node_cost(const):
-                tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
+                tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes)
                 tec_opex_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t] *
@@ -540,7 +538,7 @@ class EnergyHub:
                                              for car in model.node_blocks[node].set_carriers)
                                          for t in set_t)
                                      for node in model.set_nodes)
-                return tec_CAPEX + tec_opex_variable + tec_opex_fixed + import_cost - export_revenue == model.var_node_cost
+                return tec_capex + tec_opex_variable + tec_opex_fixed + import_cost - export_revenue == model.var_node_cost
 
             model.const_node_cost = Constraint(rule=init_node_cost)
             self.solver.add_constraint(model.const_node_cost)
@@ -571,15 +569,15 @@ class EnergyHub:
             nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
             def init_node_cost(const):
-                tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
+                tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes)
-                tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t] *
+                tec_opex_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t] *
                                                 nr_timesteps_averaged
                                                 for tec in model.node_blocks[node].set_tecsAtNode)
                                             for t in set_t)
                                         for node in model.set_nodes)
-                tec_OPEX_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
+                tec_opex_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
                                          for tec in model.node_blocks[node].set_tecsAtNode)
                                      for node in model.set_nodes)
                 import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
@@ -594,7 +592,7 @@ class EnergyHub:
                                              for car in model.node_blocks[node].set_carriers)
                                          for t in set_t)
                                      for node in model.set_nodes)
-                return tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed + import_cost - export_revenue == model.var_node_cost
+                return tec_capex + tec_opex_variable + tec_opex_fixed + import_cost - export_revenue == model.var_node_cost
 
             model.const_node_cost = Constraint(rule=init_node_cost)
             self.solver.add_constraint(model.const_node_cost)

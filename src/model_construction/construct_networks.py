@@ -339,15 +339,15 @@ def define_capex_arc(b_arc, b_netw, netw_data):
     def init_capex(const):
         if economics.capex_model == 1:
             return b_arc.var_capex_aux == b_arc.var_size * \
-                   b_netw.para_CAPEX_gamma1 + b_netw.para_CAPEX_gamma2
+                   b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
         elif economics.capex_model == 2:
             return b_arc.var_capex_aux == b_arc.var_size * \
-                   b_arc.distance * b_netw.para_CAPEX_gamma1 + b_netw.para_CAPEX_gamma2
+                   b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
         elif economics.capex_model == 3:
             return b_arc.var_capex_aux == b_arc.var_size * \
-                   b_arc.distance * b_netw.para_CAPEX_gamma1 + \
-                   b_arc.var_size * b_netw.para_CAPEX_gamma2 + \
-                   b_netw.para_CAPEX_gamma3
+                   b_arc.distance * b_netw.para_capex_gamma1 + \
+                   b_arc.var_size * b_netw.para_capex_gamma2 + \
+                   b_netw.para_capex_gamma3
 
     b_arc.const_capex_aux = Constraint(rule=init_capex)
 

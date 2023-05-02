@@ -25,17 +25,17 @@ class ResultsHandle:
         self.technologies = pd.DataFrame(columns=['Node',
                                                   'Technology',
                                                   'Size',
-                                                  'CAPEX',
-                                                  'OPEX_fixed',
-                                                  'OPEX_variable'
+                                                  'capex',
+                                                  'opex_fixed',
+                                                  'opex_variable'
                                                   ])
         self.networks = pd.DataFrame(columns=['Network',
                                               'fromNode',
                                               'toNode',
                                               'Size',
-                                              'CAPEX',
-                                              'OPEX_fixed',
-                                              'OPEX_variable',
+                                              'capex',
+                                              'opex_fixed',
+                                              'opex_variable',
                                               'total_flow'
                                               ])
         self.energybalance = {}
@@ -43,11 +43,12 @@ class ResultsHandle:
         self.detailed_results.nodes = {}
         self.detailed_results.networks = {}
 
-    def read_results(self, energyhub):
+    def read_results(self, energyhub, detail = 'full'):
         """
         Reads results to ResultHandle for viewing or export
 
         :param EnergyHub energyhub: instance the EnergyHub Class
+        :param str detail: 'full', or 'basic', basic excludes energy balance, technology and network operation
         :return: self
         """
         model = energyhub.model
@@ -60,18 +61,18 @@ class ResultsHandle:
         set_t = model.set_t_full
         nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
-        tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex.value
+        tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex.value
                             for tec in model.node_blocks[node].set_tecsAtNode)
                         for node in model.set_nodes)
-        tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t].value *
+        tec_opex_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t].value *
                                         nr_timesteps_averaged
                                         for tec in model.node_blocks[node].set_tecsAtNode)
                                     for t in set_t)
                                 for node in model.set_nodes)
-        tec_OPEX_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed.value
+        tec_opex_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed.value
                                  for tec in model.node_blocks[node].set_tecsAtNode)
                              for node in model.set_nodes)
-        tec_cost = tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed
+        tec_cost = tec_capex + tec_opex_variable + tec_opex_fixed
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car].value *
                                   model.node_blocks[node].para_import_price[t, car].value *
                                         nr_timesteps_averaged
@@ -151,120 +152,121 @@ class ResultsHandle:
                                    for t in set_t)
                     total_flow = sum(arc_data.var_flow[t].value
                                      for t in set_t)
-                opex_fix = capex * netw_data.para_OPEX_fixed.value
+                opex_fix = capex * netw_data.para_opex_fixed.value
 
                 self.networks.loc[len(self.networks.index)] = \
                     [netw_name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow]
 
-        # Energy Balance @ each node
-        for node_name in model.set_nodes:
-            self.energybalance[node_name] = {}
-            for car in model.node_blocks[node_name].set_carriers:
-                self.energybalance[node_name][car] = pd.DataFrame(columns=[
-                                                                            'Technology_inputs',
-                                                                            'Technology_outputs',
-                                                                            'Generic_production',
-                                                                            'Network_inflow',
-                                                                            'Network_outflow',
-                                                                            'Network_consumption',
-                                                                            'Import',
-                                                                            'Export',
-                                                                            'Demand'
-                                                                            ])
+        if detail == 'full':
+            # Energy Balance @ each node
+            for node_name in model.set_nodes:
+                self.energybalance[node_name] = {}
+                for car in model.node_blocks[node_name].set_carriers:
+                    self.energybalance[node_name][car] = pd.DataFrame(columns=[
+                                                                                'Technology_inputs',
+                                                                                'Technology_outputs',
+                                                                                'Generic_production',
+                                                                                'Network_inflow',
+                                                                                'Network_outflow',
+                                                                                'Network_consumption',
+                                                                                'Import',
+                                                                                'Export',
+                                                                                'Demand'
+                                                                                ])
+                    node_data = model.node_blocks[node_name]
+                    self.energybalance[node_name][car]['Technology_inputs'] = \
+                        [sum(node_data.tech_blocks_active[tec].var_input[t, car].value
+                             for tec in node_data.set_tecsAtNode
+                             if car in node_data.tech_blocks_active[tec].set_input_carriers)
+                         for t in set_t]
+                    self.energybalance[node_name][car]['Technology_outputs'] = \
+                        [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
+                             for tec in node_data.set_tecsAtNode
+                             if car in node_data.tech_blocks_active[tec].set_output_carriers)
+                         for t in set_t]
+                    self.energybalance[node_name][car]['Generic_production'] = \
+                        [node_data.var_generic_production[t, car].value for t in set_t]
+                    self.energybalance[node_name][car]['Network_inflow'] = \
+                        [node_data.var_netw_inflow[t, car].value for t in set_t]
+                    self.energybalance[node_name][car]['Network_outflow'] = \
+                        [node_data.var_netw_outflow[t, car].value for t in set_t]
+                    if hasattr(node_data, 'var_netw_consumption'):
+                        self.energybalance[node_name][car]['Network_consumption'] = \
+                            [node_data.var_netw_consumption[t, car].value for t in set_t]
+                    self.energybalance[node_name][car]['Import'] = \
+                        [node_data.var_import_flow[t, car].value for t in set_t]
+                    self.energybalance[node_name][car]['Export'] = \
+                        [node_data.var_export_flow[t, car].value for t in set_t]
+                    self.energybalance[node_name][car]['Demand'] = \
+                        [node_data.para_demand[t, car].value for t in set_t]
+
+            # Detailed results for technologies
+            for node_name in model.set_nodes:
                 node_data = model.node_blocks[node_name]
-                self.energybalance[node_name][car]['Technology_inputs'] = \
-                    [sum(node_data.tech_blocks_active[tec].var_input[t, car].value
-                         for tec in node_data.set_tecsAtNode
-                         if car in node_data.tech_blocks_active[tec].set_input_carriers)
-                     for t in set_t]
-                self.energybalance[node_name][car]['Technology_outputs'] = \
-                    [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
-                         for tec in node_data.set_tecsAtNode
-                         if car in node_data.tech_blocks_active[tec].set_output_carriers)
-                     for t in set_t]
-                self.energybalance[node_name][car]['Generic_production'] = \
-                    [node_data.var_generic_production[t, car].value for t in set_t]
-                self.energybalance[node_name][car]['Network_inflow'] = \
-                    [node_data.var_netw_inflow[t, car].value for t in set_t]
-                self.energybalance[node_name][car]['Network_outflow'] = \
-                    [node_data.var_netw_outflow[t, car].value for t in set_t]
-                if hasattr(node_data, 'var_netw_consumption'):
-                    self.energybalance[node_name][car]['Network_consumption'] = \
-                        [node_data.var_netw_consumption[t, car].value for t in set_t]
-                self.energybalance[node_name][car]['Import'] = \
-                    [node_data.var_import_flow[t, car].value for t in set_t]
-                self.energybalance[node_name][car]['Export'] = \
-                    [node_data.var_export_flow[t, car].value for t in set_t]
-                self.energybalance[node_name][car]['Demand'] = \
-                    [node_data.para_demand[t, car].value for t in set_t]
+                self.detailed_results.nodes[node_name] = {}
+                for tec_name in node_data.set_tecsAtNode:
+                    tec_data = node_data.tech_blocks_active[tec_name]
+                    technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
-        # Detailed results for technologies
-        for node_name in model.set_nodes:
-            node_data = model.node_blocks[node_name]
-            self.detailed_results.nodes[node_name] = {}
-            for tec_name in node_data.set_tecsAtNode:
-                tec_data = node_data.tech_blocks_active[tec_name]
-                technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
+                    if technology_model == 'STOR':
+                        if global_variables.clustered_data:
+                            time_set = model.set_t_full
+                        else:
+                            time_set = model.set_t_full
+                        if tec_data.find_component('var_input'):
+                            input = tec_data.var_input
+                            output = tec_data.var_output
 
-                if technology_model == 'STOR':
-                    if global_variables.clustered_data:
-                        time_set = model.set_t_full
                     else:
-                        time_set = model.set_t_full
-                    if tec_data.find_component('var_input'):
-                        input = tec_data.var_input
+                        time_set = set_t
+                        if tec_data.find_component('var_input'):
+                            input = tec_data.var_input
                         output = tec_data.var_output
 
-                else:
-                    time_set = set_t
-                    if tec_data.find_component('var_input'):
-                        input = tec_data.var_input
-                    output = tec_data.var_output
+                    df = pd.DataFrame()
 
-                df = pd.DataFrame()
-
-                for car in tec_data.set_input_carriers:
-                    if tec_data.find_component('var_input'):
-                        df['input_' + car] = [input[t, car].value for t in time_set]
-
-                for car in tec_data.set_output_carriers:
-                    df['output_' + car] = [output[t, car].value for t in time_set]
-
-                if tec_data.find_component('var_storage_level'):
                     for car in tec_data.set_input_carriers:
-                        df['storage_level_' + car] = [tec_data.var_storage_level[t, car].value for t in time_set]
+                        if tec_data.find_component('var_input'):
+                            df['input_' + car] = [input[t, car].value for t in time_set]
 
-                self.detailed_results.nodes[node_name][tec_name] = df
+                    for car in tec_data.set_output_carriers:
+                        df['output_' + car] = [output[t, car].value for t in time_set]
 
-        # Detailed results for networks
-        for netw_name in model.set_networks:
-            netw_data = model.network_block[netw_name]
-            self.detailed_results.networks[netw_name] = {}
-            for arc in netw_data.set_arcs:
-                arc_data = netw_data.arc_block[arc]
-                df = pd.DataFrame()
+                    if tec_data.find_component('var_storage_level'):
+                        for car in tec_data.set_input_carriers:
+                            df['storage_level_' + car] = [tec_data.var_storage_level[t, car].value for t in time_set]
 
-                if global_variables.clustered_data:
-                    sequence = energyhub.data.k_means_specs.full_resolution['sequence']
-                    df['flow'] = [arc_data.var_flow[sequence[t - 1]].value for t in set_t]
-                    df['losses'] = [arc_data.var_losses[sequence[t - 1]].value for t in set_t]
-                    if netw_data.find_component('var_consumption_send'):
-                        for car in netw_data.set_consumed_carriers:
-                            df['consumption_send' + car] = \
-                                [arc_data.var_consumption_send[sequence[t - 1], car].value for t in set_t]
-                            df['consumption_receive' + car] = \
-                                [arc_data.var_consumption_receive[sequence[t - 1], car].value for t in set_t]
-                else:
-                    df['flow'] = [arc_data.var_flow[t].value for t in set_t]
-                    df['losses'] = [arc_data.var_losses[t].value for t in set_t]
-                    if netw_data.find_component('var_consumption_send'):
-                        for car in netw_data.set_consumed_carriers:
-                            df['consumption_send' + car] = \
-                                [arc_data.var_consumption_send[t, car].value for t in set_t]
-                            df['consumption_receive' + car] = \
-                                [arc_data.var_consumption_receive[t, car].value for t in set_t]
+                    self.detailed_results.nodes[node_name][tec_name] = df
 
-                self.detailed_results.networks[netw_name]['_'.join(arc)] = df
+            # Detailed results for networks
+            for netw_name in model.set_networks:
+                netw_data = model.network_block[netw_name]
+                self.detailed_results.networks[netw_name] = {}
+                for arc in netw_data.set_arcs:
+                    arc_data = netw_data.arc_block[arc]
+                    df = pd.DataFrame()
+
+                    if global_variables.clustered_data:
+                        sequence = energyhub.data.k_means_specs.full_resolution['sequence']
+                        df['flow'] = [arc_data.var_flow[sequence[t - 1]].value for t in set_t]
+                        df['losses'] = [arc_data.var_losses[sequence[t - 1]].value for t in set_t]
+                        if netw_data.find_component('var_consumption_send'):
+                            for car in netw_data.set_consumed_carriers:
+                                df['consumption_send' + car] = \
+                                    [arc_data.var_consumption_send[sequence[t - 1], car].value for t in set_t]
+                                df['consumption_receive' + car] = \
+                                    [arc_data.var_consumption_receive[sequence[t - 1], car].value for t in set_t]
+                    else:
+                        df['flow'] = [arc_data.var_flow[t].value for t in set_t]
+                        df['losses'] = [arc_data.var_losses[t].value for t in set_t]
+                        if netw_data.find_component('var_consumption_send'):
+                            for car in netw_data.set_consumed_carriers:
+                                df['consumption_send' + car] = \
+                                    [arc_data.var_consumption_send[t, car].value for t in set_t]
+                                df['consumption_receive' + car] = \
+                                    [arc_data.var_consumption_receive[t, car].value for t in set_t]
+
+                    self.detailed_results.networks[netw_name]['_'.join(arc)] = df
 
     def write_excel(self, path):
         """

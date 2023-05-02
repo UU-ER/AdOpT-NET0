@@ -27,7 +27,7 @@ class ModelConfiguration:
     | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'Networks', 'ImportPrices', | all     |
     |                    |                                              | 'ExportPrices'                              |         |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.save   | What information is saved from each          | 'basic', 'all'                              |         |
+    | monte_carlo.save   | What information is saved from each          | 'basic', 'full'                             |         |
     |                    | monte carlo run                              |                                             |         |
     |                    | basic: saves only technology/network sizes,  |                                             |         |
     |                    | costs and emissions as individual excel      |                                             |         |
