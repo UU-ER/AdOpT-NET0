@@ -283,5 +283,16 @@ def test_simplification_algorithms():
     energyhub3.quick_solve()
     cost3 = energyhub3.model.var_total_cost.value
     assert energyhub3.solution.solver.termination_condition == 'optimal'
-
     assert abs(cost1 - cost3) / cost1 <= 0.1
+
+    # monte carlo
+    configuration = ModelConfiguration()
+    configuration.optimization.monte_carlo.on = 1
+    configuration.optimization.monte_carlo.sd = 0.2
+    configuration.optimization.monte_carlo.N = 2
+    configuration.optimization.monte_carlo.on_what = ['Technologies',
+                                             'Networks']
+    energyhub4 = ehub(data, configuration)
+    energyhub4.quick_solve()
+
+

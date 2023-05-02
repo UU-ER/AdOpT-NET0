@@ -12,8 +12,6 @@ import time
 import copy
 import warnings
 
-#TODO: fix pareto + monte carlo
-#TODO: code export and reporting with monte carlo
 #TODO: Fix test functions
 
 
@@ -84,7 +82,7 @@ class EnergyHub:
             self.data = self.data_storage[0]
 
         # INITIALIZE RESULTS
-        self.results = None
+        self.results = dm.ResultsHandle(self.configuration)
 
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
@@ -190,7 +188,6 @@ class EnergyHub:
             self.__optimize_pareto()
         else:
             self.__optimize(objective)
-            self.results = self.__write_results()
 
         return self.results
 
@@ -220,17 +217,6 @@ class EnergyHub:
         """
         with open(file_path + '/' + file_name, mode='wb') as file:
             pickle.dump(self, file)
-
-    def __write_results(self):
-        """
-        Exports results to an instance of ResultsHandle to be further exported or viewed
-        """
-        if self.solution.solver.termination_condition == 'optimal':
-            results = dm.ResultsHandle()
-            results.read_results(self)
-        else:
-            results = None
-        return results
 
     def __define_solver_settings(self):
         """
@@ -322,23 +308,20 @@ class EnergyHub:
         """
         Optimize the pareto front
         """
-        # Define results list
         pareto_points = self.configuration.optimization.pareto_points
-        self.results = [None] * pareto_points
 
         # Min Cost
         self.__optimize_cost()
-        self.results[pareto_points - 1] = self.__write_results()
         emissions_max = self.model.var_emissions_net.value
 
         # Min Emissions
         self.__optimize_emissions_minC()
         emissions_min = self.model.var_emissions_net.value
-        self.results[0] = self.__write_results()
 
         # Emission limit
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
-        for pareto_point in range(1, pareto_points - 1):
+        for pareto_point in range(0, pareto_points):
+            global_variables.pareto_point += 1
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
@@ -347,22 +330,18 @@ class EnergyHub:
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
                 self.solver.add_constraint(self.model.const_emission_limit)
             self.__optimize_cost()
-            self.results[pareto_point] = self.__write_results()
 
     def __optimize_monte_carlo(self, objective):
         """
         Optimizes multiple runs with monte carlo
         """
-        # Define results list
-        self.results = [None] * self.configuration.optimization.monte_carlo.N
-
         for run in range(0, self.configuration.optimization.monte_carlo.N):
+            global_variables.monte_carlo_run += 1
             self.__monte_carlo_set_cost_parameters()
             if run == 0:
                 self.__optimize(objective)
             else:
                 self.__call_solver()
-            self.results[run] = self.__write_results()
 
     def __call_solver(self):
         """
@@ -378,6 +357,7 @@ class EnergyHub:
             self.solver.set_objective(self.model.objective)
         self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
+        self.results.add_optimization_result(self)
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
@@ -508,7 +488,7 @@ class EnergyHub:
 
         for t in set_t:
             # Update parameter
-            b_node.para_import_price = import_prices[t-1] * sd_random
+            b_node.para_import_price[t, car] = import_prices[t-1] * sd_random
 
             # Remove constraint (from persistent solver and from model)
             self.solver.remove_constraint(model.const_node_cost)
@@ -562,7 +542,7 @@ class EnergyHub:
 
         for t in set_t:
             # Update parameter
-            b_node.para_export_price = export_prices[t - 1] * sd_random
+            b_node.para_export_price[t, car] = export_prices[t - 1] * sd_random
 
             # Remove constraint (from persistent solver and from model)
             self.solver.remove_constraint(model.const_node_cost)

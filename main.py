@@ -123,16 +123,3 @@ configuration.optimization.monte_carlo.on = 1
 # # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
-
-i = 0
-for result in results:
-    result.write_excel(r'.\userData\monte_carlo' + str(i))
-    i += 1
-#
-# configuration = ModelConfiguration()
-# configuration.optimization.timestaging = 4
-# # # Read data
-# energyhub = EnergyHub(data, configuration)
-# energyhub.quick_solve_model()
-# results = energyhub.write_results()
-# results.write_excel(r'.\userData\test_reduced')

@@ -25,11 +25,13 @@ class ModelConfiguration:
     | monte_carlo.N      | Number of Monte Carlo simulations            |                                             | 100     |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'Networks', 'ImportPrices', | all     |
-    |                    |                                              | 'ExportPrices'                              |         |
+    | monte_carlo.on_what| Warning: Import/export prices                | 'ExportPrices'                              | all     |
+    |                    | can take a long time.                        |                                             |         |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.save   | What information is saved from each          | 'basic', 'full'                             |         |
+    | monte_carlo.save   | What information is saved from each          | 'minimal', 'basic', 'full'                  |         |
     |                    | monte carlo run                              |                                             |         |
-    |                    | basic: saves only technology/network sizes,  |                                             |         |
+    |                    | minimal: saves only emissions and costs      |                                             |         |
+    |                    | basic: additionally technology/network sizes |                                             |         |
     |                    | costs and emissions as individual excel      |                                             |         |
     |                    | all: saves full information in excel         |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
@@ -138,15 +140,13 @@ class ModelConfiguration:
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
+        self.optimization.save_detail = 'full'
         self.optimization.monte_carlo = SimpleNamespace()
         self.optimization.monte_carlo.on = 0
         self.optimization.monte_carlo.sd = 0.2
-        self.optimization.monte_carlo.N = 2
+        self.optimization.monte_carlo.N = 4
         self.optimization.monte_carlo.on_what = ['Technologies',
-                                                'Networks',
-                                                'ImportPrices',
-                                                'ExportPrices']
-        self.optimization.monte_carlo.save = 'basic'
+                                                'Networks']
         self.optimization.pareto_points = 5
         self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0

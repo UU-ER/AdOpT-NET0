@@ -5,9 +5,104 @@ import numpy as np
 
 class ResultsHandle:
     """
-    Class to handle optimization results
+    Class to handle optimization results from all runs
     """
-    def __init__(self):
+    def __init__(self, configuration):
+        self.pareto = 0
+        self.monte_carlo = 0
+        self.timestaging = 0
+        self.save_detail = configuration.optimization.save_detail
+
+        self.summary = SimpleNamespace()
+        self.summary.economics = pd.DataFrame(columns=[
+            'Objective',
+            'Pareto_Point',
+            'Monte_Carlo_Run',
+            'Time_stage',
+            'Total_Cost',
+            'Emission_Cost',
+            'Technology_Cost',
+            'Network_Cost',
+            'Import_Cost',
+            'Export_Revenue'
+            ])
+
+        self.summary.emissions = pd.DataFrame(columns=[
+            'Objective',
+            'Pareto_Point',
+            'Monte_Carlo_Run',
+            'Time_stage',
+            'Net',
+            'Positive',
+            'Negative',
+            'Net_From_Technologies',
+            'Net_From_Networks',
+            'Net_From_Carriers'
+            ])
+
+        self.detailed_results = []
+
+    def add_optimization_result(self, energyhub):
+        """
+        Adds an optimization result to the ResultHandle
+        :param energyhub:
+        :return:
+        """
+        # Optimization info
+        optimization_result = OptimizationResults(energyhub, self.save_detail)
+        objective = energyhub.configuration.optimization.objective
+        pareto_point = global_variables.pareto_point
+        monte_carlo_run = global_variables.monte_carlo_run
+        time_stage = global_variables.averaged_data_specs.stage
+
+        # Economics
+        economics = optimization_result.economics
+        economics['Objective'] = objective
+        economics['Pareto_Point'] = pareto_point
+        economics['Monte_Carlo_Run'] = monte_carlo_run
+        economics['Time_stage'] = time_stage
+        self.summary.economics = self.summary.economics.append(economics)
+
+        # Emissions
+        emissions = optimization_result.emissions
+        emissions['Objective'] = objective
+        emissions['Pareto_Point'] = pareto_point
+        emissions['Monte_Carlo_Run'] = monte_carlo_run
+        emissions['Time_stage'] = time_stage
+        self.summary.emissions = self.summary.emissions.append(emissions)
+
+        self.detailed_results.append(optimization_result)
+
+    def write_excel(self, path):
+        """
+        Writes results to excel
+        :param path: save path
+        :return:
+        """
+        file_name = path + '.xlsx'
+        with pd.ExcelWriter(file_name) as writer:
+            self.summary.economics.to_excel(writer, sheet_name='Economics')
+            self.summary.emissions.to_excel(writer, sheet_name='Emissions')
+
+        i = 1
+        if not self.save_detail == 'minimal':
+            for result in self.detailed_results:
+                result.write_excel(path + '_detailed_' + str(i))
+                i += 1
+
+
+class OptimizationResults:
+    """
+    Class to handle optimization results from a single run
+    """
+    def __init__(self, energyhub, detail = 'full'):
+        """
+        Reads results to ResultHandle for viewing or export
+
+        :param EnergyHub energyhub: instance the EnergyHub Class
+        :param str detail: 'full', or 'basic', basic excludes energy balance, technology and network operation
+        :return: self
+        """
         self.economics = pd.DataFrame(columns=['Total_Cost',
                                                'Emission_Cost',
                                                'Technology_Cost',
@@ -43,14 +138,10 @@ class ResultsHandle:
         self.detailed_results.nodes = {}
         self.detailed_results.networks = {}
 
-    def read_results(self, energyhub, detail = 'full'):
-        """
-        Reads results to ResultHandle for viewing or export
+        if energyhub.solution.solver.termination_condition == 'optimal':
+            self.read_results(energyhub, detail)
 
-        :param EnergyHub energyhub: instance the EnergyHub Class
-        :param str detail: 'full', or 'basic', basic excludes energy balance, technology and network operation
-        :return: self
-        """
+    def read_results(self, energyhub, detail):
         model = energyhub.model
 
         # Economics

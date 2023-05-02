@@ -13,7 +13,7 @@ data frames:
 
 .. testcode::
 
-    results = energyhub.write_results()
+    results = energyhub.quick_solve()
 
 To write to a respective excel file:
 
