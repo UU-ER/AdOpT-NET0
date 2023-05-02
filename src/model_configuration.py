@@ -141,6 +141,7 @@ class ModelConfiguration:
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
         self.optimization.save_detail = 'full'
+
         self.optimization.monte_carlo = SimpleNamespace()
         self.optimization.monte_carlo.on = 0
         self.optimization.monte_carlo.sd = 0.2
@@ -148,9 +149,12 @@ class ModelConfiguration:
         self.optimization.monte_carlo.on_what = ['Technologies',
                                                 'Networks']
         self.optimization.pareto_points = 5
+
         self.optimization.timestaging = 0
-        # self.optimization.tecstaging = 0
+
         self.optimization.typicaldays = 0
+
+        # self.optimization.tecstaging = 0
 
         self.modelconstruction = SimpleNamespace()
 

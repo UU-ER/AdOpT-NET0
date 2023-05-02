@@ -582,7 +582,7 @@ class DataHandle_AveragedData(DataHandle):
                 self.technology_data[node][technology + '_existing'] = comp.Technology(technology)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
-                if self.technology_data[node][technology].technology_model == 'RES':
+                if self.technology_data[node][technology + '_existing'].technology_model == 'RES':
                     # Fit performance based on full resolution and average capacity factor
                     self.technology_data[node][technology + '_existing'].fit_technology_performance(data_full_resolution.node_data[node])
                     cap_factor = self.technology_data[node][technology + '_existing'].fitted_performance.coefficients['capfactor']

@@ -639,7 +639,7 @@ class EnergyHub:
                 b_netw_avg = m_avg.network_block[netw]
                 def size_constraints_netw_init(const, node_from, node_to):
                     return b_netw_full.arc_block[node_from, node_to].var_size >= \
-                           b_netw_avg.arc_block[node_to, node_from].var_size.value
+                           b_netw_avg.arc_block[node_from, node_to].var_size.value
                 block.size_constraints_netw = Constraint(b_netw_full.set_arcs_unique, rule=size_constraints_netw_init)
             m_full.size_constraints_netw = Block(m_full.set_networks, rule=size_constraint_block_netw_init)
 

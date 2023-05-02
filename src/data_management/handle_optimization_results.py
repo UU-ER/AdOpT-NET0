@@ -53,7 +53,10 @@ class ResultsHandle:
         objective = energyhub.configuration.optimization.objective
         pareto_point = global_variables.pareto_point
         monte_carlo_run = global_variables.monte_carlo_run
-        time_stage = global_variables.averaged_data_specs.stage
+        if self.timestaging:
+            time_stage = global_variables.averaged_data_specs.stage +1
+        else:
+            time_stage = 0
 
         # Economics
         economics = optimization_result.economics

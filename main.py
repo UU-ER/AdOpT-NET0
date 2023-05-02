@@ -6,72 +6,18 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 import numpy as np
 
-
-#
-# # Save Data File to file
-# data_save_path = r'.\user_data\data_handle_test'
-# #
-# # # TOPOLOGY
-# topology = dm.SystemTopology()
-# topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
-# topology.define_carriers(['electricity'])
-# topology.define_nodes(['onshore'])
-# topology.define_new_technologies('onshore', ['Storage_Battery', 'Photovoltaic', 'WindTurbine_Onshore_1500'])
-#
-# # Initialize instance of DataHandle
-# data = dm.DataHandle(topology)
-#
-# # CLIMATE DATA
-# from_file = 1
-# if from_file == 1:
-#     data.read_climate_data_from_file('onshore', r'.\data\climate_data_onshore.txt')
-# else:
-#     lat = 52
-#     lon = 5.16
-#     data.read_climate_data_from_api('onshore', lon, lat,save_path='.\data\climate_data_onshore.txt')
-#
-# # DEMAND
-# electricity_demand = np.ones(len(topology.timesteps)) * 1
-# data.read_demand_data('onshore', 'electricity', electricity_demand)
-#
-# data.read_technology_data()
-# data.read_network_data()
-#
-# # SAVING/LOADING DATA FILE
-# configuration = ModelConfiguration()
-# configuration.optimization.monte_carlo.on = 1
-#
-# # # Read data
-# energyhub = EnergyHub(data, configuration)
-# energyhub.quick_solve()
-#
-# i = 0
-# for result in energyhub.results:
-#     result.write_excel(r'.\userData\CaseStudyNorthSea' + str(i))
-#     i += 1
-
-
-
-
-
-
-
-
-
-
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
-#
-# # TOPOLOGY
+
+# TOPOLOGY
 topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
 topology.define_nodes(['onshore', 'offshore'])
 topology.define_new_technologies('onshore', ['Storage_Battery'])
 topology.define_new_technologies('offshore', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
-# topology.define_carriers(['electricity'])
 
-# configuration.optimization.timestaging = 1
+topology.define_existing_technologies('onshore', {'Storage_Battery': 100})
 
 
 distance = dm.create_empty_network_matrix(topology.nodes)
@@ -118,8 +64,8 @@ data.read_network_data()
 
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
-configuration.optimization.monte_carlo.on = 1
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
+results.write_excel(r'userData/test')
