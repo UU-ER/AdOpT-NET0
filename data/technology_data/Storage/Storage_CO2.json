@@ -38,5 +38,13 @@
       "discharge_max": 1
     }
   },
-  "Units": []
+  "Units": {
+    "size": "tonne",
+    "input_carrier": {
+      "gas": "tonne/hr"
+    },
+    "output_carrier": {
+      "gas": "tonne/hr"
+    }
+  }
 }
