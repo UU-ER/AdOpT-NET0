@@ -12,12 +12,12 @@ def perform_disjunct_relaxation(component):
     :param component: component
     :return: component
     """
-    print('Big-M Transformation...')
+    print('\t\tBig-M Transformation...')
     start = time.time()
     xfrm = TransformationFactory('gdp.bigm')
     xfrm.apply_to(component)
     global_variables.big_m_transformation_required = 0
-    print('Big-M Transformation completed in ' + str(time.time() - start) + ' s')
+    print('\t\tBig-M Transformation completed in ' + str(round(time.time() - start)) + ' s')
     return component
 
 def annualize(r, t):
