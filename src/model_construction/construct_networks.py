@@ -159,40 +159,37 @@ def define_capex_parameters(b_netw, netw_data, energyhub):
         unit_size = u.MW
 
     # CHECK FOR GLOBAL ECONOMIC OPTIONS
-    if not configuration.economic.global_discountrate == -1:
-        discount_rate = configuration.economic.global_discountrate
-    else:
-        discount_rate = economics.discount_rate
+    discount_rate = mc.set_discount_rate(configuration, economics)
 
     # CAPEX
     annualization_factor = mc.annualize(discount_rate, economics.lifetime)
 
     if economics.capex_model == 1:
-        b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
+        b_netw.para_capex_gamma1 = Param(domain=Reals,
                                          initialize=economics.capex_data['gamma1'] * annualization_factor,
                                          units=u.EUR / unit_size)
-        b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
+        b_netw.para_capex_gamma2 = Param(domain=Reals,
                                          initialize=economics.capex_data['gamma2'] * annualization_factor,
                                          units=u.EUR)
     elif economics.capex_model == 2:
-        b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
+        b_netw.para_capex_gamma1 = Param(domain=Reals,
                                          initialize=economics.capex_data['gamma1'] * annualization_factor,
                                          units=u.EUR / unit_size / u.km)
-        b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
+        b_netw.para_capex_gamma2 = Param(domain=Reals,
                                          initialize=economics.capex_data['gamma2'] * annualization_factor,
                                          units=u.EUR)
     if economics.capex_model == 3:
-        b_netw.para_CAPEX_gamma1 = Param(domain=Reals,
+        b_netw.para_capex_gamma1 = Param(domain=Reals,
                                          initialize=economics.capex_data['gamma1'] * annualization_factor,
                                          units=u.EUR / unit_size / u.km)
-        b_netw.para_CAPEX_gamma2 = Param(domain=Reals,
+        b_netw.para_capex_gamma2 = Param(domain=Reals,
                                          initialize=economics.capex_data['gamma2'] * annualization_factor,
                                          units=u.EUR / unit_size)
-        b_netw.para_CAPEX_gamma3 = Param(domain=Reals,
+        b_netw.para_capex_gamma3 = Param(domain=Reals,
                                          initialize=economics.capex_data['gamma3'] * annualization_factor,
                                          units=u.EUR)
 
-    b_netw.var_CAPEX = Var(units=u.EUR)
+    b_netw.var_capex = Var(units=u.EUR)
 
     return b_netw
 
@@ -212,13 +209,13 @@ def define_opex_parameters(b_netw, netw_data, set_t):
     existing = netw_data.existing
     size_is_int = netw_data.size_is_int
 
-    b_netw.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
+    b_netw.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable,
                                       units=u.EUR / u.MWh)
-    b_netw.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
+    b_netw.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
                                    units=u.EUR / u.EUR)
 
-    b_netw.var_OPEX_variable = Var(set_t, units=u.EUR)
-    b_netw.var_OPEX_fixed = Var(units=u.EUR)
+    b_netw.var_opex_variable = Var(set_t, units=u.EUR)
+    b_netw.var_opex_fixed = Var(units=u.EUR)
     if existing:
         if size_is_int:
             unit_size = u.dimensionless
@@ -239,10 +236,8 @@ def define_emission_vars(b_netw, netw_data, set_t):
     """
     performance_data = netw_data.performance_data
 
-    b_netw.para_loss2emissions = Param(domain=NonNegativeReals, initialize=performance_data['loss2emissions'],
-                                       units=u.t / u.dimensionless)
-    b_netw.para_emissionfactor = Param(domain=NonNegativeReals, initialize=performance_data['emissionfactor'],
-                                       units=u.t / u.MWh)
+    b_netw.para_loss2emissions = performance_data['loss2emissions']
+    b_netw.para_emissionfactor = performance_data['emissionfactor']
 
     b_netw.var_netw_emissions_pos = Var(set_t, units=u.t)
 
@@ -265,13 +260,11 @@ def define_network_characteristics(b_netw, netw_data):
     b_netw.set_netw_carrier = Set(initialize=[performance_data['carrier']])
 
     # Network losses (in % per km and flow)
-    b_netw.para_loss_factor = Param(domain=Reals, initialize=performance_data['loss'],
-                                    units=u.dimensionless)
+    b_netw.para_loss_factor = performance_data['loss']
 
     # Minimal transport requirements
-    b_netw.para_min_transport = Param(domain=NonNegativeReals,
-                                      initialize=performance_data['min_transport'],
-                                      units=u.dimensionless)
+    b_netw.para_min_transport = performance_data['min_transport']
+
     return b_netw
 
 def define_inflow_vars(b_netw, energyhub):
@@ -301,7 +294,9 @@ def define_size_arc(b_arc, b_netw, netw_data, node_from, node_to):
     existing = netw_data.existing
     decommission = netw_data.decommission
     size_is_int = netw_data.size_is_int
+    distance = netw_data.distance
 
+    b_arc.distance = distance.at[node_from, node_to]
 
     if size_is_int:
         size_domain = NonNegativeIntegers
@@ -335,40 +330,39 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
     economics = netw_data.economics
     existing = netw_data.existing
     decommission = netw_data.decommission
-    distance = netw_data.distance
 
     # CAPEX auxilliary (used to calculate theoretical CAPEX)
     # For new technologies, this is equal to actual CAPEX
     # For existing technologies it is used to calculate fixed OPEX
-    b_arc.var_CAPEX_aux = Var(units=u.EUR)
+    b_arc.var_capex_aux = Var(units=u.EUR)
 
     def init_capex(const):
         if economics.capex_model == 1:
-            return b_arc.var_CAPEX_aux == b_arc.var_size * \
-                   b_netw.para_CAPEX_gamma1 + b_netw.para_CAPEX_gamma2
+            return b_arc.var_capex_aux == b_arc.var_size * \
+                   b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
         elif economics.capex_model == 2:
-            return b_arc.var_CAPEX_aux == b_arc.var_size * \
-                   distance.at[node_from, node_to] * b_netw.para_CAPEX_gamma1 + b_netw.para_CAPEX_gamma2
+            return b_arc.var_capex_aux == b_arc.var_size * \
+                   b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
         elif economics.capex_model == 3:
-            return b_arc.var_CAPEX_aux == b_arc.var_size * \
-                   distance.at[node_from, node_to] * b_netw.para_CAPEX_gamma1 + \
-                   b_arc.var_size * b_netw.para_CAPEX_gamma2 + \
-                   b_netw.para_CAPEX_gamma3
+            return b_arc.var_capex_aux == b_arc.var_size * \
+                   b_arc.distance * b_netw.para_capex_gamma1 + \
+                   b_arc.var_size * b_netw.para_capex_gamma2 + \
+                   b_netw.para_capex_gamma3
 
     b_arc.const_capex_aux = Constraint(rule=init_capex)
 
     # CAPEX
     if existing:
         if not decommission:
-            b_arc.var_CAPEX = Param(domain=NonNegativeReals, initialize=0, units=u.EUR)
+            b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0, units=u.EUR)
         else:
-            b_arc.var_CAPEX = Var(units=u.EUR)
+            b_arc.var_capex = Var(units=u.EUR)
             b_arc.const_capex = Constraint(
-                expr=b_arc.var_CAPEX == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size) \
+                expr=b_arc.var_capex == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size) \
                      * b_netw.para_decommissioning_cost)
     else:
-        b_arc.var_CAPEX = Var(units=u.EUR)
-        b_arc.const_CAPEX = Constraint(expr=b_arc.var_CAPEX == b_arc.var_CAPEX_aux)
+        b_arc.var_capex = Var(units=u.EUR)
+        b_arc.const_capex = Constraint(expr=b_arc.var_capex == b_arc.var_capex_aux)
 
     return b_arc
 
@@ -386,7 +380,7 @@ def define_flow(b_arc, b_netw, set_t):
 
     # Losses
     def init_flowlosses(const, t):
-        return b_arc.var_losses[t] == b_arc.var_flow[t] * b_netw.para_loss_factor
+        return b_arc.var_losses[t] == b_arc.var_flow[t] * b_netw.para_loss_factor * b_arc.distance
     b_arc.const_flowlosses = Constraint(set_t, rule=init_flowlosses)
 
     # Flow-size-constraint
@@ -400,12 +394,10 @@ def define_flow(b_arc, b_netw, set_t):
     b_arc.const_flow_size_low = Constraint(set_t, rule=init_size_const_low)
     return b_arc
 
-def define_energyconsumption_arc(b_arc, b_netw, netw_data, set_t, node_from, node_to):
+def define_energyconsumption_arc(b_arc, b_netw, set_t):
     """
     Defines the energyconsumption for an arc
     """
-    distance = netw_data.distance
-
     b_arc.var_consumption_send = Var(set_t, b_netw.set_consumed_carriers,
                                      domain=NonNegativeReals,
                                      bounds=(b_netw.para_size_min, b_netw.para_size_max))
@@ -418,7 +410,7 @@ def define_energyconsumption_arc(b_arc, b_netw, netw_data, set_t, node_from, nod
         return b_arc.var_consumption_send[t, car] == \
                b_arc.var_flow[t] * b_netw.para_send_kflow[car] + \
                b_arc.var_flow[t] * b_netw.para_send_kflowDistance[car] * \
-               distance.at[node_from, node_to]
+               b_arc.distance
 
     b_arc.const_consumption_send = Constraint(set_t, b_netw.set_consumed_carriers,
                                               rule=init_consumption_send)
@@ -428,7 +420,7 @@ def define_energyconsumption_arc(b_arc, b_netw, netw_data, set_t, node_from, nod
         return b_arc.var_consumption_receive[t, car] == \
                b_arc.var_flow[t] * b_netw.para_receive_kflow[car] + \
                b_arc.var_flow[t] * b_netw.para_receive_kflowDistance[car] * \
-               distance.at[node_from, node_to]
+               b_arc.distance
 
     b_arc.const_consumption_receive = Constraint(set_t, b_netw.set_consumed_carriers,
                                                  rule=init_consumption_receive)
@@ -439,12 +431,12 @@ def define_opex_arc(b_arc, b_netw, set_t):
     """
     Defines OPEX per Arc
     """
-    b_arc.var_OPEX_variable = Var(set_t, units=u.EUR)
+    b_arc.var_opex_variable = Var(set_t, units=u.EUR)
 
-    def init_OPEX_variable(const, t):
-        return b_arc.var_OPEX_variable[t] == b_arc.var_flow[t] * \
-               b_netw.para_OPEX_variable
-    b_arc.const_OPEX_variable = Constraint(set_t, rule=init_OPEX_variable)
+    def init_opex_variable(const, t):
+        return b_arc.var_opex_variable[t] == b_arc.var_flow[t] * \
+               b_netw.para_opex_variable
+    b_arc.const_opex_variable = Constraint(set_t, rule=init_opex_variable)
     return b_arc
 
 def define_bidirectional_constraints(b_netw, netw_data, set_t):
@@ -500,9 +492,9 @@ def define_capex_total(b_netw, bidirectional):
         arc_set = b_netw.set_arcs
 
     def init_capex(const):
-        return sum(b_netw.arc_block[arc].var_CAPEX for arc in arc_set) == \
-               b_netw.var_CAPEX
-    b_netw.const_CAPEX = Constraint(rule=init_capex)
+        return sum(b_netw.arc_block[arc].var_capex for arc in arc_set) == \
+               b_netw.var_capex
+    b_netw.const_capex = Constraint(rule=init_capex)
 
     return b_netw
 
@@ -516,14 +508,14 @@ def define_opex_total(b_netw, bidirectional, set_t):
         arc_set = b_netw.set_arcs
 
     def init_opex_fixed(const):
-        return b_netw.para_OPEX_fixed * sum(b_netw.arc_block[arc].var_CAPEX_aux for arc in arc_set) == \
-               b_netw.var_OPEX_fixed
-    b_netw.const_OPEX_fixed = Constraint(rule=init_opex_fixed)
+        return b_netw.para_opex_fixed * sum(b_netw.arc_block[arc].var_capex_aux for arc in arc_set) == \
+               b_netw.var_opex_fixed
+    b_netw.const_opex_fixed = Constraint(rule=init_opex_fixed)
 
     def init_opex_variable(const, t):
-        return sum(b_netw.arc_block[arc].var_OPEX_variable[t] for arc in b_netw.set_arcs) == \
-               b_netw.var_OPEX_variable[t]
-    b_netw.const_OPEX_var = Constraint(set_t, rule=init_opex_variable)
+        return sum(b_netw.arc_block[arc].var_opex_variable[t] for arc in b_netw.set_arcs) == \
+               b_netw.var_opex_variable[t]
+    b_netw.const_opex_var = Constraint(set_t, rule=init_opex_variable)
     return b_netw
 
 def define_inflow_constraints(b_netw, energyhub, set_t):
@@ -614,9 +606,9 @@ def add_networks(energyhub):
 
         **Variable declarations:**
 
-        - CAPEX: ``var_CAPEX``
-        - Variable OPEX: ``var_OPEX_variable``
-        - Fixed OPEX: ``var_OPEX_fixed``
+        - CAPEX: ``var_capex``
+        - Variable OPEX: ``var_opex_variable``
+        - Fixed OPEX: ``var_opex_fixed``
         - Furthermore for each node:
 
             * Inflow to node (as a sum of all inflows from other nodes): ``var_inflow``
@@ -721,8 +713,11 @@ def add_networks(energyhub):
     # COLLECT OBJECTS FROM ENERGYHUB
     data = energyhub.data
     model = energyhub.model
+    print('_' * 60)
+    print('--- Adding Networks... ---')
 
     def init_network(b_netw, netw):
+        print('\t - Adding Network ' + netw)
 
         # NETWORK DATA
         netw_data = data.network_data[netw]
@@ -792,7 +787,7 @@ def add_networks(energyhub):
 
             # CONSUMPTION AT NODE
             if energy_consumption:
-                b_arc = define_energyconsumption_arc(b_arc, b_netw, netw_data, set_t, node_from, node_to)
+                b_arc = define_energyconsumption_arc(b_arc, b_netw, set_t)
 
         b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_block_init)
 

@@ -135,8 +135,8 @@ def create_data_emissionbalance1():
     topology.define_new_technologies('onshore', ['Furnace_NG'])
 
     distance = dm.create_empty_network_matrix(topology.nodes)
-    distance.at['onshore', 'offshore'] = 100
-    distance.at['offshore', 'onshore'] = 100
+    distance.at['onshore', 'offshore'] = 1
+    distance.at['offshore', 'onshore'] = 1
 
     connection = dm.create_empty_network_matrix(topology.nodes)
     connection.at['onshore', 'offshore'] = 1

@@ -113,6 +113,9 @@ def add_nodes(energyhub):
     model = energyhub.model
 
     def init_node_block(b_node, nodename):
+        print('_' * 60)
+        print('--- Adding Node ' + nodename + '... ---')
+
         # SETS: Get technologies for each node and make it a set for the block
         carriers = determine_carriers_at_node(energyhub, nodename)
         network_energy_consumption = determine_network_energy_consumption(energyhub)

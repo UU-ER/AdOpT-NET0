@@ -65,7 +65,7 @@ class DataHandle:
             raise Exception('Other APIs are not available')
 
         # Save
-        if not save_path==0:
+        if not save_path == 0:
             dm.save_object(data, save_path)
 
         # Match with timesteps
@@ -306,7 +306,6 @@ class DataHandle:
             self.network_data[network + '_existing'].connection = self.topology.networks_existing[network]['connection']
             self.network_data[network + '_existing'].distance = self.topology.networks_existing[network]['distance']
             self.network_data[network + '_existing'].size_initial = self.topology.networks_existing[network]['size']
-            
 
     def pprint(self):
         """
@@ -342,16 +341,15 @@ class DataHandle:
             for from_node in connection:
                 for to_node in connection[from_node].index:
                     if connection.at[from_node, to_node] == 1:
-                        print('\t\t\t' + from_node  + ' - ' +  to_node)
+                        print('\t\t\t' + from_node + ' - ' + to_node)
         for netw in self.topology.networks_existing:
             print('\t -----------------------------------------------------')
-            print('\t'+ netw)
+            print('\t' + netw)
             connection = self.topology.networks_existing[netw]['connection']
             for from_node in connection:
                 for to_node in connection[from_node].index:
                     if connection.at[from_node, to_node] == 1:
-                        print('\t\t\t' + from_node  + ' - ' +  to_node)
-
+                        print('\t\t\t' + from_node + ' - ' + to_node)
 
     def save(self, path):
         """
@@ -363,7 +361,6 @@ class DataHandle:
         :return: None
         """
         dm.save_object(self, path)
-
 
 
 class ClusteredDataHandle(DataHandle):
@@ -456,16 +453,16 @@ class ClusteredDataHandle(DataHandle):
         node_data = self.node_data
         for node in node_data:
             for series1 in node_data[node].data:
-                    for series2 in node_data[node].data[series1]:
-                        series_names = dm.define_multiindex([
-                            [node] * nr_time_intervals_per_day,
-                            [series1] * nr_time_intervals_per_day,
-                            [series2] * nr_time_intervals_per_day,
-                            list(range(1, nr_time_intervals_per_day + 1))
-                        ])
-                        to_add = dm.reshape_df(node_data[node].data[series1][series2],
-                                            series_names, nr_time_intervals_per_day)
-                        full_resolution = pd.concat([full_resolution, to_add], axis=1)
+                for series2 in node_data[node].data[series1]:
+                    series_names = dm.define_multiindex([
+                        [node] * nr_time_intervals_per_day,
+                        [series1] * nr_time_intervals_per_day,
+                        [series2] * nr_time_intervals_per_day,
+                        list(range(1, nr_time_intervals_per_day + 1))
+                    ])
+                    to_add = dm.reshape_df(node_data[node].data[series1][series2],
+                                           series_names, nr_time_intervals_per_day)
+                    full_resolution = pd.concat([full_resolution, to_add], axis=1)
         return full_resolution
 
 
@@ -542,14 +539,12 @@ class DataHandle_AveragedData(DataHandle):
             start_interval = min(self.topology.timesteps_clustered)
             self.topology.timesteps_clustered = range(start_interval, int((end_interval+1) / nr_timesteps_averaged))
 
-
             for node in node_data:
                 for series1 in node_data[node].data:
                     self.node_data[node].data_clustered[series1] = pd.DataFrame(self.topology.timesteps_clustered)
                     for series2 in node_data[node].data[series1]:
                         self.node_data[node].data_clustered[series1][series2] = \
                             dm.average_series(node_data[node].data_clustered[series1][series2], nr_timesteps_averaged)
-
 
     def __read_technology_data(self, data_full_resolution, nr_timesteps_averaged):
         """
@@ -565,7 +560,8 @@ class DataHandle_AveragedData(DataHandle):
                 self.technology_data[node][technology] = comp.Technology(technology)
                 if self.technology_data[node][technology].technology_model == 'RES':
                     # Fit performance based on full resolution and average capacity factor
-                    self.technology_data[node][technology].fit_technology_performance(data_full_resolution.node_data[node])
+                    self.technology_data[node][technology].fit_technology_performance(
+                        data_full_resolution.node_data[node])
                     cap_factor = self.technology_data[node][technology].fitted_performance.coefficients['capfactor']
                     new_cap_factor = dm.average_series(cap_factor, nr_timesteps_averaged)
                     self.technology_data[node][technology].fitted_performance.coefficients['capfactor'] = \
@@ -586,7 +582,7 @@ class DataHandle_AveragedData(DataHandle):
                 self.technology_data[node][technology + '_existing'] = comp.Technology(technology)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
-                if self.technology_data[node][technology].technology_model == 'RES':
+                if self.technology_data[node][technology + '_existing'].technology_model == 'RES':
                     # Fit performance based on full resolution and average capacity factor
                     self.technology_data[node][technology + '_existing'].fit_technology_performance(data_full_resolution.node_data[node])
                     cap_factor = self.technology_data[node][technology + '_existing'].fitted_performance.coefficients['capfactor']

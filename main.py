@@ -8,17 +8,16 @@ import numpy as np
 
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
-#
-# # TOPOLOGY
+
+# TOPOLOGY
 topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
 topology.define_nodes(['onshore', 'offshore'])
 topology.define_new_technologies('onshore', ['Storage_Battery'])
 topology.define_new_technologies('offshore', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
-# topology.define_carriers(['electricity'])
 
-# configuration.optimization.timestaging = 1
+topology.define_existing_technologies('onshore', {'Storage_Battery': 100})
 
 
 distance = dm.create_empty_network_matrix(topology.nodes)
@@ -65,18 +64,8 @@ data.read_network_data()
 
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
-configuration.optimization.typicaldays = 0
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
-energyhub.quick_solve_model()
-results = energyhub.write_results()
-results.write_excel(r'.\userData\test_full')
-
-configuration = ModelConfiguration()
-configuration.optimization.timestaging = 4
-# # Read data
-energyhub = EnergyHub(data, configuration)
-energyhub.quick_solve_model()
-results = energyhub.write_results()
-results.write_excel(r'.\userData\test_reduced')
+results = energyhub.quick_solve()
+results.write_excel(r'userData/test')
