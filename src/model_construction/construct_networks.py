@@ -319,7 +319,7 @@ def define_size_arc(b_arc, b_netw, netw_data, node_from, node_to):
                              bounds=(b_netw.para_size_min, b_netw.para_size_max))
     return b_arc
 
-def define_capex_arc(b_arc, b_netw, netw_data):
+def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
     """
     Defines the capex of an arc and corresponding constraints
 
@@ -777,7 +777,7 @@ def add_networks(energyhub):
             b_arc = define_size_arc(b_arc, b_netw, netw_data, node_from, node_to)
 
             # CAPEX
-            b_arc = define_capex_arc(b_arc, b_netw, netw_data)
+            b_arc = define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to)
 
             # FLOW AND LOSSES
             b_arc = define_flow(b_arc, b_netw, set_t)

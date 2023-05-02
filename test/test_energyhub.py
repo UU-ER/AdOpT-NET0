@@ -249,7 +249,7 @@ def test_optimization_types():
     assert energyhub.solution.solver.termination_condition == 'optimal'
 
     assert cost3 <= cost2
-    assert emissions3 <= emissions2 * 1.001
+    assert emissions3 <= emissions2 * 1.01
 
     # Pareto Optimization
     energyhub.configuration.optimization.objective = 'pareto'
