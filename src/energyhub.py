@@ -225,8 +225,11 @@ class EnergyHub:
         """
         Exports results to an instance of ResultsHandle to be further exported or viewed
         """
-        results = dm.ResultsHandle()
-        results.read_results(self)
+        if self.solution.solver.termination_condition == 'optimal':
+            results = dm.ResultsHandle()
+            results.read_results(self)
+        else:
+            results = None
         return results
 
     def __define_solver_settings(self):
