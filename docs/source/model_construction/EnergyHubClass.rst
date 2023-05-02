@@ -5,5 +5,4 @@ Energy Hub Class
 
 .. automodule:: src.energyhub
     :members:
-    :exclude-members: EnergyHubTwoStageTimeAverage
-
+    :exclude-members: calculate_occurance_per_hour

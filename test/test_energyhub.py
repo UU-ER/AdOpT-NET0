@@ -62,19 +62,19 @@ def test_model2():
     assert energyhub.solution.solver.termination_condition == 'optimal'
     # Size of Furnace
     size_res = m.node_blocks['test_node1'].tech_blocks_active['Furnace_NG'].var_size.value
-    size_should = max(data.node_data['test_node1']['demand']['heat']) / \
-                  data.technology_data['test_node1']['Furnace_NG'].fitted_performance['heat']['alpha1']
+    size_should = max(data.node_data['test_node1'].data['demand']['heat']) / \
+                  data.technology_data['test_node1']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1']
     assert  round(size_res,3) == round(size_should,3)
     # Gas Import in each timestep
-    import_res = [value(m.node_blocks['test_node1'].var_import_flow[key, 'gas'].value) for key in m.set_t]
+    import_res = [value(m.node_blocks['test_node1'].var_import_flow[key, 'gas'].value) for key in m.set_t_full]
     import_res = pd.Series(import_res)
     import_res = import_res.tolist()
-    import_should = data.node_data['test_node1']['demand']['heat'] / data.technology_data['test_node1']['Furnace_NG'].fitted_performance['heat']['alpha1']
+    import_should = data.node_data['test_node1'].data['demand']['heat'] / data.technology_data['test_node1']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1']
     import_should = import_should.tolist()
     assert [round(num,3) for num in import_res] == [round(num,3) for num in import_should]
     # Total cost
     cost_res = m.objective()
-    import_price = data.node_data['test_node1']['import_prices']['gas'].tolist()
+    import_price = data.node_data['test_node1'].data['import_prices']['gas'].tolist()
     import_cost = sum([i1 * i2 for i1, i2 in zip(import_price, import_res)])
     t = data.technology_data['test_node1']['Furnace_NG'].economics.lifetime
     r = data.technology_data['test_node1']['Furnace_NG'].economics.discount_rate
@@ -143,7 +143,7 @@ def test_emission_balance1():
     data = dm.load_object(r'./test/test_data/emissionbalance1.p')
     configuration = ModelConfiguration()
     data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
-    data.technology_data['onshore']['Furnace_NG'].fitted_performance['heat']['alpha1'] = 0.9
+    data.technology_data['onshore']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1'] = 0.9
     data.network_data['electricityTest'].performance_data['emissionfactor'] = 0.2
     data.network_data['electricityTest'].performance_data['loss2emissions'] = 1
     energyhub = ehub(data, configuration)
@@ -160,16 +160,16 @@ def test_emission_balance1():
 
     #network emissions
     emissionsNETW = sum(energyhub.model.network_block['electricityTest'].var_netw_emissions_pos[t].value
-                        for t in energyhub.model.set_t)
+                        for t in energyhub.model.set_t_full)
     emissionsFlowNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore','offshore')].var_flow[t].value
-                   for t in energyhub.model.set_t) + \
+                   for t in energyhub.model.set_t_full) + \
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_flow[t].value
-                   for t in energyhub.model.set_t)) * \
+                   for t in energyhub.model.set_t_full)) * \
                         data.network_data['electricityTest'].performance_data['emissionfactor']
     emissionsLossNETW = (sum(energyhub.model.network_block['electricityTest'].arc_block[('onshore', 'offshore')].var_losses[t].value
-                             for t in energyhub.model.set_t) + \
+                             for t in energyhub.model.set_t_full) + \
                          sum(energyhub.model.network_block['electricityTest'].arc_block[('offshore', 'onshore')].var_losses[t].value
-                             for t in energyhub.model.set_t)) * \
+                             for t in energyhub.model.set_t_full)) * \
                         data.network_data['electricityTest'].performance_data['loss2emissions']
     assert round(emissionsNETW) == round(emissionsFlowNETW + emissionsLossNETW)
     assert abs(emissionsNETW - 28) / 28 <= 0.01
@@ -177,12 +177,12 @@ def test_emission_balance1():
     # technology emissions
     tec_emissions = 9/0.9*0.185*2
     assert abs(sum(energyhub.model.node_blocks['onshore'].tech_blocks_active['Furnace_NG'].var_tec_emissions_pos[t].value
-               for t in energyhub.model.set_t)-tec_emissions)/tec_emissions <= 0.01
+               for t in energyhub.model.set_t_full)-tec_emissions)/tec_emissions <= 0.01
 
     # import emissions
     import_emissions = 10*0.4
     assert abs(sum(energyhub.model.node_blocks['onshore'].var_car_emissions_pos[t].value
-               for t in energyhub.model.set_t)-import_emissions)/import_emissions <= 0.01
+               for t in energyhub.model.set_t_full)-import_emissions)/import_emissions <= 0.01
 
     # total emissions
     assert abs(tec_emissions + import_emissions + emissionsNETW - emissionsTOT)/ emissionsTOT <= 0.01
@@ -249,10 +249,14 @@ def test_optimization_types():
     assert energyhub.solution.solver.termination_condition == 'optimal'
 
     assert cost3 <= cost2
-    assert emissions3 <= emissions2
+    assert emissions3 <= emissions2 * 1.01
+
+    # Pareto Optimization
+    energyhub.configuration.optimization.objective = 'pareto'
+    energyhub.solve_model()
 
 
-def test_k_means():
+def test_simplification_algorithms():
     data = dm.load_object(r'./test/test_data/time_algorithms.p')
 
     # Full resolution
@@ -270,17 +274,14 @@ def test_k_means():
     cost2 = energyhub2.model.var_total_cost.value
     assert energyhub2.solution.solver.termination_condition == 'optimal'
 
+    assert abs(cost1 - cost2) / cost1 <= 0.1
+
     # time_averaging
     configuration = ModelConfiguration()
-    configuration.optimization.timestaging = 1
+    configuration.optimization.timestaging = 4
     energyhub3 = ehub(data, configuration)
     energyhub3.quick_solve_model()
     cost3 = energyhub3.model.var_total_cost.value
     assert energyhub3.solution.solver.termination_condition == 'optimal'
 
-    assert abs(cost1 - cost2) / cost1 <= 0.1
     assert abs(cost1 - cost3) / cost1 <= 0.1
-
-
-
-

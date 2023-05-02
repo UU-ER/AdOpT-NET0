@@ -20,7 +20,7 @@ class ModelConfiguration:
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | montecarlo.N     | Number of Monte Carlo simulations            |                                             | 100     |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
-    | pareto.N         | Number of Pareto points                      |                                             | 5       |
+    | pareto_points    | Number of Pareto points                      |                                             | 5       |
     +------------------+----------------------------------------------+---------------------------------------------+---------+
     | timestaging      | Defines number of daily intervals (0 = off)  |                                             | 0       |
     |                  | :ref:`check here <time_averaging>`           |                                             |         |
@@ -64,6 +64,11 @@ class ModelConfiguration:
     +---------------+---------------------------------------------------------------------+------------------------+----------+
     | cuts          | Setting defining the aggressiveness of the global cut               | {-1, 0, 1, 2, 3}       | -1       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
+
+    List of model construction settings that can be specified:
+    +------------------+------------------------------------------------------------------------------------------------------------------+---------+---------+
+    | Name             | Definition                                                                                                       | Options | Default |
+    +------------------+------------------------------------------------------------------------------------------------------------------+---------+---------+
 
     List of energy balance settings that can be specified:
 
@@ -123,10 +128,12 @@ class ModelConfiguration:
         # self.optimization.montecarlo = SimpleNamespace()
         # self.optimization.montecarlo.range = 0.2
         # self.optimization.montecarlo.N = 100
-        # self.optimization.pareto.N = 5
+        self.optimization.pareto_points = 5
         self.optimization.timestaging = 0
         # self.optimization.tecstaging = 0
         self.optimization.typicaldays = 0
+
+        self.modelconstruction = SimpleNamespace()
 
         self.energybalance = SimpleNamespace()
         # self.energybalance.violation = 0

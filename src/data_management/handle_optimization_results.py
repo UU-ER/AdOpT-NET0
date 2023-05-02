@@ -52,20 +52,21 @@ class ResultsHandle:
         """
         model = energyhub.model
 
-        occurrence_hour = energyhub.calculate_occurance_per_hour()
-
         # Economics
         total_cost = model.var_total_cost.value
         # emission_cost = model.var_emission_cost.value
         # Todo: Add this here, if it is done
         emission_cost = 0
+        set_t = model.set_t_full
+        nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+
         tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX.value
                             for tec in model.node_blocks[node].set_tecsAtNode)
                         for node in model.set_nodes)
         tec_OPEX_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_variable[t].value *
-                                        occurrence_hour[t - 1]
+                                        nr_timesteps_averaged
                                         for tec in model.node_blocks[node].set_tecsAtNode)
-                                    for t in model.set_t)
+                                    for t in set_t)
                                 for node in model.set_nodes)
         tec_OPEX_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_OPEX_fixed.value
                                  for tec in model.node_blocks[node].set_tecsAtNode)
@@ -73,15 +74,15 @@ class ResultsHandle:
         tec_cost = tec_CAPEX + tec_OPEX_variable + tec_OPEX_fixed
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car].value *
                                   model.node_blocks[node].para_import_price[t, car].value *
-                                  occurrence_hour[t - 1]
+                                        nr_timesteps_averaged
                                   for car in model.node_blocks[node].set_carriers)
-                              for t in model.set_t)
+                              for t in set_t)
                           for node in model.set_nodes)
         export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car].value *
                                      model.node_blocks[node].para_export_price[t, car].value *
-                                     occurrence_hour[t - 1]
+                                        nr_timesteps_averaged
                                      for car in model.node_blocks[node].set_carriers)
-                                 for t in model.set_t)
+                                 for t in set_t)
                              for node in model.set_nodes)
         netw_cost = model.var_netw_cost.value
         self.economics.loc[len(self.economics.index)] = \
@@ -92,23 +93,26 @@ class ResultsHandle:
         positive_emissions = model.var_emissions_pos.value
         negative_emissions = model.var_emissions_neg.value
         from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t].value *
-                                        occurrence_hour[t - 1]
-                                        for t in model.set_t)
+                                        nr_timesteps_averaged
+                                        for t in set_t)
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes) - \
                             sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t].value *
-                                        occurrence_hour[t - 1]
-                                        for t in model.set_t)
+                                        nr_timesteps_averaged
+                                        for t in set_t)
                                     for tec in model.node_blocks[node].set_tecsAtNode)
                                 for node in model.set_nodes)
-        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t].value * occurrence_hour[t - 1]
-                                for t in model.set_t)
+        from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t].value *
+                                        nr_timesteps_averaged
+                                for t in set_t)
                             for node in model.set_nodes) - \
-                        sum(sum(model.node_blocks[node].var_car_emissions_neg[t].value * occurrence_hour[t - 1]
-                                for t in model.set_t)
+                        sum(sum(model.node_blocks[node].var_car_emissions_neg[t].value *
+                                        nr_timesteps_averaged
+                                for t in set_t)
                             for node in model.set_nodes)
-        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t].value * occurrence_hour[t - 1]
-                                for t in model.set_t)
+        from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t].value *
+                                        nr_timesteps_averaged
+                                for t in set_t)
                             for netw in model.set_networks)
         self.emissions.loc[len(self.emissions.index)] = \
             [net_emissions, positive_emissions, negative_emissions, from_technologies,
@@ -122,9 +126,8 @@ class ResultsHandle:
                 s = tec_data.var_size.value
                 capex = tec_data.var_CAPEX.value
                 opex_fix = tec_data.var_OPEX_fixed.value
-                opex_var = sum(tec_data.var_OPEX_variable[t].value *
-                               occurrence_hour[t - 1]
-                               for t in model.set_t)
+                opex_var = sum(tec_data.var_OPEX_variable[t].value
+                               for t in set_t)
                 self.technologies.loc[len(self.technologies.index)] = \
                     [node_name, tec_name, s, capex, opex_fix, opex_var]
 
@@ -137,13 +140,19 @@ class ResultsHandle:
                 toNode = arc[1]
                 s = arc_data.var_size.value
                 capex = arc_data.var_CAPEX.value
-                opex_var = sum(arc_data.var_OPEX_variable[t] *
-                               occurrence_hour[t - 1]
-                               for t in model.set_t)
+                if global_variables.clustered_data:
+                    sequence = energyhub.data.k_means_specs.full_resolution['sequence']
+                    opex_var = sum(arc_data.var_OPEX_variable[sequence[t - 1]].value
+                                   for t in set_t)
+                    total_flow = sum(arc_data.var_flow[sequence[t - 1]].value
+                                     for t in set_t)
+                else:
+                    opex_var = sum(arc_data.var_OPEX_variable[t]
+                                   for t in set_t)
+                    total_flow = sum(arc_data.var_flow[t].value
+                                     for t in set_t)
                 opex_fix = capex * netw_data.para_OPEX_fixed.value
-                total_flow = sum(arc_data.var_flow[t].value *
-                                 occurrence_hour[t - 1]
-                                 for t in model.set_t)
+
                 self.networks.loc[len(self.networks.index)] = \
                     [netw_name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow]
 
@@ -167,27 +176,27 @@ class ResultsHandle:
                     [sum(node_data.tech_blocks_active[tec].var_input[t, car].value
                          for tec in node_data.set_tecsAtNode
                          if car in node_data.tech_blocks_active[tec].set_input_carriers)
-                     for t in model.set_t]
+                     for t in set_t]
                 self.energybalance[node_name][car]['Technology_outputs'] = \
                     [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
                          for tec in node_data.set_tecsAtNode
                          if car in node_data.tech_blocks_active[tec].set_output_carriers)
-                     for t in model.set_t]
+                     for t in set_t]
                 self.energybalance[node_name][car]['Generic_production'] = \
-                    [node_data.var_generic_production[t, car].value for t in model.set_t]
+                    [node_data.var_generic_production[t, car].value for t in set_t]
                 self.energybalance[node_name][car]['Network_inflow'] = \
-                    [node_data.var_netw_inflow[t, car].value for t in model.set_t]
+                    [node_data.var_netw_inflow[t, car].value for t in set_t]
                 self.energybalance[node_name][car]['Network_outflow'] = \
-                    [node_data.var_netw_outflow[t, car].value for t in model.set_t]
+                    [node_data.var_netw_outflow[t, car].value for t in set_t]
                 if hasattr(node_data, 'var_netw_consumption'):
                     self.energybalance[node_name][car]['Network_consumption'] = \
-                        [node_data.var_netw_consumption[t, car].value for t in model.set_t]
+                        [node_data.var_netw_consumption[t, car].value for t in set_t]
                 self.energybalance[node_name][car]['Import'] = \
-                    [node_data.var_import_flow[t, car].value for t in model.set_t]
+                    [node_data.var_import_flow[t, car].value for t in set_t]
                 self.energybalance[node_name][car]['Export'] = \
-                    [node_data.var_export_flow[t, car].value for t in model.set_t]
+                    [node_data.var_export_flow[t, car].value for t in set_t]
                 self.energybalance[node_name][car]['Demand'] = \
-                    [node_data.para_demand[t, car].value for t in model.set_t]
+                    [node_data.para_demand[t, car].value for t in set_t]
 
         # Detailed results for technologies
         for node_name in model.set_nodes:
@@ -199,15 +208,15 @@ class ResultsHandle:
 
                 if technology_model == 'STOR':
                     if global_variables.clustered_data:
-                        time_set = tec_data.set_t_full
+                        time_set = model.set_t_full
                     else:
-                        time_set = model.set_t
+                        time_set = model.set_t_full
                     if tec_data.find_component('var_input'):
-                        input = tec_data.var_input_full_resolution
-                        output = tec_data.var_output_full_resolution
+                        input = tec_data.var_input
+                        output = tec_data.var_output
 
                 else:
-                    time_set = model.set_t
+                    time_set = set_t
                     if tec_data.find_component('var_input'):
                         input = tec_data.var_input
                     output = tec_data.var_output
@@ -235,14 +244,25 @@ class ResultsHandle:
                 arc_data = netw_data.arc_block[arc]
                 df = pd.DataFrame()
 
-                df['flow'] = [arc_data.var_flow[t].value for t in model.set_t]
-                df['losses'] = [arc_data.var_losses[t].value for t in model.set_t]
-                if tec_data.find_component('var_consumption_send'):
-                    for car in netw_data.set_consumed_carriers:
-                        df['consumption_send' + car] = \
-                            [arc_data.var_consumption_send[t, car].value for t in model.set_t]
-                        df['consumption_receive' + car] = \
-                            [arc_data.var_consumption_receive[t, car].value for t in model.set_t]
+                if global_variables.clustered_data:
+                    sequence = energyhub.data.k_means_specs.full_resolution['sequence']
+                    df['flow'] = [arc_data.var_flow[sequence[t - 1]].value for t in set_t]
+                    df['losses'] = [arc_data.var_losses[sequence[t - 1]].value for t in set_t]
+                    if netw_data.find_component('var_consumption_send'):
+                        for car in netw_data.set_consumed_carriers:
+                            df['consumption_send' + car] = \
+                                [arc_data.var_consumption_send[sequence[t - 1], car].value for t in set_t]
+                            df['consumption_receive' + car] = \
+                                [arc_data.var_consumption_receive[sequence[t - 1], car].value for t in set_t]
+                else:
+                    df['flow'] = [arc_data.var_flow[t].value for t in set_t]
+                    df['losses'] = [arc_data.var_losses[t].value for t in set_t]
+                    if netw_data.find_component('var_consumption_send'):
+                        for car in netw_data.set_consumed_carriers:
+                            df['consumption_send' + car] = \
+                                [arc_data.var_consumption_send[t, car].value for t in set_t]
+                            df['consumption_receive' + car] = \
+                                [arc_data.var_consumption_receive[t, car].value for t in set_t]
 
                 self.detailed_results.networks[netw_name]['_'.join(arc)] = df
 

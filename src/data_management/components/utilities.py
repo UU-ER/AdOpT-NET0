@@ -24,7 +24,6 @@ class Economics:
         self.lifetime = economics['lifetime']
         self.decommission_cost = economics['decommission_cost']
 
-
 def fit_performance_function_type1(performance_data, time_steps):
     """
     Fits performance function for input-output data for type 1
@@ -32,26 +31,28 @@ def fit_performance_function_type1(performance_data, time_steps):
     :param performance_data: performance data
     :return:
     """
-    fitting = {}
+    fit = {}
+    fit['coeff'] = {}
+    
     x = performance_data['in']
     # Fit performance
-    for c in performance_data['out']:
-        fitting[c] = dict()
-        y = performance_data['out'][c]
+    for car in performance_data['out']:
+        fit['coeff'][car] = {}
+        y = performance_data['out'][car]
         coeff = fit_linear_function(x, y)
-        fitting[c]['alpha1'] = round(coeff[0], 6)
+        fit['coeff'][car]['alpha1'] = round(coeff[0], 6)
 
     # Calculate input bounds
-    fitting['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
+    fit['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                    np.ones(shape=(time_steps))))
 
-    fitting['output_bounds'] = {}
-    for c in performance_data['out']:
+    fit['output_bounds'] = {}
+    for car in performance_data['out']:
         # Calculate output bounds
-        fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps))*fitting[c]['alpha1']))
+        fit['output_bounds'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fit['coeff'][car]['alpha1']))
 
-    return fitting
+    return fit
 
 def fit_performance_function_type2(performance_data, time_steps):
     """
@@ -60,28 +61,30 @@ def fit_performance_function_type2(performance_data, time_steps):
     :param performance_data: performance data
     :return:
     """
-    fitting = {}
+    fit = {}
+    fit['coeff'] = {}
+
     x = performance_data['in']
     x = sm.add_constant(x)
-    fitting['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
+    fit['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                   np.ones(shape=(time_steps))))
-    for c in performance_data['out']:
-        fitting[c] = dict()
-        y = performance_data['out'][c]
+    for car in performance_data['out']:
+        fit['coeff'][car] = {}
+        y = performance_data['out'][car]
         coeff = fit_linear_function(x, y)
-        fitting[c]['alpha1'] = round(coeff[1], 6)
-        fitting[c]['alpha2'] = round(coeff[0], 6)
+        fit['coeff'][car]['alpha1'] = round(coeff[1], 6)
+        fit['coeff'][car]['alpha2'] = round(coeff[0], 6)
 
     # Calculate input bounds
-    fitting['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
+    fit['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                np.ones(shape=(time_steps))))
-    fitting['output_bounds'] = {}
-    for c in performance_data['out']:
+    fit['output_bounds'] = {}
+    for car in performance_data['out']:
         # Calculate output bounds
-        fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps))*fitting[c]['alpha1'] + \
-                                                       fitting[c]['alpha2']))
-    return fitting
+        fit['output_bounds'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fit['coeff'][car]['alpha1'] + \
+                                                       fit['coeff'][car]['alpha2']))
+    return fit
 
 
 def fit_performance_function_type3(performance_data, nr_seg, time_steps):
@@ -93,19 +96,19 @@ def fit_performance_function_type3(performance_data, nr_seg, time_steps):
     """
     x = performance_data['in']
     Y = performance_data['out']
-    fitting = fit_piecewise_function(x, Y, nr_seg)
+    fit = fit_piecewise_function(x, Y, nr_seg)
 
     # Calculate input bounds
-    fitting['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
+    fit['input_bounds'] = np.column_stack((np.zeros(shape=(time_steps)),
                                                np.ones(shape=(time_steps))))
-    fitting['output_bounds'] = {}
-    for c in performance_data['out']:
+    fit['output_bounds'] = {}
+    for car in performance_data['out']:
         # Calculate output bounds
-        fitting['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                       np.ones(shape=(time_steps))*fitting[c]['alpha1'][-1] + \
-                                                       fitting[c]['alpha2'][-1]))
+        fit['output_bounds'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                       np.ones(shape=(time_steps))*fit['coeff'][car]['alpha1'][-1] + \
+                                                       fit['coeff'][car]['alpha2'][-1]))
 
-    return fitting
+    return fit
 
 
 def fit_linear_function(x, y):
@@ -156,9 +159,11 @@ def fit_piecewise_function(X, Y, nr_segments):
         return bp_x, bp_y, alpha1, alpha2
 
 
-    fitting = {}
+    fit = {}
+    fit['coeff'] = {}
+
     for idx, car in enumerate(Y):
-        fitting[car] = {}
+        fit['coeff'][car] = {}
         y = np.array(Y[car])
         if idx == 0:
             bp_x, bp_y, alpha1, alpha2 = regress_piecewise(X, y, nr_segments)
@@ -166,9 +171,9 @@ def fit_piecewise_function(X, Y, nr_segments):
         else:
             bp_x, bp_y, alpha1, alpha2 = regress_piecewise(X, y, nr_segments, bp_x0)
 
-        fitting[car]['alpha1'] = alpha1
-        fitting[car]['alpha2'] = alpha2
-        fitting[car]['bp_y'] = bp_y
-        fitting['bp_x'] = bp_x
+        fit['coeff'][car]['alpha1'] = alpha1
+        fit['coeff'][car]['alpha2'] = alpha2
+        fit['coeff'][car]['bp_y'] = bp_y
+        fit['coeff']['bp_x'] = bp_x
 
-    return fitting
+    return fit

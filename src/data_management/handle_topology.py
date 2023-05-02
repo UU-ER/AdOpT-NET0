@@ -14,6 +14,7 @@ class SystemTopology:
         """
         self.timesteps = []
         self.timestep_length_h = []
+        self.timestep_clustered = []
         self.carriers = []
         self.nodes = []
         self.technologies_new = {}

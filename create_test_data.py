@@ -366,8 +366,8 @@ def create_data_technologySTOR():
 
     # CLIMATE DATA
     data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.node_data['test_node1']['climate_data']['dataframe']['ws10'][0] = 15
-    data.node_data['test_node1']['climate_data']['dataframe']['ws10'][1] = 0
+    data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
+    data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 1
@@ -502,19 +502,34 @@ def create_data_time_algorithms():
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='03-31 23:00', resolution=1)
-    topology.define_carriers(['electricity'])
-    topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['Photovoltaic', 'WindTurbine_Onshore_1500', 'Storage_Battery'])
+    topology.define_carriers(['electricity', 'gas', 'hydrogen'])
+    topology.define_nodes(['test_node1','test_node2'])
+    topology.define_new_technologies('test_node1', ['GasTurbine_simple', 'Storage_Battery'])
+    topology.define_new_technologies('test_node2', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
 
+    # NETWORKS
+    distance = dm.create_empty_network_matrix(topology.nodes)
+    distance.at['test_node1', 'test_node2'] = 1
+    distance.at['test_node2', 'test_node1'] = 1
+    connection = dm.create_empty_network_matrix(topology.nodes)
+    connection.at['test_node1', 'test_node2'] = 1
+    connection.at['test_node2', 'test_node1'] = 1
+    topology.define_new_network('electricityTest', distance=distance, connections=connection)
+
     # CLIMATE DATA
     data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 100
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+    # IMPORT
+    gas_import = np.ones(len(topology.timesteps)) * 10
+    data.read_import_limit_data('test_node1', 'gas', gas_import)
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data()
@@ -529,7 +544,7 @@ def create_data_optimization_types():
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
-    topology.define_carriers(['electricity', 'gas'])
+    topology.define_carriers(['electricity', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1'])
     topology.define_new_technologies('test_node1', ['Photovoltaic', 'GasTurbine_simple'])
 
@@ -675,7 +690,32 @@ def create_data_existing_networks():
     data3.save(data_save_path3)
     data4.save(data_save_path4)
 
+def create_test_data_dac():
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-05 23:00', resolution=1)
+    topology.define_carriers(['electricity', 'heat', 'CO2'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1',
+                                     ['DAC_Adsorption', 'Storage_CO2', 'Photovoltaic'])
 
+    data = dm.DataHandle(topology)
+
+    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+
+    # DEMAND
+    co2demand = np.ones(len(topology.timesteps)) * 0.01
+    data.read_demand_data('test_node1', 'CO2', co2demand)
+
+    # IMPORT
+    heat_import = np.ones(len(topology.timesteps)) * 100
+    data.read_import_limit_data('test_node1', 'heat', heat_import)
+
+    data.read_technology_data()
+    data.read_network_data()
+
+    data_save_path = './test/test_data/dac.p'
+
+    data.save(data_save_path)
 
 create_data_test_data_handle()
 create_data_model1()
@@ -692,5 +732,4 @@ create_data_time_algorithms()
 create_data_optimization_types()
 create_data_existing_technologies()
 create_data_existing_networks()
-
-
+create_test_data_dac()
