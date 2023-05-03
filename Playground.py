@@ -18,7 +18,46 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
+
 execute = 1
+
+if execute == 1:
+    # Having a very simple pyomo model to test things with
+    model = ConcreteModel()
+
+    # declare decision variables
+    model.x = Var(domain=NonNegativeReals)
+    model.y = Var(domain=NonNegativeReals)
+
+    # Parameters
+    model.pdemand = Param(mutable=True, initialize = 40)
+
+    # declare objective
+    model.profit = Objective(expr=40 * model.x + 30 * model.y, sense=maximize)
+
+    # declare constraints
+    model.demand = Constraint(expr=model.x == model.pdemand)
+    model.laborA = Constraint(expr=model.x + model.y <= 80)
+    model.laborB = Constraint(expr=2 * model.x + model.y <= 100)
+
+    # solve
+    solver = SolverFactory('gurobi_persistent')
+    solver.set_instance(model)
+    solver.solve(tee=True)
+    model.display()
+    # model.pprint()
+
+    model.pdemand = 50
+    solver.remove_constraint(model.demand)
+    model.del_component(model.demand)
+    model.demand = Constraint(expr=model.x == model.pdemand)
+    solver.add_constraint(model.demand)
+    solver.solve(tee=True)
+    model.display()
+    # model.pprint()
+
+
+execute = 0
 
 if execute == 1:
     topology = dm.SystemTopology()
@@ -60,7 +99,7 @@ if execute == 1:
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve_model()
+    energyhub.solve()
 
 execute = 0
 
@@ -108,8 +147,8 @@ if execute == 1:
     energyhub_clustered.construct_balances()
 
     # Solve model
-    energyhub_clustered.solve_model()
-    results1 = energyhub_clustered.write_results()
+    energyhub_clustered.solve()
+    results1 = energyhub_clustered.__write_results()
     results1.write_excel(r'.\userData\results_clustered')
 
 
@@ -119,8 +158,8 @@ if execute == 1:
     energyhub.construct_balances()
 
     # Solve model
-    energyhub.solve_model()
-    results2 = energyhub.write_results()
+    energyhub.solve()
+    results2 = energyhub.__write_results()
     results2.write_excel(r'.\userData\results_full')
 
 execute = 0

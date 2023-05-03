@@ -10,6 +10,9 @@ import dill as pickle
 import src.global_variables as global_variables
 import time
 import copy
+import warnings
+
+#TODO: Fix test functions
 
 
 class EnergyHub:
@@ -79,12 +82,12 @@ class EnergyHub:
             self.data = self.data_storage[0]
 
         # INITIALIZE RESULTS
-        self.results = None
+        self.results = dm.ResultsHandle(self.configuration)
 
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
 
-    def quick_solve_model(self):
+    def quick_solve(self):
         """
         Quick-solves the model (constructs model and balances and solves model).
 
@@ -95,7 +98,9 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
-        self.solve_model()
+        self.solve()
+        return self.results
+
 
     def construct_model(self):
         """
@@ -115,11 +120,13 @@ class EnergyHub:
         topology = self.data.topology
         self.model.set_nodes = Set(initialize=topology.nodes)
         self.model.set_carriers = Set(initialize=topology.carriers)
+
         def tec_node(set, node):
             if self.data.technology_data:
                 return self.data.technology_data[node].keys()
             else:
                 return Set.Skip
+
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
         self.model.set_networks = Set(initialize=self.data.network_data.keys())
 
@@ -134,6 +141,7 @@ class EnergyHub:
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
+
         # Global Emission variables
         self.model.var_emissions_pos = Var()
         self.model.var_emissions_neg = Var()
@@ -142,7 +150,6 @@ class EnergyHub:
         # Model construction
         self.model = mc.add_networks(self)
         self.model = mc.add_nodes(self)
-
 
         print('Constructing model completed in ' + str(round(time.time() - start)) + ' s')
 
@@ -163,7 +170,7 @@ class EnergyHub:
 
         print('Constructing balances completed in ' + str(round(time.time() - start)) + ' s')
 
-    def solve_model(self):
+    def solve(self):
         """
         Defines objective and solves model
 
@@ -173,32 +180,16 @@ class EnergyHub:
         """
         objective = self.configuration.optimization.objective
 
-        # Define solver settings
-        if self.configuration.solveroptions.solver in ['gurobi', 'gurobi_persistent']:
-            if objective in ['emissions_minC', 'pareto']:
-                self.configuration.solveroptions.solver = 'gurobi_persistent'
-            self.solver = get_gurobi_parameters(self.configuration.solveroptions)
-            if self.configuration.solveroptions.solver == 'gurobi_persistent':
-                    self.solver.set_instance(self.model)
+        self.__define_solver_settings()
 
-        # Define Objective Function
-        if objective == 'costs':
-            self.__minimize_cost()
-        elif objective == 'emissions_pos':
-            self.__minimize_emissions_pos()
-        elif objective == 'emissions_net':
-            self.__minimize_emissions_net()
-        elif objective == 'emissions_minC':
-            self.__minimize_emissions_minC()
+        if self.configuration.optimization.monte_carlo.on:
+            self.__optimize_monte_carlo(objective)
         elif objective == 'pareto':
-            self.__minimize_pareto()
+            self.__optimize_pareto()
         else:
-            raise Exception("objective in Configurations is incorrect")
+            self.__optimize(objective)
 
-        # Second stage of time averaging algorithm
-
-        if global_variables.averaged_data and global_variables.averaged_data_specs.stage == 0:
-            self.__minimize_time_averaging_second_stage()
+        return self.results
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -227,18 +218,134 @@ class EnergyHub:
         with open(file_path + '/' + file_name, mode='wb') as file:
             pickle.dump(self, file)
 
-    def write_results(self):
+    def __define_solver_settings(self):
         """
-        Exports results to an instance of ResultsHandle to be further exported or viewed
+        Defines solver and its settings depending on objective and solver
         """
-        results = dm.ResultsHandle()
-        results.read_results(self)
-        return results
+        objective = self.configuration.optimization.objective
 
-    def __optimize(self):
+        # Set solver
+        if self.configuration.solveroptions.solver in ['gurobi', 'gurobi_persistent']:
+            # Gurobi
+            if objective in ['emissions_minC', 'pareto'] or self.configuration.optimization.monte_carlo.on:
+                self.configuration.solveroptions.solver = 'gurobi_persistent'
+            self.solver = get_gurobi_parameters(self.configuration.solveroptions)
+
+        else:
+            # Any other solver, to be implemented in the future
+            pass
+
+        # For persistent solver, set model instance
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.set_instance(self.model)
+
+    def __optimize(self, objective):
         """
-        Solves the model
-        :return:
+        Solves the model with the given objective
+        """
+        # Define Objective Function
+        if objective == 'costs':
+            self.__optimize_cost()
+        elif objective == 'emissions_pos':
+            self.__optimize_emissions_pos()
+        elif objective == 'emissions_net':
+            self.__optimize_emissions_net()
+        elif objective == 'emissions_minC':
+            self.__optimize_emissions_minC()
+        else:
+            raise Exception("objective in Configurations is incorrect")
+
+        # Second stage of time averaging algorithm
+        if global_variables.averaged_data and global_variables.averaged_data_specs.stage == 0:
+            self.__optimize_time_averaging_second_stage()
+
+
+    def __optimize_cost(self):
+        """
+        Minimizes Costs
+        """
+        self.__delete_objective()
+
+        def init_cost_objective(obj):
+            return self.model.var_total_cost
+        self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+        self.__call_solver()
+
+    def __optimize_emissions_pos(self):
+        """
+        Minimizes positive emission
+        """
+        self.__delete_objective()
+
+        def init_emission_pos_objective(obj):
+            return self.model.var_emissions_pos
+        self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+        self.__call_solver()
+
+    def __optimize_emissions_net(self):
+        """
+        Minimize net emissions
+        """
+        self.__delete_objective()
+
+        def init_emission_net_objective(obj):
+            return self.model.var_emissions_net
+        self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+        self.__call_solver()
+
+    def __optimize_emissions_minC(self):
+        """
+        Minimize costs at minimum emissions
+        """
+        self.__optimize_emissions_net()
+        emission_limit = self.model.var_emissions_net.value
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.005)
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.add_constraint(self.model.const_emission_limit)
+        self.__optimize_cost()
+
+    def __optimize_pareto(self):
+        """
+        Optimize the pareto front
+        """
+        pareto_points = self.configuration.optimization.pareto_points
+
+        # Min Cost
+        self.__optimize_cost()
+        emissions_max = self.model.var_emissions_net.value
+
+        # Min Emissions
+        self.__optimize_emissions_minC()
+        emissions_min = self.model.var_emissions_net.value
+
+        # Emission limit
+        emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
+        for pareto_point in range(0, pareto_points):
+            global_variables.pareto_point += 1
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.remove_constraint(self.model.const_emission_limit)
+            self.model.del_component(self.model.const_emission_limit)
+            self.model.const_emission_limit = Constraint(
+                expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.005)
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.add_constraint(self.model.const_emission_limit)
+            self.__optimize_cost()
+
+    def __optimize_monte_carlo(self, objective):
+        """
+        Optimizes multiple runs with monte carlo
+        """
+        for run in range(0, self.configuration.optimization.monte_carlo.N):
+            global_variables.monte_carlo_run += 1
+            self.__monte_carlo_set_cost_parameters()
+            if run == 0:
+                self.__optimize(objective)
+            else:
+                self.__call_solver()
+
+    def __call_solver(self):
+        """
+        Calls the solver and solves the model
         """
 
         # Solve model
@@ -250,95 +357,240 @@ class EnergyHub:
             self.solver.set_objective(self.model.objective)
         self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
+        self.results.add_optimization_result(self)
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
 
-
-    def __minimize_cost(self):
+    def __monte_carlo_set_cost_parameters(self):
         """
-        Minimizes Costs
+        Performs monte carlo analysis
         """
-        self.__delete_objective()
 
-        def init_cost_objective(obj):
-            return self.model.var_total_cost
-        self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        self.__optimize()
+        if 'Technologies' in self.configuration.optimization.monte_carlo.on_what:
+            for node in self.model.node_blocks:
+                for tec in self.model.node_blocks[node].tech_blocks_active:
+                    self.__monte_carlo_technologies(node, tec)
 
-    def __minimize_emissions_pos(self):
+        if 'Networks' in self.configuration.optimization.monte_carlo.on_what:
+            for netw in self.model.network_block:
+                self.__monte_carlo_networks(netw)
+
+        if 'ImportPrices' in self.configuration.optimization.monte_carlo.on_what:
+            for node in self.model.node_blocks:
+                for car in self.model.node_blocks[node].set_carriers:
+                    self.__monte_carlo_import_prices(node, car)
+
+        if 'ExportPrices' in self.configuration.optimization.monte_carlo.on_what:
+            for node in self.model.node_blocks:
+                for car in self.model.node_blocks[node].set_carriers:
+                    self.__monte_carlo_export_prices(node, car)
+
+
+    def __monte_carlo_technologies(self, node, tec):
         """
-        Minimizes positive emission
+        Changes the capex of technologies
         """
-        self.__delete_objective()
+        sd = self.configuration.optimization.monte_carlo.sd
+        sd_random = np.random.normal(1, sd)
 
-        def init_emission_pos_objective(obj):
-            return self.model.var_emissions_pos
-        self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
-        self.__optimize()
+        tec_data = self.data.technology_data[node][tec]
+        economics = tec_data.economics
+        discount_rate = set_discount_rate(self.configuration, economics)
+        capex_model = set_capex_model(self.configuration, economics)
+        annualization_factor = annualize(discount_rate, economics.lifetime)
 
-    def __minimize_emissions_net(self):
+        b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
+
+        if capex_model == 1:
+            # UNIT CAPEX
+            # Update parameter
+            unit_capex = tec_data.economics.capex_data['unit_capex'] * sd_random
+            self.model.node_blocks[node].tech_blocks_active[tec].para_unit_capex = unit_capex
+            self.model.node_blocks[node].tech_blocks_active[tec].para_unit_capex_annual = unit_capex * annualization_factor
+
+            # Remove constraint (from persistent solver and from model)
+            self.solver.remove_constraint(b_tec.const_capex_aux)
+            b_tec.del_component(b_tec.const_capex_aux)
+
+            # Add constraint again
+            b_tec.const_capex_aux = Constraint(
+                expr=b_tec.var_size * b_tec.para_unit_capex_annual == b_tec.var_capex_aux)
+            self.solver.add_constraint(b_tec.const_capex_aux)
+
+        elif capex_model == 2:
+            warnings.warn("monte carlo on piecewise defined investment costs is not implemented")
+
+
+    def __monte_carlo_networks(self, netw):
         """
-        Minimize net emissions
+        Changes the capex of networks
         """
-        self.__delete_objective()
+        sd = self.configuration.optimization.monte_carlo.sd
+        sd_random = np.random.normal(1, sd)
 
-        def init_emission_net_objective(obj):
-            return self.model.var_emissions_net
-        self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
-        self.__optimize()
+        netw_data = self.data.network_data[netw]
+        economics = netw_data.economics
+        discount_rate = set_discount_rate(self.configuration, economics)
+        capex_model = economics.capex_model
+        annualization_factor = annualize(discount_rate, economics.lifetime)
 
-    def __minimize_emissions_minC(self):
+        b_netw =self.model.network_block[netw]
+
+        if capex_model == 1:
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+
+        elif capex_model == 2:
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+
+        elif capex_model == 3:
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma3 = economics.capex_data['gamma3'] * annualization_factor * sd_random
+
+        for arc in b_netw.set_arcs:
+            b_arc = b_netw.arc_block[arc]
+
+            # Remove constraint (from persistent solver and from model)
+            self.solver.remove_constraint(b_arc.const_capex_aux)
+            b_arc.del_component(b_arc.const_capex_aux)
+
+            # Add constraint again
+            def init_capex(const):
+                if economics.capex_model == 1:
+                    return b_arc.var_capex_aux == b_arc.var_size * \
+                           b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
+                elif economics.capex_model == 2:
+                    return b_arc.var_capex_aux == b_arc.var_size * \
+                           b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
+                elif economics.capex_model == 3:
+                    return b_arc.var_capex_aux == b_arc.var_size * \
+                           b_arc.distance * b_netw.para_capex_gamma1 + \
+                           b_arc.var_size * b_netw.para_capex_gamma2 + \
+                           b_netw.para_capex_gamma3
+            b_arc.const_capex_aux = Constraint(rule=init_capex)
+            self.solver.add_constraint(b_arc.const_capex_aux)
+
+    def __monte_carlo_import_prices(self, node, car):
         """
-        Minimize costs at minimum emissions
+        Changes the import prices
         """
-        self.__minimize_emissions_net()
-        emission_limit = self.model.var_emissions_net.value
-        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.005)
-        if self.configuration.solveroptions.solver == 'gurobi_persistent':
-            self.solver.add_constraint(self.model.const_emission_limit)
-        self.__minimize_cost()
+        sd = self.configuration.optimization.monte_carlo.sd
+        sd_random = np.random.normal(1, sd)
 
-    def __minimize_pareto(self):
+        model = self.model
+        set_t = model.set_t_full
+
+        import_prices = self.data.node_data[node].data['import_prices'][car]
+        b_node = self.model.node_blocks[node]
+
+        for t in set_t:
+            # Update parameter
+            b_node.para_import_price[t, car] = import_prices[t-1] * sd_random
+
+            # Remove constraint (from persistent solver and from model)
+            self.solver.remove_constraint(model.const_node_cost)
+            self.model.del_component(model.const_node_cost)
+
+            # Add constraint again
+            nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+
+            def init_node_cost(const):
+                tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
+                                    for tec in model.node_blocks[node].set_tecsAtNode)
+                                for node in model.set_nodes)
+                tec_opex_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t] *
+                                                nr_timesteps_averaged
+                                                for tec in model.node_blocks[node].set_tecsAtNode)
+                                            for t in set_t)
+                                        for node in model.set_nodes)
+                tec_opex_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
+                                         for tec in model.node_blocks[node].set_tecsAtNode)
+                                     for node in model.set_nodes)
+                import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
+                                          model.node_blocks[node].para_import_price[t, car] *
+                                          nr_timesteps_averaged
+                                          for car in model.node_blocks[node].set_carriers)
+                                      for t in set_t)
+                                  for node in model.set_nodes)
+                export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car] *
+                                             model.node_blocks[node].para_export_price[t, car] *
+                                             nr_timesteps_averaged
+                                             for car in model.node_blocks[node].set_carriers)
+                                         for t in set_t)
+                                     for node in model.set_nodes)
+                return tec_capex + tec_opex_variable + tec_opex_fixed + import_cost - export_revenue == model.var_node_cost
+
+            model.const_node_cost = Constraint(rule=init_node_cost)
+            self.solver.add_constraint(model.const_node_cost)
+
+
+    def __monte_carlo_export_prices(self, node, car):
         """
-        Optimize the pareto front
+        Changes the export prices
         """
-        # Min Cost
-        pareto_points = self.configuration.optimization.pareto_points
-        self.results = [None] * pareto_points
-        self.__minimize_cost()
-        self.results[pareto_points - 1] = self.write_results()
-        emissions_max = self.model.var_emissions_net.value
+        sd = self.configuration.optimization.monte_carlo.sd
+        sd_random = np.random.normal(1, sd)
 
-        # Min Emissions
-        self.__minimize_emissions_minC()
-        emissions_min = self.model.var_emissions_net.value
-        self.results[0] = self.write_results()
+        model = self.model
+        set_t = model.set_t_full
 
-        # Emission limit
-        emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
-        for pareto_point in range(1, pareto_points - 1):
-            if self.configuration.solveroptions.solver == 'gurobi_persistent':
-                self.solver.remove_constraint(self.model.const_emission_limit)
-            self.model.del_component(self.model.const_emission_limit)
-            self.model.const_emission_limit = Constraint(
-                expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.005)
-            if self.configuration.solveroptions.solver == 'gurobi_persistent':
-                self.solver.add_constraint(self.model.const_emission_limit)
-            self.__minimize_cost()
-            self.results[pareto_point] = self.write_results()
+        export_prices = self.data.node_data[node].data['export_prices'][car]
+        b_node = self.model.node_blocks[node]
 
+        for t in set_t:
+            # Update parameter
+            b_node.para_export_price[t, car] = export_prices[t - 1] * sd_random
+
+            # Remove constraint (from persistent solver and from model)
+            self.solver.remove_constraint(model.const_node_cost)
+            self.model.del_component(model.const_node_cost)
+
+            # Add constraint again
+            nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+
+            def init_node_cost(const):
+                tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
+                                    for tec in model.node_blocks[node].set_tecsAtNode)
+                                for node in model.set_nodes)
+                tec_opex_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t] *
+                                                nr_timesteps_averaged
+                                                for tec in model.node_blocks[node].set_tecsAtNode)
+                                            for t in set_t)
+                                        for node in model.set_nodes)
+                tec_opex_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
+                                         for tec in model.node_blocks[node].set_tecsAtNode)
+                                     for node in model.set_nodes)
+                import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
+                                          model.node_blocks[node].para_import_price[t, car] *
+                                          nr_timesteps_averaged
+                                          for car in model.node_blocks[node].set_carriers)
+                                      for t in set_t)
+                                  for node in model.set_nodes)
+                export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car] *
+                                             model.node_blocks[node].para_export_price[t, car] *
+                                             nr_timesteps_averaged
+                                             for car in model.node_blocks[node].set_carriers)
+                                         for t in set_t)
+                                     for node in model.set_nodes)
+                return tec_capex + tec_opex_variable + tec_opex_fixed + import_cost - export_revenue == model.var_node_cost
+
+            model.const_node_cost = Constraint(rule=init_node_cost)
+            self.solver.add_constraint(model.const_node_cost)
 
     def __delete_objective(self):
         """
         Delete the objective function
         """
-        try:
-            self.model.del_component(self.model.objective)
-        except:
-            pass
+        if not self.configuration.optimization.monte_carlo.on:
+            try:
+                self.model.del_component(self.model.objective)
+            except:
+                pass
 
-    def __minimize_time_averaging_second_stage(self):
+    def __optimize_time_averaging_second_stage(self):
         """
         Optimizes the second stage of the time_averaging algorithm
         """
@@ -353,7 +605,7 @@ class EnergyHub:
         self.construct_model()
         self.construct_balances()
         self.__impose_size_constraints(bounds_on)
-        self.solve_model()
+        self.solve()
 
     def __impose_size_constraints(self, bounds_on):
         """
@@ -387,7 +639,7 @@ class EnergyHub:
                 b_netw_avg = m_avg.network_block[netw]
                 def size_constraints_netw_init(const, node_from, node_to):
                     return b_netw_full.arc_block[node_from, node_to].var_size >= \
-                           b_netw_avg.arc_block[node_to, node_from].var_size.value
+                           b_netw_avg.arc_block[node_from, node_to].var_size.value
                 block.size_constraints_netw = Constraint(b_netw_full.set_arcs_unique, rule=size_constraints_netw_init)
             m_full.size_constraints_netw = Block(m_full.set_networks, rule=size_constraint_block_netw_init)
 

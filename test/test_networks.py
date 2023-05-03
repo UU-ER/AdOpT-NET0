@@ -18,7 +18,7 @@ def test_networks():
     energyhub1 = ehub(data, configuration)
     energyhub1.construct_model()
     energyhub1.construct_balances()
-    energyhub1.solve_model()
+    energyhub1.solve()
     cost1 = energyhub1.model.objective()
     assert energyhub1.solution.solver.termination_condition == 'optimal'
     # is network size double the demand (because of losses)
@@ -27,7 +27,7 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
     # is capex correct
     should = 1020
-    res = energyhub1.model.network_block['hydrogenTest'].var_CAPEX.value
+    res = energyhub1.model.network_block['hydrogenTest'].var_capex.value
     assert abs(should - res) / res <= 0.001
 
     # Test no bidirectional
@@ -37,7 +37,7 @@ def test_networks():
     energyhub2 = ehub(data, configuration)
     energyhub2.construct_model()
     energyhub2.construct_balances()
-    energyhub2.solve_model()
+    energyhub2.solve()
     cost2 = energyhub2.model.objective()
     assert energyhub2.solution.solver.termination_condition == 'optimal'
     # is network size double the demand (because of losses)
@@ -51,7 +51,7 @@ def test_networks():
     energyhub3 = ehub(data, configuration)
     energyhub3.construct_model()
     energyhub3.construct_balances()
-    energyhub3.solve_model()
+    energyhub3.solve()
     cost3 = energyhub3.model.objective()
     assert energyhub3.solution.solver.termination_condition == 'optimal'
     # is network size double the demand (because of losses)
@@ -77,7 +77,7 @@ def test_existing_networks():
         energyhub = ehub(data, configuration)
         energyhub.construct_model()
         energyhub.construct_balances()
-        energyhub.solve_model()
+        energyhub.solve()
         return energyhub
 
     data_save_path1 = './test/test_data/existing_netw1.p'

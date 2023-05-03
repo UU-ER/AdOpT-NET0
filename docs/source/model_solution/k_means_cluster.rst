@@ -28,4 +28,4 @@ an instance of the :func:`.ClusteredDataHandle` class and pass it to the :func:`
 
     # Construct Model and solve
     energyhub = EnergyHub(data, configuration)
-    ehub.quick_solve_model()
+    ehub.quick_solve()

@@ -17,3 +17,4 @@ pytest
 scikit-learn
 piecewise_regression
 pwlf
+gurobipy
