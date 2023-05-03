@@ -169,14 +169,3 @@ class ModelConfiguration:
         self.performance = SimpleNamespace()
         # self.performance.dynamics = 0
 
-    def define_monte_carlo(self, range, N):
-        """
-        Function to define the range within the variables are varied (+/-) and the number of simulations
-        for the Monte Carlo simulation.
-
-        :param float range: SD with which investment cost is varied
-        :param int N: number of simulations
-        """
-
-        self.optimization.monte_carlo.range = range
-        self.optimization.monte_carlo.N = N
