@@ -15,6 +15,12 @@ class ModelConfiguration:
     | objective          | String specifying the objective/type         | 'costs', 'emissions_pos', 'emissions_neg',  | 'costs' |
     |                    | of optimization                              | 'emissions_minC', 'pareto'                  |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | save_detail        | What information is saved                    | 'minimal', 'basic', 'full'                  |         |
+    |                    | minimal: saves only emissions and costs      |                                             |         |
+    |                    | basic: additionally technology/network sizes |                                             |         |
+    |                    | costs and emissions as individual excel      |                                             |         |
+    |                    | all: saves full information in excel         |                                             |         |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.sd     | Value defining the range in which variables  |                                             | 0.2     |
     |                    | are varied in Monte Carlo simulations        |                                             |         |
     |                    | (defined as the standard deviation of the    |                                             |         |
@@ -24,17 +30,10 @@ class ModelConfiguration:
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.N      | Number of Monte Carlo simulations            |                                             | 100     |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'Networks', 'ImportPrices', | all     |
-    | monte_carlo.on_what| Warning: Import/export prices                | 'ExportPrices'                              | all     |
+    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'Networks', 'ImportPrices', | Tec,    |
+    |                    | Warning: Import/export prices                | 'ExportPrices'                              | Netw    |
     |                    | can take a long time.                        |                                             |         |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.save   | What information is saved from each          | 'minimal', 'basic', 'full'                  |         |
-    |                    | monte carlo run                              |                                             |         |
-    |                    | minimal: saves only emissions and costs      |                                             |         |
-    |                    | basic: additionally technology/network sizes |                                             |         |
-    |                    | costs and emissions as individual excel      |                                             |         |
-    |                    | all: saves full information in excel         |                                             |         |
-    +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | pareto_points      | Number of Pareto points                      |                                             | 5       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | timestaging        | Defines number of daily intervals (0 = off)  |                                             | 0       |
@@ -169,14 +168,3 @@ class ModelConfiguration:
         self.performance = SimpleNamespace()
         # self.performance.dynamics = 0
 
-    def define_monte_carlo(self, range, N):
-        """
-        Function to define the range within the variables are varied (+/-) and the number of simulations
-        for the Monte Carlo simulation.
-
-        :param float range: SD with which investment cost is varied
-        :param int N: number of simulations
-        """
-
-        self.optimization.monte_carlo.range = range
-        self.optimization.monte_carlo.N = N
