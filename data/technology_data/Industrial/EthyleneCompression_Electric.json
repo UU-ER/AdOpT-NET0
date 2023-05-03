@@ -1,75 +1,64 @@
 {
-  "tec_type": "CONV2",
-  "size_min": 0.7,
-  "size_max": 90000,
+  "tec_type": "CONV3",
+  "size_min": 0,
+  "size_max": 1000,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
     "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/unit total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 1.786E+6,
+    "unit_CAPEX": -1000,
     "piecewise_CAPEX": {
-      "bp_x": [
-        0.7,
-        20,
-        90000
-      ],
-      "bp_y": [
-        1.7571425264E+7,
-        3.57089268E+7,
-        3.77513964E+10
-      ]
+      "bp_x": "not defined",
+      "bp_y": "not defined"
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.04,
+    "OPEX_fixed": 0.01,
     "discount_rate": 0.1,
-    "lifetime": 20,
+    "lifetime": 25,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 1,
+    "performance_function_type": 2,
     "input_carrier": [
-      "gas"
+      "crackedgas",
+      "electricity"
     ],
-    "main_input_carrier": "gas",
+    "main_input_carrier": "crackedgas",
     "output_carrier": [
-      "hydrogen",
-      "electricity",
-      "CO2"
+      "crackedgas"
     ],
     "emission_factor": 0,
-    "min_part_load": 0,
+    "min_part_load": [
+      0,
+      1
+    ],
     "performance": {
       "in": [
         0,
         1
       ],
       "out": {
-        "hydrogen": [
+        "crackedgas": [
           0,
-          0.75
-        ],
-        "electricity": [
-          0,
-          0.0155
-        ],
-        "CO2": [
-          0,
-          0.00017533
+          1
         ]
       }
+    },
+    "input_ratios": {
+      "crackedgas": 1,
+      "electricity": 0.383
     }
   },
   "Units": {
-    "size": "MW",
+    "size": "tonne/hr",
     "input_carrier": {
-      "gas": "MW"
+      "crackedgas": "tonne",
+      "electricity": "MW"
     },
     "output_carrier": {
-      "hydrogen": "MW",
-      "electricity": "MW",
-      "CO2": "tonne"
+      "crackedgas": "tonne"
     }
   }
 }

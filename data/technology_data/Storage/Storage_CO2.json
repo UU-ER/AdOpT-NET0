@@ -41,10 +41,10 @@
   "Units": {
     "size": "tonne",
     "input_carrier": {
-      "gas": "tonne/hr"
+      "CO2": "tonne/hr"
     },
     "output_carrier": {
-      "gas": "tonne/hr"
+      "CO2": "tonne/hr"
     }
   }
 }

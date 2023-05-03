@@ -1,7 +1,7 @@
 {
   "tec_type": "DAC_Adsorption",
   "size_min": 0,
-  "size_max": 1000,
+  "size_max": 200,
   "size_is_int": 1,
   "decommission": 0,
   "Economics": {
@@ -28,7 +28,7 @@
     "output_carrier": [
       "CO2"
     ],
-    "nr_segments": 2,
+    "nr_segments": 3,
     "ohmic_heating": 1,
     "emission_factor": -1,
     "performance": {
