@@ -1,8 +1,3 @@
-import numpy as np
-from pyomo.environ import *
-from pyomo.environ import units as u
-import src.global_variables as global_variables
-import src.model_construction as mc
 from src.model_construction.technology_constraints import *
 
 
@@ -56,32 +51,18 @@ def define_capex(b_tec, tec_data, energyhub):
     - unit capex/ breakpoints for capex function
 
     Variables defined:
-    - CAPEX_aux (theoretical CAPEX for existing technologies)
+    - capex_aux (theoretical CAPEX for existing technologies)
     - CAPEX (actual CAPEX)
     - Decommissioning Costs (for existing technologies)
     """
     configuration = energyhub.configuration
 
-    def set_capex_model(economics):
-        if configuration.economic.global_simple_capex_model:
-            capex_model = 1
-        else:
-            capex_model = economics.capex_model
-        return capex_model
-
-    def set_discount_rate(economics):
-        if not configuration.economic.global_discountrate == -1:
-            discount_rate = configuration.economic.global_discountrate
-        else:
-            discount_rate = economics.discount_rate
-        return discount_rate
-    
     size_is_int = tec_data.size_is_int
     existing = tec_data.existing
     decommission = tec_data.decommission
     economics = tec_data.economics
-    discount_rate = set_discount_rate(economics)
-    capex_model = set_capex_model(economics)
+    discount_rate = mc.set_discount_rate(configuration, economics)
+    capex_model = mc.set_capex_model(configuration, economics)
     if size_is_int:
         unit_size = u.dimensionless
     else:
@@ -90,16 +71,16 @@ def define_capex(b_tec, tec_data, energyhub):
     # CAPEX auxiliary (used to calculate theoretical CAPEX)
     # For new technologies, this is equal to actual CAPEX
     # For existing technologies it is used to calculate fixed OPEX
-    b_tec.var_CAPEX_aux = Var(units=u.EUR)
+    b_tec.var_capex_aux = Var(units=u.EUR)
     annualization_factor = mc.annualize(discount_rate, economics.lifetime)
     if capex_model == 1:
-        b_tec.para_unit_CAPEX = Param(domain=Reals, initialize=economics.capex_data['unit_capex'],
+        b_tec.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'],
                                       units=u.EUR / unit_size)
-        b_tec.para_unit_CAPEX_annual = Param(domain=Reals,
+        b_tec.para_unit_capex_annual = Param(domain=Reals,
                                              initialize=annualization_factor * economics.capex_data['unit_capex'],
                                              units=u.EUR / unit_size)
-        b_tec.const_CAPEX_aux = Constraint(
-            expr=b_tec.var_size * b_tec.para_unit_CAPEX_annual == b_tec.var_CAPEX_aux)
+        b_tec.const_capex_aux = Constraint(
+            expr=b_tec.var_size * b_tec.para_unit_capex_annual == b_tec.var_capex_aux)
     elif capex_model == 2:
         b_tec.para_bp_x = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_x'],
                                 units=unit_size)
@@ -109,23 +90,23 @@ def define_capex(b_tec, tec_data, energyhub):
                                                                 economics.capex_data['piecewise_capex']['bp_y'],
                                        units=u.EUR / unit_size)
         global_variables.big_m_transformation_required = 1
-        b_tec.const_CAPEX_aux = Piecewise(b_tec.var_CAPEX_aux, b_tec.var_size,
+        b_tec.const_capex_aux = Piecewise(b_tec.var_capex_aux, b_tec.var_size,
                                           pw_pts=b_tec.para_bp_x,
                                           pw_constr_type='EQ',
-                                          f_rule=b_tec.para_bp_y,
+                                          f_rule=b_tec.para_bp_y_annual,
                                           pw_repn='SOS2')
     # CAPEX
     if existing and not decommission:
-        b_tec.var_CAPEX = Param(domain=Reals, initialize=0, units=u.EUR)
+        b_tec.var_capex = Param(domain=Reals, initialize=0, units=u.EUR)
     else:
-        b_tec.var_CAPEX = Var(units=u.EUR)
+        b_tec.var_capex = Var(units=u.EUR)
         if existing:
             b_tec.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost,
                                                     units=u.EUR / unit_size)
-            b_tec.const_CAPEX = Constraint(
-                expr=b_tec.var_CAPEX == (b_tec.para_size_initial - b_tec.var_size) * b_tec.para_decommissioning_cost)
+            b_tec.const_capex = Constraint(
+                expr=b_tec.var_capex == (b_tec.para_size_initial - b_tec.var_size) * b_tec.para_decommissioning_cost)
         else:
-            b_tec.const_CAPEX = Constraint(expr=b_tec.var_CAPEX == b_tec.var_CAPEX_aux)
+            b_tec.const_capex = Constraint(expr=b_tec.var_capex == b_tec.var_capex_aux)
     return b_tec
 
 def define_input(b_tec, tec_data, energyhub):
@@ -213,19 +194,19 @@ def define_opex(b_tec, tec_data, energyhub):
     set_t = energyhub.model.set_t_full
 
     # VARIABLE OPEX
-    b_tec.para_OPEX_variable = Param(domain=Reals, initialize=economics.opex_variable,
+    b_tec.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable,
                                      units=u.EUR/u.MWh)
-    b_tec.var_OPEX_variable = Var(set_t, units=u.EUR)
-    def init_OPEX_variable(const, t):
-        return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_OPEX_variable == \
-               b_tec.var_OPEX_variable[t]
-    b_tec.const_OPEX_variable = Constraint(set_t, rule=init_OPEX_variable)
+    b_tec.var_opex_variable = Var(set_t, units=u.EUR)
+    def init_opex_variable(const, t):
+        return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_opex_variable == \
+               b_tec.var_opex_variable[t]
+    b_tec.const_opex_variable = Constraint(set_t, rule=init_opex_variable)
 
     # FIXED OPEX
-    b_tec.para_OPEX_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
+    b_tec.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
                                   units=u.EUR/u.EUR)
-    b_tec.var_OPEX_fixed = Var(units=u.EUR)
-    b_tec.const_OPEX_fixed = Constraint(expr=b_tec.var_CAPEX_aux * b_tec.para_OPEX_fixed == b_tec.var_OPEX_fixed)
+    b_tec.var_opex_fixed = Var(units=u.EUR)
+    b_tec.const_opex_fixed = Constraint(expr=b_tec.var_capex_aux * b_tec.para_opex_fixed == b_tec.var_opex_fixed)
     return b_tec
 
 def define_emissions(b_tec, tec_data, energyhub):

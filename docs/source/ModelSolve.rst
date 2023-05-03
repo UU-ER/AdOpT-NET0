@@ -25,4 +25,4 @@ After model construction, the method :func:`.EnergyHub.quick_solve_model()` can 
     configuration.optimization.objective = 'emissions_minC'
 
     energyhub = EnergyHub(data, configuration)
-    energyhub.quick_solve_model()
+    results = energyhub.quick_solve()
