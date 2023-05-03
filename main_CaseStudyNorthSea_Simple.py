@@ -20,52 +20,10 @@ data.pprint()
 
 # Read data
 configuration = ModelConfiguration()
-configuration.optimization.objective = 'costs'
-# configuration.optimization.typicaldays = 10
-
-# data = load_object(data_save_path)
+configuration.optimization.objective = 'pareto'
 
 energyhub = EnergyHub(data, configuration)
 
 # Construct equations
-energyhub.quick_solve_model()
-
-if configuration.optimization.objective == 'pareto':
-    i = 0
-    for result in energyhub.results:
-        result.write_excel(r'.\user_data\CaseStudyNorthSea' + str(i))
-        i += 1
-else:
-    results = energyhub.write_results()
-    results.write_excel(r'.\user_data\CaseStudyNorthSea')
-# # Add technology to model and solve again
-# energyhub.add_technology_to_node('onshore', ['WT_OS_11000'])
-# energyhub.construct_balances()
-# energyhub.solve_model()
-#
-# # Write results
-# results = energyhub.write_results()
-
-# energyhub.model.display()
-#
-# # energyhub.model.pprint()
-# # # Save model
-# # print('Saving Model...')
-# # start = time.time()
-# # energyhub.save_model('./data/ehub_instances', 'test_non_transformed')
-# # print('Saving Model completed in ' + str(time.time()-start) + ' s')
-# #
-# Big-M transformation
-# print('Performing Big-M transformation...')
-# start = time.time()
-# xfrm = TransformationFactory('gdp.bigm')
-# xfrm.apply_to(energyhub.model)
-# print('Performing Big-M transformation completed in ' + str(time.time()-start) + ' s')
-# Display whole model
-# energyhub.model.pprint()
-
-# Save model
-# print('Saving Model...')
-# start = time.time()
-# energyhub.save_model('./data/ehub_instances', 'test_non_transformed')
-# print('Saving Model completed in ' + str(time.time()-start) + ' s')
+results = energyhub.quick_solve()
+results.write_excel(r'.\user_data\CaseStudyNorthSea')

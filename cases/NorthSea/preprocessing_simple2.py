@@ -14,7 +14,7 @@ x Add SMR to onshore nodes (with decommissioning cost)
 
 def create_data():
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2022, start_date='01-01 00:00', end_date='06-30 23:00', resolution=1)
+    topology.define_time_horizon(year=2022, start_date='01-01 00:00', end_date='02-30 23:00', resolution=1)
 
     # Carriers
     topology.define_carriers(['electricity', 'gas', 'coal', 'hydrogen'])
@@ -50,6 +50,7 @@ def create_data():
          'NL_on_Holland_N',
          # 'NL_on_East',
          # 'NL_on_North',
+        'BE'
          ]
 
     # All nodes
@@ -79,8 +80,8 @@ def create_data():
         data.read_climate_data_from_file(node, '.\data\climate_data_onshore.txt')
 
     # Define demand
-    data = define_demand_per_node(data, 'NL_on_Holland_S', 0.15)
-    data = define_demand_per_node(data, 'NL_on_Holland_N', 0.15)
+    data = define_demand_per_node(data, 'NL_on_Holland_S', 0.23)
+    data = define_demand_per_node(data, 'NL_on_Holland_N', 0.23)
 
     # Define import/export to neighboring nodes for electricity
     line_Holland_S = np.ones(len(topology.timesteps)) * 5270
@@ -178,13 +179,20 @@ def define_technologies(topology, onshore_nodes):
     topology.define_existing_technologies('NL_on_Holland_S', {
         'PowerPlant_Coal': (1070 + 731) / eta_coal,
         'PowerPlant_Gas': 2602 / eta_gas,
-        'WindTurbine_Onshore_4000': 200,
+        'WindTurbine_Onshore_4000': 100,
         'Photovoltaic': 5000,
         'SteamReformer': 2000
     })
     topology.define_existing_technologies('NL_on_Holland_N', {
         'PowerPlant_Gas': 3338 / eta_gas,
-        'WindTurbine_Onshore_4000': 200,
+        'WindTurbine_Onshore_4000': 100,
+        'Photovoltaic': 5000,
+        'SteamReformer': 2000
+    })
+    topology.define_existing_technologies('BE', {
+        'PowerPlant_Coal': (1070 + 731) / eta_coal,
+        'PowerPlant_Gas': 8730 / eta_gas,
+        'WindTurbine_Onshore_4000': 100,
         'Photovoltaic': 5000,
         'SteamReformer': 2000
     })
