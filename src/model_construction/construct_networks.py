@@ -1,5 +1,4 @@
 from pyomo.environ import *
-from pyomo.environ import units as u
 from pyomo.gdp import *
 import copy
 import src.global_variables as global_variables
@@ -18,26 +17,22 @@ def define_energyconsumption_parameters(b_netw, energy_consumption, energyhub):
     def init_cons_send1(para, car):
         return energy_consumption[car]['send']['k_flow']
 
-    b_netw.para_send_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send1,
-                                   units=u.dimensionless)
+    b_netw.para_send_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send1)
 
     def init_cons_send2(para, car):
         return energy_consumption[car]['send']['k_flowDistance']
 
-    b_netw.para_send_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send2,
-                                           units=u.dimensionless)
+    b_netw.para_send_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send2)
 
     def init_cons_receive1(para, car):
         return energy_consumption[car]['receive']['k_flow']
 
-    b_netw.para_receive_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive1,
-                                      units=u.dimensionless)
+    b_netw.para_receive_kflow = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive1)
 
     def init_cons_receive2(para, car):
         return energy_consumption[car]['receive']['k_flowDistance']
 
-    b_netw.para_receive_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive2,
-                                              units=u.dimensionless)
+    b_netw.para_receive_kflowDistance = Param(b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive2)
 
     # Consumption at each node
     b_netw.var_consumption = Var(set_t, b_netw.set_consumed_carriers, energyhub.model.set_nodes,
@@ -110,26 +105,19 @@ def define_size(b_netw, netw_data):
         size_initial = netw_data.size_initial
 
     if size_is_int:
-        unit_size = u.dimensionless
-        b_netw.para_rated_capacity = Param(domain=NonNegativeReals,
-                                           initialize=performance_data['rated_capacity'],
-                                           units=unit_size)
+        b_netw.para_rated_capacity = Param(domain=NonNegativeReals, initialize=performance_data['rated_capacity'])
     else:
-        unit_size = u.MW
-        b_netw.para_rated_capacity = Param(domain=NonNegativeReals, initialize=1, units=unit_size)
+        b_netw.para_rated_capacity = Param(domain=NonNegativeReals, initialize=1)
 
-    b_netw.para_size_min = Param(domain=NonNegativeReals, initialize=size_min,
-                                 units=unit_size)
-    b_netw.para_size_max = Param(domain=NonNegativeReals, initialize=size_max,
-                                 units=unit_size)
+    b_netw.para_size_min = Param(domain=NonNegativeReals, initialize=size_min)
+    b_netw.para_size_max = Param(domain=NonNegativeReals, initialize=size_max)
 
     if existing:
         # Parameters for initial size
         def init_size_initial(param, node_from, node_to):
             return size_initial.at[node_from, node_to]
 
-        b_netw.para_size_initial = Param(b_netw.set_arcs, domain=NonNegativeReals, initialize=init_size_initial,
-                                         units=unit_size)
+        b_netw.para_size_initial = Param(b_netw.set_arcs, domain=NonNegativeReals, initialize=init_size_initial)
         # Check if sizes in both direction are the same for bidirectional existing networks
         if performance_data['bidirectional'] == 1:
             for from_node in size_initial:
@@ -153,11 +141,6 @@ def define_capex_parameters(b_netw, netw_data, energyhub):
 
     economics = netw_data.economics
 
-    if size_is_int:
-        unit_size = u.dimensionless
-    else:
-        unit_size = u.MW
-
     # CHECK FOR GLOBAL ECONOMIC OPTIONS
     discount_rate = mc.set_discount_rate(configuration, economics)
 
@@ -166,30 +149,23 @@ def define_capex_parameters(b_netw, netw_data, energyhub):
 
     if economics.capex_model == 1:
         b_netw.para_capex_gamma1 = Param(domain=Reals,
-                                         initialize=economics.capex_data['gamma1'] * annualization_factor,
-                                         units=u.EUR / unit_size)
+                                         initialize=economics.capex_data['gamma1'] * annualization_factor)
         b_netw.para_capex_gamma2 = Param(domain=Reals,
-                                         initialize=economics.capex_data['gamma2'] * annualization_factor,
-                                         units=u.EUR)
+                                         initialize=economics.capex_data['gamma2'] * annualization_factor)
     elif economics.capex_model == 2:
         b_netw.para_capex_gamma1 = Param(domain=Reals,
-                                         initialize=economics.capex_data['gamma1'] * annualization_factor,
-                                         units=u.EUR / unit_size / u.km)
+                                         initialize=economics.capex_data['gamma1'] * annualization_factor)
         b_netw.para_capex_gamma2 = Param(domain=Reals,
-                                         initialize=economics.capex_data['gamma2'] * annualization_factor,
-                                         units=u.EUR)
+                                         initialize=economics.capex_data['gamma2'] * annualization_factor)
     if economics.capex_model == 3:
         b_netw.para_capex_gamma1 = Param(domain=Reals,
-                                         initialize=economics.capex_data['gamma1'] * annualization_factor,
-                                         units=u.EUR / unit_size / u.km)
+                                         initialize=economics.capex_data['gamma1'] * annualization_factor)
         b_netw.para_capex_gamma2 = Param(domain=Reals,
-                                         initialize=economics.capex_data['gamma2'] * annualization_factor,
-                                         units=u.EUR / unit_size)
+                                         initialize=economics.capex_data['gamma2'] * annualization_factor)
         b_netw.para_capex_gamma3 = Param(domain=Reals,
-                                         initialize=economics.capex_data['gamma3'] * annualization_factor,
-                                         units=u.EUR)
+                                         initialize=economics.capex_data['gamma3'] * annualization_factor)
 
-    b_netw.var_capex = Var(units=u.EUR)
+    b_netw.var_capex = Var()
 
     return b_netw
 
@@ -209,20 +185,13 @@ def define_opex_parameters(b_netw, netw_data, set_t):
     existing = netw_data.existing
     size_is_int = netw_data.size_is_int
 
-    b_netw.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable,
-                                      units=u.EUR / u.MWh)
-    b_netw.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed,
-                                   units=u.EUR / u.EUR)
+    b_netw.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable)
+    b_netw.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed)
 
-    b_netw.var_opex_variable = Var(set_t, units=u.EUR)
-    b_netw.var_opex_fixed = Var(units=u.EUR)
+    b_netw.var_opex_variable = Var(set_t)
+    b_netw.var_opex_fixed = Var()
     if existing:
-        if size_is_int:
-            unit_size = u.dimensionless
-        else:
-            unit_size = u.MW
-        b_netw.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost,
-                                                 units=u.EUR / unit_size)
+        b_netw.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost)
 
     return b_netw
 
@@ -239,7 +208,7 @@ def define_emission_vars(b_netw, netw_data, set_t):
     b_netw.para_loss2emissions = performance_data['loss2emissions']
     b_netw.para_emissionfactor = performance_data['emissionfactor']
 
-    b_netw.var_netw_emissions_pos = Var(set_t, units=u.t)
+    b_netw.var_netw_emissions_pos = Var(set_t)
 
     return b_netw
 
@@ -334,7 +303,7 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
     # CAPEX auxilliary (used to calculate theoretical CAPEX)
     # For new technologies, this is equal to actual CAPEX
     # For existing technologies it is used to calculate fixed OPEX
-    b_arc.var_capex_aux = Var(units=u.EUR)
+    b_arc.var_capex_aux = Var()
 
     def init_capex(const):
         if economics.capex_model == 1:
@@ -354,14 +323,14 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
     # CAPEX
     if existing:
         if not decommission:
-            b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0, units=u.EUR)
+            b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
         else:
-            b_arc.var_capex = Var(units=u.EUR)
+            b_arc.var_capex = Var()
             b_arc.const_capex = Constraint(
                 expr=b_arc.var_capex == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size) \
                      * b_netw.para_decommissioning_cost)
     else:
-        b_arc.var_capex = Var(units=u.EUR)
+        b_arc.var_capex = Var()
         b_arc.const_capex = Constraint(expr=b_arc.var_capex == b_arc.var_capex_aux)
 
     return b_arc
@@ -431,7 +400,7 @@ def define_opex_arc(b_arc, b_netw, set_t):
     """
     Defines OPEX per Arc
     """
-    b_arc.var_opex_variable = Var(set_t, units=u.EUR)
+    b_arc.var_opex_variable = Var(set_t)
 
     def init_opex_variable(const, t):
         return b_arc.var_opex_variable[t] == b_arc.var_flow[t] * \

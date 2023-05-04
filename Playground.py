@@ -22,7 +22,7 @@ execute = 1
 
 if execute == 1:
     # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    data = dm.load_object(r'./test/test_data/dac.p')
+    data = dm.load_object(r'./test/test_data/optimization_types.p')
     data.read_technology_data()
     # nr_days_cluster = 40
     # clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
@@ -36,12 +36,12 @@ if execute == 1:
     energyhub.construct_balances()
 
     # Solve model
-    energyhub.solve_model()
+    energyhub.quick_solve()
 
 execute = 0
 
 # region: how to k-means cluster
-if execute == 0:
+if execute == 1:
     # Load data handle from file
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)

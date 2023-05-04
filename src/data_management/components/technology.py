@@ -18,7 +18,6 @@ class Technology:
         :param str technology: name of technology to read data
         """
         tec_data = read_technology_data_from_json(technology)
-        units = read_units(tec_data['Units'])
 
         # General information
         self.name = technology
@@ -39,8 +38,6 @@ class Technology:
         technologies_modelled_with_full_res = ['RES', 'STOR']
         if global_variables.clustered_data and (self.technology_model not in technologies_modelled_with_full_res):
             self.modelled_with_full_res = 0
-
-        self.unit = units
 
         self.fitted_performance = None
 
@@ -119,17 +116,3 @@ def read_technology_data_from_json(tec):
     # Assign name
     technology_data['Name'] = tec
     return technology_data
-
-def read_units(units_in):
-    for key in units_in.keys():
-        if 'size' in key:
-            temp = "/"
-            temp = temp.join([item.replace(item, 'u.' + item) for item in units_in['size'].split('/')])
-            units_in['size'] = temp
-        if 'carrier' in key:
-            for car in units_in[key]:
-                temp = "/"
-                temp = temp.join([item.replace(item, 'u.' + item) for item in units_in[key][car].split('/')])
-                units_in[key][car] = temp
-
-    return units_in
