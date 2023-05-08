@@ -145,8 +145,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     coeff = tec_data.fitted_performance.coefficients
     rated_power = tec_data.fitted_performance.rated_power
     modelled_with_full_res = tec_data.modelled_with_full_res
-    size_based_on= tec_data['size_based_on']
-
+    size_based_on = performance_data['size_based_on']
 
     # Full or reduced resolution
     if global_variables.clustered_data and not modelled_with_full_res:
