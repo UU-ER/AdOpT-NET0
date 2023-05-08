@@ -33,6 +33,20 @@ class Technology:
 
         # Technology Performance
         self.performance_data = tec_data['TechnologyPerf']
+
+        # Size-input/output constraints
+        if self.technology_model == 'CONV1':
+            self.performance_data['size_based_on'] = tec_data['size_based_on']
+        else:
+            self.performance_data['size_based_on'] = 'input'
+
+        # Emissions are based on...
+        if (self.technology_model == 'DAC_Adsorption') or \
+                (self.technology_model == 'CONV4'):
+            self.emissions_based_on = 'output'
+        else:
+            self.emissions_based_on = 'input'
+
         technologies_modelled_with_full_res = ['RES', 'STOR']
         if global_variables.clustered_data and (self.technology_model not in technologies_modelled_with_full_res):
             self.modelled_with_full_res = 0
@@ -74,11 +88,14 @@ class Technology:
         elif self.technology_model == 'CONV1' or self.technology_model == 'CONV4':  # n inputs -> n output, fuel and output substitution
             self.fitted_performance = perform_fitting_tec_CONV1(self.performance_data, climate_data)
 
-        elif self.technology_model == 'CONV2':  # n inputs -> n output, fuel and output substitution
+        elif self.technology_model == 'CONV2':  # n inputs -> n output, fuel substitution
             self.fitted_performance = perform_fitting_tec_CONV2(self.performance_data, climate_data)
 
         elif self.technology_model == 'CONV3':  # n inputs -> n output, fixed ratio between inputs and outputs
             self.fitted_performance = perform_fitting_tec_CONV3(self.performance_data, climate_data)
+
+        elif self.technology_model == 'CONV4':  # 0 inputs -> n outputs, fixed ratio between outputs
+            self.fitted_performance = perform_fitting_tec_CONV4(self.performance_data, climate_data)
 
         elif self.technology_model == 'STOR':  # storage technologies
             self.fitted_performance = perform_fitting_tec_STOR(self.performance_data, climate_data)

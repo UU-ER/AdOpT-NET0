@@ -85,10 +85,21 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     Adds constraints to technology blocks for tec_type CONV1, i.e. :math:`\sum(output) = f(\sum(inputs))`
 
     This technology type resembles a technology with full input and output substitution.
-    As for all conversion technologies, three different performance function fits are possible. The performance
+    Three different performance function fits are possible. The performance
     functions are fitted in ``src.model_construction.technology_performance_fitting``.
 
     **Constraint declarations:**
+
+    - Size constraints can be formulated on the input or the output.
+      For size_based_on == 'input' it holds:
+
+      .. math::
+         \sum(Input_{t, car}) \leq S
+
+      For size_based_on == 'output' it holds:
+
+      .. math::
+         \sum(Output_{t, car}) \leq S
 
     - It is possible to limit the maximum input of a carrier. This needs to be specified in the technology JSON files.
       Then it holds:
@@ -134,7 +145,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     coeff = tec_data.fitted_performance.coefficients
     rated_power = tec_data.fitted_performance.rated_power
     modelled_with_full_res = tec_data.modelled_with_full_res
-
+    size_based_on = performance_data['size_based_on']
 
     # Full or reduced resolution
     if global_variables.clustered_data and not modelled_with_full_res:
@@ -153,7 +164,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     if performance_function_type == 2:
         alpha2 = coeff['out']['alpha2']
     if performance_function_type == 3:
-        bp_x = coeff['bp_x']
+        bp_x = coeff['out']['bp_x']
         alpha2 = coeff['out']['alpha2']
 
     min_part_load = performance_data['min_part_load']
@@ -255,10 +266,14 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
-    # size constraint based on sum of inputs
+    # size constraint based on sum of input/output
     def init_size_constraint(const, t):
-        return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
-               <= b_tec.var_size * rated_power
+        if size_based_on == 'input':
+            return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
+                   <= b_tec.var_size * rated_power
+        elif size_based_on == 'output':
+            return sum(output[t, car_output] for car_output in b_tec.set_output_carriers) \
+                   <= b_tec.var_size * rated_power
     b_tec.const_size = Constraint(set_t, rule=init_size_constraint)
 
     # Maximum input of carriers
@@ -277,10 +292,15 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
 
     This technology type resembles a technology with full input substitution, but different performance functions
     for the respective output carriers.
-    As for all conversion technologies, three different performance function fits are possible. The performance
+    Three different performance function fits are possible. The performance
     functions are fitted in ``src.model_construction.technology_performance_fitting``.
 
     **Constraint declarations:**
+
+    - Size constraints are formulated on the input.
+
+      .. math::
+         \sum(Input_{t, car}) \leq S
 
     - It is possible to limit the maximum input of a carrier. This needs to be specified in the technology JSON files.
       Then it holds:
@@ -347,7 +367,7 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
         if performance_function_type == 2:
             alpha2[c] = coeff[c]['alpha2']
         if performance_function_type == 3:
-            bp_x = coeff['bp_x']
+            bp_x = coeff[c]['bp_x']
             alpha2[c] = coeff[c]['alpha2']
 
     min_part_load = performance_data['min_part_load']
@@ -474,10 +494,16 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
     This technology type resembles a technology with different performance functions for the respective output
     carriers. The performance function is based on the input of the main carrier.
     The ratio between all input carriers is fixed.
-    As for all conversion technologies, three different performance function fits are possible. The performance
+    Three different performance function fits are possible. The performance
     functions are fitted in ``src.model_construction.technology_performance_fitting``.
 
     **Constraint declarations:**
+
+    - Size constraints are formulated on the input.
+
+      .. math::
+         Input_{t, maincarrier} \leq S
+
     - The ratios of inputs for all performance function types are fixed and given as:
 
       .. math::
@@ -543,7 +569,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
         if performance_function_type == 2:
             alpha2[c] = coeff[c]['alpha2']
         if performance_function_type == 3:
-            bp_x = coeff['bp_x']
+            bp_x = coeff[c]['bp_x']
             alpha2[c] = coeff[c]['alpha2']
 
     min_part_load = performance_data['min_part_load']
@@ -662,41 +688,39 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
     return b_tec
 
 
+
 def constraints_tec_CONV4(b_tec, tec_data, energyhub):
     """
-    Adds constraints to technology blocks for tec_type CONV4, i.e. :math:`output = f(inputs)`
+    Adds constraints to technology blocks for tec_type CONV4, i.e. :math:`output_{car} \leq S>)`
 
-    This technology type resembles a technology with full input and output substitution. The size constrains the output.
-    As for all conversion technologies, two different performance function fits are possible. The performance
+    This technology type resembles a technology with fixed output ratios and no inputs
+    Two different performance function fits are possible. The performance
     functions are fitted in ``src.model_construction.technology_performance_fitting``.
 
     **Constraint declarations:**
 
-    - It is possible to limit the maximum input of a carrier. This needs to be specified in the technology JSON files.
-      Then it holds:
+    - Size constraints are formulated on the output.
 
       .. math::
-        Input_{t, car} <= max_in_{car} * \sum(Input_{t, car})
+         Output_{t, maincarrier} \leq S
 
-    - ``performance_function_type == 1``: Linear through origin, i.e.:
+    - The ratios of outputs for all performance function types are fixed and given as:
 
       .. math::
-        Output_{t, car} == {\\alpha}_1 Input_{t, car}
+        Output_{t, car} = {\\phi}_{car} * Output_{t, maincarrier}
 
-    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
+    - ``performance_function_type == 1``: No further constraints:
+
+    - ``performance_function_type == 2``: Minimal partload (makes big-m transformation required). If the
       technology is in on, it holds:
 
       .. math::
-        Output_{t, car} = {\\alpha}_1 Input_{t, car} + {\\alpha}_2
+        Output_{maincarrier} \geq Output_{min} * S
 
-      If the technology is off, input and output is set to 0:
-
-      .. math::
-         \sum(Output_{t, car}) = 0
+      If the technology is off, output is set to 0:
 
       .. math::
-         \sum(Input_{t, car}) = 0
-
+         Output_{t, car} = 0
 
     :param obj model: instance of a pyomo model
     :param obj b_tec: technology block
@@ -707,106 +731,74 @@ def constraints_tec_CONV4(b_tec, tec_data, energyhub):
 
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
-    coeff = tec_data.fitted_performance.coefficients
     rated_power = tec_data.fitted_performance.rated_power
     modelled_with_full_res = tec_data.modelled_with_full_res
 
     # Full or reduced resolution
     if global_variables.clustered_data and not modelled_with_full_res:
-        input = b_tec.var_input_aux
         output = b_tec.var_output_aux
         set_t = model.set_t_clustered
     else:
-        input = b_tec.var_input
         output = b_tec.var_output
         set_t = model.set_t_full
 
     performance_function_type = performance_data['performance_function_type']
 
-    # Get performance parameters
-    alpha1 = coeff['out']['alpha1']
-    if performance_function_type == 2:
-        alpha2 = coeff['out']['alpha2']
-    if performance_function_type == 3:
-        bp_x = coeff['bp_x']
-        alpha2 = coeff['out']['alpha2']
 
     min_part_load = performance_data['min_part_load']
 
-    if performance_function_type >= 2:
-        global_variables.big_m_transformation_required = 1
+    # Output ratios
+    phi = {}
+    if 'output_ratios' in performance_data:
+        main_car = performance_data['main_output_carrier']
+        for c in performance_data['output_ratios']:
+            phi[c] = performance_data['output_ratios'][c]
 
     # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:
-        def init_input_output(const, t):
-            return sum(output[t, car_output]
-                       for car_output in b_tec.set_output_carriers) == \
-                   alpha1 * sum(input[t, car_input]
-                                for car_input in b_tec.set_input_carriers)
-
-        b_tec.const_input_output = Constraint(set_t, rule=init_input_output)
+        pass
 
     # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
+        global_variables.big_m_transformation_required = 1
+
         if min_part_load == 0:
             warnings.warn(
-                'Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + b_tec.local_name)
+                'Having performance_function_type = 2 with no part-load usually makes no sense.')
 
-        # define disjuncts for on/off
+        # define disjuncts
         s_indicators = range(0, 2)
 
-        def init_input_output(dis, t, ind):
+        def init_output(dis, t, ind):
             if ind == 0:  # technology off
-                def init_input_off(const, car_input):
-                    return input[t, car_input] == 0
-
-                dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
-
                 def init_output_off(const, car_output):
                     return output[t, car_output] == 0
-
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+
             else:  # technology on
-                # input-output relation
-                def init_input_output_on(const):
-                    return sum(output[t, car_output] for car_output in b_tec.set_output_carriers) == \
-                           alpha1 * sum(input[t, car_input] for car_input in b_tec.set_input_carriers) + \
-                           alpha2 * b_tec.var_size * rated_power
-
-                dis.const_input_output_on = Constraint(rule=init_input_output_on)
-
-                # min part load relation
                 def init_min_partload(const):
-                    return sum(input[t, car_input]
-                               for car_input in b_tec.set_input_carriers) >= \
-                           min_part_load * b_tec.var_size * rated_power
-
+                    return output[t, main_car] >= min_part_load * b_tec.var_size * rated_power
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(set_t, s_indicators, rule=init_input_output)
+        b_tec.dis_output = Disjunct(set_t, s_indicators, rule=init_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
-            return [b_tec.dis_input_output[t, i] for i in s_indicators]
+            return [b_tec.dis_output[t, i] for i in s_indicators]
+        b_tec.disjunction_output = Disjunction(set_t, rule=bind_disjunctions)
 
-        b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
+    # constraint on output ratios
+    def init_output_output(const, t, car_output):
+        if car_output == main_car:
+            return Constraint.Skip
+        else:
+            return output[t, car_output] == phi[car_output] * output[t, main_car]
+    b_tec.const_output_output = Constraint(set_t, b_tec.set_output_carriers, rule=init_output_output)
 
-    # size constraint based on sum of inputs
+    # size constraint based main carrier output
     def init_size_constraint(const, t):
-        return sum(output[t, car_output] for car_output in b_tec.set_output_carriers) \
-               <= b_tec.var_size * rated_power
-
+        return output[t, main_car] <= b_tec.var_size * rated_power
     b_tec.const_size = Constraint(set_t, rule=init_size_constraint)
-
-    # Maximum input of carriers
-    if 'max_input' in performance_data:
-        b_tec.set_max_input_carriers = Set(initialize=performance_data['max_input'].keys())
-
-        def init_max_input(const, t, car):
-            return input[t, car] <= performance_data['max_input'][car] * \
-                   sum(input[t, car_input] for car_input in b_tec.set_input_carriers)
-
-        b_tec.const_max_input = Constraint(set_t, b_tec.set_max_input_carriers, rule=init_max_input)
 
     return b_tec
 
@@ -814,7 +806,7 @@ def constraints_tec_STOR(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
-    As for all conversion technologies, three different performance function fits are possible. The performance
+    The performance
     functions are fitted in ``src.model_construction.technology_performance_fitting``.
     Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
 

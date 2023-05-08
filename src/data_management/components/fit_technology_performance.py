@@ -11,20 +11,6 @@ from scipy.interpolate import interp1d
 from src.data_management.components.utilities import *
 
 
-class FittedPerformance:
-    """
-    Class to manage performance of technologies
-    """
-    def __init__(self):
-        self.rated_power = 1
-        self.bounds = {}
-        self.bounds['output'] = {}
-        self.bounds['input'] = {}
-        self.coefficients = {}
-        self.time_dependent_coefficients = 0
-        self.other = {}
-
-
 def perform_fitting_PV(climate_data, location, **kwargs):
     """
     Calculates capacity factors and specific area requirements for a PV system
@@ -170,53 +156,15 @@ def perform_fitting_tec_CONV1(tec_data, climate_data):
     :param performance_function_type: options for type of performance function (linear, piecewise,...)
     :param nr_seg: number of segments on piecewise defined function
     """
-    performance_data = tec_data['performance']
-    performance_function_type = tec_data['performance_function_type']
-    if 'nr_segments_piecewise' in performance_data:
-        nr_seg = performance_data['nr_segments_piecewise']
-    else:
-        nr_seg = 2
+    # reshape performance_data for CONV1
+    temp = copy.deepcopy(tec_data['performance']['out'])
+    tec_data['performance']['out'] = {}
+    tec_data['performance']['out']['out'] = temp
 
-    # reshape performance_Data:
-    temp = copy.deepcopy(performance_data['out'])
-    performance_data['out'] = {}
-    performance_data['out']['out'] = temp
-
-    # Number of timesteps:
     time_steps = len(climate_data)
-
-    if performance_function_type == 1:
-        fit = fit_performance_function_type1(performance_data, time_steps)
-    elif performance_function_type == 2:
-        fit = fit_performance_function_type2(performance_data, time_steps)
-    elif performance_function_type == 3:
-        fit = fit_performance_function_type3(performance_data, nr_seg, time_steps)
-    else:
-        raise Exception("performance_function_type must be an integer between 1 and 3")
-
-    if 'min_part_load' in performance_data:
-        fit['min_part_load'] = tec_data['min_part_load']
-    else:
-        fit['min_part_load'] = 0
-
-    # return fit
-    fitting = FittedPerformance()
-    # Rated Power
-    if 'rated_power' in tec_data:
-        fitting.rated_power = tec_data['rated_power']
-    # Output Bounds
-    for car in tec_data['output_carrier']:
-        fitting.bounds['output'][car] = fit['output_bounds']['out']
-    # Input Bounds
-    for car in tec_data['input_carrier']:
-        fitting.bounds['input'][car] = fit['input_bounds']
-    # Coefficients
-    fitting.coefficients = fit['coeff']
-    # Time dependent coefficents
-    fitting.time_dependent_coefficients = 0
+    fitting = fit_performance_generic_tecs(tec_data, time_steps)
 
     return fitting
-
 
 def perform_fitting_tec_CONV2(tec_data, climate_data):
     """
@@ -225,48 +173,12 @@ def perform_fitting_tec_CONV2(tec_data, climate_data):
     :param performance_function_type: options for type of performance function (linear, piecewise,...)
     :param nr_seg: number of segments on piecewise defined function
     """
-    performance_data = tec_data['performance']
-    performance_function_type = tec_data['performance_function_type']
-    if 'nr_segments_piecewise' in performance_data:
-        nr_seg = performance_data['nr_segments_piecewise']
-    else:
-        nr_seg = 2
-
-    # Number of timesteps:
     time_steps = len(climate_data)
-
-    if performance_function_type == 1:
-        fit = fit_performance_function_type1(performance_data, time_steps)
-    elif performance_function_type == 2:
-        fit = fit_performance_function_type2(performance_data, time_steps)
-    elif performance_function_type == 3:
-        fit = fit_performance_function_type3(performance_data, nr_seg, time_steps)
-    else:
-        raise Exception("performance_function_type must be an integer between 1 and 3")\
-
-    if 'min_part_load' in performance_data:
-        fit['min_part_load'] = tec_data['min_part_load']
-    else:
-        fit['min_part_load'] = 0
-
-    # return fit
-    fitting = FittedPerformance()
-    # Rated Power
-    if 'rated_power' in tec_data:
-        fitting.rated_power = tec_data['rated_power']
-    # Output Bounds
-    for car in tec_data['output_carrier']:
-        fitting.bounds['output'][car] = fit['output_bounds'][car]
-    # Input Bounds
-    for car in tec_data['input_carrier']:
-        fitting.bounds['input'][car] = fit['input_bounds']
-    # Coefficients
-    fitting.coefficients = fit['coeff']
-    # Time dependent coefficents
-    fitting.time_dependent_coefficients = 0
+    if tec_data['size_based_on'] == 'output':
+        raise Exception('size_based_on == output for CONV2 not possible.')
+    fitting = fit_performance_generic_tecs(tec_data, time_steps)
 
     return fitting
-
 
 def perform_fitting_tec_CONV3(tec_data, climate_data):
     """
@@ -275,49 +187,46 @@ def perform_fitting_tec_CONV3(tec_data, climate_data):
     :param performance_function_type: options for type of performance function (linear, piecewise,...)
     :param nr_seg: number of segments on piecewise defined function
     """
-    performance_data = tec_data['performance']
-    performance_function_type = tec_data['performance_function_type']
-    if 'nr_segments_piecewise' in performance_data:
-        nr_seg = performance_data['nr_segments_piecewise']
-    else:
-        nr_seg = 2
-
-    # Number of timesteps:
     time_steps = len(climate_data)
+    if tec_data['size_based_on'] == 'output':
+        raise Exception('size_based_on == output for CONV3 not possible.')
+    fitting = fit_performance_generic_tecs(tec_data, time_steps)
 
-    if performance_function_type == 1:
-        fit = fit_performance_function_type1(performance_data, time_steps)
-    elif performance_function_type == 2:
-        fit = fit_performance_function_type2(performance_data, time_steps)
-    elif performance_function_type == 3:
-        fit = fit_performance_function_type3(performance_data, nr_seg, time_steps)
-    else:
-        raise Exception("performance_function_type must be an integer between 1 and 3")
-
-    if 'min_part_load' in performance_data:
-        fit['min_part_load'] = tec_data['min_part_load']
-    else:
-        fit['min_part_load'] = 0
-
-    # return fit
-    fitting = FittedPerformance()
-    # Rated Power
-    if 'rated_power' in tec_data:
-        fitting.rated_power = tec_data['rated_power']
-    # Output Bounds
-    for car in tec_data['output_carrier']:
-        fitting.bounds['output'][car] = fit['output_bounds'][car]
-    # Input Bounds
-    for car in tec_data['input_carrier']:
-        fitting.bounds['input'][car] = fit['input_bounds'] * tec_data['input_ratios'][car]
-    fitting.bounds['input'][tec_data['main_input_carrier']] = fit['input_bounds']
-    # Coefficients
-    fitting.coefficients = fit['coeff']
-    # Time dependent coefficents
-    fitting.time_dependent_coefficients = 0
+    # Input bounds recalculation
+    for car in fitting.input_carrier:
+        if not car == tec_data['main_input_carrier']:
+            fitting.bounds['input'][car] = fitting.bounds['input'][tec_data['main_input_carrier']]\
+                                           * tec_data['input_ratios'][car]
 
     return fitting
 
+def perform_fitting_tec_CONV4(tec_data, climate_data):
+    """
+    Fits conversion technology type 4 and returns fitted parameters as a dict
+    :param performance_data: contains X and y data of technology performance
+    :param performance_function_type: options for type of performance function (linear, piecewise,...)
+    :param nr_seg: number of segments on piecewise defined function
+    """
+    time_steps = len(climate_data)
+
+    # return fit
+    fitting = FittedPerformance(tec_data)
+    # Output Bounds
+    fitting.bounds['output'][tec_data['main_output_carrier']] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                     np.ones(shape=(time_steps))))
+    for car in fitting.output_carrier:
+        if not car == tec_data['main_output_carrier']:
+            fitting.bounds['output'][car] = fitting.bounds['output'][tec_data['main_output_carrier']]\
+                                           * tec_data['output_ratios'][car]
+
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 0
+
+    # Other Data
+    if 'rated_power' in tec_data:
+        fitting.rated_power = tec_data['rated_power']
+
+    return fitting
 
 def perform_fitting_tec_STOR(tec_data, climate_data):
 
@@ -417,21 +326,21 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
         y = {}
         y['CO2_Out'] = CO2_Out[timestep, :]
         time_step_fit = fit_piecewise_function(E_tot[timestep, :], y, int(nr_segments))
-        alpha[timestep, :] = time_step_fit['coeff']['CO2_Out']['alpha1']
-        beta[timestep, :] = time_step_fit['coeff']['CO2_Out']['alpha2']
-        b[timestep, :] = time_step_fit['coeff']['bp_x']
-        out_max[timestep] = max(time_step_fit['coeff']['CO2_Out']['bp_y'])
-        total_in_max[timestep] = max(time_step_fit['coeff']['bp_x'])
+        alpha[timestep, :] = time_step_fit['CO2_Out']['alpha1']
+        beta[timestep, :] = time_step_fit['CO2_Out']['alpha2']
+        b[timestep, :] = time_step_fit['CO2_Out']['bp_x']
+        out_max[timestep] = max(time_step_fit['CO2_Out']['bp_y'])
+        total_in_max[timestep] = max(time_step_fit['CO2_Out']['bp_x'])
 
         # Input-Input relation
         y = {}
         y['E_el'] = E_el[timestep, :]
         time_step_fit = fit_piecewise_function(E_tot[timestep, :], y, int(nr_segments))
-        gamma[timestep, :] = time_step_fit['coeff']['E_el']['alpha1']
-        delta[timestep, :] = time_step_fit['coeff']['E_el']['alpha2']
-        a[timestep, :] = time_step_fit['coeff']['bp_x']
-        el_in_max[timestep] = max(time_step_fit['coeff']['E_el']['bp_y'])
-        th_in_max[timestep] = max(time_step_fit['coeff']['bp_x'])
+        gamma[timestep, :] = time_step_fit['E_el']['alpha1']
+        delta[timestep, :] = time_step_fit['E_el']['alpha2']
+        a[timestep, :] = time_step_fit['E_el']['bp_x']
+        el_in_max[timestep] = max(time_step_fit['E_el']['bp_y'])
+        th_in_max[timestep] = max(time_step_fit['E_el']['bp_x'])
 
     print("Complete: ", 100, "%")
 
@@ -538,9 +447,9 @@ def perform_fitting_tec_HP(tec_data, climate_data, HP_type):
             x = np.linspace(min_part_load, 1, 9)
             y['out'] = (x / (1 - 0.9 * (1 - x))) * cop_t * x
             time_step_fit = fit_piecewise_function(x, y, 2)
-            alpha1[idx, :] = time_step_fit['coeff']['out']['alpha1']
-            alpha2[idx, :] = time_step_fit['coeff']['out']['alpha2']
-            bp_x[idx, :] = time_step_fit['coeff']['bp_x']
+            alpha1[idx, :] = time_step_fit['out']['alpha1']
+            alpha2[idx, :] = time_step_fit['out']['alpha2']
+            bp_x[idx, :] = time_step_fit['out']['bp_x']
     print("Complete: ", 100, "%")
 
     # Calculate input bounds

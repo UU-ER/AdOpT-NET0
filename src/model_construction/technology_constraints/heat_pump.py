@@ -150,7 +150,7 @@ def constraints_tec_hp(b_tec, tec_data, energyhub):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
-    # size constraint based on sum of inputs
+    # size constraint based on input
     def init_size_constraint(const, t):
         return input[t, 'electricity'] <= b_tec.var_size * rated_power
     b_tec.const_size = Constraint(set_t, rule=init_size_constraint)
