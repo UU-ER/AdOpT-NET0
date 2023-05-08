@@ -85,7 +85,7 @@ class Technology:
                     hubheight = 120
                 self.fitted_performance = perform_fitting_WT(climate_data, self.name, hubheight)
 
-        elif self.technology_model == 'CONV1' or self.technology_model == 'CONV4':  # n inputs -> n output, fuel and output substitution
+        elif self.technology_model == 'CONV1':  # n inputs -> n output, fuel and output substitution
             self.fitted_performance = perform_fitting_tec_CONV1(self.performance_data, climate_data)
 
         elif self.technology_model == 'CONV2':  # n inputs -> n output, fuel substitution

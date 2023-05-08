@@ -749,10 +749,9 @@ def constraints_tec_CONV4(b_tec, tec_data, energyhub):
 
     # Output ratios
     phi = {}
-    if 'output_ratios' in performance_data:
-        main_car = performance_data['main_output_carrier']
-        for c in performance_data['output_ratios']:
-            phi[c] = performance_data['output_ratios'][c]
+    main_car = performance_data['main_output_carrier']
+    for c in performance_data['output_ratios']:
+        phi[c] = performance_data['output_ratios'][c]
 
     # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:

@@ -23,7 +23,7 @@
         1.79688598565655E+6
       ]
     },
-    "OPEX_variable": 5,
+    "OPEX_variable": 25,
     "OPEX_fixed": 0.4,
     "discount_rate": 0.1,
     "lifetime": 30,
@@ -31,25 +31,15 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 1,
-    "input_carrier": [
-      "nuclear"
-    ],
-    "main_input_carrier": "nuclear",
+    "performance_function_type": 2,
+    "main_output_carrier": "electricity",
     "output_carrier": [
       "electricity"
     ],
+    "output_ratios": {
+      "electricity": 1
+    },
     "emission_factor": 0,
-    "min_part_load": 0,
-    "performance": {
-      "in": [
-        0,
-        1
-      ],
-      "out": [
-          0,
-          0.33
-      ]
-    }
+    "min_part_load": 0.4
   }
 }

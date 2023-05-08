@@ -1,8 +1,9 @@
 {
-  "tec_type": "CONV4",
+  "tec_type": "CONV1",
   "size_min": 0,
   "size_max": 1000000,
   "size_is_int": 0,
+  "size_based_on": "output",
   "Name": "PowerPlant_Gas",
   "decommission": 0,
   "Economics": {

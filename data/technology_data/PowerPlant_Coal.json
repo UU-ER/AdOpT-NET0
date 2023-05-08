@@ -13,7 +13,7 @@
       "bp_x": ["not defined"],
       "bp_y": ["not defined"]
     },
-    "OPEX_variable": 2.9,
+    "OPEX_variable": 52.9,
     "OPEX_fixed": 0.0018,
     "discount_rate": 0.1,
     "lifetime": 30,
@@ -22,24 +22,14 @@
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 2,
-    "input_carrier": [
-      "coal"
-    ],
-    "main_input_carrier": "coal",
+    "main_output_carrier": "electricity",
     "output_carrier": [
       "electricity"
     ],
+    "output_ratios": {
+      "electricity": 1
+    },
     "emission_factor": 1.56,
-    "min_part_load": 0.15,
-    "performance": {
-      "in": [
-        0,
-        1
-      ],
-      "out": [
-          0,
-          0.51
-      ]
-    }
+    "min_part_load": 0.4
   }
 }

@@ -23,13 +23,12 @@ topology = dm.SystemTopology()
 topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
 
 # Carriers
-topology.define_carriers(['electricity', 'gas', 'nuclear', 'coal', 'hydrogen'])
+topology.define_carriers(['electricity', 'gas', 'hydrogen'])
 
 # Nodes
 topology.define_nodes(nodes)
 
 # Existing Technologies
-# TODO Code CONV4 correctly (input/output bounds missing)
 for node in nodes:
     for tec in installed_capacities[node]['Conventional']:
         if installed_capacities[node]['Conventional'][tec] > 0:
@@ -63,7 +62,7 @@ for node in nodes:
     data.read_demand_data(node, 'electricity', electricity_demand[node].to_numpy())
 
 # Import/Export of conventional fuels
-import_carriers = {'coal': 50, 'nuclear': 20, 'gas': 100}
+import_carriers = {'gas': 100}
 import_limit = np.ones(len(topology.timesteps)) * 50000
 
 for node in nodes:
