@@ -174,6 +174,8 @@ def perform_fitting_tec_CONV2(tec_data, climate_data):
     :param nr_seg: number of segments on piecewise defined function
     """
     time_steps = len(climate_data)
+    if tec_data['size_based_on'] == 'output':
+        raise Exception('size_based_on == output for CONV2 not possible.')
     fitting = fit_performance_generic_tecs(tec_data, time_steps)
 
     return fitting
@@ -195,6 +197,34 @@ def perform_fitting_tec_CONV3(tec_data, climate_data):
         if not car == tec_data['main_input_carrier']:
             fitting.bounds['input'][car] = fitting.bounds['input'][tec_data['main_input_carrier']]\
                                            * tec_data['input_ratios'][car]
+
+    return fitting
+
+def perform_fitting_tec_CONV4(tec_data, climate_data):
+    """
+    Fits conversion technology type 4 and returns fitted parameters as a dict
+    :param performance_data: contains X and y data of technology performance
+    :param performance_function_type: options for type of performance function (linear, piecewise,...)
+    :param nr_seg: number of segments on piecewise defined function
+    """
+    time_steps = len(climate_data)
+
+    # return fit
+    fitting = FittedPerformance(tec_data)
+    # Output Bounds
+    fitting.bounds['output'][tec_data['main_output_carrier']] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                     np.ones(shape=(time_steps))))
+    for car in fitting.output_carrier:
+        if not car == tec_data['main_output_carrier']:
+            fitting.bounds['output'][car] = fitting.bounds['output'][tec_data['main_output_carrier']]\
+                                           * tec_data['output_ratios'][car]
+
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 0
+
+    # Other Data
+    if 'rated_power' in tec_data:
+        fitting.rated_power = tec_data['rated_power']
 
     return fitting
 

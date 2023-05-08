@@ -66,13 +66,15 @@ class FittedPerformance:
 
     def __init__(self, tec_data=None):
         self.rated_power = 1
-        self.bounds = {'output': {}, 'input': {}}
+        self.bounds = {'input': {}, 'output': {}}
         self.coefficients = {}
         self.time_dependent_coefficients = 0
         self.other = {}
         if tec_data:
-            self.input_carrier = tec_data['input_carrier']
-            self.output_carrier = tec_data['output_carrier']
+            if 'input_carrier' in tec_data:
+                self.input_carrier = tec_data['input_carrier']
+            if 'output_carrier' in tec_data:
+                self.output_carrier = tec_data['output_carrier']
 
 
 class FitGenericTecTypeType1(FittedPerformance):
