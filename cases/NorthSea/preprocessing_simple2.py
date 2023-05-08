@@ -14,7 +14,7 @@ x Add SMR to onshore nodes (with decommissioning cost)
 
 def create_data():
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2022, start_date='01-01 00:00', end_date='02-30 23:00', resolution=1)
+    topology.define_time_horizon(year=2022, start_date='01-01 00:00', end_date='01-30 23:00', resolution=1)
 
     # Carriers
     topology.define_carriers(['electricity', 'gas', 'coal', 'hydrogen'])
@@ -169,33 +169,30 @@ def define_networks(topology):
 
 
 def define_technologies(topology, onshore_nodes):
-    eta_nuc = 0.33
-    eta_coal = 0.55
-    eta_gas = 0.55
     # topology.define_existing_technologies('NL_on_Borssele', {'PowerPlant_Nuclear': 485/eta_nuc,
     #                                              'PowerPlant_Gas': (455+2*435)/eta_gas})
     # topology.define_existing_technologies('NL_on_Brabant', {'PowerPlant_Gas': 766 / eta_gas})
     # topology.define_existing_technologies('NL_on_South', {'PowerPlant_Gas': (1304+209)/eta_gas})
     topology.define_existing_technologies('NL_on_Holland_S', {
-        'PowerPlant_Coal': (1070 + 731) / eta_coal,
-        'PowerPlant_Gas': 2602 / eta_gas,
+        'PowerPlant_Coal': (1070 + 731),
+        'PowerPlant_Gas': 2602,
         'WindTurbine_Onshore_4000': 100,
         'Photovoltaic': 5000,
         'SteamReformer': 2000
     })
     topology.define_existing_technologies('NL_on_Holland_N', {
-        'PowerPlant_Gas': 3338 / eta_gas,
+        'PowerPlant_Gas': 3338,
         'WindTurbine_Onshore_4000': 100,
         'Photovoltaic': 5000,
         'SteamReformer': 2000
     })
-    topology.define_existing_technologies('BE', {
-        'PowerPlant_Coal': (1070 + 731) / eta_coal,
-        'PowerPlant_Gas': 8730 / eta_gas,
-        'WindTurbine_Onshore_4000': 100,
-        'Photovoltaic': 5000,
-        'SteamReformer': 2000
-    })
+    # topology.define_existing_technologies('BE', {
+    #     'PowerPlant_Coal': (1070 + 731),
+    #     'PowerPlant_Gas': 8730,
+    #     'WindTurbine_Onshore_4000': 100,
+    #     'Photovoltaic': 5000,
+    #     'SteamReformer': 2000
+    # })
 
     for node in onshore_nodes:
         new_technologies = ['Storage_Battery', 'Electrolyser', 'Storage_H2', 'FuelCell']

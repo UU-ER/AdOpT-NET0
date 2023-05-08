@@ -1,5 +1,5 @@
 {
-  "tec_type": "CONV2",
+  "tec_type": "CONV4",
   "size_min": 0,
   "size_max": 1000000,
   "size_is_int": 0,
@@ -37,12 +37,10 @@
         0,
         1
       ],
-      "out": {
-        "electricity": [
+      "out": [
           0,
           0.62
-        ]
-      }
+      ]
     },
     "max_input": {
       "hydrogen": 0.05
