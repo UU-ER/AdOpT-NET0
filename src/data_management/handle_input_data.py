@@ -250,12 +250,13 @@ class DataHandle:
 
         self.node_data[node].data['import_emissionfactors'][carrier] = import_emissionfactor_data
 
-    def read_technology_data(self):
+    def read_technology_data(self, path = './data/technology_data/'):
         """
         Writes new and existing technologies to self and fits performance functions
 
-        Reads in technology data from JSON files located at ``./data/technology_data`` for all technologies specified in \
-        the topology.
+        For the default settings, it reads in technology data from JSON files located at ``./data/technology_data`` for \
+        all technologies specified in the topology. When technology data is stored at a different location, the path \
+        should be specified as a string.
 
         :return: self at ``self.technology_data[node][tec]``
         """
@@ -263,11 +264,11 @@ class DataHandle:
             self.technology_data[node] = {}
             # New technologies
             for technology in self.topology.technologies_new[node]:
-                self.technology_data[node][technology] = comp.Technology(technology)
+                self.technology_data[node][technology] = comp.Technology(technology, path)
                 self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
-                self.technology_data[node][technology + '_existing'] = comp.Technology(technology)
+                self.technology_data[node][technology + '_existing'] = comp.Technology(technology, path)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
                 self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])

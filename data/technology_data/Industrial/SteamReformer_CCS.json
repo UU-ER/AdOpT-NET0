@@ -69,7 +69,7 @@
     "output_carrier": {
       "hydrogen": "MW",
       "electricity": "MW",
-      "CO2": "tonne"
+      "CO2": "tonne/hr"
     }
   }
 }

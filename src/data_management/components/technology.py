@@ -1,15 +1,12 @@
 import src.global_variables as global_variables
 from src.data_management.components.utilities import Economics
 from src.data_management.components.fit_technology_performance import *
-import json
-import scandir
-import os
 
 class Technology:
     """
     Class to read and manage data for technologies
     """
-    def __init__(self, technology):
+    def __init__(self, technology, path):
         """
         Initializes technology class from technology name
 
@@ -17,7 +14,8 @@ class Technology:
 
         :param str technology: name of technology to read data
         """
-        tec_data = read_technology_data_from_json(technology)
+
+        tec_data = open_json(technology, path)
 
         # General information
         self.name = technology
@@ -97,22 +95,4 @@ class Technology:
             self.fitted_performance = perform_fitting_tec_GT(self.performance_data, climate_data)
 
 
-def read_technology_data_from_json(tec):
-    """
-    Reads technology data from json file
-    """
-    # Read in JSON files
-    root = './data/technology_data/'
-    file_list = []
 
-    for path, subdirs, files in scandir.walk(root):
-        for name in files:
-            if tec in name:
-                filepath = os.path.join(path, name)
-                with open(filepath) as json_file:
-                    technology_data = json.load(json_file)
-
-
-    # Assign name
-    technology_data['Name'] = tec
-    return technology_data

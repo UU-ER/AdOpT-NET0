@@ -49,7 +49,7 @@
       "electricity": "MW"
     },
     "output_carrier": {
-      "steam": "MW"
+      "heat": "MW"
     }
   }
 }

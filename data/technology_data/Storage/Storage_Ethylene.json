@@ -38,5 +38,13 @@
       "discharge_max": 1
     }
   },
-  "Units": []
+  "Units": {
+    "size": "tonne",
+    "input_carrier": {
+      "CO2": "tonne/hr"
+    },
+    "output_carrier": {
+      "CO2": "tonne/hr"
+    }
+  }
 }

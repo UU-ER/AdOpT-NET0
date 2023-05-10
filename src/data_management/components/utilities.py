@@ -1,6 +1,29 @@
 import statsmodels.api as sm
 import pwlf
 import numpy as np
+import json
+import scandir
+import os
+
+def open_json(tec, rootpath):
+    """
+    Reads technology data from json file
+    """
+    # Read in JSON files
+    root = rootpath
+    file_list = []
+
+    for path, subdirs, files in scandir.walk(root):
+        for name in files:
+            if tec in name:
+                filepath = os.path.join(path, name)
+                with open(filepath) as json_file:
+                    technology_data = json.load(json_file)
+
+
+    # Assign name
+    technology_data['Name'] = tec
+    return technology_data
 
 class Economics:
     """
