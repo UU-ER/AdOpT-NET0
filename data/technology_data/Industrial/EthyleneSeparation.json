@@ -1,0 +1,73 @@
+{
+  "tec_type": "CONV3",
+  "size_min": 0,
+  "size_max": 1000,
+  "size_is_int": 0,
+  "decommission": 0,
+  "Economics": {
+    "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/unit total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "unit_CAPEX": -1000,
+    "piecewise_CAPEX": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0.01,
+    "discount_rate": 0.1,
+    "lifetime": 25,
+    "decommission_cost": 0
+  },
+  "TechnologyPerf": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "performance_function_type": 2,
+    "input_carrier": [
+      "crackedgas",
+      "electricity",
+      "steam"
+    ],
+    "main_input_carrier": "crackedgas",
+    "output_carrier": [
+      "ethylene",
+      "gas"
+    ],
+    "emission_factor": 0,
+    "min_part_load": [
+      0,
+      1
+    ],
+    "performance": {
+      "in": [
+        0,
+        1
+      ],
+      "out": {
+        "ethylene": [
+          0,
+          0.3025
+        ],
+        "gas": [
+          0,
+          2.3491
+        ]
+      }
+    },
+    "input_ratios": {
+      "crackedgas": 1,
+      "electricity": 0.083,
+      "steam": 0.492
+    }
+  },
+  "Units": {
+    "size": "tonne/hr",
+    "input_carrier": {
+      "crackedgas": "tonne",
+      "electricity": "MW",
+      "steam": "MW"
+    },
+    "output_carrier": {
+      "ethylene": "tonne",
+      "gas": "MW"
+    }
+  }
+}
