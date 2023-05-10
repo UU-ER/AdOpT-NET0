@@ -148,21 +148,21 @@ def define_capex_parameters(b_netw, netw_data, energyhub):
     annualization_factor = mc.annualize(discount_rate, economics.lifetime)
 
     if economics.capex_model == 1:
-        b_netw.para_capex_gamma1 = Param(domain=Reals,
+        b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
                                          initialize=economics.capex_data['gamma1'] * annualization_factor)
-        b_netw.para_capex_gamma2 = Param(domain=Reals,
+        b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
                                          initialize=economics.capex_data['gamma2'] * annualization_factor)
     elif economics.capex_model == 2:
-        b_netw.para_capex_gamma1 = Param(domain=Reals,
+        b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
                                          initialize=economics.capex_data['gamma1'] * annualization_factor)
-        b_netw.para_capex_gamma2 = Param(domain=Reals,
+        b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
                                          initialize=economics.capex_data['gamma2'] * annualization_factor)
     if economics.capex_model == 3:
-        b_netw.para_capex_gamma1 = Param(domain=Reals,
+        b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
                                          initialize=economics.capex_data['gamma1'] * annualization_factor)
-        b_netw.para_capex_gamma2 = Param(domain=Reals,
+        b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
                                          initialize=economics.capex_data['gamma2'] * annualization_factor)
-        b_netw.para_capex_gamma3 = Param(domain=Reals,
+        b_netw.para_capex_gamma3 = Param(domain=Reals, mutable=True,
                                          initialize=economics.capex_data['gamma3'] * annualization_factor)
 
     b_netw.var_capex = Var()

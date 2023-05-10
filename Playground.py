@@ -29,7 +29,7 @@ if execute == 1:
     #
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
-    # configuration.optimization.timestaging = 4
+    configuration.optimization.timestaging = 4
 
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()

@@ -260,6 +260,7 @@ class DataHandle:
 
         :return: self at ``self.technology_data[node][tec]``
         """
+        global_variables.datapathroot = path
         for node in self.topology.nodes:
             self.technology_data[node] = {}
             # New technologies
@@ -273,15 +274,14 @@ class DataHandle:
                 self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
                 self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
 
-    def read_single_technology_data(self, node, technologies):
+    def read_single_technology_data(self, node, technologies, path = './data/technology_data/'):
         """
         Reads technologies to DataHandle after it has been initialized.
 
         This function is only required if technologies are added to the model after the DataHandle has been initialized.
         """
-
         for technology in technologies:
-            self.technology_data[node][technology] = comp.Technology(technology)
+            self.technology_data[node][technology] = comp.Technology(technology, path)
             self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
 
     def read_network_data(self):
@@ -554,11 +554,12 @@ class DataHandle_AveragedData(DataHandle):
         :param data_full_resolution: Data full resolution
         :param nr_timesteps_averaged: How many time-steps should be averaged?
         """
+        path = global_variables.datapathroot
         for node in self.topology.nodes:
             self.technology_data[node] = {}
             # New technologies
             for technology in self.topology.technologies_new[node]:
-                self.technology_data[node][technology] = comp.Technology(technology)
+                self.technology_data[node][technology] = comp.Technology(technology, path)
                 if self.technology_data[node][technology].technology_model == 'RES':
                     # Fit performance based on full resolution and average capacity factor
                     self.technology_data[node][technology].fit_technology_performance(
@@ -580,7 +581,7 @@ class DataHandle_AveragedData(DataHandle):
 
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
-                self.technology_data[node][technology + '_existing'] = comp.Technology(technology)
+                self.technology_data[node][technology + '_existing'] = comp.Technology(technology, path)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
                 if self.technology_data[node][technology + '_existing'].technology_model == 'RES':
