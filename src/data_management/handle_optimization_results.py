@@ -113,7 +113,7 @@ class OptimizationResults:
                                                'Network_Cost',
                                                'Import_Cost',
                                                'Export_Revenue',
-                                               'Violation_cost'
+                                               'Violation_Cost'
                                                ])
         self.emissions = pd.DataFrame(columns=['Net',
                                                'Positive',
