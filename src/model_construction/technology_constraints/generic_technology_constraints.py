@@ -49,7 +49,7 @@ def constraints_tec_RES(b_tec, tec_data, energyhub):
         set_t = model.set_t_full
 
     # PARAMETERS
-    # Set capacity factors as a parameter
+    # Set capacity factors
     capfactor = coeff['capfactor']
 
     # CONSTRAINTS

@@ -84,7 +84,7 @@ def define_capex(b_tec, tec_data, energyhub):
                                           pw_repn='SOS2')
     # CAPEX
     if existing and not decommission:
-        b_tec.var_capex = Param(domain=Reals, initialize=0)
+        b_tec.var_capex = 0
     else:
         b_tec.var_capex = Var()
         if existing:
@@ -180,7 +180,7 @@ def define_opex(b_tec, tec_data, energyhub):
     set_t = energyhub.model.set_t_full
 
     # VARIABLE OPEX
-    b_tec.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable)
+    b_tec.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable, mutable=True)
     b_tec.var_opex_variable = Var(set_t)
     def init_opex_variable(const, t):
         return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_opex_variable == \
