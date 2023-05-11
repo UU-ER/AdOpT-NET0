@@ -24,7 +24,8 @@ class ResultsHandle:
             'Technology_Cost',
             'Network_Cost',
             'Import_Cost',
-            'Export_Revenue'
+            'Export_Revenue',
+            'Violation_Cost'
             ])
 
         self.summary.emissions = pd.DataFrame(columns=[
@@ -111,7 +112,8 @@ class OptimizationResults:
                                                'Technology_Cost',
                                                'Network_Cost',
                                                'Import_Cost',
-                                               'Export_Revenue'
+                                               'Export_Revenue',
+                                               'Violation_cost'
                                                ])
         self.emissions = pd.DataFrame(columns=['Net',
                                                'Positive',
@@ -179,9 +181,10 @@ class OptimizationResults:
                                      for car in model.node_blocks[node].set_carriers)
                                  for t in set_t)
                              for node in model.set_nodes)
+        violation_cost = model.var_violation_cost.value
         netw_cost = model.var_netw_cost.value
         self.economics.loc[len(self.economics.index)] = \
-            [total_cost, emission_cost, tec_cost, netw_cost, import_cost, export_revenue]
+            [total_cost, emission_cost, tec_cost, netw_cost, import_cost, export_revenue, violation_cost]
 
         # Emissions
         net_emissions = model.var_emissions_net.value

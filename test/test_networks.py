@@ -109,3 +109,19 @@ def test_existing_networks():
 
     assert cost2 > cost3
     assert cost3 > cost4
+
+def test_copperplate():
+    data = dm.load_object(r'./test/test_data/networks.p')
+    configuration = ModelConfiguration()
+
+    energyhub1 = ehub(data, configuration)
+    energyhub1.quick_solve()
+    assert energyhub1.solution.solver.termination_condition == 'optimal'
+
+    #check for copperplate
+    configuration.energybalance.copperplate = 1
+    energyhub2 = ehub(data, configuration)
+    energyhub2.quick_solve()
+    assert energyhub2.solution.solver.termination_condition == 'optimal'
+
+    # assert energyhub1.model.model.var_netw_cost
