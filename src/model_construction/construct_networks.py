@@ -105,12 +105,12 @@ def define_size(b_netw, netw_data):
         size_initial = netw_data.size_initial
 
     if size_is_int:
-        b_netw.para_rated_capacity = Param(domain=NonNegativeReals, initialize=performance_data['rated_capacity'])
+        b_netw.para_rated_capacity = performance_data['rated_capacity']
     else:
-        b_netw.para_rated_capacity = Param(domain=NonNegativeReals, initialize=1)
+        b_netw.para_rated_capacity = 1
 
-    b_netw.para_size_min = Param(domain=NonNegativeReals, initialize=size_min)
-    b_netw.para_size_max = Param(domain=NonNegativeReals, initialize=size_max)
+    b_netw.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, mutable=True)
+    b_netw.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, mutable=True)
 
     if existing:
         # Parameters for initial size
@@ -185,13 +185,13 @@ def define_opex_parameters(b_netw, netw_data, set_t):
     existing = netw_data.existing
     size_is_int = netw_data.size_is_int
 
-    b_netw.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable)
-    b_netw.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed)
+    b_netw.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable, mutable=True)
+    b_netw.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed, mutable=True)
 
     b_netw.var_opex_variable = Var(set_t)
     b_netw.var_opex_fixed = Var()
     if existing:
-        b_netw.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost)
+        b_netw.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost, mutable=True)
 
     return b_netw
 

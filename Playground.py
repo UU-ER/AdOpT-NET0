@@ -22,7 +22,7 @@ execute = 1
 
 if execute == 1:
     # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    data = dm.load_object(r'./test/test_data/time_algorithms.p')
+    data = dm.load_object(r'./test/test_data/networks.p')
     data.read_technology_data()
     # nr_days_cluster = 40
     # clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)

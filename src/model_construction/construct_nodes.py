@@ -128,12 +128,12 @@ def add_nodes(energyhub):
         # Demand
         def init_demand(para, t, car):
             return node_data.data['demand'][car][t - 1]
-        b_node.para_demand = Param(set_t, b_node.set_carriers, rule=init_demand)
+        b_node.para_demand = Param(set_t, b_node.set_carriers, rule=init_demand, mutable=True)
 
         # Generic production profile
         def init_production_profile(para, t, car):
                 return node_data.data['production_profile'][car][t - 1]
-        b_node.para_production_profile = Param(set_t, b_node.set_carriers, rule=init_production_profile)
+        b_node.para_production_profile = Param(set_t, b_node.set_carriers, rule=init_production_profile, mutable=True)
 
         # Import Prices
         def init_import_price(para, t, car):
@@ -142,10 +142,10 @@ def add_nodes(energyhub):
         b_node.para_import_price = Param(set_t, b_node.set_carriers, rule=init_import_price, mutable=True)
 
         # Export Prices
-        def init_export_price_init(para, t, car):
+        def init_export_price(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['export_prices'][car][t - 1]
-        b_node.para_export_price = Param(set_t, b_node.set_carriers, rule=init_export_price_init)
+        b_node.para_export_price = Param(set_t, b_node.set_carriers, rule=init_export_price, mutable=True)
 
         # Import Limit
         def init_import_limit(para, t, car):
@@ -163,12 +163,12 @@ def add_nodes(energyhub):
         def init_import_emissionfactor(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['import_emissionfactors'][car][t - 1]
-        b_node.para_import_emissionfactors = Param(set_t, b_node.set_carriers, rule=init_import_emissionfactor)
+        b_node.para_import_emissionfactors = Param(set_t, b_node.set_carriers, rule=init_import_emissionfactor, mutable=True)
 
         def init_export_emissionfactor(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['export_emissionfactors'][car][t - 1]
-        b_node.para_export_emissionfactors = Param(set_t, b_node.set_carriers, rule=init_export_emissionfactor)
+        b_node.para_export_emissionfactors = Param(set_t, b_node.set_carriers, rule=init_export_emissionfactor, mutable=True)
 
         # DECISION VARIABLES
         # Interaction with network/system boundaries

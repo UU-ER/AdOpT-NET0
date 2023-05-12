@@ -1,6 +1,4 @@
 from pyomo.environ import *
-from pyomo.environ import units as u
-import pint
 import numpy as np
 from src.model_construction import annualize, set_capex_model, set_discount_rate
 
