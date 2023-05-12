@@ -291,7 +291,7 @@ if execute == 1:
     nr_bp = 3
 
     # Read performance data from file
-    performance_data = pd.read_csv('./data/technology_data/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
+    performance_data = pd.read_csv('data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
     performance_data = performance_data.rename(columns={"T": "temp_air", "RH": "humidity"})
 
     # Unit Conversion of input data
