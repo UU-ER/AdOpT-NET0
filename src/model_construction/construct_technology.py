@@ -84,7 +84,7 @@ def define_capex(b_tec, tec_data, energyhub):
                                           pw_repn='SOS2')
     # CAPEX
     if existing and not decommission:
-        b_tec.var_capex = 0
+        b_tec.var_capex = Param(domain=Reals, initialize=0)
     else:
         b_tec.var_capex = Var()
         if existing:

@@ -323,7 +323,7 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
     # CAPEX
     if existing:
         if not decommission:
-            b_arc.var_capex = 0
+            b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
         else:
             b_arc.var_capex = Var()
             b_arc.const_capex = Constraint(
