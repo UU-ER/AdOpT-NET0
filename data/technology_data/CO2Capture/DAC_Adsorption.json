@@ -24,11 +24,11 @@
       "electricity",
       "heat"
     ],
-    "main_input_carrier": "electricity",
+    "main_output_carrier": "CO2",
     "output_carrier": [
       "CO2"
     ],
-    "nr_segments": 3,
+    "nr_segments": 2,
     "ohmic_heating": 1,
     "emission_factor": -1,
     "performance": {
