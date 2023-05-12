@@ -2,7 +2,6 @@ import src.model_construction as mc
 
 import numpy as np
 from pyomo.environ import *
-from pyomo.environ import units as u
 import src.global_variables as global_variables
 
 
@@ -129,82 +128,74 @@ def add_nodes(energyhub):
         # Demand
         def init_demand(para, t, car):
             return node_data.data['demand'][car][t - 1]
-        b_node.para_demand = Param(set_t, b_node.set_carriers,
-                                   rule=init_demand, units=u.MWh)
+        b_node.para_demand = Param(set_t, b_node.set_carriers, rule=init_demand)
 
         # Generic production profile
         def init_production_profile(para, t, car):
                 return node_data.data['production_profile'][car][t - 1]
-        b_node.para_production_profile = Param(set_t, b_node.set_carriers,
-                                       rule=init_production_profile, units=u.MWh)
+        b_node.para_production_profile = Param(set_t, b_node.set_carriers, rule=init_production_profile)
 
         # Import Prices
         def init_import_price(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['import_prices'][car][t - 1]
-        b_node.para_import_price = Param(set_t, b_node.set_carriers,
-                                         rule=init_import_price, units=u.EUR / u.MWh)
+        b_node.para_import_price = Param(set_t, b_node.set_carriers, rule=init_import_price, mutable=True)
 
         # Export Prices
         def init_export_price_init(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['export_prices'][car][t - 1]
-        b_node.para_export_price = Param(set_t, b_node.set_carriers,
-                                         rule=init_export_price_init, units=u.EUR / u.MWh)
+        b_node.para_export_price = Param(set_t, b_node.set_carriers, rule=init_export_price_init)
 
         # Import Limit
         def init_import_limit(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['import_limit'][car][t - 1]
-        b_node.para_import_limit = Param(set_t, b_node.set_carriers,
-                                         rule=init_import_limit, units=u.MWh)
+        b_node.para_import_limit = Param(set_t, b_node.set_carriers, rule=init_import_limit)
 
         # Export Limit
         def init_export_limit(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['export_limit'][car][t - 1]
-        b_node.para_export_limit = Param(set_t, b_node.set_carriers,
-                                         rule=init_export_limit, units=u.MWh)
+        b_node.para_export_limit = Param(set_t, b_node.set_carriers, rule=init_export_limit)
 
         # Emission Factor
         def init_import_emissionfactor(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['import_emissionfactors'][car][t - 1]
-        b_node.para_import_emissionfactors = Param(set_t, b_node.set_carriers,
-                                                   rule=init_import_emissionfactor, units=u.t / u.MWh)
+        b_node.para_import_emissionfactors = Param(set_t, b_node.set_carriers, rule=init_import_emissionfactor)
 
         def init_export_emissionfactor(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['export_emissionfactors'][car][t - 1]
-        b_node.para_export_emissionfactors = Param(set_t, b_node.set_carriers,
-                                                   rule=init_export_emissionfactor, units=u.t / u.MWh)
+        b_node.para_export_emissionfactors = Param(set_t, b_node.set_carriers, rule=init_export_emissionfactor)
 
         # DECISION VARIABLES
         # Interaction with network/system boundaries
         def init_import_bounds(var, t, car):
             return (0, b_node.para_import_limit[t, car])
-        b_node.var_import_flow = Var(set_t, b_node.set_carriers, bounds=init_import_bounds, units=u.MWh)
+        b_node.var_import_flow = Var(set_t, b_node.set_carriers, bounds=init_import_bounds)
 
         def init_export_bounds(var, t, car):
             return (0, b_node.para_export_limit[t, car])
-        b_node.var_export_flow = Var(set_t, b_node.set_carriers, bounds=init_export_bounds, units=u.MWh)
+        b_node.var_export_flow = Var(set_t, b_node.set_carriers, bounds=init_export_bounds)
 
-        b_node.var_netw_inflow = Var(set_t, b_node.set_carriers, units=u.MWh)
-        b_node.var_netw_outflow = Var(set_t, b_node.set_carriers, units=u.MWh)
+        b_node.var_netw_inflow = Var(set_t, b_node.set_carriers)
+        b_node.var_netw_outflow = Var(set_t, b_node.set_carriers)
 
         if network_energy_consumption:
-            b_node.var_netw_consumption = Var(set_t, b_node.set_carriers, units=u.MWh)
+            b_node.var_netw_consumption = Var(set_t, b_node.set_carriers)
 
         # Generic production profile
-        b_node.var_generic_production = Var(set_t, b_node.set_carriers, within=NonNegativeReals, units=u.MWh)
+        b_node.var_generic_production = Var(set_t, b_node.set_carriers, within=NonNegativeReals)
 
         # Emissions
-        b_node.var_import_emissions_pos = Var(set_t, b_node.set_carriers, units=u.t)
-        b_node.var_import_emissions_neg = Var(set_t, b_node.set_carriers, units=u.t)
-        b_node.var_export_emissions_pos = Var(set_t, b_node.set_carriers, units=u.t)
-        b_node.var_export_emissions_neg = Var(set_t, b_node.set_carriers, units=u.t)
-        b_node.var_car_emissions_pos = Var(set_t, within=NonNegativeReals, units=u.t)
-        b_node.var_car_emissions_neg = Var(set_t, within=NonNegativeReals, units=u.t)
+        b_node.var_import_emissions_pos = Var(set_t, b_node.set_carriers)
+        b_node.var_import_emissions_neg = Var(set_t, b_node.set_carriers)
+        b_node.var_export_emissions_pos = Var(set_t, b_node.set_carriers)
+        b_node.var_export_emissions_neg = Var(set_t, b_node.set_carriers)
+        b_node.var_car_emissions_pos = Var(set_t, within=NonNegativeReals)
+        b_node.var_car_emissions_neg = Var(set_t, within=NonNegativeReals)
 
         # CONSTRAINTS
         # Generic production constraint

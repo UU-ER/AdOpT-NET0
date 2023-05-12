@@ -1,13 +1,12 @@
 import src.global_variables as global_variables
 from src.data_management.components.utilities import Economics
 from src.data_management.components.fit_technology_performance import *
-import json
 
 class Technology:
     """
     Class to read and manage data for technologies
     """
-    def __init__(self, technology):
+    def __init__(self, technology, path):
         """
         Initializes technology class from technology name
 
@@ -15,7 +14,8 @@ class Technology:
 
         :param str technology: name of technology to read data
         """
-        tec_data = read_technology_data_from_json(technology)
+
+        tec_data = open_json(technology, path)
 
         # General information
         self.name = technology
@@ -45,6 +45,7 @@ class Technology:
         self.fitted_performance = None
 
     def fit_technology_performance(self, node_data):
+
         """
         Fits performance to respective technology model
 
@@ -99,14 +100,4 @@ class Technology:
             self.fitted_performance = perform_fitting_tec_GT(self.performance_data, climate_data)
 
 
-def read_technology_data_from_json(tec):
-    """
-    Reads technology data from json file
-    """
-    # Read in JSON files
-    with open('./data/technology_data/' + tec + '.json') as json_file:
-        technology_data = json.load(json_file)
-    # Assign name
-    technology_data['Name'] = tec
-    return technology_data
 

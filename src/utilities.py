@@ -21,8 +21,3 @@ def get_gurobi_parameters(solveroptions):
     solver.options['Cuts'] = solveroptions.cuts
     return solver
 
-def define_units():
-    try:
-        u.load_definitions_from_strings(['EUR = [currency]'])
-    except pint.errors.DefinitionSyntaxError:
-        pass

@@ -1,6 +1,5 @@
 from pyomo.environ import *
 from pyomo.gdp import *
-from pyomo.environ import units as u
 import src.model_construction as mc
 import src.global_variables as global_variables
 
@@ -116,7 +115,7 @@ def constraints_tec_gt(b_tec, tec_data, energyhub):
             car = 'hydrogen'
         return tuple(bounds['input'][car][t - 1, :] * size_max)
     b_tec.var_total_input = Var(set_t, within=NonNegativeReals,
-                                bounds=init_input_bounds, units=u.MW)
+                                bounds=init_input_bounds)
 
     b_tec.var_units_on = Var(set_t, within=NonNegativeIntegers,
                              bounds=(0, size_max))
