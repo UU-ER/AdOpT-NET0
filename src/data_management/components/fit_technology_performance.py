@@ -240,7 +240,7 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
     nr_segments = tec_data['nr_segments']
 
     # Read performance data from file
-    performance_data = pd.read_csv('./data/technology_data/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
+    performance_data = pd.read_csv('./data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
     performance_data = performance_data.rename(columns={"T": "temp_air", "RH": "humidity"})
 
     # Unit Conversion of input data
