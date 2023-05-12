@@ -89,6 +89,17 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
 
     **Constraint declarations:**
 
+    - Size constraints can be formulated on the input or the output.
+      For size_based_on == 'input' it holds:
+
+      .. math::
+         \sum(Input_{t, car}) \leq S
+
+      For size_based_on == 'output' it holds:
+
+      .. math::
+         \sum(Output_{t, car}) \leq S
+
     - It is possible to limit the maximum input of a carrier. This needs to be specified in the technology JSON files.
       Then it holds:
 
@@ -133,7 +144,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     coeff = tec_data.fitted_performance.coefficients
     rated_power = tec_data.fitted_performance.rated_power
     modelled_with_full_res = tec_data.modelled_with_full_res
-
+    size_based_on = performance_data['size_based_on']
 
     # Full or reduced resolution
     if global_variables.clustered_data and not modelled_with_full_res:
@@ -152,7 +163,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     if performance_function_type == 2:
         alpha2 = coeff['out']['alpha2']
     if performance_function_type == 3:
-        bp_x = coeff['bp_x']
+        bp_x = coeff['out']['bp_x']
         alpha2 = coeff['out']['alpha2']
 
     min_part_load = performance_data['min_part_load']
@@ -254,10 +265,14 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
-    # size constraint based on sum of inputs
+    # size constraint based on sum of input/output
     def init_size_constraint(const, t):
-        return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
-               <= b_tec.var_size * rated_power
+        if size_based_on == 'input':
+            return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
+                   <= b_tec.var_size * rated_power
+        elif size_based_on == 'output':
+            return sum(output[t, car_output] for car_output in b_tec.set_output_carriers) \
+                   <= b_tec.var_size * rated_power
     b_tec.const_size = Constraint(set_t, rule=init_size_constraint)
 
     # Maximum input of carriers
@@ -346,7 +361,7 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
         if performance_function_type == 2:
             alpha2[c] = coeff[c]['alpha2']
         if performance_function_type == 3:
-            bp_x = coeff['bp_x']
+            bp_x = coeff[c]['bp_x']
             alpha2[c] = coeff[c]['alpha2']
 
     min_part_load = performance_data['min_part_load']
@@ -542,7 +557,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
         if performance_function_type == 2:
             alpha2[c] = coeff[c]['alpha2']
         if performance_function_type == 3:
-            bp_x = coeff['bp_x']
+            bp_x = coeff[c]['bp_x']
             alpha2[c] = coeff[c]['alpha2']
 
     min_part_load = performance_data['min_part_load']

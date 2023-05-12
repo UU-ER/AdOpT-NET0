@@ -33,6 +33,11 @@ class Technology:
 
         # Technology Performance
         self.performance_data = tec_data['TechnologyPerf']
+        if self.technology_model == 'CONV1':
+            self.performance_data['size_based_on'] = tec_data['size_based_on']
+        else:
+            self.performance_data['size_based_on'] = 'input'
+
         technologies_modelled_with_full_res = ['RES', 'STOR']
         if global_variables.clustered_data and (self.technology_model not in technologies_modelled_with_full_res):
             self.modelled_with_full_res = 0
