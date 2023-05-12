@@ -1,7 +1,6 @@
 import pytest
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
-from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
 import src.model_construction as mc

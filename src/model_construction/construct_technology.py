@@ -28,8 +28,8 @@ def define_size(b_tec, tec_data):
     else:
         size_domain = NonNegativeReals
 
-    b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min)
-    b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max)
+    b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, mutable=True)
+    b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, mutable=True)
     if existing:
         b_tec.para_size_initial = Param(within=size_domain, initialize=size_initial)
     if existing and not decommission:
@@ -84,11 +84,11 @@ def define_capex(b_tec, tec_data, energyhub):
                                           pw_repn='SOS2')
     # CAPEX
     if existing and not decommission:
-        b_tec.var_capex = Param(domain=Reals, initialize=0)
+        b_tec.var_capex = 0
     else:
         b_tec.var_capex = Var()
         if existing:
-            b_tec.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost)
+            b_tec.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost, mutable = True)
             b_tec.const_capex = Constraint(
                 expr=b_tec.var_capex == (b_tec.para_size_initial - b_tec.var_size) * b_tec.para_decommissioning_cost)
         else:
@@ -188,7 +188,7 @@ def define_opex(b_tec, tec_data, energyhub):
     b_tec.const_opex_variable = Constraint(set_t, rule=init_opex_variable)
 
     # FIXED OPEX
-    b_tec.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed)
+    b_tec.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed, mutable=True)
     b_tec.var_opex_fixed = Var()
     b_tec.const_opex_fixed = Constraint(expr=b_tec.var_capex_aux * b_tec.para_opex_fixed == b_tec.var_opex_fixed)
     return b_tec

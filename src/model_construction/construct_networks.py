@@ -191,7 +191,7 @@ def define_opex_parameters(b_netw, netw_data, set_t):
     b_netw.var_opex_variable = Var(set_t)
     b_netw.var_opex_fixed = Var()
     if existing:
-        b_netw.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost)
+        b_netw.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost, mutable=True)
 
     return b_netw
 
@@ -323,7 +323,7 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
     # CAPEX
     if existing:
         if not decommission:
-            b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
+            b_arc.var_capex = 0
         else:
             b_arc.var_capex = Var()
             b_arc.const_capex = Constraint(
