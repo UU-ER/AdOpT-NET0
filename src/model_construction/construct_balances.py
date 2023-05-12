@@ -25,6 +25,13 @@ def add_energybalance(energyhub):
     if model.find_component('const_energybalance'):
         model.del_component(model.const_energybalance)
         model.del_component(model.const_energybalance_index)
+        model.del_component(model.const_violation)
+        model.del_component(model.const_violation_index)
+        model.del_component(model.var_violation)
+        model.del_component(model.var_violation_index)
+        model.del_component(model.var_violation_cost)
+        model.del_component(model.var_violation_cost_index)
+
 
     # energybalance at each node (always at full resolution)
     set_t = model.set_t_full
