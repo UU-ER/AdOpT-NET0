@@ -170,7 +170,7 @@ class OptimizationResults:
                              for node in model.set_nodes)
         tec_cost = tec_capex + tec_opex_variable + tec_opex_fixed
         import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car].value *
-                                  model.node_blocks[node].para_import_price[t, car] *
+                                  model.node_blocks[node].para_import_price[t, car].value *
                                         nr_timesteps_averaged
                                   for car in model.node_blocks[node].set_carriers)
                               for t in set_t)
@@ -295,7 +295,7 @@ class OptimizationResults:
                     self.energybalance[node_name][car]['Export'] = \
                         [node_data.var_export_flow[t, car].value for t in set_t]
                     self.energybalance[node_name][car]['Demand'] = \
-                        [node_data.para_demand[t, car] for t in set_t]
+                        [node_data.para_demand[t, car].value for t in set_t]
 
             # Detailed results for technologies
             for node_name in model.set_nodes:

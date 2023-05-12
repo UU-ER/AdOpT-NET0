@@ -26,14 +26,18 @@ def add_energybalance(energyhub):
         model.del_component(model.const_energybalance)
         model.del_component(model.const_energybalance_index)
 
-    # Energy balance violation
-    if configuration.energybalance.violation == -1:
-        def init_const_violation(const, car):
-            return model.var_violation[car] == 0
-        model.const_violation = Constraint(model.set_carriers, rule=init_const_violation)
-
     # energybalance at each node (always at full resolution)
     set_t = model.set_t_full
+
+    # Energy balance violation
+    model.var_violation = Var(model.set_t_full, model.set_carriers, model.set_nodes, domain=NonNegativeReals)
+    model.var_violation_cost = Var()
+
+    # Energy balance violation
+    if configuration.energybalance.violation == -1:
+        def init_const_violation(const, t, car, node):
+            return model.var_violation[t, car, node] == 0
+        model.const_violation = Constraint(set_t, model.set_carriers, model.set_nodes, rule=init_const_violation)
 
     if configuration.energybalance.copperplate:
         def init_energybalance_global(const, t, car):
@@ -51,11 +55,13 @@ def add_energybalance(energyhub):
                 car in model.node_blocks[node].set_carriers)
             gen_prod = sum(model.node_blocks[node].var_generic_production[t, car] for node in model.node_blocks if
                 car in model.node_blocks[node].set_carriers)
-            violation = model.var_violation[car]
+            violation = sum(model.var_violation[t, car, node] for node in model.node_blocks if
+                car in model.node_blocks[node].set_carriers)
             return \
                 tec_output - tec_input + \
-                import_flow - export_flow == \
-                demand - gen_prod + violation
+                import_flow - export_flow \
+                + violation == \
+                demand - gen_prod
         model.const_energybalance = Constraint(set_t, model.set_carriers, rule=init_energybalance_global)
     else:
         def init_energybalance(const, t, car, node):
@@ -73,12 +79,13 @@ def add_energybalance(energyhub):
                     netw_consumption = 0
                 import_flow = node_block.var_import_flow[t, car]
                 export_flow = node_block.var_export_flow[t, car]
-                violation = model.var_violation[car]
+                violation = model.var_violation[t, car, node]
                 return \
                     tec_output - tec_input + \
                     netw_inflow - netw_outflow - netw_consumption + \
-                    import_flow - export_flow == \
-                    node_block.para_demand[t, car] - node_block.var_generic_production[t, car] + violation
+                    import_flow - export_flow \
+                    + violation == \
+                    node_block.para_demand[t, car] - node_block.var_generic_production[t, car]
             else:
                 return Constraint.Skip
         model.const_energybalance = Constraint(set_t, model.set_carriers, model.set_nodes, rule=init_energybalance)
@@ -215,7 +222,8 @@ def add_system_costs(energyhub):
 
     def init_violation_cost(const):
         return model.var_violation_cost == \
-               sum(model.var_violation[car] for car in model.set_carriers) * configuration.energybalance.violation
+               sum(sum(sum(model.var_violation[t, car, node] for t in model.set_t_full)for car in model.set_carriers) \
+                   for node in model.set_nodes) * configuration.energybalance.violation
     model.const_violation_cost = Constraint(rule=init_violation_cost)
 
 

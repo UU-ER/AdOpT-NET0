@@ -159,10 +159,6 @@ class EnergyHub:
         print('Constructing balances...')
         start = time.time()
 
-        # Energy balance violation
-        self.model.var_violation = Var(self.model.set_carriers)
-        self.model.var_violation_cost = Var()
-
         self.model = mc.add_energybalance(self)
         self.model = mc.add_emissionbalance(self)
         self.model = mc.add_system_costs(self)
