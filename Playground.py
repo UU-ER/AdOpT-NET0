@@ -22,7 +22,7 @@ execute = 1
 
 if execute == 1:
     # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    data = dm.load_object(r'./test/test_data/time_algorithms.p')
+    data = dm.load_object(r'./test/test_data/networks.p')
     data.read_technology_data()
     # nr_days_cluster = 40
     # clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
@@ -291,7 +291,7 @@ if execute == 1:
     nr_bp = 3
 
     # Read performance data from file
-    performance_data = pd.read_csv('./data/technology_data/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
+    performance_data = pd.read_csv('data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
     performance_data = performance_data.rename(columns={"T": "temp_air", "RH": "humidity"})
 
     # Unit Conversion of input data

@@ -28,8 +28,8 @@ def define_size(b_tec, tec_data):
     else:
         size_domain = NonNegativeReals
 
-    b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min)
-    b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max)
+    b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, mutable=True)
+    b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, mutable=True)
     if existing:
         b_tec.para_size_initial = Param(within=size_domain, initialize=size_initial)
     if existing and not decommission:
@@ -88,7 +88,7 @@ def define_capex(b_tec, tec_data, energyhub):
     else:
         b_tec.var_capex = Var()
         if existing:
-            b_tec.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost)
+            b_tec.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost, mutable = True)
             b_tec.const_capex = Constraint(
                 expr=b_tec.var_capex == (b_tec.para_size_initial - b_tec.var_size) * b_tec.para_decommissioning_cost)
         else:
@@ -123,7 +123,7 @@ def define_input(b_tec, tec_data, energyhub):
     rated_power = fitted_performance.rated_power
 
 
-    if technology_model == 'RES':
+    if (technology_model == 'RES') or (technology_model == 'CONV4') :
         b_tec.set_input_carriers = Set(initialize=[])
     else:
         b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
@@ -180,7 +180,7 @@ def define_opex(b_tec, tec_data, energyhub):
     set_t = energyhub.model.set_t_full
 
     # VARIABLE OPEX
-    b_tec.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable)
+    b_tec.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable, mutable=True)
     b_tec.var_opex_variable = Var(set_t)
     def init_opex_variable(const, t):
         return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_opex_variable == \
@@ -188,7 +188,7 @@ def define_opex(b_tec, tec_data, energyhub):
     b_tec.const_opex_variable = Constraint(set_t, rule=init_opex_variable)
 
     # FIXED OPEX
-    b_tec.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed)
+    b_tec.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed, mutable=True)
     b_tec.var_opex_fixed = Var()
     b_tec.const_opex_fixed = Constraint(expr=b_tec.var_capex_aux * b_tec.para_opex_fixed == b_tec.var_opex_fixed)
     return b_tec
@@ -201,6 +201,7 @@ def define_emissions(b_tec, tec_data, energyhub):
     set_t = energyhub.model.set_t_full
     performance_data = tec_data.performance_data
     technology_model = tec_data.technology_model
+    emissions_based_on = tec_data.emissions_based_on
 
     b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=performance_data['emission_factor'])
     b_tec.var_tec_emissions_pos = Var(set_t, within=NonNegativeReals)
@@ -210,45 +211,53 @@ def define_emissions(b_tec, tec_data, energyhub):
         # Set emissions to zero
         def init_tec_emissions_pos(const, t):
             return b_tec.var_tec_emissions_pos[t] == 0
-
         b_tec.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
 
         def init_tec_emissions_neg(const, t):
             return b_tec.var_tec_emissions_neg[t] == 0
-
         b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
-    elif technology_model == 'DAC_Adsorption':
-        # Based on output
-        def const_tec_emissions_pos(const, t):
-            return b_tec.var_tec_emissions_pos[t] == 0
-        b_tec.const_tec_emissions_pos = Constraint(set_t, rule=const_tec_emissions_pos)
 
-        def init_tec_emissions_neg(const, t):
-            return b_tec.var_output[t, 'CO2'] \
-                       * (-b_tec.para_tec_emissionfactor) == \
-                   b_tec.var_tec_emissions_neg[t]
-        b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
     else:
-        # Based on input
-        def init_tec_emissions_pos(const, t):
-            if performance_data['emission_factor'] >= 0:
-                return b_tec.var_input[t, performance_data['main_input_carrier']] \
-                       * b_tec.para_tec_emissionfactor \
-                       == b_tec.var_tec_emissions_pos[t]
-            else:
-                return b_tec.var_tec_emissions_pos[t] == 0
 
-        b_tec.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
+        if emissions_based_on == 'output':
+            def init_tec_emissions_pos(const, t):
+                if performance_data['emission_factor'] >= 0:
+                    return b_tec.var_output[t, performance_data['main_output_carrier']] * \
+                           b_tec.para_tec_emissionfactor == \
+                           b_tec.var_tec_emissions_pos[t]
+                else:
+                    return b_tec.var_tec_emissions_pos[t] == 0
 
-        def init_tec_emissions_neg(const, t):
-            if performance_data['emission_factor'] < 0:
-                return b_tec.var_input[t, performance_data['main_input_carrier']] \
+            b_tec.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
+
+            def init_tec_emissions_neg(const, t):
+                if performance_data['emission_factor'] < 0:
+                    return b_tec.var_output[t, performance_data['main_output_carrier']] * \
                            (-b_tec.para_tec_emissionfactor) == \
-                       b_tec.var_tec_emissions_neg[t]
-            else:
-                return b_tec.var_tec_emissions_neg[t] == 0
+                           b_tec.var_tec_emissions_neg[t]
+                else:
+                    return b_tec.var_tec_emissions_neg[t] == 0
 
-        b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
+            b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
+
+        elif emissions_based_on == 'input':
+            def init_tec_emissions_pos(const, t):
+                if performance_data['emission_factor'] >= 0:
+                    return b_tec.var_input[t, performance_data['main_input_carrier']] \
+                           * b_tec.para_tec_emissionfactor \
+                           == b_tec.var_tec_emissions_pos[t]
+                else:
+                    return b_tec.var_tec_emissions_pos[t] == 0
+            b_tec.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
+
+            def init_tec_emissions_neg(const, t):
+                if performance_data['emission_factor'] < 0:
+                    return b_tec.var_input[t, performance_data['main_input_carrier']] \
+                               (-b_tec.para_tec_emissionfactor) == \
+                           b_tec.var_tec_emissions_neg[t]
+                else:
+                    return b_tec.var_tec_emissions_neg[t] == 0
+            b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
 
     return b_tec
 
@@ -308,13 +317,15 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
     - Type RES: Renewable technology with cap_factor as input.
     - Type CONV1: n inputs -> n output, fuel and output substitution.
-    - Type CONV2: n inputs -> n output, fuel substitution. Constructed with
+    - Type CONV2: n inputs -> n output, fuel substitution.
     - Type CONV2: n inputs -> n output, no fuel and output substitution.
     - Type STOR: Storage technology (1 input -> 1 output).
 
     Additionally, the following specific technologies are available:
 
     - Type DAC_adsorption: Direct Air Capture technology (adsorption).
+    - Type Heat_Pump: Three different types of heat pumps
+    - Type Gas_Turbine: Different types/sizes of gas turbines
 
     The following description is true for new technologies. For existing technologies a few adaptions are made
     (see below).
@@ -373,8 +384,6 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
     # COLLECT OBJECTS FROM ENERGYHUB
     data = energyhub.data
-    model = energyhub.model
-
 
     def init_technology_block(b_tec, tec):
         print('\t - Adding Technology ' + tec)
@@ -414,8 +423,11 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         elif technology_model == 'CONV2': # n inputs -> n output, fuel and output substitution
             b_tec = constraints_tec_CONV2(b_tec, tec_data, energyhub)
 
-        elif technology_model == 'CONV3':  # 1 input -> n outputs, output flexible, linear performance
+        elif technology_model == 'CONV3':  # n input -> n outputs, output flexible
             b_tec = constraints_tec_CONV3(b_tec, tec_data, energyhub)
+
+        elif technology_model == 'CONV4':  # no input -> n outputs, fixed output ratios
+            b_tec = constraints_tec_CONV4(b_tec, tec_data, energyhub)
 
         elif technology_model == 'STOR': # Storage technology (1 input -> 1 output)
             b_tec = constraints_tec_STOR(b_tec, tec_data, energyhub)

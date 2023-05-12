@@ -3,7 +3,6 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
-from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
 
@@ -443,7 +442,7 @@ def test_technology_CONV3():
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
-    # Min partload
+    # Piecewise
     data = dm.load_object(r'./test/test_data/technology_CONV3_3.p')
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
@@ -452,6 +451,40 @@ def test_technology_CONV3():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+
+
+def test_technology_CONV4():
+    data = dm.load_object(r'./test/test_data/technology_CONV4_1.p')
+    configuration = ModelConfiguration()
+    tecname = 'testCONV4_1'
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    objective_value = round(energyhub.model.objective(), 3)
+    heat_out_1 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
+    el_out_1 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'electricity'].value,
+        3)
+    heat_out_2 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
+    el_out_2 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
+        3)
+    assert 0.75 == heat_out_1
+    assert 1.5 == el_out_1
+    assert 0.5 == heat_out_2
+    assert 1 == el_out_2
+
+    data = dm.load_object(r'./test/test_data/technology_CONV4_2.p')
+    configuration = ModelConfiguration()
+    tecname = 'testCONV4_2'
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+
 
 def test_dac():
     # data.save(data_save_path)
