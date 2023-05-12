@@ -24,7 +24,7 @@
       "electricity",
       "heat"
     ],
-    "main_input_carrier": "electricity",
+    "main_output_carrier": "CO2",
     "output_carrier": [
       "CO2"
     ],
