@@ -11,3 +11,5 @@ averaged_data_specs.nr_timesteps_averaged = 1
 
 pareto_point = 0
 monte_carlo_run = 0
+
+datapathroot = None
