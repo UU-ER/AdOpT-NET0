@@ -30,7 +30,6 @@ def add_energybalance(energyhub):
         model.del_component(model.var_violation)
         model.del_component(model.var_violation_index)
         model.del_component(model.var_violation_cost)
-        model.del_component(model.var_violation_cost_index)
 
 
     # energybalance at each node (always at full resolution)
