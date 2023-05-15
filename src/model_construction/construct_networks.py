@@ -286,6 +286,7 @@ def define_size_arc(b_arc, b_netw, netw_data, node_from, node_to):
         # New network
         b_arc.var_size = Var(domain=size_domain,
                              bounds=(b_netw.para_size_min, b_netw.para_size_max))
+
     return b_arc
 
 def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
@@ -300,11 +301,25 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
     existing = netw_data.existing
     decommission = netw_data.decommission
 
+    def calculate_max_capex():
+        if economics.capex_model == 1:
+            max_capex = b_netw.para_size_max * \
+                   b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
+        elif economics.capex_model == 2:
+            max_capex = b_netw.para_size_max * \
+                   b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
+        elif economics.capex_model == 3:
+            max_capex = b_netw.para_size_max * \
+                   b_arc.distance * b_netw.para_capex_gamma1 + \
+                   b_arc.var_size * b_netw.para_capex_gamma2 + \
+                   b_netw.para_capex_gamma3
+        return (0, max_capex)
+
+
     # CAPEX auxilliary (used to calculate theoretical CAPEX)
     # For new technologies, this is equal to actual CAPEX
     # For existing technologies it is used to calculate fixed OPEX
-    b_arc.var_capex_aux = Var()
-
+    b_arc.var_capex_aux = Var(bounds=calculate_max_capex())
     def init_capex(const):
         if economics.capex_model == 1:
             return b_arc.var_capex_aux == b_arc.var_size * \
@@ -318,19 +333,37 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
                    b_arc.var_size * b_netw.para_capex_gamma2 + \
                    b_netw.para_capex_gamma3
 
-    b_arc.const_capex_aux = Constraint(rule=init_capex)
+    # CAPEX Variable
+    if existing and not decommission:
+        b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
+    else:
+        b_arc.var_capex = Var(bounds=calculate_max_capex())
+
+    # CAPEX aux:
+    if existing and not decommission:
+        b_arc.const_capex_aux = Constraint(rule=init_capex)
+    else:
+        global_variables.big_m_transformation_required = 1
+        s_indicators = range(0, 2)
+        def init_installation(dis, ind):
+            if ind == 0:  # network not installed
+                dis.const_capex_aux = Constraint(expr=b_arc.var_capex_aux == 0)
+                dis.const_not_installed = Constraint(expr=b_arc.var_size == 0)
+            else:  # network installed
+                dis.const_capex_aux = Constraint(rule=init_capex)
+
+        b_arc.dis_installation = Disjunct(s_indicators, rule=init_installation)
+
+        def bind_disjunctions(dis):
+            return [b_arc.dis_installation[i] for i in s_indicators]
+        b_arc.disjunction_installation = Disjunction(rule=bind_disjunctions)
 
     # CAPEX
-    if existing:
-        if not decommission:
-            b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
-        else:
-            b_arc.var_capex = Var()
-            b_arc.const_capex = Constraint(
-                expr=b_arc.var_capex == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size) \
-                     * b_netw.para_decommissioning_cost)
+    if existing and decommission:
+        b_arc.const_capex = Constraint(
+            expr=b_arc.var_capex == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size) \
+                 * b_netw.para_decommissioning_cost)
     else:
-        b_arc.var_capex = Var()
         b_arc.const_capex = Constraint(expr=b_arc.var_capex == b_arc.var_capex_aux)
 
     return b_arc
@@ -757,6 +790,9 @@ def add_networks(energyhub):
             # CONSUMPTION AT NODE
             if energy_consumption:
                 b_arc = define_energyconsumption_arc(b_arc, b_netw, set_t)
+
+            if global_variables.big_m_transformation_required:
+                mc.perform_disjunct_relaxation(b_arc)
 
         b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_block_init)
 

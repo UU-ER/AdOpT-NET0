@@ -143,7 +143,8 @@ class EnergyHub:
         self.model.var_emissions_net = Var()
 
         # Model construction
-        self.model = mc.add_networks(self)
+        if not self.configuration.energybalance.copperplate:
+            self.model = mc.add_networks(self)
         self.model = mc.add_nodes(self)
 
         print('Constructing model completed in ' + str(round(time.time() - start)) + ' s')

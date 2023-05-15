@@ -32,13 +32,15 @@ def determine_carriers_at_node(energyhub, node):
         carriers.extend(output_carriers)
 
     # From networks
-    for netw in model.set_networks:
-        # This can be further extended to check if node is connected to network
-        for car in model.network_block[netw].set_netw_carrier:
-            carriers.append(car)
-        if hasattr(model.network_block[netw], 'set_consumed_carriers'):
-            for car in model.network_block[netw].set_consumed_carriers:
+    if not energyhub.configuration.energybalance.copperplate:
+        for netw in model.set_networks:
+            # This can be further extended to check if node is connected to network
+            for car in model.network_block[netw].set_netw_carrier:
                 carriers.append(car)
+            if hasattr(model.network_block[netw], 'set_consumed_carriers'):
+                for car in model.network_block[netw].set_consumed_carriers:
+                    carriers.append(car)
+
     return carriers
 
 def determine_network_energy_consumption(energyhub):
@@ -52,10 +54,11 @@ def determine_network_energy_consumption(energyhub):
     # From networks
     # This can be further extended to check if node is connected to network
     network_energy_consumption = 0
-    for netw in model.set_networks:
-        if hasattr(model.network_block[netw], 'set_consumed_carriers'):
-            network_energy_consumption = 1
-    return network_energy_consumption
+    if not energyhub.configuration.energybalance.copperplate:
+        for netw in model.set_networks:
+            if hasattr(model.network_block[netw], 'set_consumed_carriers'):
+                network_energy_consumption = 1
+        return network_energy_consumption
 
 def add_nodes(energyhub):
     r"""
@@ -255,25 +258,26 @@ def add_nodes(energyhub):
         b_node.const_car_emissions_neg = Constraint(set_t, rule=init_car_emissions_neg)
 
          # Define network constraints
-        def init_netw_inflow(const, t, car):
-            return b_node.var_netw_inflow[t,car] == sum(model.network_block[netw].var_inflow[t,car,nodename]
-                                                        for netw in model.set_networks
-                                                        if car in model.network_block[netw].set_netw_carrier)
-        b_node.const_netw_inflow = Constraint(set_t, b_node.set_carriers, rule=init_netw_inflow)
-
-        def init_netw_outflow(const, t, car):
-            return b_node.var_netw_outflow[t,car] == sum(model.network_block[netw].var_outflow[t,car,nodename]
-                                                        for netw in model.set_networks
-                                                        if car in model.network_block[netw].set_netw_carrier)
-        b_node.const_netw_outflow = Constraint(set_t, b_node.set_carriers, rule=init_netw_outflow)
-
-        if network_energy_consumption:
-            def init_netw_consumption(const, t, car):
-                return b_node.var_netw_consumption[t,car] == sum(model.network_block[netw].var_consumption[t,car,nodename]
+        if not energyhub.configuration.energybalance.copperplate:
+            def init_netw_inflow(const, t, car):
+                return b_node.var_netw_inflow[t,car] == sum(model.network_block[netw].var_inflow[t,car,nodename]
                                                             for netw in model.set_networks
-                                                             if data.network_data[netw].energy_consumption and
-                                                                 car in model.network_block[netw].set_consumed_carriers)
-            b_node.const_netw_consumption = Constraint(set_t, b_node.set_carriers, rule=init_netw_consumption)
+                                                            if car in model.network_block[netw].set_netw_carrier)
+            b_node.const_netw_inflow = Constraint(set_t, b_node.set_carriers, rule=init_netw_inflow)
+
+            def init_netw_outflow(const, t, car):
+                return b_node.var_netw_outflow[t,car] == sum(model.network_block[netw].var_outflow[t,car,nodename]
+                                                            for netw in model.set_networks
+                                                            if car in model.network_block[netw].set_netw_carrier)
+            b_node.const_netw_outflow = Constraint(set_t, b_node.set_carriers, rule=init_netw_outflow)
+
+            if network_energy_consumption:
+                def init_netw_consumption(const, t, car):
+                    return b_node.var_netw_consumption[t,car] == sum(model.network_block[netw].var_consumption[t,car,nodename]
+                                                                for netw in model.set_networks
+                                                                 if data.network_data[netw].energy_consumption and
+                                                                     car in model.network_block[netw].set_consumed_carriers)
+                b_node.const_netw_consumption = Constraint(set_t, b_node.set_carriers, rule=init_netw_consumption)
 
         # BLOCKS
         # Add technologies as blocks
