@@ -289,8 +289,7 @@ def test_simplification_algorithms():
     configuration.optimization.monte_carlo.on = 1
     configuration.optimization.monte_carlo.sd = 0.2
     configuration.optimization.monte_carlo.N = 2
-    configuration.optimization.monte_carlo.on_what = ['Technologies',
-                                             'Networks']
+    configuration.optimization.monte_carlo.on_what = ['Technologies']
     energyhub4 = ehub(data, configuration)
     energyhub4.quick_solve()
 

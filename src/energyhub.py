@@ -143,7 +143,8 @@ class EnergyHub:
         self.model.var_emissions_net = Var()
 
         # Model construction
-        self.model = mc.add_networks(self)
+        if not self.configuration.energybalance.copperplate:
+            self.model = mc.add_networks(self)
         self.model = mc.add_nodes(self)
 
         print('Constructing model completed in ' + str(round(time.time() - start)) + ' s')
@@ -421,6 +422,8 @@ class EnergyHub:
         """
         Changes the capex of networks
         """
+        # TODO: This does not work!
+
         sd = self.configuration.optimization.monte_carlo.sd
         sd_random = np.random.normal(1, sd)
 
@@ -621,6 +624,8 @@ class EnergyHub:
                 def size_constraints_tecs_init(const, tec):
                     if self.data.technology_data[node][tec].technology_model == 'STOR' and bounds_on == 'no_storage':
                         return Constraint.Skip
+                    elif self.data.technology_data[node][tec].existing:
+                        return  Constraint.Skip
                     else:
                         return m_avg.node_blocks[node].tech_blocks_active[tec].var_size.value <= \
                             m_full.node_blocks[node].tech_blocks_active[tec].var_size
@@ -635,7 +640,7 @@ class EnergyHub:
                 def size_constraints_netw_init(const, node_from, node_to):
                     return b_netw_full.arc_block[node_from, node_to].var_size >= \
                            b_netw_avg.arc_block[node_from, node_to].var_size.value
-                block.size_constraints_netw = Constraint(b_netw_full.set_arcs_unique, rule=size_constraints_netw_init)
+                block.size_constraints_netw = Constraint(b_netw_full.set_arcs, rule=size_constraints_netw_init)
             m_full.size_constraints_netw = Block(m_full.set_networks, rule=size_constraint_block_netw_init)
 
 

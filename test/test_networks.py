@@ -2,6 +2,7 @@ import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
+import numpy as np
 
 
 def test_networks():
@@ -109,3 +110,35 @@ def test_existing_networks():
 
     assert cost2 > cost3
     assert cost3 > cost4
+
+def test_violation():
+
+    data = dm.load_object(r'./test/test_data/networks.p')
+
+    #model configuration
+    configuration = ModelConfiguration()
+    configuration.energybalance.violation = 10
+
+    #solving
+    energyhub = ehub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    assert energyhub.model.var_violation[2, 'hydrogen', 'test_node1'].value == 10
+    assert energyhub.model.var_violation_cost.value == 200
+
+def test_copperplate():
+    data = dm.load_object(r'./test/test_data/networks.p')
+
+    # model configuration
+    configuration = ModelConfiguration()
+    configuration.energybalance.copperplate = 1
+
+    # solving
+    energyhub = ehub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    assert energyhub.model.var_netw_cost.value == 0
