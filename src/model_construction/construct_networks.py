@@ -358,12 +358,12 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
             return [b_arc.dis_installation[i] for i in s_indicators]
         b_arc.disjunction_installation = Disjunction(rule=bind_disjunctions)
 
-    # CAPEX
+    # CAPEX and CAPEX aux
     if existing and decommission:
         b_arc.const_capex = Constraint(
             expr=b_arc.var_capex == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size) \
                  * b_netw.para_decommissioning_cost)
-    else:
+    elif not existing:
         b_arc.const_capex = Constraint(expr=b_arc.var_capex == b_arc.var_capex_aux)
 
     return b_arc

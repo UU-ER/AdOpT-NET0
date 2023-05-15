@@ -30,8 +30,8 @@ class ModelConfiguration:
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.N      | Number of Monte Carlo simulations            |                                             | 100     |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'Networks', 'ImportPrices', | Tec,    |
-    |                    | Warning: Import/export prices                | 'ExportPrices'                              | Netw    |
+    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'ImportPrices',             | Tec     |
+    |                    | Warning: Import/export prices                | 'ExportPrices'                              |         |
     |                    | can take a long time.                        |                                             |         |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
     | pareto_points      | Number of Pareto points                      |                                             | 5       |
@@ -140,8 +140,7 @@ class ModelConfiguration:
         self.optimization.monte_carlo.on = 0
         self.optimization.monte_carlo.sd = 0.2
         self.optimization.monte_carlo.N = 4
-        self.optimization.monte_carlo.on_what = ['Technologies',
-                                                'Networks']
+        self.optimization.monte_carlo.on_what = ['Technologies']
         self.optimization.pareto_points = 5
 
         self.optimization.timestaging = 0
