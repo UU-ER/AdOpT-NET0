@@ -1,5 +1,4 @@
 from pyomo.environ import *
-from pyomo.environ import units as u
 import src.global_variables as global_variables
 
 

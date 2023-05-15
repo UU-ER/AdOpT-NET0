@@ -1,5 +1,4 @@
 from pyomo.environ import *
-from pyomo.environ import units as u
 
 import src.model_construction as mc
 import src.data_management as dm
@@ -41,9 +40,6 @@ class EnergyHub:
         print('_' * 60)
         print('Reading in data...')
         start = time.time()
-
-        # Define units
-        define_units()
 
         # READ IN MODEL CONFIGURATION
         self.configuration = configuration

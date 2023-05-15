@@ -1,6 +1,5 @@
 from pyomo.gdp import *
 from pyomo.environ import *
-from pyomo.environ import units as u
 import time
 import numpy as np
 import src.global_variables as global_variables

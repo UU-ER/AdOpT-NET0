@@ -1,6 +1,30 @@
 import statsmodels.api as sm
 import pwlf
 import numpy as np
+import json
+import scandir
+import os
+from math import floor, log10
+
+def open_json(tec, rootpath):
+    """
+    Reads technology data from json file
+    """
+    # Read in JSON files
+    root = rootpath
+    file_list = []
+
+    for path, subdirs, files in scandir.walk(root):
+        for name in files:
+            if tec in name:
+                filepath = os.path.join(path, name)
+                with open(filepath) as json_file:
+                    technology_data = json.load(json_file)
+
+
+    # Assign name
+    technology_data['Name'] = tec
+    return technology_data
 
 
 class Economics:
@@ -96,7 +120,7 @@ class FitGenericTecTypeType1(FittedPerformance):
             self.coefficients[car] = {}
             y = performance_data['out'][car]
             fit = fit_linear_function(x, y)
-            self.coefficients[car]['alpha1'] = round(fit[0], 6)
+            self.coefficients[car]['alpha1'] = sig_figs(fit[0], 6)
 
     def calculate_input_bounds(self, size_based_on, time_steps):
         """
@@ -166,8 +190,8 @@ class FitGenericTecTypeType2(FittedPerformance):
             self.coefficients[car] = {}
             y = performance_data['out'][car]
             fit = fit_linear_function(x, y)
-            self.coefficients[car]['alpha1'] = round(fit[1], 6)
-            self.coefficients[car]['alpha2'] = round(fit[0], 6)
+            self.coefficients[car]['alpha1'] = sig_figs(fit[1], 6)
+            self.coefficients[car]['alpha2'] = sig_figs(fit[0], 6)
 
     def calculate_input_bounds(self, size_based_on, time_steps):
         """
@@ -347,9 +371,30 @@ def fit_piecewise_function(X, Y, nr_segments):
         else:
             bp_x, bp_y, alpha1, alpha2 = regress_piecewise(X, y, nr_segments, bp_x0)
 
-        fit[car]['alpha1'] = [round(num, 3) for num in alpha1]
-        fit[car]['alpha2'] = [round(num, 3) for num in alpha2]
-        fit[car]['bp_y'] = [round(num, 3) for num in bp_y]
-        fit[car]['bp_x'] = [round(num, 3) for num in bp_x]
+        fit[car]['alpha1'] = [sig_figs(float(num), 4) for num in alpha1]
+        fit[car]['alpha2'] = [sig_figs(float(num), 4) for num in alpha2]
+        fit[car]['bp_y'] = [sig_figs(float(num), 4) for num in bp_y]
+        fit[car]['bp_x'] = [sig_figs(float(num), 4) for num in bp_x]
 
     return fit
+
+
+def sig_figs(x: float, precision: int):
+    """
+    Rounds a number to number of significant figures
+    Parameters:
+    - x - the number to be sig_figsed
+    - precision (integer) - the number of significant figures
+    Returns:
+    - float
+    """
+
+    x = float(x)
+    precision = int(precision)
+
+    if x == 0:
+        rounded = 0
+    else:
+        rounded = round(x, -int(floor(log10(abs(x)))) + (precision - 1))
+
+    return rounded
