@@ -25,7 +25,7 @@ def add_energybalance(energyhub):
     if model.find_component('const_energybalance'):
         model.del_component(model.const_energybalance)
         model.del_component(model.const_energybalance_index)
-        if configuration.energybalance.violation > 0:
+        if configuration.energybalance.violation >= 0:
             model.del_component(model.const_violation)
             model.del_component(model.const_violation_index)
             model.del_component(model.var_violation)
@@ -36,7 +36,7 @@ def add_energybalance(energyhub):
     set_t = model.set_t_full
 
     # Energy balance violation
-    if configuration.energybalance.violation > 0:
+    if configuration.energybalance.violation >= 0:
         model.var_violation = Var(model.set_t_full, model.set_carriers, model.set_nodes, domain=NonNegativeReals)
         model.var_violation_cost = Var()
 
@@ -66,7 +66,7 @@ def add_energybalance(energyhub):
             gen_prod = sum(model.node_blocks[node].var_generic_production[t, car] for node in model.node_blocks if
                            car in model.node_blocks[node].set_carriers)
 
-            if configuration.energybalance.violation > 0:
+            if configuration.energybalance.violation >= 0:
                 violation = sum(model.var_violation[t, car, node] for node in model.node_blocks if
                                 car in model.node_blocks[node].set_carriers)
             else:
@@ -105,7 +105,7 @@ def add_energybalance(energyhub):
 
                 export_flow = node_block.var_export_flow[t, car]
 
-                if configuration.energybalance.violation > 0:
+                if configuration.energybalance.violation >= 0:
                     violation = model.var_violation[t, car, node]
                 else:
                     violation = 0
@@ -266,7 +266,7 @@ def add_system_costs(energyhub):
 
     model.const_netw_cost = Constraint(rule=init_netw_cost)
 
-    if configuration.energybalance.violation > 0:
+    if configuration.energybalance.violation >= 0:
         def init_violation_cost(const):
             return model.var_violation_cost == \
                    sum(sum(sum(model.var_violation[t, car, node] for t in model.set_t_full) for car in model.set_carriers) \
@@ -274,7 +274,7 @@ def add_system_costs(energyhub):
         model.const_violation_cost = Constraint(rule=init_violation_cost)
 
     def init_total_cost(const):
-        if configuration.energybalance.violation > 0:
+        if configuration.energybalance.violation >= 0:
             violation_cost = model.var_violation_cost
         else:
             violation_cost = 0
