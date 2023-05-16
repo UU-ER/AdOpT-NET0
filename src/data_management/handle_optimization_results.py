@@ -287,6 +287,8 @@ class OptimizationResults:
                     if hasattr(node_data, 'var_netw_consumption'):
                         self.energybalance[node_name][car]['Network_consumption'] = \
                             [node_data.var_netw_consumption[t, car].value for t in set_t]
+                    else:
+                        self.energybalance[node_name][car]['Network_consumption'] = 0
                     self.energybalance[node_name][car]['Import'] = \
                         [node_data.var_import_flow[t, car].value for t in set_t]
                     self.energybalance[node_name][car]['Export'] = \

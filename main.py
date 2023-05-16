@@ -3,15 +3,16 @@
 # TODO: Implement all technologies
 from src.model_configuration import ModelConfiguration
 import src.data_management as dm
-from src.energyhub import EnergyHub
+from src.energyhub import EnergyHub, load_energyhub_instance
 import numpy as np
+import src.plotting as pl
 
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
 topology.define_nodes(['onshore', 'offshore'])
 topology.define_new_technologies('onshore', ['Storage_Battery'])
@@ -68,4 +69,22 @@ configuration = ModelConfiguration()
 # # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
-results.write_excel(r'userData/test')
+
+dm.save_object(results, r'./user_data/howtosave.p')
+
+from src import define_units
+
+define_units()
+results = dm.load_object(r'./user_data/howtosave.p')
+
+
+
+
+
+
+
+
+# results.write_excel(r'userData/test')
+
+# pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
+

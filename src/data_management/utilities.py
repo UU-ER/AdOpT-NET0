@@ -1,4 +1,4 @@
-import pickle
+import dill as pickle
 import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np

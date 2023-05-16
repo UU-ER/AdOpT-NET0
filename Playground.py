@@ -385,7 +385,7 @@ if execute == 1:
 
     nr_seg = 2
     tec = 'testCONV3_3'
-    with open('./data/technology_data/' + tec + '.json') as json_file:
+    with open('./data/Technology_Data/' + tec + '.json') as json_file:
         technology_data = json.load(json_file)
 
     tec_data = technology_data['TechnologyPerf']

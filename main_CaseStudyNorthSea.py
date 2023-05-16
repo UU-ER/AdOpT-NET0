@@ -4,12 +4,10 @@
 # TODO: Implement length of time step
 # TODO: Implement design days (retain extremes)
 # TODO: Implement Lukas Algorithm
-from cases.NorthSea.preprocessing import create_data
+from CaseStudy_preprocessing import create_data
 from src.energyhub import *
 from src.model_configuration import ModelConfiguration
 from src.data_management import load_object
-from pympler import asizeof
-
 
 # Save Data File to file
 data_save_path = r'.\user_data\CaseStudyNorthSea_input'

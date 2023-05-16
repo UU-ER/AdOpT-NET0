@@ -54,7 +54,7 @@ def test_load_technologies():
     lon = 5.16
     data.read_climate_data_from_api('testnode', lon, lat)
 
-    directory = os.fsencode('./data/technology_data')
+    directory = os.fsencode('./data/Technology_Data')
 
     for file in os.listdir(directory):
         filename = os.fsdecode(file)

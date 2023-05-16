@@ -1,3 +1,5 @@
+import warnings
+
 import src.data_management as dm
 import src.data_management.components as comp
 import src.global_variables as global_variables
@@ -5,7 +7,6 @@ import src.global_variables as global_variables
 import pandas as pd
 import copy
 import numpy as np
-
 
 
 class DataHandle:
@@ -17,13 +18,14 @@ class DataHandle:
     :func:`~src.data_management.handle_topology.SystemTopology` as an input. The DataHandle class is structured
     as follows:
     - node_data contains (mainly time-dependent) data on all nodes, e.g. demand, prices, import/export limit,...
-    - technology_data contains data on all technologies. The data is read for all technologies in the topology
+    - Technology_Data contains data on all technologies. The data is read for all technologies in the topology
       with the function :func:`~src.data_management.handle_input_data.read_technology_data()`
     - network_data contains data on the networks. Similar to technolog_data, this is read with the respective function
       :func:`~src.data_management.handle_input_data.read_network_data()`
     - topology: contains data on the systems topology (see class
       :func:`~src.data_management.handle_topology.SystemTopology`)
     """
+
     def __init__(self, topology):
         """
         Constructor
@@ -142,6 +144,10 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
+        if len(demand_data) != len(self.topology.timesteps):
+            warnings.warn('Demand Data longer than chosen time horizon - taking only the first ' + \
+                          'couple of time slices')
+            demand_data = demand_data[0:len(self.topology.timesteps)]
 
         self.node_data[node].data['demand'][carrier] = demand_data
 
@@ -157,6 +163,11 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
+        if len(production_data) != len(self.topology.timesteps):
+            warnings.warn('Generic Production Profiles are longer than chosen time horizon - taking only the first ' + \
+                          'couple of time slices')
+            production_data = production_data[0:len(self.topology.timesteps)]
+
         self.node_data[node].data['production_profile'][carrier] = production_data
         self.node_data[node].options.production_profile_curtailment[carrier] = curtailment
 
@@ -172,6 +183,10 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['import_prices'][carrier]``
         """
+        if len(price_data) != len(self.topology.timesteps):
+            warnings.warn('Import Price Data longer than chosen time horizon - taking only the first ' + \
+                          'couple of time slices')
+            price_data = price_data[0:len(self.topology.timesteps)]
 
         self.node_data[node].data['import_prices'][carrier] = price_data
 
@@ -187,6 +202,10 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['export_prices'][carrier]``
         """
+        if len(price_data) != len(self.topology.timesteps):
+            warnings.warn('Export Price Data longer than chosen time horizon - taking only the first ' + \
+                          'couple of time slices')
+            price_data = price_data[0:len(self.topology.timesteps)]
 
         self.node_data[node].data['export_prices'][carrier] = price_data
 
@@ -250,15 +269,15 @@ class DataHandle:
 
         self.node_data[node].data['import_emissionfactors'][carrier] = import_emissionfactor_data
 
-    def read_technology_data(self, path = './data/technology_data/'):
+    def read_technology_data(self, path = './data/Technology_Data/'):
         """
         Writes new and existing technologies to self and fits performance functions
 
-        For the default settings, it reads in technology data from JSON files located at ``./data/technology_data`` for \
+        For the default settings, it reads in technology data from JSON files located at ``./data/Technology_Data`` for \
         all technologies specified in the topology. When technology data is stored at a different location, the path \
         should be specified as a string.
 
-        :return: self at ``self.technology_data[node][tec]``
+        :return: self at ``self.Technology_Data[node][tec]``
         """
         global_variables.datapathroot = path
         for node in self.topology.nodes:
@@ -271,10 +290,11 @@ class DataHandle:
             for technology in self.topology.technologies_existing[node].keys():
                 self.technology_data[node][technology + '_existing'] = comp.Technology(technology, path)
                 self.technology_data[node][technology + '_existing'].existing = 1
-                self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
+                self.technology_data[node][technology + '_existing'].size_initial = \
+                    self.topology.technologies_existing[node][technology]
                 self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
 
-    def read_single_technology_data(self, node, technologies, path = './data/technology_data/'):
+    def read_single_technology_data(self, node, technologies, path = './data/Technology_Data/'):
         """
         Reads technologies to DataHandle after it has been initialized.
 
@@ -291,7 +311,7 @@ class DataHandle:
         Reads in network data from JSON files located at ``./data/network_data`` for all technologies specified in \
         the topology.
 
-        :return: self at ``self.technology_data[node][tec]``
+        :return: self at ``self.Technology_Data[node][tec]``
         """
 
         # New Networks
@@ -321,7 +341,7 @@ class DataHandle:
         print('----- NODE DATA -----')
         for node in self.node_data:
             print('\t -----------------------------------------------------')
-            print('\t Nodename: '+ node)
+            print('\t Nodename: ' + node)
             print('\t\tNew technologies:')
             for tec in self.topology.technologies_new[node]:
                 print('\t\t - ' + tec)
@@ -337,7 +357,7 @@ class DataHandle:
         print('----- NETWORK DATA -----')
         for netw in self.topology.networks_new:
             print('\t -----------------------------------------------------')
-            print('\t'+ netw)
+            print('\t' + netw)
             connection = self.topology.networks_new[netw]['connection']
             for from_node in connection:
                 for to_node in connection[from_node].index:
@@ -375,6 +395,7 @@ class ClusteredDataHandle(DataHandle):
     :param int nr_clusters: nr of clusters (tyical days) the data contains after the algorithm
     :param int nr_time_intervals_per_day: nr of time intervals per day in data (full resolution)
     """
+
     def __init__(self, data, nr_clusters, nr_time_intervals_per_day=24):
         """
         Constructor
@@ -393,7 +414,7 @@ class ClusteredDataHandle(DataHandle):
         self.k_means_specs = dm.simplification_specs(data.topology.timesteps)
 
         # perform clustering
-        nr_days_full_resolution = (max(data.topology.timesteps) -  min(data.topology.timesteps)).days + 1
+        nr_days_full_resolution = (max(data.topology.timesteps) - min(data.topology.timesteps)).days + 1
         self.__cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
 
     def __cluster_data(self, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
@@ -418,9 +439,9 @@ class ClusteredDataHandle(DataHandle):
                                                         nr_clusters)
         # Get order of typical days
         self.k_means_specs.full_resolution['sequence'] = dm.compile_sequence(day_labels,
-                                         nr_clusters,
-                                         nr_days_full_resolution,
-                                         nr_time_intervals_per_day)
+                                                                             nr_clusters,
+                                                                             nr_days_full_resolution,
+                                                                             nr_time_intervals_per_day)
         # Match typical day to actual day
         self.k_means_specs.full_resolution['typical_day'] = np.repeat(day_labels, nr_time_intervals_per_day)
         # Create factors, indicating how many times an hour occurs
@@ -474,6 +495,7 @@ class DataHandle_AveragedData(DataHandle):
     This class is used to generate time series of averaged data based on a full resolution
     or clustered input data.
     """
+
     def __init__(self, data, nr_timesteps_averaged):
         """
         Constructor
@@ -503,7 +525,6 @@ class DataHandle_AveragedData(DataHandle):
             columns=['factor'])
 
         global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
-
 
     def __average_node_data(self, data_full_resolution, nr_timesteps_averaged):
         """
@@ -538,7 +559,7 @@ class DataHandle_AveragedData(DataHandle):
             # adjust timesteps
             end_interval = max(self.topology.timesteps_clustered)
             start_interval = min(self.topology.timesteps_clustered)
-            self.topology.timesteps_clustered = range(start_interval, int((end_interval+1) / nr_timesteps_averaged))
+            self.topology.timesteps_clustered = range(start_interval, int((end_interval + 1) / nr_timesteps_averaged))
 
             for node in node_data:
                 for series1 in node_data[node].data:
@@ -583,11 +604,14 @@ class DataHandle_AveragedData(DataHandle):
             for technology in self.topology.technologies_existing[node].keys():
                 self.technology_data[node][technology + '_existing'] = comp.Technology(technology, path)
                 self.technology_data[node][technology + '_existing'].existing = 1
-                self.technology_data[node][technology + '_existing'].size_initial = self.topology.technologies_existing[node][technology]
+                self.technology_data[node][technology + '_existing'].size_initial = \
+                    self.topology.technologies_existing[node][technology]
                 if self.technology_data[node][technology + '_existing'].technology_model == 'RES':
                     # Fit performance based on full resolution and average capacity factor
-                    self.technology_data[node][technology + '_existing'].fit_technology_performance(data_full_resolution.node_data[node])
-                    cap_factor = self.technology_data[node][technology + '_existing'].fitted_performance.coefficients['capfactor']
+                    self.technology_data[node][technology + '_existing'].fit_technology_performance(
+                        data_full_resolution.node_data[node])
+                    cap_factor = self.technology_data[node][technology + '_existing'].fitted_performance.coefficients[
+                        'capfactor']
                     new_cap_factor = dm.average_series(cap_factor, nr_timesteps_averaged)
 
                     self.technology_data[node][technology + '_existing'].fitted_performance.coefficients['capfactor'] = \
@@ -597,8 +621,10 @@ class DataHandle_AveragedData(DataHandle):
                     upper_output_bound = new_cap_factor
                     output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
 
-                    self.technology_data[node][technology + '_existing'].fitted_performance.bounds['output']['electricity'] = \
+                    self.technology_data[node][technology + '_existing'].fitted_performance.bounds['output'][
+                        'electricity'] = \
                         output_bounds
                 else:
                     # Fit performance based on averaged data
-                    self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
+                    self.technology_data[node][technology + '_existing'].fit_technology_performance(
+                        self.node_data[node])
