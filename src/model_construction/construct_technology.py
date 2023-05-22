@@ -442,6 +442,9 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         elif technology_model.startswith('GasTurbine_'):  # Gas Turbine
             b_tec = constraints_tec_gt(b_tec, tec_data, energyhub)
 
+        elif technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
+            b_tec = constraints_tec_hydro_open(b_tec, tec_data, energyhub)
+
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
 

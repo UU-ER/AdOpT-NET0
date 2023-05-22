@@ -268,7 +268,7 @@ def create_data_technology_type1_WT():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['WindTurbine_Onshore_1500'])
+    topology.define_new_technologies('test_node1', ['TestWindTurbine_Onshore_1500'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -362,7 +362,7 @@ def create_data_technologySTOR():
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['WindTurbine_Onshore_4000', 'testSTOR'])
+    topology.define_new_technologies('test_node1', ['TestWindTurbine_Onshore_1500', 'testSTOR'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -373,7 +373,7 @@ def create_data_technologySTOR():
     data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
 
     # DEMAND
-    electricity_demand = np.ones(len(topology.timesteps)) * 1
+    electricity_demand = np.ones(len(topology.timesteps)) * 0.1
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -461,10 +461,10 @@ def create_data_addtechnology():
     data_save_path = './test/test_data/addtechnology.p'
 
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='03-31 23:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
     topology.define_carriers(['electricity'])
     topology.define_nodes(['test_node1', 'test_node2'])
-    topology.define_new_technologies('test_node1', ['WindTurbine_Offshore_6000'])
+    topology.define_new_technologies('test_node1', ['TestWindTurbine_Onshore_1500'])
     topology.define_new_technologies('test_node2', ['Storage_Battery'])
 
     distance = dm.create_empty_network_matrix(topology.nodes)
@@ -508,7 +508,7 @@ def create_data_time_algorithms():
     topology.define_carriers(['electricity', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1','test_node2'])
     topology.define_new_technologies('test_node1', ['GasTurbine_simple', 'Storage_Battery'])
-    topology.define_new_technologies('test_node2', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
+    topology.define_new_technologies('test_node2', ['Photovoltaic', 'TestWindTurbine_Onshore_1500'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -720,6 +720,74 @@ def create_test_data_dac():
 
     data.save(data_save_path)
 
+
+def create_data_technologyOpen_Hydro():
+    """
+    Creates dataset for a model with two nodes.
+    WT, battery @ node 1
+    electricity demand @ node 1
+    two periods, rated wind speed at first, no wind at second. battery to balance
+    """
+    data_save_path = './test/test_data/technologyOpenHydro.p'
+
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['TestWindTurbine_Onshore_1500', 'TestPumpedHydro_Open'])
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    inflow = np.ones(len(topology.timesteps)) * 10
+    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    data.read_hydro_natural_inflow('test_node1', inflow)
+    data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
+    data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology.timesteps)) * 1
+    data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
+    data_save_path = './test/test_data/technologyOpenHydro_max_discharge.p'
+
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['TestWindTurbine_Onshore_1500', 'TestPumpedHydro_Open_max_discharge'])
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+    inflow = np.ones(len(topology.timesteps)) * 10
+    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    data.read_hydro_maximum_discharge('test_node1', np.ones(len(data.topology.timesteps)) * 0)
+    data.read_hydro_natural_inflow('test_node1', inflow)
+    data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
+    data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology.timesteps)) * 1
+    data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
+
 create_data_test_data_handle()
 create_data_model1()
 create_data_model2()
@@ -736,3 +804,4 @@ create_data_optimization_types()
 create_data_existing_technologies()
 create_data_existing_networks()
 create_test_data_dac()
+create_data_technologyOpen_Hydro()
