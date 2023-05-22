@@ -136,6 +136,17 @@ class DataHandle:
         self.node_data[node].data['climate_data']['hydro_natural_inflow'] = dm.shorten_input_data(hydro_natural_inflow,
                                                                                              len(self.topology.timesteps))
 
+    def read_hydro_maximum_discharge(self, node, maximum_discharge):
+        """
+        Reads maximum discharge of pumped hydro open cycles
+
+        :param str node: node as specified in the topology
+        :param list maximum_discharge: hydro inflows in MWh
+        :return: self at ``self.node_data[node]['climate_data']['maximum_discharge']``
+        """
+        self.node_data[node].data['climate_data']['hydro_maximum_discharge'] = dm.shorten_input_data(maximum_discharge,
+                                                                                             len(self.topology.timesteps))
+
     def read_demand_data(self, node, carrier, demand_data):
         """
         Reads demand data for one carrier to node.

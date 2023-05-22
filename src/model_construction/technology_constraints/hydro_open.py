@@ -81,6 +81,8 @@ def constraints_tec_hydro_open(b_tec, tec_data, energyhub):
         allow_only_one_direction = 0
 
     can_pump = performance_data['can_pump']
+    if performance_data['maximum_discharge_time_discrete']:
+        hydro_maximum_discharge = coeff['hydro_maximum_discharge']
 
     nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
@@ -160,11 +162,14 @@ def constraints_tec_hydro_open(b_tec, tec_data, energyhub):
         return output[t, car] <= discharge_max * b_tec.var_size
     b_tec.const_max_discharge = Constraint(set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
 
+    if performance_data['maximum_discharge_time_discrete']:
+        def init_maximal_discharge2(const, t, car):
+            return output[t, car] <= hydro_maximum_discharge[t-1]
+        b_tec.const_max_discharge2 = Constraint(set_t, b_tec.set_input_carriers, rule=init_maximal_discharge2)
+
     # Maximum spilling
     def init_maximal_spilling(const,t):
         return b_tec.var_spilling[t] <= spilling_max * b_tec.var_size
     b_tec.const_max_spilling = Constraint(set_t, rule=init_maximal_spilling)
-
-    b_tec.pprint()
 
     return b_tec

@@ -30,6 +30,7 @@
     "emission_factor": 0,
     "allow_only_one_direction": 0,
     "can_pump": 1,
+    "maximum_discharge_time_discrete": 0,
     "performance": {
       "eta_in": 1,
       "eta_out": 1,

@@ -596,3 +596,13 @@ def test_technology_OpenHydro():
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+
+    # Maximum discharge too small
+    data = dm.load_object(r'./test/test_data/technologyOpenHydro_max_discharge.p')
+    configuration = ModelConfiguration()
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+
+

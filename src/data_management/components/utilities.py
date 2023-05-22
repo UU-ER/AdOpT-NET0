@@ -15,7 +15,7 @@ def open_json(tec, rootpath):
 
     for path, subdirs, files in scandir.walk(root):
         for name in files:
-            if tec in name:
+            if (tec + '.json') == name:
                 filepath = os.path.join(path, name)
                 with open(filepath) as json_file:
                     technology_data = json.load(json_file)
