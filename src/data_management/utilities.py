@@ -1,3 +1,4 @@
+import warnings
 import dill as pickle
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -141,6 +142,21 @@ def calculate_dni(data, lon, lat):
     data['dni'] = data['dni'].where(data['dni'] > 0, 0)
 
     return data['dni']
+
+
+def shorten_input_data(time_series, nr_time_steps):
+    """
+    Shortens time series to required length
+
+    :param list time_series: time_series to shorten
+    :param int nr_time_steps: nr of time steps to shorten to
+    """
+    if len(time_series) != nr_time_steps:
+        warnings.warn('Time series is longer than chosen time horizon - taking only the first ' + \
+                      'couple of time slices')
+        time_series = time_series[0:nr_time_steps]
+
+    return time_series
 
 
 class NodeData():

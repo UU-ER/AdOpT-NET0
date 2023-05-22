@@ -15,36 +15,11 @@ def read_demand_data_eraa(scenario, year, climate_year):
     :param int year: year to read
     :return pandas.series demand_profile: demand profile as series
     """
-    load_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/Demand_Electricity/Demand_'
+    load_path = r'./cases/NorthSea/Demand_Electricity/Demand_'
     file_name = scenario + '_' + str(year) + '_ClimateYear' + str(climate_year) + '.csv'
-    demand_profiles = pd.read_excel(load_path + file_name)
+    demand_profiles = pd.read_csv(load_path + file_name)
 
     return demand_profiles
-
-def read_capacity_factors_eraa(climate_year, region):
-    """
-    reads production profiles for respective climate year and region from ERAA dataset (year 2030).
-
-    It adds solar, wind onshore and wind offshore respectively for the whole region.
-
-    :param int climate_year: climate year to read
-    :param str region: region to read
-    :return dict capacity_factors: production profile as series
-    """
-    data_path = {}
-    data_path['PV'] =  r'./cases/NorthSea/ProductionProfiles/ERAA_CapFactor_' + region + '_Solar_2030.xlsx'
-    data_path['Wind_On'] =  r'./cases/NorthSea/ProductionProfiles/ERAA_CapFactor_' + region + '_WindOn_2030.xlsx'
-    data_path['Wind_Of'] =  r'./cases/NorthSea/ProductionProfiles/ERAA_CapFactor_' + region + '_WindOff_2030.xlsx'
-
-    capacity_factors = {}
-    for type in data_path:
-        cf = pd.read_excel(data_path[type])
-        try:
-            capacity_factors[type] = cf[str(climate_year)]
-        except:
-            capacity_factors[type] = cf[climate_year]
-
-    return capacity_factors
 
 def read_installed_capacity_eraa(region):
     """
@@ -56,9 +31,9 @@ def read_installed_capacity_eraa(region):
     :param str region: region to read
     :return dict capacity_factors: production profile as series
     """
-    data_path = r'./cases/NorthSea/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
+    data_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
 
-    instcap = pd.read_excel(data_path, index_col= 1, sheet_name='Sheet1')
+    instcap = pd.read_excel(data_path, index_col= 2, sheet_name='Sheet1')
 
     Conv = {}
     RE = {}
@@ -82,46 +57,6 @@ def read_installed_capacity_eraa(region):
     installed_capacities['Conventional'] = Conv
 
     return installed_capacities
-
-def scale_capacity_factors(profile, climate_year, sd = 0.05):
-
-    key_path = r'./cases/NorthSea/Demand_Electricity/Scaling.xlsx'
-    keys = pd.read_excel(key_path, index_col= 0, sheet_name='ToPython')
-
-    cap_factors = read_capacity_factors_eraa(climate_year, 'NL')
-
-    data_path = r'./cases/NorthSea/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
-    installed_capacity_NL = pd.read_excel(data_path, index_col= 0, sheet_name='InstalledCapacitiesNL')
-
-    installed_capacity_at_node = {}
-    installed_capacity_at_node['PV'] = {}
-    installed_capacity_at_node['Wind'] = {}
-
-    nodes = keys['Node'].values
-    nodes = np.unique(nodes)
-
-    for tec in installed_capacity_at_node:
-        installed_capacity_at_node[tec] = {}
-        for node in nodes:
-            provinces_at_node = keys[keys['Node'] == node].index
-            installed_capacity_at_node[tec][node] = installed_capacity_NL[tec + '_2030'][provinces_at_node].sum()
-
-    for region in nodes:
-        profile[region + '_tot'] = 0
-        for series in installed_capacity_at_node:
-            if series == 'Wind':
-                series_aux = 'Wind_On'
-            else:
-                series_aux = series
-
-            cf = cap_factors[series_aux] * np.random.normal(1, sd, size=len(cap_factors[series_aux]))
-
-
-            profile[region + '_tot'] = profile[region + '_tot'] + cf * \
-                                      installed_capacity_at_node[series][region]
-            profile[region + '_' + series] = cf * installed_capacity_at_node[series][region]
-
-    return profile
 
 
 def calculate_production_profiles_offshore(offshore_nodes):
@@ -187,10 +122,24 @@ def read_network_data(nodes):
     return data
 
 
-def write_to_technology_data(path):
-    path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/Technology_Data/'
+def write_to_technology_data(tec_data_path, year):
+    tec_data_path = r'./cases/NorthSea/Technology_Data/'
+    financial_data_path = r'./cases/NorthSea/Cost_Technologies/TechnologyCost.xlsx'
 
-    for filename in os.listdir(path):
-        with open(os.path.join(path, filename), 'r') as openfile:
+    financial_data = pd.read_excel(financial_data_path, sheet_name='ToModel' ,skiprows=1)
+    financial_data = financial_data[financial_data['Year'] == year]
+
+    for filename in os.listdir(tec_data_path):
+        with open(os.path.join(tec_data_path, filename), 'r') as openfile:
             # Reading from json file
-            json_object = json.load(openfile)
+            tec_data = json.load(openfile)
+
+        new_financial_data = financial_data[financial_data['Technology'] == filename.replace('.json', '')]
+
+        tec_data['Economics']['unit_CAPEX'] = round(new_financial_data['Investment Cost'].values[0],2)
+        tec_data['Economics']['OPEX_variable'] = round(new_financial_data['OPEX Variable'].values[0],3)
+        tec_data['Economics']['OPEX_fixed'] = round(new_financial_data['OPEX Fixed'].values[0],3)
+        tec_data['Economics']['lifetime'] = round(new_financial_data['Lifetime'].values[0],0)
+
+        with open(os.path.join(tec_data_path, filename), 'w') as outfile:
+            json.dump(tec_data, outfile, indent=2)

@@ -25,8 +25,11 @@ TODO
 - define SMR
 - define new technologies
 """
+year = 2030
+scenario = 'GA'
+climate_year = 2009
 
-# Get nodes
+# NODES
 node_data = r'cases/NorthSea/Nodes/Nodes.xlsx'
 nodes = pd.read_excel(node_data, sheet_name='Nodes')
 onshore_nodes = nodes[nodes['Type'] == 'onshore']['Node'].values.tolist()
@@ -76,9 +79,8 @@ offshore_profiles = calculate_production_profiles_offshore(offshore_nodes)
 for node in offshore_nodes:
     data.read_production_profile(node, 'electricity', offshore_profiles[node].to_numpy(),1)
 
-
 # Demand Onshore
-demand = pd.read_csv(r'.\cases\NorthSea\Demand_Electricity\Scaled_Demand.csv', index_col=0)
+demand = read_demand_data_eraa(scenario, year, climate_year)
 for node in nodes:
     if node in demand:
         data.read_demand_data(node, 'electricity', demand[node].to_numpy())
@@ -101,9 +103,9 @@ for node in onshore_nodes:
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carriers[car])
 
 # Read technology data
-
-
-data.read_technology_data(path ='cases/NorthSea/Technology_Data/')
+tec_data_path = r'cases/NorthSea/Technology_Data/'
+write_to_technology_data(tec_data_path, year)
+data.read_technology_data(path =tec_data_path)
 data.read_network_data()
 
 # SAVING/LOADING DATA FILE

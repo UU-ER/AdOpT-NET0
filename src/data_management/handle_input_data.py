@@ -124,10 +124,8 @@ class DataHandle:
         if 'dni' not in data:
             data['dni'] = dm.calculate_dni(data, lon, lat)
 
-        # Match with timesteps
-        data = data[0:len(self.topology.timesteps)]
-
-        self.node_data[node].data['climate_data'] = data
+        self.node_data[node].data['climate_data'] = dm.shorten_input_data(data,
+                                                                          len(self.topology.timesteps))
         self.node_data[node].location.lon = lon
         self.node_data[node].location.lat = lat
         self.node_data[node].location.altitude = alt
@@ -144,12 +142,8 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
-        if len(demand_data) != len(self.topology.timesteps):
-            warnings.warn('Demand Data longer than chosen time horizon - taking only the first ' + \
-                          'couple of time slices')
-            demand_data = demand_data[0:len(self.topology.timesteps)]
-
-        self.node_data[node].data['demand'][carrier] = demand_data
+        self.node_data[node].data['demand'][carrier] = dm.shorten_input_data(demand_data,
+                                                                             len(self.topology.timesteps))
 
     def read_production_profile(self, node, carrier, production_data, curtailment):
         """
@@ -163,12 +157,8 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
-        if len(production_data) != len(self.topology.timesteps):
-            warnings.warn('Generic Production Profiles are longer than chosen time horizon - taking only the first ' + \
-                          'couple of time slices')
-            production_data = production_data[0:len(self.topology.timesteps)]
-
-        self.node_data[node].data['production_profile'][carrier] = production_data
+        self.node_data[node].data['production_profile'][carrier] = dm.shorten_input_data(production_data,
+                                                                                         len(self.topology.timesteps))
         self.node_data[node].options.production_profile_curtailment[carrier] = curtailment
 
     def read_import_price_data(self, node, carrier, price_data):
@@ -183,12 +173,8 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['import_prices'][carrier]``
         """
-        if len(price_data) != len(self.topology.timesteps):
-            warnings.warn('Import Price Data longer than chosen time horizon - taking only the first ' + \
-                          'couple of time slices')
-            price_data = price_data[0:len(self.topology.timesteps)]
-
-        self.node_data[node].data['import_prices'][carrier] = price_data
+        self.node_data[node].data['import_prices'][carrier] = dm.shorten_input_data(price_data,
+                                                                                         len(self.topology.timesteps))
 
     def read_export_price_data(self, node, carrier, price_data):
         """
@@ -202,12 +188,9 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['export_prices'][carrier]``
         """
-        if len(price_data) != len(self.topology.timesteps):
-            warnings.warn('Export Price Data longer than chosen time horizon - taking only the first ' + \
-                          'couple of time slices')
-            price_data = price_data[0:len(self.topology.timesteps)]
+        self.node_data[node].data['export_prices'][carrier] = dm.shorten_input_data(price_data,
+                                                                                     len(self.topology.timesteps))
 
-        self.node_data[node].data['export_prices'][carrier] = price_data
 
     def read_export_limit_data(self, node, carrier, export_limit_data):
         """
@@ -237,7 +220,8 @@ class DataHandle:
         :return: self at ``self.node_data[node]['import_limit'][carrier]``
         """
 
-        self.node_data[node].data['import_limit'][carrier] = import_limit_data
+        self.node_data[node].data['import_limit'][carrier] = dm.shorten_input_data(import_limit_data,
+                                                                                     len(self.topology.timesteps))
 
     def read_export_emissionfactor_data(self, node, carrier, export_emissionfactor_data):
         """
@@ -252,7 +236,8 @@ class DataHandle:
         :return: self at ``self.node_data[node]['export_emissionfactors'][carrier]``
         """
 
-        self.node_data[node].data['export_emissionfactors'][carrier] = export_emissionfactor_data
+        self.node_data[node].data['export_emissionfactors'][carrier] = dm.shorten_input_data(export_emissionfactor_data,
+                                                                                     len(self.topology.timesteps))
 
     def read_import_emissionfactor_data(self, node, carrier, import_emissionfactor_data):
         """
@@ -267,9 +252,10 @@ class DataHandle:
         :return: self at ``self.node_data[node]['import_emissionfactors'][carrier]``
         """
 
-        self.node_data[node].data['import_emissionfactors'][carrier] = import_emissionfactor_data
+        self.node_data[node].data['import_emissionfactors'][carrier] = dm.shorten_input_data(import_emissionfactor_data,
+                                                                                     len(self.topology.timesteps))
 
-    def read_technology_data(self, path = './data/Technology_Data/'):
+    def read_technology_data(self, path='./data/Technology_Data/'):
         """
         Writes new and existing technologies to self and fits performance functions
 
@@ -294,7 +280,7 @@ class DataHandle:
                     self.topology.technologies_existing[node][technology]
                 self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
 
-    def read_single_technology_data(self, node, technologies, path = './data/Technology_Data/'):
+    def read_single_technology_data(self, node, technologies, path='./data/Technology_Data/'):
         """
         Reads technologies to DataHandle after it has been initialized.
 

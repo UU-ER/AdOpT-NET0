@@ -30,27 +30,7 @@ for region in other_regions:
 demand_at_nodes.to_csv(save_path)
 #
 # # GENERIC PRODUCTION PROFILES
-# save_path = r'cases/NorthSea/ProductionProfiles/Production_Profiles.csv'
-#
-# # Other regions
-# cap_factors = {}
-# installed_capacities = {}
-# for region in other_regions:
-#     cap_factors[region] = read_capacity_factors_eraa(climate_year, region)
-#     installed_capacities[region] = read_installed_capacity_eraa(region)
-#
-# region = other_regions[0]
-# profile = pd.DataFrame(index=cap_factors[region]['PV'].index)
-# for region in other_regions:
-#     profile[region + '_tot'] = 0
-#     for series in cap_factors[region]:
-#         profile[region + '_tot'] = profile[region + '_tot'] + cap_factors[region][series] * installed_capacities[region]['RE'][series]
-#         profile[region + '_' + series] = cap_factors[region][series] * installed_capacities[region]['RE'][series]
-#
-# # Generic Production NL
-# profile = scale_capacity_factors(profile, climate_year, sd=0.05)
-#
-# profile.to_csv(save_path)
+
 #
 #
 #
