@@ -1,5 +1,3 @@
-import warnings
-
 import src.data_management as dm
 import src.data_management.components as comp
 import src.global_variables as global_variables
@@ -7,6 +5,7 @@ import src.global_variables as global_variables
 import pandas as pd
 import copy
 import numpy as np
+
 
 
 class DataHandle:
@@ -18,14 +17,13 @@ class DataHandle:
     :func:`~src.data_management.handle_topology.SystemTopology` as an input. The DataHandle class is structured
     as follows:
     - node_data contains (mainly time-dependent) data on all nodes, e.g. demand, prices, import/export limit,...
-    - Technology_Data contains data on all technologies. The data is read for all technologies in the topology
+    - technology_data contains data on all technologies. The data is read for all technologies in the topology
       with the function :func:`~src.data_management.handle_input_data.read_technology_data()`
     - network_data contains data on the networks. Similar to technolog_data, this is read with the respective function
       :func:`~src.data_management.handle_input_data.read_network_data()`
     - topology: contains data on the systems topology (see class
       :func:`~src.data_management.handle_topology.SystemTopology`)
     """
-
     def __init__(self, topology):
         """
         Constructor
@@ -92,10 +90,7 @@ class DataHandle:
         """
         data = dm.load_object(file)
 
-        # Match with timesteps
-        data['dataframe'] = data['dataframe'][0:len(self.topology.timesteps)]
-
-        self.node_data[node].data['climate_data'] = data['dataframe']
+        self.node_data[node].data['climate_data'] = dm.shorten_input_data(data['dataframe'], len(self.topology.timesteps))
         self.node_data[node].location.lon = data['longitude']
         self.node_data[node].location.lat = data['latitude']
         self.node_data[node].location.altitude = data['altitude']
@@ -130,12 +125,34 @@ class DataHandle:
         self.node_data[node].location.lat = lat
         self.node_data[node].location.altitude = alt
 
+    def read_hydro_natural_inflow(self, node, hydro_natural_inflow):
+        """
+        Reads natural inflow for pumped hydro open cycle
+
+        :param str node: node as specified in the topology
+        :param list hydro_natural_inflow: hydro inflows in MWh
+        :return: self at ``self.node_data[node]['climate_data']['hydro_natural_inflow']``
+        """
+        self.node_data[node].data['climate_data']['hydro_natural_inflow'] = dm.shorten_input_data(hydro_natural_inflow,
+                                                                                             len(self.topology.timesteps))
+
+    def read_hydro_maximum_discharge(self, node, maximum_discharge):
+        """
+        Reads maximum discharge of pumped hydro open cycles
+
+        :param str node: node as specified in the topology
+        :param list maximum_discharge: hydro inflows in MWh
+        :return: self at ``self.node_data[node]['climate_data']['maximum_discharge']``
+        """
+        self.node_data[node].data['climate_data']['hydro_maximum_discharge'] = dm.shorten_input_data(maximum_discharge,
+                                                                                             len(self.topology.timesteps))
+
     def read_demand_data(self, node, carrier, demand_data):
         """
         Reads demand data for one carrier to node.
 
         Note that demand for all carriers not specified is zero.
-        
+
         :param str node: node name as specified in the topology
         :param str carrier: carrier name as specified in the topology
         :param list demand_data: list of demand data. Needs to have the same length as number of \
@@ -174,7 +191,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['import_prices'][carrier]``
         """
         self.node_data[node].data['import_prices'][carrier] = dm.shorten_input_data(price_data,
-                                                                                         len(self.topology.timesteps))
+                                                                                    len(self.topology.timesteps))
 
     def read_export_price_data(self, node, carrier, price_data):
         """
@@ -189,8 +206,7 @@ class DataHandle:
         :return: self at ``self.node_data[node]['export_prices'][carrier]``
         """
         self.node_data[node].data['export_prices'][carrier] = dm.shorten_input_data(price_data,
-                                                                                     len(self.topology.timesteps))
-
+                                                                                    len(self.topology.timesteps))
 
     def read_export_limit_data(self, node, carrier, export_limit_data):
         """
@@ -221,7 +237,7 @@ class DataHandle:
         """
 
         self.node_data[node].data['import_limit'][carrier] = dm.shorten_input_data(import_limit_data,
-                                                                                     len(self.topology.timesteps))
+                                                                                   len(self.topology.timesteps))
 
     def read_export_emissionfactor_data(self, node, carrier, export_emissionfactor_data):
         """
@@ -237,7 +253,7 @@ class DataHandle:
         """
 
         self.node_data[node].data['export_emissionfactors'][carrier] = dm.shorten_input_data(export_emissionfactor_data,
-                                                                                     len(self.topology.timesteps))
+                                                                                             len(self.topology.timesteps))
 
     def read_import_emissionfactor_data(self, node, carrier, import_emissionfactor_data):
         """
@@ -253,7 +269,7 @@ class DataHandle:
         """
 
         self.node_data[node].data['import_emissionfactors'][carrier] = dm.shorten_input_data(import_emissionfactor_data,
-                                                                                     len(self.topology.timesteps))
+                                                                                             len(self.topology.timesteps))
 
     def read_technology_data(self, path='./data/Technology_Data/'):
         """
@@ -515,7 +531,7 @@ class DataHandle_AveragedData(DataHandle):
     def __average_node_data(self, data_full_resolution, nr_timesteps_averaged):
         """
         Averages all nodal data
-        
+
         :param data_full_resolution: Data full resolution
         :param nr_timesteps_averaged: How many time-steps should be averaged?
         """

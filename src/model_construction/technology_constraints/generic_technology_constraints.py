@@ -49,7 +49,7 @@ def constraints_tec_RES(b_tec, tec_data, energyhub):
         set_t = model.set_t_full
 
     # PARAMETERS
-    # Set capacity factors as a parameter
+    # Set capacity factors
     capfactor = coeff['capfactor']
 
     # CONSTRAINTS
@@ -361,13 +361,13 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
     alpha1 = {}
     alpha2 = {}
     # Get performance parameters
-    for c in performance_data['performance']['out']:
-        alpha1[c] = coeff[c]['alpha1']
+    for car in performance_data['performance']['out']:
+        alpha1[car] = coeff[car]['alpha1']
         if performance_function_type == 2:
-            alpha2[c] = coeff[c]['alpha2']
+            alpha2[car] = coeff[car]['alpha2']
         if performance_function_type == 3:
-            bp_x = coeff[c]['bp_x']
-            alpha2[c] = coeff[c]['alpha2']
+            bp_x = coeff[car]['bp_x']
+            alpha2[car] = coeff[car]['alpha2']
 
     min_part_load = performance_data['min_part_load']
 
@@ -563,20 +563,20 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
     alpha2 = {}
     phi = {}
     # Get performance parameters
-    for c in performance_data['performance']['out']:
-        alpha1[c] = coeff[c]['alpha1']
+    for car in performance_data['performance']['out']:
+        alpha1[car] = coeff[car]['alpha1']
         if performance_function_type == 2:
-            alpha2[c] = coeff[c]['alpha2']
+            alpha2[car] = coeff[car]['alpha2']
         if performance_function_type == 3:
-            bp_x = coeff[c]['bp_x']
-            alpha2[c] = coeff[c]['alpha2']
+            bp_x = coeff[car]['bp_x']
+            alpha2[car] = coeff[car]['alpha2']
 
     min_part_load = performance_data['min_part_load']
 
     if 'input_ratios' in performance_data:
         main_car = performance_data['main_input_carrier']
-        for c in performance_data['input_ratios']:
-            phi[c] = performance_data['input_ratios'][c]
+        for car in performance_data['input_ratios']:
+            phi[car] = performance_data['input_ratios'][car]
     else:
         warnings.warn(
             'Using CONV3 without input ratios makes no sense. Error occured for ' + b_tec.local_name)
@@ -749,8 +749,8 @@ def constraints_tec_CONV4(b_tec, tec_data, energyhub):
     # Output ratios
     phi = {}
     main_car = performance_data['main_output_carrier']
-    for c in performance_data['output_ratios']:
-        phi[c] = performance_data['output_ratios'][c]
+    for car in performance_data['output_ratios']:
+        phi[car] = performance_data['output_ratios'][car]
 
     # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:

@@ -1,7 +1,6 @@
 import pytest
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
-from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
 import src.model_construction as mc
@@ -102,7 +101,7 @@ def test_addtechnology():
     """
     data = dm.load_object(r'./test/test_data/addtechnology.p')
     configuration = ModelConfiguration()
-    data.technology_data['test_node1']['WindTurbine_Offshore_6000'].performance_data['curtailment'] = 0
+    data.technology_data['test_node1']['TestWindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
@@ -110,11 +109,11 @@ def test_addtechnology():
 
     obj1 = energyhub.model.objective()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    sizeWT1 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Offshore_6000'].var_size.value
+    sizeWT1 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestWindTurbine_Onshore_1500'].var_size.value
     sizeBattery1 = energyhub.model.node_blocks['test_node2'].tech_blocks_active['Storage_Battery'].var_size.value
     assert 0 <= sizeWT1
     assert 0 <= sizeBattery1
-    should = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Offshore_6000'].var_size.value * 6
+    should = energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestWindTurbine_Onshore_1500'].var_size.value * 1.5
     res = energyhub.model.network_block['electricitySimple'].arc_block['test_node1', 'test_node2'].var_size.value
     assert should * 0.8 <= res
     assert res <= 1.01 * should
@@ -125,7 +124,7 @@ def test_addtechnology():
     energyhub.solve()
 
     obj2 = energyhub.model.objective()
-    sizeWT2 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Offshore_6000'].var_size.value
+    sizeWT2 = energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestWindTurbine_Onshore_1500'].var_size.value
     sizeBattery2 = energyhub.model.node_blocks['test_node2'].tech_blocks_active['Storage_Battery'].var_size.value
     assert energyhub.solution.solver.termination_condition == 'optimal'
     assert sizeWT2 <= sizeWT1
@@ -290,8 +289,7 @@ def test_simplification_algorithms():
     configuration.optimization.monte_carlo.on = 1
     configuration.optimization.monte_carlo.sd = 0.2
     configuration.optimization.monte_carlo.N = 2
-    configuration.optimization.monte_carlo.on_what = ['Technologies',
-                                             'Networks']
+    configuration.optimization.monte_carlo.on_what = ['Technologies']
     energyhub4 = ehub(data, configuration)
     energyhub4.quick_solve()
 

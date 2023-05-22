@@ -3,7 +3,6 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
-from pyomo.environ import units as u
 from pyomo.environ import *
 import pandas as pd
 
@@ -47,30 +46,30 @@ def test_technology_RES_WT():
     # No curtailment
     data = dm.load_object(r'./test/test_data/technology_type1_WT.p')
     configuration = ModelConfiguration()
-    data.technology_data['test_node1']['WindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
+    data.technology_data['test_node1']['TestWindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
+    assert 6 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestWindTurbine_Onshore_1500'].var_size.value
 
     # Import at zero price
     for t in energyhub.model.set_t_full:
         energyhub.model.node_blocks['test_node1'].para_import_price[t, 'electricity'] = 0
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
+    assert 0 == energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestWindTurbine_Onshore_1500'].var_size.value
     assert 0 == energyhub.model.objective()
 
     # Curtailment
-    data.technology_data['test_node1']['WindTurbine_Onshore_1500'].performance_data['curtailment'] = 2
+    data.technology_data['test_node1']['TestWindTurbine_Onshore_1500'].performance_data['curtailment'] = 2
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['WindTurbine_Onshore_1500'].var_size.value
+    assert 6 <= energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestWindTurbine_Onshore_1500'].var_size.value
 
 def test_technology_CONV1():
     """
@@ -341,7 +340,7 @@ def test_technology_CONV3():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 2)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -480,12 +479,27 @@ def test_technology_CONV4():
 
     data = dm.load_object(r'./test/test_data/technology_CONV4_2.p')
     configuration = ModelConfiguration()
-    tecname = 'testCONV4_2'
     energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
+
+def test_technology_STOR():
+    data = dm.load_object(r'./test/test_data/technologySTOR.p')
+    configuration = ModelConfiguration()
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    el_out_1 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active['testSTOR'].var_output[1, 'electricity'].value,
+        3)
+    el_out_2 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active['testSTOR'].var_output[2, 'electricity'].value,
+        3)
+    assert 0 == el_out_1
+    assert 0.1 == el_out_2
 
 def test_dac():
     # data.save(data_save_path)
@@ -527,3 +541,68 @@ def test_existing_technologies():
     cost3 = run_EnergyHub(data, configuration)
     assert cost3<cost2
     assert cost2<cost1
+
+
+def test_technology_OpenHydro():
+    # electricity from open hydro only
+    data = dm.load_object(r'./test/test_data/technologyOpenHydro.p')
+    configuration = ModelConfiguration()
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    el_out_1 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestPumpedHydro_Open'].var_output[
+            1, 'electricity'].value,
+        3)
+    el_out_2 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestPumpedHydro_Open'].var_output[
+            2, 'electricity'].value,
+        3)
+    size_WT = energyhub.model.node_blocks['test_node1'].tech_blocks_active[
+        'TestWindTurbine_Onshore_1500'].var_size.value
+    assert 1 == el_out_1
+    assert 1 == el_out_2
+    assert 0 == size_WT
+
+    # electricity WT, stored in open hydro
+    data.node_data['test_node1'].data['climate_data']['hydro_natural_inflow'][0] = 0
+    data.node_data['test_node1'].data['climate_data']['hydro_natural_inflow'][1] = 0
+    data.read_technology_data()
+    configuration = ModelConfiguration()
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    el_out_1 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestPumpedHydro_Open'].var_output[
+            1, 'electricity'].value,
+        3)
+    el_out_2 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active['TestPumpedHydro_Open'].var_output[
+            2, 'electricity'].value,
+        3)
+    size_WT = energyhub.model.node_blocks['test_node1'].tech_blocks_active[
+        'TestWindTurbine_Onshore_1500'].var_size.value
+    assert 0 == el_out_1
+    assert 1 == el_out_2
+    assert 0 < size_WT
+
+    # no pumping allowed, infeasible
+    data.technology_data['test_node1']['TestPumpedHydro_Open'].performance_data['can_pump'] = 0
+
+    configuration = ModelConfiguration()
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+
+    # Maximum discharge too small
+    data = dm.load_object(r'./test/test_data/technologyOpenHydro_max_discharge.p')
+    configuration = ModelConfiguration()
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+
+

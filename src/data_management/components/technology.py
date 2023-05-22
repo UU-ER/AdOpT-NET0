@@ -47,7 +47,7 @@ class Technology:
         else:
             self.emissions_based_on = 'input'
 
-        technologies_modelled_with_full_res = ['RES', 'STOR']
+        technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
         if global_variables.clustered_data and (self.technology_model not in technologies_modelled_with_full_res):
             self.modelled_with_full_res = 0
 
@@ -110,6 +110,9 @@ class Technology:
 
         elif self.technology_model.startswith('GasTurbine_'):  # Gas Turbine
             self.fitted_performance = perform_fitting_tec_GT(self.performance_data, climate_data)
+
+        elif self.technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
+            self.fitted_performance = perform_fitting_tec_hydro_open(self.performance_data, climate_data)
 
 
 

@@ -1,0 +1,52 @@
+{
+  "tec_type": "Hydro_Open",
+  "size_min": 0,
+  "size_max": 1.0E+7,
+  "size_is_int": 0,
+  "decommission": 0,
+  "Economics": {
+    "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "unit_CAPEX": 10,
+    "piecewise_CAPEX": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0,
+    "discount_rate": 0,
+    "lifetime": 50,
+    "decommission_cost": 0
+  },
+  "TechnologyPerf": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "electricity"
+    ],
+    "main_input_carrier": "electricity",
+    "output_carrier": [
+      "electricity"
+    ],
+    "emission_factor": 0,
+    "allow_only_one_direction": 0,
+    "can_pump": 1,
+    "maximum_discharge_time_discrete": 0,
+    "performance": {
+      "eta_in": 1,
+      "eta_out": 1,
+      "lambda": 0,
+      "charge_max": 1,
+      "discharge_max": 1,
+      "spilling_max": 1
+    }
+  },
+  "Units": {
+    "size": "MWh",
+    "input_carrier": {
+      "electricity": "MW"
+    },
+    "output_carrier": {
+      "electricity": "MW"
+    }
+  }
+}

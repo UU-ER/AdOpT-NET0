@@ -30,8 +30,8 @@ class ModelConfiguration:
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.N      | Number of Monte Carlo simulations            |                                             | 100     |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'Networks', 'ImportPrices', | Tec,    |
-    |                    | Warning: Import/export prices                | 'ExportPrices'                              | Netw    |
+    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'ImportPrices',             | Tec     |
+    |                    | Warning: Import/export prices                | 'ExportPrices'                              |         |
     |                    | can take a long time.                        |                                             |         |
      +-------------------+----------------------------------------------+---------------------------------------------+---------+
     | pareto_points      | Number of Pareto points                      |                                             | 5       |
@@ -79,20 +79,15 @@ class ModelConfiguration:
     | cuts          | Setting defining the aggressiveness of the global cut               | {-1, 0, 1, 2, 3}       | -1       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
 
-    List of model construction settings that can be specified:
-    +------------------+------------------------------------------------------------------------------------------------------------------+---------+---------+
-    | Name             | Definition                                                                                                       | Options | Default |
-    +------------------+------------------------------------------------------------------------------------------------------------------+---------+---------+
+       List of energy balance settings that can be specified:
 
-    List of energy balance settings that can be specified:
-
-    +-------------+--------------------------------------------------+---------+---------+
-    | Name        | Definition                                       | Options | Default |
-    +-------------+--------------------------------------------------+---------+---------+
-    | violation   | Determines if the energy balance can be violated | {0,1}   | 0       |
-    +-------------+--------------------------------------------------+---------+---------+
-    | copperplate | Determines if a copperplate approach is used     | {0,1}   | 0       |
-    +-------------+--------------------------------------------------+---------+---------+
+    +-------------+----------------------------------------------------------------------------+---------+---------+
+    | Name        | Definition                                                                 | Options | Default |
+    +-------------+----------------------------------------------------------------------------+---------+---------+
+    | violation   | Determines the energy balance violation price (-1 is no violation allowed) |         | -1      |
+    +-------------+----------------------------------------------------------------------------+---------+---------+
+    | copperplate | Determines if a copperplate approach is used                               | {0,1}   | 0       |
+    +-------------+----------------------------------------------------------------------------+---------+---------+
 
     List of economic settings that can be specified:
 
@@ -145,8 +140,7 @@ class ModelConfiguration:
         self.optimization.monte_carlo.on = 0
         self.optimization.monte_carlo.sd = 0.2
         self.optimization.monte_carlo.N = 4
-        self.optimization.monte_carlo.on_what = ['Technologies',
-                                                'Networks']
+        self.optimization.monte_carlo.on_what = ['Technologies']
         self.optimization.pareto_points = 5
 
         self.optimization.timestaging = 0
@@ -158,8 +152,8 @@ class ModelConfiguration:
         self.modelconstruction = SimpleNamespace()
 
         self.energybalance = SimpleNamespace()
-        # self.energybalance.violation = 0
-        # self.energybalance.copperplate = 0
+        self.energybalance.violation = -1
+        self.energybalance.copperplate = 0
 
         self.economic = SimpleNamespace()
         self.economic.global_discountrate = -1
