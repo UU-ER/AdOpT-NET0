@@ -101,7 +101,7 @@ def perform_fitting_ST(climate_data):
 
 def perform_fitting_WT(climate_data, turbine_model, hubheight):
     # Load data for wind turbine type
-    WT_data = pd.read_csv(r'.\data\technology_data\WT_data\WT_data.csv', delimiter=';')
+    WT_data = pd.read_csv(r'.\data\technology_data\RES\WT_data\WT_data.csv', delimiter=';')
     WT_data = WT_data[WT_data['TurbineName'] == turbine_model]
 
     # Load wind speed and correct for height
@@ -564,5 +564,39 @@ def perform_fitting_tec_GT(tec_data, climate_data):
 
     return fitting
 
+def perform_fitting_tec_hydro_open(tec_data, climate_data):
+    """
+    Performs fitting for technology type Hydro_Open
 
+    :param tec_data: technology data
+    :param climate_data: climate data
+    :return:
+    """
+    time_steps = len(climate_data)
+
+    # return fit
+    fitting = FittedPerformance()
+    # Output Bounds
+    for car in tec_data['output_carrier']:
+        fitting.bounds['output'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))*tec_data['performance']['discharge_max']))
+    # Input Bounds
+    for car in tec_data['input_carrier']:
+        fitting.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))*tec_data['performance']['charge_max']))
+    # Coefficients
+    for par in tec_data['performance']:
+        fitting.coefficients[par] = tec_data['performance'][par]
+
+    # Natural inflow
+    if 'hydro_natural_inflow' in climate_data:
+        fitting.coefficients['hydro_natural_inflow'] = climate_data['hydro_natural_inflow']
+    else:
+        raise Exception('Using Technology Type Hydro_Open requires a hydro_natural_inflow in climate data'
+                        ' to be defined for this node. You can do this by using DataHandle.read_hydro_natural_inflow')
+
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 1
+
+    return fitting
 

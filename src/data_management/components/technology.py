@@ -111,5 +111,8 @@ class Technology:
         elif self.technology_model.startswith('GasTurbine_'):  # Gas Turbine
             self.fitted_performance = perform_fitting_tec_GT(self.performance_data, climate_data)
 
+        elif self.technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
+            self.fitted_performance = perform_fitting_tec_hydro_open(self.performance_data, climate_data)
+
 
 

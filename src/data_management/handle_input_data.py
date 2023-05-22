@@ -90,10 +90,7 @@ class DataHandle:
         """
         data = dm.load_object(file)
 
-        # Match with timesteps
-        data['dataframe'] = data['dataframe'][0:len(self.topology.timesteps)]
-
-        self.node_data[node].data['climate_data'] = data['dataframe']
+        self.node_data[node].data['climate_data'] = dm.shorten_input_data(data['dataframe'], len(self.topology.timesteps))
         self.node_data[node].location.lon = data['longitude']
         self.node_data[node].location.lat = data['latitude']
         self.node_data[node].location.altitude = data['altitude']
@@ -127,6 +124,17 @@ class DataHandle:
         self.node_data[node].location.lon = lon
         self.node_data[node].location.lat = lat
         self.node_data[node].location.altitude = alt
+
+    def read_hydro_natural_inflow(self, node, hydro_natural_inflow):
+        """
+        Reads natural inflow for pumped hydro open cycle
+
+        :param str node: node as specified in the topology
+        :param list hydro_natural_inflow: hydro inflows in MWh
+        :return: self at ``self.node_data[node]['climate_data']['hydro_natural_inflow']``
+        """
+        self.node_data[node].data['climate_data']['hydro_natural_inflow'] = dm.shorten_input_data(hydro_natural_inflow,
+                                                                                             len(self.topology.timesteps))
 
     def read_demand_data(self, node, carrier, demand_data):
         """

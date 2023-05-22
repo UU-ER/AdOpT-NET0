@@ -45,7 +45,7 @@ def test_load_technologies():
     Tests the loading of all technologies contained in the technology folder
     """
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 00:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 00:00', resolution=1)
     topology.define_carriers(['electricity', 'heat'])
     topology.define_nodes(['testnode'])
 
@@ -53,12 +53,13 @@ def test_load_technologies():
     lat = 52
     lon = 5.16
     data.read_climate_data_from_api('testnode', lon, lat)
+    # data.read_climate_data_from_file('testnode', r'./test/climate_data_test.p')
 
     directory = os.fsencode('./data/technology_data')
 
     for file in os.listdir(directory):
         filename = os.fsdecode(file)
-        if filename.endswith(".json"):
+        if filename.endswith('.json'):
             print(filename.replace('.json', ''))
             data.topology.technologies_new['testnode'] = [filename.replace('.json', '')]
             data.read_technology_data()

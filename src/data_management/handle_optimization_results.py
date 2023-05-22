@@ -341,6 +341,9 @@ class OptimizationResults:
                         for car in tec_data.set_input_carriers:
                             df['storage_level_' + car] = [tec_data.var_storage_level[t, car].value for t in time_set]
 
+                    if tec_data.find_component('var_spilling'):
+                        df['spilling'] = [tec_data.var_spilling[t].value for t in time_set]
+
                     self.detailed_results.nodes[node_name][tec_name] = df
 
             # Detailed results for networks
