@@ -34,14 +34,9 @@ def constraints_tec_dac_adsorption(b_tec, tec_data, energyhub):
 
 
     # Full or reduced resolution
-    if global_variables.clustered_data and not modelled_with_full_res:
-        input = b_tec.var_input_aux
-        output = b_tec.var_output_aux
-        set_t = model.set_t_clustered
-    else:
-        input = b_tec.var_input
-        output = b_tec.var_output
-        set_t = model.set_t_full
+    input = b_tec.var_input
+    output = b_tec.var_output
+    set_t = model.set_t_full
 
     nr_segments = performance_data['nr_segments']
     ohmic_heating = performance_data['ohmic_heating']
