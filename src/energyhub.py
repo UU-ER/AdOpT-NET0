@@ -58,10 +58,10 @@ class EnergyHub:
 
         # INITIALIZE DATA
         self.data_storage = []
-        if not self.configuration.optimization.typicaldays.nr == 0:
+        if not self.configuration.optimization.typicaldays.N == 0:
             # If clustered
             global_variables.clustered_data = 1
-            self.data_storage.append(dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays.nr))
+            self.data_storage.append(dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays.N))
         else:
             self.data_storage.append(data)
 

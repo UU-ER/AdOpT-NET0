@@ -149,7 +149,7 @@ class ModelConfiguration:
         self.optimization.timestaging = 0
 
         self.optimization.typicaldays = SimpleNamespace()
-        self.optimization.typicaldays.nr = 0
+        self.optimization.typicaldays.N = 0
         self.optimization.typicaldays.method = 2
 
         # self.optimization.tecstaging = 0
