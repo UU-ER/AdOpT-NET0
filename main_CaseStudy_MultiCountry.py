@@ -39,7 +39,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -129,10 +129,17 @@ data.read_network_data()
 
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
+configuration.solveroptions.solver = 'gurobi_persistent'
 
-# # Read data
+# Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
 results.write_excel(r'user_Data/MultiCountry')
 
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
+
+# New technologies
+energyhub.add_technology_to_node('DE00', ['StorageBattery'])
+energyhub.construct_balances()
+results = energyhub.solve()
+results.write_excel(r'user_Data/MultiCountry1')
