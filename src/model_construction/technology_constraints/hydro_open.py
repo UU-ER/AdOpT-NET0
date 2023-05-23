@@ -100,7 +100,7 @@ def constraints_tec_hydro_open(b_tec, tec_data, energyhub):
     eta_lambda = coeff['lambda']
     charge_max = coeff['charge_max']
     discharge_max = coeff['discharge_max']
-    hydro_natural_inflow = coeff['hydro_natural_inflow']
+    hydro_natural_inflow = coeff['hydro_inflow']
     spilling_max = coeff['spilling_max']
 
 
