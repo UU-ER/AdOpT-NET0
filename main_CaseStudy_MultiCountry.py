@@ -39,7 +39,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -120,6 +120,8 @@ data.read_technology_data(path =tec_data_path)
 for node in onshore_nodes:
     storage_at_node = installed_capacities[node]['HydroStorage_charging']
     for storage in storage_at_node:
+        print(installed_capacities[node]['HydroStorage_charging'][storage]['max_charge'])
+        print(installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge'])
         data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_charge']
         data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge']
 

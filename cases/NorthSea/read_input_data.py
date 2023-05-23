@@ -64,7 +64,7 @@ def read_installed_capacity_eraa(region):
         Conv['Storage_PumpedHydro_Open'] = instcap[region]['Hydro - Pump Storage Open Loop']
         Stor['Storage_PumpedHydro_Open'] = {}
         Stor['Storage_PumpedHydro_Open']['max_charge'] = \
-            instcap[region]['Hydro - Pump Storage Open Loop (Pumping)'] /\
+            - instcap[region]['Hydro - Pump Storage Open Loop (Pumping)'] /\
             instcap[region]['Hydro - Pump Storage Open Loop']
         Stor['Storage_PumpedHydro_Open']['max_discharge'] = \
             instcap[region]['Hydro - Pump Storage Open Loop (Turbine)'] / \
