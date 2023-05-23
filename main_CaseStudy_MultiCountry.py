@@ -120,8 +120,6 @@ data.read_technology_data(path =tec_data_path)
 for node in onshore_nodes:
     storage_at_node = installed_capacities[node]['HydroStorage_charging']
     for storage in storage_at_node:
-        print(installed_capacities[node]['HydroStorage_charging'][storage]['max_charge'])
-        print(installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge'])
         data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_charge']
         data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge']
 
@@ -139,7 +137,7 @@ results.write_excel(r'user_Data/MultiCountry')
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
 
 # New technologies
-energyhub.add_technology_to_node('DE00', ['StorageBattery'])
+energyhub.add_technology_to_node('DE00', ['Storage_Battery'])
 energyhub.construct_balances()
 results = energyhub.solve()
 results.write_excel(r'user_Data/MultiCountry1')
