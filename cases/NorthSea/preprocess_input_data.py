@@ -124,33 +124,6 @@ def aggregate_provinces_to_node(demand_corrected):
 
     return demand_profiles
 
-save_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/Demand_Electricity/Demand_'
-
-scenarios = ['GA', 'DE', 'NT']
-regions = ['DE00', 'BE00', 'DKW1', 'UK00', 'NL00', 'NOS0']
-years = [2030, 2040, 2050]
-climate_years = [1995, 2008, 2009]
-scaling_factors = {'Res': 2, 'Ind': 0.3}
-
-
-# for scenario in scenarios:
-#     for year in years:
-#         for climate_year in climate_years:
-#             if not (scenario == 'NT' and year > 2040):
-#                 demand = pd.DataFrame(index=range(0,8760))
-#                 file_name = scenario + '_' + str(year) + '_ClimateYear' + str(climate_year) + '.csv'
-#                 for region in regions:
-#                     demand[region] = preprocess_demand_data_eraa(scenario, year, climate_year, region)
-#                     if region == 'NL00':
-#                         NL_national_profile = demand[region]
-#                         demandNL_corrected = scale_demand_data(NL_national_profile, scaling_factors)
-#                         demandNL_at_nodes = aggregate_provinces_to_node(demandNL_corrected)
-#                         demand = pd.concat([demand, demandNL_at_nodes], axis = 1)
-#                 demand.to_csv(save_path + file_name)
-
-
-
-# Prepare generic production profiles
 
 def read_capacity_factors_eraa(climate_year, region):
     """
@@ -178,12 +151,12 @@ def read_capacity_factors_eraa(climate_year, region):
     return capacity_factors
 
 
-def divide_dataframe(df):
+def divide_dataframe(df, n):
     # Divide each entry by 24
-    divided_df = df / 24
+    divided_df = df / n
 
     # Concatenate the dataframe
-    concatenated_df = pd.DataFrame(divided_df.values.repeat(24, axis=0))
+    concatenated_df = pd.DataFrame(divided_df.values.repeat(n, axis=0))
 
     return concatenated_df
 
@@ -229,41 +202,94 @@ def scale_capacity_factors(profile, climate_year, sd = 0.05):
     return profile
 
 
-for climate_year in climate_years:
-    save_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/ProductionProfiles/Production_Profiles' + str(climate_year) + '.csv'
-
-    # Other regions
-    cap_factors = {}
-    installed_capacities = {}
-    run_of_river_output = {}
-
-    # Capacity Factors
-    for region in regions:
-        cap_factors[region] = read_capacity_factors_eraa(climate_year, region)
-        installed_capacities[region] = read_installed_capacity_eraa(region)
-
-    # Run of River
-    columns = [i for i in range(16,16+37)]
-    column_names = ['Day', *range(1982, 2018)]
-    for region in regions:
-        if not region == 'DKW1' and not region == 'NOS0':
-            output = pd.read_excel('E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Hydro Inflows/PEMMDB_'+region+'_Hydro Inflow_2030.xlsx',
-                                   sheet_name='Run of River', skiprows=12, usecols= columns, names=column_names)
-            run_of_river_output[region] = divide_dataframe(output[climate_year]) * 1000
-
-    region = regions[0]
-    profile = pd.DataFrame(index=cap_factors[region]['PV'].index)
-    for region in regions:
-        profile[region + '_tot'] = 0
-        for series in cap_factors[region]:
-            profile[region + '_tot'] = profile[region + '_tot'] + cap_factors[region][series] * installed_capacities[region]['RE'][series]
-            profile[region + '_' + series] = cap_factors[region][series] * installed_capacities[region]['RE'][series]
-        if not region == 'DKW1' and not region == 'NOS0':
-            profile[region + '_run_of_river'] = run_of_river_output[region]
-            profile[region + '_tot'] = profile[region + '_tot'] + run_of_river_output[region][0][0:8760]
+scenarios = ['GA', 'DE', 'NT']
+regions = ['DE00', 'BE00', 'DKW1', 'UK00', 'NL00', 'NOS0']
+years = [2030, 2040, 2050]
+climate_years = [1995, 2008, 2009]
+scaling_factors = {'Res': 2, 'Ind': 0.3}
 
 
-    # Generic Production NL
-    profile = scale_capacity_factors(profile, climate_year, sd=0.05)
+save_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/Demand_Electricity/Demand_'
+# for scenario in scenarios:
+#     for year in years:
+#         for climate_year in climate_years:
+#             if not (scenario == 'NT' and year > 2040):
+#                 demand = pd.DataFrame(index=range(0,8760))
+#                 file_name = scenario + '_' + str(year) + '_ClimateYear' + str(climate_year) + '.csv'
+#                 for region in regions:
+#                     demand[region] = preprocess_demand_data_eraa(scenario, year, climate_year, region)
+#                     if region == 'NL00':
+#                         NL_national_profile = demand[region]
+#                         demandNL_corrected = scale_demand_data(NL_national_profile, scaling_factors)
+#                         demandNL_at_nodes = aggregate_provinces_to_node(demandNL_corrected)
+#                         demand = pd.concat([demand, demandNL_at_nodes], axis = 1)
+#                 demand.to_csv(save_path + file_name)
 
-    profile.to_csv(save_path)
+
+
+# Prepare generic production profiles
+# for climate_year in climate_years:
+#     save_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/ProductionProfiles/Production_Profiles' + str(climate_year) + '.csv'
+#
+#     # Other regions
+#     cap_factors = {}
+#     installed_capacities = {}
+#     run_of_river_output = {}
+#
+#     # Capacity Factors
+#     for region in regions:
+#         cap_factors[region] = read_capacity_factors_eraa(climate_year, region)
+#         installed_capacities[region] = read_installed_capacity_eraa(region)
+#
+#     # Run of River
+#     columns = [i for i in range(16,16+37)]
+#     column_names = ['Day', *range(1982, 2018)]
+#     for region in regions:
+#         if not region == 'DKW1' and not region == 'NOS0':
+#             output = pd.read_excel('E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Hydro Inflows/PEMMDB_'+region+'_Hydro Inflow_2030.xlsx',
+#                                    sheet_name='Run of River', skiprows=12, usecols= columns, names=column_names)
+#             run_of_river_output[region] = divide_dataframe(output[climate_year], 24) * 1000
+#
+#     region = regions[0]
+#     profile = pd.DataFrame(index=cap_factors[region]['PV'].index)
+#     for region in regions:
+#         profile[region + '_tot'] = 0
+#         for series in cap_factors[region]:
+#             profile[region + '_tot'] = profile[region + '_tot'] + cap_factors[region][series] * installed_capacities[region]['RE'][series]
+#             profile[region + '_' + series] = cap_factors[region][series] * installed_capacities[region]['RE'][series]
+#         if not region == 'DKW1' and not region == 'NOS0':
+#             profile[region + '_run_of_river'] = run_of_river_output[region]
+#             profile[region + '_tot'] = profile[region + '_tot'] + run_of_river_output[region][0][0:8760]
+#
+#
+#     # Generic Production NL
+#     profile = scale_capacity_factors(profile, climate_year, sd=0.05)
+#
+#     profile.to_csv(save_path)
+
+
+# Hydro Inflows
+year = 2030
+hydro_types = ['Reservoir', 'Pump storage - Open Loop']
+columns = [i for i in range(16,16+37)]
+column_names = ['Week', *range(1982, 2018)]
+inflow = pd.DataFrame()
+
+for hydro_type in hydro_types:
+        for region in regions:
+            if not region == 'DKW1':
+                data_path = r'E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Hydro Inflows/PEMMDB_' + region + '_Hydro Inflow_' + str(
+                    year) + '.xlsx'
+                for climate_year in climate_years:
+                    temp = pd.read_excel(data_path, sheet_name=hydro_type, skiprows=12, usecols= columns, names=column_names)
+                    temp = temp
+                    temp = divide_dataframe(temp[climate_year], 7*24) * 1000
+                    inflow[region] = temp[0:8760]
+                    save_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/Hydro_Inflows/HydroInflow' + hydro_type + str(
+                        climate_year) + '.csv'
+                    inflow.to_csv(save_path)
+
+
+
+
+

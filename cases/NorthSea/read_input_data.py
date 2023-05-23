@@ -37,17 +37,47 @@ def read_installed_capacity_eraa(region):
 
     Conv = {}
     RE = {}
+    Stor = {}
     if instcap[region]['Nuclear'] >0:
         Conv['PowerPlant_Nuclear'] = instcap[region]['Nuclear']
+
     if instcap[region]['Gas'] > 0:
         Conv['PowerPlant_Gas'] = instcap[region]['Gas']
-    # Conv['PowerPlant_Lignite'] = instcap[region]['Lignite']
+
     if instcap[region]['Hard Coal'] > 0:
         Conv['PowerPlant_Coal'] = instcap[region]['Hard Coal']
-    if instcap[region]['Batteries'] > 0:
-        Conv['Storage_Battery'] = instcap[region]['Batteries']
+
+    # if instcap[region]['Batteries'] > 0:
+    #     Conv['Storage_Battery'] = instcap[region]['Batteries']
+
     if instcap[region]['Hydro - Pump Storage Closed Loop'] > 0:
         Conv['Storage_PumpedHydro_Closed'] = instcap[region]['Hydro - Pump Storage Closed Loop']
+        Stor['Storage_PumpedHydro_Closed'] = {}
+        Stor['Storage_PumpedHydro_Closed']['max_charge'] = \
+            - instcap[region]['Hydro - Pump Storage Closed Loop (Pumping)'] /\
+            instcap[region]['Hydro - Pump Storage Closed Loop']
+        Stor['Storage_PumpedHydro_Closed']['max_discharge'] = \
+            instcap[region]['Hydro - Pump Storage Closed Loop (Turbine)'] / \
+            instcap[region]['Hydro - Pump Storage Closed Loop']
+
+    if instcap[region]['Hydro - Pump Storage Open Loop'] > 0:
+        Conv['Storage_PumpedHydro_Open'] = instcap[region]['Hydro - Pump Storage Open Loop']
+        Stor['Storage_PumpedHydro_Open'] = {}
+        Stor['Storage_PumpedHydro_Open']['max_charge'] = \
+            instcap[region]['Hydro - Pump Storage Open Loop (Pumping)'] /\
+            instcap[region]['Hydro - Pump Storage Open Loop']
+        Stor['Storage_PumpedHydro_Open']['max_discharge'] = \
+            instcap[region]['Hydro - Pump Storage Open Loop (Turbine)'] / \
+            instcap[region]['Hydro - Pump Storage Open Loop']
+
+    if instcap[region]['Hydro - Reservoir'] > 0:
+        Conv['Storage_PumpedHydro_Reservoir']= instcap[region]['Hydro - Reservoir']
+        Stor['Storage_PumpedHydro_Reservoir'] = {}
+        Stor['Storage_PumpedHydro_Reservoir']['max_charge'] = 0
+        Stor['Storage_PumpedHydro_Reservoir']['max_discharge'] = \
+            instcap[region]['Hydro - Reservoir (Turbine)'] / \
+            instcap[region]['Hydro - Pump Storage Open Loop']
+
     RE['Wind_On'] = instcap[region]['Wind Onshore']
     RE['Wind_Of'] = instcap[region]['Wind Offshore']
     RE['PV'] = instcap[region]['Solar (Photovoltaic)']
@@ -55,6 +85,7 @@ def read_installed_capacity_eraa(region):
     installed_capacities = {}
     installed_capacities['RE'] = RE
     installed_capacities['Conventional'] = Conv
+    installed_capacities['HydroStorage_charging'] = Stor
 
     return installed_capacities
 
@@ -143,3 +174,5 @@ def write_to_technology_data(tec_data_path, year):
 
         with open(os.path.join(tec_data_path, filename), 'w') as outfile:
             json.dump(tec_data, outfile, indent=2)
+
+
