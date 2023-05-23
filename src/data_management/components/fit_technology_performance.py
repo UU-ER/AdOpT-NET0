@@ -564,7 +564,7 @@ def perform_fitting_tec_GT(tec_data, climate_data):
 
     return fitting
 
-def perform_fitting_tec_hydro_open(tec_data, climate_data):
+def perform_fitting_tec_hydro_open(technology_name, tec_data, climate_data):
     """
     Performs fitting for technology type Hydro_Open
 
@@ -589,16 +589,16 @@ def perform_fitting_tec_hydro_open(tec_data, climate_data):
         fitting.coefficients[par] = tec_data['performance'][par]
 
     # Natural inflow
-    if 'hydro_natural_inflow' in climate_data:
-        fitting.coefficients['hydro_natural_inflow'] = climate_data['hydro_natural_inflow']
+    if technology_name + '_inflow' in climate_data:
+        fitting.coefficients['hydro_inflow'] = climate_data[technology_name + '_inflow']
     else:
         raise Exception('Using Technology Type Hydro_Open requires a hydro_natural_inflow in climate data'
                         ' to be defined for this node. You can do this by using DataHandle.read_hydro_natural_inflow')
 
     # Maximum discharge
     if tec_data['maximum_discharge_time_discrete']:
-        if 'hydro_maximum_discharge' in climate_data:
-            fitting.coefficients['hydro_maximum_discharge'] = climate_data['hydro_maximum_discharge']
+        if technology_name + '_maximum_discharge' in climate_data:
+            fitting.coefficients['hydro_maximum_discharge'] = climate_data[technology_name + '_maximum_discharge']
         else:
             raise Exception('Using Technology Type Hydro_Open with maximum_discharge_time_discrete == 1 requires '
                             'hydro_maximum_discharge to be defined for this node.')
