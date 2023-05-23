@@ -267,7 +267,16 @@ def test_simplification_algorithms():
 
     # k_means
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 40
+    configuration.optimization.typicaldays.nr = 40
+    energyhub2 = ehub(data, configuration)
+    energyhub2.quick_solve()
+    cost2 = energyhub2.model.var_total_cost.value
+    assert energyhub2.solution.solver.termination_condition == 'optimal'
+
+    assert abs(cost1 - cost2) / cost1 <= 0.1
+
+    configuration = ModelConfiguration()
+    configuration.optimization.typicaldays.nr = 40
     energyhub2 = ehub(data, configuration)
     energyhub2.quick_solve()
     cost2 = energyhub2.model.var_total_cost.value

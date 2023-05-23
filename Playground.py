@@ -27,7 +27,8 @@ if execute == 1:
 
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 4
+    configuration.optimization.typicaldays.nr = 4
+    configuration.optimization.typicaldays.method = 1
     # configuration.energybalance.violation = -1
     # configuration.energybalance.copperplate = 0
 

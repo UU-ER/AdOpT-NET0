@@ -384,6 +384,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
     # COLLECT OBJECTS FROM ENERGYHUB
     data = energyhub.data
+    configuration = energyhub.configuration
 
     def init_technology_block(b_tec, tec):
         print('\t - Adding Technology ' + tec)
@@ -391,7 +392,22 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         # TECHNOLOGY DATA
         tec_data = data.technology_data[nodename][tec]
         technology_model = tec_data.technology_model
-        modelled_with_full_res = tec_data.modelled_with_full_res
+
+        # MODELING TYPICAL DAYS
+        technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
+        if global_variables.clustered_data:
+            if configuration.optimization.typicaldays.method == 1:
+                if tec_data.technology_model == 'RES':
+                    tec_data.modelled_with_full_res = 1
+                else:
+                    tec_data.modelled_with_full_res = 0
+            if configuration.optimization.typicaldays.method == 2:
+                if tec_data.technology_model in technologies_modelled_with_full_res:
+                    tec_data.modelled_with_full_res = 1
+                else:
+                    tec_data.modelled_with_full_res = 0
+        else:
+            tec_data.modelled_with_full_res = 1
 
         # SIZE
         b_tec = define_size(b_tec, tec_data)
@@ -410,7 +426,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         b_tec = define_emissions(b_tec, tec_data, energyhub)
 
         # DEFINE AUXILIARY VARIABLES FOR CLUSTERED DATA
-        if global_variables.clustered_data and not modelled_with_full_res:
+        if global_variables.clustered_data and not tec_data.modelled_with_full_res:
             b_tec = define_auxiliary_vars(b_tec, tec_data, energyhub)
 
         # GENERIC TECHNOLOGY CONSTRAINTS

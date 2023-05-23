@@ -506,14 +506,14 @@ def test_dac():
     data = dm.load_object(r'./test/test_data/dac.p')
 
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 0
+    configuration.optimization.typicaldays.nr = 0
     # # Read data
     energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve()
     cost1 = energyhub.model.var_total_cost.value
 
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 4
+    configuration.optimization.typicaldays.nr = 4
     # # Read data
     energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve()

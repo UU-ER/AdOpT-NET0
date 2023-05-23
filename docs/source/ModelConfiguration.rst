@@ -26,5 +26,5 @@ The framework includes a standard configuration of the modeling settings. You ca
     configuration.economic.globalinterest = 0.05
 
     # Configure to cluster for 40 typical days
-    configuration.optimization.typicaldays = 40
+    configuration.optimization.typicaldays.nr = 40
 

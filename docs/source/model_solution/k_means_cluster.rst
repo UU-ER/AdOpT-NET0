@@ -23,7 +23,7 @@ an instance of the :func:`.ClusteredDataHandle` class and pass it to the :func:`
 
     # Set configuration (cluster into 40 typical days)
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 40
+    configuration.optimization.typicaldays.nr = 40
 
 
     # Construct Model and solve
