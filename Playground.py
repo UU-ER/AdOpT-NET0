@@ -21,22 +21,23 @@ from src.model_configuration import ModelConfiguration
 execute = 1
 
 if execute == 1:
-    # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    data = dm.load_object(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
+    # data = dm.load_object(r'./test/test_data/time_algorithms.p')
     data.read_technology_data()
-    # nr_days_cluster = 40
-    # clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
-    #
+
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
-    # configuration.optimization.timestaging = 4
+    # configuration.optimization.typicaldays.N = 4
+    # configuration.optimization.typicaldays.method = 1
+    # configuration.energybalance.violation = -1
+    # configuration.energybalance.copperplate = 0
+    configuration.performance.dynamics = 2
+    configuration.performance.dynamicsOn = ['testCONV1_2']
 
     energyhub = EnergyHub(data, configuration)
-    energyhub.construct_model()
-    energyhub.construct_balances()
-
     # Solve model
-    energyhub.solve_model()
+    energyhub.quick_solve()
+    print('finish')
 
 execute = 0
 

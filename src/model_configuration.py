@@ -160,5 +160,6 @@ class ModelConfiguration:
         self.economic.global_simple_capex_model = 0
 
         self.performance = SimpleNamespace()
-        # self.performance.dynamics = 0
+        self.performance.dynamics = 0
+        self.performance.dynamicsOn = []
 

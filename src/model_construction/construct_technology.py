@@ -1,4 +1,5 @@
 from src.model_construction.technology_constraints import *
+from src.model_construction.technology_constraints.dynamics import constraints_tec_dynamics
 
 
 def define_size(b_tec, tec_data):
@@ -384,6 +385,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
     # COLLECT OBJECTS FROM ENERGYHUB
     data = energyhub.data
+    configuration = energyhub.configuration
 
     def init_technology_block(b_tec, tec):
         print('\t - Adding Technology ' + tec)
@@ -444,6 +446,11 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
         elif technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
             b_tec = constraints_tec_hydro_open(b_tec, tec_data, energyhub)
+
+        # Add dynamic constraints
+        if configuration.performance.dynamics == 1 or \
+                (configuration.performance.dynamics == 2 and (tec in configuration.performance.dynamicsOn)):
+            b_tec = constraints_tec_dynamics(b_tec, tec_data, energyhub)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
