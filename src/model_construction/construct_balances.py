@@ -139,8 +139,8 @@ def add_emissionbalance(energyhub):
     nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
     # Delete previously initialized constraints
-    if model.find_component('const_emissions_pos'):
-        model.del_component(model.const_emissions_pos)
+    if model.find_component('const_emissions_tot'):
+        model.del_component(model.const_emissions_tot)
         model.del_component(model.const_emissions_neg)
         model.del_component(model.const_emissions_net)
 
