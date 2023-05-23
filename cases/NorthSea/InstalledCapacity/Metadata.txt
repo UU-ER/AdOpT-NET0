@@ -1,0 +1,9 @@
+ERAA taken from ERAA 2022 by ENTSO-E
+
+https://www.entsoe.eu/outlooks/eraa/2022/eraa-downloads/
+
+Units in MW/MWh
+
+Processed:
+- Countries renamed to match model
+- Added units
