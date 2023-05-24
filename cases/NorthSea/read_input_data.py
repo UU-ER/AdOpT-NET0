@@ -31,7 +31,7 @@ def read_installed_capacity_eraa(region):
     :param str region: region to read
     :return dict capacity_factors: production profile as series
     """
-    data_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
+    data_path = r'./cases/NorthSea/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
 
     instcap = pd.read_excel(data_path, index_col= 2, sheet_name='Sheet1')
 
