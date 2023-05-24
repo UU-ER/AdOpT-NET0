@@ -32,14 +32,14 @@ climate_year = 2009
 
 # NODES
 node_data = r'cases/NorthSea/Nodes/Nodes.xlsx'
-nodes = pd.read_excel(node_data, sheet_name='Nodes')
+nodes = pd.read_excel(node_data, sheet_name='Nodes_used')
 onshore_nodes = nodes[nodes['Type'] == 'onshore']['Node'].values.tolist()
 offshore_nodes = nodes[nodes['Type'] == 'offshore']['Node'].values.tolist()
 nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -78,10 +78,11 @@ for node in onshore_nodes:
 # Hydro Inflow
 reservoir_inflow = pd.read_csv(r'.\cases\NorthSea\Hydro_Inflows\HydroInflowReservoir' + str(climate_year) + '.csv', index_col=0)
 opencycle_inflow = pd.read_csv(r'.\cases\NorthSea\Hydro_Inflows\HydroInflowPump storage - Open Loop' + str(climate_year) + '.csv', index_col=0)
-for node in reservoir_inflow:
-    if not node == 'NL00':
-        data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Reservoir', reservoir_inflow[node].values.tolist())
-        data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Open', opencycle_inflow[node].values.tolist())
+for node in nodes:
+    if node in reservoir_inflow:
+        if not node == 'NL00':
+            data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Reservoir', reservoir_inflow[node].values.tolist())
+            data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Open', opencycle_inflow[node].values.tolist())
 
 # Generic Production Profiles Offshore
 offshore_profiles = calculate_production_profiles_offshore(offshore_nodes)
@@ -104,12 +105,16 @@ for node in onshore_nodes:
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carriers[car])
 
 # Import Electricity
-import_carriers = {'electricity': 1000}
-import_limit = np.ones(len(topology.timesteps)) * 200000
+import_carrier_price = {'electricity': 1000}
+
+import_limit = pd.read_excel(r'.\cases\NorthSea\Networks\ImportLimits.xlsx', index_col=0, sheet_name='ToPython')
+
 for node in onshore_nodes:
-    for car in import_carriers:
-        data.read_import_limit_data(node, car, import_limit)
-        data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carriers[car])
+    for car in import_carrier_price:
+        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node])
+        data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carrier_price[car])
+
+
 
 # Read technology data
 tec_data_path = r'cases/NorthSea/Technology_Data/'
@@ -117,27 +122,29 @@ write_to_technology_data(tec_data_path, year)
 data.read_technology_data(path =tec_data_path)
 
 # Change charging and discharging efficiencies of hydro technologies
-for node in onshore_nodes:
-    storage_at_node = installed_capacities[node]['HydroStorage_charging']
-    for storage in storage_at_node:
-        data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_charge']
-        data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge']
+# for node in onshore_nodes:
+#     storage_at_node = installed_capacities[node]['HydroStorage_charging']
+#     for storage in storage_at_node:
+#         data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_charge']
+#         data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge']
 
 data.read_network_data()
 
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
 configuration.solveroptions.solver = 'gurobi_persistent'
+# configuration.optimization.objective = 'pareto'
 
 # Read data
 energyhub = EnergyHub(data, configuration)
-results = energyhub.quick_solve()
-results.write_excel(r'user_Data/MultiCountry')
+energyhub.quick_solve()
 
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
 
 # New technologies
-energyhub.add_technology_to_node('DE00', ['Storage_Battery'])
-energyhub.construct_balances()
-results = energyhub.solve()
-results.write_excel(r'user_Data/MultiCountry1')
+# for onshore_node in onshore_nodes:
+#     energyhub.add_technology_to_node(onshore_node, ['Storage_Battery'])
+#
+# energyhub.construct_balances()
+# results = energyhub.solve()
+# results.write_excel(r'user_Data/MultiCountry')
