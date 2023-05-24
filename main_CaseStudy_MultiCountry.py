@@ -54,14 +54,6 @@ for node in onshore_nodes:
     installed_capacities[node] = read_installed_capacity_eraa(node)
     topology.define_existing_technologies(node, installed_capacities[node]['Conventional'])
 
-# New Technologies
-new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx', index_col=0)
-for node in nodes:
-    try:
-        topology.define_new_technologies(node, new_tecs['Stage 1'][node].split(', '))
-    except:
-        pass
-
 # Networks
 network_data = read_network_data(topology.nodes)
 topology.define_existing_network('electricitySimple', size=network_data['size'], distance=network_data['distance'])
@@ -119,8 +111,7 @@ for node in onshore_nodes:
 # import_carrier_price = {'electricity': 1000}
 # import_limit = pd.read_excel(r'.\cases\NorthSea\Networks\ImportLimits.xlsx', index_col=0, sheet_name='ToPython')
 
-import_carrier_price = {'electricity': 10000}
-
+import_carrier_price = {'electricity': 1000}
 
 for node in onshore_nodes:
     for car in import_carrier_price:
@@ -147,6 +138,7 @@ data.read_network_data()
 configuration = ModelConfiguration()
 configuration.solveroptions.solver = 'gurobi_persistent'
 configuration.optimization.objective = 'pareto'
+# configuration.optimization.pareto_points = 2
 
 # Read data
 energyhub = EnergyHub(data, configuration)
@@ -155,8 +147,12 @@ energyhub.quick_solve()
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
 
 # New technologies
-for onshore_node in onshore_nodes:
-    energyhub.add_technology_to_node(onshore_node, ['Storage_Battery'])
+new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx', index_col=0)
+for node in nodes:
+    try:
+        energyhub.add_technology_to_node(node, new_tecs['Stage 1'][node].split(', '))
+    except:
+        pass
 
 energyhub.construct_balances()
 results = energyhub.solve()
