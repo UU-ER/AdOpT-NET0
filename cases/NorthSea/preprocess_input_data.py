@@ -2,7 +2,7 @@ import pandas as pd
 import pickle
 import numpy as np
 from cases.NorthSea.read_input_data import *
-
+from src.data_management import average_series
 
 # Prepare demand data
 def preprocess_demand_data_eraa(scenario, year, climate_year, region):
@@ -311,10 +311,44 @@ def save_hydro_inflows_to_csv():
 
 
 # def calculate_h2_demand():
+scenarios = {'GA': 'Global Ambition', 'DE': 'Distributed Energy'}
+regions = {'DE00': 'DE', 'BE00': 'BE', 'DKW1': 'DK', 'UK00': 'UK', 'NL00': 'NL', 'NOS0': ''}
+years = [2030, 2040, 2050]
+climate_years = [1995, 2008, 2009]
+
+
 climate_data_path = 'C:/Users/6574114/Documents/Research/era5download/Borssele_Kavel_I.csv'
 climate_data = pd.read_csv(climate_data_path)
+T = climate_data['temp_air']
+# T_avg = average_series(T,24)
 base_temp = 15.5
+HDD = base_temp - T
+HDD[T >= base_temp] = 0
 
+total_HDD = HDD.sum()
+h2_allocation_for_heating = HDD / total_HDD
+
+
+h2_demand_path = 'E:/00_Data/00_EnergyDemandEurope/Hydrogen/220404_Updated_Gas_Data.xlsx'
+h2_demand_data = pd.read_excel(h2_demand_path, sheet_name='Total_demand')
+
+save_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/Demand_Hydrogen/Demand_'
+for scenario in scenarios:
+    for year in years:
+        for climate_year in climate_years:
+            demand = pd.DataFrame(index=range(0, 8760))
+            # file_name = scenario + '_' + str(year) + '_ClimateYear' + str(climate_year) + '.csv'
+            for region in regions:
+                print(regions[region])
+                total_demand = h2_demand_data['Country'] == regions[region]
+
+                demand[region] = preprocess_demand_data_eraa(scenario, year, climate_year, region)
+                if region == 'NL00':
+                    NL_national_profile = demand[region]
+                    demandNL_corrected = scale_demand_data(NL_national_profile, scaling_factors)
+                    demandNL_at_nodes = aggregate_provinces_to_node(demandNL_corrected)
+                    demand = pd.concat([demand, demandNL_at_nodes], axis=1)
+            demand.to_csv(save_path + file_name)
 
 
 

@@ -47,8 +47,15 @@ def read_installed_capacity_eraa(region):
     if instcap[region]['Hard Coal'] > 0:
         Conv['PowerPlant_Coal'] = instcap[region]['Hard Coal']
 
-    # if instcap[region]['Batteries'] > 0:
-    #     Conv['Storage_Battery'] = instcap[region]['Batteries']
+    if instcap[region]['Batteries'] > 0:
+        Conv['Storage_Battery'] = instcap[region]['Batteries']
+        Stor['Storage_Battery'] = {}
+        Stor['Storage_Battery']['max_charge'] = \
+            - instcap[region]['Batteries (Offtake)'] /\
+            instcap[region]['Batteries']
+        Stor['Storage_Battery']['max_discharge'] = \
+            instcap[region]['Batteries (Injection)'] / \
+            instcap[region]['Batteries']
 
     if instcap[region]['Hydro - Pump Storage Closed Loop'] > 0:
         Conv['Storage_PumpedHydro_Closed'] = instcap[region]['Hydro - Pump Storage Closed Loop']

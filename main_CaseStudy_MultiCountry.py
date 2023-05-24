@@ -133,7 +133,7 @@ data.read_network_data()
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
 configuration.solveroptions.solver = 'gurobi_persistent'
-# configuration.optimization.objective = 'pareto'
+configuration.optimization.objective = 'pareto'
 
 # Read data
 energyhub = EnergyHub(data, configuration)
@@ -142,9 +142,9 @@ energyhub.quick_solve()
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
 
 # New technologies
-# for onshore_node in onshore_nodes:
-#     energyhub.add_technology_to_node(onshore_node, ['Storage_Battery'])
-#
-# energyhub.construct_balances()
-# results = energyhub.solve()
-# results.write_excel(r'user_Data/MultiCountry')
+for onshore_node in onshore_nodes:
+    energyhub.add_technology_to_node(onshore_node, ['Storage_Battery'])
+
+energyhub.construct_balances()
+results = energyhub.solve()
+results.write_excel(r'user_Data/MultiCountry')
