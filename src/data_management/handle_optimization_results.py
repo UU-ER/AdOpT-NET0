@@ -65,7 +65,7 @@ class ResultsHandle:
         economics['Pareto_Point'] = pareto_point
         economics['Monte_Carlo_Run'] = monte_carlo_run
         economics['Time_stage'] = time_stage
-        self.summary.economics = self.summary.economics.append(economics)
+        self.summary.economics = pd.concat([self.summary.economics, economics])
 
         # Emissions
         emissions = optimization_result.emissions
@@ -73,7 +73,7 @@ class ResultsHandle:
         emissions['Pareto_Point'] = pareto_point
         emissions['Monte_Carlo_Run'] = monte_carlo_run
         emissions['Time_stage'] = time_stage
-        self.summary.emissions = self.summary.emissions.append(emissions)
+        self.summary.emissions = pd.concat([self.summary.economics, economics])
 
         self.detailed_results.append(optimization_result)
 
