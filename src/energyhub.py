@@ -187,7 +187,7 @@ class EnergyHub:
 
         return self.results
 
-    def add_technology_to_node(self, nodename, technologies):
+    def add_technology_to_node(self, nodename, technologies, path='./data/Technology_Data/'):
         """
         Adds technologies retrospectively to the model.
 
@@ -198,7 +198,7 @@ class EnergyHub:
         :param list technologies: list of technologies that should be added to nodename
         :return: None
         """
-        self.data.read_single_technology_data(nodename, technologies)
+        self.data.read_single_technology_data(nodename, technologies, path=path)
         mc.add_technology(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):

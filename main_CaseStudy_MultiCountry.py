@@ -39,7 +39,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 00:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -100,7 +100,7 @@ for node in nodes:
 
 # Import/Export of conventional fuels
 import_carriers = {'gas': 100}
-import_limit = np.ones(len(topology.timesteps)) * 500000
+import_limit = np.ones(len(topology.timesteps)) * 10000
 
 for node in onshore_nodes:
     for car in import_carriers:
@@ -138,7 +138,6 @@ data.read_network_data()
 configuration = ModelConfiguration()
 configuration.solveroptions.solver = 'gurobi_persistent'
 configuration.optimization.objective = 'pareto'
-# configuration.optimization.pareto_points = 2
 
 # Read data
 energyhub = EnergyHub(data, configuration)
@@ -149,10 +148,13 @@ energyhub.quick_solve()
 # New technologies
 new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx', index_col=0)
 for node in nodes:
-    try:
-        energyhub.add_technology_to_node(node, new_tecs['Stage 1'][node].split(', '))
-    except:
-        pass
+    # try:
+    if not isinstance(new_tecs['Stage 1'][node], float):
+        new_technologies = new_tecs['Stage 1'][node].split(', ')
+        for tec in new_technologies:
+            energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
+    # except:
+    #     pass
 
 energyhub.construct_balances()
 results = energyhub.solve()
