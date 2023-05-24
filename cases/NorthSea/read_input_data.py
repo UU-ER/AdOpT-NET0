@@ -6,7 +6,7 @@ import src.data_management as dm
 import json
 import os
 
-def read_demand_data_eraa(scenario, year, climate_year):
+def read_demand_data_eraa(scenario, year, climate_year, folder):
     """
     reads demand data for respective climate year and region from TYNDP dataset
 
@@ -15,7 +15,7 @@ def read_demand_data_eraa(scenario, year, climate_year):
     :param int year: year to read
     :return pandas.series demand_profile: demand profile as series
     """
-    load_path = r'./cases/NorthSea/Demand_Electricity/Demand_'
+    load_path = r'./cases/NorthSea/' + folder + '/Demand_'
     file_name = scenario + '_' + str(year) + '_ClimateYear' + str(climate_year) + '.csv'
     demand_profiles = pd.read_csv(load_path + file_name)
 
@@ -31,7 +31,7 @@ def read_installed_capacity_eraa(region):
     :param str region: region to read
     :return dict capacity_factors: production profile as series
     """
-    data_path = r'./cases/NorthSea/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
+    data_path = r'C:\Users\6574114\Documents\Research\EHUB-Py_Productive\cases\NorthSea/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
 
     instcap = pd.read_excel(data_path, index_col= 2, sheet_name='Sheet1')
 
@@ -46,6 +46,9 @@ def read_installed_capacity_eraa(region):
 
     if instcap[region]['Hard Coal'] > 0:
         Conv['PowerPlant_Coal'] = instcap[region]['Hard Coal']
+
+    if instcap[region]['SteamReformer'] > 0:
+        Conv['SteamReformer'] = instcap[region]['SteamReformer']
 
     if instcap[region]['Batteries'] > 0:
         Conv['Storage_Battery'] = instcap[region]['Batteries']
@@ -132,7 +135,7 @@ def read_network_data(nodes):
     distance = dm.create_empty_network_matrix(nodes)
     size = dm.create_empty_network_matrix(nodes)
 
-    data_path = './cases/NorthSea/Networks/NetworkData.xlsx'
+    data_path = './cases/NorthSea/Networks/NetworkDataElectricity.xlsx'
     size_matrix = pd.read_excel(data_path, index_col=0, sheet_name='NetworkSize')
     length_matrix = pd.read_excel(data_path, index_col=0, sheet_name='NetworkLength')
     type_matrix = pd.read_excel(data_path, index_col=0, sheet_name='NetworkType')
@@ -173,13 +176,13 @@ def write_to_technology_data(tec_data_path, year):
             tec_data = json.load(openfile)
 
         new_financial_data = financial_data[financial_data['Technology'] == filename.replace('.json', '')]
-
         tec_data['Economics']['unit_CAPEX'] = round(new_financial_data['Investment Cost'].values[0],2)
         tec_data['Economics']['OPEX_variable'] = round(new_financial_data['OPEX Variable'].values[0],3)
         tec_data['Economics']['OPEX_fixed'] = round(new_financial_data['OPEX Fixed'].values[0],3)
-        tec_data['Economics']['lifetime'] = round(new_financial_data['Lifetime'].values[0],0)
+        tec_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0],0))
 
         with open(os.path.join(tec_data_path, filename), 'w') as outfile:
             json.dump(tec_data, outfile, indent=2)
+
 
 

@@ -39,7 +39,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -55,7 +55,12 @@ for node in onshore_nodes:
     topology.define_existing_technologies(node, installed_capacities[node]['Conventional'])
 
 # New Technologies
-# TODO
+new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx', index_col=0)
+for node in nodes:
+    try:
+        topology.define_new_technologies(node, new_tecs['Stage 1'][node].split(', '))
+    except:
+        pass
 
 # Networks
 network_data = read_network_data(topology.nodes)
@@ -90,10 +95,16 @@ for node in offshore_nodes:
     data.read_production_profile(node, 'electricity', offshore_profiles[node].to_numpy(),1)
 
 # Demand Onshore
-demand = read_demand_data_eraa(scenario, year, climate_year)
+demand_el = read_demand_data_eraa(scenario, year, climate_year, 'Demand_Electricity')
 for node in nodes:
-    if node in demand:
-        data.read_demand_data(node, 'electricity', demand[node].to_numpy())
+    if node in demand_el:
+        data.read_demand_data(node, 'electricity', demand_el[node].to_numpy())
+
+demand_h2 = read_demand_data_eraa(scenario, year, climate_year, 'Demand_Hydrogen')
+for node in nodes:
+    if node in demand_h2:
+        data.read_demand_data(node, 'hydrogen', demand_h2[node].to_numpy()/100)
+
 
 # Import/Export of conventional fuels
 import_carriers = {'gas': 100}
@@ -105,15 +116,17 @@ for node in onshore_nodes:
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carriers[car])
 
 # Import Electricity
-import_carrier_price = {'electricity': 1000}
+# import_carrier_price = {'electricity': 1000}
+# import_limit = pd.read_excel(r'.\cases\NorthSea\Networks\ImportLimits.xlsx', index_col=0, sheet_name='ToPython')
 
-import_limit = pd.read_excel(r'.\cases\NorthSea\Networks\ImportLimits.xlsx', index_col=0, sheet_name='ToPython')
+import_carrier_price = {'electricity': 10000}
+
 
 for node in onshore_nodes:
     for car in import_carrier_price:
-        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node])
+        # data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node])
+        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * 100000)
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carrier_price[car])
-
 
 
 # Read technology data
@@ -122,11 +135,11 @@ write_to_technology_data(tec_data_path, year)
 data.read_technology_data(path =tec_data_path)
 
 # Change charging and discharging efficiencies of hydro technologies
-# for node in onshore_nodes:
-#     storage_at_node = installed_capacities[node]['HydroStorage_charging']
-#     for storage in storage_at_node:
-#         data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_charge']
-#         data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge']
+for node in onshore_nodes:
+    storage_at_node = installed_capacities[node]['HydroStorage_charging']
+    for storage in storage_at_node:
+        data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_charge']
+        data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge']
 
 data.read_network_data()
 

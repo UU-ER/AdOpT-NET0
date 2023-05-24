@@ -386,6 +386,12 @@ class OptimizationResults:
 
         :param str path: path to write excel to
         """
+        def shorten_string(str, length):
+            if len(str) > length:
+                str = str[0:length-1]
+            return str
+
+
         file_name = path + '.xlsx'
 
         with pd.ExcelWriter(file_name) as writer:
@@ -395,8 +401,9 @@ class OptimizationResults:
             self.networks.to_excel(writer, sheet_name='Networks')
             for node in self.energybalance:
                 for car in self.energybalance[node]:
-                    self.energybalance[node][car].to_excel(writer, sheet_name='Balance_' + node + '_' + car)
+                    sheet_name = shorten_string(node + '_' + car, 30)
+                    self.energybalance[node][car].to_excel(writer, sheet_name= sheet_name)
             for node in self.detailed_results.nodes:
                 for tec_name in self.detailed_results.nodes[node]:
-                    self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=
-                                                                              'Tec_' + node + '_' + tec_name)
+                    sheet_name = shorten_string(node + '_' + tec_name, 30)
+                    self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name= sheet_name)

@@ -41,14 +41,14 @@ def create_data():
         output_per_substation[station] = output
 
     # Nodes 2030
-    onshore_nodes = ['NL_on_Borssele',
-                     'NL_on_Rilland',
-                     'NL_on_Brabant',
-                     'NL_on_South',
-                     'NL_on_Holland_S',
-                     'NL_on_Holland_N',
-                     'NL_on_East',
-                     'NL_on_North',
+    onshore_nodes = ['onNL_SW',
+                     'onNL_CW',
+                     'onNL_CE',
+                     'onNL_SE',
+                     'onNL_SW',
+                     'onNL_NW',
+                     'onNL_E',
+                     'onNL_NE',
                      ]
     onshore_nodes = [onshore_nodes[0]]
     nodes = onshore_nodes + offshore_nodes
@@ -61,7 +61,7 @@ def create_data():
     eta_coal = 0.55
     eta_gas = 0.55
 
-    topology.define_existing_technologies('NL_on_Borssele', {
+    topology.define_existing_technologies('onNL_SW', {
                                                 'Photovoltaic': 12000,
                                                 'WindTurbine_Onshore_4000': 6200 / 4,
                                                 'PowerPlant_Nuclear': 485/eta_nuc,
@@ -132,9 +132,9 @@ def create_data():
     h2_demand = np.ones(len(topology.timesteps)) * 200
 
     import_limit = np.ones(len(topology.timesteps)) * 50000
-    data.read_import_limit_data('NL_on_Borssele', 'gas', import_limit)
+    data.read_import_limit_data('onNL_SW', 'gas', import_limit)
 
-    data.read_import_limit_data('NL_on_Borssele', 'nuclear', import_limit)
+    data.read_import_limit_data('onNL_SW', 'nuclear', import_limit)
 
 
     for node in onshore_nodes:

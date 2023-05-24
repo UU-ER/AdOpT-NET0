@@ -28,28 +28,28 @@ def create_data():
 
     # Offshore nodes used
     offshore_nodes = [
-        'IJmuiden Ver Alpha',
-        'Egmon aan Zee',
-        'Prinses Amalia',
-        'Luchterduinen',
-        'Hollands Kust Zuid Beta',
-        'Hollands Kust Zuid Alpha',
-        'Hollands Kust Noord',
-        'Hollands Kust West Alpha',
-        'Hollands Kust West Beta',
-        'IJmuiden Ver Gamma'
+        'ofNL_IJ_A',
+        'ofNL_EG',
+        'ofNL_PA',
+        'ofNL_LU',
+        'ofNL_KZ_B',
+        'ofNL_KZ_A',
+        'ofNL_KN',
+        'ofNL_KW_A',
+        'ofNL_KW_B',
+        'ofNL_IJ_G'
     ]
 
     # Onshore nodes used
     onshore_nodes = [
-        # 'NL_on_Borssele',
-         # 'NL_on_Rilland',
-         # 'NL_on_Brabant',
-         # 'NL_on_South',
-         'NL_on_Holland_S',
-         'NL_on_Holland_N',
-         # 'NL_on_East',
-         # 'NL_on_North',
+        # 'onNL_SW',
+         # 'onNL_CW',
+         # 'onNL_CE',
+         # 'onNL_SE',
+         'onNL_SW',
+         'onNL_NW',
+         # 'onNL_E',
+         # 'onNL_NE',
         'BE'
          ]
 
@@ -80,31 +80,31 @@ def create_data():
         data.read_climate_data_from_file(node, '.\data\climate_data_onshore.txt')
 
     # Define demand
-    data = define_demand_per_node(data, 'NL_on_Holland_S', 0.23)
-    data = define_demand_per_node(data, 'NL_on_Holland_N', 0.23)
+    data = define_demand_per_node(data, 'onNL_SW', 0.23)
+    data = define_demand_per_node(data, 'onNL_NW', 0.23)
 
     # Define import/export to neighboring nodes for electricity
     line_Holland_S = np.ones(len(topology.timesteps)) * 5270
-    data.read_import_limit_data('NL_on_Holland_S', 'electricity', line_Holland_S)
-    data.read_export_limit_data('NL_on_Holland_S', 'electricity', line_Holland_S)
+    data.read_import_limit_data('onNL_SW', 'electricity', line_Holland_S)
+    data.read_export_limit_data('onNL_SW', 'electricity', line_Holland_S)
 
     line_Holland_N = np.ones(len(topology.timesteps)) * 5270
-    data.read_import_limit_data('NL_on_Holland_N', 'electricity', line_Holland_N)
-    data.read_export_limit_data('NL_on_Holland_S', 'electricity', line_Holland_N)
+    data.read_import_limit_data('onNL_NW', 'electricity', line_Holland_N)
+    data.read_export_limit_data('onNL_SW', 'electricity', line_Holland_N)
 
     # Define carrier imports
     import_limit_gas = np.ones(len(topology.timesteps)) * 50000
-    # data.read_import_limit_data('NL_on_Borssele', 'gas', import_limit_gas)
-    # data.read_import_limit_data('NL_on_Brabant', 'gas', import_limit_gas)
-    # data.read_import_limit_data('NL_on_South', 'gas', import_limit_gas)
-    data.read_import_limit_data('NL_on_Holland_S', 'gas', import_limit_gas)
-    data.read_import_limit_data('NL_on_Holland_N', 'gas', import_limit_gas)
-    # data.read_import_limit_data('NL_on_North', 'gas', import_limit_gas)
+    # data.read_import_limit_data('onNL_SW', 'gas', import_limit_gas)
+    # data.read_import_limit_data('onNL_CE', 'gas', import_limit_gas)
+    # data.read_import_limit_data('onNL_SE', 'gas', import_limit_gas)
+    data.read_import_limit_data('onNL_SW', 'gas', import_limit_gas)
+    data.read_import_limit_data('onNL_NW', 'gas', import_limit_gas)
+    # data.read_import_limit_data('onNL_NE', 'gas', import_limit_gas)
 
-    # data.read_import_limit_data('NL_on_Borssele', 'nuclear', import_limit_gas)
+    # data.read_import_limit_data('onNL_SW', 'nuclear', import_limit_gas)
 
-    data.read_import_limit_data('NL_on_Holland_S', 'coal', import_limit_gas)
-    # data.read_import_limit_data('NL_on_North', 'coal', import_limit_gas)
+    data.read_import_limit_data('onNL_SW', 'coal', import_limit_gas)
+    # data.read_import_limit_data('onNL_NE', 'coal', import_limit_gas)
 
     for node in onshore_nodes:
         h2_demand = np.ones(len(topology.timesteps)) * 600
@@ -169,18 +169,18 @@ def define_networks(topology):
 
 
 def define_technologies(topology, onshore_nodes):
-    # topology.define_existing_technologies('NL_on_Borssele', {'PowerPlant_Nuclear': 485/eta_nuc,
+    # topology.define_existing_technologies('onNL_SW', {'PowerPlant_Nuclear': 485/eta_nuc,
     #                                              'PowerPlant_Gas': (455+2*435)/eta_gas})
-    # topology.define_existing_technologies('NL_on_Brabant', {'PowerPlant_Gas': 766 / eta_gas})
-    # topology.define_existing_technologies('NL_on_South', {'PowerPlant_Gas': (1304+209)/eta_gas})
-    topology.define_existing_technologies('NL_on_Holland_S', {
+    # topology.define_existing_technologies('onNL_CE', {'PowerPlant_Gas': 766 / eta_gas})
+    # topology.define_existing_technologies('onNL_SE', {'PowerPlant_Gas': (1304+209)/eta_gas})
+    topology.define_existing_technologies('onNL_SW', {
         'PowerPlant_Coal': (1070 + 731),
         'PowerPlant_Gas': 2602,
         'WindTurbine_Onshore_4000': 100,
         'Photovoltaic': 5000,
         'SteamReformer': 2000
     })
-    topology.define_existing_technologies('NL_on_Holland_N', {
+    topology.define_existing_technologies('onNL_NW', {
         'PowerPlant_Gas': 3338,
         'WindTurbine_Onshore_4000': 100,
         'Photovoltaic': 5000,

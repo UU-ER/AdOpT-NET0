@@ -210,7 +210,7 @@ def scale_capacity_factors(profile, climate_year, sd = 0.05):
 
 def save_demand_data_to_csv():
     scenarios = ['GA', 'DE', 'NT']
-    regions = ['DE00', 'BE00', 'DKW1', 'UK00', 'NL00', 'NOS0']
+    regions = {'onDE': 'DE00', 'onBE': 'BE00', 'onDKW': 'DKW1', 'onUK': 'UK00', 'onNL': 'NL00', 'onNOS': 'NOS0'}
     years = [2030, 2040, 2050]
     climate_years = [1995, 2008, 2009]
     scaling_factors = {'Res': 2, 'Ind': 0.3}
@@ -224,8 +224,8 @@ def save_demand_data_to_csv():
                     demand = pd.DataFrame(index=range(0,8760))
                     file_name = scenario + '_' + str(year) + '_ClimateYear' + str(climate_year) + '.csv'
                     for region in regions:
-                        demand[region] = preprocess_demand_data_eraa(scenario, year, climate_year, region)
-                        if region == 'NL00':
+                        demand[region] = preprocess_demand_data_eraa(scenario, year, climate_year, regions[region])
+                        if regions[region] == 'NL00':
                             NL_national_profile = demand[region]
                             demandNL_corrected = scale_demand_data(NL_national_profile, scaling_factors)
                             demandNL_at_nodes = aggregate_provinces_to_node(demandNL_corrected)
@@ -235,7 +235,7 @@ def save_demand_data_to_csv():
 
 def save_generic_production_profiles_to_csv():
     scenarios = ['GA', 'DE', 'NT']
-    regions = ['DE00', 'BE00', 'DKW1', 'UK00', 'NL00', 'NOS0']
+    regions = {'onDE': 'DE00', 'onBE': 'BE00', 'onDKW': 'DKW1', 'onUK': 'UK00', 'onNL': 'NL00', 'onNOS': 'NOS0'}
     years = [2030, 2040, 2050]
     climate_years = [1995, 2008, 2009]
     scaling_factors = {'Res': 2, 'Ind': 0.3}
@@ -251,20 +251,20 @@ def save_generic_production_profiles_to_csv():
 
         # Capacity Factors
         for region in regions:
-            cap_factors[region] = read_capacity_factors_eraa(climate_year, region)
+            cap_factors[region] = read_capacity_factors_eraa(climate_year, regions[region])
             installed_capacities[region] = read_installed_capacity_eraa(region)
 
         # Run of River
         columns = [i for i in range(16, 16 + 37)]
         column_names = ['Day', *range(1982, 2018)]
         for region in regions:
-            if not region == 'DKW1' and not region == 'NOS0':
+            if not region == 'onDKW' and not region == 'onNOS':
                 output = pd.read_excel(
-                    'E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Hydro Inflows/PEMMDB_' + region + '_Hydro Inflow_2030.xlsx',
+                    'E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Hydro Inflows/PEMMDB_' + regions[region] + '_Hydro Inflow_2030.xlsx',
                     sheet_name='Run of River', skiprows=12, usecols=columns, names=column_names)
                 run_of_river_output[region] = divide_dataframe(output[climate_year], 24) * 1000
 
-        region = regions[0]
+        region = 'onDE'
         profile = pd.DataFrame(index=cap_factors[region]['PV'].index)
         for region in regions:
             profile[region + '_tot'] = 0
@@ -273,7 +273,7 @@ def save_generic_production_profiles_to_csv():
                                            installed_capacities[region]['RE'][series]
                 profile[region + '_' + series] = cap_factors[region][series] * installed_capacities[region]['RE'][
                     series]
-            if not region == 'DKW1' and not region == 'NOS0':
+            if not region == 'onDKW' and not region == 'onNOS':
                 profile[region + '_run_of_river'] = run_of_river_output[region]
                 profile[region + '_tot'] = profile[region + '_tot'] + run_of_river_output[region][0][0:8760]
 
@@ -285,7 +285,7 @@ def save_generic_production_profiles_to_csv():
 
 def save_hydro_inflows_to_csv():
     scenarios = ['GA', 'DE', 'NT']
-    regions = ['DE00', 'BE00', 'DKW1', 'UK00', 'NL00', 'NOS0']
+    regions = {'onDE': 'DE00', 'onBE': 'BE00', 'onDKW': 'DKW1', 'onUK': 'UK00', 'onNL': 'NL00', 'onNOS': 'NOS0'}
     years = [2030, 2040, 2050]
     climate_years = [1995, 2008, 2009]
     scaling_factors = {'Res': 2, 'Ind': 0.3}
@@ -297,8 +297,8 @@ def save_hydro_inflows_to_csv():
 
     for hydro_type in hydro_types:
             for region in regions:
-                if not region == 'DKW1':
-                    data_path = r'E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Hydro Inflows/PEMMDB_' + region + '_Hydro Inflow_' + str(
+                if not region == 'onDKW':
+                    data_path = r'E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Hydro Inflows/PEMMDB_' + regions[region] + '_Hydro Inflow_' + str(
                         year) + '.xlsx'
                     for climate_year in climate_years:
                         temp = pd.read_excel(data_path, sheet_name=hydro_type, skiprows=12, usecols= columns, names=column_names)
@@ -310,52 +310,79 @@ def save_hydro_inflows_to_csv():
                         inflow.to_csv(save_path)
 
 
-# def calculate_h2_demand():
-scenarios = {'GA': 'Global Ambition', 'DE': 'Distributed Energy'}
-regions = {'DE00': 'DE', 'BE00': 'BE', 'DKW1': 'DK', 'UK00': 'UK', 'NL00': 'NL', 'NOS0': ''}
-years = [2030, 2040, 2050]
-climate_years = [1995, 2008, 2009]
+def calculate_h2_demand():
+    scenarios = {'GA': 'Global Ambition', 'DE': 'Distributed Energy'}
+    regions = {'onDE': 'DE', 'onBE': 'BE', 'onDKW': 'DK', 'onUK': 'UK', 'NL00': 'NL', 'onNOS': 'NO'}
+    years = [2030, 2040, 2050]
+    climate_years = [1995, 2008, 2009]
 
 
-climate_data_path = 'C:/Users/6574114/Documents/Research/era5download/Borssele_Kavel_I.csv'
-climate_data = pd.read_csv(climate_data_path)
-T = climate_data['temp_air']
-# T_avg = average_series(T,24)
-base_temp = 15.5
-HDD = base_temp - T
-HDD[T >= base_temp] = 0
+    climate_data_path = 'C:/Users/6574114/Documents/Research/era5download/Borssele_Kavel_I.csv'
+    climate_data = pd.read_csv(climate_data_path)
+    T = climate_data['temp_air']
+    # T_avg = average_series(T,24)
+    base_temp = 15.5
+    HDD = base_temp - T
+    HDD[T >= base_temp] = 0
 
-total_HDD = HDD.sum()
-h2_allocation_for_heating = HDD / total_HDD
-
-
-h2_demand_path = 'E:/00_Data/00_EnergyDemandEurope/Hydrogen/220404_Updated_Gas_Data.xlsx'
-h2_demand_data = pd.read_excel(h2_demand_path, sheet_name='Total_demand')
-
-save_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/Demand_Hydrogen/Demand_'
-for scenario in scenarios:
-    for year in years:
-        for climate_year in climate_years:
-            demand = pd.DataFrame(index=range(0, 8760))
-            # file_name = scenario + '_' + str(year) + '_ClimateYear' + str(climate_year) + '.csv'
-            for region in regions:
-                print(regions[region])
-                total_demand = h2_demand_data['Country'] == regions[region]
-
-                demand[region] = preprocess_demand_data_eraa(scenario, year, climate_year, region)
-                if region == 'NL00':
-                    NL_national_profile = demand[region]
-                    demandNL_corrected = scale_demand_data(NL_national_profile, scaling_factors)
-                    demandNL_at_nodes = aggregate_provinces_to_node(demandNL_corrected)
-                    demand = pd.concat([demand, demandNL_at_nodes], axis=1)
-            demand.to_csv(save_path + file_name)
+    total_HDD = HDD.sum()
+    h2_allocation_for_heating = HDD / total_HDD
 
 
+    h2_demand_path = 'E:/00_Data/00_EnergyDemandEurope/Hydrogen/220404_Updated_Gas_Data.xlsx'
+    h2_demand_data = pd.read_excel(h2_demand_path, sheet_name='Total_demand')
+    h2_demand_data = h2_demand_data.loc[(h2_demand_data['Parameter'] == 'Final demand') | (h2_demand_data['Parameter'] == 'Final Demand')]
+    h2_demand_data = h2_demand_data.loc[(h2_demand_data['Fuel type'] == 'Hydrogen')]
 
-save_demand_data_to_csv()
-save_generic_production_profiles_to_csv()
-save_hydro_inflows_to_csv()
+    save_path = r'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/cases/NorthSea/Demand_Hydrogen/Demand_'
+    for scenario in scenarios:
+        for year in years:
+            for climate_year in climate_years:
+                demand = pd.DataFrame(index=range(0, 8760))
+                file_name = scenario + '_' + str(year) + '_ClimateYear' + str(climate_year) + '.csv'
+                for region in regions:
+                    profile = np.ones(8760)
 
+                    # Demand per year in GWh
+                    total_demand = h2_demand_data.loc[(h2_demand_data['Country'] == regions[region]) &
+                                                      (h2_demand_data['Scenario'] == scenarios[scenario]) &
+                                                      (h2_demand_data['Year'] == year) &
+                                                      (h2_demand_data['Case'] == 'Average (GWh/d)')
+                    ]['Value'].values * 365
+                    if len(total_demand) == 0:
+                        total_demand = 0
+
+                    heating_demand = h2_demand_data.loc[(h2_demand_data['Country'] == regions[region]) &
+                                                      (h2_demand_data['Scenario'] == scenarios[scenario]) &
+                                                      (h2_demand_data['Year'] == year) &
+                                                      (h2_demand_data['Category'] == 'Heating_cooling')
+                    ]['Value'].values *1000
+                    if len(heating_demand) == 0:
+                        heating_demand = 0
+                    if regions[region] == 'NL':
+                        NL_regions = [
+                        'onNL_NE',
+                        'onNL_SE',
+                        'onNL_NW',
+                        'onNL_SW',
+                        'onNL_CE',
+                        'onNL_W',
+                        'onNL_E']
+                        for NL_region in NL_regions:
+                            demand[NL_region] = (profile * (total_demand - heating_demand) / 8760 +
+                                              h2_allocation_for_heating * heating_demand) * 1000 / len(NL_regions)
+                    else:
+                        demand[region] = (profile * (total_demand - heating_demand) / 8760 +
+                                          h2_allocation_for_heating * heating_demand) * 1000
+                demand.to_csv(save_path + file_name)
+
+
+
+
+# save_demand_data_to_csv()
+# save_generic_production_profiles_to_csv()
+# save_hydro_inflows_to_csv()
+calculate_h2_demand()
 
 
 
