@@ -129,36 +129,40 @@ def calculate_production_profiles_offshore(offshore_nodes):
 
     return output_per_substation
 
-def read_network_data(nodes):
+def read_network_data(nodes, data_file, existing):
+    def get_matrix(data_from_excel):
+
+        result_matrix = dm.create_empty_network_matrix(nodes)
+
+        for node1 in nodes:
+            for node2 in nodes:
+                if pd.isna(data_from_excel[node1][node2]) and not pd.isna(data_from_excel[node2][node1]):
+                    data_from_excel[node1][node2] = data_from_excel[node2][node1]
+                if not pd.isna(data_from_excel[node1][node2]) and pd.isna(data_from_excel[node2][node1]):
+                    data_from_excel[node2][node1] = data_from_excel[node1][node2]
+
+        for node1 in nodes:
+            for node2 in nodes:
+                if pd.isna(data_from_excel[node1][node2]):
+                    result_matrix.at[node1, node2] = 0
+                    result_matrix.at[node2, node1] = 0
+                else:
+                    result_matrix.at[node1, node2] = data_from_excel[node1][node2]
+                    result_matrix.at[node2, node1] = data_from_excel[node1][node2]
+
+        return result_matrix
+
     data = {}
 
-    distance = dm.create_empty_network_matrix(nodes)
-    size = dm.create_empty_network_matrix(nodes)
+    if existing:
+        size_from_excel = pd.read_excel(data_file, index_col=0, sheet_name='NetworkSize')
+        data['size'] = get_matrix(size_from_excel)
+    else:
+        connection_from_excel = pd.read_excel(data_file, index_col=0, sheet_name='NetworkConnection')
+        data['connection'] = get_matrix(connection_from_excel)
 
-    data_path = './cases/NorthSea/Networks/NetworkDataElectricity.xlsx'
-    size_matrix = pd.read_excel(data_path, index_col=0, sheet_name='NetworkSize')
-    length_matrix = pd.read_excel(data_path, index_col=0, sheet_name='NetworkLength')
-    type_matrix = pd.read_excel(data_path, index_col=0, sheet_name='NetworkType')
-
-    for node1 in nodes:
-        for node2 in nodes:
-            if pd.isna(size_matrix[node1][node2]) and not pd.isna(size_matrix[node2][node1]):
-                size_matrix[node1][node2] = size_matrix[node2][node1]
-            if not pd.isna(size_matrix[node1][node2]) and pd.isna(size_matrix[node2][node1]):
-                size_matrix[node2][node1] = size_matrix[node1][node2]
-
-    for node1 in nodes:
-        for node2 in nodes:
-            distance.at[node1, node2] = 100
-            if pd.isna(size_matrix[node1][node2]):
-                size.at[node1, node2] = 0
-                size.at[node2, node1] = 0
-            else:
-                size.at[node1, node2] = size_matrix[node1][node2]
-                size.at[node2, node1] = size_matrix[node1][node2]
-
-    data['size'] = size
-    data['distance'] = distance
+    distance_from_excel = pd.read_excel(data_file, index_col=0, sheet_name='NetworkLength')
+    data['distance'] = get_matrix(distance_from_excel)
 
     return data
 

@@ -37,7 +37,7 @@
       "hydrogen",
       "electricity"
     ],
-    "emission_factor": 0,
+    "emission_factor": 0.185,
     "min_part_load": 0.9,
     "performance": {
       "in": [

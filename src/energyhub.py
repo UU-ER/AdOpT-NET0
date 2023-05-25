@@ -295,6 +295,10 @@ class EnergyHub:
         """
         self.__optimize_emissions_net()
         emission_limit = self.model.var_emissions_net.value
+        if self.model.find_component('const_emission_limit'):
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.remove_constraint(self.model.const_emission_limit)
+            self.model.del_component(self.model.const_emission_limit)
         self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.005)
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.add_constraint(self.model.const_emission_limit)
@@ -307,14 +311,17 @@ class EnergyHub:
         pareto_points = self.configuration.optimization.pareto_points
 
         # Min Cost
+        global_variables.pareto_point = 0
         self.__optimize_cost()
         emissions_max = self.model.var_emissions_net.value
 
         # Min Emissions
+        global_variables.pareto_point = pareto_points + 1
         self.__optimize_emissions_minC()
         emissions_min = self.model.var_emissions_net.value
 
         # Emission limit
+        global_variables.pareto_point = 0
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
         for pareto_point in range(0, pareto_points):
             global_variables.pareto_point += 1

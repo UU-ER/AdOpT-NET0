@@ -54,9 +54,13 @@ for node in onshore_nodes:
     installed_capacities[node] = read_installed_capacity_eraa(node)
     topology.define_existing_technologies(node, installed_capacities[node]['Conventional'])
 
-# Networks
-network_data = read_network_data(topology.nodes)
+# Networks - Electricity
+network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataElectricity.xlsx', 1)
 topology.define_existing_network('electricitySimple', size=network_data['size'], distance=network_data['distance'])
+
+# Networks - Hydrogen
+network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataHydrogen.xlsx', 0)
+topology.define_new_network('hydrogenSimple', connections=network_data['connection'], distance=network_data['distance'])
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)
@@ -118,6 +122,7 @@ for node in onshore_nodes:
         # data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node])
         data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * 100000)
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carrier_price[car])
+        data.read_import_emissionfactor_data(node, car, np.ones(len(topology.timesteps)) * 0.3)
 
 
 # Read technology data

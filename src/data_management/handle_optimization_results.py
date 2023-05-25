@@ -236,7 +236,7 @@ class OptimizationResults:
                 self.technologies.loc[len(self.technologies.index)] = \
                     [node_name, tec_name, s, capex, opex_fix, opex_var]
 
-        # Network Sizes
+        # Network
         if not energyhub.configuration.energybalance.copperplate:
             for netw_name in model.set_networks:
                 netw_data = model.network_block[netw_name]
@@ -253,7 +253,7 @@ class OptimizationResults:
                         total_flow = sum(arc_data.var_flow[sequence[t - 1]].value
                                          for t in set_t)
                     else:
-                        opex_var = sum(arc_data.var_opex_variable[t]
+                        opex_var = sum(arc_data.var_opex_variable[t].value
                                        for t in set_t)
                         total_flow = sum(arc_data.var_flow[t].value
                                          for t in set_t)
