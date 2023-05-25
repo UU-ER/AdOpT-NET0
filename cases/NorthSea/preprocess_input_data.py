@@ -379,9 +379,9 @@ def calculate_h2_demand():
 
 
 
-# save_demand_data_to_csv()
-# save_generic_production_profiles_to_csv()
-# save_hydro_inflows_to_csv()
+save_demand_data_to_csv()
+save_generic_production_profiles_to_csv()
+save_hydro_inflows_to_csv()
 calculate_h2_demand()
 
 
