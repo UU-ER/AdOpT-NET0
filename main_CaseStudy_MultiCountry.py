@@ -25,6 +25,7 @@ TODO
 - define SMR
 - define new technologies
 """
+
 year = 2030
 scenario = 'GA'
 climate_year = 2009
@@ -157,7 +158,6 @@ emissionlim = []
 # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve()
-dm.save_object(energyhub, r'\\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\energyhub_instances\minEmissionsStage 0.p')
 
 
 emissionlim.append(energyhub.model.var_emissions_net.value)
@@ -175,7 +175,6 @@ for stage in new_tecs:
                 energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
     energyhub.construct_balances()
     results = energyhub.solve()
-    dm.save_object(energyhub, r'\\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\energyhub_instances\minEmissions'+ stage + '.p')
 
     emissionlim.append(energyhub.model.var_emissions_net.value)
 
@@ -190,7 +189,6 @@ results.write_excel(r'user_Data/MultiCountry_minEmissions')
 energyhub.configuration.optimization.objective = 'costs_at_emissions'
 energyhub.configuration.optimization.emission_limit = emissionlim[0]
 energyhub.solve()
-dm.save_object(energyhub, r'\\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\energyhub_instances\minCostStage 0.p')
 
 i = 1
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
@@ -208,7 +206,6 @@ for stage in new_tecs:
                 energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
     energyhub.construct_balances()
     results = energyhub.solve()
-    dm.save_object(energyhub, r'\\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\energyhub_instances\minCost'+ stage + '.p')
 
     i += 1
     # except:
