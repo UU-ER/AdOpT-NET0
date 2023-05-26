@@ -119,7 +119,7 @@ class ModelConfiguration:
         self.solveroptions = SimpleNamespace()
         self.solveroptions.solver = 'gurobi'
         self.solveroptions.mipgap = 0.001
-        self.solveroptions.timelim = 10
+        self.solveroptions.timelim = 20
         self.solveroptions.threads = 0
         self.solveroptions.mipfocus = 0
         self.solveroptions.logfile = ""
@@ -130,11 +130,14 @@ class ModelConfiguration:
         self.solveroptions.branchdir = 0
         self.solveroptions.lpwarmstart = 0
         self.solveroptions.intfeastol = 1e-5
+        self.solveroptions.feastol = 1e-5
         self.solveroptions.cuts = -1
+        self.solveroptions.numericfocus = 0
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
         self.optimization.save_detail = 'full'
+        self.optimization.emission_limit = 0
 
         self.optimization.monte_carlo = SimpleNamespace()
         self.optimization.monte_carlo.on = 0

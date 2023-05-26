@@ -248,6 +248,9 @@ class EnergyHub:
             self.__optimize_emissions_net()
         elif objective == 'emissions_minC':
             self.__optimize_emissions_minC()
+        elif objective == 'costs_at_emissions':
+            self.__optimize_costs_at_emissions()
+
         else:
             raise Exception("objective in Configurations is incorrect")
 
@@ -289,6 +292,20 @@ class EnergyHub:
         self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
         self.__call_solver()
 
+    def __optimize_costs_at_emissions(self):
+        """
+        Minimize costs at minimum emissions
+        """
+        emission_limit = self.configuration.optimization.emission_limit
+        if self.model.find_component('const_emission_limit'):
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.remove_constraint(self.model.const_emission_limit)
+            self.model.del_component(self.model.const_emission_limit)
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.001)
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.add_constraint(self.model.const_emission_limit)
+        self.__optimize_cost()
+
     def __optimize_emissions_minC(self):
         """
         Minimize costs at minimum emissions
@@ -299,7 +316,7 @@ class EnergyHub:
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
-        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.005)
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.001)
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.add_constraint(self.model.const_emission_limit)
         self.__optimize_cost()

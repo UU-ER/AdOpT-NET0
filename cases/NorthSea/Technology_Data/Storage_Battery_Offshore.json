@@ -1,7 +1,7 @@
 {
   "tec_type": "STOR",
   "size_min": 0,
-  "size_max": 10000000.0,
+  "size_max": 10000,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {

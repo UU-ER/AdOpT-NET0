@@ -55,12 +55,16 @@ for node in onshore_nodes:
     topology.define_existing_technologies(node, installed_capacities[node]['Conventional'])
 
 # Networks - Electricity
-network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataElectricity.xlsx', 1)
+network_data = read_network_data(topology.nodes, 'cases/NorthSea/Networks/NetworkDataElectricity_existing.xlsx', 1)
 topology.define_existing_network('electricitySimple', size=network_data['size'], distance=network_data['distance'])
 
 # Networks - Hydrogen
 network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataHydrogen.xlsx', 0)
 topology.define_new_network('hydrogenSimple', connections=network_data['connection'], distance=network_data['distance'])
+
+# Networks - New Electricity
+network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataHydrogen.xlsx', 0)
+topology.define_new_network('electricityInteger', connections=network_data['connection'], distance=network_data['distance'])
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)
@@ -139,28 +143,75 @@ for node in onshore_nodes:
 
 data.read_network_data()
 
+# Have different emission limits
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
 configuration.solveroptions.solver = 'gurobi_persistent'
-configuration.optimization.objective = 'pareto'
+configuration.optimization.objective = 'emissions_net'
+configuration.solveroptions.mipgap = 0.01
+configuration.solveroptions.lpwarmstart = 1
+configuration.solveroptions.numericfocus = 3
+
+emissionlim = []
 
 # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve()
+dm.save_object(energyhub, r'\\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\energyhub_instances\minEmissionsStage 0.p')
+
+
+emissionlim.append(energyhub.model.var_emissions_net.value)
 
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
 
 # New technologies
 new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx', index_col=0)
-for node in nodes:
-    # try:
-    if not isinstance(new_tecs['Stage 1'][node], float):
-        new_technologies = new_tecs['Stage 1'][node].split(', ')
-        for tec in new_technologies:
-            energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
+for stage in new_tecs:
+    for node in nodes:
+        # try:
+        if not isinstance(new_tecs[stage][node], float):
+            new_technologies = new_tecs[stage][node].split(', ')
+            for tec in new_technologies:
+                energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
+    energyhub.construct_balances()
+    results = energyhub.solve()
+    dm.save_object(energyhub, r'\\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\energyhub_instances\minEmissions'+ stage + '.p')
+
+    emissionlim.append(energyhub.model.var_emissions_net.value)
+
     # except:
     #     pass
 
-energyhub.construct_balances()
-results = energyhub.solve()
-results.write_excel(r'user_Data/MultiCountry')
+results.write_excel(r'user_Data/MultiCountry_minEmissions')
+
+
+
+# Read data
+energyhub.configuration.optimization.objective = 'costs_at_emissions'
+energyhub.configuration.optimization.emission_limit = emissionlim[0]
+energyhub.solve()
+dm.save_object(energyhub, r'\\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\energyhub_instances\minCostStage 0.p')
+
+i = 1
+# pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
+
+# New technologies
+new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx',sheet_name='NewTechnologies' ,index_col=0)
+for stage in new_tecs:
+    energyhub.configuration.optimization.emission_limit = emissionlim[i]
+
+    for node in nodes:
+        # try:
+        if not isinstance(new_tecs[stage][node], float):
+            new_technologies = new_tecs[stage][node].split(', ')
+            for tec in new_technologies:
+                energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
+    energyhub.construct_balances()
+    results = energyhub.solve()
+    dm.save_object(energyhub, r'\\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\energyhub_instances\minCost'+ stage + '.p')
+
+    i += 1
+    # except:
+    #     pass
+
+results.write_excel(r'user_Data/MultiCountry_minCosts')

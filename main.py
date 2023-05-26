@@ -72,10 +72,6 @@ results = energyhub.quick_solve()
 
 dm.save_object(results, r'./user_data/howtosave.p')
 
-from src import define_units
-
-define_units()
-results = dm.load_object(r'./user_data/howtosave.p')
 
 
 
