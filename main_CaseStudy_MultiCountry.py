@@ -150,23 +150,25 @@ for node in onshore_nodes:
 data.read_network_data()
 
 # Have different emission limits
-# SAVING/LOADING DATA FILE
+# CONFIGURATION COSTS
 configuration = ModelConfiguration()
 configuration.solveroptions.solver = 'gurobi_persistent'
-configuration.optimization.objective = 'emissions_net'
+configuration.optimization.objective = 'costs'
 configuration.solveroptions.mipgap = 0.01
 configuration.solveroptions.lpwarmstart = 1
 configuration.solveroptions.numericfocus = 3
 configuration.optimization.save_log_files = 1
+configuration.optimization.monte_carlo.on = 1
+configuration.optimization.monte_carlo.N = 4
 
-emissionlim = []
+emissionlim_up = []
 
 # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve()
 
 
-emissionlim.append(energyhub.model.var_emissions_net.value)
+emissionlim_up.append(energyhub.model.var_emissions_net.value)
 
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
 
@@ -182,21 +184,90 @@ for stage in new_tecs:
     energyhub.construct_balances()
     results = energyhub.solve()
 
-    emissionlim.append(energyhub.model.var_emissions_net.value)
+    emissionlim_up.append(energyhub.model.var_emissions_net.value)
 
     # except:
     #     pass
 
-results.write_excel(r'user_Data/MultiCountry_minEmissions')
+results.write_excel(r'user_Data/MultiCountry_minCosts')
 
 
+
+
+# CONFIGURATION EMISSIONS
+configuration = ModelConfiguration()
+configuration.solveroptions.solver = 'gurobi_persistent'
+configuration.optimization.objective = 'emissions_minC'
+configuration.solveroptions.mipgap = 0.01
+configuration.solveroptions.lpwarmstart = 1
+configuration.solveroptions.numericfocus = 3
+configuration.optimization.save_log_files = 1
+configuration.optimization.monte_carlo.on = 1
+configuration.optimization.monte_carlo.N = 4
+
+emissionlim_low = []
 
 # Read data
-energyhub.configuration.optimization.objective = 'costs_at_emissions'
-energyhub.configuration.optimization.emission_limit = emissionlim[0]
-energyhub.solve()
+energyhub = EnergyHub(data, configuration)
+energyhub.quick_solve()
 
-i = 1
+
+emissionlim_low.append(energyhub.model.var_emissions_net.value)
+
+# pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
+
+# New technologies
+new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx', index_col=0)
+for stage in new_tecs:
+    for node in nodes:
+        # try:
+        if not isinstance(new_tecs[stage][node], float):
+            new_technologies = new_tecs[stage][node].split(', ')
+            for tec in new_technologies:
+                energyhub.add_technology_to_node(node, [tec], path = tec_data_path)
+    energyhub.construct_balances()
+    results = energyhub.solve()
+
+    emissionlim_low.append(energyhub.model.var_emissions_net.value)
+
+    # except:
+    #     pass
+
+results.write_excel(r'user_Data/MultiCountry_minEmissions_Cost')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+# # Read data
+# energyhub.configuration.optimization.objective = 'costs_at_emissions'
+# energyhub.configuration.optimization.emission_limit = emissionlim_up[0]
+# energyhub.solve()
+#
+# i = 1
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
 
 # New technologies
