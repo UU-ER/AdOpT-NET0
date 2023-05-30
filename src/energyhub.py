@@ -381,7 +381,7 @@ class EnergyHub:
                                               tee=True,
                                               warmstart=True,
                                               keepfiles = True,
-                                              logfile='./log_files/log' + time_stamp)
+                                              logfile='./log_files/log' + time_stamp + '.txt')
         else:
             self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
