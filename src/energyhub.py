@@ -9,8 +9,7 @@ import src.global_variables as global_variables
 import time
 import copy
 import warnings
-
-#TODO: Fix test functions
+import datetime
 
 
 class EnergyHub:
@@ -248,6 +247,8 @@ class EnergyHub:
             self.__optimize_emissions_net()
         elif objective == 'emissions_minC':
             self.__optimize_emissions_minC()
+        elif objective == 'costs_at_emissions':
+            self.__optimize_costs_at_emissions()
         else:
             raise Exception("objective in Configurations is incorrect")
 
@@ -289,13 +290,33 @@ class EnergyHub:
         self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
         self.__call_solver()
 
+
+    def __optimize_costs_at_emissions(self):
+        """
+        Minimize costs at minimum emissions
+        """
+        emission_limit = self.configuration.optimization.emission_limit
+        if self.model.find_component('const_emission_limit'):
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.remove_constraint(self.model.const_emission_limit)
+            self.model.del_component(self.model.const_emission_limit)
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.001)
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.add_constraint(self.model.const_emission_limit)
+        self.__optimize_cost()
+
+
     def __optimize_emissions_minC(self):
         """
         Minimize costs at minimum emissions
         """
         self.__optimize_emissions_net()
         emission_limit = self.model.var_emissions_net.value
-        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.005)
+        if self.model.find_component('const_emission_limit'):
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.remove_constraint(self.model.const_emission_limit)
+            self.model.del_component(self.model.const_emission_limit)
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.001)
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.add_constraint(self.model.const_emission_limit)
         self.__optimize_cost()
@@ -307,14 +328,17 @@ class EnergyHub:
         pareto_points = self.configuration.optimization.pareto_points
 
         # Min Cost
+        global_variables.pareto_point = 0
         self.__optimize_cost()
         emissions_max = self.model.var_emissions_net.value
 
         # Min Emissions
+        global_variables.pareto_point = pareto_points + 1
         self.__optimize_emissions_minC()
         emissions_min = self.model.var_emissions_net.value
 
         # Emission limit
+        global_variables.pareto_point = 0
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
         for pareto_point in range(0, pareto_points):
             global_variables.pareto_point += 1
@@ -349,9 +373,16 @@ class EnergyHub:
         print('Solving Model...')
 
         start = time.time()
+        time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(self.model.objective)
-        self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
+        if self.configuration.optimization.save_log_files:
+            self.solution = self.solver.solve(self.model,
+                                              tee=True,
+                                              warmstart=True,
+                                              logfile='./log_files/log' + time_stamp)
+        else:
+            self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
         self.results.add_optimization_result(self)
 

@@ -13,8 +13,7 @@ class ResultsHandle:
         self.timestaging = 0
         self.save_detail = configuration.optimization.save_detail
 
-        self.summary = SimpleNamespace()
-        self.summary.economics = pd.DataFrame(columns=[
+        self.summary = pd.DataFrame(columns=[
             'Objective',
             'Pareto_Point',
             'Monte_Carlo_Run',
@@ -26,19 +25,13 @@ class ResultsHandle:
             'Import_Cost',
             'Export_Revenue',
             'Violation_Cost'
-            ])
-
-        self.summary.emissions = pd.DataFrame(columns=[
-            'Objective',
-            'Pareto_Point',
-            'Monte_Carlo_Run',
-            'Time_stage',
-            'Net',
-            'Positive',
-            'Negative',
-            'Net_From_Technologies',
-            'Net_From_Networks',
-            'Net_From_Carriers'
+            'Net_Emissions',
+            'Positive_Emissions',
+            'Negative_Emissions',
+            'Net_From_Technologies_Emissions',
+            'Net_From_Networks_Emissions',
+            'Net_From_Carriers_Emissions',
+            'Time_Total'
             ])
 
         self.detailed_results = []
@@ -59,21 +52,13 @@ class ResultsHandle:
         else:
             time_stage = 0
 
-        # Economics
-        economics = optimization_result.economics
-        economics['Objective'] = objective
-        economics['Pareto_Point'] = pareto_point
-        economics['Monte_Carlo_Run'] = monte_carlo_run
-        economics['Time_stage'] = time_stage
-        self.summary.economics = self.summary.economics.append(economics)
-
-        # Emissions
-        emissions = optimization_result.emissions
-        emissions['Objective'] = objective
-        emissions['Pareto_Point'] = pareto_point
-        emissions['Monte_Carlo_Run'] = monte_carlo_run
-        emissions['Time_stage'] = time_stage
-        self.summary.emissions = self.summary.emissions.append(emissions)
+        # Summary
+        summary = optimization_result.summary
+        summary['Objective'] = objective
+        summary['Pareto_Point'] = pareto_point
+        summary['Monte_Carlo_Run'] = monte_carlo_run
+        summary['Time_stage'] = time_stage
+        self.summary = pd.concat([self.summary, summary])
 
         self.detailed_results.append(optimization_result)
 
@@ -85,8 +70,7 @@ class ResultsHandle:
         """
         file_name = path + '.xlsx'
         with pd.ExcelWriter(file_name) as writer:
-            self.summary.economics.to_excel(writer, sheet_name='Economics')
-            self.summary.emissions.to_excel(writer, sheet_name='Emissions')
+            self.summary.to_excel(writer, sheet_name='Summary')
 
         i = 1
         if not self.save_detail == 'minimal':
@@ -107,20 +91,20 @@ class OptimizationResults:
         :param str detail: 'full', or 'basic', basic excludes energy balance, technology and network operation
         :return: self
         """
-        self.economics = pd.DataFrame(columns=['Total_Cost',
+        self.summary = pd.DataFrame(columns=['Total_Cost',
                                                'Emission_Cost',
                                                'Technology_Cost',
                                                'Network_Cost',
                                                'Import_Cost',
                                                'Export_Revenue',
-                                               'Violation_Cost'
-                                               ])
-        self.emissions = pd.DataFrame(columns=['Net',
-                                               'Positive',
-                                               'Negative',
-                                               'Net_From_Technologies',
-                                               'Net_From_Networks',
-                                               'Net_From_Carriers'
+                                               'Violation_Cost',
+                                               'Net_Emissions',
+                                               'Positive_Emissions',
+                                               'Negative_Emissions',
+                                               'Net_From_Technologies_Emissions',
+                                               'Net_From_Networks_Emissions',
+                                               'Net_From_Carriers_Emissions',
+                                               'Time_Total'
                                                ])
         self.technologies = pd.DataFrame(columns=['Node',
                                                   'Technology',
@@ -148,6 +132,10 @@ class OptimizationResults:
 
     def read_results(self, energyhub, detail):
         model = energyhub.model
+
+        # Solver status
+        total_time = energyhub.solution.solver(0).time
+
 
         # Economics
         total_cost = model.var_total_cost.value
@@ -186,8 +174,6 @@ class OptimizationResults:
         else:
             violation_cost = 0
         netw_cost = model.var_netw_cost.value
-        self.economics.loc[len(self.economics.index)] = \
-            [total_cost, emission_cost, tec_cost, netw_cost, import_cost, export_revenue, violation_cost]
 
         # Emissions
         net_emissions = model.var_emissions_net.value
@@ -219,9 +205,16 @@ class OptimizationResults:
         else:
             from_networks = 0
 
-        self.emissions.loc[len(self.emissions.index)] = \
-            [net_emissions, positive_emissions, negative_emissions, from_technologies,
-             from_networks, from_carriers]
+        self.summary.loc[len(self.summary.index)] = \
+            [total_cost,
+             emission_cost,
+             tec_cost, netw_cost,
+             import_cost, export_revenue,
+             violation_cost,
+             net_emissions,
+             positive_emissions, negative_emissions,
+             from_technologies, from_networks, from_carriers,
+             total_time]
 
         # Technology Sizes
         for node_name in model.set_nodes:
@@ -253,7 +246,7 @@ class OptimizationResults:
                         total_flow = sum(arc_data.var_flow[sequence[t - 1]].value
                                          for t in set_t)
                     else:
-                        opex_var = sum(arc_data.var_opex_variable[t]
+                        opex_var = sum(arc_data.var_opex_variable[t].value
                                        for t in set_t)
                         total_flow = sum(arc_data.var_flow[t].value
                                          for t in set_t)
@@ -384,17 +377,23 @@ class OptimizationResults:
 
         :param str path: path to write excel to
         """
+        def shorten_string(str, length):
+            if len(str) > length:
+                str = str[0:length-1]
+            return str
+
         file_name = path + '.xlsx'
 
         with pd.ExcelWriter(file_name) as writer:
-            self.economics.to_excel(writer, sheet_name='Economics')
-            self.emissions.to_excel(writer, sheet_name='Emissions')
+            self.summary.to_excel(writer, sheet_name='Summary')
             self.technologies.to_excel(writer, sheet_name='TechnologySizes')
             self.networks.to_excel(writer, sheet_name='Networks')
             for node in self.energybalance:
                 for car in self.energybalance[node]:
+                    sheet_name = shorten_string(node + '_' + car, 30)
                     self.energybalance[node][car].to_excel(writer, sheet_name='Balance_' + node + '_' + car)
             for node in self.detailed_results.nodes:
                 for tec_name in self.detailed_results.nodes[node]:
+                    sheet_name = shorten_string(node + '_' + tec_name, 30)
                     self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=
                                                                               'Tec_' + node + '_' + tec_name)
