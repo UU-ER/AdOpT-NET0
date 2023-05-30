@@ -466,7 +466,6 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
     if b_node.find_component('tech_blocks_active_index'):
         b_node.del_component(b_node.tech_blocks_active_index)
 
-
     # Create a block containing all active technologies at node
     if not set(set_tecsToAdd).issubset(b_node.set_tecsAtNode):
         b_node.set_tecsAtNode.add(set_tecsToAdd)

@@ -9,8 +9,7 @@ import src.global_variables as global_variables
 import time
 import copy
 import warnings
-
-#TODO: Fix test functions
+import datetime
 
 
 class EnergyHub:
@@ -187,7 +186,7 @@ class EnergyHub:
 
         return self.results
 
-    def add_technology_to_node(self, nodename, technologies, path='./data/Technology_Data/'):
+    def add_technology_to_node(self, nodename, technologies):
         """
         Adds technologies retrospectively to the model.
 
@@ -198,7 +197,7 @@ class EnergyHub:
         :param list technologies: list of technologies that should be added to nodename
         :return: None
         """
-        self.data.read_single_technology_data(nodename, technologies, path=path)
+        self.data.read_single_technology_data(nodename, technologies)
         mc.add_technology(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
@@ -250,7 +249,6 @@ class EnergyHub:
             self.__optimize_emissions_minC()
         elif objective == 'costs_at_emissions':
             self.__optimize_costs_at_emissions()
-
         else:
             raise Exception("objective in Configurations is incorrect")
 
@@ -292,6 +290,7 @@ class EnergyHub:
         self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
         self.__call_solver()
 
+
     def __optimize_costs_at_emissions(self):
         """
         Minimize costs at minimum emissions
@@ -305,6 +304,7 @@ class EnergyHub:
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.add_constraint(self.model.const_emission_limit)
         self.__optimize_cost()
+
 
     def __optimize_emissions_minC(self):
         """
@@ -373,9 +373,16 @@ class EnergyHub:
         print('Solving Model...')
 
         start = time.time()
+        time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(self.model.objective)
-        self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
+        if self.configuration.optimization.save_log_files:
+            self.solution = self.solver.solve(self.model,
+                                              tee=True,
+                                              warmstart=True,
+                                              logfile='./log_files/log' + time_stamp)
+        else:
+            self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
         self.results.add_optimization_result(self)
 
