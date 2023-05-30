@@ -355,6 +355,7 @@ class EnergyHub:
         """
         Optimizes multiple runs with monte carlo
         """
+        global_variables.monte_carlo_run = 0
         for run in range(0, self.configuration.optimization.monte_carlo.N):
             global_variables.monte_carlo_run += 1
             self.__monte_carlo_set_cost_parameters()
