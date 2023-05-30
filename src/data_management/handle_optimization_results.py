@@ -402,9 +402,8 @@ class OptimizationResults:
             for node in self.energybalance:
                 for car in self.energybalance[node]:
                     sheet_name = shorten_string(node + '_' + car, 30)
-                    self.energybalance[node][car].to_excel(writer, sheet_name='Balance_' + node + '_' + car)
+                    self.energybalance[node][car].to_excel(writer, sheet_name=sheet_name)
             for node in self.detailed_results.nodes:
                 for tec_name in self.detailed_results.nodes[node]:
                     sheet_name = shorten_string(node + '_' + tec_name, 30)
-                    self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=
-                                                                              'Tec_' + node + '_' + tec_name)
+                    self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=sheet_name)

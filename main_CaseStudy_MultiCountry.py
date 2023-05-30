@@ -157,6 +157,7 @@ configuration.optimization.objective = 'emissions_net'
 configuration.solveroptions.mipgap = 0.01
 configuration.solveroptions.lpwarmstart = 1
 configuration.solveroptions.numericfocus = 3
+configuration.optimization.save_log_files = 1
 
 emissionlim = []
 
@@ -177,7 +178,7 @@ for stage in new_tecs:
         if not isinstance(new_tecs[stage][node], float):
             new_technologies = new_tecs[stage][node].split(', ')
             for tec in new_technologies:
-                energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
+                energyhub.add_technology_to_node(node, [tec], path = tec_data_path)
     energyhub.construct_balances()
     results = energyhub.solve()
 
@@ -199,21 +200,21 @@ i = 1
 # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
 
 # New technologies
-new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx',sheet_name='NewTechnologies' ,index_col=0)
-for stage in new_tecs:
-    energyhub.configuration.optimization.emission_limit = emissionlim[i]
-
-    for node in nodes:
-        # try:
-        if not isinstance(new_tecs[stage][node], float):
-            new_technologies = new_tecs[stage][node].split(', ')
-            for tec in new_technologies:
-                energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
-    energyhub.construct_balances()
-    results = energyhub.solve()
-
-    i += 1
-    # except:
-    #     pass
-
-results.write_excel(r'user_Data/MultiCountry_minCosts')
+# new_tecs = pd.read_excel(r'.\cases\NorthSea\NewTechnologies\NewTechnologies.xlsx',sheet_name='NewTechnologies' ,index_col=0)
+# for stage in new_tecs:
+#     energyhub.configuration.optimization.emission_limit = emissionlim[i]
+#
+#     for node in nodes:
+#         # try:
+#         if not isinstance(new_tecs[stage][node], float):
+#             new_technologies = new_tecs[stage][node].split(', ')
+#             for tec in new_technologies:
+#                 energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
+#     energyhub.construct_balances()
+#     results = energyhub.solve()
+#
+#     i += 1
+#     # except:
+#     #     pass
+#
+# results.write_excel(r'user_Data/MultiCountry_minCosts')

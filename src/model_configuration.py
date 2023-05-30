@@ -122,7 +122,6 @@ class ModelConfiguration:
         self.solveroptions.timelim = 10
         self.solveroptions.threads = 0
         self.solveroptions.mipfocus = 0
-        self.solveroptions.logfile = ""
         self.solveroptions.nodefilestart = 0.5
         self.solveroptions.method = -1
         self.solveroptions.heuristics = 0.05
