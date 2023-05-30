@@ -322,12 +322,15 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
     b_arc.var_capex_aux = Var(bounds=calculate_max_capex())
     def init_capex(const):
         if economics.capex_model == 1:
+            # CAPEX = gamma1 * S + gamma2
             return b_arc.var_capex_aux == b_arc.var_size * \
                    b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
         elif economics.capex_model == 2:
+            # CAPEX = gamma1 * D * S + gamma2
             return b_arc.var_capex_aux == b_arc.var_size * \
                    b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
         elif economics.capex_model == 3:
+            # CAPEX = gamma1 * D * S + gamma2 * S + gamma3
             return b_arc.var_capex_aux == b_arc.var_size * \
                    b_arc.distance * b_netw.para_capex_gamma1 + \
                    b_arc.var_size * b_netw.para_capex_gamma2 + \
