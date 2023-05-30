@@ -40,7 +40,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 00:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -57,15 +57,20 @@ for node in onshore_nodes:
 
 # Networks - Electricity
 network_data = read_network_data(topology.nodes, 'cases/NorthSea/Networks/NetworkDataElectricity_existing.xlsx', 1)
-topology.define_existing_network('electricitySimple', size=network_data['size'], distance=network_data['distance'])
+topology.define_existing_network('electricityAC', size=network_data['size'], distance=network_data['distance'])
+
+# Networks - New Electricity
+network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataElectricity_AC.xlsx', 0)
+topology.define_new_network('electricityAC_int', connections=network_data['connection'], distance=network_data['distance'])
+
+network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataElectricity_DC.xlsx', 0)
+topology.define_new_network('electricityDC_int', connections=network_data['connection'], distance=network_data['distance'])
 
 # Networks - Hydrogen
 network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataHydrogen.xlsx', 0)
-topology.define_new_network('hydrogenSimple', connections=network_data['connection'], distance=network_data['distance'])
+topology.define_new_network('hydrogenPipeline_int', connections=network_data['connection'], distance=network_data['distance'])
 
-# Networks - New Electricity
-network_data = read_network_data(topology.nodes, './cases/NorthSea/Networks/NetworkDataHydrogen.xlsx', 0)
-topology.define_new_network('electricityInteger', connections=network_data['connection'], distance=network_data['distance'])
+
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)

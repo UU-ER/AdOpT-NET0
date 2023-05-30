@@ -134,7 +134,7 @@ class OptimizationResults:
         model = energyhub.model
 
         # Solver status
-        total_time = energyhub.solution.solver(0).time
+        total_time = energyhub.solution.solver(0).wallclock_time
 
 
         # Economics
