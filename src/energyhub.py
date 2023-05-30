@@ -384,7 +384,7 @@ class EnergyHub:
         else:
             self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
-        self.results.add_optimization_result(self)
+        self.results.add_optimization_result(self, time_stamp)
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)

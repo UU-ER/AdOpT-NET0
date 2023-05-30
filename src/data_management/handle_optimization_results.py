@@ -15,6 +15,7 @@ class ResultsHandle:
 
         self.summary = pd.DataFrame(columns=[
             'Objective',
+            'Solver_Status',
             'Pareto_Point',
             'Monte_Carlo_Run',
             'Time_stage',
@@ -24,19 +25,22 @@ class ResultsHandle:
             'Network_Cost',
             'Import_Cost',
             'Export_Revenue',
-            'Violation_Cost'
+            'Violation_Cost',
             'Net_Emissions',
             'Positive_Emissions',
             'Negative_Emissions',
             'Net_From_Technologies_Emissions',
             'Net_From_Networks_Emissions',
             'Net_From_Carriers_Emissions',
-            'Time_Total'
+            'Time_Total',
+            'lb',
+            'up',
+            'gap'
             ])
 
         self.detailed_results = []
 
-    def add_optimization_result(self, energyhub):
+    def add_optimization_result(self, energyhub, timestamp):
         """
         Adds an optimization result to the ResultHandle
         :param energyhub:
@@ -55,9 +59,11 @@ class ResultsHandle:
         # Summary
         summary = optimization_result.summary
         summary['Objective'] = objective
+        summary['Solver_Status'] = energyhub.solution.solver.termination_condition
         summary['Pareto_Point'] = pareto_point
         summary['Monte_Carlo_Run'] = monte_carlo_run
         summary['Time_stage'] = time_stage
+        summary['Time_stamp'] = timestamp
         self.summary = pd.concat([self.summary, summary])
 
         self.detailed_results.append(optimization_result)
@@ -104,7 +110,10 @@ class OptimizationResults:
                                                'Net_From_Technologies_Emissions',
                                                'Net_From_Networks_Emissions',
                                                'Net_From_Carriers_Emissions',
-                                               'Time_Total'
+                                               'Time_Total',
+                                               'lb',
+                                               'up',
+                                               'gap'
                                                ])
         self.technologies = pd.DataFrame(columns=['Node',
                                                   'Technology',
@@ -135,7 +144,9 @@ class OptimizationResults:
 
         # Solver status
         total_time = energyhub.solution.solver(0).wallclock_time
-
+        lb = energyhub.solution.problem(0).lower_bound
+        ub = energyhub.solution.problem(0).upper_bound
+        gap = ub - lb
 
         # Economics
         total_cost = model.var_total_cost.value
@@ -214,7 +225,7 @@ class OptimizationResults:
              net_emissions,
              positive_emissions, negative_emissions,
              from_technologies, from_networks, from_carriers,
-             total_time]
+             total_time, lb, ub, gap]
 
         # Technology Sizes
         for node_name in model.set_nodes:
