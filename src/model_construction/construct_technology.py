@@ -394,18 +394,20 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         technology_model = tec_data.technology_model
 
         # MODELING TYPICAL DAYS
-        technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
         if global_variables.clustered_data:
             if configuration.optimization.typicaldays.method == 1:
                 if tec_data.technology_model == 'RES':
                     tec_data.modelled_with_full_res = 1
                 else:
                     tec_data.modelled_with_full_res = 0
+
             if configuration.optimization.typicaldays.method == 2:
+                technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
                 if tec_data.technology_model in technologies_modelled_with_full_res:
                     tec_data.modelled_with_full_res = 1
                 else:
                     tec_data.modelled_with_full_res = 0
+
         else:
             tec_data.modelled_with_full_res = 1
 
