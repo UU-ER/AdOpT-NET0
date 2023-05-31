@@ -25,11 +25,19 @@ class DataHandle:
 
         :param SystemTopology topology: SystemTopology Class :func:`~src.data_management.handle_topology.SystemTopology`
         """
+        self.global_data = {}
         self.node_data = {}
         self.technology_data = {}
         self.network_data = {}
 
+
         self.topology = topology
+
+        self.global_data['carbon_prices'] = pd.DataFrame(index=self.topology.timesteps)
+        self.global_data['carbon_prices']['tax'] = np.zeros(len(self.topology.timesteps))
+        self.global_data['carbon_prices']['subsidy'] = np.zeros(len(self.topology.timesteps))
+
+
         # Initialize demand, prices, emission factors = 0 for all timesteps, carriers and nodes
         variables = ['demand',
                      'production_profile',
@@ -40,10 +48,12 @@ class DataHandle:
                      'export_limit',
                      'export_emissionfactors']
 
+
         for node in self.topology.nodes:
             self.node_data[node] = {}
             self.node_data[node]['production_profile_curtailment'] = {}
-            self.node_data[node]['carbon_tax'] = pd.DataFrame(np.zeros(len(self.topology.timesteps)), index=self.topology.timesteps)
+
+
             for var in variables:
                 self.node_data[node][var] = pd.DataFrame(index=self.topology.timesteps)
             for carrier in self.topology.carriers:
@@ -184,23 +194,24 @@ class DataHandle:
 
         self.node_data[node]['import_limit'][carrier] = import_limit_data
 
-    def read_carbon_tax_data(self, carbon_tax_data, node=None):
+    def read_carbon_price_data(self, carbon_price_data, type):
         """
-        Reads carbon tax data.
+        Reads carbon price data. The price is the same for all nodes. Depending on the type, it can represent a carbon
+        tax or a subsidy for negative emissions
 
-        Note that prices for all carriers not specified is zero.
+        Note that carbon price is zero if not specified otherwise.
 
-        :param str node: node name as specified in the topology
-        :param str carrier: carrier name as specified in the topology
-        :param list price_data: list of price data for respective carrier. Needs to have the same length as number of \
+        :param list carbon_price_data: list of cost data for the carbon tax/subsidy. Needs to have the same length as number of \
         time steps.
-        :return: self at ``self.node_data[node]['import_prices'][carrier]``
+        :param str type: 'tax' or 'subsidy' depending on what the carbon cost represents in the model
+        :return: self at ``node_data[node]['carbon_tax'/'carbon_subsidy']``
         """
-        if node is None:
-            for node_key in self.node_data.keys():
-                self.node_data[node_key]['carbon_tax'] = carbon_tax_data
-        else:
-            self.node_data[node]['carbon_tax'] = carbon_tax_data
+        if type == 'tax':
+            self.global_data['carbon_prices']['tax'] = carbon_price_data
+
+        elif type == 'subsidy':
+            self.global_data['carbon_prices']['subsidy'] = carbon_price_data
+
 
     def read_export_emissionfactor_data(self, node, carrier, export_emissionfactor_data):
         """

@@ -56,7 +56,10 @@ production_prof = np.ones(len(topology.timesteps)) * 11
 data.read_production_profile('onshore', 'electricity', production_prof, 1)
 
 carbontax = np.ones(len(topology.timesteps)) * 11
-data.read_carbon_tax_data(carbontax)
+carbonsubsidy = np.ones(len(topology.timesteps)) * 11
+
+data.read_carbon_price_data(carbontax, 'tax')
+data.read_carbon_price_data(carbonsubsidy, 'subsidy')
 # heat_demand = np.ones(len(topology.timesteps)) * 10
 # data.read_demand_data('onshore', 'heat', heat_demand)
 # co2 = np.ones(len(topology.timesteps)) * 10000/8760

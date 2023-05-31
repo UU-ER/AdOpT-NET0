@@ -109,7 +109,7 @@ def add_system_costs(model, occurrence_hour):
         model.del_component(model.const_netw_cost)
         model.del_component(model.const_cost)
 
-    # Cost at each node
+    # Calculates nodal costs
     def init_node_cost(const):
         tec_CAPEX = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_CAPEX
                             for tec in model.node_blocks[node].set_tecsAtNode)
@@ -151,9 +151,38 @@ def add_system_costs(model, occurrence_hour):
                model.var_netw_cost
     model.const_netw_cost = Constraint(rule=init_netw_cost)
 
+    # Calculate emission cost and revenues (if applicable)
+
+    def init_carbon_revenue(const):
+        revenue_carbon_from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t] *
+                                                        occurrence_hour[t - 1] * model.para_carbon_subsidy[t]
+                                                    for t in model.set_t)
+                                                for tec in model.node_blocks[node].set_tecsAtNode)
+                                            for node in model.set_nodes)
+        return revenue_carbon_from_technologies == model.var_carbon_revenue
+    model.const_revenue_carbon = Constraint(rule=init_carbon_revenue)
+
+
+
+    def init_carbon_cost(const):
+        cost_carbon_from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t] *
+                                                    occurrence_hour[t - 1] * model.para_carbon_tax[t]
+                                                for t in model.set_t)
+                                            for tec in model.node_blocks[node].set_tecsAtNode)
+                                        for node in model.set_nodes)
+        cost_carbon_from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t] * occurrence_hour[t - 1] * model.para_carbon_tax[t]
+                                        for t in model.set_t)
+                                    for node in model.set_nodes)
+        cost_carbon_from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t] * occurrence_hour[t - 1] * model.para_carbon_tax[t]
+                                        for t in model.set_t)
+                                    for netw in model.set_networks)
+        return cost_carbon_from_technologies + cost_carbon_from_carriers + cost_carbon_from_networks == model.var_carbon_cost
+    model.const_cost_carbon = Constraint(rule=init_carbon_cost)
+
+
     def init_total_cost(const):
         return \
-            model.var_node_cost + model.var_netw_cost == \
+            model.var_node_cost + model.var_netw_cost + model.var_carbon_cost - model.var_carbon_revenue == \
             model.var_total_cost
     model.const_cost = Constraint(rule=init_total_cost)
 
