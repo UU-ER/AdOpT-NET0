@@ -14,7 +14,7 @@ General Technology Construction (same for all technologies)
 -------------------------------------------------------------
 
 .. automodule:: src.model_construction.construct_technology
-    :members:
+    :members: add_technology
 
 
 Generic Technology Constraints

@@ -2,7 +2,7 @@
 
 Model Construction
 ==================
-The directory ``.\src\model_construction`` contains functions adding component to the model
+The directory ``.\src\model_construction`` contains functions adding components to the model
 and linking them through the cost, emission and energy/material balance. To quickly construct and solve the model
 you can call ``EnergyHub.quick_solve_model`` documented :ref:`here <energyhub_class>`. This function constructs
 the model and solves it at the same time. This is typically enough for basic usage. All other components of the model
@@ -22,13 +22,13 @@ Find below an example usage to solve a model.
 Example Usage
 ^^^^^^^^^^^^^^^^
 To construct the model, you need to have the system topology and input data defined (see
-:ref:`here <data-management-example-usage>`). Then you can construct the model as follows:
+:ref:`here <data-management-example-usage>`) and loaded the modeling configuration. Then you can construct the model as follows:
 
 .. testcode::
 
     from src.energyhub import *
 
-    energyhub = EnergyHub(data)
+    energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
 
@@ -39,7 +39,7 @@ one go, you can also do the following. The function combines model construction 
 
     from src.energyhub import *
 
-    energyhub = EnergyHub(data)
+    energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve_model()
 
 

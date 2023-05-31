@@ -1,11 +1,9 @@
 from pyomo.environ import *
 from pyomo.gdp import *
-from pyomo.environ import units as u
-import src.config_model as m_config
 import src.model_construction as mc
+import src.global_variables as global_variables
 
-
-def constraints_tec_gt(model, b_tec, tec_data):
+def constraints_tec_gt(b_tec, tec_data, energyhub):
     """
     Adds constraints to technology blocks for gas turbines
 
@@ -79,47 +77,60 @@ def constraints_tec_gt(model, b_tec, tec_data):
     :param tec_data: technology data
     :return: technology block
     """
+    model = energyhub.model
+
+    global_variables.big_m_transformation_required = 1
+
     # DATA OF TECHNOLOGY
-    fitted_performance = tec_data.fitted_performance
     performance_data = tec_data.performance_data
-    rated_power = fitted_performance['rated_power']
+    coeff = tec_data.fitted_performance.coefficients
+    bounds = tec_data.fitted_performance.bounds
+    modelled_with_full_res = tec_data.modelled_with_full_res
+
+    # Full or reduced resolution
+    if global_variables.clustered_data and not modelled_with_full_res:
+        input = b_tec.var_input_aux
+        output = b_tec.var_output_aux
+        set_t = model.set_t_clustered
+    else:
+        input = b_tec.var_input
+        output = b_tec.var_output
+        set_t = model.set_t_full
 
     # Parameter declaration
-    b_tec.para_in_min = Param(domain=NonNegativeReals, initialize=performance_data['in_min'])
-    b_tec.para_in_max = Param(domain=NonNegativeReals, initialize=performance_data['in_max'])
-    b_tec.para_max_H2_admixture = Param(domain=NonNegativeReals, initialize=performance_data['max_H2_admixture'])
-    b_tec.para_alpha = Param(domain=Reals, initialize=fitted_performance['alpha'])
-    b_tec.para_beta = Param(domain=Reals, initialize=fitted_performance['beta'])
-    b_tec.para_epsilon = Param(domain=NonNegativeReals, initialize=fitted_performance['epsilon'])
-    f  = fitted_performance['f']
-
-    m_config.presolve.big_m_transformation_required = 1
+    in_min = coeff['in_min']
+    in_max = coeff['in_max']
+    max_H2_admixture = coeff['max_H2_admixture']
+    alpha = coeff['alpha']
+    beta = coeff['beta']
+    epsilon = coeff['epsilon']
+    f  = coeff['f']
 
     # Additional decision variables
     size_max = tec_data.size_max
-    def init_input_bounds(bounds, t):
+    def init_input_bounds(bd, t):
         if len(performance_data['input_carrier']) == 2:
             car = 'gas'
         else:
             car = 'hydrogen'
-        return tuple(fitted_performance['input_bounds'][car][t - 1, :] * size_max)
-    b_tec.var_total_input = Var(model.set_t, within=NonNegativeReals,
-                                bounds=init_input_bounds, units=u.MW)
+        return tuple(bounds['input'][car][t - 1, :] * size_max)
+    b_tec.var_total_input = Var(set_t, within=NonNegativeReals,
+                                bounds=init_input_bounds)
 
-    b_tec.var_units_on = Var(model.set_t, within=NonNegativeIntegers,
+    b_tec.var_units_on = Var(set_t, within=NonNegativeIntegers,
                              bounds=(0, size_max))
 
     # Calculate total input
     def init_total_input(const, t):
-        return b_tec.var_total_input[t] == sum(b_tec.var_input[t, car_input]
+        return b_tec.var_total_input[t] == sum(input[t, car_input]
                                                for car_input in b_tec.set_input_carriers)
-    b_tec.const_total_input = Constraint(model.set_t, rule=init_total_input)
+    b_tec.const_total_input = Constraint(set_t, rule=init_total_input)
 
     # Constrain hydrogen input
     if len(performance_data['input_carrier']) == 2:
         def init_h2_input(const, t):
-            return b_tec.var_input[t, 'hydrogen'] <= b_tec.var_total_input[t] * b_tec.para_max_H2_admixture
-        b_tec.const_h2_input = Constraint(model.set_t, rule=init_h2_input)
+            return input[t, 'hydrogen'] <= b_tec.var_total_input[t] * max_H2_admixture
+        b_tec.const_h2_input = Constraint(set_t, rule=init_h2_input)
 
     # LINEAR, MINIMAL PARTLOAD
     s_indicators = range(0, 2)
@@ -127,46 +138,46 @@ def constraints_tec_gt(model, b_tec, tec_data):
     def init_input_output(dis, t, ind):
         if ind == 0:  # technology off
             def init_input_off(const, car):
-                return b_tec.var_input[t, car] == 0
+                return input[t, car] == 0
             dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
             def init_output_off(const, car):
-                return b_tec.var_output[t, car] == 0
+                return output[t, car] == 0
             dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
 
         else:  # technology on
             # input-output relation
             def init_input_output_on_el(const):
-                return b_tec.var_output[t, 'electricity'] == (b_tec.para_alpha * b_tec.var_total_input[t] + \
-                                                              b_tec.para_beta * b_tec.var_units_on[t]) * f[t-1]
+                return output[t, 'electricity'] == (alpha * b_tec.var_total_input[t] + \
+                                                              beta * b_tec.var_units_on[t]) * f[t-1]
             dis.const_input_output_on_el = Constraint(rule=init_input_output_on_el)
 
             def init_input_output_on_th(const):
-                return b_tec.var_output[t, 'heat'] == b_tec.para_epsilon * b_tec.var_total_input[t] - \
-                       b_tec.var_output[t, 'electricity']
+                return output[t, 'heat'] == epsilon * b_tec.var_total_input[t] - \
+                       output[t, 'electricity']
             dis.const_input_output_on_th = Constraint(rule=init_input_output_on_th)
 
             # min part load relation
             def init_min_input(const):
                 return b_tec.var_total_input[t] >= \
-                       b_tec.para_in_min * b_tec.var_units_on[t]
+                       in_min * b_tec.var_units_on[t]
             dis.const_min_input = Constraint(rule=init_min_input)
 
             def init_max_input(const):
                 return b_tec.var_total_input[t] <= \
-                       b_tec.para_in_max * b_tec.var_units_on[t]
+                       in_max * b_tec.var_units_on[t]
             dis.const_max_input = Constraint(rule=init_max_input)
 
-    b_tec.dis_input_output = Disjunct(model.set_t, s_indicators, rule=init_input_output)
+    b_tec.dis_input_output = Disjunct(set_t, s_indicators, rule=init_input_output)
 
     # Bind disjuncts
     def bind_disjunctions(dis, t):
         return [b_tec.dis_input_output[t, i] for i in s_indicators]
-    b_tec.disjunction_input_output = Disjunction(model.set_t, rule=bind_disjunctions)
+    b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
     # Technologies on
     def init_n_on(const, t):
         return b_tec.var_units_on[t] <= b_tec.var_size
-    b_tec.const_n_on = Constraint(model.set_t, rule=init_n_on)
+    b_tec.const_n_on = Constraint(set_t, rule=init_n_on)
 
     return b_tec

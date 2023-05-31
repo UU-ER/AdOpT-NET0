@@ -1,23 +1,27 @@
 from pyomo.environ import *
-from pyomo.environ import units as u
-from pyomo.gdp import *
 
 import src.model_construction as mc
 import src.data_management as dm
-import pint
+from src.utilities import *
 import numpy as np
 import dill as pickle
-import pandas as pd
-import src.config_model as m_config
+import src.global_variables as global_variables
 import time
 import copy
+import warnings
+
+#TODO: Fix test functions
 
 
 class EnergyHub:
     r"""
     Class to construct and manipulate an energy system model.
 
-    When constructing an instance, it reads data to the instance and defines relevant model sets:
+    When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
+    class:
+    - self.configuration: Contains options for the optimization and is passed to the constructor
+    - self.model: A concrete Pyomo model
+    -
 
     **Set declarations:**
 
@@ -28,45 +32,57 @@ class EnergyHub:
     - Set of technologies at each node :math:`S_n, n \in N`
 
     """
-    def __init__(self, data):
+    def __init__(self, data, configuration):
         """
         Constructor of the energyhub class.
         """
-        print('_' * 20)
+        print('_' * 60)
         print('Reading in data...')
         start = time.time()
 
-        # READ IN DATA
-        self.data = data
+        # READ IN MODEL CONFIGURATION
+        self.configuration = configuration
 
         # INITIALIZE MODEL
         self.model = ConcreteModel()
 
-        # Define units
-        try:
-            u.load_definitions_from_strings(['EUR = [currency]'])
-        except pint.errors.DefinitionSyntaxError:
-            pass
+        # INITIALIZE GLOBAL OPTIONS
+        global_variables.clustered_data = 0
+        global_variables.averaged_data = 0
 
         # INITIALIZE SOLUTION
-        self.solution = []
+        self.solution = None
 
-        # SET m_config
-        m_config.presolve.clustered_data = 0
-        m_config.presolve.averaged_data = 0
-        if hasattr(self.data, 'k_means_specs'):
-            # Clustered Data
-            m_config.presolve.clustered_data = 1
-            m_config.presolve.clustered_data_specs.specs = self.data.k_means_specs
-        if hasattr(self.data, 'averaged_specs'):
-            # Averaged Data
-            m_config.presolve.averaged_data = 1
-            m_config.presolve.averaged_data_specs.specs = self.data.averaged_specs
+        # INITIALIZE SOLVER
+        self.solver = None
 
-        print('Reading in data completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
+        # INITIALIZE DATA
+        self.data_storage = []
+        if not self.configuration.optimization.typicaldays == 0:
+            # If clustered
+            global_variables.clustered_data = 1
+            self.data_storage.append(dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays))
+        else:
+            self.data_storage.append(data)
 
-    def quick_solve_model(self, objective = 'cost'):
+        if self.configuration.optimization.timestaging:
+            # Average data
+            global_variables.averaged_data = 1
+            self.model_first_stage = None
+            self.solution_first_stage = None
+            self.data_storage.append(dm.DataHandle_AveragedData(self.data_storage[0], self.configuration.optimization.timestaging))
+            self.data = self.data_storage[1]
+        else:
+            # Write data to self
+            self.data = self.data_storage[0]
+
+        # INITIALIZE RESULTS
+        self.results = dm.ResultsHandle(self.configuration)
+
+        print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
+        print('_' * 60)
+
+    def quick_solve(self):
         """
         Quick-solves the model (constructs model and balances and solves model).
 
@@ -77,7 +93,9 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
-        self.solve_model(objective)
+        self.solve()
+        return self.results
+
 
     def construct_model(self):
         """
@@ -88,31 +106,50 @@ class EnergyHub:
         (:func:`~src.model_construction.construct_nodes.add_nodes` including \
         :func:`~add_technologies`)
         """
-        print('_' * 20)
+        print('_' * 60)
         print('Constructing Model...')
         start = time.time()
 
         # DEFINE SETS
+        # Nodes, Carriers, Technologies, Networks
         topology = self.data.topology
         self.model.set_nodes = Set(initialize=topology.nodes)
         self.model.set_carriers = Set(initialize=topology.carriers)
-        self.model.set_t = RangeSet(1,len(topology.timesteps))
 
         def tec_node(set, node):
             if self.data.technology_data:
                 return self.data.technology_data[node].keys()
             else:
                 return Set.Skip
+
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
         self.model.set_networks = Set(initialize=self.data.network_data.keys())
 
-        # Model construction
-        self.model = mc.add_globals(self.model, self.data)
-        self.model = mc.add_networks(self.model, self.data)
-        self.model = mc.add_nodes(self.model, self.data)
+        # Time Frame
+        self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
 
-        print('Constructing model completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
+        if global_variables.clustered_data == 1:
+            self.model.set_t_clustered = RangeSet(1,len(self.data.topology.timesteps_clustered))
+
+        # DEFINE VARIABLES
+        # Global cost variables
+        self.model.var_node_cost = Var()
+        self.model.var_netw_cost = Var()
+        self.model.var_total_cost = Var()
+
+        # Global Emission variables
+        self.model.var_emissions_pos = Var()
+        self.model.var_emissions_neg = Var()
+        self.model.var_emissions_net = Var()
+
+        # Model construction
+        if not self.configuration.energybalance.copperplate:
+            self.model = mc.add_networks(self)
+        self.model = mc.add_nodes(self)
+        self.model = mc.add_globals(self)
+
+        print('Constructing model completed in ' + str(round(time.time() - start)) + ' s')
+
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
@@ -120,67 +157,36 @@ class EnergyHub:
         Links all components with the constructing the energybalance (:func:`~add_energybalance`),
         the total cost (:func:`~add_system_costs`) and the emission balance (:func:`~add_emissionbalance`)
         """
-        print('_' * 20)
+        print('_' * 60)
         print('Constructing balances...')
         start = time.time()
 
-        self.model = mc.add_energybalance(self.model)
+        self.model = mc.add_energybalance(self)
+        self.model = mc.add_emissionbalance(self)
+        self.model = mc.add_system_costs(self)
 
-        occurrence_hour = self.calculate_occurance_per_hour()
+        print('Constructing balances completed in ' + str(round(time.time() - start)) + ' s')
 
-        self.model = mc.add_emissionbalance(self.model, occurrence_hour)
-        self.model = mc.add_system_costs(self.model, occurrence_hour)
-
-        print('Constructing balances completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
-    def solve_model(self, objective = 'cost'):
+    def solve(self):
         """
         Defines objective and solves model
 
-        The objective is minimized and can be chosen as total annualized costs ('cost'), total annual emissions
-        ('emissions_net'), and total annual emissions at minimal cost ('emissions_minC').
+        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual net emissions
+        ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
+        ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
-        # This is a dirty fix as objectives cannot be found with find_component
-        try:
-            self.model.del_component(self.model.objective)
-        except:
-            pass
+        objective = self.configuration.optimization.objective
 
-        # Define Objective Function
-        if objective == 'cost':
-            def init_cost_objective(obj):
-                return self.model.var_total_cost
-            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        elif objective == 'emissions_pos':
-            def init_emission_pos_objective(obj):
-                return self.model.var_emissions_pos
-            self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
-        elif objective == 'emissions_net':
-            def init_emission_net_objective(obj):
-                return self.model.var_emissions_net
-            self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
-        elif objective == 'emissions_minC':
-            def init_emission_minC_objective(obj):
-                return self.model.var_emissions_pos
-            self.model.objective = Objective(rule=init_emission_minC_objective, sense=minimize)
-            emission_limit = self.model.var_emissions_pos.value
-            self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_pos <= emission_limit)
-            def init_cost_objective(obj):
-                return self.model.var_total_cost
-            self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+        self.__define_solver_settings()
+
+        if self.configuration.optimization.monte_carlo.on:
+            self.__optimize_monte_carlo(objective)
         elif objective == 'pareto':
-            print('to be implemented')
+            self.__optimize_pareto()
+        else:
+            self.__optimize(objective)
 
-        # Solve model
-        print('_' * 20)
-        print('Solving Model...')
-        start = time.time()
-        solver = SolverFactory(m_config.solver.solver)
-        self.solution = solver.solve(self.model, tee=True, warmstart=True)
-        self.solution.write()
-
-        print('Solving model completed in ' + str(time.time() - start) + ' s')
-        print('_' * 20)
+        return self.results
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -194,8 +200,7 @@ class EnergyHub:
         :return: None
         """
         self.data.read_single_technology_data(nodename, technologies)
-        node_block = self.model.node_blocks[nodename]
-        mc.add_technologies(nodename, technologies, self.model, self.data, node_block)
+        mc.add_technology(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
         """
@@ -210,114 +215,398 @@ class EnergyHub:
         with open(file_path + '/' + file_name, mode='wb') as file:
             pickle.dump(self, file)
 
-    def print_topology(self):
-        print('----- SET OF CARRIERS -----')
-        for car in self.model.set_carriers:
-            print('- ' + car)
-        print('----- NODE DATA -----')
-        for node in self.model.set_nodes:
-            print('\t -----------------------------------------------------')
-            print('\t nodename: '+ node)
-            print('\t\ttechnologies installed:')
-            for tec in self.model.set_technologies[node]:
-                print('\t\t - ' + tec)
-            print('\t\taverage demand:')
-            for car in self.model.set_carriers:
-                avg = round(self.data.demand[node][car].mean(), 2)
-                print('\t\t - ' + car + ': ' + str(avg))
-            print('\t\taverage of climate data:')
-            for ser in self.data.climate_data[node]['dataframe']:
-                avg = round(self.data.climate_data[node]['dataframe'][ser].mean(),2)
-                print('\t\t - ' + ser + ': ' + str(avg))
-        print('----- NETWORK DATA -----')
-        for car in self.data.topology['networks']:
-            print('\t -----------------------------------------------------')
-            print('\t carrier: '+ car)
-            for netw in self.data.topology['networks'][car]:
-                print('\t\t - ' + netw)
-                connection = self.data.topology['networks'][car][netw]['connection']
-                for from_node in connection:
-                    for to_node in connection[from_node].index:
-                        if connection.at[from_node, to_node] == 1:
-                            print('\t\t\t' + from_node  + '---' +  to_node)
+    def __define_solver_settings(self):
+        """
+        Defines solver and its settings depending on objective and solver
+        """
+        objective = self.configuration.optimization.objective
 
-    def write_results(self):
-        """
-        Exports results to an instance of ResultsHandle to be further exported or viewed
-        """
-        results = dm.ResultsHandle()
-        results.read_results(self)
-        return results
+        # Set solver
+        if self.configuration.solveroptions.solver in ['gurobi', 'gurobi_persistent']:
+            # Gurobi
+            if objective in ['emissions_minC', 'pareto'] or self.configuration.optimization.monte_carlo.on:
+                self.configuration.solveroptions.solver = 'gurobi_persistent'
+            self.solver = get_gurobi_parameters(self.configuration.solveroptions)
 
-    def calculate_occurance_per_hour(self):
-        """
-        Calculates how many times an hour in the reduced resolution occurs in the full resolution
-        :return np array occurance_hour:
-        """
-        if m_config.presolve.clustered_data and m_config.presolve.averaged_data:
-            occurrence_hour = np.multiply(
-                self.data.k_means_specs.reduced_resolution['factor'].to_numpy(),
-                self.data.averaged_specs.reduced_resolution['factor'].to_numpy())
-        elif m_config.presolve.clustered_data and not m_config.presolve.averaged_data:
-            occurrence_hour = self.data.k_means_specs.reduced_resolution['factor'].to_numpy()
-        elif not m_config.presolve.clustered_data and m_config.presolve.averaged_data:
-            occurrence_hour = self.data.averaged_specs.reduced_resolution['factor'].to_numpy()
         else:
-            occurrence_hour = np.ones(len(self.model.set_t))
-        return occurrence_hour
+            # Any other solver, to be implemented in the future
+            pass
 
-class EnergyHubTwoStageTimeAverage(EnergyHub):
-    """
-    Sub-class of the EnergyHub class to perform two stage time averaging optimization based on
-    Weimann, L., & Gazzani, M. (2022). A novel time discretization method for solving complex multi-energy system
-    design and operation problems with high penetration of renewable energy. Computers & Chemical Engineering,
-    107816. https://doi.org/10.1016/J.COMPCHEMENG.2022.107816
+        # For persistent solver, set model instance
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.set_instance(self.model)
 
-    All methods available in the super-class EnergyHub are also available in this subclass.
-    """
-    def __init__(self, data, nr_timesteps_averaged=4):
-        self.full_res_ehub = EnergyHub(data)
-        data_averaged = dm.DataHandle_AveragedData(data,nr_timesteps_averaged)
-        EnergyHub.__init__(self, data_averaged)
-        m_config.presolve.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
-
-    def solve_model(self, objective = 'cost', bounds_on = 'all'):
+    def __optimize(self, objective):
         """
-        Solve the model in a two stage time average manner.
-
-        In the first stage, time-steps are averaged and thus the model is optimized with a reduced time frame.
-        In the second stage, the sizes of technologies and networks are constrained with a lower bound. It is possible
-        to only constrain some technologies with the parameter bounds_on (see below)
-
-        :param objective: objective to minimize
-        :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
+        Solves the model with the given objective
         """
-        # Solve reduced resolution model
+        # Define Objective Function
+        if objective == 'costs':
+            self.__optimize_cost()
+        elif objective == 'emissions_pos':
+            self.__optimize_emissions_pos()
+        elif objective == 'emissions_net':
+            self.__optimize_emissions_net()
+        elif objective == 'emissions_minC':
+            self.__optimize_emissions_minC()
+        else:
+            raise Exception("objective in Configurations is incorrect")
+
+        # Second stage of time averaging algorithm
+        if global_variables.averaged_data and global_variables.averaged_data_specs.stage == 0:
+            self.__optimize_time_averaging_second_stage()
+
+
+    def __optimize_cost(self):
+        """
+        Minimizes Costs
+        """
+        self.__delete_objective()
+
+        def init_cost_objective(obj):
+            return self.model.var_total_cost
+        self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+        self.__call_solver()
+
+    def __optimize_emissions_pos(self):
+        """
+        Minimizes positive emission
+        """
+        self.__delete_objective()
+
+        def init_emission_pos_objective(obj):
+            return self.model.var_emissions_pos
+        self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
+        self.__call_solver()
+
+    def __optimize_emissions_net(self):
+        """
+        Minimize net emissions
+        """
+        self.__delete_objective()
+
+        def init_emission_net_objective(obj):
+            return self.model.var_emissions_net
+        self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+        self.__call_solver()
+
+    def __optimize_emissions_minC(self):
+        """
+        Minimize costs at minimum emissions
+        """
+        self.__optimize_emissions_net()
+        emission_limit = self.model.var_emissions_net.value
+        self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.005)
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.add_constraint(self.model.const_emission_limit)
+        self.__optimize_cost()
+
+    def __optimize_pareto(self):
+        """
+        Optimize the pareto front
+        """
+        pareto_points = self.configuration.optimization.pareto_points
+
+        # Min Cost
+        self.__optimize_cost()
+        emissions_max = self.model.var_emissions_net.value
+
+        # Min Emissions
+        self.__optimize_emissions_minC()
+        emissions_min = self.model.var_emissions_net.value
+
+        # Emission limit
+        emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
+        for pareto_point in range(0, pareto_points):
+            global_variables.pareto_point += 1
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.remove_constraint(self.model.const_emission_limit)
+            self.model.del_component(self.model.const_emission_limit)
+            self.model.const_emission_limit = Constraint(
+                expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.005)
+            if self.configuration.solveroptions.solver == 'gurobi_persistent':
+                self.solver.add_constraint(self.model.const_emission_limit)
+            self.__optimize_cost()
+
+    def __optimize_monte_carlo(self, objective):
+        """
+        Optimizes multiple runs with monte carlo
+        """
+        for run in range(0, self.configuration.optimization.monte_carlo.N):
+            global_variables.monte_carlo_run += 1
+            self.__monte_carlo_set_cost_parameters()
+            if run == 0:
+                self.__optimize(objective)
+            else:
+                self.__call_solver()
+
+    def __call_solver(self):
+        """
+        Calls the solver and solves the model
+        """
+
+        # Solve model
+        print('_' * 60)
+        print('Solving Model...')
+
+        start = time.time()
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.set_objective(self.model.objective)
+        self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
+        self.solution.write()
+        self.results.add_optimization_result(self)
+
+        print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
+        print('_' * 60)
+
+    def __monte_carlo_set_cost_parameters(self):
+        """
+        Performs monte carlo analysis
+        """
+
+        if 'Technologies' in self.configuration.optimization.monte_carlo.on_what:
+            for node in self.model.node_blocks:
+                for tec in self.model.node_blocks[node].tech_blocks_active:
+                    self.__monte_carlo_technologies(node, tec)
+
+        if 'Networks' in self.configuration.optimization.monte_carlo.on_what:
+            for netw in self.model.network_block:
+                self.__monte_carlo_networks(netw)
+
+        if 'ImportPrices' in self.configuration.optimization.monte_carlo.on_what:
+            for node in self.model.node_blocks:
+                for car in self.model.node_blocks[node].set_carriers:
+                    self.__monte_carlo_import_prices(node, car)
+
+        if 'ExportPrices' in self.configuration.optimization.monte_carlo.on_what:
+            for node in self.model.node_blocks:
+                for car in self.model.node_blocks[node].set_carriers:
+                    self.__monte_carlo_export_prices(node, car)
+
+
+    def __monte_carlo_technologies(self, node, tec):
+        """
+        Changes the capex of technologies
+        """
+        sd = self.configuration.optimization.monte_carlo.sd
+        sd_random = np.random.normal(1, sd)
+
+        tec_data = self.data.technology_data[node][tec]
+        economics = tec_data.economics
+        discount_rate = set_discount_rate(self.configuration, economics)
+        capex_model = set_capex_model(self.configuration, economics)
+        annualization_factor = annualize(discount_rate, economics.lifetime)
+
+        b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
+
+        if capex_model == 1:
+            # UNIT CAPEX
+            # Update parameter
+            unit_capex = tec_data.economics.capex_data['unit_capex'] * sd_random
+            self.model.node_blocks[node].tech_blocks_active[tec].para_unit_capex = unit_capex
+            self.model.node_blocks[node].tech_blocks_active[tec].para_unit_capex_annual = unit_capex * annualization_factor
+
+            # Remove constraint (from persistent solver and from model)
+            self.solver.remove_constraint(b_tec.const_capex_aux)
+            b_tec.del_component(b_tec.const_capex_aux)
+
+            # Add constraint again
+            b_tec.const_capex_aux = Constraint(
+                expr=b_tec.var_size * b_tec.para_unit_capex_annual == b_tec.var_capex_aux)
+            self.solver.add_constraint(b_tec.const_capex_aux)
+
+        elif capex_model == 2:
+            warnings.warn("monte carlo on piecewise defined investment costs is not implemented")
+
+
+    def __monte_carlo_networks(self, netw):
+        """
+        Changes the capex of networks
+        """
+        # TODO: This does not work!
+
+        sd = self.configuration.optimization.monte_carlo.sd
+        sd_random = np.random.normal(1, sd)
+
+        netw_data = self.data.network_data[netw]
+        economics = netw_data.economics
+        discount_rate = set_discount_rate(self.configuration, economics)
+        capex_model = economics.capex_model
+        annualization_factor = annualize(discount_rate, economics.lifetime)
+
+        b_netw =self.model.network_block[netw]
+
+        if capex_model == 1:
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+
+        elif capex_model == 2:
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+
+        elif capex_model == 3:
+            b_netw.para_capex_gamma1 = economics.capex_data['gamma1'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma2 = economics.capex_data['gamma2'] * annualization_factor * sd_random
+            b_netw.para_capex_gamma3 = economics.capex_data['gamma3'] * annualization_factor * sd_random
+
+        for arc in b_netw.set_arcs:
+            b_arc = b_netw.arc_block[arc]
+
+            # Remove constraint (from persistent solver and from model)
+            self.solver.remove_constraint(b_arc.const_capex_aux)
+            b_arc.del_component(b_arc.const_capex_aux)
+
+            # Add constraint again
+            def init_capex(const):
+                if economics.capex_model == 1:
+                    return b_arc.var_capex_aux == b_arc.var_size * \
+                           b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
+                elif economics.capex_model == 2:
+                    return b_arc.var_capex_aux == b_arc.var_size * \
+                           b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
+                elif economics.capex_model == 3:
+                    return b_arc.var_capex_aux == b_arc.var_size * \
+                           b_arc.distance * b_netw.para_capex_gamma1 + \
+                           b_arc.var_size * b_netw.para_capex_gamma2 + \
+                           b_netw.para_capex_gamma3
+            b_arc.const_capex_aux = Constraint(rule=init_capex)
+            self.solver.add_constraint(b_arc.const_capex_aux)
+
+    def __monte_carlo_import_prices(self, node, car):
+        """
+        Changes the import prices
+        """
+        sd = self.configuration.optimization.monte_carlo.sd
+        sd_random = np.random.normal(1, sd)
+
+        model = self.model
+        set_t = model.set_t_full
+
+        import_prices = self.data.node_data[node].data['import_prices'][car]
+        b_node = self.model.node_blocks[node]
+
+        for t in set_t:
+            # Update parameter
+            b_node.para_import_price[t, car] = import_prices[t-1] * sd_random
+
+            # Remove constraint (from persistent solver and from model)
+            self.solver.remove_constraint(model.const_node_cost)
+            self.model.del_component(model.const_node_cost)
+
+            # Add constraint again
+            nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+
+            def init_node_cost(const):
+                tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
+                                    for tec in model.node_blocks[node].set_tecsAtNode)
+                                for node in model.set_nodes)
+                tec_opex_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t] *
+                                                nr_timesteps_averaged
+                                                for tec in model.node_blocks[node].set_tecsAtNode)
+                                            for t in set_t)
+                                        for node in model.set_nodes)
+                tec_opex_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
+                                         for tec in model.node_blocks[node].set_tecsAtNode)
+                                     for node in model.set_nodes)
+                import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
+                                          model.node_blocks[node].para_import_price[t, car] *
+                                          nr_timesteps_averaged
+                                          for car in model.node_blocks[node].set_carriers)
+                                      for t in set_t)
+                                  for node in model.set_nodes)
+                export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car] *
+                                             model.node_blocks[node].para_export_price[t, car] *
+                                             nr_timesteps_averaged
+                                             for car in model.node_blocks[node].set_carriers)
+                                         for t in set_t)
+                                     for node in model.set_nodes)
+                return tec_capex + tec_opex_variable + tec_opex_fixed + import_cost - export_revenue == model.var_node_cost
+
+            model.const_node_cost = Constraint(rule=init_node_cost)
+            self.solver.add_constraint(model.const_node_cost)
+
+
+    def __monte_carlo_export_prices(self, node, car):
+        """
+        Changes the export prices
+        """
+        sd = self.configuration.optimization.monte_carlo.sd
+        sd_random = np.random.normal(1, sd)
+
+        model = self.model
+        set_t = model.set_t_full
+
+        export_prices = self.data.node_data[node].data['export_prices'][car]
+        b_node = self.model.node_blocks[node]
+
+        for t in set_t:
+            # Update parameter
+            b_node.para_export_price[t, car] = export_prices[t - 1] * sd_random
+
+            # Remove constraint (from persistent solver and from model)
+            self.solver.remove_constraint(model.const_node_cost)
+            self.model.del_component(model.const_node_cost)
+
+            # Add constraint again
+            nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+
+            def init_node_cost(const):
+                tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
+                                    for tec in model.node_blocks[node].set_tecsAtNode)
+                                for node in model.set_nodes)
+                tec_opex_variable = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_variable[t] *
+                                                nr_timesteps_averaged
+                                                for tec in model.node_blocks[node].set_tecsAtNode)
+                                            for t in set_t)
+                                        for node in model.set_nodes)
+                tec_opex_fixed = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
+                                         for tec in model.node_blocks[node].set_tecsAtNode)
+                                     for node in model.set_nodes)
+                import_cost = sum(sum(sum(model.node_blocks[node].var_import_flow[t, car] *
+                                          model.node_blocks[node].para_import_price[t, car] *
+                                          nr_timesteps_averaged
+                                          for car in model.node_blocks[node].set_carriers)
+                                      for t in set_t)
+                                  for node in model.set_nodes)
+                export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car] *
+                                             model.node_blocks[node].para_export_price[t, car] *
+                                             nr_timesteps_averaged
+                                             for car in model.node_blocks[node].set_carriers)
+                                         for t in set_t)
+                                     for node in model.set_nodes)
+                return tec_capex + tec_opex_variable + tec_opex_fixed + import_cost - export_revenue == model.var_node_cost
+
+            model.const_node_cost = Constraint(rule=init_node_cost)
+            self.solver.add_constraint(model.const_node_cost)
+
+    def __delete_objective(self):
+        """
+        Delete the objective function
+        """
+        if not self.configuration.optimization.monte_carlo.on:
+            try:
+                self.model.del_component(self.model.objective)
+            except:
+                pass
+
+    def __optimize_time_averaging_second_stage(self):
+        """
+        Optimizes the second stage of the time_averaging algorithm
+        """
+        global_variables.averaged_data_specs.stage += 1
+        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
+        bounds_on = 'no_storage'
+        self.model_first_stage = self.model
+        self.solution_first_stage = copy.deepcopy(self.solution)
+        self.model = ConcreteModel()
+        self.solution = []
+        self.data = self.data_storage[0]
         self.construct_model()
         self.construct_balances()
-        super().solve_model(objective)
-        m_config.presolve.averaged_data = 0
-        m_config.presolve.averaged_data_specs.nr_timesteps_averaged = 1
+        self.__impose_size_constraints(bounds_on)
+        self.solve()
 
-
-        # Solve full resolution model
-        # Initialize
-        self.full_res_ehub.construct_model()
-        self.full_res_ehub.construct_balances()
-        # Impose additional constraints
-        self.impose_size_constraints(bounds_on)
-        # Solve with additional constraints
-        self.full_res_ehub.solve_model(objective)
-
-    def write_results(self):
-        """
-        Overwrites method of EnergyHub superclass
-        """
-        results = dm.ResultsHandle()
-        results.read_results(self.full_res_ehub)
-        return results
-
-    def impose_size_constraints(self, bounds_on):
+    def __impose_size_constraints(self, bounds_on):
         """
         Formulates lower bound on technology and network sizes.
 
@@ -327,8 +616,8 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
         :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
         """
 
-        m_full = self.full_res_ehub.model
-        m_avg = self.model
+        m_full = self.model
+        m_avg = self.model_first_stage
 
         # Technologies
         if bounds_on == 'all' or bounds_on == 'only_technologies' or bounds_on == 'no_storage':
@@ -336,6 +625,8 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
                 def size_constraints_tecs_init(const, tec):
                     if self.data.technology_data[node][tec].technology_model == 'STOR' and bounds_on == 'no_storage':
                         return Constraint.Skip
+                    elif self.data.technology_data[node][tec].existing:
+                        return  Constraint.Skip
                     else:
                         return m_avg.node_blocks[node].tech_blocks_active[tec].var_size.value <= \
                             m_full.node_blocks[node].tech_blocks_active[tec].var_size
@@ -349,8 +640,8 @@ class EnergyHubTwoStageTimeAverage(EnergyHub):
                 b_netw_avg = m_avg.network_block[netw]
                 def size_constraints_netw_init(const, node_from, node_to):
                     return b_netw_full.arc_block[node_from, node_to].var_size >= \
-                           b_netw_avg.arc_block[node_to, node_from].var_size.value
-                block.size_constraints_netw = Constraint(b_netw_full.set_arcs_unique, rule=size_constraints_netw_init)
+                           b_netw_avg.arc_block[node_from, node_to].var_size.value
+                block.size_constraints_netw = Constraint(b_netw_full.set_arcs, rule=size_constraints_netw_init)
             m_full.size_constraints_netw = Block(m_full.set_networks, rule=size_constraint_block_netw_init)
 
 

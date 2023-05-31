@@ -16,10 +16,13 @@ A simple solve after model construction is documented below:
 
 Example Usage
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-After model construction, the method :func:`.EnergyHub.solve_model()` can be called:
+After model construction, the method :func:`.EnergyHub.quick_solve_model()` can be called:
 
 .. testcode::
 
-    from src.energyhub import *
+    # Set optimization to emission minimization
+    configuration = ModelConfiguration()
+    configuration.optimization.objective = 'emissions_minC'
 
-    energyhub.solve_model(objective = 'cost')
+    energyhub = EnergyHub(data, configuration)
+    results = energyhub.quick_solve()

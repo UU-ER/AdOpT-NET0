@@ -1,7 +1,11 @@
-import pickle
+import warnings
+import dill as pickle
 import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np
+from types import SimpleNamespace
+import pvlib
+
 
 def save_object(data, save_path):
     """
@@ -64,22 +68,22 @@ def perform_k_means(full_resolution, nr_clusters):
     return clustered_data, kmeans.labels_
 
 
-def compile_hourly_order(day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
+def compile_sequence(day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
     """
 
     :param day_labels: labels for each typical day
     :param nr_clusters: how many clusters (i.e. typical days)
     :param nr_days_full_resolution: how many days in full resolution
     :param nr_time_intervals_per_day: how many time-intervals per day
-    :return hourly_order: Hourly order of typical days/hours in full resolution
+    :return sequence: Hourly order of typical days/hours in full resolution
     """
     time_slices_cluster = np.arange(1, nr_time_intervals_per_day * nr_clusters + 1)
     time_slices_cluster = time_slices_cluster.reshape((-1, nr_time_intervals_per_day))
-    hourly_order = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
+    sequence = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
     for day in range(0, nr_days_full_resolution):
-        hourly_order[day] = time_slices_cluster[day_labels[day]]
-    hourly_order = hourly_order.reshape((-1, 1))
-    return hourly_order
+        sequence[day] = time_slices_cluster[day_labels[day]]
+    sequence = sequence.reshape((-1, 1))
+    return sequence
 
 def get_day_factors(keys):
     """
@@ -92,4 +96,101 @@ def get_day_factors(keys):
     factors = factors.transpose()
     factors.columns = ['timestep', 'factor']
     return factors
+
+
+def reshape_df(series_to_add, column_names, nr_cols):
+    """
+    Transform all data to large dataframe with each row being one day
+    """
+    if not type(series_to_add).__module__ == np.__name__:
+        transformed_series = series_to_add.to_numpy()
+    else:
+        transformed_series = series_to_add
+    transformed_series = transformed_series.reshape((-1, nr_cols))
+    transformed_series = pd.DataFrame(transformed_series, columns=column_names)
+    return transformed_series
+
+
+def define_multiindex(ls):
+    """
+    Create a multi index from a list
+    """
+    multi_index = list(zip(*ls))
+    multi_index = pd.MultiIndex.from_tuples(multi_index)
+    return multi_index
+
+
+def average_series(series, nr_timesteps_averaged):
+    """
+    Averages a number of timesteps
+    """
+    to_average = reshape_df(series, None, nr_timesteps_averaged)
+    average =  np.array(to_average.mean(axis=1))
+
+    return average
+
+
+def calculate_dni(data, lon, lat):
+    """
+    Calculate direct normal irradiance from ghi and dhi
+    :param DataFrame data: climate data
+    :return: data: climate data including dni
+    """
+    zenith = pvlib.solarposition.get_solarposition(data.index, lat, lon)
+    data['dni'] = pvlib.irradiance.dni(data['ghi'].to_numpy(), data['dhi'].to_numpy(), zenith['zenith'].to_numpy())
+    data['dni'] = data['dni'].fillna(0)
+    data['dni'] = data['dni'].where(data['dni'] > 0, 0)
+
+    return data['dni']
+
+
+def shorten_input_data(time_series, nr_time_steps):
+    """
+    Shortens time series to required length
+
+    :param list time_series: time_series to shorten
+    :param int nr_time_steps: nr of time steps to shorten to
+    """
+    if len(time_series) != nr_time_steps:
+        warnings.warn('Time series is longer than chosen time horizon - taking only the first ' + \
+                      'couple of time slices')
+        time_series = time_series[0:nr_time_steps]
+
+    return time_series
+
+
+class NodeData():
+    """
+    Class to handle node data
+    """
+    def __init__(self, topology):
+        # Initialize Node Data (all time-dependent input data goes here)
+        self.data = {}
+        self.data_clustered = {}
+        variables = ['demand',
+                     'production_profile',
+                     'import_prices',
+                     'import_limit',
+                     'import_emissionfactors',
+                     'export_prices',
+                     'export_limit',
+                     'export_emissionfactors']
+
+        for var in variables:
+            self.data[var] = pd.DataFrame(index=topology.timesteps)
+            for carrier in topology.carriers:
+                self.data[var][carrier] = 0
+        self.data['climate_data'] = pd.DataFrame(index=topology.timesteps)
+
+        self.options = SimpleNamespace()
+        self.options.production_profile_curtailment = {}
+        for carrier in topology.carriers:
+            self.options.production_profile_curtailment[carrier]= 0
+
+        self.location = SimpleNamespace()
+        self.location.lon = None
+        self.location.lat = None
+        self.location.altitude = None
+
+
 
