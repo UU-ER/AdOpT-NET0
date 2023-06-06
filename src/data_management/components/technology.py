@@ -26,7 +26,6 @@ class Technology:
         self.size_min = tec_data['size_min']
         self.size_max = tec_data['size_max']
         self.decommission = tec_data['decommission']
-        self.modelled_with_full_res = 1
 
         # Economics
         self.economics = Economics(tec_data['Economics'])
@@ -50,6 +49,10 @@ class Technology:
         technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open', 'CONV4']
         if global_variables.clustered_data and (self.technology_model not in technologies_modelled_with_full_res):
             self.modelled_with_full_res = 0
+        if not 'modelled_with_full_res' in tec_data:
+            self.modelled_with_full_res = 1
+        else:
+            self.modelled_with_full_res = tec_data['modelled_with_full_res']
 
         self.fitted_performance = None
 

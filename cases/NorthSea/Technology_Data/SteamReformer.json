@@ -4,6 +4,7 @@
   "size_max": 100000,
   "size_is_int": 0,
   "decommission": 0,
+  "modelled_with_full_res": 1,
   "Economics": {
     "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/unit total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
