@@ -127,10 +127,11 @@ class ModelConfiguration:
         self.solveroptions.heuristics = 0.05
         self.solveroptions.presolve = -1
         self.solveroptions.branchdir = 0
-        self.solveroptions.lpwarmstart = 0
+        self.solveroptions.lpwarmstart = 2
         self.solveroptions.intfeastol = 1e-5
         self.solveroptions.feastol = 1e-5
         self.solveroptions.numericfocus = 0
+        self.solveroptions.scaling = 0
 
 
         self.solveroptions.cuts = -1

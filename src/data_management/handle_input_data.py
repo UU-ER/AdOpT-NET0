@@ -452,7 +452,7 @@ class ClusteredDataHandle(DataHandle):
         # Read data back in
         self.__read_clustered_data(clustered_data)
 
-        self.read_technology_data()
+        self.read_technology_data(global_variables.datapathroot)
 
     def __read_clustered_data(self, clustered_data):
         """
