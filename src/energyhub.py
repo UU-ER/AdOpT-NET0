@@ -1,4 +1,5 @@
 from pyomo.environ import *
+from pyomo.util.infeasible import log_infeasible_constraints
 
 import src.model_construction as mc
 import src.data_management as dm
@@ -385,6 +386,8 @@ class EnergyHub:
                                               logfile='./log_files/log' + time_stamp + '.txt')
         else:
             self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
+        log_infeasible_constraints(self.model, tol=0, log_expression=True, log_variables=True)
+
         self.solution.write()
         self.results.add_optimization_result(self, time_stamp)
 
