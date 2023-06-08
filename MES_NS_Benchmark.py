@@ -41,7 +41,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-02 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -56,10 +56,29 @@ for node in onshore_nodes:
     installed_capacities[node] = read_installed_capacity_eraa(node)
     topology.define_existing_technologies(node, installed_capacities[node]['Conventional'])
 
+# New technologies
+new_tecs = pd.read_excel(r'.\cases\NorthSea_v2\NewTechnologies\NewTechnologies.xlsx', index_col=0)
+stage = 'All'
+for node in nodes:
+    if not isinstance(new_tecs[stage][node], float):
+        new_technologies = new_tecs[stage][node].split(', ')
+        topology.define_new_technologies(node,new_technologies)
+
 # YOU NEED TO REDO THE NETWORKS FOR THIS CASE!
 # Networks - Electricity
 network_data = read_network_data(topology.nodes, 'cases/NorthSea_v2/Networks/NetworkDataElectricity_existing.xlsx', 1)
 topology.define_existing_network('electricityAC', size=network_data['size'], distance=network_data['distance'])
+
+# Networks - New Electricity
+network_data = read_network_data(topology.nodes, './cases/NorthSea_v2/Networks/NetworkDataElectricity_AC.xlsx', 0)
+topology.define_new_network('electricityAC_int', connections=network_data['connection'], distance=network_data['distance'])
+
+network_data = read_network_data(topology.nodes, './cases/NorthSea_v2/Networks/NetworkDataElectricity_DC.xlsx', 0)
+topology.define_new_network('electricityDC_int', connections=network_data['connection'], distance=network_data['distance'])
+
+# Networks - Hydrogen
+network_data = read_network_data(topology.nodes, './cases/NorthSea_v2/Networks/NetworkDataHydrogen.xlsx', 0)
+topology.define_new_network('hydrogenPipeline_int', connections=network_data['connection'], distance=network_data['distance'])
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)
@@ -107,6 +126,7 @@ for node in nodes:
     if node in demand_h2:
         data.read_demand_data(node, 'hydrogen', demand_h2[node].to_numpy()/100)
 
+
 # Import/Export of conventional fuels
 import_carriers = {'gas': 100}
 import_limit = np.ones(len(topology.timesteps)) * 10000
@@ -120,14 +140,13 @@ for node in onshore_nodes:
 import_carrier_price = {'electricity': 300}
 import_limit = pd.read_excel(r'.\cases\NorthSea_v2\Networks\ImportLimits.xlsx', index_col=0, sheet_name='ToPython')
 
-# import_carrier_price = {'electricity': 1000}
-
 for node in onshore_nodes:
     for car in import_carrier_price:
-        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node])
-        # data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[node])
+        # data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node])
+        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * 100000)
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carrier_price[car])
         data.read_import_emissionfactor_data(node, car, np.ones(len(topology.timesteps)) * 0.3)
+
 
 # Read technology data
 tec_data_path = r'cases/NorthSea_v2/Technology_Data/'
@@ -164,14 +183,7 @@ results = energyhub.quick_solve()
 
 emissions.append(energyhub.model.var_emissions_net.value)
 
-
 # CONFIGURATION EMISSIONS
-configuration = ModelConfiguration()
-configuration.optimization.objective = 'emissions_minC'
-
-energyhub = EnergyHub(data, configuration)
-energyhub.quick_solve()
-
-emissions.append(energyhub.model.var_emissions_net.value)
-
-results.write_excel(r'user_Data/MES_NS_Baseline')
+energyhub.configuration.optimization.objective = 'emissions_minC'
+energyhub.solve()
+results.write_excel(r'user_Data/MES_NS_Benchmark')
