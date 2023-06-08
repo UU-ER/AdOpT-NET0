@@ -117,15 +117,14 @@ for node in onshore_nodes:
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carriers[car])
 
 # Import Electricity
-import_carrier_price = {'electricity': 300}
+import_carrier_price = {'electricity': 1000}
 import_limit = pd.read_excel(r'.\cases\NorthSea_v2\Networks\ImportLimits.xlsx', index_col=0, sheet_name='ToPython')
-
-# import_carrier_price = {'electricity': 1000}
+factor = 100
 
 for node in onshore_nodes:
     for car in import_carrier_price:
-        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node])
-        # data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[node])
+        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node] * factor)
+        # data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * 100000)
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carrier_price[car])
         data.read_import_emissionfactor_data(node, car, np.ones(len(topology.timesteps)) * 0.3)
 
