@@ -21,7 +21,7 @@
     "energyconsumption": []
   },
   "size_min": 0,
-  "size_max": 10000,
+  "size_max": 15000,
   "size_is_int": 0,
   "decommission": 0
 }
