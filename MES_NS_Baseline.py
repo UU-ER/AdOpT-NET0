@@ -41,7 +41,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-02 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='31-12 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -173,4 +173,5 @@ energyhub.quick_solve()
 
 emissions.append(energyhub.model.var_emissions_net.value)
 
-results.write_excel(r'.//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Baseline')
+results.write_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Baseline')
+12
