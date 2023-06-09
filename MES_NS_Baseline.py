@@ -109,7 +109,7 @@ for node in nodes:
 
 # Import/Export of conventional fuels
 import_carriers = {'gas': 100}
-import_limit = np.ones(len(topology.timesteps)) * 10000
+import_limit = np.ones(len(topology.timesteps)) * 100000
 
 for node in onshore_nodes:
     for car in import_carriers:

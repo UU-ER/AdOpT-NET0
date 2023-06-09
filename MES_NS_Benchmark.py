@@ -41,7 +41,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='06-01 00:00', end_date='07-01 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -129,7 +129,7 @@ for node in nodes:
 
 # Import/Export of conventional fuels
 import_carriers = {'gas': 100}
-import_limit = np.ones(len(topology.timesteps)) * 10000
+import_limit = np.ones(len(topology.timesteps)) * 100000
 
 for node in onshore_nodes:
     for car in import_carriers:
