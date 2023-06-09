@@ -180,9 +180,9 @@ def write_to_technology_data(tec_data_path, year):
             tec_data = json.load(openfile)
 
         new_financial_data = financial_data[financial_data['Technology'] == filename.replace('.json', '')]
-        tec_data['Economics']['unit_CAPEX'] = round(new_financial_data['Investment Cost'].values[0],2)
-        tec_data['Economics']['OPEX_variable'] = round(new_financial_data['OPEX Variable'].values[0],3)
-        tec_data['Economics']['OPEX_fixed'] = round(new_financial_data['OPEX Fixed'].values[0],3)
+        tec_data['Economics']['unit_CAPEX'] = float(round(new_financial_data['Investment Cost'].values[0],2))
+        tec_data['Economics']['OPEX_variable'] = float(round(new_financial_data['OPEX Variable'].values[0],3))
+        tec_data['Economics']['OPEX_fixed'] = float(round(new_financial_data['OPEX Fixed'].values[0],3))
         tec_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0],0))
 
         with open(os.path.join(tec_data_path, filename), 'w') as outfile:

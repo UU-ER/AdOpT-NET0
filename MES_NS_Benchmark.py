@@ -41,7 +41,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='06-01 00:00', end_date='07-01 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='05-01 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -172,9 +172,9 @@ configuration.solveroptions.mipgap = 0.01
 configuration.solveroptions.lpwarmstart = 1
 configuration.solveroptions.numericfocus = 3
 configuration.optimization.save_log_files = 1
-configuration.optimization.monte_carlo.on = 0
+configuration.optimization.monte_carlo.on = 1
 configuration.optimization.monte_carlo.N = 5
-configuration.optimization.typicaldays = 3
+configuration.optimization.typicaldays = 0
 
 emissions = []
 
@@ -187,4 +187,4 @@ emissions.append(energyhub.model.var_emissions_net.value)
 # CONFIGURATION EMISSIONS
 energyhub.configuration.optimization.objective = 'emissions_minC'
 energyhub.solve()
-results.write_excel(r'user_Data/MES_NS_Benchmark')
+results.write_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Benchmark')
