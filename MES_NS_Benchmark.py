@@ -174,7 +174,7 @@ configuration.solveroptions.numericfocus = 3
 configuration.optimization.save_log_files = 1
 configuration.optimization.monte_carlo.on = 0
 configuration.optimization.monte_carlo.N = 5
-configuration.optimization.typicaldays = 0
+configuration.optimization.typicaldays = 3
 
 emissions = []
 

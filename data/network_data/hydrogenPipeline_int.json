@@ -15,7 +15,7 @@
     "carrier": "hydrogen",
     "bidirectional": 0,
     "rated_capacity": 13000,
-    "loss": 0,
+    "loss": 1.25E-7,
     "min_transport": 0,
     "loss2emissions": 0,
     "emissionfactor": 0,
