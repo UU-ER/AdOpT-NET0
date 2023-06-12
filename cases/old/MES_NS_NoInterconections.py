@@ -148,7 +148,7 @@ for node in onshore_nodes:
 
 
 # Read technology data
-tec_data_path = r'cases/NorthSea_v2/Technology_Data/'
+tec_data_path = r'../NorthSea_v2/Technology_Data/'
 write_to_technology_data(tec_data_path, year)
 data.read_technology_data(path =tec_data_path)
 

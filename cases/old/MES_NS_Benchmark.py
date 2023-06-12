@@ -5,8 +5,7 @@ import pandas as pd
 from src.model_configuration import ModelConfiguration
 import src.data_management as dm
 from src.energyhub import EnergyHub
-import os
-import logging
+
 """
 DATA INPUTS
 - Electricity Demand data (from ENTSOE data)
@@ -25,8 +24,6 @@ TODO
 - define SMR
 - define new technologies
 """
-logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
-
 year = 2030
 scenario = 'GA'
 climate_year = 2009
@@ -42,7 +39,7 @@ nodes = nodes['Node'].values.tolist()
 
 # Define Topology
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='01-02 23:00', resolution=1)
+topology.define_time_horizon(year=2030, start_date='01-01 00:00', end_date='05-01 23:00', resolution=1)
 
 # Carriers
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -56,6 +53,14 @@ installed_capacities = {}
 for node in onshore_nodes:
     installed_capacities[node] = read_installed_capacity_eraa(node)
     topology.define_existing_technologies(node, installed_capacities[node]['Conventional'])
+
+# New technologies
+new_tecs = pd.read_excel(r'.\cases\NorthSea_v2\NewTechnologies\NewTechnologies.xlsx', index_col=0)
+stage = 'All'
+for node in nodes:
+    if not isinstance(new_tecs[stage][node], float):
+        new_technologies = new_tecs[stage][node].split(', ')
+        topology.define_new_technologies(node,new_technologies)
 
 # YOU NEED TO REDO THE NETWORKS FOR THIS CASE!
 # Networks - Electricity
@@ -130,21 +135,20 @@ for node in onshore_nodes:
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carriers[car])
 
 # Import Electricity
-import_carrier_price = {'electricity': 300}
+import_carrier_price = {'electricity': 1000}
 import_limit = pd.read_excel(r'.\cases\NorthSea_v2\Networks\ImportLimits.xlsx', index_col=0, sheet_name='ToPython')
-
-# import_carrier_price = {'electricity': 1000}
+factor = 100
 
 for node in onshore_nodes:
     for car in import_carrier_price:
-        # data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node])
-        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * 100000)
+        data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * import_limit[car][node] * factor)
+        # data.read_import_limit_data(node, car, np.ones(len(topology.timesteps)) * 100000)
         data.read_import_price_data(node, car, np.ones(len(topology.timesteps)) * import_carrier_price[car])
         data.read_import_emissionfactor_data(node, car, np.ones(len(topology.timesteps)) * 0.3)
 
 
 # Read technology data
-tec_data_path = r'cases/NorthSea_v2/Technology_Data/'
+tec_data_path = r'../NorthSea_v2/Technology_Data/'
 write_to_technology_data(tec_data_path, year)
 data.read_technology_data(path =tec_data_path)
 
@@ -166,138 +170,19 @@ configuration.solveroptions.mipgap = 0.01
 configuration.solveroptions.lpwarmstart = 1
 configuration.solveroptions.numericfocus = 3
 configuration.optimization.save_log_files = 1
-configuration.optimization.monte_carlo.on = 0
+configuration.optimization.monte_carlo.on = 1
 configuration.optimization.monte_carlo.N = 5
 configuration.optimization.typicaldays = 0
 
-emissionlim_up = []
+emissions = []
 
 # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
-# energyhub.construct_model()
-# energyhub.construct_balances()
-# for constr in energyhub.model.component_data_objects(
-#         ctype=Constraint, active=True, descend_into=True):
-#     constr_ub_value = value(constr.upper, exception=False)
-#     if constr_ub_value >= 1000000:
-#         constr.pprint()
 
-# for var in energyhub.model.component_data_objects(Var, active=True, descend_into=True):
-#     if not var.is_continuous():
-#         print("fixing" + str(var))
-#         var.fixed = True
+emissions.append(energyhub.model.var_emissions_net.value)
 
-
-emissionlim_up.append(energyhub.model.var_emissions_net.value)
-
-# pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
-
-# New technologies
-# new_tecs = pd.read_excel(r'.\cases\NorthSea_v2\NewTechnologies\NewTechnologies.xlsx', index_col=0)
-# for stage in new_tecs:
-#     for node in nodes:
-#         # try:
-#         if not isinstance(new_tecs[stage][node], float):
-#             new_technologies = new_tecs[stage][node].split(', ')
-#             for tec in new_technologies:
-#                 energyhub.add_technology_to_node(node, [tec], path = tec_data_path)
-#     energyhub.construct_balances()
-#     results = energyhub.solve()
-#
-#     emissionlim_up.append(energyhub.model.var_emissions_net.value)
-#
-# results.write_excel(r'user_Data/MultiCountry_minCosts')
-
-#
-#
-#
-# # CONFIGURATION EMISSIONS
-# configuration = ModelConfiguration()
-# configuration.solveroptions.solver = 'gurobi'
-# configuration.optimization.objective = 'emissions_minC'
-#
-# emissionlim_low = []
-#
-# # Read data
-# energyhub = EnergyHub(data, configuration)
-# energyhub.quick_solve()
-#
-#
-# emissionlim_low.append(energyhub.model.var_emissions_net.value)
-#
-# # pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
-#
-# # New technologies
-# new_tecs = pd.read_excel(r'.\cases\NorthSea_v2\NewTechnologies\NewTechnologies.xlsx', index_col=0)
-# for stage in new_tecs:
-#     for node in nodes:
-#         # try:
-#         if not isinstance(new_tecs[stage][node], float):
-#             new_technologies = new_tecs[stage][node].split(', ')
-#             for tec in new_technologies:
-#                 energyhub.add_technology_to_node(node, [tec], path = tec_data_path)
-#     energyhub.construct_balances()
-#     results = energyhub.solve()
-#
-#     emissionlim_low.append(energyhub.model.var_emissions_net.value)
-#
-#     # except:
-#     #     pass
-#
-# results.write_excel(r'user_Data/MultiCountry_minEmissions_Cost')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# # Read data
-# energyhub.configuration.optimization.objective = 'costs_at_emissions'
-# energyhub.configuration.optimization.emission_limit = emissionlim_up[0]
-# energyhub.solve()
-#
-# i = 1
-# pl.plot_balance_at_node(results.detailed_results[0], 'electricity')
-
-# New technologies
-# new_tecs = pd.read_excel(r'.\cases\NorthSea_v2\NewTechnologies\NewTechnologies.xlsx',sheet_name='NewTechnologies' ,index_col=0)
-# for stage in new_tecs:
-#     energyhub.configuration.optimization.emission_limit = emissionlim[i]
-#
-#     for node in nodes:
-#         # try:
-#         if not isinstance(new_tecs[stage][node], float):
-#             new_technologies = new_tecs[stage][node].split(', ')
-#             for tec in new_technologies:
-#                 energyhub.add_technology_to_node(node, [tec], path =tec_data_path)
-#     energyhub.construct_balances()
-#     results = energyhub.solve()
-#
-#     i += 1
-#     # except:
-#     #     pass
-#
-# results.write_excel(r'user_Data/MultiCountry_minCosts')
+# CONFIGURATION EMISSIONS
+energyhub.configuration.optimization.objective = 'emissions_minC'
+energyhub.solve()
+results.write_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Benchmark')

@@ -3,6 +3,7 @@ import pandas as pd
 from types import SimpleNamespace
 from cases.NorthSea_helpers.read_input_data import *
 import copy
+from src.model_configuration import ModelConfiguration
 
 
 def read_nodes(settings):
@@ -286,3 +287,24 @@ def define_new_technologies(settings, nodes, topology):
             topology.define_new_technologies(node, new_technologies)
 
     return topology
+
+
+def define_configuration():
+    # Configuration
+    configuration = ModelConfiguration()
+    configuration.solveroptions.solver = 'gurobi_persistent'
+    configuration.solveroptions.mipgap = 0.005
+    configuration.solveroptions.lpwarmstart = 1
+    configuration.solveroptions.numericfocus = 3
+    configuration.optimization.save_log_files = 1
+    configuration.optimization.monte_carlo.on = 0
+    configuration.optimization.monte_carlo.N = 5
+    configuration.optimization.typicaldays = 1
+
+    configuration.solveroptions.intfeastol = 1e-3
+    configuration.solveroptions.feastol = 1e-3
+    configuration.solveroptions.numericfocus = 3
+    configuration.optimization.objective = 'pareto'
+    configuration.optimization.pareto_points = 50
+
+    return configuration

@@ -11,17 +11,17 @@ settings.year = 2030
 settings.scenario = 'GA'
 settings.climate_year = 2009
 settings.start_date = '01-01 00:00'
-settings.end_date = '02-01 23:00'
+settings.end_date = '01-02 23:00'
 settings.data_path = r'./cases/NorthSea_v3'
-settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Baseline'
+settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Benchmark'
 # settings.save_path = './user_data/test'
 
 # Network Settings
 settings.networks = SimpleNamespace()
 settings.networks.existing_electricity = 1
-settings.networks.new_electricityAC = 0
-settings.networks.new_electricityDC = 0
-settings.networks.new_hydrogen = 0
+settings.networks.new_electricityAC = 1
+settings.networks.new_electricityDC = 1
+settings.networks.new_hydrogen = 1
 
 # Node aggregation
 settings.node_aggregation_type = {
@@ -42,7 +42,7 @@ nodes = read_nodes(settings)
 topology = define_topology(settings, nodes)
 topology = define_installed_capacities(settings, nodes, topology)
 topology = define_networks(settings, topology)
-# topology = define_new_technologies(settings, nodes, topology)
+topology = define_new_technologies(settings, nodes, topology)
 
 data = define_data_handle(topology, nodes)
 data = define_generic_production(settings, nodes, data)

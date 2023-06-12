@@ -127,7 +127,7 @@ for node in onshore_nodes:
         data.read_import_emissionfactor_data(node, car, np.ones(len(topology.timesteps)) * 0.3)
 
 # Read technology data
-tec_data_path = r'cases/NorthSea_v2/Technology_Data/'
+tec_data_path = r'../NorthSea_v2/Technology_Data/'
 write_to_technology_data(tec_data_path, year)
 data.read_technology_data(path =tec_data_path)
 
