@@ -31,7 +31,7 @@ def read_installed_capacity_eraa(region):
     :param str region: region to read
     :return dict capacity_factors: production profile as series
     """
-    data_path = r'.\cases\NorthSea_v2/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
+    data_path = r'.\cases\NorthSea/InstalledCapacity/ERAA_InstalledCapacity.xlsx'
 
     instcap = pd.read_excel(data_path, index_col= 2, sheet_name='Sheet1')
 
@@ -103,7 +103,7 @@ def read_installed_capacity_eraa(region):
 def calculate_production_profiles_offshore(offshore_nodes):
     # Get output from wind parks
     load_path = r'./data/climate_data/'
-    data_path = r'./cases/NorthSea_v2/Offshore_Parks/WindParkData.xlsx'
+    data_path = r'./cases/NorthSea/Offshore_Parks/WindParkData.xlsx'
     park_data = pd.read_excel(data_path, sheet_name='Parks')
     park_data_2030 = park_data[park_data.YEAR <= 2030]
 
@@ -168,8 +168,8 @@ def read_network_data(nodes, data_file, existing):
 
 
 def write_to_technology_data(tec_data_path, year):
-    tec_data_path = r'./cases/NorthSea_v2/Technology_Data/'
-    financial_data_path = r'./cases/NorthSea_v2/Cost_Technologies/TechnologyCost.xlsx'
+    tec_data_path = r'./cases/NorthSea/Technology_Data/'
+    financial_data_path = r'./cases/NorthSea/Cost_Technologies/TechnologyCost.xlsx'
 
     financial_data = pd.read_excel(financial_data_path, sheet_name='ToModel' ,skiprows=1)
     financial_data = financial_data[financial_data['Year'] == year]

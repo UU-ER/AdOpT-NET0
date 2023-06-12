@@ -1,7 +1,6 @@
-from cases.NorthSea_v2.read_input_data import *
+from cases.NorthSea_helpers.read_input_data import *
 import numpy as np
 import pandas as pd
-from pyomo.environ import *
 
 from src.model_configuration import ModelConfiguration
 import src.data_management as dm
