@@ -13,8 +13,8 @@ settings.climate_year = 2009
 settings.start_date = '01-01 00:00'
 settings.end_date = '01-02 23:00'
 settings.data_path = r'./cases/NorthSea_v3'
+settings.new_technologies_stage = 'All'
 settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Benchmark'
-# settings.save_path = './user_data/test'
 
 # Network Settings
 settings.networks = SimpleNamespace()

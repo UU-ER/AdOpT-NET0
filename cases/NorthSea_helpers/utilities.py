@@ -270,21 +270,20 @@ def define_new_technologies(settings, nodes, topology):
     data_path = settings.data_path
 
     new_tecs = pd.read_excel(data_path + '/NewTechnologies/NewTechnologies.xlsx', index_col=0)
-    stage = 'All'
+    stage = settings.new_technologies_stage
 
-    for node in settings.node_aggregation:
-        tec_list = new_tecs[stage][settings.node_aggregation[node]].str.cat(sep = ", ")
-        tec_list = tec_list.split(', ')
-        tec_list = list(dict.fromkeys(tec_list))
+    if not stage == None:
+        for node in settings.node_aggregation:
+            tec_list = new_tecs[stage][settings.node_aggregation[node]].str.cat(sep = ", ")
+            tec_list = tec_list.split(', ')
+            tec_list = list(dict.fromkeys(tec_list))
 
-        new_tecs.at[node, stage] = ', '.join(str(s) for s in tec_list)
+            new_tecs.at[node, stage] = ', '.join(str(s) for s in tec_list)
 
-    for node in nodes.all:
-
-
-        if not isinstance(new_tecs[stage][node], float):
-            new_technologies = new_tecs[stage][node].split(', ')
-            topology.define_new_technologies(node, new_technologies)
+        for node in nodes.all:
+            if not isinstance(new_tecs[stage][node], float):
+                new_technologies = new_tecs[stage][node].split(', ')
+                topology.define_new_technologies(node, new_technologies)
 
     return topology
 
@@ -305,6 +304,6 @@ def define_configuration():
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
     configuration.optimization.objective = 'pareto'
-    configuration.optimization.pareto_points = 50
+    configuration.optimization.pareto_points = 2
 
     return configuration

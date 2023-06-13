@@ -11,18 +11,17 @@ settings.year = 2030
 settings.scenario = 'GA'
 settings.climate_year = 2009
 settings.start_date = '01-01 00:00'
-settings.end_date = '01-01 23:00'
+settings.end_date = '01-02 23:00'
 settings.data_path = r'./cases/NorthSea_v3'
-settings.new_technologies_stage = None
-settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Baseline'
-# settings.save_path = './user_data/test'
+settings.new_technologies_stage = 'HydrogenProduction'
+settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_HydrogenGen_Transport'
 
 # Network Settings
 settings.networks = SimpleNamespace()
 settings.networks.existing_electricity = 1
 settings.networks.new_electricityAC = 0
 settings.networks.new_electricityDC = 0
-settings.networks.new_hydrogen = 0
+settings.networks.new_hydrogen = 1
 
 # Node aggregation
 settings.node_aggregation_type = {
