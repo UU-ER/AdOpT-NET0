@@ -185,4 +185,4 @@ emissions.append(energyhub.model.var_emissions_net.value)
 # CONFIGURATION EMISSIONS
 energyhub.configuration.optimization.objective = 'emissions_minC'
 energyhub.solve()
-results.write_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_Benchmark')
+results.write_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230613/MES_NS_Benchmark')

@@ -14,7 +14,7 @@ settings.start_date = '01-01 00:00'
 settings.end_date = '01-02 23:00'
 settings.data_path = r'./cases/NorthSea_v3'
 settings.new_technologies_stage = 'HydrogenProduction'
-settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230609/MES_NS_HydrogenGen'
+settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230613/MES_NS_HydrogenGen'
 
 # Network Settings
 settings.networks = SimpleNamespace()
