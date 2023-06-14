@@ -160,9 +160,9 @@ def read_network_data(nodes, aggregation, data_file, existing):
                 if node1 == node2:
                     data_from_excel.at[node1, node2] = 0
                     data_from_excel.at[node2, node1] = 0
-                if not data_from_excel.at[node1, node2] == data_from_excel.at[node2, node1]:
-                    print(data_from_excel.at[node1, node2] - data_from_excel.at[node2, node1])
-                    print(node2)
+                # if not data_from_excel.at[node1, node2] == data_from_excel.at[node2, node1]:
+                #     print(data_from_excel.at[node1, node2] - data_from_excel.at[node2, node1])
+                #     print(node2)
 
         for node1 in nodes:
             for node2 in nodes:

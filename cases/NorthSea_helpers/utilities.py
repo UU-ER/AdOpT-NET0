@@ -222,30 +222,42 @@ def define_imports(settings, nodes, data):
 
     data_path = settings.data_path
 
-    # Import/Export of conventional fuels
-    import_carriers = {'gas': 100}
-    import_limit = np.ones(len(data.topology.timesteps)) * 100000
+    # IMPORT PRICES
+    import_carrier_price = {'gas': 180,
+                            'electricity':250,
+                            'hydrogen': 200
+                            }
+    for node in nodes.onshore_nodes:
+        for car in import_carrier_price:
+            data.read_import_price_data(node, car, np.ones(len(data.topology.timesteps)) * import_carrier_price[car])
+
+    # IMPORT LIMITS
+    import_limit = {'gas': 1000000,
+                    'hydrogen': 100000
+                    }
 
     for node in nodes.onshore_nodes:
-        for car in import_carriers:
-            data.read_import_limit_data(node, car, import_limit)
-            data.read_import_price_data(node, car, np.ones(len(data.topology.timesteps)) * import_carriers[car])
+        for car in import_limit:
+            data.read_import_limit_data(node, car, np.ones(len(data.topology.timesteps)) * import_limit[car])
 
-    # Import Electricity
-    import_carrier_price = {'electricity': 1000}
+    # Electricity
     import_limit = pd.read_excel(data_path + '/Networks/ImportLimits.xlsx', index_col=0, sheet_name='ToPython')
     factor = 10
 
-    for car in import_carrier_price:
-        for node in settings.node_aggregation:
-            import_limit.at[node, car] = import_limit[car][settings.node_aggregation[node]].sum()
+    car = 'electricity'
+    for node in settings.node_aggregation:
+        import_limit.at[node, car] = import_limit[car][settings.node_aggregation[node]].sum()
 
     for node in nodes.onshore_nodes:
-        for car in import_carrier_price:
-            data.read_import_limit_data(node, car, np.ones(len(data.topology.timesteps)) * import_limit[car][node] * factor)
-            # data.read_import_limit_data(node, car, np.ones(len(data.topology.timesteps)) * 10000000)
-            data.read_import_price_data(node, car, np.ones(len(data.topology.timesteps)) * import_carrier_price[car])
-            data.read_import_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * 0.3)
+        data.read_import_limit_data(node, car, np.ones(len(data.topology.timesteps)) * import_limit[car][node] * factor)
+
+    # Emission Factor
+    import_emissions = {'electricity': 0.3,
+                            'hydrogen': 0.183/0.6 * 0.2
+                            }
+    for node in nodes.onshore_nodes:
+        for car in import_emissions:
+            data.read_import_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * import_emissions[car])
 
     return data
 
@@ -298,7 +310,7 @@ def define_configuration():
     configuration.optimization.save_log_files = 1
     configuration.optimization.monte_carlo.on = 0
     configuration.optimization.monte_carlo.N = 5
-    configuration.optimization.typicaldays = 1
+    configuration.optimization.typicaldays = 50
 
     configuration.solveroptions.intfeastol = 1e-3
     configuration.solveroptions.feastol = 1e-3

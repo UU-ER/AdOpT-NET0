@@ -175,7 +175,7 @@ class OptimizationResults:
                               for t in set_t)
                           for node in model.set_nodes)
         export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car].value *
-                                     model.node_blocks[node].para_export_price[t, car] *
+                                     model.node_blocks[node].para_export_price[t, car].value *
                                         nr_timesteps_averaged
                                      for car in model.node_blocks[node].set_carriers)
                                  for t in set_t)
@@ -261,7 +261,7 @@ class OptimizationResults:
                                        for t in set_t)
                         total_flow = sum(arc_data.var_flow[t].value
                                          for t in set_t)
-                    opex_fix = capex * netw_data.para_opex_fixed.value
+                    opex_fix = netw_data.para_opex_fixed.value * arc_data.var_capex_aux.value
 
                     self.networks.loc[len(self.networks.index)] = \
                         [netw_name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow]

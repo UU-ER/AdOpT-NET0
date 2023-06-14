@@ -347,7 +347,7 @@ class EnergyHub:
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
             self.model.const_emission_limit = Constraint(
-                expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.005)
+                expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.0001)
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
                 self.solver.add_constraint(self.model.const_emission_limit)
             self.__optimize_cost()
