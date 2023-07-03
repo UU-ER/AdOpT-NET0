@@ -1,0 +1,11 @@
+# Maps gurobi vars to pyomo vars
+energyhub.solver._pyomo_var_to_solver_var_map
+# Maps gurobi const to pyomo const
+energyhub.solver._pyomo_con_to_solver_con_map
+
+# Access underlying gurobi model
+# print stats
+energyhub.solver._solver_model.printStats()
+# fix integers and solve again
+energyhub.solver._solver_model.fixed()
+energyhub.solver._solver_model.optimize()

@@ -18,7 +18,21 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
+import networkx as nx
+
 execute = 1
+
+# How to draw a network
+if execute == 1:
+    network = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230614/MES_NS_Baseline_detailed_1.xlsx',
+                             sheet_name='Networks')
+
+    G = nx.from_pandas_edgelist(network, source='fromNode', target='toNode', edge_attr='Size')
+    nx.draw_networkx(G, arrows=True, nodelist = [x for x in network['fromNode'] if x.startswith('onNL')])
+
+
+
+execute = 0
 
 if execute == 1:
     # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
@@ -107,7 +121,7 @@ if execute == 1:
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'.\data\climate_data_onshore.txt')
+    data.read_climate_data_from_file('test_node1', r'./data/climate_data_onshore.txt')
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 10
@@ -136,7 +150,7 @@ if execute == 1:
     # Solve model
     energyhub_clustered.solve_model()
     results1 = energyhub_clustered.write_results()
-    results1.write_excel(r'.\userData\results_clustered')
+    results1.write_excel(r'./userData/results_clustered')
 
 
     # SOLVE WITH FULL RESOLUTION
@@ -147,7 +161,7 @@ if execute == 1:
     # Solve model
     energyhub.solve_model()
     results2 = energyhub.write_results()
-    results2.write_excel(r'.\userData\results_full')
+    results2.write_excel(r'./userData/results_full')
 
 execute = 0
 #region How to formulate hierarchical models with blocks

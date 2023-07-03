@@ -56,18 +56,18 @@ for node in onshore_nodes:
     topology.define_existing_technologies(node, installed_capacities[node]['Conventional'])
 
 # Networks - Electricity
-network_data = read_network_data(topology.nodes, '../NorthSea/Networks/NetworkDataElectricity_existing.xlsx', 1)
+network_data = read_network_data(topology.nodes, './NorthSea/Networks/NetworkData/Electricity_existing.xlsx', 1)
 topology.define_existing_network('electricityAC', size=network_data['size'], distance=network_data['distance'])
 
 # Networks - New Electricity
-network_data = read_network_data(topology.nodes, '../NorthSea/Networks/NetworkDataElectricity_AC.xlsx', 0)
+network_data = read_network_data(topology.nodes, '../NorthSea/Networks/NetworkData/Electricity_AC.xlsx', 0)
 topology.define_new_network('electricityAC_int', connections=network_data['connection'], distance=network_data['distance'])
 
-network_data = read_network_data(topology.nodes, '../NorthSea/Networks/NetworkDataElectricity_DC.xlsx', 0)
+network_data = read_network_data(topology.nodes, '../NorthSea/Networks/NetworkData/Electricity_DC.xlsx', 0)
 topology.define_new_network('electricityDC_int', connections=network_data['connection'], distance=network_data['distance'])
 
 # Networks - Hydrogen
-network_data = read_network_data(topology.nodes, '../NorthSea/Networks/NetworkDataHydrogen.xlsx', 0)
+network_data = read_network_data(topology.nodes, '../NorthSea/Networks/NetworkData/Hydrogen.xlsx', 0)
 topology.define_new_network('hydrogenPipeline_int', connections=network_data['connection'], distance=network_data['distance'])
 
 

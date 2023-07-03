@@ -205,9 +205,12 @@ def read_network_data(nodes, aggregation, data_file, existing):
     return data
 
 
-def write_to_technology_data(tec_data_path, year):
-    tec_data_path = r'./cases/NorthSea_v2/Technology_Data/'
-    financial_data_path = r'./cases/NorthSea_v2/Cost_Technologies/TechnologyCost.xlsx'
+def write_to_technology_data(tec_data_path, settings):
+    year = settings.year
+    data_path = settings.data_path
+
+    tec_data_path = data_path + '/Technology_Data/'
+    financial_data_path = data_path + '/Cost_Technologies/TechnologyCost.xlsx'
 
     financial_data = pd.read_excel(financial_data_path, sheet_name='ToModel' ,skiprows=1)
     financial_data = financial_data[financial_data['Year'] == year]
