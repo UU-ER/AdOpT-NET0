@@ -14,8 +14,8 @@ settings.start_date = '01-01 00:00'
 settings.end_date = '12-31 23:00'
 settings.data_path = r'./cases/NorthSea_v3'
 settings.new_technologies_stage = 'HydrogenProduction'
-# settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230614/MES_NS_HydrogenGen_Transport'
-settings.save_path = './user_data/test'
+settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230618/MES_NS_HydrogenGen_Transport'
+# settings.save_path = './user_data/test'
 
 # Network Settings
 settings.networks = SimpleNamespace()
@@ -26,18 +26,17 @@ settings.networks.new_hydrogen = 1
 
 # Node aggregation
 settings.node_aggregation_type = {
-    'onshore': ['onNL_C', 'onOther', 'onNL_NE', 'onNL_SW', 'onNL_NW'],
+    'onshore': ['onNL_C', 'onNL_NE', 'onNL_SW', 'onNL_NW'],
     'offshore': []}
 settings.node_aggregation = {
     'onNL_C': ['onNL_SE', 'onNL_CE', 'onNL_E'],
     'onNL_NE': ['onNL_NE', 'ofNL_GE_A', 'ofNL_GE_B'],
     'onNL_SW': ['onNL_SW', 'ofNL_BO_A', 'ofNL_BO_B'],
-    'onNL_NW': ['onNL_NW', 'ofNL_LU', 'ofNL_PA', 'ofNL_EG'],
-    'onOther': ['onBE', 'onDE', 'onDKW', 'onNOS']}
+    'onNL_NW': ['onNL_NW', 'ofNL_LU', 'ofNL_PA', 'ofNL_EG']}
 
 # Configuration
-configuration = define_configuration()
-
+# configuration = define_configuration()
+#
 # Set Data
 nodes = read_nodes(settings)
 topology = define_topology(settings, nodes)

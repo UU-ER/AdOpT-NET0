@@ -11,10 +11,10 @@ settings.year = 2030
 settings.scenario = 'GA'
 settings.climate_year = 2009
 settings.start_date = '01-01 00:00'
-settings.end_date = '01-01 23:00'
+settings.end_date = '12-31 23:00'
 settings.data_path = r'./cases/NorthSea_v3'
 settings.new_technologies_stage = None
-settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230614/MES_NS_Baseline'
+settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230618/MES_NS_Baseline'
 # settings.save_path = './user_data/test'
 
 # Network Settings
@@ -26,14 +26,13 @@ settings.networks.new_hydrogen = 0
 
 # Node aggregation
 settings.node_aggregation_type = {
-    'onshore': ['onNL_C', 'onOther', 'onNL_NE', 'onNL_SW', 'onNL_NW'],
+    'onshore': ['onNL_C', 'onNL_NE', 'onNL_SW', 'onNL_NW'],
     'offshore': []}
 settings.node_aggregation = {
     'onNL_C': ['onNL_SE', 'onNL_CE', 'onNL_E'],
     'onNL_NE': ['onNL_NE', 'ofNL_GE_A', 'ofNL_GE_B'],
     'onNL_SW': ['onNL_SW', 'ofNL_BO_A', 'ofNL_BO_B'],
-    'onNL_NW': ['onNL_NW', 'ofNL_LU', 'ofNL_PA', 'ofNL_EG'],
-    'onOther': ['onBE', 'onDE', 'onDKW', 'onNOS']}
+    'onNL_NW': ['onNL_NW', 'ofNL_LU', 'ofNL_PA', 'ofNL_EG']}
 
 # Configuration
 configuration = define_configuration()
@@ -59,7 +58,6 @@ data.read_network_data()
 data = define_charging_efficiencies(settings, nodes, data)
 
 # Solve
-configuration.optimization.objective = 'costs'
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
 results.write_excel(settings.save_path)

@@ -334,7 +334,7 @@ class EnergyHub:
         emissions_max = self.model.var_emissions_net.value
 
         # Min Emissions
-        global_variables.pareto_point = pareto_points + 1
+        global_variables.pareto_point = -1
         self.__optimize_emissions_minC()
         emissions_min = self.model.var_emissions_net.value
 
