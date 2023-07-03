@@ -24,7 +24,7 @@ execute = 1
 
 # How to draw a network
 if execute == 1:
-    network = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230614/MES_NS_Baseline_detailed_1.xlsx',
+    network = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230703/MES_NS_Baseline_detailed_1.xlsx',
                              sheet_name='Networks')
 
     G = nx.from_pandas_edgelist(network, source='fromNode', target='toNode', edge_attr='Size')

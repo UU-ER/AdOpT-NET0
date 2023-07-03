@@ -7,12 +7,14 @@ from cases.NorthSea_helpers.utilities import *
 
 # General Settings
 settings = Settings()
+settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230703/MES_NS_ElectricityGrid_Storage'
 
 settings.new_technologies_stage = 'ElectricityStorage'
 settings.networks.existing_electricity = 1
 settings.networks.new_electricityAC = 1
 settings.networks.new_electricityDC = 1
 settings.networks.new_hydrogen = 0
+
 
 # Configuration
 configuration = define_configuration()
@@ -29,6 +31,7 @@ data = define_generic_production(settings, nodes, data)
 data = define_hydro_inflow(settings, nodes, data)
 data = define_demand(settings, nodes, data)
 data = define_imports(settings, nodes, data)
+data = define_exports(nodes, data)
 
 # Read data
 tec_data_path = settings.data_path + '/Technology_Data/'

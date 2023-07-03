@@ -12,9 +12,9 @@ class Settings():
         self.scenario = 'GA'
         self.climate_year = 2009
         self.start_date = '01-01 00:00'
-        self.end_date = '01-01 23:00'
+        self.end_date = '12-31 23:00'
         self.data_path = r'./cases/NorthSea_v3'
-        self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230614/MES_NS_Benchmark'
+        self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230703/MES_NS_Benchmark'
 
         self.node_aggregation_type = {
             'onshore': ['onNL_C', 'onOther', 'onNL_NE', 'onNL_SW', 'onNL_NW'],
@@ -237,13 +237,13 @@ def define_demand(settings, nodes, data):
         if node in demand_el:
             data.read_demand_data(node, 'electricity', demand_el[node].to_numpy())
 
-    demand_h2 = read_demand_data_eraa(settings.scenario, settings.year, settings.climate_year, data_path + '/Demand_Hydrogen')
-    for node in settings.node_aggregation:
-        node_list_with_demand = [x for x in settings.node_aggregation[node] if x in demand_el]
-        demand_h2[node] = demand_h2[node_list_with_demand].sum(axis=1)
-    for node in nodes.all:
-        if node in demand_h2:
-            data.read_demand_data(node, 'hydrogen', demand_h2[node].to_numpy() / 100)
+    # demand_h2 = read_demand_data_eraa(settings.scenario, settings.year, settings.climate_year, data_path + '/Demand_Hydrogen')
+    # for node in settings.node_aggregation:
+    #     node_list_with_demand = [x for x in settings.node_aggregation[node] if x in demand_el]
+    #     demand_h2[node] = demand_h2[node_list_with_demand].sum(axis=1)
+    # for node in nodes.all:
+    #     if node in demand_h2:
+    #         data.read_demand_data(node, 'hydrogen', demand_h2[node].to_numpy() / 100)
 
     return data
 
@@ -254,16 +254,14 @@ def define_imports(settings, nodes, data):
 
     # IMPORT PRICES
     import_carrier_price = {'gas': 180,
-                            'electricity':100000,
-                            'hydrogen': 200
+                            'electricity':100000
                             }
     for node in nodes.onshore_nodes:
         for car in import_carrier_price:
             data.read_import_price_data(node, car, np.ones(len(data.topology.timesteps)) * import_carrier_price[car])
 
     # IMPORT LIMITS
-    import_limit = {'gas': 1000000,
-                    'hydrogen': 100000
+    import_limit = {'gas': 1000000
                     }
 
     for node in nodes.onshore_nodes:
@@ -282,12 +280,20 @@ def define_imports(settings, nodes, data):
         data.read_import_limit_data(node, car, np.ones(len(data.topology.timesteps)) * import_limit[car][node] * factor)
 
     # Emission Factor
-    import_emissions = {'electricity': 0.3,
-                            'hydrogen': 0.183/0.6 * 0.2
-                            }
+    import_emissions = {'electricity': 0.3
+                        }
     for node in nodes.onshore_nodes:
         for car in import_emissions:
             data.read_import_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * import_emissions[car])
+
+    return data
+
+def define_exports(nodes, data):
+    car = 'hydrogen'
+    for node in nodes.onshore_nodes:
+        data.read_export_price_data(node, car, np.ones(len(data.topology.timesteps)) * 180)
+        data.read_export_limit_data(node, car, np.ones(len(data.topology.timesteps)) * 10000)
+        data.read_export_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * (-0.183))
 
     return data
 

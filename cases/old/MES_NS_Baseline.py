@@ -171,4 +171,4 @@ energyhub.quick_solve()
 
 emissions.append(energyhub.model.var_emissions_net.value)
 
-results.write_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230614/MES_NS_Baseline')
+results.write_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230703/MES_NS_Baseline')

@@ -21,7 +21,7 @@ def determine_deficit(node, settings):
     data = define_hydro_inflow(settings, nodes, data)
     data = define_demand(settings, nodes, data)
     data = define_imports(settings, nodes, data)
-
+data = define_exports(nodes, data)
     # Read data
     tec_data_path = settings.data_path + '/Technology_Data/'
     write_to_technology_data(tec_data_path, settings)
