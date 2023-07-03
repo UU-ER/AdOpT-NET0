@@ -5,6 +5,36 @@ from cases.NorthSea_helpers.read_input_data import *
 import copy
 from src.model_configuration import ModelConfiguration
 
+class Settings():
+
+    def __init__(self):
+        self.year = 2030
+        self.scenario = 'GA'
+        self.climate_year = 2009
+        self.start_date = '01-01 00:00'
+        self.end_date = '01-01 23:00'
+        self.data_path = r'./cases/NorthSea_v3'
+        self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230614/MES_NS_Benchmark'
+
+        self.node_aggregation_type = {
+            'onshore': ['onNL_C', 'onOther', 'onNL_NE', 'onNL_SW', 'onNL_NW'],
+            'offshore': []}
+        self.node_aggregation = {
+            'onNL_C': ['onNL_SE', 'onNL_CE', 'onNL_E'],
+            'onNL_NE': ['onNL_NE', 'ofNL_GE_A', 'ofNL_GE_B'],
+            'onNL_SW': ['onNL_SW', 'ofNL_BO_A', 'ofNL_BO_B'],
+            'onNL_NW': ['onNL_NW', 'ofNL_LU', 'ofNL_PA', 'ofNL_EG'],
+            'onOther': ['onBE', 'onDE', 'onDKW', 'onNOS']}
+
+        self.new_technologies_stage = None
+
+        # Network Settings
+        self.networks = SimpleNamespace()
+        self.networks.existing_electricity = 0
+        self.networks.new_electricityAC = 0
+        self.networks.new_electricityDC = 0
+        self.networks.new_hydrogen = 0
+
 
 def read_nodes(settings):
     """
@@ -224,7 +254,7 @@ def define_imports(settings, nodes, data):
 
     # IMPORT PRICES
     import_carrier_price = {'gas': 180,
-                            'electricity':250,
+                            'electricity':100000,
                             'hydrogen': 200
                             }
     for node in nodes.onshore_nodes:
@@ -310,7 +340,7 @@ def define_configuration():
     configuration.optimization.save_log_files = 1
     configuration.optimization.monte_carlo.on = 0
     configuration.optimization.monte_carlo.N = 5
-    configuration.optimization.typicaldays = 50
+    configuration.optimization.typicaldays = 0
     configuration.solveroptions.timelim = 20
 
     configuration.solveroptions.intfeastol = 1e-3
