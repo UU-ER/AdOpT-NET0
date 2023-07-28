@@ -246,9 +246,9 @@ class EnergyHub:
         elif objective == 'emissions_net':
             self.__optimize_emissions_net()
         elif objective == 'emissions_minC':
-            self.__optimize_emissions_minC()
-        elif objective == 'costs_at_emissions':
-            self.__optimize_costs_at_emissions()
+            self.__optimize_costs_minE()
+        elif objective == 'costs_emissionlimit':
+            self.__optimize_costs_emissionslimit()
         else:
             raise Exception("objective in Configurations is incorrect")
 
@@ -291,9 +291,9 @@ class EnergyHub:
         self.__call_solver()
 
 
-    def __optimize_costs_at_emissions(self):
+    def __optimize_costs_emissionlimit(self):
         """
-        Minimize costs at minimum emissions
+        Minimize costs at emission limit
         """
         emission_limit = self.configuration.optimization.emission_limit
         if self.model.find_component('const_emission_limit'):
@@ -306,7 +306,7 @@ class EnergyHub:
         self.__optimize_cost()
 
 
-    def __optimize_emissions_minC(self):
+    def __optimize_costs_minE(self):
         """
         Minimize costs at minimum emissions
         """
@@ -334,7 +334,7 @@ class EnergyHub:
 
         # Min Emissions
         global_variables.pareto_point = pareto_points + 1
-        self.__optimize_emissions_minC()
+        self.__optimize_costs_minE()
         emissions_min = self.model.var_emissions_net.value
 
         # Emission limit

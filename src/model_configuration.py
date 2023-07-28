@@ -143,7 +143,6 @@ class ModelConfiguration:
         self.optimization.objective = 'costs'
         self.optimization.save_detail = 'full'
         self.optimization.save_log_files = 0
-
         self.optimization.emission_limit = 0
         self.optimization.monte_carlo = SimpleNamespace()
         self.optimization.monte_carlo.on = 0
