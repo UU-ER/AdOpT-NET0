@@ -44,7 +44,7 @@ class ModelConfiguration:
     | typicaldays.nr     | Determines number of typical days (0 = off)  |                                             | 0       |
     |                    | :ref:`check here <clustering>`               |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | typicaldays.method | Determine method used for modeling           | {2}                                       | 2       |
+    | typicaldays.method | Determine method used for modeling           | {2}                                         | 2       |
     |                    | technologies with typical days               |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
 
