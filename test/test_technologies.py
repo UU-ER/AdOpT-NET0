@@ -566,8 +566,8 @@ def test_technology_OpenHydro():
     assert 0 == size_WT
 
     # electricity WT, stored in open hydro
-    data.node_data['test_node1'].data['climate_data']['hydro_natural_inflow'][0] = 0
-    data.node_data['test_node1'].data['climate_data']['hydro_natural_inflow'][1] = 0
+    data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'][0] = 0
+    data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'][1] = 0
     data.read_technology_data()
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
