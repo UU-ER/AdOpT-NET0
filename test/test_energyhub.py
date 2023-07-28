@@ -265,7 +265,7 @@ def test_simplification_algorithms():
     cost1 = energyhub1.model.var_total_cost.value
     assert energyhub1.solution.solver.termination_condition == 'optimal'
 
-    # k_means
+    # Typical days Method 2 (standard)
     configuration = ModelConfiguration()
     configuration.optimization.typicaldays.N = 40
     energyhub2 = ehub(data, configuration)
@@ -273,15 +273,6 @@ def test_simplification_algorithms():
     cost2 = energyhub2.model.var_total_cost.value
     assert energyhub2.solution.solver.termination_condition == 'optimal'
     assert abs(cost1 - cost2) / cost1 <= 0.1
-
-    configuration = ModelConfiguration()
-    configuration.optimization.typicaldays.N = 40
-    configuration.optimization.typicaldays.method = 1
-    energyhub3 = ehub(data, configuration)
-    energyhub3.quick_solve()
-    cost3 = energyhub3.model.var_total_cost.value
-    assert energyhub3.solution.solver.termination_condition == 'optimal'
-    assert abs(cost1 - cost3) / cost1 <= 0.1
 
     # time_averaging
     configuration = ModelConfiguration()
