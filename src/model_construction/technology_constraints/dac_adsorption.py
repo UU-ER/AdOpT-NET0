@@ -30,7 +30,6 @@ def constraints_tec_dac_adsorption(b_tec, tec_data, energyhub):
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
     bounds = tec_data.fitted_performance.bounds
-    modelled_with_full_res = tec_data.modelled_with_full_res
 
 
     # Full or reduced resolution

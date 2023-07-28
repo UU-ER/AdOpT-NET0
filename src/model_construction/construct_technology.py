@@ -420,7 +420,9 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
                     tec_data.modelled_with_full_res = 1
                 else:
                     tec_data.modelled_with_full_res = 0
-
+            else:
+                print('WARNING: Clustering method not defined')
+                exit(1)
         else:
             tec_data.modelled_with_full_res = 1
 
