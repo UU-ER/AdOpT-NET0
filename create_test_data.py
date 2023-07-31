@@ -788,6 +788,91 @@ def create_data_technologyOpen_Hydro():
     data.save(data_save_path)
 
 
+
+def create_data_carbon_tax():
+    """
+    Creates dataset for a model with one node and a carbon tax.
+    furnace @ node 1
+    heat demand @ node 1
+    """
+    data_save_path = './test/test_data/carbon_tax.p'
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_carriers(['heat', 'gas'])
+    topology.define_nodes(['onshore'])
+    topology.define_new_technologies('onshore', ['Furnace_NG'])
+
+
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # DEMAND
+
+    heat_demand = np.ones(len(topology.timesteps)) * 9
+    data.read_demand_data('onshore', 'heat', heat_demand)
+
+    # CARBON TAX
+    carbontax = np.ones(len(topology.timesteps)) * 10
+    data.read_carbon_price_data(carbontax, 'tax')
+
+    # IMPORT
+    gas_import = np.ones(len(topology.timesteps)) * 20
+    data.read_import_limit_data('onshore', 'gas', gas_import)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
+def create_data_carbon_subsidy():
+    """
+    Creates dataset for a model with one node, DAC and a carbon subsidy
+    """
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-02 00:00', resolution=1)
+    topology.define_carriers(['electricity', 'heat', 'CO2'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1',
+                                     ['DAC_Adsorption', 'Storage_CO2'])
+
+    data = dm.DataHandle(topology)
+
+    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+
+    # DEMAND
+    co2demand = np.ones(len(topology.timesteps)) * 0.01
+    data.read_demand_data('test_node1', 'CO2', co2demand)
+
+    # data.read_export_limit_data('test_node1', 'CO2', np.ones(len(topology.timesteps)) * 0.01)
+
+    # CARBON SUBSIDY
+
+
+    # IMPORT
+    heat_import = np.ones(len(topology.timesteps)) * 100
+    data.read_import_limit_data('test_node1', 'heat', heat_import)
+    electricity_import = np.ones(len(topology.timesteps)) * 100
+    data.read_import_limit_data('test_node1', 'electricity', electricity_import)
+
+    #carbon_import = np.ones(len(topology.timesteps)) * 1
+    #data.read_import_limit_data('test_node1', 'CO2', carbon_import)
+    #carbon_export = np.ones(len(topology.timesteps)) * 1
+    #data.read_import_limit_data('test_node1', 'CO2', carbon_export)
+
+    data.read_technology_data()
+    data.read_network_data()
+
+
+    data_save_path = './test/test_data/carbon_subsidy.p'
+
+    data.save(data_save_path)
+
+
+
+
 create_data_test_data_handle()
 create_data_model1()
 create_data_model2()
@@ -805,3 +890,5 @@ create_data_existing_technologies()
 create_data_existing_networks()
 create_test_data_dac()
 create_data_technologyOpen_Hydro()
+create_data_carbon_tax()
+create_data_carbon_subsidy()

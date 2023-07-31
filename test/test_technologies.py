@@ -5,6 +5,13 @@ import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 from pyomo.environ import *
 import pandas as pd
+import pytest
+import src.data_management as dm
+from src.energyhub import EnergyHub
+import src.model_construction as mc
+from src.model_configuration import ModelConfiguration
+from pyomo.environ import *
+import pandas as pd
 
 
 
@@ -520,6 +527,7 @@ def test_dac():
     cost2 = energyhub.model.var_total_cost.value
 
     assert abs(cost1 - cost2) / cost1 <= 0.1
+
 
 
 def test_existing_technologies():
