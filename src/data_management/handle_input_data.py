@@ -125,18 +125,19 @@ class DataHandle:
         self.node_data[node].location.lat = lat
         self.node_data[node].location.altitude = alt
 
-    def read_hydro_natural_inflow(self, node, hydro_natural_inflow):
+    def read_hydro_natural_inflow(self, node, technology_name, hydro_natural_inflow):
         """
         Reads natural inflow for pumped hydro open cycle
 
         :param str node: node as specified in the topology
+        :param str technology_name: technology that this inflow applies to
         :param list hydro_natural_inflow: hydro inflows in MWh
-        :return: self at ``self.node_data[node]['climate_data']['hydro_natural_inflow']``
+        :return: self at ``self.node_data[node]['climate_data'][technology_name + '_inflow']``
         """
-        self.node_data[node].data['climate_data']['hydro_natural_inflow'] = dm.shorten_input_data(hydro_natural_inflow,
+        self.node_data[node].data['climate_data'][technology_name + '_inflow'] = dm.shorten_input_data(hydro_natural_inflow,
                                                                                              len(self.topology.timesteps))
 
-    def read_hydro_maximum_discharge(self, node, maximum_discharge):
+    def read_hydro_maximum_discharge(self, node, technology_name, maximum_discharge):
         """
         Reads maximum discharge of pumped hydro open cycles
 
@@ -144,7 +145,7 @@ class DataHandle:
         :param list maximum_discharge: hydro inflows in MWh
         :return: self at ``self.node_data[node]['climate_data']['maximum_discharge']``
         """
-        self.node_data[node].data['climate_data']['hydro_maximum_discharge'] = dm.shorten_input_data(maximum_discharge,
+        self.node_data[node].data['climate_data'][technology_name + '_maximum_discharge'] = dm.shorten_input_data(maximum_discharge,
                                                                                              len(self.topology.timesteps))
 
     def read_demand_data(self, node, carrier, demand_data):

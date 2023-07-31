@@ -29,11 +29,11 @@ class ModelConfiguration:
     | monte_carlo.on     | Turn monte carlo simulation on               |                                             | 0       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.N      | Number of Monte Carlo simulations            |                                             | 100     |
-     +-------------------+----------------------------------------------+---------------------------------------------+---------+
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'ImportPrices',             | Tec     |
     |                    | Warning: Import/export prices                | 'ExportPrices'                              |         |
     |                    | can take a long time.                        |                                             |         |
-     +-------------------+----------------------------------------------+---------------------------------------------+---------+
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | pareto_points      | Number of Pareto points                      |                                             | 5       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | timestaging        | Defines number of daily intervals (0 = off)  |                                             | 0       |
@@ -41,8 +41,11 @@ class ModelConfiguration:
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | techstaging        | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | typicaldays        | Determines number of typical days (0 = off)  |                                             | 0       |
+    | typicaldays.nr     | Determines number of typical days (0 = off)  |                                             | 0       |
     |                    | :ref:`check here <clustering>`               |                                             |         |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | typicaldays.method | Determine method used for modeling           | {2}                                         | 2       |
+    |                    | technologies with typical days               |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
 
     List of solver settings that can be specified (see also https://www.gurobi.com/documentation/9.5/refman/parameter_descriptions.html):
@@ -130,12 +133,17 @@ class ModelConfiguration:
         self.solveroptions.branchdir = 0
         self.solveroptions.lpwarmstart = 0
         self.solveroptions.intfeastol = 1e-5
+        self.solveroptions.feastol = 1e-5
+        self.solveroptions.numericfocus = 0
+
+
         self.solveroptions.cuts = -1
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
         self.optimization.save_detail = 'full'
-
+        self.optimization.save_log_files = 0
+        self.optimization.emission_limit = 0
         self.optimization.monte_carlo = SimpleNamespace()
         self.optimization.monte_carlo.on = 0
         self.optimization.monte_carlo.sd = 0.2
@@ -145,7 +153,9 @@ class ModelConfiguration:
 
         self.optimization.timestaging = 0
 
-        self.optimization.typicaldays = 0
+        self.optimization.typicaldays = SimpleNamespace()
+        self.optimization.typicaldays.N = 0
+        self.optimization.typicaldays.method = 2
 
         # self.optimization.tecstaging = 0
 

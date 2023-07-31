@@ -21,18 +21,20 @@ from src.model_configuration import ModelConfiguration
 execute = 1
 
 if execute == 1:
-    data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    # data = dm.load_object(r'./test/test_data/time_algorithms.p')
+    # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
+    data = dm.load_object(r'./test/test_data/time_algorithms.p')
+
     data.read_technology_data()
 
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
     # configuration.optimization.typicaldays.N = 4
-    # configuration.optimization.typicaldays.method = 1
+    # configuration.optimization.typicaldays.method = 2
     # configuration.energybalance.violation = -1
     # configuration.energybalance.copperplate = 0
     configuration.performance.dynamics = 2
     configuration.performance.dynamicsOn = ['testCONV1_2']
+
 
     energyhub = EnergyHub(data, configuration)
     # Solve model

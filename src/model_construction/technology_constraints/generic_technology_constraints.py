@@ -33,7 +33,6 @@ def constraints_tec_RES(b_tec, tec_data, energyhub):
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
     rated_power = tec_data.fitted_performance.rated_power
-    modelled_with_full_res = tec_data.modelled_with_full_res
 
     if 'curtailment' in performance_data:
         curtailment = performance_data['curtailment']
@@ -41,12 +40,8 @@ def constraints_tec_RES(b_tec, tec_data, energyhub):
         curtailment = 0
 
     # Full or reduced resolution
-    if global_variables.clustered_data and not modelled_with_full_res:
-        output = b_tec.var_output_aux
-        set_t = model.set_t_clustered
-    else:
-        output = b_tec.var_output
-        set_t = model.set_t_full
+    output = b_tec.var_output
+    set_t = model.set_t_full
 
     # PARAMETERS
     # Set capacity factors
@@ -143,18 +138,12 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
     rated_power = tec_data.fitted_performance.rated_power
-    modelled_with_full_res = tec_data.modelled_with_full_res
     size_based_on = performance_data['size_based_on']
 
     # Full or reduced resolution
-    if global_variables.clustered_data and not modelled_with_full_res:
-        input = b_tec.var_input_aux
-        output = b_tec.var_output_aux
-        set_t = model.set_t_clustered
-    else:
-        input = b_tec.var_input
-        output = b_tec.var_output
-        set_t = model.set_t_full
+    input = b_tec.var_input
+    output = b_tec.var_output
+    set_t = model.set_t_full
 
     performance_function_type = performance_data['performance_function_type']
 
@@ -344,17 +333,11 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
     rated_power = tec_data.fitted_performance.rated_power
-    modelled_with_full_res = tec_data.modelled_with_full_res
 
     # Full or reduced resolution
-    if global_variables.clustered_data and not modelled_with_full_res:
-        input = b_tec.var_input_aux
-        output = b_tec.var_output_aux
-        set_t = model.set_t_clustered
-    else:
-        input = b_tec.var_input
-        output = b_tec.var_output
-        set_t = model.set_t_full
+    input = b_tec.var_input
+    output = b_tec.var_output
+    set_t = model.set_t_full
 
     performance_function_type = performance_data['performance_function_type']
 
@@ -545,17 +528,11 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
     rated_power = tec_data.fitted_performance.rated_power
-    modelled_with_full_res = tec_data.modelled_with_full_res
 
     # Full or reduced resolution
-    if global_variables.clustered_data and not modelled_with_full_res:
-        input = b_tec.var_input_aux
-        output = b_tec.var_output_aux
-        set_t = model.set_t_clustered
-    else:
-        input = b_tec.var_input
-        output = b_tec.var_output
-        set_t = model.set_t_full
+    input = b_tec.var_input
+    output = b_tec.var_output
+    set_t = model.set_t_full
 
     performance_function_type = performance_data['performance_function_type']
 
@@ -731,15 +708,10 @@ def constraints_tec_CONV4(b_tec, tec_data, energyhub):
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     rated_power = tec_data.fitted_performance.rated_power
-    modelled_with_full_res = tec_data.modelled_with_full_res
 
     # Full or reduced resolution
-    if global_variables.clustered_data and not modelled_with_full_res:
-        output = b_tec.var_output_aux
-        set_t = model.set_t_clustered
-    else:
-        output = b_tec.var_output
-        set_t = model.set_t_full
+    output = b_tec.var_output
+    set_t = model.set_t_full
 
     performance_function_type = performance_data['performance_function_type']
 
@@ -863,7 +835,6 @@ def constraints_tec_STOR(b_tec, tec_data, energyhub):
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
-    modelled_with_full_res = tec_data.modelled_with_full_res
 
     # Full resolution
     input = b_tec.var_input

@@ -88,14 +88,9 @@ def constraints_tec_gt(b_tec, tec_data, energyhub):
     modelled_with_full_res = tec_data.modelled_with_full_res
 
     # Full or reduced resolution
-    if global_variables.clustered_data and not modelled_with_full_res:
-        input = b_tec.var_input_aux
-        output = b_tec.var_output_aux
-        set_t = model.set_t_clustered
-    else:
-        input = b_tec.var_input
-        output = b_tec.var_output
-        set_t = model.set_t_full
+    input = b_tec.var_input
+    output = b_tec.var_output
+    set_t = model.set_t_full
 
     # Parameter declaration
     in_min = coeff['in_min']
