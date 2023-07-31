@@ -438,6 +438,7 @@ class ClusteredDataHandle(DataHandle):
         self.node_data = data.node_data
         self.technology_data = {}
         self.network_data = data.network_data
+        self.global_data = data.global_data
 
         # k-means specs
         self.k_means_specs = dm.simplification_specs(data.topology.timesteps)
@@ -514,6 +515,17 @@ class ClusteredDataHandle(DataHandle):
                     to_add = dm.reshape_df(node_data[node].data[series1][series2],
                                            series_names, nr_time_intervals_per_day)
                     full_resolution = pd.concat([full_resolution, to_add], axis=1)
+        carbon_prices = self.global_data['carbon_prices']
+        for series3 in carbon_prices:
+            series_names = dm.define_multiindex([
+                ['global_data'] * nr_time_intervals_per_day,
+                ['carbon_prices'] * nr_time_intervals_per_day,
+                [series3] * nr_time_intervals_per_day,
+                list(range(1, nr_time_intervals_per_day + 1))
+            ])
+            to_add = dm.reshape_df(carbon_prices[series3],
+                                   series_names, nr_time_intervals_per_day)
+            full_resolution = pd.concat([full_resolution, to_add], axis=1)
         return full_resolution
 
 
