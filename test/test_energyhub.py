@@ -266,24 +266,23 @@ def test_simplification_algorithms():
     cost1 = energyhub1.model.var_total_cost.value
     assert energyhub1.solution.solver.termination_condition == 'optimal'
 
-    # k_means
+    # Typical days Method 2 (standard)
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 40
+    configuration.optimization.typicaldays.N = 40
     energyhub2 = ehub(data, configuration)
     energyhub2.quick_solve()
     cost2 = energyhub2.model.var_total_cost.value
     assert energyhub2.solution.solver.termination_condition == 'optimal'
-
     assert abs(cost1 - cost2) / cost1 <= 0.1
 
     # time_averaging
     configuration = ModelConfiguration()
     configuration.optimization.timestaging = 4
-    energyhub3 = ehub(data, configuration)
-    energyhub3.quick_solve()
-    cost3 = energyhub3.model.var_total_cost.value
-    assert energyhub3.solution.solver.termination_condition == 'optimal'
-    assert abs(cost1 - cost3) / cost1 <= 0.1
+    energyhub4 = ehub(data, configuration)
+    energyhub4.quick_solve()
+    cost4 = energyhub4.model.var_total_cost.value
+    assert energyhub4.solution.solver.termination_condition == 'optimal'
+    assert abs(cost1 - cost4) / cost1 <= 0.1
 
     # monte carlo
     configuration = ModelConfiguration()
@@ -291,8 +290,8 @@ def test_simplification_algorithms():
     configuration.optimization.monte_carlo.sd = 0.2
     configuration.optimization.monte_carlo.N = 2
     configuration.optimization.monte_carlo.on_what = ['Technologies']
-    energyhub4 = ehub(data, configuration)
-    energyhub4.quick_solve()
+    energyhub5 = ehub(data, configuration)
+    energyhub5.quick_solve()
 
 def test_carbon_tax():
     """

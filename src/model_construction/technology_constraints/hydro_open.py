@@ -68,7 +68,6 @@ def constraints_tec_hydro_open(b_tec, tec_data, energyhub):
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
-    modelled_with_full_res = tec_data.modelled_with_full_res
 
     # Full resolution
     input = b_tec.var_input
@@ -100,7 +99,7 @@ def constraints_tec_hydro_open(b_tec, tec_data, energyhub):
     eta_lambda = coeff['lambda']
     charge_max = coeff['charge_max']
     discharge_max = coeff['discharge_max']
-    hydro_natural_inflow = coeff['hydro_natural_inflow']
+    hydro_natural_inflow = coeff['hydro_inflow']
     spilling_max = coeff['spilling_max']
 
 

@@ -513,14 +513,14 @@ def test_dac():
     data = dm.load_object(r'./test/test_data/dac.p')
 
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 0
+    configuration.optimization.typicaldays.N = 0
     # # Read data
     energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve()
     cost1 = energyhub.model.var_total_cost.value
 
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 4
+    configuration.optimization.typicaldays.N = 4
     # # Read data
     energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve()
@@ -574,8 +574,8 @@ def test_technology_OpenHydro():
     assert 0 == size_WT
 
     # electricity WT, stored in open hydro
-    data.node_data['test_node1'].data['climate_data']['hydro_natural_inflow'][0] = 0
-    data.node_data['test_node1'].data['climate_data']['hydro_natural_inflow'][1] = 0
+    data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'][0] = 0
+    data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'][1] = 0
     data.read_technology_data()
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
