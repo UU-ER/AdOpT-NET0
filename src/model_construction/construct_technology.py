@@ -421,7 +421,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
                 else:
                     tec_data.modelled_with_full_res = 0
             else:
-                raise ValueError('The clustering method specified in the configuration file is not defined. Please change it to an existing method')
+                raise KeyError('The clustering method specified in the configuration file does not exist.')
         else:
             tec_data.modelled_with_full_res = 1
 
@@ -495,6 +495,8 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         for tec in b_node.set_tecsAtNode:
             b_node.tech_blocks_existing[tec].transfer_attributes_from(b_node.tech_blocks_active[tec])
         b_node.del_component(b_node.tech_blocks_active)
+    if b_node.find_component('tech_blocks_active_index'):
+        b_node.del_component(b_node.tech_blocks_active_index)
 
     # Create a block containing all active technologies at node
     if not set(set_tecsToAdd).issubset(b_node.set_tecsAtNode):
@@ -510,6 +512,11 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
     if b_node.find_component('tech_blocks_new'):
         b_node.del_component(b_node.tech_blocks_new)
+    if b_node.find_component('tech_blocks_new_index'):
+        b_node.del_component(b_node.tech_blocks_new_index)
     if b_node.find_component('tech_blocks_existing'):
         b_node.del_component(b_node.tech_blocks_existing)
+    if b_node.find_component('tech_blocks_existing_index'):
+        b_node.del_component(b_node.tech_blocks_existing_index)
     return b_node
+

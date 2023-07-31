@@ -16,6 +16,9 @@ def get_gurobi_parameters(solveroptions):
     solver.options['BranchDir'] = solveroptions.branchdir
     solver.options['LPWarmStart'] = solveroptions.lpwarmstart
     solver.options['IntFeasTol'] = solveroptions.intfeastol
+    solver.options['FeasibilityTol'] = solveroptions.feastol
     solver.options['Cuts'] = solveroptions.cuts
+    solver.options['NumericFocus'] = solveroptions.numericfocus
+
     return solver
 

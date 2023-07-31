@@ -21,7 +21,11 @@ def open_json(tec, rootpath):
                     technology_data = json.load(json_file)
 
     # Assign name
-    technology_data['Name'] = tec
+    if 'technology_data' in locals():
+        technology_data['Name'] = tec
+    else:
+        raise Exception('There is no json data file for technology ' + tec)
+
     return technology_data
 
 
