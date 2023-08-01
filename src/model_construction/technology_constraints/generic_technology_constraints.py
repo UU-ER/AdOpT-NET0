@@ -183,6 +183,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
                 def init_input_off(const, car_input):
                     return input[t, car_input] == 0
                 dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+                # TODO: include WSP for main carrier
 
                 def init_output_off(const, car_output):
                     return output[t, car_output] == 0
@@ -271,6 +272,8 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
             return input[t, car] <= performance_data['max_input'][car] * \
                 sum(input[t, car_input] for car_input in b_tec.set_input_carriers)
         b_tec.const_max_input = Constraint(set_t, b_tec.set_max_input_carriers, rule=init_max_input)
+
+    # TODO: Ramping constraints
 
     return b_tec
 

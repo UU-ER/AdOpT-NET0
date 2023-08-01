@@ -32,7 +32,7 @@ if execute == 1:
     # configuration.optimization.typicaldays.method = 2
     # configuration.energybalance.violation = -1
     # configuration.energybalance.copperplate = 0
-    configuration.performance.dynamics = 2
+    configuration.performance.dynamics = 1
     configuration.performance.dynamicsOn = ['testCONV1_2']
 
 
