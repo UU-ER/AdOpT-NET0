@@ -54,17 +54,26 @@
     "input_ratios": {
       "naphtha": 1,
       "electricity": 1.476
-    }
+    },
+    "ramping_rate": 0,
+    "standby_power": 0,
+    "min_uptime": 1,
+    "min_downtime": 1,
+    "SU_time": 1,
+    "SD_time": 1,
+    "SU_load": 1,
+    "SD_load": 1,
+    "max_startups": -1
   },
   "Units": {
     "size": "tonne/hr",
     "input_carrier": {
-      "naphtha": "tonne",
-      "electricity": "MW"
+      "naphtha": "",
+      "electricity": ""
     },
     "output_carrier": {
-      "crackedgas": "tonne",
-      "steam": "MW"
+      "crackedgas": "",
+      "steam": ""
     }
   }
 }
