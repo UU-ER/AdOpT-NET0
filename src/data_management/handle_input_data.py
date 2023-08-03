@@ -41,9 +41,9 @@ class DataHandle:
 
         self.topology = topology
 
-        self.global_data['carbon_prices'] = pd.DataFrame(index=self.topology.timesteps)
-        self.global_data['carbon_prices']['tax'] = np.zeros(len(self.topology.timesteps))
-        self.global_data['carbon_prices']['subsidy'] = np.zeros(len(self.topology.timesteps))
+
+
+        self.global_data = dm.GlobalData(topology)
 
 
         # Initialize Node data
@@ -260,10 +260,10 @@ class DataHandle:
         :return: self at ``node_data[node]['carbon_tax'/'carbon_subsidy']``
         """
         if type == 'tax':
-            self.global_data['carbon_prices']['tax'] = carbon_price_data
+            self.global_data.data['carbon_prices']['tax'] = carbon_price_data
 
         elif type == 'subsidy':
-            self.global_data['carbon_prices']['subsidy'] = carbon_price_data
+            self.global_data.data['carbon_prices']['subsidy'] = carbon_price_data
 
 
     def read_export_emissionfactor_data(self, node, carrier, export_emissionfactor_data):
@@ -495,6 +495,12 @@ class ClusteredDataHandle(DataHandle):
                     self.node_data[node].data_clustered[series1][series2] = \
                         dm.reshape_df(clustered_data[node][series1][series2], None, 1)
 
+        carbon_prices = self.global_data.data['carbon_prices']
+        self.global_data.data_clustered['carbon_prices'] = pd.DataFrame(
+            index=self.topology.timesteps_clustered)
+        for series3 in carbon_prices:
+            self.global_data.data_clustered['carbon_prices'][series3] = dm.reshape_df(clustered_data['global_data']['carbon_prices'][series3], None, 1)
+
     def __compile_full_resolution_matrix(self, nr_time_intervals_per_day):
         """
         Compiles full resolution matrix to be clustered
@@ -515,7 +521,8 @@ class ClusteredDataHandle(DataHandle):
                     to_add = dm.reshape_df(node_data[node].data[series1][series2],
                                            series_names, nr_time_intervals_per_day)
                     full_resolution = pd.concat([full_resolution, to_add], axis=1)
-        carbon_prices = self.global_data['carbon_prices']
+
+        carbon_prices = self.global_data.data['carbon_prices']
         for series3 in carbon_prices:
             series_names = dm.define_multiindex([
                 ['global_data'] * nr_time_intervals_per_day,
@@ -555,6 +562,8 @@ class DataHandle_AveragedData(DataHandle):
 
         # perform averaging for all nodal data
         self.__average_node_data(data, nr_timesteps_averaged)
+
+        # average global data
 
         # read technology data
         self.__read_technology_data(data, nr_timesteps_averaged)

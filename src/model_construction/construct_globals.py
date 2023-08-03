@@ -64,11 +64,11 @@ def add_globals(energyhub):
     # Parameters
 
     def init_carbon_subsidy(para, t):
-        return data.global_data['carbon_prices']['subsidy'][t - 1]
-    model.para_carbon_subsidy = Param(model.set_t_full, rule=init_carbon_subsidy)
+        return data.global_data.data['carbon_prices']['subsidy'][t - 1]
+    model.para_carbon_subsidy = Param(model.set_t_full, rule=init_carbon_subsidy, mutable=True)
 
     def init_carbon_tax(para, t):
-        return data.global_data['carbon_prices']['tax'][t - 1]
-    model.para_carbon_tax = Param(model.set_t_full, rule=init_carbon_tax)
+        return data.global_data.data['carbon_prices']['tax'][t - 1]
+    model.para_carbon_tax = Param(model.set_t_full, rule=init_carbon_tax, mutable=True)
 
     return model
