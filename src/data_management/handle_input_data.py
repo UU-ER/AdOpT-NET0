@@ -553,6 +553,8 @@ class DataHandle_AveragedData(DataHandle):
         self.node_data = {}
         self.technology_data = {}
         self.network_data = data.network_data
+        self.global_data = data.global_data
+
 
         if hasattr(data, 'k_means_specs'):
             self.k_means_specs = data.k_means_specs
@@ -560,10 +562,8 @@ class DataHandle_AveragedData(DataHandle):
         # averaging specs
         self.averaged_specs = dm.simplification_specs(data.topology.timesteps)
 
-        # perform averaging for all nodal data
-        self.__average_node_data(data, nr_timesteps_averaged)
-
-        # average global data
+        # perform averaging for all nodal and global data
+        self.__average_data(data, nr_timesteps_averaged)
 
         # read technology data
         self.__read_technology_data(data, nr_timesteps_averaged)
@@ -576,15 +576,17 @@ class DataHandle_AveragedData(DataHandle):
 
         global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
-    def __average_node_data(self, data_full_resolution, nr_timesteps_averaged):
+    def __average_data(self, data_full_resolution, nr_timesteps_averaged):
         """
-        Averages all nodal data
+        Averages all nodal and global data
 
         :param data_full_resolution: Data full resolution
         :param nr_timesteps_averaged: How many time-steps should be averaged?
         """
 
         node_data = data_full_resolution.node_data
+        global_data = data_full_resolution.global_data
+
 
         # Average data for full resolution
         # adjust timesteps
@@ -604,6 +606,13 @@ class DataHandle_AveragedData(DataHandle):
                     self.node_data[node].data[series1][series2] = \
                         dm.average_series(node_data[node].data[series1][series2], nr_timesteps_averaged)
 
+        self.global_data = dm.GlobalData(self.topology)
+        for series1 in global_data.data:
+            self.global_data.data[series1] = pd.DataFrame(index=self.topology.timesteps)
+            for series2 in global_data.data[series1]:
+                self.global_data.data[series1][series2] = \
+                    dm.average_series(global_data.data[series1][series2], nr_timesteps_averaged)
+
         # Average data for clustered resolution
         if global_variables.clustered_data == 1:
             # adjust timesteps
@@ -611,12 +620,21 @@ class DataHandle_AveragedData(DataHandle):
             start_interval = min(self.topology.timesteps_clustered)
             self.topology.timesteps_clustered = range(start_interval, int((end_interval + 1) / nr_timesteps_averaged))
 
+
             for node in node_data:
                 for series1 in node_data[node].data:
                     self.node_data[node].data_clustered[series1] = pd.DataFrame(self.topology.timesteps_clustered)
                     for series2 in node_data[node].data[series1]:
                         self.node_data[node].data_clustered[series1][series2] = \
                             dm.average_series(node_data[node].data_clustered[series1][series2], nr_timesteps_averaged)
+
+
+            for series1 in global_data.data:
+                self.global_data.data_clustered[series1] = pd.DataFrame(self.topology.timesteps_clustered)
+                for series2 in global_data.data[series1]:
+                    self.global_data.data_clustered[series1][series2] = \
+                        dm.average_series(global_data.data_clustered[series1][series2], nr_timesteps_averaged)
+
 
     def __read_technology_data(self, data_full_resolution, nr_timesteps_averaged):
         """
