@@ -168,6 +168,8 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
                    alpha1 * sum(input[t, car_input]
                                 for car_input in b_tec.set_input_carriers)
         b_tec.const_input_output = Constraint(set_t, rule=init_input_output)
+    #TODO: ML constraint
+
 
     # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
@@ -272,8 +274,6 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
             return input[t, car] <= performance_data['max_input'][car] * \
                 sum(input[t, car_input] for car_input in b_tec.set_input_carriers)
         b_tec.const_max_input = Constraint(set_t, b_tec.set_max_input_carriers, rule=init_max_input)
-
-    # TODO: Ramping constraints
 
     return b_tec
 
