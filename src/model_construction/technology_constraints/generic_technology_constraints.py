@@ -168,8 +168,12 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
                    alpha1 * sum(input[t, car_input]
                                 for car_input in b_tec.set_input_carriers)
         b_tec.const_input_output = Constraint(set_t, rule=init_input_output)
-    #TODO: ML constraint
 
+        if min_part_load > 0:
+            def init_min_part_load(const, t):
+                return min_part_load * b_tec.var_size * rated_power <= \
+                       sum(input[t, car_input] for car_input in b_tec.set_input_carriers)
+            b_tec.const_min_part_load = Constraint(set_t, rule=init_min_part_load)
 
     # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
@@ -368,6 +372,12 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
                                             for car_input in b_tec.set_input_carriers)
         b_tec.const_input_output = Constraint(set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
+
+        if min_part_load > 0:
+            def init_min_part_load(const, t):
+                return min_part_load * b_tec.var_size * rated_power <= \
+                       sum(input[t, car_input] for car_input in b_tec.set_input_carriers)
+            b_tec.const_min_part_load = Constraint(set_t, rule=init_min_part_load)
 
     # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
@@ -569,6 +579,11 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
 
         b_tec.const_input_output = Constraint(set_t, b_tec.set_output_carriers,
                                               rule=init_input_output)
+
+        if min_part_load > 0:
+            def init_min_part_load(const, t):
+                return min_part_load * b_tec.var_size * rated_power <= [t, main_car]
+            b_tec.const_min_part_load = Constraint(set_t, rule=init_min_part_load)
 
     # LINEAR, MINIMAL PARTLOAD
     elif performance_function_type == 2:
