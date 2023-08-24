@@ -21,8 +21,8 @@ from src.model_configuration import ModelConfiguration
 execute = 1
 
 if execute == 1:
-    # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    data = dm.load_object(r'./test/test_data/time_algorithms.p')
+    data = dm.load_object(r'./test/test_data/technology_CONV1_1.p')
+    # data = dm.load_object(r'./test/test_data/time_algorithms.p')
 
     data.read_technology_data()
 
@@ -33,7 +33,7 @@ if execute == 1:
     # configuration.energybalance.violation = -1
     # configuration.energybalance.copperplate = 0
     configuration.performance.dynamics = 1
-    configuration.performance.dynamicsOn = ['testCONV1_2']
+    configuration.performance.dynamicsOn = ['testCONV1_1']
 
 
     energyhub = EnergyHub(data, configuration)
