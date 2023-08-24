@@ -582,7 +582,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
 
         if min_part_load > 0:
             def init_min_part_load(const, t):
-                return min_part_load * b_tec.var_size * rated_power <= [t, main_car]
+                return min_part_load * b_tec.var_size * rated_power <= input[t, main_car]
             b_tec.const_min_part_load = Constraint(set_t, rule=init_min_part_load)
 
     # LINEAR, MINIMAL PARTLOAD
