@@ -1,5 +1,8 @@
 from src.model_construction.technology_constraints import *
-from src.model_construction.technology_constraints.dynamics import constraints_tec_dynamics
+from src.model_construction.technology_constraints.dynamics import *
+
+
+# from src.model_construction.technology_constraints.dynamics import *
 
 
 def define_size(b_tec, tec_data):
@@ -478,19 +481,12 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         elif technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
             b_tec = constraints_tec_hydro_open(b_tec, tec_data, energyhub)
 
-        #TODO Add dynamic constraints
-        # if configuration.performance.dynamics == 1:
-        #     if not tec_data.performance_data.ramp_up == -1:
-        #         b_tec = constraints_ramp_up(...)
-        #     if not ...
-        #
-        #
-        #
-        #
-        #
-        #         or \
-        #         (configuration.performance.dynamics == 2 and (tec in configuration.performance.dynamicsOn)):
-        #     b_tec = constraints_tec_dynamics(b_tec, tec_data, energyhub)
+        if configuration.performance.dynamics == 1 or \
+                (configuration.performance.dynamics == 2 and (tec in configuration.performance.dynamicsOn)):
+            if not tec_data.performance_data['ramping_rate'] == 0:
+                b_tec = constraints_ramping_rate(b_tec, tec_data, energyhub)
+            # if not tec_data.performance_data['standby_power'] == 0:
+            #     b_tec = constraint_standby_power(b_tec, tec_data, energyhub)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
