@@ -2,6 +2,8 @@ from pyomo.environ import *
 from pyomo.gdp import *
 import warnings
 import src.global_variables as global_variables
+from src.model_construction.technology_constraints.dynamics import *
+
 
 def constraints_tec_RES(b_tec, tec_data, energyhub):
     """
@@ -156,6 +158,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
         alpha2 = coeff['out']['alpha2']
 
     min_part_load = performance_data['min_part_load']
+    ramping_rate = tec_data.performance_data['ramping_rate']
 
     if performance_function_type >= 2:
         global_variables.big_m_transformation_required = 1
@@ -261,6 +264,24 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
+    # add ramping rates
+    if not ramping_rate == 0:
+        def init_ramping_down_rate(const, t):
+            if t > 1:
+                return -ramping_rate <= sum(input[t, car_input] - input[t-1, car_input]
+                                                for car_input in b_tec.set_input_carriers)
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_down_rate = Constraint(set_t, rule=init_ramping_down_rate)
+
+        def init_ramping_up_rate(const, t):
+            if t > 1:
+                return sum(input[t, car_input] - input[t-1, car_input]
+                               for car_input in b_tec.set_input_carriers) <= ramping_rate
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_up_rate = Constraint(set_t, rule=init_ramping_up_rate)
+
     # size constraint based on sum of input/output
     def init_size_constraint(const, t):
         if size_based_on == 'input':
@@ -360,6 +381,7 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
             alpha2[car] = coeff[car]['alpha2']
 
     min_part_load = performance_data['min_part_load']
+    ramping_rate = tec_data.performance_data['ramping_rate']
 
     if performance_function_type >= 2:
         global_variables.big_m_transformation_required = 1
@@ -466,6 +488,24 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
+        # add ramping rates
+        if not ramping_rate == 0:
+            def init_ramping_down_rate(const, t):
+                if t > 1:
+                    return -ramping_rate <= sum(input[t, car_input] - input[t - 1, car_input]
+                                                for car_input in b_tec.set_input_carriers)
+                else:
+                    return Constraint.Skip
+            b_tec.const_ramping_down_rate = Constraint(set_t, rule=init_ramping_down_rate)
+
+            def init_ramping_up_rate(const, t):
+                if t > 1:
+                    return sum(input[t, car_input] - input[t - 1, car_input]
+                               for car_input in b_tec.set_input_carriers) <= ramping_rate
+                else:
+                    return Constraint.Skip
+            b_tec.const_ramping_up_rate = Constraint(set_t, rule=init_ramping_up_rate)
+
     # size constraint based on sum of inputs
     def init_size_constraint(const, t):
         return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
@@ -562,6 +602,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
             alpha2[car] = coeff[car]['alpha2']
 
     min_part_load = performance_data['min_part_load']
+    ramping_rate = tec_data.performance_data['ramping_rate']
 
     if 'input_ratios' in performance_data:
         main_car = performance_data['main_input_carrier']
@@ -665,6 +706,23 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
+
+    # add ramping rates
+        # add ramping rates
+        if not ramping_rate == 0:
+            def init_ramping_down_rate(const, t):
+                if t > 1:
+                    return -ramping_rate <= input[t, main_car] - input[t - 1, main_car]
+                else:
+                    return Constraint.Skip
+            b_tec.const_ramping_down_rate = Constraint(set_t, rule=init_ramping_down_rate)
+
+            def init_ramping_up_rate(const, t):
+                if t > 1:
+                    return input[t, main_car] - input[t - 1, main_car] <= ramping_rate
+                else:
+                    return Constraint.Skip
+            b_tec.const_ramping_up_rate = Constraint(set_t, rule=init_ramping_up_rate)
 
     # constraint on input ratios
     def init_input_input(const, t, car_input):
