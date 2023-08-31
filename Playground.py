@@ -18,12 +18,11 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-execute = 1
+execute = 0
 
 if execute == 1:
-    data = dm.load_object(r'./test/test_data/technology_CONV1_1.p')
+    data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
     # data = dm.load_object(r'./test/test_data/time_algorithms.p')
-
     data.read_technology_data()
 
     # INITIALIZE MODEL CONFIGURATION
@@ -32,8 +31,8 @@ if execute == 1:
     # configuration.optimization.typicaldays.method = 2
     # configuration.energybalance.violation = -1
     # configuration.energybalance.copperplate = 0
-    configuration.performance.dynamics = 1
-    configuration.performance.dynamicsOn = ['testCONV1_1']
+    # configuration.performance.dynamics = 1
+    # configuration.performance.dynamicsOn = ['testCONV1_1']
 
 
     energyhub = EnergyHub(data, configuration)
@@ -41,55 +40,61 @@ if execute == 1:
     energyhub.quick_solve()
     print('finish')
 
-execute = 0
+    # energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_2'].var_x[2].value
+
+execute = 1
 
 if execute == 1:
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
-    topology.define_carriers(['electricity', 'gas', 'hydrogen'])
-    topology.define_nodes(['test_node1', 'test_node2'])
-    topology.define_new_technologies('test_node1', ['GasTurbine_simple', 'Storage_Battery'])
-    topology.define_new_technologies('test_node2', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 05:00', resolution=1)
+    topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['testCONV3_2'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
 
-    # NETWORKS
-    distance = dm.create_empty_network_matrix(topology.nodes)
-    distance.at['test_node1', 'test_node2'] = 1
-    distance.at['test_node2', 'test_node1'] = 1
-    connection = dm.create_empty_network_matrix(topology.nodes)
-    connection.at['test_node1', 'test_node2'] = 1
-    connection.at['test_node2', 'test_node1'] = 1
-    topology.define_new_network('electricityTest', distance=distance, connections=connection)
-
     # CLIMATE DATA
     data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
 
     # DEMAND
-    electricity_demand = np.ones(len(topology.timesteps)) * 100
-    data.read_demand_data('test_node1', 'electricity', electricity_demand)
+    demand_h = np.ones(len(topology.timesteps))
+    demand_h[0] = 0.75
+    demand_h[1] = 0.5
+    demand_h[2] = 1
+    demand_h[3] = 0
+    demand_h[4] = 0
+    data.read_demand_data('test_node1', 'heat', demand_h)
 
-    # IMPORT
-    gas_import = np.ones(len(topology.timesteps)) * 10
-    data.read_import_limit_data('test_node1', 'gas', gas_import)
+    # PRICE DATA
+    price = np.ones(len(topology.timesteps)) * 1
+    data.read_import_price_data('test_node1', 'gas', price)
+    price[4] = 0.5
+    price[5] = 0.5
+    price = np.ones(len(topology.timesteps)) * 1
+    data.read_import_price_data('test_node1', 'hydrogen', price)
+
+    # IMPORT/EXPORT LIMITS
+    import_lim = np.ones(len(topology.timesteps)) * 10
+    data.read_import_limit_data('test_node1', 'gas', import_lim)
+    import_lim = np.ones(len(topology.timesteps)) * 10
+    data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
+    export_lim = np.ones(len(topology.timesteps)) * 10
+    export_lim[4] = 0
+    data.read_export_limit_data('test_node1', 'electricity', export_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data()
-    # nr_days_cluster = 40
-    # clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
+    data.read_network_data()
     #
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
-    configuration.optimization.timestaging = 4
 
     energyhub = EnergyHub(data, configuration)
-    energyhub.construct_model()
-    energyhub.construct_balances()
-
     # Solve model
     energyhub.quick_solve()
+    print('finish')
+    # energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_2'].var_x[2].value
 
 execute = 0
 
@@ -521,7 +526,7 @@ if execute == 1:
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 #endregion
 
-execute = 1
+execute = 0
 #region How to make an API request for ERA5
 if execute == 1:
     lon = 8
