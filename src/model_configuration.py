@@ -110,7 +110,9 @@ class ModelConfiguration:
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
     | Name       | Definition                                                                                  | Options | Default |
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
-    |            |                                                                                             |         |         |
+    | dynamics   | Determines if dynamics are used                                                             | {0,1}   | 0       |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | dynamicsOn | Specifies the technologies that are modeled with dynamic constraints (empty is on all tecs) |         | []      |
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
 
     """
@@ -171,5 +173,7 @@ class ModelConfiguration:
         self.economic.global_simple_capex_model = 0
 
         self.performance = SimpleNamespace()
+        self.performance.dynamics = 0
+        self.performance.dynamicsOn = []
 
 

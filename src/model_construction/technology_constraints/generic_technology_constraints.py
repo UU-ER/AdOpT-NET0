@@ -188,9 +188,12 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
 
         # define disjuncts for on/off
         s_indicators = range(0, 2)
+        b_tec.var_x = Var(set_t, domain=NonNegativeReals, bounds=(0, 1))
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
                 if standby_power == 0:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
@@ -209,6 +212,8 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
 
             else:  # technology on
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+
                 # input-output relation
                 def init_input_output_on(const):
                     return sum(output[t, car_output] for car_output in b_tec.set_output_carriers) == \
@@ -233,9 +238,12 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
     # PIECEWISE-AFFINE
     elif performance_function_type == 3:
         s_indicators = range(0, len(bp_x))
+        b_tec.var_x = Var(set_t, domain=NonNegativeReals, bounds=(0, 1))
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
                 if standby_power == 0:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
@@ -254,6 +262,8 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
 
             else:  # piecewise definition
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+
                 def init_input_on1(const):
                     return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) >= \
                            bp_x[ind - 1] * b_tec.var_size * rated_power
@@ -431,9 +441,12 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
 
         # define disjuncts
         s_indicators = range(0, 2)
+        b_tec.var_x = Var(set_t, domain=NonNegativeReals, bounds=(0, 1))
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
                 if standby_power == 0:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
@@ -451,6 +464,8 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
                     return output[t, car_output] == 0
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
             else:  # technology on
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+
                 # input-output relation
                 def init_input_output_on(const, car_output):
                     return output[t, car_output] == \
@@ -476,9 +491,12 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
     # piecewise affine function
     elif performance_function_type == 3:
         s_indicators = range(0, len(bp_x))
+        b_tec.var_x = Var(set_t, domain=NonNegativeReals, bounds=(0, 1))
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
                 if standby_power == 0:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
@@ -497,6 +515,8 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
 
             else:  # piecewise definition
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+
                 def init_input_on1(const):
                     return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) >= \
                            bp_x[ind - 1] * b_tec.var_size * rated_power
@@ -750,6 +770,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
 
             else:  # piecewise definition
                 dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+
                 def init_input_on1(const):
                     return input[t, main_car] >= bp_x[ind - 1] * b_tec.var_size * rated_power
                 dis.const_input_on1 = Constraint(rule=init_input_on1)
