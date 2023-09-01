@@ -21,14 +21,27 @@ def constraints_SUSD_dynamics(b_tec, tec_data, energyhub):
     input = b_tec.var_input
 
     # Collect parameters
-    min_uptime = tec_data.performance_data['min_uptime']
-    min_downtime = tec_data.performance_data['min_downtime']
+    min_part_load = tec_data.performance_data['min_part_load']
+    ramping_rate = tec_data.performance_data['ramping_rate']
     SU_time = tec_data.performance_data['SU_time']
     SD_time = tec_data.performance_data['SD_time']
+    min_uptime = tec_data.performance_data['min_uptime']
+    min_downtime = tec_data.performance_data['min_downtime'] + SU_time + SD_time
     SU_load = tec_data.performance_data['SU_load']
     SD_load = tec_data.performance_data['SD_load']
     max_startups = tec_data.performance_data['max_startups']
     main_car = tec_data.performance_data['main_input_carrier']
+
+    # Calculate SU and SD trajectories
+    if SU_time > 0:
+        SU_trajectory = []
+        for i in range(1,SU_time+1):
+            SU_trajectory.append((min_part_load / (SU_time + 1)) * i)
+
+    if SD_time > 0:
+        SD_trajectory = []
+        for i in range(1, SD_time + 1):
+            SD_trajectory.append((min_part_load / (SD_time + 1)) * i)
 
     # Enforce startup/shutdown logic
     def init_SUSD_logic1(const, t):
@@ -106,5 +119,36 @@ def constraints_SUSD_dynamics(b_tec, tec_data, energyhub):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_SD_load[t, i] for i in s_indicators]
         b_tec.disjunction_SD_load = Disjunction(set_t, rule=bind_disjunctions)
+
+    # slow startups/shutdowns with trajectories
+    else:
+        if SU_time > 0:
+            s_indicators = range(0, SU_time+1)
+
+            def init_SU_trajectory(dis, t, ind):
+                if ind == 0:  # no startup (y=0)
+                    dis.const_y_off = Constraint(expr=var_y[t] == 0)
+
+                else:  # technology on
+                    dis.const_y_on = Constraint(expr=var_y[t] == 1)
+
+                    def init_SU_traject(cons, t):
+                        if t < len(set_t) - SU_time or ind > SU_time - (len(set_t) - t):
+                            if technology_model == 'CONV1' or technology_model == 'CONV2':
+                                return sum(input[t - ind + SU_time + 1, car_input] for car_input in b_tec.set_input_carriers) \
+                                       == b_tec.var_size * SU_trajectory[ind - 1]
+                            elif technology_model == 'CONV3':
+                                return input[t - ind + SU_time + 1, main_car] <= b_tec.var_size * SU_trajectory[ind - 1]
+                            else:
+                                print('warning')
+                        else:
+                            return Constraint.Skip
+                    dis.const_SU_traject = Constraint(set_t, rule=init_SU_traject)
+
+            b_tec.dis_SU_trajectory = Disjunct(set_t, s_indicators, rule=init_SU_trajectory)
+
+            def bind_disjunctions(dis, t):
+                return [b_tec.dis_SU_trajectory[t, i] for i in s_indicators]
+            b_tec.disjunction_SU_load = Disjunction(set_t, rule=bind_disjunctions)
 
     return b_tec

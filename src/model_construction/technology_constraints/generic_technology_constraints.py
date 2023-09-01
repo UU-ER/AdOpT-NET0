@@ -665,6 +665,8 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
     min_part_load = performance_data['min_part_load']
     ramping_rate = tec_data.performance_data['ramping_rate']
     standby_power = tec_data.performance_data['standby_power']
+    SU_time = tec_data.performance_data['SU_time']
+    SD_time = tec_data.performance_data['SD_time']
     main_car = performance_data['main_input_carrier']
 
     if 'input_ratios' in performance_data:
@@ -703,11 +705,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
             if ind == 0:  # technology off
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power == 0:
-                    def init_input_off(const, car_input):
-                        return input[t, car_input] == 0
-                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
-                else:
+                if standby_power > 0:
                     def init_input_off(const, car_input):
                         return input[t, car_input] >= 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -715,6 +713,16 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
                     def init_standby_power(const):
                         return input[t, main_car] == standby_power * b_tec.var_size * rated_power
                     dis.const_standby_power = Constraint(rule=init_standby_power)
+
+                elif SU_time + SD_time > 0:
+                    def init_input_off(const, car_input):
+                        return input[t, car_input] >= 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                else:
+                    def init_input_off(const, car_input):
+                        return input[t, car_input] == 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
                 def init_output_off(const, car_output):
                     return output[t, car_output] == 0
@@ -751,11 +759,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
             if ind == 0:  # technology off
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power == 0:
-                    def init_input_off(const, car_input):
-                        return input[t, car_input] == 0
-                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
-                else:
+                if standby_power > 0:
                     def init_input_off(const, car_input):
                         return input[t, car_input] >= 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -763,6 +767,16 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
                     def init_standby_power(const):
                         return input[t, main_car] == standby_power * b_tec.var_size * rated_power
                     dis.const_standby_power = Constraint(rule=init_standby_power)
+
+                elif SU_time + SD_time > 0:
+                    def init_input_off(const, car_input):
+                        return input[t, car_input] >= 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                else:
+                    def init_input_off(const, car_input):
+                        return input[t, car_input] == 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
                 def init_output_off(const, car_output):
                     return output[t, car_output] == 0
