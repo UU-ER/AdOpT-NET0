@@ -6,6 +6,9 @@ import numpy as np
 import requests
 import json
 import pandas as pd
+import json
+import scandir
+import os
 from timezonefinder import TimezoneFinder
 import src.data_management as dm
 from src.energyhub import EnergyHub
@@ -17,6 +20,33 @@ import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
+
+execute = 1
+
+if execute == 1:
+    # technology data location
+    root = 'C:/EHubversions/EHUB-Py/data/technology_data'
+
+    obj = os.scandir(root)
+
+    for entry in obj:
+        if entry.is_dir():
+            folderpath = os.path.join(root, entry.name)
+            obj2 = os.scandir(folderpath)
+            for entry2 in obj2:
+                if not entry2.is_dir():
+                    filepath = os.path.join(folderpath, entry2.name)
+                    with open(filepath, 'r') as json_file:
+                        technology_data = json.load(json_file)
+
+                        if "SU_time" in technology_data["TechnologyPerf"]:
+                            technology_data["TechnologyPerf"]["SU_time"] = 0
+                            technology_data["TechnologyPerf"]["SD_time"] = 0
+
+                    with open(filepath, 'w') as new_json:
+                        technology_data = json.dumps(technology_data, indent=2)
+                        new_json.write(technology_data)
+
 
 execute = 0
 
@@ -42,14 +72,15 @@ if execute == 1:
 
     # energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_2'].var_x[2].value
 
-execute = 1
+execute = 0
 
 if execute == 1:
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 05:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 06:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['testCONV3_2'])
+    # topology.define_new_technologies('test_node1', ['testCONV1_2', 'testSTOR'])
+    topology.define_new_technologies('test_node1', ['testCONV1_2'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -60,10 +91,11 @@ if execute == 1:
     # DEMAND
     demand_h = np.ones(len(topology.timesteps))
     demand_h[0] = 0.75
-    demand_h[1] = 0.5
+    demand_h[1] = 0
     demand_h[2] = 1
-    demand_h[3] = 0
+    demand_h[3] = 1
     demand_h[4] = 0
+    demand_h[5] = 1
     data.read_demand_data('test_node1', 'heat', demand_h)
 
     # PRICE DATA
@@ -89,12 +121,14 @@ if execute == 1:
     #
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
+    configuration.performance.dynamics = 2
+    configuration.performance.dynamicsOn = ['testCONV1_2']
 
     energyhub = EnergyHub(data, configuration)
     # Solve model
     energyhub.quick_solve()
     print('finish')
-    # energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_2'].var_x[2].value
+    # energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_2'].var_x[2].value
 
 execute = 0
 
