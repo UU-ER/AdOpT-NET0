@@ -813,20 +813,20 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
 
     # add ramping rates
         # add ramping rates
-        if not ramping_rate == 0:
-            def init_ramping_down_rate(const, t):
-                if t > 1:
-                    return -ramping_rate <= input[t, main_car] - input[t - 1, main_car]
-                else:
-                    return Constraint.Skip
-            b_tec.const_ramping_down_rate = Constraint(set_t, rule=init_ramping_down_rate)
+    if not ramping_rate == 0:
+        def init_ramping_down_rate(const, t):
+            if t > 1:
+                return -ramping_rate <= input[t, main_car] - input[t - 1, main_car]
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_down_rate = Constraint(set_t, rule=init_ramping_down_rate)
 
-            def init_ramping_up_rate(const, t):
-                if t > 1:
-                    return input[t, main_car] - input[t - 1, main_car] <= ramping_rate
-                else:
-                    return Constraint.Skip
-            b_tec.const_ramping_up_rate = Constraint(set_t, rule=init_ramping_up_rate)
+        def init_ramping_up_rate(const, t):
+            if t > 1:
+                return input[t, main_car] - input[t - 1, main_car] <= ramping_rate
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_up_rate = Constraint(set_t, rule=init_ramping_up_rate)
 
     # constraint on input ratios
     def init_input_input(const, t, car_input):
