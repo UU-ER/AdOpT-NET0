@@ -195,18 +195,15 @@ class NodeData():
 
 class GlobalData():
     """
-        Class to handle node data. It initially set to 0 the data
+    Class to handle global data. All global time-dependent input data goes here
     """
-
-    # Initialize Global Data (all global time-dependent input data goes here)
-
     def __init__(self, topology):
-         self.data = {}
-         self.data_clustered = {}
+        self.data = {}
+        self.data_clustered = {}
 
-         variables = ['subsidy', 'tax']
-         self.data['carbon_prices'] = pd.DataFrame(index=topology.timesteps)
-         for var in variables:
+        variables = ['subsidy', 'tax']
+        self.data['carbon_prices'] = pd.DataFrame(index=topology.timesteps)
+        for var in variables:
             self.data['carbon_prices'][var] = np.zeros(len(topology.timesteps))
 
 

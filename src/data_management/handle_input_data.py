@@ -33,15 +33,11 @@ class DataHandle:
 
         :param SystemTopology topology: SystemTopology Class :func:`~src.data_management.handle_topology.SystemTopology`
         """
+        self.topology = topology
         self.global_data = {}
         self.node_data = {}
         self.technology_data = {}
         self.network_data = {}
-
-
-        self.topology = topology
-
-
 
         self.global_data = dm.GlobalData(topology)
 
