@@ -6,7 +6,7 @@ import src.global_variables as global_variables
 
 def add_globals(energyhub):
     r"""
-        Adds all nodes with respective data to the model
+        Adds globals with respective data to the model
 
         This function initializes parameters and decision variables that are on a global level. These include the total
         costs, emissions and carbon tax or carbon subsidy
@@ -36,30 +36,6 @@ def add_globals(energyhub):
 
     if global_variables.clustered_data == 1:
         model.set_t_clustered = RangeSet(1, len(data.topology.timesteps_clustered))
-
-    # DEFINE VARIABLES
-    # Global cost variables
-    model.var_node_cost = Var()
-    model.var_netw_cost = Var()
-    model.var_total_cost = Var()
-
-    # Global Emission variables
-    model.var_emissions_pos = Var()
-    model.var_emissions_neg = Var()
-    model.var_emissions_net = Var()
-
-    # DEFINE VARIABLES
-    # Global cost variables
-    model.var_node_cost = Var()
-    model.var_netw_cost = Var()
-    model.var_total_cost = Var()
-    model.var_carbon_revenue = Var()
-    model.var_carbon_cost = Var()
-
-    # Global Emission variables
-    model.var_emissions_pos = Var()
-    model.var_emissions_neg = Var()
-    model.var_emissions_net = Var()
 
     # Parameters
 
