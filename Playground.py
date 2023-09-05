@@ -18,6 +18,7 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
+
 execute = 1
 
 if execute == 1:
@@ -27,7 +28,8 @@ if execute == 1:
 
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays.N = 4
+    # configuration.optimization.typicaldays.N = 4
+    configuration.optimization.timestaging = 2
     # configuration.energybalance.violation = -1
     # configuration.energybalance.copperplate = 0
 

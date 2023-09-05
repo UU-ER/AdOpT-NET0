@@ -273,15 +273,46 @@ def add_system_costs(energyhub):
                        for node in model.set_nodes) * configuration.energybalance.violation
         model.const_violation_cost = Constraint(rule=init_violation_cost)
 
+    # Calculate emission cost and revenues (if applicable)
+
+    def init_carbon_revenue(const):
+        revenue_carbon_from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_neg[t] *
+                                                        nr_timesteps_averaged * model.para_carbon_subsidy[t]
+                                                    for t in set_t)
+                                                for tec in model.node_blocks[node].set_tecsAtNode)
+                                            for node in model.set_nodes)
+        return revenue_carbon_from_technologies == model.var_carbon_revenue
+    model.const_revenue_carbon = Constraint(rule=init_carbon_revenue)
+
+
+
+    def init_carbon_cost(const):
+        cost_carbon_from_technologies = sum(sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_tec_emissions_pos[t] *
+                                                    nr_timesteps_averaged * model.para_carbon_tax[t]
+                                                for t in set_t)
+                                            for tec in model.node_blocks[node].set_tecsAtNode)
+                                        for node in model.set_nodes)
+        cost_carbon_from_carriers = sum(sum(model.node_blocks[node].var_car_emissions_pos[t] * nr_timesteps_averaged * model.para_carbon_tax[t]
+                                        for t in set_t)
+                                    for node in model.set_nodes)
+        if not configuration.energybalance.copperplate:
+            cost_carbon_from_networks = sum(sum(model.network_block[netw].var_netw_emissions_pos[t] * nr_timesteps_averaged * model.para_carbon_tax[t]
+                                            for t in set_t)
+                                        for netw in model.set_networks)
+        else:
+            cost_carbon_from_networks = 0
+        return cost_carbon_from_technologies + cost_carbon_from_carriers + cost_carbon_from_networks == model.var_carbon_cost
+    model.const_cost_carbon = Constraint(rule=init_carbon_cost)
+
+
     def init_total_cost(const):
         if configuration.energybalance.violation >= 0:
             violation_cost = model.var_violation_cost
         else:
             violation_cost = 0
         return \
-            model.var_node_cost + model.var_netw_cost + violation_cost == \
+            model.var_node_cost + model.var_netw_cost + model.var_carbon_cost - model.var_carbon_revenue + violation_cost == \
             model.var_total_cost
-
     model.const_cost = Constraint(rule=init_total_cost)
 
     return model

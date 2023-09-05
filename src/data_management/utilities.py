@@ -193,4 +193,20 @@ class NodeData():
         self.location.altitude = None
 
 
+class GlobalData():
+    """
+    Class to handle global data. All global time-dependent input data goes here
+    """
+    def __init__(self, topology):
+        self.data = {}
+        self.data_clustered = {}
+
+        variables = ['subsidy', 'tax']
+        self.data['carbon_prices'] = pd.DataFrame(index=topology.timesteps)
+        for var in variables:
+            self.data['carbon_prices'][var] = np.zeros(len(topology.timesteps))
+
+
+
+
 
