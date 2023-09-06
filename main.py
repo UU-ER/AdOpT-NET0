@@ -12,7 +12,7 @@ data_save_path = r'.\user_data\data_handle_test'
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
+topology.define_time_horizon(year=2008,start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
 topology.define_nodes(['onshore', 'offshore'])
 topology.define_new_technologies('onshore', ['Storage_Battery'])

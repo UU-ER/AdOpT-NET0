@@ -1,0 +1,41 @@
+{
+  "size_min": 0,
+  "size_max": 10000000.0,
+  "size_is_int": 0,
+  "decommission": 0,
+  "Economics": {
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "unit_CAPEX": 0.0,
+    "piecewise_CAPEX": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "OPEX_variable": 0.0,
+    "OPEX_fixed": 0.0,
+    "discount_rate": 0.1,
+    "lifetime": 50.0,
+    "decommission_cost": 0
+  },
+  "TechnologyPerf": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "electricity"
+    ],
+    "main_input_carrier": "electricity",
+    "output_carrier": [
+      "electricity"
+    ],
+    "emission_factor": 0,
+    "allow_only_one_direction": 0,
+    "performance": {
+      "eta_in": 0.96,
+      "eta_out": 0.96,
+      "lambda": 0,
+      "theta": 0,
+      "charge_max": 0.2,
+      "discharge_max": 0.2
+    }
+  },
+  "tec_type": "STOR"
+}

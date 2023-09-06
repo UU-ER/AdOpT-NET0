@@ -19,7 +19,6 @@ def preprocess_demand_data_eraa(scenario, year, climate_year, region):
     if scenario == 'NT':
         filename = 'Demand_TimeSeries_'+ str(year)+'_NationalTrends.xlsx'
         skip_rows = 10
-
     elif scenario == 'GA':
         filename = 'Demand_TimeSeries_' + str(year) + '_GA_release.xlsb'
         skip_rows = 6
