@@ -140,12 +140,24 @@ class EnergyHub:
         self.model.var_emissions_pos = Var()
         self.model.var_emissions_neg = Var()
         self.model.var_emissions_net = Var()
+        self.model.var_carbon_revenue = Var()
+        self.model.var_carbon_cost = Var()
+
+        # Parameters
+        def init_carbon_subsidy(para, t):
+            return self.data.global_data.data['carbon_prices']['subsidy'][t - 1]
+
+        self.model.para_carbon_subsidy = Param(self.model.set_t_full, rule=init_carbon_subsidy, mutable=True)
+
+        def init_carbon_tax(para, t):
+            return self.data.global_data.data['carbon_prices']['tax'][t - 1]
+
+        self.model.para_carbon_tax = Param(self.model.set_t_full, rule=init_carbon_tax, mutable=True)
 
         # Model construction
         if not self.configuration.energybalance.copperplate:
             self.model = mc.add_networks(self)
         self.model = mc.add_nodes(self)
-        self.model = mc.add_globals(self)
 
         print('Constructing model completed in ' + str(round(time.time() - start)) + ' s')
 

@@ -37,8 +37,20 @@ def add_globals(energyhub):
     if global_variables.clustered_data == 1:
         model.set_t_clustered = RangeSet(1, len(data.topology.timesteps_clustered))
 
-    # Parameters
+    # DEFINE VARIABLES
+    # Global cost variables
+    model.var_node_cost = Var()
+    model.var_netw_cost = Var()
+    model.var_total_cost = Var()
+    model.var_carbon_revenue = Var()
+    model.var_carbon_cost = Var()
 
+    # Global Emission variables
+    model.var_emissions_pos = Var()
+    model.var_emissions_neg = Var()
+    model.var_emissions_net = Var()
+
+    # Parameters
     def init_carbon_subsidy(para, t):
         return data.global_data.data['carbon_prices']['subsidy'][t - 1]
     model.para_carbon_subsidy = Param(model.set_t_full, rule=init_carbon_subsidy, mutable=True)
