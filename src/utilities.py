@@ -3,7 +3,10 @@ import numpy as np
 from src.model_construction import annualize, set_capex_model, set_discount_rate
 
 def get_gurobi_parameters(solveroptions):
-    solver = SolverFactory(solveroptions.solver)
+    if solveroptions.solver.startswith('gurobi'):
+        solver = SolverFactory(solveroptions.solver, solver_io='python')
+    else:
+        solver = SolverFactory(solveroptions.solver)
     solver.options['TimeLimit'] = solveroptions.timelim * 3600
     solver.options['MIPGap'] = solveroptions.mipgap
     solver.options['MIPFocus'] = solveroptions.mipfocus
