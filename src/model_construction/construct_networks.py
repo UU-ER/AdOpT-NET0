@@ -110,7 +110,6 @@ def define_size(b_netw, netw_data):
         b_netw.para_rated_capacity = 1
 
     b_netw.para_size_min = Param(domain=NonNegativeReals, initialize=size_min, mutable=True)
-    b_netw.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, mutable=True)
 
     if existing:
         # Parameters for initial size
@@ -260,17 +259,24 @@ def define_size_arc(b_arc, b_netw, netw_data, node_from, node_to):
     Variables defined:
     - var_size for each arc
     """
+    
+    
     existing = netw_data.existing
     decommission = netw_data.decommission
     size_is_int = netw_data.size_is_int
     distance = netw_data.distance
-
-    b_arc.distance = distance.at[node_from, node_to]
-
+    
     if size_is_int:
         size_domain = NonNegativeIntegers
     else:
         size_domain = NonNegativeReals
+        
+    b_arc.para_size_max = Param(domain=size_domain,
+                           initialize=netw_data.size_max_arcs.at[node_from, node_to])
+    
+    b_arc.distance = distance.at[node_from, node_to]
+
+
 
     if existing:
         # Existing network
@@ -285,7 +291,7 @@ def define_size_arc(b_arc, b_netw, netw_data, node_from, node_to):
     else:
         # New network
         b_arc.var_size = Var(domain=size_domain,
-                             bounds=(b_netw.para_size_min, b_netw.para_size_max))
+                             bounds=(b_netw.para_size_min, b_arc.para_size_max))
 
     return b_arc
 
@@ -303,13 +309,13 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
 
     def calculate_max_capex():
         if economics.capex_model == 1:
-            max_capex = b_netw.para_size_max * \
+            max_capex = b_arc.para_size_max * \
                    b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
         elif economics.capex_model == 2:
-            max_capex = b_netw.para_size_max * \
+            max_capex = b_arc.para_size_max * \
                    b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
         elif economics.capex_model == 3:
-            max_capex = b_netw.para_size_max * \
+            max_capex = b_arc.para_size_max * \
                    b_arc.distance * b_netw.para_capex_gamma1 + \
                    b_arc.var_size * b_netw.para_capex_gamma2 + \
                    b_netw.para_capex_gamma3
@@ -375,10 +381,10 @@ def define_flow(b_arc, b_netw, set_t):
 
     b_arc.var_flow = Var(set_t, domain=NonNegativeReals,
                          bounds=(b_netw.para_size_min * b_netw.para_rated_capacity,
-                                 b_netw.para_size_max * b_netw.para_rated_capacity))
+                                 b_arc.para_size_max * b_netw.para_rated_capacity))
     b_arc.var_losses = Var(set_t, domain=NonNegativeReals,
                            bounds=(b_netw.para_size_min * b_netw.para_rated_capacity,
-                                   b_netw.para_size_max * b_netw.para_rated_capacity))
+                                   b_arc.para_size_max * b_netw.para_rated_capacity))
 
     # Losses
     def init_flowlosses(const, t):
@@ -402,10 +408,10 @@ def define_energyconsumption_arc(b_arc, b_netw, set_t):
     """
     b_arc.var_consumption_send = Var(set_t, b_netw.set_consumed_carriers,
                                      domain=NonNegativeReals,
-                                     bounds=(b_netw.para_size_min, b_netw.para_size_max))
+                                     bounds=(b_netw.para_size_min, b_arc.para_size_max))
     b_arc.var_consumption_receive = Var(set_t, b_netw.set_consumed_carriers,
                                         domain=NonNegativeReals,
-                                        bounds=(b_netw.para_size_min, b_netw.para_size_max))
+                                        bounds=(b_netw.para_size_min, b_arc.para_size_max))
 
     # Sending node
     def init_consumption_send(const, t, car):

@@ -1,5 +1,6 @@
 from src.data_management.components.utilities import Economics
 import json
+import pandas as pd
 
 class Network:
     """
@@ -24,6 +25,7 @@ class Network:
         self.size_is_int = netw_data['size_is_int']
         self.size_min = netw_data['size_min']
         self.size_max = netw_data['size_max']
+        self.size_max_arcs = []
         self.decommission = netw_data['decommission']
         self.energy_consumption = {}
 
@@ -68,6 +70,14 @@ class Network:
                 self.energy_consumption[car]['receive']['k_flowDistance'] = 0
 
         self.energy_consumption = self.energy_consumption
+
+    def calculate_max_size_arc(self):
+        if self.size_max_arcs == None:
+            # Use max size
+            self.size_max_arcs = pd.DataFrame(self.size_max, index=self.distance.index, columns=self.distance.columns)
+
+
+
 
 
 def read_network_data_from_json(network):

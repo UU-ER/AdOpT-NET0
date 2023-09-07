@@ -344,6 +344,8 @@ class DataHandle:
             self.network_data[network] = comp.Network(network)
             self.network_data[network].connection = self.topology.networks_new[network]['connection']
             self.network_data[network].distance = self.topology.networks_new[network]['distance']
+            self.network_data[network].size_max_arcs = self.topology.networks_new[network]['size_max_arcs']
+            self.network_data[network].calculate_max_size_arc()
 
         # Existing Networks
         for network in self.topology.networks_existing:
