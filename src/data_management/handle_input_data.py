@@ -354,6 +354,7 @@ class DataHandle:
             self.network_data[network + '_existing'].connection = self.topology.networks_existing[network]['connection']
             self.network_data[network + '_existing'].distance = self.topology.networks_existing[network]['distance']
             self.network_data[network + '_existing'].size_initial = self.topology.networks_existing[network]['size']
+            self.network_data[network + '_existing'].calculate_max_size_arc()
 
     def pprint(self):
         """

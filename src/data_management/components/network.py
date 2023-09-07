@@ -72,9 +72,13 @@ class Network:
         self.energy_consumption = self.energy_consumption
 
     def calculate_max_size_arc(self):
-        if self.size_max_arcs == None:
-            # Use max size
-            self.size_max_arcs = pd.DataFrame(self.size_max, index=self.distance.index, columns=self.distance.columns)
+        if self.existing == 0:
+            if self.size_max_arcs == None:
+                # Use max size
+                self.size_max_arcs = pd.DataFrame(self.size_max, index=self.distance.index, columns=self.distance.columns)
+        elif self.existing == 1:
+            # Use initial size
+            self.size_max_arcs = self.size_initial
 
 
 
