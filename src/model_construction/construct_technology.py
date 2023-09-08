@@ -481,13 +481,13 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         elif technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
             b_tec = constraints_tec_hydro_open(b_tec, tec_data, energyhub)
 
-        if configuration.performance.dynamics == 1 or \
-                (configuration.performance.dynamics == 2 and (tec in configuration.performance.dynamicsOn)):
-            if technology_model not in {'CONV1', 'CONV2', 'CONV3'}:
-                warnings.warn(
-                    'Dynamics are not implemented for this technology type.')
-            else:
-                b_tec = constraints_SUSD_dynamics(b_tec, tec_data, energyhub)
+        # if configuration.performance.dynamics == 1 or \
+        #         (configuration.performance.dynamics == 2 and (tec in configuration.performance.dynamicsOn)):
+        #     if technology_model not in {'CONV1', 'CONV2', 'CONV3'}:
+        #         warnings.warn(
+        #             'Dynamics are not implemented for this technology type.')
+        #     else:
+        #         b_tec = constraints_SUSD_dynamics(b_tec, tec_data, energyhub)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)

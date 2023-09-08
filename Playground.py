@@ -21,7 +21,7 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-execute = 1
+execute = 0
 
 if execute == 1:
     # technology data location
@@ -72,15 +72,15 @@ if execute == 1:
 
     # energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_2'].var_x[2].value
 
-execute = 0
+execute = 1
 
 if execute == 1:
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 06:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 10:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1'])
-    # topology.define_new_technologies('test_node1', ['testCONV1_2', 'testSTOR'])
-    topology.define_new_technologies('test_node1', ['testCONV1_2'])
+    topology.define_new_technologies('test_node1', ['testCONV3_2', 'testSTOR'])
+    # topology.define_new_technologies('test_node1', ['testCONV3_2'])
 
     # Initialize instance of DataHandle
     data = dm.DataHandle(topology)
@@ -92,9 +92,9 @@ if execute == 1:
     demand_h = np.ones(len(topology.timesteps))
     demand_h[0] = 0.75
     demand_h[1] = 0
-    demand_h[2] = 1
+    demand_h[2] = 0
     demand_h[3] = 1
-    demand_h[4] = 0
+    demand_h[4] = 1
     demand_h[5] = 1
     data.read_demand_data('test_node1', 'heat', demand_h)
 
@@ -112,8 +112,11 @@ if execute == 1:
     import_lim = np.ones(len(topology.timesteps)) * 10
     data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
     export_lim = np.ones(len(topology.timesteps)) * 10
-    export_lim[4] = 0
+    # export_lim[4] = 0
     data.read_export_limit_data('test_node1', 'electricity', export_lim)
+    export_lim = np.ones(len(topology.timesteps)) * 0
+    export_lim[2] = 1
+    data.read_export_limit_data('test_node1', 'heat', export_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data()
@@ -122,7 +125,7 @@ if execute == 1:
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
     configuration.performance.dynamics = 2
-    configuration.performance.dynamicsOn = ['testCONV1_2']
+    configuration.performance.dynamicsOn = ['testCONV3_2']
 
     energyhub = EnergyHub(data, configuration)
     # Solve model

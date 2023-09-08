@@ -39,7 +39,7 @@
       "electricity"
     ],
     "emission_factor": 0,
-    "min_part_load": 0.1,
+    "min_part_load": 0.5,
     "performance": {
       "in": [
         0,
@@ -71,7 +71,7 @@
     "standby_power": 0,
     "min_uptime": 1,
     "min_downtime": 1,
-    "SU_time": 0,
+    "SU_time": 1,
     "SD_time": 0,
     "SU_load": 1,
     "SD_load": 1,
