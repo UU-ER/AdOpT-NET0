@@ -5,9 +5,9 @@ from src.energyhub import EnergyHub
 
 # General Settings
 settings = dm.Settings()
-settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230912/MES_results_test'
+settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230912/MES_results_Stage2'
 
-settings.new_technologies_stage = None
+settings.new_technologies_stage = 'Stage 2'
 settings.networks.existing_electricity = 1
 settings.networks.new_electricityAC = 0
 settings.networks.new_electricityDC = 0
@@ -21,7 +21,7 @@ nodes = dm.read_nodes(settings)
 topology = dm.define_topology(settings, nodes)
 topology = dm.define_installed_capacities(settings, nodes, topology)
 topology = dm.define_networks(settings, topology)
-# topology = define_new_technologies(settings, nodes, topology)
+topology = dm.define_new_technologies(settings, nodes, topology)
 
 data = dm.define_data_handle(topology, nodes)
 data = dm.define_generic_production(settings, nodes, data)

@@ -11,8 +11,8 @@ class Settings():
         self.year = 2030
         self.scenario = 'GA'
         self.climate_year = 2008
-        self.start_date = '01-01 00:00'
-        self.end_date = '12-31 23:00'
+        self.start_date = '05-01 00:00'
+        self.end_date = '05-10 23:00'
         self.data_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/WorkingFiles/DOSTA - HydrogenOffshore/00_CleanData/'
         self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230906/MES_NS_Benchmark'
 
@@ -161,7 +161,8 @@ def define_generic_production(settings, nodes, data):
         profile = pd.read_csv(data_path + '/ProductionProfiles_RE/' +
                               node + '_' +
                               str(settings.climate_year) + '.csv', index_col=0)
-        data.read_production_profile(node, 'electricity', profile['total'].to_numpy(), 1)
+        profile = profile['total'].to_numpy().round(1)
+        data.read_production_profile(node, 'electricity', profile, 1)
 
     return data
 
@@ -170,6 +171,18 @@ def define_hydro_inflow(settings, nodes, data):
 
     data_path = settings.data_path
 
+    new_tecs = pd.read_excel(data_path + '/InstalledCapacities_nonRE/InstalledCapacities_nonRE.xlsx',
+                             sheet_name='Capacities at node',
+                             index_col=0)
+    tecs_at_node = {}
+    for node in nodes.onshore_nodes:
+        tecs_at_node[node] = {'PowerPlant_Gas': round(new_tecs['Gas'][node],0),
+                        'PowerPlant_Nuclear': round(new_tecs['Nuclear'][node],0),
+                        'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed (cap)'][node],0),
+                        'Storage_PumpedHydro_Open': round(new_tecs['Hydro open (cap)'][node], 0),
+                        'Storage_PumpedHydro_Reservoir': round(new_tecs['Hydro reservoir (cap)'][node], 0)
+                        }
+
     # Hydro Inflow
     reservoir_inflow = pd.read_csv(data_path + 'Hydro_Inflows\HydroInflowReservoir' + str(settings.climate_year) + '.csv', index_col=0)
 
@@ -177,9 +190,11 @@ def define_hydro_inflow(settings, nodes, data):
 
     for node in nodes.onshore_nodes:
         if node in reservoir_inflow.columns:
+            # print(sum(tecs_at_node[node]['Storage_PumpedHydro_Reservoir'] < reservoir_inflow[node]))
             data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Reservoir',
                                                reservoir_inflow[node].tolist())
         if node in opencycle_inflow.columns:
+            # print(sum(tecs_at_node[node]['Storage_PumpedHydro_Open'] < opencycle_inflow[node]))
             data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Open', opencycle_inflow[node].tolist())
 
     return data
@@ -261,17 +276,10 @@ def define_new_technologies(settings, nodes, topology):
 
     data_path = settings.data_path
 
-    new_tecs = pd.read_excel(data_path + '/NewTechnologies/NewTechnologies.xlsx', index_col=0)
+    new_tecs = pd.read_excel(data_path + '/NewTechnologies/NewTechnologies.xlsx', index_col=0, sheet_name='NewTechnologies')
     stage = settings.new_technologies_stage
 
     if not stage == None:
-        for node in settings.node_aggregation:
-            tec_list = new_tecs[stage][settings.node_aggregation[node]].str.cat(sep = ", ")
-            tec_list = tec_list.split(', ')
-            tec_list = list(dict.fromkeys(tec_list))
-
-            new_tecs.at[node, stage] = ', '.join(str(s) for s in tec_list)
-
         for node in nodes.all:
             if not isinstance(new_tecs[stage][node], float):
                 new_technologies = new_tecs[stage][node].split(', ')
