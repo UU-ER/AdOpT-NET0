@@ -44,17 +44,6 @@ def read_nodes(settings):
     nodes.onshore_nodes = node_list[node_list['Type'] == 'onshore']['Node'].values.tolist()
     nodes.offshore_nodes = node_list[node_list['Type'] == 'offshore']['Node'].values.tolist()
     nodes.all = node_list['Node'].values.tolist()
-    #
-    # # Remove aggregated nodes
-    # for node in settings.node_aggregation:
-    #     nodes.all = [x for x in nodes.all if x not in settings.node_aggregation[node]]
-    #     nodes.onshore_nodes = [x for x in nodes.onshore_nodes if x not in settings.node_aggregation[node]]
-    #     nodes.offshore_nodes = [x for x in nodes.offshore_nodes if x not in settings.node_aggregation[node]]
-    #
-    # # Add new nodes
-    # nodes.all.extend(list(settings.node_aggregation.keys()))
-    # nodes.onshore_nodes.extend(list(settings.node_aggregation_type['onshore']))
-    # nodes.onshore_nodes.extend(list(settings.node_aggregation_type['offshore']))
 
     return nodes
 
@@ -211,7 +200,7 @@ def define_demand(settings, nodes, data):
 
 def define_imports_exports(settings, nodes, data):
 
-    data_path = settings.data_path + 'ImportExport/ImportExport_realistic.xlsx'
+    data_path = settings.data_path + 'ImportExport/ImportExport_partly_unlimited.xlsx'
     import_export = pd.read_excel(data_path, index_col=0)
 
     # IMPORT PRICES
@@ -232,27 +221,38 @@ def define_imports_exports(settings, nodes, data):
                                         np.ones(len(data.topology.timesteps)) * import_export['Export_' + car][node])
 
     # Emission Factor
-    import_emissions = {'electricity': 0.3,
-                        'hydrogen': -0.183
-                        }
+    import_emissions = {'electricity': 0.3}
     for node in nodes.onshore_nodes:
         for car in import_emissions:
             data.read_import_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * import_emissions[car])
+
+    export_emissions = {'hydrogen': -0.183}
+    for node in nodes.onshore_nodes:
+        for car in export_emissions:
+            data.read_export_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * export_emissions[car])
+
+    # Emission Price
+    carbontax = 80
+    data.read_carbon_price_data(carbontax * np.ones(len(data.topology.timesteps)), 'tax')
 
     return data
 
 
 def define_charging_efficiencies(settings, nodes, data):
-    installed_capacities = get_installed_capacities(settings, nodes)
+    data_path = settings.data_path
+
+    new_tecs = pd.read_excel(data_path + '/InstalledCapacities_nonRE/InstalledCapacities_nonRE.xlsx',
+                             sheet_name='Capacities at node',
+                             index_col=0)
 
     for node in nodes.onshore_nodes:
-        storage_at_node = installed_capacities[node]['HydroStorage_charging']
-        for storage in storage_at_node:
-            data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = \
-            installed_capacities[node]['HydroStorage_charging'][storage]['max_charge']
-            data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = \
-            installed_capacities[node]['HydroStorage_charging'][storage]['max_discharge']
-
+        tecs_at_node = {'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed (charge)'][node], 0),
+                        'Storage_PumpedHydro_Open': round(new_tecs['Hydro open (charge)'][node], 0),
+                        'Storage_PumpedHydro_Reservoir': round(new_tecs['Hydro reservoir (charge)'][node], 0)
+                        }
+        for storage in tecs_at_node:
+            if tecs_at_node[storage] > 0:
+                data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = tecs_at_node[storage]
 
     return data
 
@@ -290,13 +290,13 @@ def define_configuration():
     configuration.optimization.save_log_files = 1
     configuration.optimization.monte_carlo.on = 0
     configuration.optimization.monte_carlo.N = 5
-    configuration.optimization.typicaldays = 0
+    configuration.optimization.typicaldays.N = 0
     configuration.solveroptions.timelim = 20
 
     configuration.solveroptions.intfeastol = 1e-3
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
-    configuration.optimization.objective = 'costs'
-    configuration.optimization.pareto_points = 8
+    configuration.optimization.objective = 'pareto'
+    configuration.optimization.pareto_points = 1
 
     return configuration

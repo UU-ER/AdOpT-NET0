@@ -21,6 +21,7 @@ class ResultsHandle:
             'Time_stage',
             'Total_Cost',
             'Emission_Cost',
+            'Emission_Revenues',
             'Technology_Cost',
             'Network_Cost',
             'Import_Cost',
@@ -99,6 +100,7 @@ class OptimizationResults:
         """
         self.summary = pd.DataFrame(columns=['Total_Cost',
                                                'Emission_Cost',
+                                               'Emission_Revenues',
                                                'Technology_Cost',
                                                'Network_Cost',
                                                'Import_Cost',
@@ -150,9 +152,8 @@ class OptimizationResults:
 
         # Economics
         total_cost = model.var_total_cost.value
-        # emission_cost = model.var_emission_cost.value
-        # Todo: Add this here, if it is done
-        emission_cost = 0
+        carbon_costs = model.var_carbon_cost.value
+        carbon_revenues = model.var_carbon_revenue.value
         set_t = model.set_t_full
         nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
@@ -218,7 +219,7 @@ class OptimizationResults:
 
         self.summary.loc[len(self.summary.index)] = \
             [total_cost,
-             emission_cost,
+             carbon_costs, carbon_revenues,
              tec_cost, netw_cost,
              import_cost, export_revenue,
              violation_cost,

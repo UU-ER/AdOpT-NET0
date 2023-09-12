@@ -317,7 +317,7 @@ def define_capex_arc(b_arc, b_netw, netw_data, node_from, node_to):
         elif economics.capex_model == 3:
             max_capex = b_arc.para_size_max * \
                    b_arc.distance * b_netw.para_capex_gamma1 + \
-                   b_netw.para_size_max * b_netw.para_capex_gamma2 + \
+                   b_arc.para_size_max * b_netw.para_capex_gamma2 + \
                    b_netw.para_capex_gamma3
         return (0, max_capex)
 

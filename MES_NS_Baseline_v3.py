@@ -5,7 +5,7 @@ from src.energyhub import EnergyHub
 
 # General Settings
 settings = dm.Settings()
-settings.save_path = './/ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230912/MES_results.xlsx'
+settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230912/MES_results_test'
 
 settings.new_technologies_stage = None
 settings.networks.existing_electricity = 1
@@ -34,7 +34,7 @@ tec_data_path = './cases/MES_NorthSea/Technology_Data'
 # write_to_technology_data(tec_data_path, settings)
 data.read_technology_data(path=tec_data_path)
 data.read_network_data()
-# data = define_charging_efficiencies(settings, nodes, data)
+data = dm.define_charging_efficiencies(settings, nodes, data)
 
 # Solve
 energyhub = EnergyHub(data, configuration)
