@@ -92,7 +92,7 @@ class SystemTopology:
         else:
             raise KeyError('The node you are trying to add technologies to does not exist.')
 
-    def define_new_network(self, network, connections, distance):
+    def define_new_network(self, network, connections, distance, size_max_arcs = None):
         """
         Defines network that can be constructed in the analysis
 
@@ -107,6 +107,7 @@ class SystemTopology:
         self.networks_new[network] = {}
         self.networks_new[network]['connection'] = connections
         self.networks_new[network]['distance'] = distance
+        self.networks_new[network]['size_max_arcs'] = size_max_arcs
 
     def define_existing_network(self, network, size, distance):
         """
