@@ -46,14 +46,6 @@ class Technology:
         else:
             self.emissions_based_on = 'input'
 
-        technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open', 'CONV4']
-        if global_variables.clustered_data and (self.technology_model not in technologies_modelled_with_full_res):
-            self.modelled_with_full_res = 0
-        if not 'modelled_with_full_res' in tec_data:
-            self.modelled_with_full_res = 1
-        else:
-            self.modelled_with_full_res = tec_data['modelled_with_full_res']
-
         self.fitted_performance = None
 
     def fit_technology_performance(self, node_data):
@@ -64,12 +56,7 @@ class Technology:
         :param pd node_data: Dataframe of climate data
         """
         location = node_data.location
-
-        # Which tecs are modelled with full resolution?
-        if self.modelled_with_full_res:
-            climate_data = node_data.data['climate_data']
-        else:
-            climate_data = node_data.data_clustered['climate_data']
+        climate_data = node_data.data['climate_data']
 
         # Derive performance parameters for respective performance function type
         # GENERIC TECHNOLOGIES

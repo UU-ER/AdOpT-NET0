@@ -33,11 +33,14 @@ class DataHandle:
 
         :param SystemTopology topology: SystemTopology Class :func:`~src.data_management.handle_topology.SystemTopology`
         """
+        self.topology = topology
+        self.global_data = {}
         self.node_data = {}
         self.technology_data = {}
         self.network_data = {}
 
-        self.topology = topology
+        self.global_data = dm.GlobalData(topology)
+
 
         # Initialize Node data
         for node in self.topology.nodes:
@@ -240,6 +243,25 @@ class DataHandle:
         self.node_data[node].data['import_limit'][carrier] = dm.shorten_input_data(import_limit_data,
                                                                                    len(self.topology.timesteps))
 
+    def read_carbon_price_data(self, carbon_price_data, type):
+        """
+        Reads carbon price data. The price is the same for all nodes. Depending on the type, it can represent a carbon
+        tax or a subsidy for negative emissions
+
+        Note that carbon price is zero if not specified otherwise.
+
+        :param list carbon_price_data: list of cost data for the carbon tax/subsidy. Needs to have the same length as number of \
+        time steps.
+        :param str type: 'tax' or 'subsidy' depending on what the carbon cost represents in the model
+        :return: self at ``node_data[node]['carbon_tax'/'carbon_subsidy']``
+        """
+        if type == 'tax':
+            self.global_data.data['carbon_prices']['tax'] = carbon_price_data
+
+        elif type == 'subsidy':
+            self.global_data.data['carbon_prices']['subsidy'] = carbon_price_data
+
+
     def read_export_emissionfactor_data(self, node, carrier, export_emissionfactor_data):
         """
         Reads export emission factor data of carrier to node
@@ -412,6 +434,7 @@ class ClusteredDataHandle(DataHandle):
         self.node_data = data.node_data
         self.technology_data = {}
         self.network_data = data.network_data
+        self.global_data = data.global_data
 
         # k-means specs
         self.k_means_specs = dm.simplification_specs(data.topology.timesteps)
@@ -468,6 +491,12 @@ class ClusteredDataHandle(DataHandle):
                     self.node_data[node].data_clustered[series1][series2] = \
                         dm.reshape_df(clustered_data[node][series1][series2], None, 1)
 
+        carbon_prices = self.global_data.data['carbon_prices']
+        self.global_data.data_clustered['carbon_prices'] = pd.DataFrame(
+            index=self.topology.timesteps_clustered)
+        for series3 in carbon_prices:
+            self.global_data.data_clustered['carbon_prices'][series3] = dm.reshape_df(clustered_data['global_data']['carbon_prices'][series3], None, 1)
+
     def __compile_full_resolution_matrix(self, nr_time_intervals_per_day):
         """
         Compiles full resolution matrix to be clustered
@@ -488,6 +517,18 @@ class ClusteredDataHandle(DataHandle):
                     to_add = dm.reshape_df(node_data[node].data[series1][series2],
                                            series_names, nr_time_intervals_per_day)
                     full_resolution = pd.concat([full_resolution, to_add], axis=1)
+
+        carbon_prices = self.global_data.data['carbon_prices']
+        for series3 in carbon_prices:
+            series_names = dm.define_multiindex([
+                ['global_data'] * nr_time_intervals_per_day,
+                ['carbon_prices'] * nr_time_intervals_per_day,
+                [series3] * nr_time_intervals_per_day,
+                list(range(1, nr_time_intervals_per_day + 1))
+            ])
+            to_add = dm.reshape_df(carbon_prices[series3],
+                                   series_names, nr_time_intervals_per_day)
+            full_resolution = pd.concat([full_resolution, to_add], axis=1)
         return full_resolution
 
 
@@ -508,6 +549,8 @@ class DataHandle_AveragedData(DataHandle):
         self.node_data = {}
         self.technology_data = {}
         self.network_data = data.network_data
+        self.global_data = data.global_data
+
 
         if hasattr(data, 'k_means_specs'):
             self.k_means_specs = data.k_means_specs
@@ -515,8 +558,8 @@ class DataHandle_AveragedData(DataHandle):
         # averaging specs
         self.averaged_specs = dm.simplification_specs(data.topology.timesteps)
 
-        # perform averaging for all nodal data
-        self.__average_node_data(data, nr_timesteps_averaged)
+        # perform averaging for all nodal and global data
+        self.__average_data(data, nr_timesteps_averaged)
 
         # read technology data
         self.__read_technology_data(data, nr_timesteps_averaged)
@@ -529,15 +572,17 @@ class DataHandle_AveragedData(DataHandle):
 
         global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
-    def __average_node_data(self, data_full_resolution, nr_timesteps_averaged):
+    def __average_data(self, data_full_resolution, nr_timesteps_averaged):
         """
-        Averages all nodal data
+        Averages all nodal and global data
 
         :param data_full_resolution: Data full resolution
         :param nr_timesteps_averaged: How many time-steps should be averaged?
         """
 
         node_data = data_full_resolution.node_data
+        global_data = data_full_resolution.global_data
+
 
         # Average data for full resolution
         # adjust timesteps
@@ -557,6 +602,13 @@ class DataHandle_AveragedData(DataHandle):
                     self.node_data[node].data[series1][series2] = \
                         dm.average_series(node_data[node].data[series1][series2], nr_timesteps_averaged)
 
+        self.global_data = dm.GlobalData(self.topology)
+        for series1 in global_data.data:
+            self.global_data.data[series1] = pd.DataFrame(index=self.topology.timesteps)
+            for series2 in global_data.data[series1]:
+                self.global_data.data[series1][series2] = \
+                    dm.average_series(global_data.data[series1][series2], nr_timesteps_averaged)
+
         # Average data for clustered resolution
         if global_variables.clustered_data == 1:
             # adjust timesteps
@@ -564,12 +616,21 @@ class DataHandle_AveragedData(DataHandle):
             start_interval = min(self.topology.timesteps_clustered)
             self.topology.timesteps_clustered = range(start_interval, int((end_interval + 1) / nr_timesteps_averaged))
 
+
             for node in node_data:
                 for series1 in node_data[node].data:
                     self.node_data[node].data_clustered[series1] = pd.DataFrame(self.topology.timesteps_clustered)
                     for series2 in node_data[node].data[series1]:
                         self.node_data[node].data_clustered[series1][series2] = \
                             dm.average_series(node_data[node].data_clustered[series1][series2], nr_timesteps_averaged)
+
+
+            for series1 in global_data.data:
+                self.global_data.data_clustered[series1] = pd.DataFrame(self.topology.timesteps_clustered)
+                for series2 in global_data.data[series1]:
+                    self.global_data.data_clustered[series1][series2] = \
+                        dm.average_series(global_data.data_clustered[series1][series2], nr_timesteps_averaged)
+
 
     def __read_technology_data(self, data_full_resolution, nr_timesteps_averaged):
         """

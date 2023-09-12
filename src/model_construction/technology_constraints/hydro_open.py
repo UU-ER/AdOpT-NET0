@@ -68,7 +68,6 @@ def constraints_tec_hydro_open(b_tec, tec_data, energyhub):
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
-    modelled_with_full_res = tec_data.modelled_with_full_res
 
     # Full resolution
     input = b_tec.var_input

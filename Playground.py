@@ -18,39 +18,25 @@ from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
-import networkx as nx
 
 execute = 1
 
-# How to draw a network
-if execute == 1:
-    network = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230703/MES_NS_Baseline_detailed_1.xlsx',
-                             sheet_name='Networks')
-
-    G = nx.from_pandas_edgelist(network, source='fromNode', target='toNode', edge_attr='Size')
-    nx.draw_networkx(G, arrows=True, nodelist = [x for x in network['fromNode'] if x.startswith('onNL')])
-
-
-
-execute = 0
-
 if execute == 1:
     # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    data = dm.load_object(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./test/test_data/time_algorithms.p')
     data.read_technology_data()
-    # nr_days_cluster = 40
-    # clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
-    #
+
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
-    # configuration.optimization.timestaging = 4
+    # configuration.optimization.typicaldays.N = 4
+    configuration.optimization.timestaging = 2
+    # configuration.energybalance.violation = -1
+    # configuration.energybalance.copperplate = 0
 
     energyhub = EnergyHub(data, configuration)
-    energyhub.construct_model()
-    energyhub.construct_balances()
-
     # Solve model
-    energyhub.solve_model()
+    energyhub.quick_solve()
+    print('finish')
 
 execute = 0
 
@@ -121,7 +107,7 @@ if execute == 1:
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./data/climate_data_onshore.txt')
+    data.read_climate_data_from_file('test_node1', r'.\data\climate_data_onshore.txt')
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 10
@@ -150,7 +136,7 @@ if execute == 1:
     # Solve model
     energyhub_clustered.solve_model()
     results1 = energyhub_clustered.write_results()
-    results1.write_excel(r'./userData/results_clustered')
+    results1.write_excel(r'.\userData\results_clustered')
 
 
     # SOLVE WITH FULL RESOLUTION
@@ -161,7 +147,7 @@ if execute == 1:
     # Solve model
     energyhub.solve_model()
     results2 = energyhub.write_results()
-    results2.write_excel(r'./userData/results_full')
+    results2.write_excel(r'.\userData\results_full')
 
 execute = 0
 #region How to formulate hierarchical models with blocks
@@ -399,7 +385,7 @@ if execute == 1:
 
     nr_seg = 2
     tec = 'testCONV3_3'
-    with open('./data/Technology_Data/' + tec + '.json') as json_file:
+    with open('./data/technology_data/' + tec + '.json') as json_file:
         technology_data = json.load(json_file)
 
     tec_data = technology_data['TechnologyPerf']

@@ -58,10 +58,10 @@ class EnergyHub:
 
         # INITIALIZE DATA
         self.data_storage = []
-        if not self.configuration.optimization.typicaldays == 0:
+        if not self.configuration.optimization.typicaldays.N == 0:
             # If clustered
             global_variables.clustered_data = 1
-            self.data_storage.append(dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays))
+            self.data_storage.append(dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays.N))
         else:
             self.data_storage.append(data)
 
@@ -141,6 +141,19 @@ class EnergyHub:
         self.model.var_emissions_pos = Var()
         self.model.var_emissions_neg = Var()
         self.model.var_emissions_net = Var()
+        self.model.var_carbon_revenue = Var()
+        self.model.var_carbon_cost = Var()
+
+        # Parameters
+        def init_carbon_subsidy(para, t):
+            return self.data.global_data.data['carbon_prices']['subsidy'][t - 1]
+
+        self.model.para_carbon_subsidy = Param(self.model.set_t_full, rule=init_carbon_subsidy, mutable=True)
+
+        def init_carbon_tax(para, t):
+            return self.data.global_data.data['carbon_prices']['tax'][t - 1]
+
+        self.model.para_carbon_tax = Param(self.model.set_t_full, rule=init_carbon_tax, mutable=True)
 
         # Model construction
         if not self.configuration.energybalance.copperplate:
@@ -191,7 +204,7 @@ class EnergyHub:
         """
         Adds technologies retrospectively to the model.
 
-        After adding a technology to a node, the anergy and emission balance need to be re-constructed, as well as the
+        After adding a technology to a node, the energy and emission balance need to be re-constructed, as well as the
         costs recalculated. To solve the model, :func:`~construct_balances` and then solve again.
 
         :param str nodename: name of node for which technology is installed
@@ -247,9 +260,9 @@ class EnergyHub:
         elif objective == 'emissions_net':
             self.__optimize_emissions_net()
         elif objective == 'emissions_minC':
-            self.__optimize_emissions_minC()
-        elif objective == 'costs_at_emissions':
-            self.__optimize_costs_at_emissions()
+            self.__optimize_costs_minE()
+        elif objective == 'costs_emissionlimit':
+            self.__optimize_costs_emissionslimit()
         else:
             raise Exception("objective in Configurations is incorrect")
 
@@ -292,9 +305,9 @@ class EnergyHub:
         self.__call_solver()
 
 
-    def __optimize_costs_at_emissions(self):
+    def __optimize_costs_emissionlimit(self):
         """
-        Minimize costs at minimum emissions
+        Minimize costs at emission limit
         """
         emission_limit = self.configuration.optimization.emission_limit
         if self.model.find_component('const_emission_limit'):
@@ -307,7 +320,7 @@ class EnergyHub:
         self.__optimize_cost()
 
 
-    def __optimize_emissions_minC(self):
+    def __optimize_costs_minE(self):
         """
         Minimize costs at minimum emissions
         """
@@ -335,7 +348,7 @@ class EnergyHub:
 
         # Min Emissions
         global_variables.pareto_point = -1
-        self.__optimize_emissions_minC()
+        self.__optimize_costs_minE()
         emissions_min = self.model.var_emissions_net.value
 
         # Emission limit
@@ -347,7 +360,7 @@ class EnergyHub:
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
             self.model.const_emission_limit = Constraint(
-                expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.0001)
+                expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.005)
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
                 self.solver.add_constraint(self.model.const_emission_limit)
             self.__optimize_cost()

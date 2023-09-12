@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 from pyomo.environ import *
@@ -265,24 +266,23 @@ def test_simplification_algorithms():
     cost1 = energyhub1.model.var_total_cost.value
     assert energyhub1.solution.solver.termination_condition == 'optimal'
 
-    # k_means
+    # Typical days Method 2 (standard)
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 40
+    configuration.optimization.typicaldays.N = 40
     energyhub2 = ehub(data, configuration)
     energyhub2.quick_solve()
     cost2 = energyhub2.model.var_total_cost.value
     assert energyhub2.solution.solver.termination_condition == 'optimal'
-
     assert abs(cost1 - cost2) / cost1 <= 0.1
 
     # time_averaging
     configuration = ModelConfiguration()
     configuration.optimization.timestaging = 4
-    energyhub3 = ehub(data, configuration)
-    energyhub3.quick_solve()
-    cost3 = energyhub3.model.var_total_cost.value
-    assert energyhub3.solution.solver.termination_condition == 'optimal'
-    assert abs(cost1 - cost3) / cost1 <= 0.1
+    energyhub4 = ehub(data, configuration)
+    energyhub4.quick_solve()
+    cost4 = energyhub4.model.var_total_cost.value
+    assert energyhub4.solution.solver.termination_condition == 'optimal'
+    assert abs(cost1 - cost4) / cost1 <= 0.1
 
     # monte carlo
     configuration = ModelConfiguration()
@@ -290,7 +290,60 @@ def test_simplification_algorithms():
     configuration.optimization.monte_carlo.sd = 0.2
     configuration.optimization.monte_carlo.N = 2
     configuration.optimization.monte_carlo.on_what = ['Technologies']
-    energyhub4 = ehub(data, configuration)
-    energyhub4.quick_solve()
+    energyhub5 = ehub(data, configuration)
+    energyhub5.quick_solve()
+
+def test_carbon_tax():
+    """
+    Model with a furnace and a heat demand
+    """
+    data = dm.load_object(r'./test/test_data/carbon_tax.p')
+    configuration = ModelConfiguration()
+    data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
+    data.technology_data['onshore']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1'] = 0.9
+
+    energyhub = ehub(data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    # total emissions
+    emissionsTOT = energyhub.model.var_emissions_pos.value
+
+    # cost of carbon
+    carbon_cost1 = energyhub.model.var_carbon_cost.value
+    carbon_cost2 = emissionsTOT * 10
+    assert abs((carbon_cost1 - carbon_cost2) / carbon_cost1)<= 0.01
+
+def test_carbon_subsidy():
+    """
+    Model with DAC, import of electricity and heat
+    """
+    data = dm.load_object(r'./test/test_data/carbon_subsidy.p')
+
+    #test subsidy
+    carbon_subsidy = np.ones(len(data.topology.timesteps)) * 10
+    data.read_carbon_price_data(carbon_subsidy, 'subsidy')
+
+
+    configuration = ModelConfiguration()
+    energyhub = ehub(data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    # total emissions
+    negative_emissions = energyhub.model.var_emissions_neg.value
+
+    # cost of carbon
+    carbon_revenues1 = energyhub.model.var_carbon_revenue.value
+    carbon_revenues2 = negative_emissions * 10
+    assert abs((carbon_revenues1 - carbon_revenues2) / carbon_revenues1)<= 0.01
+
+
 
 
