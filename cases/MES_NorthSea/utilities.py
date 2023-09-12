@@ -12,7 +12,7 @@ class Settings():
         self.scenario = 'GA'
         self.climate_year = 2008
         self.start_date = '01-01 00:00'
-        self.end_date = '01-05 23:00'
+        self.end_date = '01-01 23:00'
         self.data_path = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/DataPreprocessing/00_CleanData/'
         self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230906/MES_NS_Benchmark'
 
@@ -91,9 +91,9 @@ def define_installed_capacities(settings, nodes, topology):
     for node in nodes.onshore_nodes:
         tecs_at_node = {'PowerPlant_Gas': round(new_tecs['Gas'][node],0),
                         'PowerPlant_Nuclear': round(new_tecs['Nuclear'][node],0),
-                        'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed'][node],0),
-                        'Storage_PumpedHydro_Open': round(new_tecs['Hydro open'][node], 0),
-                        'Storage_PumpedHydro_Reservoir': round(new_tecs['Hydro reservoir'][node], 0)
+                        'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed (cap)'][node],0),
+                        'Storage_PumpedHydro_Open': round(new_tecs['Hydro open (cap)'][node], 0),
+                        'Storage_PumpedHydro_Reservoir': round(new_tecs['Hydro reservoir (cap)'][node], 0)
                         }
 
         tecs_at_node = {k: v for k,v in tecs_at_node.items() if v > 0}
