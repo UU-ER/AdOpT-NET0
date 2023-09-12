@@ -5,14 +5,14 @@ from src.energyhub import EnergyHub
 
 # General Settings
 settings = dm.Settings()
-# settings.save_path = './cases/MES_NorthSea/Results/test.xlsx'
+settings.save_path = './/ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230912/MES_results.xlsx'
 
 settings.new_technologies_stage = None
 settings.networks.existing_electricity = 1
 settings.networks.new_electricityAC = 0
 settings.networks.new_electricityDC = 0
 settings.networks.new_hydrogen = 0
-
+#
 # Configuration
 configuration = dm.define_configuration()
 
@@ -28,7 +28,6 @@ data = dm.define_generic_production(settings, nodes, data)
 data = dm.define_hydro_inflow(settings, nodes, data)
 data = dm.define_demand(settings, nodes, data)
 data = dm.define_imports_exports(settings, nodes, data)
-# data = dm.define_exports(nodes, data)
 
 # Read data
 tec_data_path = './cases/MES_NorthSea/Technology_Data'
