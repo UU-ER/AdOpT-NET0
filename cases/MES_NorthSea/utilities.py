@@ -13,7 +13,7 @@ class Settings():
         self.climate_year = 2008
         self.start_date = '01-01 00:00'
         self.end_date = '01-01 23:00'
-        self.data_path = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/DataPreprocessing/00_CleanData/'
+        self.data_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/WorkingFiles/DOSTA - HydrogenOffshore/00_CleanData/'
         self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230906/MES_NS_Benchmark'
 
         self.node_aggregation_type = {
@@ -211,7 +211,7 @@ def define_demand(settings, nodes, data):
 
 def define_imports_exports(settings, nodes, data):
 
-    data_path = settings.data_path + 'ImportExport/ImportExport.xlsx'
+    data_path = settings.data_path + 'ImportExport/ImportExport_realistic.xlsx'
     import_export = pd.read_excel(data_path, index_col=0)
 
     # IMPORT PRICES
