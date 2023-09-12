@@ -12,7 +12,7 @@ class Settings():
         self.scenario = 'GA'
         self.climate_year = 2008
         self.start_date = '01-01 00:00'
-        self.end_date = '01-01 23:00'
+        self.end_date = '12-31 23:00'
         self.data_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/WorkingFiles/DOSTA - HydrogenOffshore/00_CleanData/'
         self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230906/MES_NS_Benchmark'
 
@@ -297,6 +297,6 @@ def define_configuration():
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
     configuration.optimization.objective = 'pareto'
-    configuration.optimization.pareto_points = 1
+    configuration.optimization.pareto_points = 3
 
     return configuration
