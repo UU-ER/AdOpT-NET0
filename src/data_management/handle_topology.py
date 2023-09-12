@@ -22,7 +22,7 @@ class SystemTopology:
         self.networks_new = {}
         self.networks_existing = {}
 
-    def define_time_horizon(self, year, start_date, end_date, resolution):
+    def define_time_horizon(self, year:int, start_date:str, end_date:str, resolution:float):
         """
         Defines the time horizon of the topology.
 
@@ -37,7 +37,7 @@ class SystemTopology:
         self.timestep_length_h = resolution
         self.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
 
-    def define_carriers(self, carriers):
+    def define_carriers(self, carriers:list):
         """
         Defines carriers to use in the analysis
 
@@ -47,7 +47,7 @@ class SystemTopology:
         """
         self.carriers = carriers
 
-    def define_nodes(self, nodes):
+    def define_nodes(self, nodes:list):
         """
         Defines nodes to use in the analysis
 
@@ -60,7 +60,7 @@ class SystemTopology:
             self.technologies_new[node] = {}
             self.technologies_existing[node] = {}
 
-    def define_new_technologies(self, node, technologies):
+    def define_new_technologies(self, node:str, technologies:list):
         """
         Defines technologies that can be constructed in the analysis
 
@@ -76,7 +76,7 @@ class SystemTopology:
         else:
             raise KeyError('The node you are trying to add technologies to does not exist.')
 
-    def define_existing_technologies(self, node, technologies):
+    def define_existing_technologies(self, node:str, technologies:dict):
         """
         Defines an existing technologies at a node
 
@@ -92,7 +92,7 @@ class SystemTopology:
         else:
             raise KeyError('The node you are trying to add technologies to does not exist.')
 
-    def define_new_network(self, network, connections, distance, size_max_arcs = None):
+    def define_new_network(self, network:str, connections:pd.DataFrame, distance:pd.DataFrame, size_max_arcs = None):
         """
         Defines network that can be constructed in the analysis
 
@@ -109,7 +109,7 @@ class SystemTopology:
         self.networks_new[network]['distance'] = distance
         self.networks_new[network]['size_max_arcs'] = size_max_arcs
 
-    def define_existing_network(self, network, size, distance):
+    def define_existing_network(self, network:str, size:pd.DataFrame, distance:pd.DataFrame):
         """
         Defines an existing network
 
@@ -128,7 +128,7 @@ class SystemTopology:
         connection[connection > 0] = 1
         self.networks_existing[network]['connection'] = connection
 
-def create_empty_network_matrix(nodes):
+def create_empty_network_matrix(nodes:list):
     """
     Function creates matrix for defined nodes.
 

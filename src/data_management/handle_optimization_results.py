@@ -342,8 +342,11 @@ class OptimizationResults:
                         df['output_' + car] = [output[t, car].value for t in time_set]
 
                     if tec_data.find_component('var_storage_level'):
-                        for car in tec_data.set_input_carriers:
-                            df['storage_level_' + car] = [tec_data.var_storage_level[t, car].value for t in time_set]
+                        if technology_model == 'Ocean_Battery':
+                            df['storage_level'] = [tec_data.var_storage_level[t].value for t in time_set]
+                        else:
+                            for car in tec_data.set_input_carriers:
+                                df['storage_level_' + car] = [tec_data.var_storage_level[t, car].value for t in time_set]
 
                     if tec_data.find_component('var_spilling'):
                         df['spilling'] = [tec_data.var_spilling[t].value for t in time_set]

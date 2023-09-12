@@ -1,5 +1,5 @@
 from src.model_construction.technology_constraints import *
-
+import warnings
 
 def define_size(b_tec, tec_data):
     """
@@ -85,6 +85,9 @@ def define_capex(b_tec, tec_data, energyhub):
                                           pw_constr_type='EQ',
                                           f_rule=b_tec.para_bp_y_annual,
                                           pw_repn='SOS2')
+    elif capex_model == 3:
+        warnings.warn('CAPEX is calulated in individual technology file')
+
     # CAPEX
     if existing and not decommission:
         b_tec.var_capex = Param(domain=Reals, initialize=0)
@@ -476,6 +479,9 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
 
         elif technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
             b_tec = constraints_tec_hydro_open(b_tec, tec_data, energyhub)
+
+        elif technology_model == 'Ocean_Battery':  # Ocean Battery
+            b_tec = constraints_tec_ocean_battery(b_tec, tec_data, energyhub)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)

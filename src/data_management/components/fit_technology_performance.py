@@ -608,3 +608,27 @@ def perform_fitting_tec_hydro_open(technology_name, tec_data, climate_data):
 
     return fitting
 
+
+def perform_fitting_tec_ocean_battery(tec_data, climate_data):
+
+    time_steps = len(climate_data)
+
+    # return fit
+    fitting = FittedPerformance()
+    # Output Bounds
+    for car in tec_data['output_carrier']:
+        fitting.bounds['output'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))*tec_data['performance']['discharge_max']))
+    # Input Bounds
+    for car in tec_data['input_carrier']:
+        fitting.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                               np.ones(shape=(time_steps))*tec_data['performance']['charge_max']))
+    # Coefficients
+    for par in tec_data['performance']:
+        fitting.coefficients[par] = tec_data['performance'][par]
+
+    # Time dependent coefficents
+    fitting.time_dependent_coefficients = 1
+
+    return fitting
+

@@ -104,5 +104,8 @@ class Technology:
         elif self.technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
             self.fitted_performance = perform_fitting_tec_hydro_open(self.name, self.performance_data, climate_data)
 
+        elif self.technology_model == 'Ocean_Battery':  # Ocean_Battery
+            self.fitted_performance = perform_fitting_tec_ocean_battery(self.performance_data, climate_data)
+
 
 
