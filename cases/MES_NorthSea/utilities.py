@@ -4,6 +4,9 @@ import numpy as np
 from types import SimpleNamespace
 import copy
 from src.model_configuration import ModelConfiguration
+import os
+import json
+
 
 class Settings():
 
@@ -15,6 +18,7 @@ class Settings():
         self.end_date = '05-10 23:00'
         self.data_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/WorkingFiles/DOSTA - HydrogenOffshore/00_CleanData/'
         self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230906/MES_NS_Benchmark'
+        self.tec_data_path = './cases/MES_NorthSea/Technology_Data'
 
         self.node_aggregation_type = {
             'onshore': [],
@@ -308,3 +312,26 @@ def define_configuration():
     configuration.optimization.pareto_points = 3
 
     return configuration
+
+
+def write_to_technology_data(settings):
+    data_path = settings.data_path
+    year = settings.year
+    tec_data_path = settings.tec_data_path
+
+    financial_data = pd.read_excel(data_path + 'Cost_Technologies/TechnologyCost.xlsx', sheet_name='ToModel', skiprows=1)
+    financial_data = financial_data[financial_data['Year'] == year]
+
+    for filename in os.listdir(tec_data_path):
+        with open(os.path.join(tec_data_path, filename), 'r') as openfile:
+            # Reading from json file
+            tec_data = json.load(openfile)
+
+        new_financial_data = financial_data[financial_data['Technology'] == filename.replace('.json', '')]
+        tec_data['Economics']['unit_CAPEX'] = float(round(new_financial_data['Investment Cost'].values[0],2))
+        tec_data['Economics']['OPEX_variable'] = float(round(new_financial_data['OPEX Variable'].values[0],3))
+        tec_data['Economics']['OPEX_fixed'] = float(round(new_financial_data['OPEX Fixed'].values[0],3))
+        tec_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0],0))
+
+        with open(os.path.join(tec_data_path, filename), 'w') as outfile:
+            json.dump(tec_data, outfile, indent=2)

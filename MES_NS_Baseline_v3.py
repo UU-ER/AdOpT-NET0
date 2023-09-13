@@ -30,9 +30,8 @@ data = dm.define_demand(settings, nodes, data)
 data = dm.define_imports_exports(settings, nodes, data)
 
 # Read data
-tec_data_path = './cases/MES_NorthSea/Technology_Data'
-# write_to_technology_data(tec_data_path, settings)
-data.read_technology_data(path=tec_data_path)
+dm.write_to_technology_data(settings)
+data.read_technology_data(path=settings.tec_data_path)
 data.read_network_data()
 data = dm.define_charging_efficiencies(settings, nodes, data)
 
