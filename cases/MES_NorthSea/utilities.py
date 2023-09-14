@@ -10,14 +10,19 @@ import json
 
 class Settings():
 
-    def __init__(self):
+    def __init__(self, test):
+        self.test = test
         self.year = 2030
         self.scenario = 'GA'
         self.climate_year = 2008
-        self.start_date = '05-01 00:00'
-        self.end_date = '05-10 23:00'
+        if test:
+            self.start_date = '05-01 00:00'
+            self.end_date = '05-05 23:00'
+        else:
+            self.start_date = '01-01 00:00'
+            self.end_date = '12-31 23:00'
         self.data_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/WorkingFiles/DOSTA - HydrogenOffshore/00_CleanData/'
-        self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230906/MES_NS_Benchmark'
+        self.save_path = ''
         self.tec_data_path = './cases/MES_NorthSea/Technology_Data'
 
         self.node_aggregation_type = {
@@ -219,23 +224,34 @@ def define_demand(settings, nodes, data):
 
 def define_imports_exports(settings, nodes, data):
 
-    data_path = settings.data_path + 'ImportExport/ImportExport_partly_unlimited.xlsx'
+    if settings.test:
+        data_path = settings.data_path + 'ImportExport/ImportExport_partly_unlimited.xlsx'
+    else:
+        data_path = settings.data_path + 'ImportExport/ImportExport_realistic.xlsx'
+
     import_export = pd.read_excel(data_path, index_col=0)
 
-    # IMPORT PRICES
-    import_carrier_price = {'gas': 180,
-                            'electricity':100000,
-                            'hydrogen': 100000
+    carbontax = 80
+
+    # IMPORT/EXPORT PRICES
+    import_carrier_price = {'gas': 40,
+                            'electricity':100
+                            }
+    export_carrier_price = {'electricity':100,
+                            'hydrogen': import_carrier_price['gas'] + carbontax * 0.18,
                             }
 
     for node in nodes.all:
         for car in import_carrier_price:
             data.read_import_price_data(node, car, np.ones(len(data.topology.timesteps)) * import_carrier_price[car])
+        for car in export_carrier_price:
+            data.read_export_price_data(node, car, np.ones(len(data.topology.timesteps)) * export_carrier_price[car])
 
     for node in nodes.all:
         for car in import_carrier_price:
             data.read_import_limit_data(node, car,
                                         np.ones(len(data.topology.timesteps)) * import_export['Import_'+car][node])
+        for car in export_carrier_price:
             data.read_export_limit_data(node, car,
                                         np.ones(len(data.topology.timesteps)) * import_export['Export_' + car][node])
 
@@ -245,13 +261,12 @@ def define_imports_exports(settings, nodes, data):
         for car in import_emissions:
             data.read_import_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * import_emissions[car])
 
-    export_emissions = {'hydrogen': -0.183}
+    export_emissions = {'hydrogen': -0.18}
     for node in nodes.onshore_nodes:
         for car in export_emissions:
             data.read_export_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * export_emissions[car])
 
     # Emission Price
-    carbontax = 80
     data.read_carbon_price_data(carbontax * np.ones(len(data.topology.timesteps)), 'tax')
 
     return data
@@ -309,7 +324,7 @@ def define_configuration():
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
     configuration.optimization.objective = 'pareto'
-    configuration.optimization.pareto_points = 3
+    configuration.optimization.pareto_points = 8
 
     return configuration
 
