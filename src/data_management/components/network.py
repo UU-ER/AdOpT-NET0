@@ -6,7 +6,7 @@ class Network:
     """
     Class to read and manage data for technologies
     """
-    def __init__(self, network):
+    def __init__(self, network, path):
         """
         Initializes technology class from technology name
 
@@ -14,7 +14,7 @@ class Network:
 
         :param str network: name of technology to read data
         """
-        netw_data = read_network_data_from_json(network)
+        netw_data = read_network_data_from_json(network, path)
 
         # General information
         self.name = network
@@ -84,12 +84,12 @@ class Network:
 
 
 
-def read_network_data_from_json(network):
+def read_network_data_from_json(network, path):
     """
     Reads network data from json file
     """
     # Read in JSON files
-    with open('./data/network_data/' + network + '.json') as json_file:
+    with open(path + network + '.json') as json_file:
         network_data = json.load(json_file)
     # Assign name
     network_data['Name'] = network
