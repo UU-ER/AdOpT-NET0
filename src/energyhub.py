@@ -200,7 +200,7 @@ class EnergyHub:
 
         return self.results
 
-    def add_technology_to_node(self, nodename, technologies, path='./data/Technology_Data/'):
+    def add_technology_to_node(self, nodename, technologies, path:str='./data/technology_data/'):
         """
         Adds technologies retrospectively to the model.
 

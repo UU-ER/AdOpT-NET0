@@ -5,15 +5,15 @@ from src.energyhub import EnergyHub
 import pandas as pd
 
 # General Settings
-settings = dm.Settings(test=0)
+settings = dm.Settings(test=1)
 
-for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on']:
+# for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on', 'ElectricityGrid']:
+for stage in ['ElectricityGrid']:
 
     settings.new_technologies_stage = stage
-    settings.networks.existing_electricity = 1
-    settings.networks.new_electricityAC = 0
-    settings.networks.new_electricityDC = 0
-    settings.networks.new_hydrogen = 0
+    if stage == 'ElectricityGrid':
+        settings.networks.new_electricityAC = 1
+        settings.networks.new_electricityDC = 1
 
     # Configuration
     configuration = dm.define_configuration()

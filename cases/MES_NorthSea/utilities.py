@@ -34,7 +34,7 @@ class Settings():
 
         # Network Settings
         self.networks = SimpleNamespace()
-        self.networks.existing_electricity = 0
+        self.networks.existing_electricity = 1
         self.networks.new_electricityAC = 0
         self.networks.new_electricityDC = 0
         self.networks.new_hydrogen = 0
