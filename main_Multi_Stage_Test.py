@@ -35,7 +35,7 @@ data.read_climate_data_from_file('node1', r'.\data\climate_data_onshore.txt')
 data.read_climate_data_from_file('node2', r'.\data\climate_data_onshore.txt')
 
 # DEMAND
-electricity_demand = pd.read_excel('./cases/Webinar/HouseholdDemand.xlsx')
+electricity_demand = pd.read_excel('./cases/Webinar/Demand.xlsx')
 data.read_demand_data('node1', 'electricity', list(electricity_demand['household_demand'])*1000)
 
 # READ TECHNOLOGY AND NETWORK DATA

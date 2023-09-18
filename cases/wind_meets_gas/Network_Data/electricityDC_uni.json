@@ -2,8 +2,8 @@
   "Economics": {
     "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 3,
-    "gamma1": 372.0,
-    "gamma2": 43695.0,
+    "gamma1": 270279.0,
+    "gamma2": 136265653.0,
     "gamma3": 0.0,
     "OPEX_variable": 0.0,
     "OPEX_fixed": 0.035,
@@ -13,7 +13,8 @@
   },
   "NetworkPerf": {
     "carrier": "electricity",
-    "bidirectional": 1,
+    "rated_capacity": 2000,
+    "bidirectional": 0,
     "loss": 7e-05,
     "min_transport": 0,
     "loss2emissions": 0,
@@ -21,7 +22,7 @@
     "energyconsumption": []
   },
   "size_min": 0,
-  "size_max": 20000,
-  "size_is_int": 0,
+  "size_max": 10,
+  "size_is_int": 1,
   "decommission": 0
 }

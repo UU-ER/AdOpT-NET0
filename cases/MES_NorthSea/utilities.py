@@ -24,6 +24,7 @@ class Settings():
         self.data_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/WorkingFiles/DOSTA - HydrogenOffshore/00_CleanData/'
         self.save_path = ''
         self.tec_data_path = './cases/MES_NorthSea/Technology_Data'
+        self.netw_data_path = './cases/MES_NorthSea/Network_Data/'
 
         self.node_aggregation_type = {
             'onshore': [],
@@ -114,14 +115,18 @@ def define_networks(settings, topology):
         network_data['size_matrix'] = dm.create_empty_network_matrix(topology.nodes)
         network_data['distance_matrix'] = dm.create_empty_network_matrix(topology.nodes)
         network_data['max_size_matrix'] = dm.create_empty_network_matrix(topology.nodes)
+        network_data['connection_matrix'] = dm.create_empty_network_matrix(topology.nodes)
         for idx, row in network.iterrows():
             if (row['node0'] in topology.nodes) & (row['node1'] in topology.nodes):
                 network_data['size_matrix'].at[row['node0'], row['node1']] = row['s_nom']*1000
                 network_data['size_matrix'].at[row['node1'], row['node0']] = row['s_nom']*1000
                 network_data['distance_matrix'].at[row['node0'], row['node1']] = row['length']
                 network_data['distance_matrix'].at[row['node1'], row['node0']] = row['length']
-                network_data['max_size_matrix'].at[row['node1'], row['node0']] = row['s_nom_max']
-                network_data['max_size_matrix'].at[row['node1'], row['node0']] = row['s_nom_max']
+                network_data['max_size_matrix'].at[row['node1'], row['node0']] = row['s_nom_max']*1000
+                network_data['max_size_matrix'].at[row['node0'], row['node1']] = row['s_nom_max']*1000
+                if row['s_nom_max'] > 0:
+                    network_data['connection_matrix'].at[row['node1'], row['node0']] = 1
+                    network_data['connection_matrix'].at[row['node0'], row['node1']] = 1
 
         return network_data
 
@@ -138,11 +143,15 @@ def define_networks(settings, topology):
 
     if settings.networks.new_electricityAC:
         # Networks - New Electricity AC
-        topology.define_new_network('electricityAC', connections=ac_data['size_matrix'], distance=ac_data['distance_matrix'])
+        topology.define_new_network('electricityAC', connections=ac_data['connection_matrix'],
+                                    distance=ac_data['distance_matrix'],
+                                    size_max_arcs=ac_data['max_size_matrix'])
 
     if settings.networks.new_electricityDC:
         # Networks - New Electricity DC
-        topology.define_new_network('electricityDC', connections=dc_data['size_matrix'], distance=dc_data['distance_matrix'])
+        topology.define_new_network('electricityDC_int', connections=dc_data['connection_matrix'],
+                                    distance=dc_data['distance_matrix'],
+                                    size_max_arcs=round(dc_data['max_size_matrix']/2000,0))
 
     #
     # if settings.networks.new_hydrogen:
@@ -327,6 +336,31 @@ def define_configuration():
     configuration.optimization.pareto_points = 8
 
     return configuration
+
+
+def write_to_network_data(settings):
+    data_path = settings.data_path
+    netw_data_path = settings.netw_data_path
+
+    financial_data = pd.read_excel(data_path + 'Cost_Networks/NetworkCost.xlsx', sheet_name='ToModel',
+                                   skiprows=1)
+
+    for network in financial_data['Network']:
+        with open(netw_data_path + network + '.json', 'r') as openfile:
+            # Reading from json file
+            netw_data = json.load(openfile)
+
+        new_financial_data = financial_data[financial_data['Network'] == network.replace('.json', '')]
+        netw_data['Economics']['CAPEX_model'] = 3
+        netw_data['Economics']['gamma1'] = float(round(new_financial_data['gamma1'].values[0], 3))
+        netw_data['Economics']['gamma2'] = float(round(new_financial_data['gamma2'].values[0], 3))
+        netw_data['Economics']['gamma3'] = float(round(new_financial_data['gamma3'].values[0], 3))
+        netw_data['Economics']['OPEX_fixed'] = float(round(new_financial_data['OPEX Fixed'].values[0], 3))
+        netw_data['Economics']['OPEX_variable'] = float(round(new_financial_data['OPEX Variable'].values[0], 3))
+        netw_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0], 0))
+
+        with open(netw_data_path + network + '.json', 'w') as outfile:
+            json.dump(netw_data, outfile, indent=2)
 
 
 def write_to_technology_data(settings):

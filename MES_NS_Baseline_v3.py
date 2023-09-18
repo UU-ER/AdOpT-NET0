@@ -39,7 +39,7 @@ for stage in ['ElectricityGrid']:
     # Read data
     dm.write_to_technology_data(settings)
     data.read_technology_data(path=settings.tec_data_path)
-    data.read_network_data()
+    data.read_network_data(path=settings.netw_data_path)
     data = dm.define_charging_efficiencies(settings, nodes, data)
 
     # Solve

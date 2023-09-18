@@ -6,27 +6,34 @@ class Network:
     """
     Class to read and manage data for technologies
     """
-    def __init__(self, network, path):
+    def __init__(self, network:dict, path:str):
         """
         Initializes technology class from technology name
 
         The network name needs to correspond to the name of a JSON file in ./data/network_data.
 
-        :param str network: name of technology to read data
+        :param dict network: name of technology to read data
+        :param str path: path to read network data from
         """
-        netw_data = read_network_data_from_json(network, path)
+        netw_data = read_network_data_from_json(network['name'], path)
 
         # General information
-        self.name = network
-        self.existing = 0
-        self.connection = []
-        self.distance = []
-        self.size_initial = []
+        self.name = network['name']
+        self.existing = network['existing']
+        self.connection = network['connection']
+        self.distance = network['distance']
+        if self.existing:
+            self.size_initial = network['size']
+
         self.size_is_int = netw_data['size_is_int']
         self.size_min = netw_data['size_min']
         self.size_max = netw_data['size_max']
-        self.size_max_arcs = []
         self.decommission = netw_data['decommission']
+        if network['size_max_arcs'] is not None:
+            self.size_max_arcs = network['size_max_arcs']
+        else:
+            self.size_max_arcs = pd.DataFrame(self.size_max, index=self.distance.index, columns=self.distance.columns)
+
         self.energy_consumption = {}
 
         # Economics
@@ -70,18 +77,6 @@ class Network:
                 self.energy_consumption[car]['receive']['k_flowDistance'] = 0
 
         self.energy_consumption = self.energy_consumption
-
-    def calculate_max_size_arc(self):
-        if self.existing == 0:
-            if self.size_max_arcs == None:
-                # Use max size
-                self.size_max_arcs = pd.DataFrame(self.size_max, index=self.distance.index, columns=self.distance.columns)
-        elif self.existing == 1:
-            # Use initial size
-            self.size_max_arcs = self.size_initial
-
-
-
 
 
 def read_network_data_from_json(network, path):

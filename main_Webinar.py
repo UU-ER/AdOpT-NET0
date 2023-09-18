@@ -26,7 +26,7 @@ data.read_climate_data_from_api('my_house', lon, lat)
 
 # DEMAND
 # Read in demand of the household (precomputed)
-electricity_demand = pd.read_excel('./cases/Webinar/HouseholdDemand.xlsx')
+electricity_demand = pd.read_excel('./cases/Webinar/Demand.xlsx')
 data.read_demand_data('my_house', 'electricity', list(electricity_demand['household_demand']))
 
 # IMPORT

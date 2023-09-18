@@ -19,8 +19,8 @@ class balance_at_node_opts:
         self.y_max = None
 
 
-def plot_balance_at_node(results, car, opts=None):
-
+def plot_balance_at_node(results, car, run=0, opts=None):
+    results = results.detailed_results[run]
     fig, ax = plt.subplots(nrows=len(results.energybalance), ncols=1, facecolor="#F0F0F0")
     if opts == None:
         opts = balance_at_node_opts()
