@@ -72,10 +72,9 @@ class ResultsHandle:
     def write_excel(self, path):
         """
         Writes results to excel
-        :param path: save path
+        :param Path path: save path
         :return:
         """
-        path = Path(path)
         file_name = path / '.xlsx'
         with pd.ExcelWriter(file_name) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')

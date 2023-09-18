@@ -84,4 +84,4 @@ configuration = ModelConfiguration()
 # # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
-results.write_excel(r'./userData/test')
+results.write_excel(Path('./userData/test'))
