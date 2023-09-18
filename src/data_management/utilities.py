@@ -12,7 +12,7 @@ def save_object(data, save_path):
     Save object to path
 
     :param data: object to save
-    :param str save_path: path to save object to
+    :param Path save_path: path to save object to
     """
     with open(save_path, 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)

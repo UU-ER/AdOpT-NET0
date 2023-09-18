@@ -10,6 +10,7 @@ import time
 import copy
 import warnings
 import datetime
+from pathlib import Path
 
 
 class EnergyHub:
@@ -223,7 +224,8 @@ class EnergyHub:
         :param file_name: filename
         :return: None
         """
-        with open(file_path + '/' + file_name, mode='wb') as file:
+        file_path = Path(file_path)
+        with open(file_path / file_name, mode='wb') as file:
             pickle.dump(self, file)
 
     def __define_solver_settings(self):
@@ -695,6 +697,7 @@ def load_energyhub_instance(file_path):
     :param str file_path: path to previously saved energyhub instance
     :return: energyhub instance
     """
+    file_path = Path(file_path)
     with open(file_path, mode='rb') as file:
         energyhub = pickle.load(file)
     return energyhub

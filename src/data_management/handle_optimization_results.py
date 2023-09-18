@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 import pandas as pd
 import src.global_variables as global_variables
+from pathlib import Path
 import numpy as np
 
 class ResultsHandle:
@@ -74,14 +75,15 @@ class ResultsHandle:
         :param path: save path
         :return:
         """
-        file_name = path + '.xlsx'
+        path = Path(path)
+        file_name = path / '.xlsx'
         with pd.ExcelWriter(file_name) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')
 
         i = 1
         if not self.save_detail == 'minimal':
             for result in self.detailed_results:
-                result.write_excel(path + '_detailed_' + str(i))
+                result.write_excel(path / '_detailed_' / str(i))
                 i += 1
 
 
@@ -153,7 +155,6 @@ class OptimizationResults:
         total_cost = model.var_total_cost.value
         carbon_costs = model.var_carbon_cost.value
         carbon_revenues = model.var_carbon_revenue.value
-        # Todo: Add this here, if it is done
         set_t = model.set_t_full
         nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
@@ -394,7 +395,8 @@ class OptimizationResults:
                 str = str[0:length-1]
             return str
 
-        file_name = path + '.xlsx'
+        path = Path(path)
+        file_name = path / '.xlsx'
 
         with pd.ExcelWriter(file_name) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')

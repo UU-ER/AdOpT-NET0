@@ -5,6 +5,7 @@ import src.global_variables as global_variables
 import pandas as pd
 import copy
 import numpy as np
+from pathlib import Path
 
 
 
@@ -304,6 +305,7 @@ class DataHandle:
 
         :return: self at ``self.Technology_Data[node][tec]``
         """
+        path = Path(path)
         global_variables.datapathroot = path
         for node in self.topology.nodes:
             self.technology_data[node] = {}
@@ -325,6 +327,7 @@ class DataHandle:
 
         This function is only required if technologies are added to the model after the DataHandle has been initialized.
         """
+        path = Path(path)
         for technology in technologies:
             self.technology_data[node][technology] = comp.Technology(technology, path)
             self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
@@ -406,7 +409,7 @@ class DataHandle:
 
         The instance can later be loaded with
 
-        :param str path: path to save to
+        :param Path path: path to save to
         :return: None
         """
         dm.save_object(self, path)
@@ -642,7 +645,7 @@ class DataHandle_AveragedData(DataHandle):
         :param data_full_resolution: Data full resolution
         :param nr_timesteps_averaged: How many time-steps should be averaged?
         """
-        path = global_variables.datapathroot
+        path = Path(global_variables.datapathroot)
         for node in self.topology.nodes:
             self.technology_data[node] = {}
             # New technologies

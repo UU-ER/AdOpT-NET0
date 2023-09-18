@@ -14,7 +14,7 @@ class Technology:
 
         :param str technology: name of technology to read data
         """
-
+        path = Path(path)
         tec_data = open_json(technology, path)
 
         # General information

@@ -19,7 +19,7 @@ import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
 
-execute = 1
+execute = 0
 
 if execute == 1:
     # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
@@ -38,7 +38,7 @@ if execute == 1:
     energyhub.quick_solve()
     print('finish')
 
-execute = 0
+execute = 1
 
 if execute == 1:
     topology = dm.SystemTopology()
