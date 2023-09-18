@@ -60,7 +60,7 @@ class DataHandle:
         :param str dataset: dataset to import from, can be JRC (only onshore) or ERA5 (global)
         :param int year: optional, needs to be in range of data available. If nothing is specified, a typical year \
         will be loaded
-        :param str save_path: Can save climate data for later use to the specified path
+        :param Path save_path: Can save climate data for later use to the specified path
         :return: self at ``self.node_data[node]['climate_data']``
         """
         if dataset == 'JRC':
@@ -89,7 +89,7 @@ class DataHandle:
         the respective node. This can save time, if api imports take too long
 
         :param str node: node as specified in the topology
-        :param str file: path of climate data file
+        :param Path file: path of climate data file
         :return: self at ``self.node_data[node]['climate_data']``
         """
         data = dm.load_object(file)

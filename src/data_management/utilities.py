@@ -21,7 +21,7 @@ def load_object(load_path):
     """
     Loads a previously saved object
 
-    :param load_path: Path to load object from
+    :param Path load_path: Path to load object from
     :return object: object loaded
     """
     with open(load_path, 'rb') as handle:
