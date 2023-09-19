@@ -101,7 +101,7 @@ def perform_fitting_ST(climate_data):
 
 def perform_fitting_WT(climate_data, turbine_model, hubheight):
     # Load data for wind turbine type
-    WT_data = pd.read_csv(r'.\data\technology_data\RES\WT_data\WT_data.csv', delimiter=';')
+    WT_data = pd.read_csv(Path('./data/technology_data/RES/WT_data/WT_data.csv'), delimiter=';')
     WT_data = WT_data[WT_data['TurbineName'] == turbine_model]
 
     # Load wind speed and correct for height
