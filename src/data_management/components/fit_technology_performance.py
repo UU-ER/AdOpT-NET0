@@ -250,6 +250,10 @@ def perform_fitting_tec_STOR(tec_data, climate_data):
     # Time dependent coefficents
     fitting.time_dependent_coefficients = 1
 
+    # Other Data
+    if 'rated_power' in tec_data:
+        fitting.rated_power = tec_data['rated_power']
+
     return fitting
 
 def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):

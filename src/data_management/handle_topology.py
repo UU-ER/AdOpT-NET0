@@ -64,7 +64,8 @@ class SystemTopology:
         """
         Defines technologies that can be constructed in the analysis
 
-        Can be for example ['Photovoltaic', 'Storage_Battery']. All technologies available can be found in ./data/technology_data
+        Can be for example ['Photovoltaic', 'Storage_Battery']. All technologies available can be found
+        in ./data/Technology_Data
         These technologies come at a size of zero. Its optimal size is determined in the optimization.
         They are added to the node specified.
 
@@ -80,7 +81,8 @@ class SystemTopology:
         """
         Defines an existing technologies at a node
 
-        Can be for example {'Photovoltaic': 3, 'WindTurbine_Offshore_6000': 4}. All technologies available can be found in ./data/technology_data
+        Can be for example {'Photovoltaic': 3, 'WindTurbine_Offshore_6000': 4}. ll technologies available can be found
+        in ./data/Technology_Data
         These technologies come at a size of zero. Its optimal size is determined in the optimization.
         They are added to the node specified.
 
@@ -105,6 +107,8 @@ class SystemTopology:
         :param pd distance: distance matrix between nodes (in km)
         """
         self.networks_new[network] = {}
+        self.networks_new[network]['name'] = network
+        self.networks_new[network]['existing'] = 0
         self.networks_new[network]['connection'] = connections
         self.networks_new[network]['distance'] = distance
         self.networks_new[network]['size_max_arcs'] = size_max_arcs
@@ -122,11 +126,15 @@ class SystemTopology:
         :param pd distance: distance matrix between nodes (in km)
         """
         self.networks_existing[network] = {}
+        self.networks_existing[network]['name'] = network
+        self.networks_existing[network]['existing'] = 1
         self.networks_existing[network]['size'] = size
+        self.networks_existing[network]['size_max_arcs'] = size
         self.networks_existing[network]['distance'] = distance
         connection = size.copy(deep=True)
         connection[connection > 0] = 1
         self.networks_existing[network]['connection'] = connection
+        self.networks_existing[network]['size_max_arcs'] = size
 
 def create_empty_network_matrix(nodes):
     """

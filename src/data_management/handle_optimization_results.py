@@ -22,6 +22,7 @@ class ResultsHandle:
             'Time_stage',
             'Total_Cost',
             'Emission_Cost',
+            'Emission_Revenues',
             'Technology_Cost',
             'Network_Cost',
             'Import_Cost',

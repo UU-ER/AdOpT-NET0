@@ -297,7 +297,7 @@ class DataHandle:
         self.node_data[node].data['import_emissionfactors'][carrier] = dm.shorten_input_data(import_emissionfactor_data,
                                                                                              len(self.topology.timesteps))
 
-    def read_technology_data(self, load_path='./data/Technology_Data/'):
+    def read_technology_data(self, load_path:str='./data/Technology_Data/'):
         """
         Writes new and existing technologies to self and fits performance functions
 
@@ -324,7 +324,7 @@ class DataHandle:
                     self.topology.technologies_existing[node][technology]
                 self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
 
-    def read_single_technology_data(self, node, technologies, load_path='./data/Technology_Data/'):
+    def read_single_technology_data(self, node, technologies, load_path:str='./data/Technology_Data/'):
         """
         Reads technologies to DataHandle after it has been initialized.
 
@@ -339,7 +339,7 @@ class DataHandle:
             self.technology_data[node][technology] = comp.Technology(technology, load_path)
             self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
 
-    def read_network_data(self, path:str='./data/network_data/'):
+    def read_network_data(self, load_path:str='./data/network_data/'):
         """
         Writes new and existing network to self and calculates energy consumption
 
@@ -349,23 +349,16 @@ class DataHandle:
         :param str path: path to read network data from
         :return: self at ``self.Technology_Data[node][tec]``
         """
+        load_path = Path(load_path)
 
         # New Networks
         for network in self.topology.networks_new:
-            self.network_data[network] = comp.Network(network, path)
-            self.network_data[network].connection = self.topology.networks_new[network]['connection']
-            self.network_data[network].distance = self.topology.networks_new[network]['distance']
-            self.network_data[network].size_max_arcs = self.topology.networks_new[network]['size_max_arcs']
-            self.network_data[network].calculate_max_size_arc()
+            self.network_data[network] = comp.Network(self.topology.networks_new[network], load_path)
 
         # Existing Networks
         for network in self.topology.networks_existing:
-            self.network_data[network + '_existing'] = comp.Network(network, path)
-            self.network_data[network + '_existing'].existing = 1
-            self.network_data[network + '_existing'].connection = self.topology.networks_existing[network]['connection']
-            self.network_data[network + '_existing'].distance = self.topology.networks_existing[network]['distance']
-            self.network_data[network + '_existing'].size_initial = self.topology.networks_existing[network]['size']
-            self.network_data[network + '_existing'].calculate_max_size_arc()
+            self.network_data[network + '_existing'] = comp.Network(self.topology.networks_existing[network], load_path)
+
 
     def pprint(self):
         """
