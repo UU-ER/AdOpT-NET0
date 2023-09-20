@@ -6,6 +6,8 @@ import pandas as pd
 import copy
 import numpy as np
 from pathlib import Path
+import os
+import json
 
 
 
@@ -310,15 +312,46 @@ class DataHandle:
         """
         load_path = Path(load_path)
         global_variables.datapathroot = load_path
+
+        def open_json(tec, load_path):
+            """
+            TODO: THIS IS DEFINED ALREADY, REFACTOR!!!
+            """
+            # Read in JSON files
+            for path, subdirs, files in os.walk(load_path):
+                if 'technology_data' in locals():
+                    break
+                else:
+                    for name in files:
+                        if (tec + '.json') == name:
+                            filepath = os.path.join(path, name)
+                            with open(filepath) as json_file:
+                                technology_data = json.load(json_file)
+                            break
+
+            # Assign name
+            if 'technology_data' in locals():
+                technology_data['Name'] = tec
+            else:
+                raise Exception('There is no json data file for technology ' + tec)
+
+            return technology_data
+
         for node in self.topology.nodes:
             self.technology_data[node] = {}
             # New technologies
             for technology in self.topology.technologies_new[node]:
-                self.technology_data[node][technology] = comp.Technology(technology, load_path)
+                tec_data = open_json(technology, load_path)
+                tec_data['name'] = technology
+                if tec_data['tec_type'] == 'RES':
+                    self.technology_data[node][technology] = comp.Res(tec_data)
                 self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
-                self.technology_data[node][technology + '_existing'] = comp.Technology(technology, load_path)
+                tec_data = open_json(technology, load_path)
+                tec_data['name'] = technology
+                if tec_data['tec_type'] == 'Res':
+                    self.technology_data[node][technology + '_existing'] = comp.Res(tec_data)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = \
                     self.topology.technologies_existing[node][technology]

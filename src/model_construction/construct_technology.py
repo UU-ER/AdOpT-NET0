@@ -409,73 +409,75 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         print('\t - Adding Technology ' + tec)
 
         # TECHNOLOGY DATA
-        tec_data = data.technology_data[nodename][tec]
-        technology_model = tec_data.technology_model
-
-        # MODELING TYPICAL DAYS
-        if global_variables.clustered_data:
-            if configuration.optimization.typicaldays.method == 2:
-                technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
-                if tec_data.technology_model in technologies_modelled_with_full_res:
-                    tec_data.modelled_with_full_res = 1
-                else:
-                    tec_data.modelled_with_full_res = 0
-            else:
-                raise KeyError('The clustering method specified in the configuration file does not exist.')
-        else:
-            tec_data.modelled_with_full_res = 1
-
-        # SIZE
-        b_tec = define_size(b_tec, tec_data)
-
-        # CAPEX
-        b_tec = define_capex(b_tec, tec_data, energyhub)
-
-        # INPUT AND OUTPUT
-        b_tec = define_input(b_tec, tec_data, energyhub)
-        b_tec = define_output(b_tec, tec_data, energyhub)
-
-        # OPEX
-        b_tec = define_opex(b_tec, tec_data, energyhub)
-
-        # EMISSIONS
-        b_tec = define_emissions(b_tec, tec_data, energyhub)
-
-        # DEFINE AUXILIARY VARIABLES FOR CLUSTERED DATA
-        if global_variables.clustered_data and not tec_data.modelled_with_full_res:
-            b_tec = define_auxiliary_vars(b_tec, tec_data, energyhub)
-
-        # GENERIC TECHNOLOGY CONSTRAINTS
-        if technology_model == 'RES':  # Renewable technology with cap_factor as input
-            b_tec = constraints_tec_RES(b_tec, tec_data, energyhub)
-
-        elif technology_model == 'CONV1':  # n inputs -> n output, fuel and output substitution
-            b_tec = constraints_tec_CONV1(b_tec, tec_data, energyhub)
-
-        elif technology_model == 'CONV2':  # n inputs -> n output, fuel and output substitution
-            b_tec = constraints_tec_CONV2(b_tec, tec_data, energyhub)
-
-        elif technology_model == 'CONV3':  # n input -> n outputs, output flexible
-            b_tec = constraints_tec_CONV3(b_tec, tec_data, energyhub)
-
-        elif technology_model == 'CONV4':  # no input -> n outputs, fixed output ratios
-            b_tec = constraints_tec_CONV4(b_tec, tec_data, energyhub)
-
-        elif technology_model == 'STOR':  # Storage technology (1 input -> 1 output)
-            b_tec = constraints_tec_STOR(b_tec, tec_data, energyhub)
-
-        # SPECIFIC TECHNOLOGY CONSTRAINTS
-        elif technology_model == 'DAC_Adsorption':
-            b_tec = constraints_tec_dac_adsorption(b_tec, tec_data, energyhub)
-
-        elif technology_model.startswith('HeatPump_'):  # Heat Pump
-            b_tec = constraints_tec_hp(b_tec, tec_data, energyhub)
-
-        elif technology_model.startswith('GasTurbine_'):  # Gas Turbine
-            b_tec = constraints_tec_gt(b_tec, tec_data, energyhub)
-
-        elif technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
-            b_tec = constraints_tec_hydro_open(b_tec, tec_data, energyhub)
+        technology = data.technology_data[nodename][tec]
+        b_tec = technology.construct_model(b_tec, energyhub)
+        # tec_data = data.technology_data[nodename][tec]
+        # technology_model = tec_data.technology_model
+        #
+        # # MODELING TYPICAL DAYS
+        # if global_variables.clustered_data:
+        #     if configuration.optimization.typicaldays.method == 2:
+        #         technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
+        #         if tec_data.technology_model in technologies_modelled_with_full_res:
+        #             tec_data.modelled_with_full_res = 1
+        #         else:
+        #             tec_data.modelled_with_full_res = 0
+        #     else:
+        #         raise KeyError('The clustering method specified in the configuration file does not exist.')
+        # else:
+        #     tec_data.modelled_with_full_res = 1
+        #
+        # # SIZE
+        # b_tec = define_size(b_tec, tec_data)
+        #
+        # # CAPEX
+        # b_tec = define_capex(b_tec, tec_data, energyhub)
+        #
+        # # INPUT AND OUTPUT
+        # b_tec = define_input(b_tec, tec_data, energyhub)
+        # b_tec = define_output(b_tec, tec_data, energyhub)
+        #
+        # # OPEX
+        # b_tec = define_opex(b_tec, tec_data, energyhub)
+        #
+        # # EMISSIONS
+        # b_tec = define_emissions(b_tec, tec_data, energyhub)
+        #
+        # # DEFINE AUXILIARY VARIABLES FOR CLUSTERED DATA
+        # if global_variables.clustered_data and not tec_data.modelled_with_full_res:
+        #     b_tec = define_auxiliary_vars(b_tec, tec_data, energyhub)
+        #
+        # # GENERIC TECHNOLOGY CONSTRAINTS
+        # if technology_model == 'RES':  # Renewable technology with cap_factor as input
+        #     b_tec = constraints_tec_RES(b_tec, tec_data, energyhub)
+        #
+        # elif technology_model == 'CONV1':  # n inputs -> n output, fuel and output substitution
+        #     b_tec = constraints_tec_CONV1(b_tec, tec_data, energyhub)
+        #
+        # elif technology_model == 'CONV2':  # n inputs -> n output, fuel and output substitution
+        #     b_tec = constraints_tec_CONV2(b_tec, tec_data, energyhub)
+        #
+        # elif technology_model == 'CONV3':  # n input -> n outputs, output flexible
+        #     b_tec = constraints_tec_CONV3(b_tec, tec_data, energyhub)
+        #
+        # elif technology_model == 'CONV4':  # no input -> n outputs, fixed output ratios
+        #     b_tec = constraints_tec_CONV4(b_tec, tec_data, energyhub)
+        #
+        # elif technology_model == 'STOR':  # Storage technology (1 input -> 1 output)
+        #     b_tec = constraints_tec_STOR(b_tec, tec_data, energyhub)
+        #
+        # # SPECIFIC TECHNOLOGY CONSTRAINTS
+        # elif technology_model == 'DAC_Adsorption':
+        #     b_tec = constraints_tec_dac_adsorption(b_tec, tec_data, energyhub)
+        #
+        # elif technology_model.startswith('HeatPump_'):  # Heat Pump
+        #     b_tec = constraints_tec_hp(b_tec, tec_data, energyhub)
+        #
+        # elif technology_model.startswith('GasTurbine_'):  # Gas Turbine
+        #     b_tec = constraints_tec_gt(b_tec, tec_data, energyhub)
+        #
+        # elif technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
+        #     b_tec = constraints_tec_hydro_open(b_tec, tec_data, energyhub)
 
         if global_variables.big_m_transformation_required:
             mc.perform_disjunct_relaxation(b_tec)
