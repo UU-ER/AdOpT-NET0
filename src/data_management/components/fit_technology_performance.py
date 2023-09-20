@@ -1,7 +1,4 @@
 import copy
-import statsmodels.api as sm
-import numpy as np
-from scipy import optimize
 from scipy.interpolate import griddata
 import pvlib
 from timezonefinder import TimezoneFinder
@@ -101,7 +98,7 @@ def perform_fitting_ST(climate_data):
 
 def perform_fitting_WT(climate_data, turbine_model, hubheight):
     # Load data for wind turbine type
-    WT_data = pd.read_csv(r'.\data\technology_data\RES\WT_data\WT_data.csv', delimiter=';')
+    WT_data = pd.read_csv(Path('./data/technology_data/RES/WT_data/WT_data.csv'), delimiter=';')
     WT_data = WT_data[WT_data['TurbineName'] == turbine_model]
 
     # Load wind speed and correct for height
@@ -270,7 +267,7 @@ def perform_fitting_tec_DAC_adsorption(tec_data, climate_data):
     nr_segments = tec_data['nr_segments']
 
     # Read performance data from file
-    performance_data = pd.read_csv('./data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
+    performance_data = pd.read_csv(Path('./data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt'), sep=",")
     performance_data = performance_data.rename(columns={"T": "temp_air", "RH": "humidity"})
 
     # Unit Conversion of input data

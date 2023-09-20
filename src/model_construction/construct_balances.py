@@ -208,7 +208,10 @@ def add_system_costs(energyhub):
         model.del_component(model.const_node_cost)
         if not energyhub.configuration.energybalance.copperplate:
             model.del_component(model.const_netw_cost)
+        model.del_component(model.const_revenue_carbon)
+        model.del_component(model.const_cost_carbon)
         model.del_component(model.const_cost)
+
 
     # Cost is always at full resolution
     set_t = model.set_t_full

@@ -5,6 +5,7 @@ import src.global_variables as global_variables
 import pandas as pd
 import copy
 import numpy as np
+from pathlib import Path
 
 
 
@@ -46,7 +47,7 @@ class DataHandle:
         for node in self.topology.nodes:
             self.node_data[node] = dm.NodeData(topology)
 
-    def read_climate_data_from_api(self, node, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=0):
+    def read_climate_data_from_api(self, node, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=None):
         """
         Reads in climate data for a full year
 
@@ -68,8 +69,8 @@ class DataHandle:
             raise Exception('Other APIs are not available')
 
         # Save
-        if not save_path == 0:
-            dm.save_object(data, save_path)
+        if save_path is not None:
+            dm.save_object(data, Path(save_path))
 
         # Match with timesteps
         data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
@@ -80,7 +81,7 @@ class DataHandle:
         self.node_data[node].location.lat = data['latitude']
         self.node_data[node].location.altitude = data['altitude']
 
-    def read_climate_data_from_file(self, node:str, file:str):
+    def read_climate_data_from_file(self, node, load_path):
         """
         Reads climate data from file
 
@@ -88,17 +89,17 @@ class DataHandle:
         the respective node. This can save time, if api imports take too long
 
         :param str node: node as specified in the topology
-        :param str file: path of climate data file
+        :param str load_path: path of climate data file
         :return: self at ``self.node_data[node]['climate_data']``
         """
-        data = dm.load_object(file)
+        data = dm.load_object(Path(load_path))
 
         self.node_data[node].data['climate_data'] = dm.shorten_input_data(data['dataframe'], len(self.topology.timesteps))
         self.node_data[node].location.lon = data['longitude']
         self.node_data[node].location.lat = data['latitude']
         self.node_data[node].location.altitude = data['altitude']
 
-    def read_climate_data_from_csv(self, node:str, file:str, lon:float, lat:float, alt:float=10):
+    def read_climate_data_from_csv(self, node, load_path, lon, lat, alt=10):
         """
         Reads climate data from file
 
@@ -106,14 +107,14 @@ class DataHandle:
         the respective node. This can save time, if api imports take too long
 
         :param str node: node as specified in the topology
-        :param str file: path of csv data file. The csv needs to contain the following column headers:
+        :param str load_path: path of csv data file. The csv needs to contain the following column headers:
                 'ghi', 'dni', 'dhi', 'temp_air', 'rh', 'ws10'
         :param float lon: longitude of node
         :param float lat: latitude of node
         :param float alt: altitude of node
         :return: self at ``self.node_data[node]['climate_data']``
         """
-        data = pd.read_csv(file, index_col=0)
+        data = pd.read_csv(Path(load_path), index_col=0)
 
         # Create Datatime Index
         data.index = pd.to_datetime(data.index)
@@ -296,7 +297,7 @@ class DataHandle:
         self.node_data[node].data['import_emissionfactors'][carrier] = dm.shorten_input_data(import_emissionfactor_data,
                                                                                              len(self.topology.timesteps))
 
-    def read_technology_data(self, path:str='./data/technology_data/'):
+    def read_technology_data(self, load_path='./data/Technology_Data/'):
         """
         Writes new and existing technologies to self and fits performance functions
 
@@ -307,22 +308,23 @@ class DataHandle:
         :param str path: path to read technology data from
         :return: self at ``self.Technology_Data[node][tec]``
         """
-        global_variables.datapathroot = path
+        load_path = Path(load_path)
+        global_variables.datapathroot = load_path
         for node in self.topology.nodes:
             self.technology_data[node] = {}
             # New technologies
             for technology in self.topology.technologies_new[node]:
-                self.technology_data[node][technology] = comp.Technology(technology, path)
+                self.technology_data[node][technology] = comp.Technology(technology, load_path)
                 self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
-                self.technology_data[node][technology + '_existing'] = comp.Technology(technology, path)
+                self.technology_data[node][technology + '_existing'] = comp.Technology(technology, load_path)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = \
                     self.topology.technologies_existing[node][technology]
                 self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
 
-    def read_single_technology_data(self, node:str, technologies:list, path:str='./data/technology_data/'):
+    def read_single_technology_data(self, node, technologies, load_path='./data/Technology_Data/'):
         """
         Reads technologies to DataHandle after it has been initialized.
 
@@ -331,8 +333,10 @@ class DataHandle:
         :param str path: path to read technology data from
         This function is only required if technologies are added to the model after the DataHandle has been initialized.
         """
+        load_path = Path(load_path)
+
         for technology in technologies:
-            self.technology_data[node][technology] = comp.Technology(technology, path)
+            self.technology_data[node][technology] = comp.Technology(technology, load_path)
             self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
 
     def read_network_data(self, path:str='./data/network_data/'):
@@ -407,16 +411,16 @@ class DataHandle:
                     if connection.at[from_node, to_node] == 1:
                         print('\t\t\t' + from_node + ' - ' + to_node)
 
-    def save(self, path:str):
+    def save(self, save_path):
         """
         Saves instance of DataHandle to path.
 
         The instance can later be loaded with
 
-        :param str path: path to save to
+        :param str save_path: path to save to
         :return: None
         """
-        dm.save_object(self, path)
+        dm.save_object(self, Path(save_path))
 
 
 class ClusteredDataHandle(DataHandle):
