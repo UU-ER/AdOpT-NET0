@@ -6,14 +6,12 @@ import os
 from pathlib import Path
 from math import floor, log10
 
-def open_json(tec, rootpath):
+def open_json(tec, load_path):
     """
     Reads technology data from json file
     """
     # Read in JSON files
-    root = Path(rootpath)
-
-    for path, subdirs, files in os.walk(root):
+    for path, subdirs, files in os.walk(load_path):
         if 'technology_data' in locals():
             break
         else:

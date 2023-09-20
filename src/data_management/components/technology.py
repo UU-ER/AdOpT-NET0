@@ -6,7 +6,7 @@ class Technology:
     """
     Class to read and manage data for technologies
     """
-    def __init__(self, technology, path):
+    def __init__(self, technology, load_path):
         """
         Initializes technology class from technology name
 
@@ -14,8 +14,7 @@ class Technology:
 
         :param str technology: name of technology to read data
         """
-        path = Path(path)
-        tec_data = open_json(technology, path)
+        tec_data = open_json(technology, load_path)
 
         # General information
         self.name = technology

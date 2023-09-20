@@ -69,15 +69,16 @@ class ResultsHandle:
 
         self.detailed_results.append(optimization_result)
 
-    def write_excel(self, folder, file_name):
+    def write_excel(self, save_path, file_name):
         """
         Writes results to excel
-        :param str folder: folder save path
+        :param str save_path: folder save path
         :param str file_name: file save name
         :return:
         """
 
-        path = folder / (file_name + '.xlsx')
+        save_path = Path(save_path)
+        path = save_path / (file_name + '.xlsx')
 
         if self.save_detail == 'minimal':
             with pd.ExcelWriter(path) as writer:
@@ -89,7 +90,7 @@ class ResultsHandle:
             i = 1
             for result in self.detailed_results:
                 file_name_detail = file_name + '_detailed_' + str(i)
-                result.detailed_excel(folder / (file_name_detail + '.xlsx'))
+                result.write_detailed_excel(save_path / (file_name_detail + '.xlsx'))
                 i += 1
 
 
@@ -390,18 +391,18 @@ class OptimizationResults:
 
                         self.detailed_results.networks[netw_name]['_'.join(arc)] = df
 
-    def detailed_excel(self, path):
+    def write_detailed_excel(self, save_path):
         """
         Writes results to excel table
 
-        :param Path path: path to write excel to
+        :param Path save_path: path to write excel to
         """
         def shorten_string(str, length):
             if len(str) > length:
                 str = str[0:length-1]
             return str
 
-        with pd.ExcelWriter(path) as writer:
+        with pd.ExcelWriter(save_path) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')
             self.technologies.to_excel(writer, sheet_name='TechnologySizes')
             self.networks.to_excel(writer, sheet_name='Networks')

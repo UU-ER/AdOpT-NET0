@@ -12,7 +12,7 @@ def create_data_test_data_handle():
     electricity network in between
     should be infeasible
     """
-    data_save_path = Path('./test/test_data/data_handle_test.p')
+    data_save_path = './test/test_data/data_handle_test.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
@@ -23,7 +23,7 @@ def create_data_test_data_handle():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
@@ -45,7 +45,7 @@ def create_data_model1():
     electricity network in between
     should be infeasible
     """
-    data_save_path = Path('./test/test_data/model1.p')
+    data_save_path = './test/test_data/model1.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
@@ -66,7 +66,7 @@ def create_data_model1():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_climate_data_from_file('test_node2', climate_data_path)
 
@@ -89,7 +89,7 @@ def create_data_model2():
     electricity network in between
     should be feasible
     """
-    data_save_path = Path('./test/test_data/model2.p')
+    data_save_path = './test/test_data/model2.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-02 23:00', resolution=1)
@@ -101,7 +101,7 @@ def create_data_model2():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
@@ -131,7 +131,7 @@ def create_data_emissionbalance1():
     offshore wind @ node 2
     electricity network in between
     """
-    data_save_path = Path('./test/test_data/emissionbalance1.p')
+    data_save_path = './test/test_data/emissionbalance1.p'
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas'])
@@ -151,7 +151,7 @@ def create_data_emissionbalance1():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('onshore', climate_data_path)
     data.read_climate_data_from_file('offshore', climate_data_path)
 
@@ -185,7 +185,7 @@ def create_data_emissionbalance2():
     PV & furnace @ node 1
     electricity demand @ node 1
     """
-    data_save_path = Path('./test/test_data/emissionbalance2.p')
+    data_save_path = './test/test_data/emissionbalance2.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-04 01:00', resolution=1)
@@ -197,7 +197,7 @@ def create_data_emissionbalance2():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
@@ -227,7 +227,7 @@ def create_data_technology_type1_PV():
     import of electricity at high price
     Size of PV should be around max electricity demand
     """
-    data_save_path = Path('./test/test_data/technology_type1_PV.p')
+    data_save_path = './test/test_data/technology_type1_PV.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
@@ -239,7 +239,7 @@ def create_data_technology_type1_PV():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
@@ -269,7 +269,7 @@ def create_data_technology_type1_WT():
     import of electricity at high price
     Size of WT should be around max electricity demand
     """
-    data_save_path = Path('./test/test_data/technology_type1_WT.p')
+    data_save_path = './test/test_data/technology_type1_WT.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
@@ -281,7 +281,7 @@ def create_data_technology_type1_WT():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
@@ -318,7 +318,6 @@ def create_data_technology_CONV():
                 pass
             else:
                 data_save_path = './test/test_data/technology_CONV' + str(j) + '_' + str(i) + '.p'
-                data_save_path = Path(data_save_path)
 
                 topology = dm.SystemTopology()
                 topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
@@ -330,7 +329,7 @@ def create_data_technology_CONV():
                 data = dm.DataHandle(topology)
 
                 # CLIMATE DATA
-                climate_data_path = Path('./test/climate_data_test.p')
+                climate_data_path = './test/climate_data_test.p'
                 data.read_climate_data_from_file('test_node1', climate_data_path)
 
                 # DEMAND
@@ -366,7 +365,7 @@ def create_data_technologySTOR():
     electricity demand @ node 1
     two periods, rated wind speed at first, no wind at second. battery to balance
     """
-    data_save_path = Path('./test/test_data/technologySTOR.p')
+    data_save_path = './test/test_data/technologySTOR.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
@@ -378,7 +377,7 @@ def create_data_technologySTOR():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
     data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
@@ -400,7 +399,7 @@ def create_data_network():
     import electricity @ node 1
     electricity demand @ node 2
     """
-    data_save_path = Path('./test/test_data/networks.p')
+    data_save_path = './test/test_data/networks.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
@@ -420,7 +419,7 @@ def create_data_network():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_climate_data_from_file('test_node2', climate_data_path)
 
@@ -470,7 +469,7 @@ def create_data_addtechnology():
     battery at node 2
     first, WT at node 1, later PV at node 2
     """
-    data_save_path = Path('./test/test_data/addtechnology.p')
+    data_save_path = './test/test_data/addtechnology.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
@@ -492,7 +491,7 @@ def create_data_addtechnology():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_climate_data_from_file('test_node2', climate_data_path)
 
@@ -514,7 +513,7 @@ def create_data_time_algorithms():
     electricity demand @ node 1
     Technologies are PV and storage
     """
-    data_save_path = Path('./test/test_data/time_algorithms.p')
+    data_save_path = './test/test_data/time_algorithms.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='03-31 23:00', resolution=1)
@@ -536,7 +535,7 @@ def create_data_time_algorithms():
     topology.define_new_network('electricityTest', distance=distance, connections=connection)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_climate_data_from_file('test_node2', climate_data_path)
 
@@ -557,7 +556,7 @@ def create_data_time_algorithms():
 
 def create_data_optimization_types():
 
-    data_save_path = Path('./test/test_data/optimization_types.p')
+    data_save_path = './test/test_data/optimization_types.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
@@ -568,7 +567,7 @@ def create_data_optimization_types():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
@@ -606,7 +605,7 @@ def create_data_existing_technologies():
         data = dm.DataHandle(topology)
 
         # CLIMATE DATA
-        climate_data_path = Path('./test/climate_data_test.p')
+        climate_data_path = './test/climate_data_test.p'
         data.read_climate_data_from_file('test_node1', climate_data_path)
 
         # DEMAND
@@ -633,9 +632,9 @@ def create_data_existing_technologies():
     topology2.define_existing_technologies('test_node1', {'Storage_Battery': 4})
     topology3.define_existing_technologies('test_node1', {'Storage_Battery': 3000})
 
-    data_save_path1 = Path('./test/test_data/existing_tecs1.p')
-    data_save_path2 = Path('./test/test_data/existing_tecs2.p')
-    data_save_path3 = Path('./test/test_data/existing_tecs3.p')
+    data_save_path1 = './test/test_data/existing_tecs1.p'
+    data_save_path2 = './test/test_data/existing_tecs2.p'
+    data_save_path3 = './test/test_data/existing_tecs3.p'
 
     data1 = create_data(topology1)
     data1.save(data_save_path1)
@@ -658,7 +657,7 @@ def create_data_existing_networks():
         data = dm.DataHandle(topology)
 
         # CLIMATE DATA
-        climate_data_path = Path('./test/climate_data_test.p')
+        climate_data_path = './test/climate_data_test.p'
         data.read_climate_data_from_file('test_node1', climate_data_path)
         data.read_climate_data_from_file('test_node2', climate_data_path)
 
@@ -700,10 +699,10 @@ def create_data_existing_networks():
     data4 = copy.deepcopy(data3)
     data4.network_data['electricityTest_existing'].decommission = 1
 
-    data_save_path1 = Path('./test/test_data/existing_netw1.p')
-    data_save_path2 = Path('./test/test_data/existing_netw2.p')
-    data_save_path3 = Path('./test/test_data/existing_netw3.p')
-    data_save_path4 = Path('./test/test_data/existing_netw4.p')
+    data_save_path1 = './test/test_data/existing_netw1.p'
+    data_save_path2 = './test/test_data/existing_netw2.p'
+    data_save_path3 = './test/test_data/existing_netw3.p'
+    data_save_path4 = './test/test_data/existing_netw4.p'
 
     data1.save(data_save_path1)
     data2.save(data_save_path2)
@@ -720,7 +719,7 @@ def create_test_data_dac():
 
     data = dm.DataHandle(topology)
 
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
@@ -734,7 +733,7 @@ def create_test_data_dac():
     data.read_technology_data()
     data.read_network_data()
 
-    data_save_path = Path('./test/test_data/dac.p')
+    data_save_path = './test/test_data/dac.p'
 
     data.save(data_save_path)
 
@@ -746,7 +745,7 @@ def create_data_technologyOpen_Hydro():
     electricity demand @ node 1
     two periods, rated wind speed at first, no wind at second. battery to balance
     """
-    data_save_path = Path('./test/test_data/technologyOpenHydro.p')
+    data_save_path = './test/test_data/technologyOpenHydro.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
@@ -759,7 +758,7 @@ def create_data_technologyOpen_Hydro():
 
     # CLIMATE DATA
     inflow = np.ones(len(topology.timesteps)) * 10
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_hydro_natural_inflow('test_node1', 'TestPumpedHydro_Open', inflow)
     data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
@@ -776,7 +775,7 @@ def create_data_technologyOpen_Hydro():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-    data_save_path = Path('./test/test_data/technologyOpenHydro_max_discharge.p')
+    data_save_path = './test/test_data/technologyOpenHydro_max_discharge.p'
 
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
@@ -789,7 +788,7 @@ def create_data_technologyOpen_Hydro():
 
     # CLIMATE DATA
     inflow = np.ones(len(topology.timesteps)) * 10
-    climate_data_path = Path('./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_hydro_maximum_discharge('test_node1', 'TestPumpedHydro_Open_max_discharge', np.ones(len(data.topology.timesteps)) * 0)
     data.read_hydro_natural_inflow('test_node1', 'TestPumpedHydro_Open_max_discharge', inflow)
@@ -815,7 +814,7 @@ def create_data_carbon_tax():
     furnace @ node 1
     heat demand @ node 1
     """
-    data_save_path = Path('./test/test_data/carbon_tax.p')
+    data_save_path = './test/test_data/carbon_tax.p'
     topology = dm.SystemTopology()
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
     topology.define_carriers(['heat', 'gas'])
@@ -860,7 +859,7 @@ def create_data_carbon_subsidy():
 
     data = dm.DataHandle(topology)
 
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    data.read_climate_data_from_file('test_node1', './test/climate_data_test.p')
 
     # DEMAND
     co2demand = np.ones(len(topology.timesteps)) * 0.01
@@ -886,7 +885,7 @@ def create_data_carbon_subsidy():
     data.read_network_data()
 
 
-    data_save_path = Path('./test/test_data/carbon_subsidy.p')
+    data_save_path = './test/test_data/carbon_subsidy.p'
 
     data.save(data_save_path)
 

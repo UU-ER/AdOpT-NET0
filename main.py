@@ -36,15 +36,15 @@ data = dm.DataHandle(topology)
 # CLIMATE DATA
 from_file = 1
 if from_file == 1:
-    data.read_climate_data_from_file('onshore', Path('./data/climate_data_onshore.txt'))
-    data.read_climate_data_from_file('offshore', Path('./data/climate_data_offshore.txt'))
+    data.read_climate_data_from_file('onshore', './data/climate_data_onshore.txt')
+    data.read_climate_data_from_file('offshore', './data/climate_data_offshore.txt')
 else:
     lat = 52
     lon = 5.16
-    data.read_climate_data_from_api('onshore', lon, lat,save_path=Path('./data/climate_data_onshore.txt'))
+    data.read_climate_data_from_api('onshore', lon, lat,save_path='./data/climate_data_onshore.txt')
     lat = 52.2
     lon = 4.4
-    data.read_climate_data_from_api('offshore', lon, lat,save_path=Path('./data/climate_data_offshore.txt'))
+    data.read_climate_data_from_api('offshore', lon, lat,save_path='./data/climate_data_offshore.txt')
 
 # DEMAND
 electricity_demand = np.ones(len(topology.timesteps)) * 1
@@ -83,4 +83,4 @@ configuration = ModelConfiguration()
 # # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
-results.write_excel(Path('./userData'), 'test')
+results.write_excel('./userData/', 'test')

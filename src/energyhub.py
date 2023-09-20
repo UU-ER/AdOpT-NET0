@@ -214,18 +214,17 @@ class EnergyHub:
         self.data.read_single_technology_data(nodename, technologies)
         mc.add_technology(self, nodename, technologies)
 
-    def save_model(self, file_path, file_name):
+    def save_model(self, save_path, file_name):
         """
         Saves an instance of the energyhub instance to the specified path (using pickel/dill).
 
         The object can later be loaded using into the work space using :func:`~load_energyhub_instance`
 
-        :param file_path: path to save
-        :param file_name: filename
+        :param str file_path: path to save
+        :param str file_name: filename
         :return: None
         """
-        file_path = Path(file_path)
-        with open(file_path / file_name, mode='wb') as file:
+        with open(Path(save_path) / file_name, mode='wb') as file:
             pickle.dump(self, file)
 
     def __define_solver_settings(self):
@@ -395,7 +394,7 @@ class EnergyHub:
             self.solution = self.solver.solve(self.model,
                                               tee=True,
                                               warmstart=True,
-                                              logfile='./log_files/log' + time_stamp)
+                                              logfile=Path('./log_files/') / ('log_' + time_stamp))
         else:
             self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
@@ -690,14 +689,13 @@ class EnergyHub:
             m_full.size_constraints_netw = Block(m_full.set_networks, rule=size_constraint_block_netw_init)
 
 
-def load_energyhub_instance(file_path):
+def load_energyhub_instance(load_path):
     """
     Loads an energyhub instance from file.
 
     :param str file_path: path to previously saved energyhub instance
     :return: energyhub instance
     """
-    file_path = Path(file_path)
-    with open(file_path, mode='rb') as file:
+    with open(Path(load_path), mode='rb') as file:
         energyhub = pickle.load(file)
     return energyhub
