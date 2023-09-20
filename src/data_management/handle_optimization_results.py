@@ -21,6 +21,7 @@ class ResultsHandle:
             'Time_stage',
             'Total_Cost',
             'Emission_Cost',
+            'Emission_Revenues',
             'Technology_Cost',
             'Network_Cost',
             'Import_Cost',
@@ -153,7 +154,6 @@ class OptimizationResults:
         total_cost = model.var_total_cost.value
         carbon_costs = model.var_carbon_cost.value
         carbon_revenues = model.var_carbon_revenue.value
-        # Todo: Add this here, if it is done
         set_t = model.set_t_full
         nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 

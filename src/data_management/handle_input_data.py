@@ -348,20 +348,12 @@ class DataHandle:
 
         # New Networks
         for network in self.topology.networks_new:
-            self.network_data[network] = comp.Network(network, path)
-            self.network_data[network].connection = self.topology.networks_new[network]['connection']
-            self.network_data[network].distance = self.topology.networks_new[network]['distance']
-            self.network_data[network].size_max_arcs = self.topology.networks_new[network]['size_max_arcs']
-            self.network_data[network].calculate_max_size_arc()
+            self.network_data[network] = comp.Network(self.topology.networks_new[network], path)
 
         # Existing Networks
         for network in self.topology.networks_existing:
-            self.network_data[network + '_existing'] = comp.Network(network, path)
-            self.network_data[network + '_existing'].existing = 1
-            self.network_data[network + '_existing'].connection = self.topology.networks_existing[network]['connection']
-            self.network_data[network + '_existing'].distance = self.topology.networks_existing[network]['distance']
-            self.network_data[network + '_existing'].size_initial = self.topology.networks_existing[network]['size']
-            self.network_data[network + '_existing'].calculate_max_size_arc()
+            self.network_data[network + '_existing'] = comp.Network(self.topology.networks_existing[network], path)
+
 
     def pprint(self):
         """

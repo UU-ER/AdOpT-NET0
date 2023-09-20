@@ -1,4 +1,5 @@
 from pyomo.environ import *
+from pyomo.util.infeasible import log_infeasible_constraints
 
 import src.model_construction as mc
 import src.data_management as dm
@@ -199,7 +200,7 @@ class EnergyHub:
 
         return self.results
 
-    def add_technology_to_node(self, nodename, technologies):
+    def add_technology_to_node(self, nodename, technologies, path:str='./data/technology_data/'):
         """
         Adds technologies retrospectively to the model.
 
@@ -210,7 +211,7 @@ class EnergyHub:
         :param list technologies: list of technologies that should be added to nodename
         :return: None
         """
-        self.data.read_single_technology_data(nodename, technologies)
+        self.data.read_single_technology_data(nodename, technologies, path)
         mc.add_technology(self, nodename, technologies)
 
     def save_model(self, file_path, file_name):
@@ -346,7 +347,7 @@ class EnergyHub:
         emissions_max = self.model.var_emissions_net.value
 
         # Min Emissions
-        global_variables.pareto_point = pareto_points + 1
+        global_variables.pareto_point = -1
         self.__optimize_costs_minE()
         emissions_min = self.model.var_emissions_net.value
 
@@ -393,7 +394,7 @@ class EnergyHub:
             self.solution = self.solver.solve(self.model,
                                               tee=True,
                                               warmstart=True,
-                                              logfile='./log_files/log' + time_stamp)
+                                              logfile='./log_files/log' + time_stamp + '.txt')
         else:
             self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
