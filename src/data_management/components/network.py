@@ -1,6 +1,7 @@
 from src.data_management.components.utilities import Economics
 import json
 import pandas as pd
+from pathlib import Path
 
 class Network:
     """
@@ -85,7 +86,9 @@ def read_network_data_from_json(network, path):
     Reads network data from json file
     """
     # Read in JSON files
-    with open(path + network + '.json') as json_file:
+    path = Path('./data/network_data/')
+    network = network + '.json'
+    with open(path / network) as json_file:
         network_data = json.load(json_file)
     # Assign name
     network_data['Name'] = network

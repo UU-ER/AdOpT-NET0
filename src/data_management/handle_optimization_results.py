@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 import pandas as pd
 import src.global_variables as global_variables
+from pathlib import Path
 import numpy as np
 
 class ResultsHandle:
@@ -69,20 +70,28 @@ class ResultsHandle:
 
         self.detailed_results.append(optimization_result)
 
-    def write_excel(self, path):
+    def write_excel(self, save_path, file_name):
         """
         Writes results to excel
-        :param path: save path
+        :param str save_path: folder save path
+        :param str file_name: file save name
         :return:
         """
-        file_name = path + '.xlsx'
-        with pd.ExcelWriter(file_name) as writer:
-            self.summary.to_excel(writer, sheet_name='Summary')
 
-        i = 1
-        if not self.save_detail == 'minimal':
+        save_path = Path(save_path)
+        path = save_path / (file_name + '.xlsx')
+
+        if self.save_detail == 'minimal':
+            with pd.ExcelWriter(path) as writer:
+                self.summary.to_excel(writer, sheet_name='Summary')
+        else:
+            with pd.ExcelWriter(path) as writer:
+                self.summary.to_excel(writer, sheet_name='Summary')
+
+            i = 1
             for result in self.detailed_results:
-                result.write_excel(path + '_detailed_' + str(i))
+                file_name_detail = file_name + '_detailed_' + str(i)
+                result.write_detailed_excel(save_path / (file_name_detail + '.xlsx'))
                 i += 1
 
 
@@ -383,20 +392,18 @@ class OptimizationResults:
 
                         self.detailed_results.networks[netw_name]['_'.join(arc)] = df
 
-    def write_excel(self, path):
+    def write_detailed_excel(self, save_path):
         """
         Writes results to excel table
 
-        :param str path: path to write excel to
+        :param Path save_path: path to write excel to
         """
         def shorten_string(str, length):
             if len(str) > length:
                 str = str[0:length-1]
             return str
 
-        file_name = path + '.xlsx'
-
-        with pd.ExcelWriter(file_name) as writer:
+        with pd.ExcelWriter(save_path) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')
             self.technologies.to_excel(writer, sheet_name='TechnologySizes')
             self.networks.to_excel(writer, sheet_name='Networks')

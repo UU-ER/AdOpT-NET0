@@ -5,6 +5,7 @@ import pvlib
 import numpy as np
 import requests
 import json
+from pathlib import Path
 import pandas as pd
 from timezonefinder import TimezoneFinder
 import src.data_management as dm
@@ -19,7 +20,7 @@ import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 
 
-execute = 1
+execute = 0
 
 if execute == 1:
     # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
@@ -38,7 +39,7 @@ if execute == 1:
     energyhub.quick_solve()
     print('finish')
 
-execute = 0
+execute = 1
 
 if execute == 1:
     topology = dm.SystemTopology()
@@ -136,7 +137,7 @@ if execute == 1:
     # Solve model
     energyhub_clustered.solve_model()
     results1 = energyhub_clustered.write_results()
-    results1.write_excel(r'.\userData\results_clustered')
+    results1.write_excel(Path('./userData'), 'results_clustered')
 
 
     # SOLVE WITH FULL RESOLUTION
@@ -147,7 +148,7 @@ if execute == 1:
     # Solve model
     energyhub.solve_model()
     results2 = energyhub.write_results()
-    results2.write_excel(r'.\userData\results_full')
+    results2.write_excel(Path('./userData'), 'results_full')
 
 execute = 0
 #region How to formulate hierarchical models with blocks

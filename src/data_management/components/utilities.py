@@ -2,23 +2,25 @@ import statsmodels.api as sm
 import pwlf
 import numpy as np
 import json
-import scandir
 import os
+from pathlib import Path
 from math import floor, log10
 
-def open_json(tec, rootpath):
+def open_json(tec, load_path):
     """
     Reads technology data from json file
     """
     # Read in JSON files
-    root = rootpath
-
-    for path, subdirs, files in scandir.walk(root):
-        for name in files:
-            if (tec + '.json') == name:
-                filepath = os.path.join(path, name)
-                with open(filepath) as json_file:
-                    technology_data = json.load(json_file)
+    for path, subdirs, files in os.walk(load_path):
+        if 'technology_data' in locals():
+            break
+        else:
+            for name in files:
+                if (tec + '.json') == name:
+                    filepath = os.path.join(path, name)
+                    with open(filepath) as json_file:
+                        technology_data = json.load(json_file)
+                    break
 
     # Assign name
     if 'technology_data' in locals():

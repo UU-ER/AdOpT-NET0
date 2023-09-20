@@ -1,6 +1,7 @@
 import numpy as np
 import copy
 import src.data_management as dm
+from pathlib import Path
 
 
 def create_data_test_data_handle():
@@ -22,7 +23,8 @@ def create_data_test_data_handle():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 1
@@ -64,8 +66,9 @@ def create_data_model1():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
+    data.read_climate_data_from_file('test_node2', climate_data_path)
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 100
@@ -98,7 +101,8 @@ def create_data_model2():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
     heat_demand = np.ones(len(topology.timesteps)) * 10
@@ -147,8 +151,9 @@ def create_data_emissionbalance1():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('onshore', r'./test/climate_data_test.p')
-    data.read_climate_data_from_file('offshore', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('onshore', climate_data_path)
+    data.read_climate_data_from_file('offshore', climate_data_path)
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 10
@@ -192,7 +197,8 @@ def create_data_emissionbalance2():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 10
@@ -233,7 +239,8 @@ def create_data_technology_type1_PV():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
     demand = np.ones(len(topology.timesteps)) * 10
@@ -274,7 +281,8 @@ def create_data_technology_type1_WT():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
     demand = np.ones(len(topology.timesteps)) * 10
@@ -321,7 +329,8 @@ def create_data_technology_CONV():
                 data = dm.DataHandle(topology)
 
                 # CLIMATE DATA
-                data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+                climate_data_path = './test/climate_data_test.p'
+                data.read_climate_data_from_file('test_node1', climate_data_path)
 
                 # DEMAND
                 demand_h = np.ones(len(topology.timesteps))
@@ -368,7 +377,8 @@ def create_data_technologySTOR():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
     data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
     data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
 
@@ -409,8 +419,9 @@ def create_data_network():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
+    data.read_climate_data_from_file('test_node2', climate_data_path)
 
     # DEMAND
     demand = np.zeros(len(topology.timesteps))
@@ -480,8 +491,9 @@ def create_data_addtechnology():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
+    data.read_climate_data_from_file('test_node2', climate_data_path)
 
     # DEMAND
     demand = np.ones(len(topology.timesteps)) * 10
@@ -523,8 +535,9 @@ def create_data_time_algorithms():
     topology.define_new_network('electricityTest', distance=distance, connections=connection)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
+    data.read_climate_data_from_file('test_node2', climate_data_path)
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 100
@@ -554,7 +567,8 @@ def create_data_optimization_types():
     data = dm.DataHandle(topology)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
     demand = np.ones(len(topology.timesteps)) * 10
@@ -591,7 +605,8 @@ def create_data_existing_technologies():
         data = dm.DataHandle(topology)
 
         # CLIMATE DATA
-        data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+        climate_data_path = './test/climate_data_test.p'
+        data.read_climate_data_from_file('test_node1', climate_data_path)
 
         # DEMAND
         demand = np.ones(len(topology.timesteps)) * 10
@@ -642,8 +657,9 @@ def create_data_existing_networks():
         data = dm.DataHandle(topology)
 
         # CLIMATE DATA
-        data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-        data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
+        climate_data_path = './test/climate_data_test.p'
+        data.read_climate_data_from_file('test_node1', climate_data_path)
+        data.read_climate_data_from_file('test_node2', climate_data_path)
 
         # DEMAND
         demand = np.ones(len(topology.timesteps)) * 10
@@ -703,7 +719,8 @@ def create_test_data_dac():
 
     data = dm.DataHandle(topology)
 
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
     co2demand = np.ones(len(topology.timesteps)) * 0.01
@@ -741,7 +758,8 @@ def create_data_technologyOpen_Hydro():
 
     # CLIMATE DATA
     inflow = np.ones(len(topology.timesteps)) * 10
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_hydro_natural_inflow('test_node1', 'TestPumpedHydro_Open', inflow)
     data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
     data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
@@ -770,7 +788,8 @@ def create_data_technologyOpen_Hydro():
 
     # CLIMATE DATA
     inflow = np.ones(len(topology.timesteps)) * 10
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    climate_data_path = './test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_hydro_maximum_discharge('test_node1', 'TestPumpedHydro_Open_max_discharge', np.ones(len(data.topology.timesteps)) * 0)
     data.read_hydro_natural_inflow('test_node1', 'TestPumpedHydro_Open_max_discharge', inflow)
     data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
@@ -840,7 +859,7 @@ def create_data_carbon_subsidy():
 
     data = dm.DataHandle(topology)
 
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+    data.read_climate_data_from_file('test_node1', './test/climate_data_test.p')
 
     # DEMAND
     co2demand = np.ones(len(topology.timesteps)) * 0.01
