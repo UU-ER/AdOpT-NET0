@@ -8,16 +8,16 @@ class Network:
     Class to read and manage data for technologies
     """
 
-    def __init__(self, network: dict, path: str):
+    def __init__(self, network: dict, load_path: Path):
         """
         Initializes technology class from technology name
 
         The network name needs to correspond to the name of a JSON file in ./data/network_data.
 
         :param dict network: name of technology to read data
-        :param str path: path to read network data from
+        :param Path load_path: path to read network data from
         """
-        netw_data = read_network_data_from_json(network['name'], path)
+        netw_data = read_network_data_from_json(network['name'], load_path)
 
         # General information
         self.name = network['name']
