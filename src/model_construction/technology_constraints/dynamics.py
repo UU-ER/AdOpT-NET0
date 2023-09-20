@@ -40,7 +40,7 @@ def constraints_SUSD_logic(b_tec, tec_data, energyhub):
         if t >= min_uptime:
             return var_y[t - min_uptime + 1] <= var_x[t]
         else:
-            return Constraint.Skip
+            return var_y[len(set_t) + (t - min_uptime + 1)] <= var_x[t]
 
     b_tec.const_SUSD_logic2 = Constraint(set_t, rule=init_SUSD_logic2)
 
@@ -48,7 +48,7 @@ def constraints_SUSD_logic(b_tec, tec_data, energyhub):
         if t >= min_downtime:
             return var_z[t - min_downtime + 1] <= 1 - var_x[t]
         else:
-            return Constraint.Skip
+            return var_z[len(set_t) + (t - min_downtime + 1)] <= 1 - var_x[t]
 
     b_tec.const_SUSD_logic3 = Constraint(set_t, rule=init_SUSD_logic3)
 
@@ -184,14 +184,14 @@ def constraints_slow_SUSD_dynamics(alpha1, alpha2, b_tec, tec_data, energyhub):
                 if t < len(set_t) - SU_time or i > SU_time - (len(set_t) - t):
                     return var_y[t - i + SU_time + 1] == 0
                 else:
-                    return Constraint.Skip
+                    return var_y[(t - i + SU_time + 1) - len(set_t)] == 0
             dis.const_y_off = Constraint(range(1, SU_time + 1), rule= init_y_off)
 
             def init_z_off(const, j):
                 if j <= t:
                     return var_z[t - j + 1] == 0
                 else:
-                    return Constraint.Skip
+                    return var_z[len(set_t) + (t - i + 1)] == 0
             dis.const_z_off = Constraint(range(1, SD_time + 1), rule= init_z_off)
 
             def init_input_off(const, car_input):
@@ -209,25 +209,22 @@ def constraints_slow_SUSD_dynamics(alpha1, alpha2, b_tec, tec_data, energyhub):
                 if t < len(set_t) - SU_time or ind > SU_time - (len(set_t) - t):
                     return var_y[t - ind + SU_time + 1] == 1
                 else:
-                    return Constraint.Skip
+                    return var_y[(t - ind + SU_time + 1) - len(set_t)] == 1
             dis.const_y_on = Constraint(rule= init_y_on)
 
             def init_z_off(const):
                 if t < len(set_t) - SU_time or ind > SU_time - (len(set_t) - t):
                     return var_z[t - ind + SU_time + 1] == 0
                 else:
-                    return Constraint.Skip
+                    return var_z[(t - ind + SU_time + 1) - len(set_t)] == 0
             dis.const_z_off = Constraint(rule= init_z_off)
 
             def init_input_SU(cons):
-                if t < len(set_t) - SU_time or ind > SU_time - (len(set_t) - t):
-                    if technology_model == 'CONV1' or technology_model == 'CONV2':
-                        return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
-                               == b_tec.var_size * SU_trajectory[ind - 1]
-                    elif technology_model == 'CONV3':
-                        return input[t, main_car] == b_tec.var_size * SU_trajectory[ind - 1]
-                else:
-                    return Constraint.Skip
+                if technology_model == 'CONV1' or technology_model == 'CONV2':
+                    return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
+                           == b_tec.var_size * SU_trajectory[ind - 1]
+                elif technology_model == 'CONV3':
+                    return input[t, main_car] == b_tec.var_size * SU_trajectory[ind - 1]
             dis.const_input_SU = Constraint(rule=init_input_SU)
 
             def init_output_SU(const, car_output):
@@ -243,25 +240,22 @@ def constraints_slow_SUSD_dynamics(alpha1, alpha2, b_tec, tec_data, energyhub):
                 if ind_SD <= t:
                     return var_z[t - ind_SD + 1] == 1
                 else:
-                    return Constraint.Skip
+                    return var_z[len(set_t) + (t - ind_SD + 1)] == 1
             dis.const_z_on = Constraint(rule= init_z_on)
 
             def init_y_off(const):
                 if ind_SD <= t:
                     return var_y[t - ind_SD + 1] == 0
                 else:
-                    return Constraint.Skip
+                    return var_y[len(set_t) + (t - ind_SD + 1)] == 0
             dis.const_y_off = Constraint(rule= init_y_off)
 
             def init_input_SD(cons):
-                if ind_SD <= t:
-                    if technology_model == 'CONV1' or technology_model == 'CONV2':
-                        return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
-                               == b_tec.var_size * SD_trajectory[ind_SD - 1]
-                    elif technology_model == 'CONV3':
-                        return input[t, main_car] == b_tec.var_size * SD_trajectory[ind_SD - 1]
-                else:
-                    return Constraint.Skip
+                if technology_model == 'CONV1' or technology_model == 'CONV2':
+                    return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
+                           == b_tec.var_size * SD_trajectory[ind_SD - 1]
+                elif technology_model == 'CONV3':
+                    return input[t, main_car] == b_tec.var_size * SD_trajectory[ind_SD - 1]
             dis.const_input_SD = Constraint(rule=init_input_SD)
 
             def init_output_SD(const, car_output):
