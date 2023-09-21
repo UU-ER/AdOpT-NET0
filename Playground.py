@@ -76,7 +76,7 @@ execute = 1
 
 if execute == 1:
     topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 10:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 7:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1'])
     topology.define_new_technologies('test_node1', ['testCONV3_2', 'testSTOR'])
@@ -90,12 +90,14 @@ if execute == 1:
 
     # DEMAND
     demand_h = np.ones(len(topology.timesteps))
-    demand_h[0] = 0.75
-    demand_h[1] = 0
-    demand_h[2] = 0
-    demand_h[3] = 1
-    demand_h[4] = 1
-    demand_h[5] = 1
+    demand_h[0] = 0
+    demand_h[1] = 1
+    demand_h[2] = 1
+    demand_h[3] = 0
+    demand_h[4] = 0
+    demand_h[5] = 0
+    demand_h[6] = 0
+    demand_h[7] = 1
     data.read_demand_data('test_node1', 'heat', demand_h)
 
     # PRICE DATA
@@ -114,8 +116,8 @@ if execute == 1:
     export_lim = np.ones(len(topology.timesteps)) * 10
     # export_lim[4] = 0
     data.read_export_limit_data('test_node1', 'electricity', export_lim)
-    export_lim = np.ones(len(topology.timesteps)) * 0
-    export_lim[2] = 1
+    export_lim = np.ones(len(topology.timesteps)) * 0.5
+    # export_lim[2] = 1
     data.read_export_limit_data('test_node1', 'heat', export_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
@@ -131,7 +133,8 @@ if execute == 1:
     # Solve model
     energyhub.quick_solve()
     print('finish')
-    # energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_2'].var_x[2].value
+    for i in range(1, len(topology.timesteps) + 1):
+        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_2'].var_x[i].value)
 
 execute = 0
 
