@@ -709,50 +709,50 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
             elif SU_time + SD_time > 0:
                 b_tec = constraints_slow_SUSD_dynamics(alpha1, alpha2, b_tec, tec_data, energyhub)
 
-                # define disjuncts
-        # s_indicators = range(0, 2)
-        # def init_input_output(dis, t, ind):
-        #     if ind == 0:  # technology off
-        #         dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
-        #
-        #         if standby_power > 0:
-        #             def init_input_off(const, car_input):
-        #                 return input[t, car_input] >= 0
-        #             dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
-        #
-        #             def init_standby_power(const):
-        #                 return input[t, main_car] == standby_power * b_tec.var_size * rated_power
-        #             dis.const_standby_power = Constraint(rule=init_standby_power)
-        #         else:
-        #             def init_input_off(const, car_input):
-        #                 return input[t, car_input] == 0
-        #             dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
-        #
-        #         def init_output_off(const, car_output):
-        #             return output[t, car_output] == 0
-        #         dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
-        #
-        #     else:  # technology on
-        #         dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
-        #
-        #         # input-output relation
-        #         def init_input_output_on(const, car_output):
-        #             return output[t, car_output] == \
-        #                    alpha1[car_output] * input[t, main_car] + \
-        #                    alpha2[car_output] * b_tec.var_size * rated_power
-        #         dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_input_output_on)
-        #
-        #         # min part load relation
-        #         def init_min_partload(const):
-        #             return input[t, main_car] >= min_part_load * b_tec.var_size * rated_power
-        #         dis.const_min_partload = Constraint(rule=init_min_partload)
-        #
-        # b_tec.dis_input_output = Disjunct(set_t, s_indicators, rule=init_input_output)
-        #
-        # # Bind disjuncts
-        # def bind_disjunctions(dis, t):
-        #     return [b_tec.dis_input_output[t, i] for i in s_indicators]
-        # b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
+        # define disjuncts
+        s_indicators = range(0, 2)
+        def init_input_output(dis, t, ind):
+            if ind == 0:  # technology off
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
+                if standby_power > 0:
+                    def init_input_off(const, car_input):
+                        return input[t, car_input] >= 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                    def init_standby_power(const):
+                        return input[t, main_car] == standby_power * b_tec.var_size * rated_power
+                    dis.const_standby_power = Constraint(rule=init_standby_power)
+                else:
+                    def init_input_off(const, car_input):
+                        return input[t, car_input] == 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                def init_output_off(const, car_output):
+                    return output[t, car_output] == 0
+                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+
+            else:  # technology on
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+
+                # input-output relation
+                def init_input_output_on(const, car_output):
+                    return output[t, car_output] == \
+                           alpha1[car_output] * input[t, main_car] + \
+                           alpha2[car_output] * b_tec.var_size * rated_power
+                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_input_output_on)
+
+                # min part load relation
+                def init_min_partload(const):
+                    return input[t, main_car] >= min_part_load * b_tec.var_size * rated_power
+                dis.const_min_partload = Constraint(rule=init_min_partload)
+
+        b_tec.dis_input_output = Disjunct(set_t, s_indicators, rule=init_input_output)
+
+        # Bind disjuncts
+        def bind_disjunctions(dis, t):
+            return [b_tec.dis_input_output[t, i] for i in s_indicators]
+        b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
 
     # piecewise affine function
     elif performance_function_type == 3:
