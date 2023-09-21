@@ -232,7 +232,7 @@ def constraints_slow_SUSD_dynamics(alpha1, alpha2, b_tec, tec_data, energyhub):
                        alpha2[car_output] * b_tec.var_size * rated_power
             dis.const_output_SU = Constraint(b_tec.set_output_carriers, rule=init_output_SU)
 
-        elif ind in range(SU_time + 1, SD_time + 1): # technology in shutdown
+        elif ind in range(SU_time + 1, SU_time + SD_time + 1): # technology in shutdown
             ind_SD = ind - SU_time
             dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
