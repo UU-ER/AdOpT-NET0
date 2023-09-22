@@ -678,6 +678,13 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
         warnings.warn(
             'Using CONV3 without input ratios makes no sense. Error occured for ' + b_tec.local_name)
 
+    # INCLUDE DYNAMICS
+    if configuration.performance.dynamics == 1 or \
+            (configuration.performance.dynamics == 2 and (tec_data.technology_model in configuration.performance.dynamicsOn)):
+        b_tec = constraints_SUSD_logic(b_tec, tec_data, energyhub)
+        if not performance_function_type == 4:
+            b_tec = constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub)
+
     # LINEAR, NO MINIMAL PARTLOAD, THROUGH ORIGIN
     if performance_function_type == 1:
         def init_input_output(const, t, car_output):
@@ -700,14 +707,6 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
 
         # add startup/shutdown logic
         b_tec.var_x = Var(set_t, domain=NonNegativeReals, bounds=(0,1))
-
-        if configuration.performance.dynamics == 1 or \
-                (configuration.performance.dynamics == 2 and (tec_data.name in configuration.performance.dynamicsOn)):
-            b_tec = constraints_SUSD_logic(b_tec, tec_data, energyhub)
-            if SU_time + SD_time == 0:
-                b_tec = constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub)
-            elif SU_time + SD_time > 0:
-                b_tec = constraints_slow_SUSD_dynamics(alpha1, alpha2, b_tec, tec_data, energyhub)
 
         # define disjuncts
         s_indicators = range(0, 2)
@@ -815,6 +814,147 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
         b_tec.disjunction_input_output = Disjunction(set_t, rule=bind_disjunctions)
+
+    # slow startup and shutdown dynamics
+    elif performance_function_type == 4:
+
+
+        # Calculate SU and SD trajectories
+        if SU_time > 0:
+            SU_trajectory = []
+            for i in range(1, SU_time + 1):
+                SU_trajectory.append((min_part_load / (SU_time + 1)) * i)
+
+        if SD_time > 0:
+            SD_trajectory = []
+            for i in range(1, SD_time + 1):
+                SD_trajectory.append((min_part_load / (SD_time + 1)) * i)
+            SD_trajectory = sorted(SD_trajectory, reverse=True)
+
+        # slow startups/shutdowns with trajectories
+        s_indicators = range(0, SU_time + SD_time + 2)
+
+        def init_SUSD_trajectories(dis, t, ind):
+            if ind == 0:  # technology off
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
+                def init_y_off(const, i):
+                    if t < len(set_t) - SU_time or i > SU_time - (len(set_t) - t):
+                        return b_tec.var_y[t - i + SU_time + 1] == 0
+                    else:
+                        return b_tec.var_y[(t - i + SU_time + 1) - len(set_t)] == 0
+
+                dis.const_y_off = Constraint(range(1, SU_time + 1), rule=init_y_off)
+
+                def init_z_off(const, j):
+                    if j <= t:
+                        return b_tec.var_z[t - j + 1] == 0
+                    else:
+                        return b_tec.var_z[len(set_t) + (t - i + 1)] == 0
+
+                dis.const_z_off = Constraint(range(1, SD_time + 1), rule=init_z_off)
+
+                def init_input_off(const, car_input):
+                    return input[t, car_input] == 0
+
+                dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                def init_output_off(const, car_output):
+                    return output[t, car_output] == 0
+
+                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+
+            elif ind in range(1, SU_time + 1):  # technology in startup
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
+                def init_y_on(const):
+                    if t < len(set_t) - SU_time or ind > SU_time - (len(set_t) - t):
+                        return b_tec.var_y[t - ind + SU_time + 1] == 1
+                    else:
+                        return b_tec.var_y[(t - ind + SU_time + 1) - len(set_t)] == 1
+
+                dis.const_y_on = Constraint(rule=init_y_on)
+
+                def init_z_off(const):
+                    if t < len(set_t) - SU_time or ind > SU_time - (len(set_t) - t):
+                        return var_z[t - ind + SU_time + 1] == 0
+                    else:
+                        return var_z[(t - ind + SU_time + 1) - len(set_t)] == 0
+
+                dis.const_z_off = Constraint(rule=init_z_off)
+
+                def init_input_SU(cons):
+                    if technology_model == 'CONV1' or technology_model == 'CONV2':
+                        return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
+                               == b_tec.var_size * SU_trajectory[ind - 1]
+                    elif technology_model == 'CONV3':
+                        return input[t, main_car] == b_tec.var_size * SU_trajectory[ind - 1]
+
+                dis.const_input_SU = Constraint(rule=init_input_SU)
+
+                def init_output_SU(const, car_output):
+                    return output[t, car_output] == alpha1[car_output] * input[t, main_car] + \
+                           alpha2[car_output] * b_tec.var_size * rated_power
+
+                dis.const_output_SU = Constraint(b_tec.set_output_carriers, rule=init_output_SU)
+
+            elif ind in range(SU_time + 1, SU_time + SD_time + 1):  # technology in shutdown
+                ind_SD = ind - SU_time
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
+                def init_z_on(const):
+                    if ind_SD <= t:
+                        return var_z[t - ind_SD + 1] == 1
+                    else:
+                        return var_z[len(set_t) + (t - ind_SD + 1)] == 1
+
+                dis.const_z_on = Constraint(rule=init_z_on)
+
+                def init_y_off(const):
+                    if ind_SD <= t:
+                        return var_y[t - ind_SD + 1] == 0
+                    else:
+                        return var_y[len(set_t) + (t - ind_SD + 1)] == 0
+
+                dis.const_y_off = Constraint(rule=init_y_off)
+
+                def init_input_SD(cons):
+                    if technology_model == 'CONV1' or technology_model == 'CONV2':
+                        return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
+                               == b_tec.var_size * SD_trajectory[ind_SD - 1]
+                    elif technology_model == 'CONV3':
+                        return input[t, main_car] == b_tec.var_size * SD_trajectory[ind_SD - 1]
+
+                dis.const_input_SD = Constraint(rule=init_input_SD)
+
+                def init_output_SD(const, car_output):
+                    return output[t, car_output] == alpha1[car_output] * input[t, main_car] + \
+                           alpha2[car_output] * b_tec.var_size * rated_power
+
+                dis.const_output_SD = Constraint(b_tec.set_output_carriers, rule=init_output_SD)
+
+            elif ind > SU_time + SD_time:
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+
+                def init_input_output_on(const, car_output):
+                    return output[t, car_output] == \
+                           alpha1[car_output] * input[t, main_car] + \
+                           alpha2[car_output] * b_tec.var_size * rated_power
+
+                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_input_output_on)
+
+                # min part load relation
+                def init_min_partload(const):
+                    return input[t, main_car] >= min_part_load * b_tec.var_size * rated_power
+
+                dis.const_min_partload = Constraint(rule=init_min_partload)
+
+        b_tec.dis_SUSD_trajectory = Disjunct(set_t, s_indicators, rule=init_SUSD_trajectories)
+
+        def bind_disjunctions_SUSD(dis, t):
+            return [b_tec.dis_SUSD_trajectory[t, k] for k in s_indicators]
+
+        b_tec.disjunction_SUSD_traject = Disjunction(set_t, rule=bind_disjunctions_SUSD)
 
     # add ramping rates
     if not ramping_rate == 0:
