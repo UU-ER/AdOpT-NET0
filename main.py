@@ -83,4 +83,10 @@ configuration = ModelConfiguration()
 # # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
-results.write_excel('./userData/', 'test')
+
+for tec in data.technology_data['offshore']:
+    size = data.technology_data['offshore'][tec].model_block.report_results()
+    print(size)
+
+
+# results.write_excel('./userData/', 'test')

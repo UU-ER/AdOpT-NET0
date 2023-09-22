@@ -3,23 +3,21 @@ import src.global_variables as global_variables
 from src.data_management.components.utilities import Economics
 from src.data_management.components.fit_technology_performance import *
 
-
 # Technology Class
-# Attributes (Data)
-# construct general tec model
-# reporting
+    # Attributes (Data)
+    # construct general tec model
+    # reporting
 
 # One subclass per tec type
-# fit_technology performance
-# construct specific technology constraints
-# reporting
+    # fit_technology performance
+    # construct specific technology constraints
+    # reporting
 
 
 class Technology:
     """
     Class to read and manage data for technologies
     """
-
     def __init__(self, tec_data):
         """
         Initializes technology class from technology name
@@ -58,16 +56,18 @@ class Technology:
         else:
             self.emissions_based_on = 'input'
 
-        self.model_block = []
+        self.model_block = Block()
 
         self.fitted_performance = None
 
-    def construct_model(self, b_tec, energyhub):
+
+    def construct_model(self, energyhub):
 
         print('\t - Adding Technology ' + self.name)
+
         # TECHNOLOGY DATA
         configuration = energyhub.configuration
-        self.model_block = b_tec
+
         # MODELING TYPICAL DAYS
         if global_variables.clustered_data:
             if configuration.optimization.typicaldays.method == 2:
@@ -88,21 +88,21 @@ class Technology:
         self.__define_capex(energyhub)
 
         # INPUT AND OUTPUT
-        self.__define_input(energyhub)
-        self.__define_output(energyhub)
+        b_tec = self.__define_input(b_tec, energyhub)
+        b_tec = self.__define_output(b_tec, energyhub)
 
         # OPEX
-        self.__define_opex(energyhub)
+        b_tec = self.__define_opex(b_tec, energyhub)
 
         # EMISSIONS
-        self.__define_emissions(energyhub)
+        b_tec = self.__define_emissions(b_tec, energyhub)
 
         # DEFINE AUXILIARY VARIABLES FOR CLUSTERED DATA
         if global_variables.clustered_data and not self.modelled_with_full_res:
-            self.__define_auxiliary_vars(energyhub)
+            b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
 
         # GENERIC TECHNOLOGY CONSTRAINTS
-        self.__constraints_tec_RES(energyhub)
+        b_tec = self.__constraints_tec_RES(b_tec, energyhub)
 
         return self.model_block
 
@@ -166,26 +166,23 @@ class Technology:
         self.model_block.var_capex_aux = Var()
         annualization_factor = mc.annualize(discount_rate, economics.lifetime)
         if capex_model == 1:
-            self.model_block.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'],
-                                                     mutable=True)
+            self.model_block.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
             self.model_block.para_unit_capex_annual = Param(domain=Reals,
-                                                            initialize=annualization_factor * economics.capex_data[
-                                                                'unit_capex'],
-                                                            mutable=True)
+                                                 initialize=annualization_factor * economics.capex_data['unit_capex'],
+                                                 mutable=True)
             self.model_block.const_capex_aux = Constraint(
                 expr=self.model_block.var_size * self.model_block.para_unit_capex_annual == self.model_block.var_capex_aux)
         elif capex_model == 2:
             self.model_block.para_bp_x = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_x'])
             self.model_block.para_bp_y = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_y'])
             self.model_block.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
-                                                                               economics.capex_data['piecewise_capex'][
-                                                                                   'bp_y'])
+                                                                    economics.capex_data['piecewise_capex']['bp_y'])
             global_variables.big_m_transformation_required = 1
             self.model_block.const_capex_aux = Piecewise(self.model_block.var_capex_aux, self.model_block.var_size,
-                                                         pw_pts=self.model_block.para_bp_x,
-                                                         pw_constr_type='EQ',
-                                                         f_rule=self.model_block.para_bp_y_annual,
-                                                         pw_repn='SOS2')
+                                              pw_pts=self.model_block.para_bp_x,
+                                              pw_constr_type='EQ',
+                                              f_rule=self.model_block.para_bp_y_annual,
+                                              pw_repn='SOS2')
         # CAPEX
         if self.existing and not self.decommission:
             self.model_block.var_capex = Param(domain=Reals, initialize=0)
@@ -193,13 +190,13 @@ class Technology:
             self.model_block.var_capex = Var()
             if self.existing:
                 self.model_block.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost,
-                                                                   mutable=True)
+                                                        mutable=True)
                 self.model_block.const_capex = Constraint(
                     expr=self.model_block.var_capex == (
-                            self.model_block.para_size_initial - self.model_block.var_size) * self.model_block.para_decommissioning_cost)
+                                self.model_block.para_size_initial - self.model_block.var_size) * self.model_block.para_decommissioning_cost)
             else:
-                self.model_block.const_capex = Constraint(
-                    expr=self.model_block.var_capex == self.model_block.var_capex_aux)
+                self.model_block.const_capex = Constraint(expr=self.model_block.var_capex == self.model_block.var_capex_aux)
+
 
     def __define_input(self, energyhub):
         """
@@ -229,9 +226,9 @@ class Technology:
         rated_power = fitted_performance.rated_power
 
         if (technology_model == 'RES') or (technology_model == 'CONV4'):
-            self.model_block.set_input_carriers = Set(initialize=[])
+            b_tec.set_input_carriers = Set(initialize=[])
         else:
-            self.model_block.set_input_carriers = Set(initialize=performance_data['input_carrier'])
+            b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
 
             def init_input_bounds(bounds, t, car):
                 if global_variables.clustered_data and not modelled_with_full_res:
@@ -240,11 +237,11 @@ class Technology:
                 else:
                     return tuple(fitted_performance.bounds['input'][car][t - 1, :] * size_max * rated_power)
 
-            self.model_block.var_input = Var(set_t, self.model_block.set_input_carriers, within=NonNegativeReals,
+            b_tec.var_input = Var(set_t, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=init_input_bounds)
-        return self.model_block
+        return b_tec
 
-    def __define_output(self, energyhub):
+    def __define_output(self, b_tec, energyhub):
         """
         Defines output to a technology
 
@@ -269,7 +266,7 @@ class Technology:
         else:
             size_max = self.size_max
 
-        self.model_block.set_output_carriers = Set(initialize=performance_data['output_carrier'])
+        b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])
 
         def init_output_bounds(bounds, t, car):
             if global_variables.clustered_data and not modelled_with_full_res:
@@ -277,11 +274,11 @@ class Technology:
             else:
                 return tuple(fitted_performance.bounds['output'][car][t - 1, :] * size_max * rated_power)
 
-        self.model_block.var_output = Var(set_t, self.model_block.set_output_carriers, within=NonNegativeReals,
+        b_tec.var_output = Var(set_t, b_tec.set_output_carriers, within=NonNegativeReals,
                                bounds=init_output_bounds)
-        return self.model_block
+        return b_tec
 
-    def __define_opex(self, energyhub):
+    def __define_opex(self, b_tec, energyhub):
         """
         Defines variable and fixed OPEX
         """
@@ -289,22 +286,22 @@ class Technology:
         set_t = energyhub.model.set_t_full
 
         # VARIABLE OPEX
-        self.model_block.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable, mutable=True)
-        self.model_block.var_opex_variable = Var(set_t)
+        b_tec.para_opex_variable = Param(domain=Reals, initialize=economics.opex_variable, mutable=True)
+        b_tec.var_opex_variable = Var(set_t)
 
         def init_opex_variable(const, t):
-            return sum(self.model_block.var_output[t, car] for car in self.model_block.set_output_carriers) * self.model_block.para_opex_variable == \
-                   self.model_block.var_opex_variable[t]
+            return sum(b_tec.var_output[t, car] for car in b_tec.set_output_carriers) * b_tec.para_opex_variable == \
+                   b_tec.var_opex_variable[t]
 
-        self.model_block.const_opex_variable = Constraint(set_t, rule=init_opex_variable)
+        b_tec.const_opex_variable = Constraint(set_t, rule=init_opex_variable)
 
         # FIXED OPEX
-        self.model_block.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed, mutable=True)
-        self.model_block.var_opex_fixed = Var()
-        self.model_block.const_opex_fixed = Constraint(expr=self.model_block.var_capex_aux * self.model_block.para_opex_fixed == self.model_block.var_opex_fixed)
-        return self.model_block
+        b_tec.para_opex_fixed = Param(domain=Reals, initialize=economics.opex_fixed, mutable=True)
+        b_tec.var_opex_fixed = Var()
+        b_tec.const_opex_fixed = Constraint(expr=b_tec.var_capex_aux * b_tec.para_opex_fixed == b_tec.var_opex_fixed)
+        return b_tec
 
-    def __define_emissions(self, energyhub):
+    def __define_emissions(self, b_tec, energyhub):
         """
         Defines Emissions
         """
@@ -314,69 +311,69 @@ class Technology:
         technology_model = self.technology_model
         emissions_based_on = self.emissions_based_on
 
-        self.model_block.para_tec_emissionfactor = Param(domain=Reals, initialize=performance_data['emission_factor'])
-        self.model_block.var_tec_emissions_pos = Var(set_t, within=NonNegativeReals)
-        self.model_block.var_tec_emissions_neg = Var(set_t, within=NonNegativeReals)
+        b_tec.para_tec_emissionfactor = Param(domain=Reals, initialize=performance_data['emission_factor'])
+        b_tec.var_tec_emissions_pos = Var(set_t, within=NonNegativeReals)
+        b_tec.var_tec_emissions_neg = Var(set_t, within=NonNegativeReals)
 
         if technology_model == 'RES':
             # Set emissions to zero
             def init_tec_emissions_pos(const, t):
-                return self.model_block.var_tec_emissions_pos[t] == 0
+                return b_tec.var_tec_emissions_pos[t] == 0
 
-            self.model_block.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
+            b_tec.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
 
             def init_tec_emissions_neg(const, t):
-                return self.model_block.var_tec_emissions_neg[t] == 0
+                return b_tec.var_tec_emissions_neg[t] == 0
 
-            self.model_block.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
+            b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
 
         else:
 
             if emissions_based_on == 'output':
                 def init_tec_emissions_pos(const, t):
                     if performance_data['emission_factor'] >= 0:
-                        return self.model_block.var_output[t, performance_data['main_output_carrier']] * \
-                               self.model_block.para_tec_emissionfactor == \
-                               self.model_block.var_tec_emissions_pos[t]
+                        return b_tec.var_output[t, performance_data['main_output_carrier']] * \
+                               b_tec.para_tec_emissionfactor == \
+                               b_tec.var_tec_emissions_pos[t]
                     else:
-                        return self.model_block.var_tec_emissions_pos[t] == 0
+                        return b_tec.var_tec_emissions_pos[t] == 0
 
-                self.model_block.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
+                b_tec.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
 
                 def init_tec_emissions_neg(const, t):
                     if performance_data['emission_factor'] < 0:
-                        return self.model_block.var_output[t, performance_data['main_output_carrier']] * \
-                               (-self.model_block.para_tec_emissionfactor) == \
-                               self.model_block.var_tec_emissions_neg[t]
+                        return b_tec.var_output[t, performance_data['main_output_carrier']] * \
+                               (-b_tec.para_tec_emissionfactor) == \
+                               b_tec.var_tec_emissions_neg[t]
                     else:
-                        return self.model_block.var_tec_emissions_neg[t] == 0
+                        return b_tec.var_tec_emissions_neg[t] == 0
 
-                self.model_block.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
+                b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
 
             elif emissions_based_on == 'input':
                 def init_tec_emissions_pos(const, t):
                     if performance_data['emission_factor'] >= 0:
-                        return self.model_block.var_input[t, performance_data['main_input_carrier']] \
-                               * self.model_block.para_tec_emissionfactor \
-                               == self.model_block.var_tec_emissions_pos[t]
+                        return b_tec.var_input[t, performance_data['main_input_carrier']] \
+                               * b_tec.para_tec_emissionfactor \
+                               == b_tec.var_tec_emissions_pos[t]
                     else:
-                        return self.model_block.var_tec_emissions_pos[t] == 0
+                        return b_tec.var_tec_emissions_pos[t] == 0
 
-                self.model_block.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
+                b_tec.const_tec_emissions_pos = Constraint(set_t, rule=init_tec_emissions_pos)
 
                 def init_tec_emissions_neg(const, t):
                     if performance_data['emission_factor'] < 0:
-                        return self.model_block.var_input[t, performance_data['main_input_carrier']] \
-                                   (-self.model_block.para_tec_emissionfactor) == \
-                               self.model_block.var_tec_emissions_neg[t]
+                        return b_tec.var_input[t, performance_data['main_input_carrier']] \
+                                   (-b_tec.para_tec_emissionfactor) == \
+                               b_tec.var_tec_emissions_neg[t]
                     else:
-                        return self.model_block.var_tec_emissions_neg[t] == 0
+                        return b_tec.var_tec_emissions_neg[t] == 0
 
-                self.model_block.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
+                b_tec.const_tec_emissions_neg = Constraint(set_t, rule=init_tec_emissions_neg)
 
-        return self.model_block
+        return b_tec
 
-    def __define_auxiliary_vars(self, energyhub):
+    def __define_auxiliary_vars(self, b_tec, energyhub):
         """
         Defines auxiliary variables, that are required for the modelling of clustered data
         """
@@ -398,32 +395,32 @@ class Technology:
         def init_input_bounds(bounds, t, car):
             return tuple(fitted_performance.bounds['input'][car][t - 1, :] * size_max * rated_power)
 
-        self.model_block.var_input_aux = Var(set_t_clustered, self.model_block.set_input_carriers, within=NonNegativeReals,
+        b_tec.var_input_aux = Var(set_t_clustered, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=init_input_bounds)
 
-        self.model_block.const_link_full_resolution_input = mc.link_full_resolution_to_clustered(self.model_block.var_input_aux,
-                                                                                      self.model_block.var_input,
+        b_tec.const_link_full_resolution_input = mc.link_full_resolution_to_clustered(b_tec.var_input_aux,
+                                                                                      b_tec.var_input,
                                                                                       set_t_full,
                                                                                       sequence,
-                                                                                      self.model_block.set_input_carriers)
+                                                                                      b_tec.set_input_carriers)
 
         def init_output_bounds(bounds, t, car):
             return tuple(fitted_performance.bounds['output'][car][t - 1, :] * size_max * rated_power)
 
-        self.model_block.var_output_aux = Var(set_t_clustered, self.model_block.set_output_carriers, within=NonNegativeReals,
+        b_tec.var_output_aux = Var(set_t_clustered, b_tec.set_output_carriers, within=NonNegativeReals,
                                    bounds=init_output_bounds)
 
-        self.model_block.const_link_full_resolution_output = mc.link_full_resolution_to_clustered(self.model_block.var_output_aux,
-                                                                                       self.model_block.var_output,
+        b_tec.const_link_full_resolution_output = mc.link_full_resolution_to_clustered(b_tec.var_output_aux,
+                                                                                       b_tec.var_output,
                                                                                        set_t_full,
                                                                                        sequence,
-                                                                                       self.model_block.set_output_carriers)
+                                                                                       b_tec.set_output_carriers)
 
-        return self.model_block
+        return b_tec
 
-    def __constraints_tec_RES(self, energyhub):
-        self.model_block = constraints_tec_RES(self.model_block, self, energyhub)
-        return self.model_block
+    def __constraints_tec_RES(self, b_tec, energyhub):
+        b_tec = constraints_tec_RES(b_tec, self, energyhub)
+        return b_tec
 
     # def fit_technology_performance(self, node_data):
     #
@@ -482,10 +479,11 @@ class Technology:
     #         self.fitted_performance = perform_fitting_tec_hydro_open(self.name, self.performance_data, climate_data)
 
 
+
 class Res(Technology):
 
     def __init__(self,
-                 tec_data):
+                tec_data):
         super().__init__(tec_data)
 
     def fit_technology_performance(self, node_data):
@@ -509,7 +507,3 @@ class Res(Technology):
             self.fitted_performance = perform_fitting_WT(climate_data, self.name, hubheight)
 
     # def add_specific_constraints(self):
-
-    def report_results(self):
-
-        return self.model_block.var_size.value()
