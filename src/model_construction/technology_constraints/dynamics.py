@@ -15,11 +15,6 @@ def constraints_SUSD_logic(b_tec, tec_data, energyhub):
     b_tec.var_y = Var(set_t, domain=NonNegativeReals, bounds=(0, 1))
     b_tec.var_z = Var(set_t, domain=NonNegativeReals, bounds=(0, 1))
 
-    # Collect variables
-    var_x = b_tec.var_x
-    var_y = b_tec.var_y
-    var_z = b_tec.var_z
-
     # Collect parameters
     SU_time = tec_data.performance_data['SU_time']
     SD_time = tec_data.performance_data['SD_time']
@@ -32,30 +27,30 @@ def constraints_SUSD_logic(b_tec, tec_data, energyhub):
         if t == 1:
             return Constraint.Skip
         else:
-            return var_x[t] - var_x[t - 1] == var_y[t] - var_z[t]
+            return b_tec.var_x[t] - b_tec.var_x[t - 1] == b_tec.var_y[t] - b_tec.var_z[t]
 
     b_tec.const_SUSD_logic1 = Constraint(set_t, rule=init_SUSD_logic1)
 
     def init_SUSD_logic2(const, t):
         if t >= min_uptime:
-            return var_y[t - min_uptime + 1] <= var_x[t]
+            return b_tec.var_y[t - min_uptime + 1] <= b_tec.var_x[t]
         else:
-            return var_y[len(set_t) + (t - min_uptime + 1)] <= var_x[t]
+            return b_tec.var_y[len(set_t) + (t - min_uptime + 1)] <= b_tec.var_x[t]
 
     b_tec.const_SUSD_logic2 = Constraint(set_t, rule=init_SUSD_logic2)
 
     def init_SUSD_logic3(const, t):
         if t >= min_downtime:
-            return var_z[t - min_downtime + 1] <= 1 - var_x[t]
+            return b_tec.var_z[t - min_downtime + 1] <= 1 - b_tec.var_x[t]
         else:
-            return var_z[len(set_t) + (t - min_downtime + 1)] <= 1 - var_x[t]
+            return b_tec.var_z[len(set_t) + (t - min_downtime + 1)] <= 1 - b_tec.var_x[t]
 
     b_tec.const_SUSD_logic3 = Constraint(set_t, rule=init_SUSD_logic3)
 
     # Constrain number of startups
     if not max_startups == -1:
         def init_max_startups(const):
-            return sum(var_y[t] for t in set_t) <= max_startups
+            return sum(b_tec.var_y[t] for t in set_t) <= max_startups
 
         b_tec.const_max_startups = Constraint(rule=init_max_startups)
 
