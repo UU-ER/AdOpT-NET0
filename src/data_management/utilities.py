@@ -245,23 +245,23 @@ def select_technology(tec_data):
 def open_json(tec, load_path):
     # Read in JSON files
     for path, subdirs, files in os.walk(load_path):
-        if 'technology_data' in locals():
+        if 'data' in locals():
             break
         else:
             for name in files:
                 if (tec + '.json') == name:
                     filepath = os.path.join(path, name)
                     with open(filepath) as json_file:
-                        technology_data = json.load(json_file)
+                        data = json.load(json_file)
                     break
 
     # Assign name
-    if 'technology_data' in locals():
-        technology_data['Name'] = tec
+    if 'data' in locals():
+        data['Name'] = tec
     else:
         raise Exception('There is no json data file for technology ' + tec)
 
-    return technology_data
+    return data
     
 
 

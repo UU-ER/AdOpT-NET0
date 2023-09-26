@@ -16,7 +16,7 @@ class Technology(ModelComponent):
 
         The technology name needs to correspond to the name of a JSON file in ./data/technology_data.
 
-        :param str technology: name of technology to read data
+        :param dict tec_data: technology data
         """
         super().__init__(tec_data)
 
@@ -38,6 +38,8 @@ class Technology(ModelComponent):
             self.emissions_based_on = 'output'
         else:
             self.emissions_based_on = 'input'
+
+        self.fitted_performance = None
 
         self.input = []
         self.output = []

@@ -49,6 +49,7 @@ class FittedPerformance:
         self.coefficients = {}
         self.time_dependent_coefficients = 0
         self.other = {}
+        self.rated_power = 1
         if tec_data:
             if 'rated_power' in tec_data:
                 self.rated_power = tec_data['rated_power']
@@ -56,8 +57,6 @@ class FittedPerformance:
                 self.input_carrier = tec_data['input_carrier']
             if 'output_carrier' in tec_data:
                 self.output_carrier = tec_data['output_carrier']
-        else:
-            self.rated_power = 1
 
 
 def fit_linear_function(x, y):

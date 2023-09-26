@@ -353,7 +353,7 @@ class DataHandle:
             self.technology_data[node][technology] = select_technology(tec_data)
             self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
 
-    def read_network_data(self, path:str='./data/network_data/'):
+    def read_network_data(self, load_path:str='./data/network_data/'):
         """
         Writes new and existing network to self and calculates energy consumption
 
@@ -364,9 +364,12 @@ class DataHandle:
         :return: self at ``self.Technology_Data[node][tec]``
         """
 
+
         # New Networks
         for network in self.topology.networks_new:
-            self.network_data[network] = Network(network, path)
+            # netw_data = open_json(network, load_path)
+
+            self.network_data[network] = Network(network, load_path)
             self.network_data[network].connection = self.topology.networks_new[network]['connection']
             self.network_data[network].distance = self.topology.networks_new[network]['distance']
             self.network_data[network].size_max_arcs = self.topology.networks_new[network]['size_max_arcs']
@@ -374,7 +377,7 @@ class DataHandle:
 
         # Existing Networks
         for network in self.topology.networks_existing:
-            self.network_data[network + '_existing'] = Network(network, path)
+            self.network_data[network + '_existing'] = Network(network, load_path)
             self.network_data[network + '_existing'].existing = 1
             self.network_data[network + '_existing'].connection = self.topology.networks_existing[network]['connection']
             self.network_data[network + '_existing'].distance = self.topology.networks_existing[network]['distance']

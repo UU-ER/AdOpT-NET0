@@ -1,6 +1,7 @@
 from pyomo.environ import *
 from pyomo.gdp import *
 import numpy as np
+import src.global_variables as global_variables
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
@@ -61,25 +62,63 @@ class HydroOpen(Technology):
 
     def construct_specific_constraints(self, b_tec, energyhub):
         """
-        Adds constraints to technology blocks for tec_type DAC_adsorption
+        Adds constraints to technology blocks for tec_type Hydro_Open, resembling a pumped hydro plant with
+        additional natural inflows (defined in climate data)
 
-        The model resembles as Direct Air Capture technology with a modular setup. It has a heat and electricity input
-        and CO2 as an output. The performance is based on data for a generic solid sorbent, as described in the
-        article (see below). The performance data is fitted to the ambient temperature and humidity at the respective
-        node.
+        The performance
+        functions are fitted in ``src.model_construction.technology_performance_fitting``.
+        Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
 
-        The model is based on Wiegner et al. (2022). Optimal Design and Operation of Solid Sorbent Direct Air Capture
-        Processes at Varying Ambient Conditions. Industrial and Engineering Chemistry Research, 2022,
-        12649–12667. https://doi.org/10.1021/acs.iecr.2c00681. It resembles operation configuration 1 without water
-        spraying.
+        **Parameter declarations:**
+
+        - :math:`{\\eta}_{in}`: Charging efficiency
+
+        - :math:`{\\eta}_{out}`: Discharging efficiency
+
+        - :math:`{\\lambda}`: Self-Discharging coefficient
+
+        - :math:`Input_{max}`: Maximal charging capacity in one time-slice
+
+        - :math:`Output_{max}`: Maximal discharging capacity in one time-slice
+
+        - :math:`Natural_Inflow{t}`: Natural water inflow in time slice (can be negative, i.e. being an outflow)
+
+        **Variable declarations:**
+
+        - Storage level in :math:`t`: :math:`E_t`
+
+        - Charging in :math:`t`: :math:`Input_{t}`
+
+        - Discharging in :math:`t`: :math:`Output_{t}`
+
+        **Constraint declarations:**
+
+        - Maximal charging and discharging:
+
+          .. math::
+            Input_{t} \leq Input_{max}
+
+          .. math::
+            Output_{t} \leq Output_{max}
+
+        - Size constraint:
+
+          .. math::
+            E_{t} \leq S
+
+        - Storage level calculation:
+
+          .. math::
+            E_{t} = E_{t-1} * (1 - \\lambda) + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t} + Natural_Inflow_{t}
+
+        - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
+          step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
 
         :param obj model: instance of a pyomo model
         :param obj b_tec: technology block
         :param tec_data: technology data
         :return: technology block
         """
-        # Comments on the equations refer to the equation numbers in the paper. All equations can be looked up there.
-
         # Transformation required
         self.big_m_transformation_required = 1
 
@@ -92,134 +131,112 @@ class HydroOpen(Technology):
         performance_data = self.performance_data
         coeff = self.fitted_performance.coefficients
         bounds = self.fitted_performance.bounds
-        nr_segments = performance_data['nr_segments']
-        ohmic_heating = performance_data['ohmic_heating']
 
-        # Additional sets
-        b_tec.set_pieces = RangeSet(1, nr_segments)
+
+        if 'allow_only_one_direction' in performance_data:
+            allow_only_one_direction = performance_data['allow_only_one_direction']
+        else:
+            allow_only_one_direction = 0
+
+        can_pump = performance_data['can_pump']
+        if performance_data['maximum_discharge_time_discrete']:
+            hydro_maximum_discharge = coeff['hydro_maximum_discharge']
+
+        nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
         # Additional decision variables
-        b_tec.var_modules_on = Var(self.set_t,
-                                   domain=NonNegativeIntegers,
-                                   bounds=(b_tec.para_size_min, b_tec.para_size_max))
+        b_tec.var_storage_level = Var(self.set_t, b_tec.set_input_carriers,
+                                      domain=NonNegativeReals,
+                                      bounds=(b_tec.para_size_min, b_tec.para_size_max))
+        b_tec.var_spilling = Var(self.set_t,
+                                 domain=NonNegativeReals,
+                                 bounds=(b_tec.para_size_min, b_tec.para_size_max))
 
-        def init_input_total_bounds(bds, t):
-            return tuple(bounds['input']['total'][t - 1] * b_tec.para_size_max)
+        # Abdditional parameters
+        eta_in = coeff['eta_in']
+        eta_out = coeff['eta_out']
+        eta_lambda = coeff['lambda']
+        charge_max = coeff['charge_max']
+        discharge_max = coeff['discharge_max']
+        hydro_natural_inflow = coeff['hydro_inflow']
+        spilling_max = coeff['spilling_max']
 
-        b_tec.var_input_total = Var(self.set_t, within=NonNegativeReals, bounds=init_input_total_bounds)
+        # Size constraint
+        def init_size_constraint(const, t, car):
+            return b_tec.var_storage_level[t, car] <= b_tec.var_size
 
-        def init_input_el_bounds(bds, t):
-            return tuple(bounds['input']['electricity'][t - 1] * b_tec.para_size_max)
+        b_tec.const_size = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_size_constraint)
 
-        b_tec.var_input_el = Var(self.set_t, within=NonNegativeReals, bounds=init_input_el_bounds)
+        # Storage level calculation
+        def init_storage_level(const, t, car):
+            if t == 1:  # couple first and last time interval
+                return b_tec.var_storage_level[t, car] == \
+                       b_tec.var_storage_level[max(self.set_t), car] * (1 - eta_lambda) ** nr_timesteps_averaged + \
+                       (eta_in * self.input[t, car] - 1 / eta_out * self.output[t, car] - b_tec.var_spilling[t]) * \
+                       sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)) + \
+                       hydro_natural_inflow[t - 1]
+            else:  # all other time intervals
+                return b_tec.var_storage_level[t, car] == \
+                       b_tec.var_storage_level[t - 1, car] * (1 - eta_lambda) ** nr_timesteps_averaged + \
+                       (eta_in * self.input[t, car] - 1 / eta_out * self.output[t, car] - b_tec.var_spilling[t]) * \
+                       sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)) + \
+                       hydro_natural_inflow[t - 1]
 
-        def init_input_th_bounds(bds, t):
-            return tuple(bounds['input']['heat'][t - 1] * b_tec.para_size_max)
+        b_tec.const_storage_level = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_storage_level)
 
-        b_tec.var_input_th = Var(self.set_t, within=NonNegativeReals, bounds=init_input_th_bounds)
+        if not can_pump:
+            def init_input_zero(const, t, car):
+                return self.input[t, car] == 0
 
-        def init_input_ohmic_bounds(bds, t):
-            return tuple((el - th for el, th in zip(bounds['input']['electricity'][t - 1] * b_tec.para_size_max,
-                                                    bounds['input']['heat'][t - 1] * b_tec.para_size_max)))
+            b_tec.const_input_zero = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_input_zero)
 
-        b_tec.var_input_ohmic = Var(self.set_t, within=NonNegativeReals, bounds=init_input_ohmic_bounds)
+        # This makes sure that only either input or output is larger zero.
+        if allow_only_one_direction == 1:
+            global_variables.big_m_transformation_required = 1
+            s_indicators = range(0, 2)
 
-        # Additional parameters
-        alpha = coeff['alpha']
-        beta = coeff['beta']
-        b_point = coeff['b']
-        gamma = coeff['gamma']
-        delta = coeff['delta']
-        a_point = coeff['a']
-        eta_elth = performance_data['performance']['eta_elth']
+            def init_input_output(dis, t, ind):
+                if ind == 0:  # input only
+                    def init_output_to_zero(const, car_input):
+                        return self.output[t, car_input] == 0
 
-        # Input-Output relationship (eq. 1-5)
-        def init_input_output(dis, t, ind):
-            # Input-output (eq. 2)
-            def init_output(const):
-                return self.output[t, 'CO2'] == \
-                       alpha[t - 1, ind - 1] * b_tec.var_input_total[t] + beta[t - 1, ind - 1] * b_tec.var_modules_on[t]
+                    dis.const_output_to_zero = Constraint(b_tec.set_input_carriers, rule=init_output_to_zero)
 
-            dis.const_output = Constraint(rule=init_output)
+                elif ind == 1:  # output only
+                    def init_input_to_zero(const, car_input):
+                        return self.input[t, car_input] == 0
 
-            # Lower bound on the energy input (eq. 5)
-            def init_input_low_bound(const):
-                return b_point[t - 1, ind - 1] * b_tec.var_modules_on[t] <= b_tec.var_input_total[t]
+                    dis.const_input_to_zero = Constraint(b_tec.set_input_carriers, rule=init_input_to_zero)
 
-            dis.const_input_on1 = Constraint(rule=init_input_low_bound)
+            b_tec.dis_input_output = Disjunct(self.set_t, s_indicators, rule=init_input_output)
 
-            # Upper bound on the energy input (eq. 5)
-            def init_input_up_bound(const):
-                return b_tec.var_input_total[t] <= b_point[t - 1, ind] * b_tec.var_modules_on[t]
+            # Bind disjuncts
+            def bind_disjunctions(dis, t):
+                return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
-            dis.const_input_on2 = Constraint(rule=init_input_up_bound)
+            b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
-        b_tec.dis_input_output = Disjunct(self.set_t, b_tec.set_pieces, rule=init_input_output)
+        # Maximal charging and discharging rates
+        def init_maximal_charge(const, t, car):
+            return self.input[t, car] <= charge_max * b_tec.var_size
 
-        # Bind disjuncts
-        def bind_disjunctions(dis, t):
-            return [b_tec.dis_input_output[t, i] for i in b_tec.set_pieces]
+        b_tec.const_max_charge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
 
-        b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
+        def init_maximal_discharge(const, t, car):
+            return self.output[t, car] <= discharge_max * b_tec.var_size
 
-        # Electricity-Heat relationship (eq. 7-10)
-        def init_input_input(dis, t, ind):
-            # Input-output (eq. 7)
-            def init_input(const):
-                return b_tec.var_input_el[t] == \
-                       gamma[t - 1, ind - 1] * b_tec.var_input_total[t] + \
-                       delta[t - 1, ind - 1] * b_tec.var_modules_on[t]
+        b_tec.const_max_discharge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
 
-            dis.const_output = Constraint(rule=init_input)
+        if performance_data['maximum_discharge_time_discrete']:
+            def init_maximal_discharge2(const, t, car):
+                return self.output[t, car] <= hydro_maximum_discharge[t - 1]
 
-            # Lower bound on the energy input (eq. 10)
-            def init_input_low_bound(const):
-                return a_point[t - 1, ind - 1] * b_tec.var_modules_on[t] <= b_tec.var_input_total[t]
+            b_tec.const_max_discharge2 = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge2)
 
-            dis.const_input_on1 = Constraint(rule=init_input_low_bound)
+        # Maximum spilling
+        def init_maximal_spilling(const, t):
+            return b_tec.var_spilling[t] <= spilling_max * b_tec.var_size
 
-            # Upper bound on the energy input (eq. 10)
-            def init_input_up_bound(const):
-                return b_tec.var_input_total[t] <= a_point[t - 1, ind] * b_tec.var_modules_on[t]
-
-            dis.const_input_on2 = Constraint(rule=init_input_up_bound)
-
-        b_tec.dis_input_input = Disjunct(self.set_t, b_tec.set_pieces, rule=init_input_input)
-
-        # Bind disjuncts
-        def bind_disjunctions(dis, t):
-            return [b_tec.dis_input_input[t, i] for i in b_tec.set_pieces]
-
-        b_tec.disjunction_input_input = Disjunction(self.set_t, rule=bind_disjunctions)
-
-        # Constraint of number of working modules (eq. 6)
-        def init_modules_on(const, t):
-            return b_tec.var_modules_on[t] <= b_tec.var_size
-
-        b_tec.const_var_modules_on = Constraint(self.set_t, rule=init_modules_on)
-
-        # Connection thermal and electric energy demand (eq. 11)
-        def init_thermal_energy(const, t):
-            return b_tec.var_input_th[t] == b_tec.var_input_total[t] - b_tec.var_input_el[t]
-
-        b_tec.const_thermal_energy = Constraint(self.set_t, rule=init_thermal_energy)
-
-        # Account for ohmic heating (eq. 12)
-        def init_input_el(const, t):
-            return self.input[t, 'electricity'] == b_tec.var_input_ohmic[t] + b_tec.var_input_el[t]
-
-        b_tec.const_input_el = Constraint(self.set_t, rule=init_input_el)
-
-        def init_input_th(const, t):
-            return self.input[t, 'heat'] == b_tec.var_input_th[t] - b_tec.var_input_ohmic[t] * eta_elth
-
-        b_tec.const_input_th = Constraint(self.set_t, rule=init_input_th)
-
-        # If ohmic heating not allowed, set to zero
-        if not ohmic_heating:
-            def init_ohmic_heating(const, t):
-                return b_tec.var_input_ohmic[t] == 0
-
-            b_tec.const_ohmic_heating = Constraint(self.set_t, rule=init_ohmic_heating)
+        b_tec.const_max_spilling = Constraint(self.set_t, rule=init_maximal_spilling)
 
         return b_tec
