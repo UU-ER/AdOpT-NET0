@@ -5,6 +5,10 @@ from sklearn.cluster import KMeans
 import numpy as np
 from types import SimpleNamespace
 import pvlib
+import os
+import json
+
+from src.components import *
 
 
 def save_object(data, save_path):
@@ -205,6 +209,61 @@ class GlobalData():
         self.data['carbon_prices'] = pd.DataFrame(index=topology.timesteps)
         for var in variables:
             self.data['carbon_prices'][var] = np.zeros(len(topology.timesteps))
+            
+def select_technology(tec_data):
+    """
+    Returns the correct subclass for a technology
+    
+    :param str tec_name: Technology Name 
+    :param int existing: if technology is existing 
+    :return: Technology Class
+    """
+    
+    # Generic tecs
+    if tec_data['tec_type'] == 'RES':
+        return Res(tec_data)
+    elif tec_data['tec_type'] == 'CONV1':
+        return Conv1(tec_data)
+    elif tec_data['tec_type'] == 'CONV2':
+        return Conv2(tec_data)
+    elif tec_data['tec_type'] == 'CONV3':
+        return Conv3(tec_data)
+    elif tec_data['tec_type'] == 'CONV4':
+        return Conv4(tec_data)
+    elif tec_data['tec_type'] == 'STOR':
+        return Stor(tec_data)
+    # Specific tecs
+    elif tec_data['tec_type'] == 'DAC_Adsorption':
+        return DacAdsorption(tec_data)
+    elif tec_data['tec_type'].startswith('GasTurbine'):
+        return GasTurbine(tec_data)
+    elif tec_data['tec_type'].startswith('HeatPump'):
+        return HeatPump(tec_data)
+    elif tec_data['tec_type'] == 'HydroOpen':
+        return HydroOpen(tec_data)
+
+
+def open_json(tec, load_path):
+    # Read in JSON files
+    for path, subdirs, files in os.walk(load_path):
+        if 'technology_data' in locals():
+            break
+        else:
+            for name in files:
+                if (tec + '.json') == name:
+                    filepath = os.path.join(path, name)
+                    with open(filepath) as json_file:
+                        technology_data = json.load(json_file)
+                    break
+
+    # Assign name
+    if 'technology_data' in locals():
+        technology_data['Name'] = tec
+    else:
+        raise Exception('There is no json data file for technology ' + tec)
+
+    return technology_data
+    
 
 
 

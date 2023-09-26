@@ -19,19 +19,6 @@ def perform_disjunct_relaxation(component):
     print('\t\tBig-M Transformation completed in ' + str(round(time.time() - start)) + ' s')
     return component
 
-def annualize(r, t):
-    """
-    Calculates annualization factor
-    :param r: interest rate
-    :param t: lifetime
-    :return: annualization factor
-    """
-    if r==0:
-        annualization_factor = 1/t
-    else:
-        annualization_factor = r / (1 - (1 / (1 + r) ** t))
-    return annualization_factor
-
 
 def link_full_resolution_to_clustered(var_clustered, var_full, set_t, sequence, *other_sets):
     """
@@ -57,19 +44,3 @@ def link_full_resolution_to_clustered(var_clustered, var_full, set_t, sequence, 
         constraint = Constraint(set_t, set1, set2, rule=init_link_full_resolution)
 
     return constraint
-
-
-def set_capex_model(configuration, economics):
-    if configuration.economic.global_simple_capex_model:
-        capex_model = 1
-    else:
-        capex_model = economics.capex_model
-    return capex_model
-
-
-def set_discount_rate(configuration, economics):
-    if not configuration.economic.global_discountrate == -1:
-        discount_rate = configuration.economic.global_discountrate
-    else:
-        discount_rate = economics.discount_rate
-    return discount_rate

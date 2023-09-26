@@ -10,7 +10,6 @@ import pandas as pd
 from timezonefinder import TimezoneFinder
 import src.data_management as dm
 from src.energyhub import EnergyHub
-from src.data_management.components.fit_technology_performance import fit_piecewise_function
 from scipy.interpolate import griddata
 # from netCDF4 import Dataset
 
@@ -18,6 +17,52 @@ import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
+
+
+execute = 1
+
+# MODEL SCALING
+if execute == 1:
+    # TOPOLOGY
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    topology.define_carriers(['electricity'])
+    topology.define_nodes(['A'])
+    topology.define_new_technologies('A', ['Photovoltaic'])
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # CLIMATE DATA
+
+    data.read_climate_data_from_file('A', './data/climate_data_onshore.txt')
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology.timesteps)) * 1
+    data.read_demand_data('A', 'electricity', electricity_demand)
+
+    # IMPORT
+    import_lim = np.ones(len(topology.timesteps)) * 10000
+    data.read_import_limit_data('A', 'electricity', import_lim)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+
+    data.read_technology_data()
+    data.read_network_data()
+
+    # SAVING/LOADING DATA FILE
+    configuration = ModelConfiguration()
+
+    # # Read data
+    energyhub = EnergyHub(data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+
+    energyhub.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    # energyhub.model.scaling_factor[energyhub.model.node_blocks['A'].var_import_flow] = 1e-4  # scale import
+
+    # energyhub.solve()
+    results = energyhub.solve()
 
 
 execute = 0
@@ -39,7 +84,7 @@ if execute == 1:
     energyhub.quick_solve()
     print('finish')
 
-execute = 1
+execute = 0
 
 if execute == 1:
     topology = dm.SystemTopology()
@@ -519,7 +564,7 @@ if execute == 1:
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 #endregion
 
-execute = 1
+execute = 0
 #region How to make an API request for ERA5
 if execute == 1:
     lon = 8

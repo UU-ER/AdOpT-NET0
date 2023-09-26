@@ -93,6 +93,7 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
+
         self.solve()
         return self.results
 
@@ -391,11 +392,15 @@ class EnergyHub:
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(self.model.objective)
         if self.configuration.optimization.save_log_files:
+            # TransformationFactory('core.scale_model').apply_to(self.model)
+
             self.solution = self.solver.solve(self.model,
                                               tee=True,
                                               warmstart=True,
                                               logfile=Path('./log_files/') / ('log_' + time_stamp))
         else:
+            # TransformationFactory('core.scale_model').apply_to(self.model)
+
             self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
         self.results.add_optimization_result(self, time_stamp)

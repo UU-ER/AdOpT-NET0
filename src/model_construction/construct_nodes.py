@@ -281,7 +281,6 @@ def add_nodes(energyhub):
 
         # BLOCKS
         # Add technologies as blocks
-        b_node.tech_blocks_active = {}
         b_node = mc.add_technology(energyhub, nodename, b_node.set_tecsAtNode)
 
         return b_node

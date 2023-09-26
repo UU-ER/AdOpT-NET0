@@ -1,7 +1,10 @@
-from src.model_construction.technology_constraints import *
 import src.global_variables as global_variables
-from src.data_management.components.utilities import Economics
-from src.data_management.components.fit_technology_performance import *
+from src.components.component import ModelComponent
+from src.components.utilities import set_discount_rate, annualize
+from .utilities import set_capex_model
+
+from pyomo.environ import *
+
 
 # Technology Class
     # Attributes (Data)
@@ -14,11 +17,11 @@ from src.data_management.components.fit_technology_performance import *
     # reporting
 
 
-class Technology:
+class Technology(ModelComponent):
     """
     Class to read and manage data for technologies
     """
-    def __init__(self, tec_data):
+    def __init__(self,tec_data):
         """
         Initializes technology class from technology name
 
@@ -26,19 +29,10 @@ class Technology:
 
         :param str technology: name of technology to read data
         """
-        # General information
-        self.name = tec_data['name']
-        self.existing = 0
-        self.technology_model = tec_data['tec_type']
-        self.size_initial = []
-        self.size_is_int = tec_data['size_is_int']
-        self.size_min = tec_data['size_min']
-        self.size_max = tec_data['size_max']
-        self.decommission = tec_data['decommission']
-        self.modelled_with_full_res = []
+        super().__init__(tec_data)
 
-        # Economics
-        self.economics = Economics(tec_data['Economics'])
+        self.technology_model = tec_data['tec_type']
+        self.modelled_with_full_res = []
 
         # Technology Performance
         self.performance_data = tec_data['TechnologyPerf']
@@ -56,12 +50,88 @@ class Technology:
         else:
             self.emissions_based_on = 'input'
 
-        self.model_block = Block()
+        self.input = []
+        self.output = []
+        self.set_t = []
 
-        self.fitted_performance = None
 
+    def construct_general_constraints(self, b_tec, energyhub):
+        r"""
+        Adds all technologies as model blocks to respective node.
 
-    def construct_model(self, energyhub):
+        This function initializes parameters and decision variables for all technologies at respective node.
+        For each technology, it adds one block indexed by the set of all technologies at the node :math:`S_n`.
+        This function adds Sets, Parameters, Variables and Constraints that are common for all technologies.
+        For each technology type, individual parts are added. The following technology types of generic technologies
+        are currently available
+        (all contained in :func:`src.model_construction.technology_constraints.generic_technology_constraints`):
+
+        - Type RES: Renewable technology with cap_factor as input.
+        - Type CONV1: n inputs -> n output, fuel and output substitution.
+        - Type CONV2: n inputs -> n output, fuel substitution.
+        - Type CONV2: n inputs -> n output, no fuel and output substitution.
+        - Type STOR: Storage technology (1 input -> 1 output).
+
+        Additionally, the following specific technologies are available:
+
+        - Type DAC_adsorption: Direct Air Capture technology (adsorption).
+        - Type Heat_Pump: Three different types of heat pumps
+        - Type Gas_Turbine: Different types/sizes of gas turbines
+
+        The following description is true for new technologies. For existing technologies a few adaptions are made
+        (see below).
+
+        **Set declarations:**
+
+        - Set of input carriers
+        - Set of output carriers
+
+        **Parameter declarations:**
+
+        - Min Size
+        - Max Size
+        - Output max (same as size max)
+        - Unit CAPEX (annualized from given data on up-front CAPEX, lifetime and discount rate)
+        - Variable OPEX
+        - Fixed OPEX
+
+        **Variable declarations:**
+
+        - Size (can be integer or continuous)
+        - Input for each input carrier
+        - Output for each output carrier
+        - CAPEX
+        - Variable OPEX
+        - Fixed OPEX
+
+        **Constraint declarations**
+        - CAPEX, can be linear (for ``capex_model == 1``) or piecewise linear (for ``capex_model == 2``). Linear is defined as:
+
+        .. math::
+            CAPEX_{tec} = Size_{tec} * UnitCost_{tec}
+
+        - Variable OPEX: defined per unit of output for the main carrier:
+
+        .. math::
+            OPEXvar_{t, tec} = Output_{t, maincarrier} * opex_{var} \forall t \in T
+
+        - Fixed OPEX: defined as a fraction of annual CAPEX:
+
+        .. math::
+            OPEXfix_{tec} = CAPEX_{tec} * opex_{fix}
+
+        Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 1) or not (decommission = 0).
+        For technologies that cannot be decommissioned, the size is fixed to the size given in the technology data.
+        For technologies that can be decommissioned, the size can be smaller or equal to the initial size. Reducing the
+        size comes at the decommissioning costs specified in the economics of the technology.
+        The fixed opex is calculated by determining the capex that the technology would have costed if newly build and
+        then taking the respective opex_fixed share of this. This is done with the auxiliary variable var_capex_aux.
+
+        :param str nodename: name of node for which technology is installed
+        :param set set_tecsToAdd: list of technologies to add
+        :param energyhub EnergyHub: instance of the energyhub
+        :return: b_node
+        """
 
         print('\t - Adding Technology ' + self.name)
 
@@ -81,32 +151,20 @@ class Technology:
         else:
             self.modelled_with_full_res = 1
 
-        # SIZE
-        self.__define_size()
-
-        # CAPEX
-        self.__define_capex(energyhub)
-
-        # INPUT AND OUTPUT
+        # GENERAL TECHNOLOGY CONSTRAINTS
+        b_tec = self.__define_size(b_tec)
+        b_tec = self.__define_capex(b_tec, energyhub)
         b_tec = self.__define_input(b_tec, energyhub)
         b_tec = self.__define_output(b_tec, energyhub)
-
-        # OPEX
         b_tec = self.__define_opex(b_tec, energyhub)
-
-        # EMISSIONS
         b_tec = self.__define_emissions(b_tec, energyhub)
 
-        # DEFINE AUXILIARY VARIABLES FOR CLUSTERED DATA
         if global_variables.clustered_data and not self.modelled_with_full_res:
             b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
 
-        # GENERIC TECHNOLOGY CONSTRAINTS
-        b_tec = self.__constraints_tec_RES(b_tec, energyhub)
+        return b_tec
 
-        return self.model_block
-
-    def __define_size(self):
+    def __define_size(self, b_tec):
         """
         Defines variables and parameters related to technology size.
 
@@ -128,21 +186,23 @@ class Technology:
         else:
             size_domain = NonNegativeReals
 
-        self.model_block.para_size_min = Param(domain=NonNegativeReals, initialize=self.size_min, mutable=True)
-        self.model_block.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, mutable=True)
+        b_tec.para_size_min = Param(domain=NonNegativeReals, initialize=self.size_min, mutable=True)
+        b_tec.para_size_max = Param(domain=NonNegativeReals, initialize=size_max, mutable=True)
 
         if self.existing:
-            self.model_block.para_size_initial = Param(within=size_domain, initialize=self.size_initial)
+            b_tec.para_size_initial = Param(within=size_domain, initialize=self.size_initial)
 
         if self.existing and not self.decommission:
             # Decommissioning is not possible, size fixed
-            self.model_block.var_size = Param(within=size_domain, initialize=self.model_block.para_size_initial)
+            b_tec.var_size = Param(within=size_domain, initialize=b_tec.para_size_initial)
         else:
             # Decommissioning is possible, size variable
-            self.model_block.var_size = Var(within=size_domain, bounds=(self.model_block.para_size_min,
-                                                                        self.model_block.para_size_max))
+            b_tec.var_size = Var(within=size_domain, bounds=(b_tec.para_size_min,
+                                                                        b_tec.para_size_max))
 
-    def __define_capex(self, energyhub):
+        return b_tec
+
+    def __define_capex(self, b_tec, energyhub):
         """
         Defines variables and parameters related to technology capex.
 
@@ -157,48 +217,49 @@ class Technology:
         configuration = energyhub.configuration
 
         economics = self.economics
-        discount_rate = mc.set_discount_rate(configuration, economics)
-        capex_model = mc.set_capex_model(configuration, economics)
+        discount_rate = set_discount_rate(configuration, economics)
+        capex_model = set_capex_model(configuration, economics)
 
         # CAPEX auxiliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
-        self.model_block.var_capex_aux = Var()
-        annualization_factor = mc.annualize(discount_rate, economics.lifetime)
+        b_tec.var_capex_aux = Var()
+        annualization_factor = annualize(discount_rate, economics.lifetime)
         if capex_model == 1:
-            self.model_block.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
-            self.model_block.para_unit_capex_annual = Param(domain=Reals,
+            b_tec.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
+            b_tec.para_unit_capex_annual = Param(domain=Reals,
                                                  initialize=annualization_factor * economics.capex_data['unit_capex'],
                                                  mutable=True)
-            self.model_block.const_capex_aux = Constraint(
-                expr=self.model_block.var_size * self.model_block.para_unit_capex_annual == self.model_block.var_capex_aux)
+            b_tec.const_capex_aux = Constraint(
+                expr=b_tec.var_size * b_tec.para_unit_capex_annual == b_tec.var_capex_aux)
         elif capex_model == 2:
-            self.model_block.para_bp_x = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_x'])
-            self.model_block.para_bp_y = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_y'])
-            self.model_block.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
+            b_tec.para_bp_x = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_x'])
+            b_tec.para_bp_y = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_y'])
+            b_tec.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
                                                                     economics.capex_data['piecewise_capex']['bp_y'])
             global_variables.big_m_transformation_required = 1
-            self.model_block.const_capex_aux = Piecewise(self.model_block.var_capex_aux, self.model_block.var_size,
-                                              pw_pts=self.model_block.para_bp_x,
+            b_tec.const_capex_aux = Piecewise(b_tec.var_capex_aux, b_tec.var_size,
+                                              pw_pts=b_tec.para_bp_x,
                                               pw_constr_type='EQ',
-                                              f_rule=self.model_block.para_bp_y_annual,
+                                              f_rule=b_tec.para_bp_y_annual,
                                               pw_repn='SOS2')
         # CAPEX
         if self.existing and not self.decommission:
-            self.model_block.var_capex = Param(domain=Reals, initialize=0)
+            b_tec.var_capex = Param(domain=Reals, initialize=0)
         else:
-            self.model_block.var_capex = Var()
+            b_tec.var_capex = Var()
             if self.existing:
-                self.model_block.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost,
+                b_tec.para_decommissioning_cost = Param(domain=Reals, initialize=economics.decommission_cost,
                                                         mutable=True)
-                self.model_block.const_capex = Constraint(
-                    expr=self.model_block.var_capex == (
-                                self.model_block.para_size_initial - self.model_block.var_size) * self.model_block.para_decommissioning_cost)
+                b_tec.const_capex = Constraint(
+                    expr=b_tec.var_capex == (
+                                b_tec.para_size_initial - b_tec.var_size) * b_tec.para_decommissioning_cost)
             else:
-                self.model_block.const_capex = Constraint(expr=self.model_block.var_capex == self.model_block.var_capex_aux)
+                b_tec.const_capex = Constraint(expr=b_tec.var_capex == b_tec.var_capex_aux)
 
+        return b_tec
 
-    def __define_input(self, energyhub):
+    def __define_input(self, b_tec, energyhub):
         """
         Defines input to a technology
 
@@ -417,93 +478,3 @@ class Technology:
                                                                                        b_tec.set_output_carriers)
 
         return b_tec
-
-    def __constraints_tec_RES(self, b_tec, energyhub):
-        b_tec = constraints_tec_RES(b_tec, self, energyhub)
-        return b_tec
-
-    # def fit_technology_performance(self, node_data):
-    #
-    #     """
-    #     Fits performance to respective technology model
-    #
-    #     :param pd node_data: Dataframe of climate data
-    #     """
-    #     location = node_data.location
-    #     climate_data = node_data.data['climate_data']
-    #
-    #     # Derive performance parameters for respective performance function type
-    #     # GENERIC TECHNOLOGIES
-    #     if self.technology_model == 'RES':  # Renewable technologies
-    #         if self.name == 'Photovoltaic':
-    #             if 'system_type' in self.performance_data:
-    #                 self.fitted_performance = perform_fitting_PV(climate_data, location,
-    #                                                        system_data=self.performance_data['system_type'])
-    #             else:
-    #                 self.fitted_performance = perform_fitting_PV(climate_data, location)
-    #         elif self.name == 'SolarThermal':
-    #             self.fitted_performance = perform_fitting_ST(climate_data)
-    #         elif 'WindTurbine' in self.name:
-    #             if 'hubheight' in self.performance_data:
-    #                 hubheight = self.performance_data['hubheight']
-    #             else:
-    #                 hubheight = 120
-    #             self.fitted_performance = perform_fitting_WT(climate_data, self.name, hubheight)
-    #
-    #     elif self.technology_model == 'CONV1':  # n inputs -> n output, fuel and output substitution
-    #         self.fitted_performance = perform_fitting_tec_CONV1(self.performance_data, climate_data)
-    #
-    #     elif self.technology_model == 'CONV2':  # n inputs -> n output, fuel substitution
-    #         self.fitted_performance = perform_fitting_tec_CONV2(self.performance_data, climate_data)
-    #
-    #     elif self.technology_model == 'CONV3':  # n inputs -> n output, fixed ratio between inputs and outputs
-    #         self.fitted_performance = perform_fitting_tec_CONV3(self.performance_data, climate_data)
-    #
-    #     elif self.technology_model == 'CONV4':  # 0 inputs -> n outputs, fixed ratio between outputs
-    #         self.fitted_performance = perform_fitting_tec_CONV4(self.performance_data, climate_data)
-    #
-    #     elif self.technology_model == 'STOR':  # storage technologies
-    #         self.fitted_performance = perform_fitting_tec_STOR(self.performance_data, climate_data)
-    #
-    #     # SPECIFIC TECHNOLOGIES
-    #     elif self.technology_model == 'DAC_Adsorption':  # DAC adsorption
-    #         self.fitted_performance = perform_fitting_tec_DAC_adsorption(self.performance_data, climate_data)
-    #
-    #     elif self.technology_model.startswith('HeatPump_'):  # Heat Pump
-    #         self.fitted_performance = perform_fitting_tec_HP(self.performance_data, climate_data, self.technology_model)
-    #
-    #     elif self.technology_model.startswith('GasTurbine_'):  # Gas Turbine
-    #         self.fitted_performance = perform_fitting_tec_GT(self.performance_data, climate_data)
-    #
-    #     elif self.technology_model == 'Hydro_Open':  # Open Cycle Pumped Hydro
-    #         self.fitted_performance = perform_fitting_tec_hydro_open(self.name, self.performance_data, climate_data)
-
-
-
-class Res(Technology):
-
-    def __init__(self,
-                tec_data):
-        super().__init__(tec_data)
-
-    def fit_technology_performance(self, node_data):
-
-        location = node_data.location
-        climate_data = node_data.data['climate_data']
-
-        if self.name == 'Photovoltaic':
-            if 'system_type' in self.performance_data:
-                self.fitted_performance = perform_fitting_PV(climate_data, location,
-                                                             system_data=self.performance_data['system_type'])
-            else:
-                self.fitted_performance = perform_fitting_PV(climate_data, location)
-        elif self.name == 'SolarThermal':
-            self.fitted_performance = perform_fitting_ST(climate_data)
-        elif 'WindTurbine' in self.name:
-            if 'hubheight' in self.performance_data:
-                hubheight = self.performance_data['hubheight']
-            else:
-                hubheight = 120
-            self.fitted_performance = perform_fitting_WT(climate_data, self.name, hubheight)
-
-    # def add_specific_constraints(self):
