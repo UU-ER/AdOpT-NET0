@@ -425,8 +425,7 @@ class DataHandle:
     def save(self, save_path):
         """
         Saves instance of DataHandle to path.
-
-        The instance can later be loaded with
+        The instance can later be loaded
 
         :param str save_path: path to save to
         :return: None

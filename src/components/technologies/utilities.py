@@ -1,11 +1,8 @@
 import json
 import os
-import statsmodels.api as sm
 import pwlf
 import numpy as np
-from pathlib import Path
 from math import floor, log10
-
 from statsmodels import api as sm
 
 

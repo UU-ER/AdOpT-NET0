@@ -3,7 +3,7 @@ from pyomo.gdp import *
 import copy
 from warnings import warn
 
-from .utilities import fit_performance_generic_tecs
+from src.components.technologies.generic_technologies.utilities import fit_performance_generic_tecs
 from src.components.technologies.technology import Technology
 
 

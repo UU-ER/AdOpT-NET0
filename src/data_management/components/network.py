@@ -1,4 +1,4 @@
-from src.data_management.components.utilities import Economics
+from src.data_management.components.utilities_old import Economics
 import json
 import pandas as pd
 from pathlib import Path

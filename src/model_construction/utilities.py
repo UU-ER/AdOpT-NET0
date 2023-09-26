@@ -20,27 +20,4 @@ def perform_disjunct_relaxation(component):
     return component
 
 
-def link_full_resolution_to_clustered(var_clustered, var_full, set_t, sequence, *other_sets):
-    """
-    Links two variables (clustered and full)
-    """
-    if not other_sets:
-        def init_link_full_resolution(const, t):
-            return var_full[t] \
-                   == var_clustered[sequence[t - 1]]
-        constraint = Constraint(set_t, rule=init_link_full_resolution)
-    elif len(other_sets) == 1:
-        set1 = other_sets[0]
-        def init_link_full_resolution(const, t, set1):
-            return var_full[t, set1] \
-                   == var_clustered[sequence[t - 1], set1]
-        constraint = Constraint(set_t, set1, rule=init_link_full_resolution)
-    elif len(other_sets) == 2:
-        set1 = other_sets[0]
-        set2 = other_sets[1]
-        def init_link_full_resolution(const, t, set1, set2):
-            return var_full[t, set1, set2] \
-                   == var_clustered[sequence[t - 1], set1, set2]
-        constraint = Constraint(set_t, set1, set2, rule=init_link_full_resolution)
 
-    return constraint

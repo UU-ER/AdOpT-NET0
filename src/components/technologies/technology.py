@@ -1,20 +1,9 @@
 import src.global_variables as global_variables
 from src.components.component import ModelComponent
-from src.components.utilities import set_discount_rate, annualize
-from .utilities import set_capex_model
+from src.components.utilities import annualize, set_discount_rate, link_full_resolution_to_clustered
+from src.components.technologies.utilities import set_capex_model
 
 from pyomo.environ import *
-
-
-# Technology Class
-    # Attributes (Data)
-    # construct general tec model
-    # reporting
-
-# One subclass per tec type
-    # fit_technology performance
-    # construct specific technology constraints
-    # reporting
 
 
 class Technology(ModelComponent):
@@ -459,7 +448,7 @@ class Technology(ModelComponent):
         b_tec.var_input_aux = Var(set_t_clustered, b_tec.set_input_carriers, within=NonNegativeReals,
                                   bounds=init_input_bounds)
 
-        b_tec.const_link_full_resolution_input = mc.link_full_resolution_to_clustered(b_tec.var_input_aux,
+        b_tec.const_link_full_resolution_input = link_full_resolution_to_clustered(b_tec.var_input_aux,
                                                                                       b_tec.var_input,
                                                                                       set_t_full,
                                                                                       sequence,
@@ -471,7 +460,7 @@ class Technology(ModelComponent):
         b_tec.var_output_aux = Var(set_t_clustered, b_tec.set_output_carriers, within=NonNegativeReals,
                                    bounds=init_output_bounds)
 
-        b_tec.const_link_full_resolution_output = mc.link_full_resolution_to_clustered(b_tec.var_output_aux,
+        b_tec.const_link_full_resolution_output = link_full_resolution_to_clustered(b_tec.var_output_aux,
                                                                                        b_tec.var_output,
                                                                                        set_t_full,
                                                                                        sequence,

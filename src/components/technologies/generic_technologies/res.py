@@ -4,12 +4,12 @@ import pandas as pd
 from pathlib import Path
 from pyomo.environ import *
 from scipy.interpolate import interp1d
+import numpy as np
 
 from src.components.technologies.technology import Technology
-from .utilities import *
+from src.components.technologies.utilities import FittedPerformance
 
 class Res(Technology):
-
     def __init__(self,
                 tec_data):
         super().__init__(tec_data)

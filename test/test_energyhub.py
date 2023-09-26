@@ -4,8 +4,8 @@ import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 from pyomo.environ import *
 import pandas as pd
-import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
+from src.components.utilities import annualize
 
 
 def test_initializer():
@@ -78,7 +78,7 @@ def test_model2():
     import_cost = sum([i1 * i2 for i1, i2 in zip(import_price, import_res)])
     t = data.technology_data['test_node1']['Furnace_NG'].economics.lifetime
     r = data.technology_data['test_node1']['Furnace_NG'].economics.discount_rate
-    a = mc.annualize(r,t)
+    a = annualize(r,t)
     capex = data.technology_data['test_node1']['Furnace_NG'].economics.capex_data['unit_capex'] * size_res * a
     opex_fix = capex * data.technology_data['test_node1']['Furnace_NG'].economics.opex_fixed
     opex_var = sum(import_res) * data.technology_data['test_node1']['Furnace_NG'].economics.opex_variable

@@ -1,5 +1,6 @@
 from pyomo.environ import *
 from pyomo.gdp import *
+from src.utilities import set_discount_rate, annualize
 import copy
 import src.global_variables as global_variables
 import src.model_construction as mc
@@ -141,10 +142,10 @@ def define_capex_parameters(b_netw, netw_data, energyhub):
     economics = netw_data.economics
 
     # CHECK FOR GLOBAL ECONOMIC OPTIONS
-    discount_rate = mc.set_discount_rate(configuration, economics)
+    discount_rate = set_discount_rate(configuration, economics)
 
     # CAPEX
-    annualization_factor = mc.annualize(discount_rate, economics.lifetime)
+    annualization_factor = annualize(discount_rate, economics.lifetime)
 
     if economics.capex_model == 1:
         b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
