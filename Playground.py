@@ -79,7 +79,7 @@ if execute == 1:
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 7:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['testCONV3_4', 'testSTOR'])
+    topology.define_new_technologies('test_node1', ['testCONV2_4', 'testSTOR'])
     # topology.define_new_technologies('test_node1', ['testCONV3_2'])
 
     # Initialize instance of DataHandle
@@ -117,7 +117,7 @@ if execute == 1:
     # export_lim[4] = 0
     data.read_export_limit_data('test_node1', 'electricity', export_lim)
     export_lim = np.ones(len(topology.timesteps)) * 10
-    # export_lim[2] = 1
+    export_lim[4] = 0
     data.read_export_limit_data('test_node1', 'heat', export_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
