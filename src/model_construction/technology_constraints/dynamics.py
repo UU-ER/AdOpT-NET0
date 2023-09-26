@@ -179,7 +179,7 @@ def constraints_slow_SUSD_dynamics(alpha1, alpha2, b_tec, tec_data, energyhub):
                 if j <= t:
                     return var_z[t - j + 1] == 0
                 else:
-                    return var_z[len(set_t) + (t - i + 1)] == 0
+                    return var_z[len(set_t) + (t - j + 1)] == 0
             dis.const_z_off = Constraint(range(1, SD_time + 1), rule= init_z_off)
 
             def init_input_off(const, car_input):
