@@ -107,8 +107,8 @@ if execute == 1:
     topology.define_new_network('electricityTest', distance=distance, connections=connection)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
+    data.read_climate_data_from_file('test_node1', r'./src/test/climate_data_test.p')
+    data.read_climate_data_from_file('test_node2', r'./src/test/climate_data_test.p')
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 100

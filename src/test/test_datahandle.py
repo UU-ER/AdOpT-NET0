@@ -53,7 +53,7 @@ def test_load_technologies():
     lat = 52
     lon = 5.16
     data.read_climate_data_from_api('testnode', lon, lat)
-    # data.read_climate_data_from_file('testnode', r'./test/climate_data_test.p')
+    # data.read_climate_data_from_file('testnode', r'./src/test/climate_data_test.p')
 
     directory = os.fsencode('./data/technology_data')
 

@@ -1,7 +1,7 @@
 import statsmodels.api as sm
 import numpy as np
 
-from src.components.technologies.utilities import FittedPerformance, fit_linear_function, fit_piecewise_function, sig_figs
+from ..utilities import FittedPerformance, fit_linear_function, fit_piecewise_function, sig_figs
 
 
 def fit_performance_generic_tecs(tec_data, time_steps):

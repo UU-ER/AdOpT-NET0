@@ -3,8 +3,8 @@ from pyomo.gdp import *
 import copy
 from warnings import warn
 
-from src.components.technologies.generic_technologies.utilities import fit_performance_generic_tecs
-from src.components.technologies.technology import Technology
+from ..genericTechnologies.utilities import fit_performance_generic_tecs
+from ..technology import Technology
 
 
 class Conv3(Technology):

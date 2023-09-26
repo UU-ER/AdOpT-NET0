@@ -8,7 +8,7 @@ import pvlib
 import os
 import json
 
-from src.components import *
+from src.components.technologies import *
 
 
 def save_object(data, save_path):

@@ -1,10 +1,1 @@
-from src.components.technologies.generic_technologies.res import Res
-from src.components.technologies.generic_technologies.conv1 import Conv1
-from src.components.technologies.generic_technologies.conv2 import Conv2
-from src.components.technologies.generic_technologies.conv3 import Conv3
-from src.components.technologies.generic_technologies.conv4 import Conv4
-from src.components.technologies.generic_technologies.stor import Stor
-from src.components.technologies.specific_technologies.dac_adsorption import DacAdsorption
-from src.components.technologies.specific_technologies.gas_turbine import GasTurbine
-from src.components.technologies.specific_technologies.heat_pump import HeatPump
-from src.components.technologies.specific_technologies.hydro_open import HydroOpen
+

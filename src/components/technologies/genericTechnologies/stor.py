@@ -4,8 +4,8 @@ import copy
 from warnings import warn
 import numpy as np
 
-from src.components.technologies.utilities import FittedPerformance
-from src.components.technologies.technology import Technology
+from ..utilities import FittedPerformance
+from ..technology import Technology
 import src.global_variables as global_variables
 
 

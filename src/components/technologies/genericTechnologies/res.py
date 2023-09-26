@@ -6,8 +6,8 @@ from pyomo.environ import *
 from scipy.interpolate import interp1d
 import numpy as np
 
-from src.components.technologies.technology import Technology
-from src.components.technologies.utilities import FittedPerformance
+from ..technology import Technology
+from ..utilities import FittedPerformance
 
 class Res(Technology):
     def __init__(self,

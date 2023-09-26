@@ -12,7 +12,7 @@ def test_networks():
     electricity demand @ node 2
     """
     # Test bidirectional
-    data = dm.load_object(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./src/test/test_data/networks.p')
     configuration = ModelConfiguration()
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
     data.network_data['hydrogenTest'].energy_consumption = {}
@@ -32,7 +32,7 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
 
     # Test no bidirectional
-    data = dm.load_object(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./src/test/test_data/networks.p')
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub2 = ehub(data, configuration)
@@ -47,7 +47,7 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
 
     # Test consumption at node
-    data = dm.load_object(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./src/test/test_data/networks.p')
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     energyhub3 = ehub(data, configuration)
     energyhub3.construct_model()
@@ -81,10 +81,10 @@ def test_existing_networks():
         energyhub.solve()
         return energyhub
 
-    data_save_path1 = './test/test_data/existing_netw1.p'
-    data_save_path2 = './test/test_data/existing_netw2.p'
-    data_save_path3 = './test/test_data/existing_netw3.p'
-    data_save_path4 = './test/test_data/existing_netw4.p'
+    data_save_path1 = './src/test/test_data/existing_netw1.p'
+    data_save_path2 = './src/test/test_data/existing_netw2.p'
+    data_save_path3 = './src/test/test_data/existing_netw3.p'
+    data_save_path4 = './src/test/test_data/existing_netw4.p'
 
     configuration = ModelConfiguration()
 
@@ -113,7 +113,7 @@ def test_existing_networks():
 
 def test_violation():
 
-    data = dm.load_object(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./src/test/test_data/networks.p')
 
     #model configuration
     configuration = ModelConfiguration()
@@ -129,7 +129,7 @@ def test_violation():
     assert energyhub.model.var_violation_cost.value == 200
 
 def test_copperplate():
-    data = dm.load_object(r'./test/test_data/networks.p')
+    data = dm.load_object(r'./src/test/test_data/networks.p')
 
     # model configuration
     configuration = ModelConfiguration()

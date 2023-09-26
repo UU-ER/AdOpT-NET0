@@ -306,7 +306,7 @@ class EnergyHub:
         self.__call_solver()
 
 
-    def __optimize_costs_emissionlimit(self):
+    def __optimize_costs_emissionslimit(self):
         """
         Minimize costs at emission limit
         """

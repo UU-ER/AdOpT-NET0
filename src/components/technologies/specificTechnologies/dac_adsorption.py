@@ -1,12 +1,17 @@
 from pyomo.environ import *
 from pyomo.gdp import *
+import copy
+from warnings import warn
+import pandas as pd
 import numpy as np
+from pathlib import Path
+from scipy.interpolate import griddata
 
-from src.components.technologies.utilities import FittedPerformance
-from src.components.technologies.technology import Technology
+from ..utilities import FittedPerformance, fit_piecewise_function
+from ..technology import Technology
 
 
-class HydroOpen(Technology):
+class DacAdsorption(Technology):
 
     def __init__(self,
                  tec_data):
@@ -26,38 +31,106 @@ class HydroOpen(Technology):
         climate_data = node_data.data['climate_data']
         time_steps = len(climate_data)
 
+        # Number of segments
+        nr_segments = self.performance_data['nr_segments']
+
+        # Read performance data from file
+        performance_data = pd.read_csv(
+            Path('./data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt'), sep=",")
+        performance_data = performance_data.rename(columns={"T": "temp_air", "RH": "humidity"})
+
+        # Unit Conversion of input data
+        performance_data.E_tot = performance_data.E_tot.multiply(performance_data.CO2_Out / 3600)  # in MWh / h
+        performance_data.E_el = performance_data.E_el.multiply(performance_data.CO2_Out / 3600)  # in MWh / h
+        performance_data.E_th = performance_data.E_th.multiply(performance_data.CO2_Out / 3600)  # in MWh / h
+        performance_data.CO2_Out = performance_data.CO2_Out / 1000  # in t / h
+
+        # Get humidity and temperature
+        RH = copy.deepcopy(climate_data['rh'])
+        T = copy.deepcopy(climate_data['temp_air'])
+
+        # Set minimum temperature
+        T.loc[T < min(performance_data.temp_air)] = min(performance_data.temp_air)
+
+        # Derive performance points for each timestep
+        def interpolate_performance_point(t, rh, point_data, var):
+            zi = griddata((point_data.temp_air, point_data.humidity), point_data[var], (T, RH), method='linear')
+            return zi
+
+        CO2_Out = np.empty(shape=(len(T), len(performance_data.Point.unique())))
+        E_tot = np.empty(shape=(len(T), len(performance_data.Point.unique())))
+        E_el = np.empty(shape=(len(T), len(performance_data.Point.unique())))
+        for point in performance_data.Point.unique():
+            CO2_Out[:, point - 1] = interpolate_performance_point(T, RH,
+                                                                  performance_data.loc[performance_data.Point == point],
+                                                                  'CO2_Out')
+            E_tot[:, point - 1] = interpolate_performance_point(T, RH,
+                                                                performance_data.loc[performance_data.Point == point],
+                                                                'E_tot')
+            E_el[:, point - 1] = interpolate_performance_point(T, RH,
+                                                               performance_data.loc[performance_data.Point == point],
+                                                               'E_el')
+
+        # Derive piecewise definition
+        alpha = np.empty(shape=(len(T), nr_segments))
+        beta = np.empty(shape=(len(T), nr_segments))
+        b = np.empty(shape=(len(T), nr_segments + 1))
+        gamma = np.empty(shape=(len(T), nr_segments))
+        delta = np.empty(shape=(len(T), nr_segments))
+        a = np.empty(shape=(len(T), nr_segments + 1))
+        el_in_max = np.empty(shape=(len(T)))
+        th_in_max = np.empty(shape=(len(T)))
+        out_max = np.empty(shape=(len(T)))
+        total_in_max = np.empty(shape=(len(T)))
+
+        print('Deriving performance data for DAC...')
+
+        for timestep in range(len(T)):
+            if timestep % 100 == 1:
+                print("\rComplete: ", round(timestep / len(T), 2) * 100, "%", end="")
+            # Input-Output relation
+            y = {}
+            y['CO2_Out'] = CO2_Out[timestep, :]
+            time_step_fit = fit_piecewise_function(E_tot[timestep, :], y, int(nr_segments))
+            alpha[timestep, :] = time_step_fit['CO2_Out']['alpha1']
+            beta[timestep, :] = time_step_fit['CO2_Out']['alpha2']
+            b[timestep, :] = time_step_fit['CO2_Out']['bp_x']
+            out_max[timestep] = max(time_step_fit['CO2_Out']['bp_y'])
+            total_in_max[timestep] = max(time_step_fit['CO2_Out']['bp_x'])
+
+            # Input-Input relation
+            y = {}
+            y['E_el'] = E_el[timestep, :]
+            time_step_fit = fit_piecewise_function(E_tot[timestep, :], y, int(nr_segments))
+            gamma[timestep, :] = time_step_fit['E_el']['alpha1']
+            delta[timestep, :] = time_step_fit['E_el']['alpha2']
+            a[timestep, :] = time_step_fit['E_el']['bp_x']
+            el_in_max[timestep] = max(time_step_fit['E_el']['bp_y'])
+            th_in_max[timestep] = max(time_step_fit['E_el']['bp_x'])
+
+        print("Complete: ", 100, "%")
+
         # Output Bounds
-        for car in self.performance_data['output_carrier']:
-            self.fitted_performance.bounds['output'][car] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                             np.ones(shape=(time_steps)) * self.performance_data['performance'][
-                                                                 'discharge_max']))
+        self.fitted_performance.bounds['output']['CO2'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           out_max))
         # Input Bounds
-        for car in self.performance_data['input_carrier']:
-            self.fitted_performance.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                            np.ones(shape=(time_steps)) * self.performance_data['performance'][
-                                                                'charge_max']))
+        self.fitted_performance.bounds['input']['electricity'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                                  el_in_max + th_in_max / self.performance_data['performance'][
+                                                                      'eta_elth']))
+        self.fitted_performance.bounds['input']['heat'] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           th_in_max))
+        self.fitted_performance.bounds['input']['total'] = [sum(x) for x in zip(self.fitted_performance.bounds['input']['heat'],
+                                                                self.fitted_performance.bounds['input']['electricity'])]
         # Coefficients
-        for par in self.performance_data['performance']:
-            self.fitted_performance.coefficients[par] = self.performance_data['performance'][par]
-
-        # Natural inflow
-        if self.name + '_inflow' in climate_data:
-            self.fitted_performance.coefficients['hydro_inflow'] = climate_data[self.name + '_inflow']
-        else:
-            raise Exception('Using Technology Type Hydro_Open requires a hydro_natural_inflow in climate data'
-                            ' to be defined for this node. You can do this by using DataHandle.read_hydro_natural_inflow')
-
-        # Maximum discharge
-        if self.performance_data['maximum_discharge_time_discrete']:
-            if self.name + '_maximum_discharge' in climate_data:
-                self.fitted_performance.coefficients['hydro_maximum_discharge'] = climate_data[self.name + '_maximum_discharge']
-            else:
-                raise Exception('Using Technology Type Hydro_Open with maximum_discharge_time_discrete == 1 requires '
-                                'hydro_maximum_discharge to be defined for this node.')
+        self.fitted_performance.coefficients['alpha'] = alpha
+        self.fitted_performance.coefficients['beta'] = beta
+        self.fitted_performance.coefficients['b'] = b
+        self.fitted_performance.coefficients['gamma'] = gamma
+        self.fitted_performance.coefficients['delta'] = delta
+        self.fitted_performance.coefficients['a'] = a
 
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
-
 
     def construct_specific_constraints(self, b_tec, energyhub):
         """

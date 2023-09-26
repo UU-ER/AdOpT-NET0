@@ -7,8 +7,8 @@ import numpy as np
 from pathlib import Path
 from scipy.interpolate import griddata
 
-from src.components.technologies.utilities import FittedPerformance, fit_piecewise_function
-from src.components.technologies.technology import Technology
+from ..utilities import FittedPerformance, fit_piecewise_function
+from ..technology import Technology
 
 
 class GasTurbine(Technology):

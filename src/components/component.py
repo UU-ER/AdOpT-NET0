@@ -1,6 +1,7 @@
 import time
 from pyomo.environ import *
 
+
 class ModelComponent:
     """
     Class to read and manage data for technologies

@@ -1,7 +1,7 @@
 import src.global_variables as global_variables
-from src.components.component import ModelComponent
-from src.components.utilities import annualize, set_discount_rate, link_full_resolution_to_clustered
-from src.components.technologies.utilities import set_capex_model
+from ..component import ModelComponent
+from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered
+from .utilities import set_capex_model
 
 from pyomo.environ import *
 

@@ -8,8 +8,8 @@ from pathlib import Path
 from scipy.interpolate import griddata
 import statsmodels.api as sm
 
-from src.components.technologies.utilities import FittedPerformance, fit_piecewise_function, fit_linear_function
-from src.components.technologies.technology import Technology
+from ..utilities import FittedPerformance, fit_piecewise_function, fit_linear_function
+from ..technology import Technology
 
 
 class HeatPump(Technology):

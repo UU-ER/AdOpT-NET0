@@ -9,7 +9,7 @@ from src.components.utilities import annualize
 
 
 def test_initializer():
-    data = dm.load_object(r'./test/test_data/data_handle_test.p')
+    data = dm.load_object(r'./src/test/test_data/data_handle_test.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
 
@@ -17,7 +17,7 @@ def test_add_nodes():
     """
     Add a node with no technology, establishes energybalance
     """
-    data = dm.load_object(r'./test/test_data/data_handle_test.p')
+    data = dm.load_object(r'./src/test/test_data/data_handle_test.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -34,7 +34,7 @@ def test_model1():
     electricity network in between
     should be infeasible
     """
-    data = dm.load_object(r'./test/test_data/model1.p')
+    data = dm.load_object(r'./src/test/test_data/model1.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -52,7 +52,7 @@ def test_model2():
     - Total costs: 10.01 * unit cost Furnace_NG + Import costs of NG
     - Emissions larger zero
     """
-    data = dm.load_object(r'./test/test_data/model2.p')
+    data = dm.load_object(r'./src/test/test_data/model2.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -100,7 +100,7 @@ def test_addtechnology():
 
     second solve should be cheaper
     """
-    data = dm.load_object(r'./test/test_data/addtechnology.p')
+    data = dm.load_object(r'./src/test/test_data/addtechnology.p')
     configuration = ModelConfiguration()
     data.technology_data['test_node1']['TestWindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
     energyhub = ehub(data, configuration)
@@ -140,7 +140,7 @@ def test_emission_balance1():
     offshore wind @ node 2
     electricity network in between
     """
-    data = dm.load_object(r'./test/test_data/emissionbalance1.p')
+    data = dm.load_object(r'./src/test/test_data/emissionbalance1.p')
     configuration = ModelConfiguration()
     data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
     data.technology_data['onshore']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1'] = 0.9
@@ -195,7 +195,7 @@ def test_emission_balance2():
     cost & emission optimization
     """
     # Cost optimization
-    data = dm.load_object(r'./test/test_data/emissionbalance2.p')
+    data = dm.load_object(r'./src/test/test_data/emissionbalance2.p')
     configuration = ModelConfiguration()
     data.technology_data['test_node1']['testCONV1_1'].performance_data['emission_factor'] = 1
     energyhub = ehub(data, configuration)
@@ -220,7 +220,7 @@ def test_emission_balance2():
 
 def test_optimization_types():
     # Cost optimization
-    data = dm.load_object(r'./test/test_data/optimization_types.p')
+    data = dm.load_object(r'./src/test/test_data/optimization_types.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
     energyhub.construct_model()
@@ -257,7 +257,7 @@ def test_optimization_types():
 
 
 def test_simplification_algorithms():
-    data = dm.load_object(r'./test/test_data/time_algorithms.p')
+    data = dm.load_object(r'./src/test/test_data/time_algorithms.p')
 
     # Full resolution
     configuration = ModelConfiguration()
@@ -297,7 +297,7 @@ def test_carbon_tax():
     """
     Model with a furnace and a heat demand
     """
-    data = dm.load_object(r'./test/test_data/carbon_tax.p')
+    data = dm.load_object(r'./src/test/test_data/carbon_tax.p')
     configuration = ModelConfiguration()
     data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
     data.technology_data['onshore']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1'] = 0.9
@@ -321,7 +321,7 @@ def test_carbon_subsidy():
     """
     Model with DAC, import of electricity and heat
     """
-    data = dm.load_object(r'./test/test_data/carbon_subsidy.p')
+    data = dm.load_object(r'./src/test/test_data/carbon_subsidy.p')
 
     #test subsidy
     carbon_subsidy = np.ones(len(data.topology.timesteps)) * 10
