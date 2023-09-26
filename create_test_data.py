@@ -451,6 +451,75 @@ def create_data_network():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+def create_data_technology_dynamics():
+    """
+    Creates dataset for test_technology_CONV_PWA().
+    heat demand @ node 1
+    Technology type 1, 2, 3, gas,H2 -> heat, electricity
+    """
+
+    perf_function_type = [2, 4]
+    CONV_Type = [1, 2, 3]
+    for j in CONV_Type:
+        for i in perf_function_type:
+            data_save_path = './test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(i) + '.p'
+
+            topology = dm.SystemTopology()
+            topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 06:00', resolution=1)
+            topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
+            topology.define_nodes(['test_node1'])
+            topology.define_new_technologies('test_node1', ['testCONV' + str(j) + '_' + str(i)])
+
+            # Initialize instance of DataHandle
+            data = dm.DataHandle(topology)
+
+            # CLIMATE DATA
+            data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
+
+            if i == 2:
+                demand_h = np.ones(len(topology.timesteps))
+                demand_h[0] = 1
+                demand_h[1] = 1
+                demand_h[2] = 0
+                demand_h[3] = 1
+                demand_h[4] = 0
+                demand_h[5] = 0
+                demand_h[6] = 1
+                data.read_demand_data('test_node1', 'heat', demand_h)
+            elif i == 4:
+                demand_h = np.ones(len(topology.timesteps))
+                demand_h[0] = 1
+                demand_h[1] = 1
+                demand_h[2] = 0
+                demand_h[3] = 0
+                demand_h[4] = 0
+                demand_h[5] = 0
+                demand_h[6] = 1
+                data.read_demand_data('test_node1', 'heat', demand_h)
+
+            # PRICE DATA
+            if j != 3:
+                price = np.ones(len(topology.timesteps)) * 1
+                data.read_import_price_data('test_node1', 'gas', price)
+
+            # IMPORT/EXPORT LIMITS
+            import_lim = np.ones(len(topology.timesteps)) * 10
+            data.read_import_limit_data('test_node1', 'gas', import_lim)
+            import_lim = np.ones(len(topology.timesteps)) * 10
+            data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
+            export_lim = np.ones(len(topology.timesteps)) * 10
+            data.read_export_limit_data('test_node1', 'electricity', export_lim)
+            export_lim = np.ones(len(topology.timesteps)) * 10
+            export_lim[4] = 0
+            data.read_export_limit_data('test_node1', 'heat', export_lim)
+
+            # READ TECHNOLOGY AND NETWORK DATA
+            data.read_technology_data()
+            data.read_network_data()
+
+            # SAVING/LOADING DATA FILE
+            data.save(data_save_path)
+
 def create_data_addtechnology():
     """
     Creates dataset for test_addtechnology().
@@ -797,6 +866,7 @@ create_data_technology_type1_PV()
 create_data_technology_type1_WT()
 create_data_technology_CONV()
 create_data_network()
+create_data_technology_dynamics()
 create_data_addtechnology()
 create_data_technologySTOR()
 create_data_time_algorithms()
