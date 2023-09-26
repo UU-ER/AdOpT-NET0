@@ -174,6 +174,5 @@ class ModelConfiguration:
 
         self.performance = SimpleNamespace()
         self.performance.dynamics = 0
-        self.performance.dynamicsOn = []
 
 

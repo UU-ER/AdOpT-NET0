@@ -79,7 +79,7 @@ if execute == 1:
     topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 7:00', resolution=1)
     topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['testCONV3_2', 'testSTOR'])
+    topology.define_new_technologies('test_node1', ['testCONV3_4', 'testSTOR'])
     # topology.define_new_technologies('test_node1', ['testCONV3_2'])
 
     # Initialize instance of DataHandle
@@ -126,15 +126,14 @@ if execute == 1:
     #
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
-    configuration.performance.dynamics = 2
-    configuration.performance.dynamicsOn = ['testCONV3_2']
+    configuration.performance.dynamics = 1
 
     energyhub = EnergyHub(data, configuration)
     # Solve model
     energyhub.quick_solve()
     print('finish')
     for i in range(1, len(topology.timesteps) + 1):
-        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_2'].var_x[i].value)
+        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_4'].var_x[i].value)
 
 execute = 0
 
