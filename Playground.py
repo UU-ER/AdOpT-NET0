@@ -48,31 +48,35 @@ if execute == 1:
                         new_json.write(technology_data)
 
 
-execute = 0
+execute = 1
 
 if execute == 1:
-    data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
-    # data = dm.load_object(r'./test/test_data/time_algorithms.p')
-    data.read_technology_data()
+    data = dm.load_object(r'./test/test_data/technology_dynamics_CONV1_2.p')
+    tecname = 'testCONV1_2'
 
-    # INITIALIZE MODEL CONFIGURATION
+    # change test technology dynamic parameters
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = max(data.node_data['test_node1'].data['demand']['heat']) / 1
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+    data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
+    # data.technology_data['test_node1'][tecname].size_max = 1.5
+
+    allowed_fitting_error = 0.1
     configuration = ModelConfiguration()
-    # configuration.optimization.typicaldays.N = 4
-    # configuration.optimization.typicaldays.method = 2
-    # configuration.energybalance.violation = -1
-    # configuration.energybalance.copperplate = 0
-    # configuration.performance.dynamics = 1
-    # configuration.performance.dynamicsOn = ['testCONV1_1']
-
+    configuration.performance.dynamics = 1
 
     energyhub = EnergyHub(data, configuration)
+
     # Solve model
     energyhub.quick_solve()
     print('finish')
 
-    # energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_2'].var_x[2].value
+    for i in range(1, 10):
+        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_2'].var_x[i].value)
 
-execute = 1
+
+execute = 0
 
 if execute == 1:
     topology = dm.SystemTopology()
@@ -123,7 +127,10 @@ if execute == 1:
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data()
     data.read_network_data()
-    #
+
+    # CHANGE TECH DYNAMICS DATA
+    data.technology_data['test_node1']['testCONV2_4'].performance_data['standby_power'] = 0.2
+
     # INITIALIZE MODEL CONFIGURATION
     configuration = ModelConfiguration()
     configuration.performance.dynamics = 1
