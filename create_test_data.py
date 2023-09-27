@@ -465,7 +465,7 @@ def create_data_technology_dynamics():
             data_save_path = './test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(i) + '.p'
 
             topology = dm.SystemTopology()
-            topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 06:00', resolution=1)
+            topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 08:00', resolution=1)
             topology.define_carriers(['electricity', 'heat', 'gas', 'hydrogen'])
             topology.define_nodes(['test_node1'])
             topology.define_new_technologies('test_node1', ['testCONV' + str(j) + '_' + str(i)])
@@ -478,13 +478,15 @@ def create_data_technology_dynamics():
 
             if i == 2:
                 demand_h = np.ones(len(topology.timesteps))
-                demand_h[0] = 1
+                demand_h[0] = 0.6
                 demand_h[1] = 1
                 demand_h[2] = 0
                 demand_h[3] = 1
-                demand_h[4] = 0
+                demand_h[4] = 0.7
                 demand_h[5] = 0
-                demand_h[6] = 1
+                demand_h[6] = 0
+                demand_h[7] = 0.7
+                demand_h[8] = 1
                 data.read_demand_data('test_node1', 'heat', demand_h)
             elif i == 4:
                 demand_h = np.ones(len(topology.timesteps))
@@ -495,6 +497,8 @@ def create_data_technology_dynamics():
                 demand_h[4] = 0
                 demand_h[5] = 0
                 demand_h[6] = 1
+                demand_h[7] = 1
+                demand_h[8] = 1
                 data.read_demand_data('test_node1', 'heat', demand_h)
 
             # PRICE DATA
@@ -504,13 +508,16 @@ def create_data_technology_dynamics():
 
             # IMPORT/EXPORT LIMITS
             import_lim = np.ones(len(topology.timesteps)) * 10
+            import_lim[5] = 0.2
+            import_lim[6] = 0.2
             data.read_import_limit_data('test_node1', 'gas', import_lim)
             import_lim = np.ones(len(topology.timesteps)) * 10
+            import_lim[5] = 0
+            import_lim[6] = 0
             data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
             export_lim = np.ones(len(topology.timesteps)) * 10
             data.read_export_limit_data('test_node1', 'electricity', export_lim)
             export_lim = np.ones(len(topology.timesteps)) * 10
-            export_lim[4] = 0
             data.read_export_limit_data('test_node1', 'heat', export_lim)
 
             # READ TECHNOLOGY AND NETWORK DATA
