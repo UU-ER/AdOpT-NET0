@@ -29,7 +29,7 @@ class Conv2(Technology):
             raise Exception('size_based_on == output for CONV2 not possible.')
         self.fitted_performance = fit_performance_generic_tecs(self.performance_data, time_steps=len(climate_data))
 
-    def construct_specific_constraints(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type CONV2, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
 
@@ -77,11 +77,11 @@ class Conv2(Technology):
           The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
           is defined piecewise for the respective number of pieces
 
-        :param obj model: instance of a pyomo model
         :param obj b_tec: technology block
-        :param tec_data: technology data
+        :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
+        super(Conv2, self).construct_tech_model(b_tec, energyhub)
 
         # Full or reduced resolution
         self.input = b_tec.var_input

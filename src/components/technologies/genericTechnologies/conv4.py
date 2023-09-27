@@ -36,7 +36,7 @@ class Conv4(Technology):
                 self.fitted_performance.bounds['output'][car] = self.fitted_performance.bounds['output'][self.performance_data['main_output_carrier']] \
                                                 * self.performance_data['output_ratios'][car]
 
-    def construct_specific_constraints(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type CONV4, i.e. :math:`output_{car} \leq S>)`
 
@@ -69,11 +69,11 @@ class Conv4(Technology):
           .. math::
              Output_{t, car} = 0
 
-        :param obj model: instance of a pyomo model
         :param obj b_tec: technology block
-        :param tec_data: technology data
+        :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
+        super(Conv4, self).construct_tech_model(b_tec, energyhub)
 
         # Full or reduced resolution
         self.output = b_tec.var_output

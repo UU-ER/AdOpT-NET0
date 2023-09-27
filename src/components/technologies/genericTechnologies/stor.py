@@ -53,7 +53,7 @@ class Stor(Technology):
         self.fitted_performance.time_dependent_coefficients = 1
 
 
-    def construct_specific_constraints(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
@@ -106,11 +106,11 @@ class Stor(Technology):
         - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
           step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
 
-        :param obj model: instance of a pyomo model
         :param obj b_tec: technology block
-        :param tec_data: technology data
+        :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
+        super(Stor, self).construct_tech_model(b_tec, energyhub)
 
         # Full or reduced resolution
         self.input = b_tec.var_input

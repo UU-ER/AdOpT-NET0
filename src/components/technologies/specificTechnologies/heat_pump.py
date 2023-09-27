@@ -139,7 +139,7 @@ class HeatPump(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_specific_constraints(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type HP (Heat Pump)
 
@@ -159,11 +159,12 @@ class HeatPump(Technology):
         Essentially, the equations for the heat pump model are the same as for generic conversion technology type 1 (with
         time-dependent performance parameter).
 
-        :param obj model: instance of a pyomo model
         :param obj b_tec: technology block
-        :param tec_data: technology data
+        :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
+        super(HeatPump, self).construct_tech_model(b_tec, energyhub)
+
         # Full or reduced resolution
         self.input = b_tec.var_input
         self.output = b_tec.var_output

@@ -169,7 +169,7 @@ class Res(Technology):
         self.fitted_performance.rated_power = rated_power / 1000
 
 
-    def construct_specific_constraints(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type RES (renewable technology)
 
@@ -188,12 +188,11 @@ class Res(Technology):
         .. math::
             Output_{t, car} = CapFactor_t * Size
 
-        :param obj model: instance of a pyomo model
         :param obj b_tec: technology block
-        :param tec_data: technology data
+        :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        model = energyhub.model
+        super(Res, self).construct_tech_model(b_tec, energyhub)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

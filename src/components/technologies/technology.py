@@ -45,7 +45,7 @@ class Technology(ModelComponent):
         self.set_t = []
 
 
-    def construct_general_constraints(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, energyhub):
         r"""
         Adds all technologies as model blocks to respective node.
 

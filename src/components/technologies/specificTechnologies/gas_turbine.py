@@ -89,7 +89,7 @@ class GasTurbine(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_specific_constraints(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for gas turbines
 
@@ -158,11 +158,12 @@ class GasTurbine(Technology):
           .. math::
              \sum(Input_{t, car}) = 0
 
-        :param obj model: instance of a pyomo model
         :param obj b_tec: technology block
-        :param tec_data: technology data
+        :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
+        super(GasTurbine, self).construct_tech_model(b_tec, energyhub)
+
         # Transformation required
         self.big_m_transformation_required = 1
 

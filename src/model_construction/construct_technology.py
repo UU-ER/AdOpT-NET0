@@ -20,8 +20,8 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         """
 
         technology = energyhub.data.technology_data[nodename][tec]
-        b_tec = technology.construct_general_constraints(b_tec, energyhub)
-        b_tec = technology.construct_specific_constraints(b_tec, energyhub)
+        b_tec = technology.construct_tech_model(b_tec, energyhub)
+        # b_tec = technology.construct_specific_constraints(b_tec, energyhub)
         if technology.big_m_transformation_required:
             b_tec = perform_disjunct_relaxation(b_tec)
 

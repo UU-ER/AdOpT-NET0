@@ -132,7 +132,7 @@ class DacAdsorption(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_specific_constraints(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type DAC_adsorption
 
@@ -146,11 +146,12 @@ class DacAdsorption(Technology):
         12649–12667. https://doi.org/10.1021/acs.iecr.2c00681. It resembles operation configuration 1 without water
         spraying.
 
-        :param obj model: instance of a pyomo model
         :param obj b_tec: technology block
-        :param tec_data: technology data
+        :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
+        super(DacAdsorption, self).construct_tech_model(b_tec, energyhub)
+
         # Comments on the equations refer to the equation numbers in the paper. All equations can be looked up there.
 
         # Transformation required
