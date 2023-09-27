@@ -72,6 +72,7 @@ def constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub):
     SU_load = tec_data.performance_data['SU_load']
     SD_load = tec_data.performance_data['SD_load']
     main_car = tec_data.performance_data['main_input_carrier']
+    rated_power = tec_data.fitted_performance.rated_power
 
     # SU load limit
     s_indicators = range(0, 2)
@@ -85,10 +86,11 @@ def constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub):
             def init_SU_load_limit(cons, t):
                 if technology_model == 'CONV1' or technology_model == 'CONV2':
                     return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
-                           <= b_tec.var_size * SU_load
+                           <= b_tec.var_size * SU_load * rated_power
                 elif technology_model == 'CONV3':
-                    return input[t, main_car] <= b_tec.var_size * SU_load
+                    return input[t, main_car] <= b_tec.var_size * SU_load * rated_power
             dis.const_SU_load_limit = Constraint(set_t, rule=init_SU_load_limit)
+
     b_tec.dis_SU_load = Disjunct(set_t, s_indicators, rule=init_SU_load)
 
     def bind_disjunctions_SU_load(dis, t):
@@ -110,9 +112,9 @@ def constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub):
                 else:
                     if technology_model == 'CONV1' or technology_model == 'CONV2':
                         return sum(input[t - 1, car_input] for car_input in b_tec.set_input_carriers)\
-                               <= b_tec.var_size * SD_load
+                               <= b_tec.var_size * SD_load * rated_power
                     elif technology_model == 'CONV3':
-                        return input[t - 1, main_car] <= b_tec.var_size * SD_load
+                        return input[t - 1, main_car] <= b_tec.var_size * SD_load * rated_power
             dis.const_SD_load_limit = Constraint(set_t, rule=init_SD_load_limit)
     b_tec.dis_SD_load = Disjunct(set_t, s_indicators, rule=init_SD_load)
 
