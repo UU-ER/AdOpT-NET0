@@ -1,9 +1,5 @@
 from pyomo.environ import *
 
-import src.model_construction as mc
-import src.data_management as dm
-from src.utilities import *
-import numpy as np
 import dill as pickle
 import src.global_variables as global_variables
 import time
@@ -11,6 +7,12 @@ import copy
 import warnings
 import datetime
 from pathlib import Path
+
+from src.model_construction import *
+import src.data_management as dm
+from src.utilities import *
+from src.components.utilities import annualize, set_discount_rate
+from src.components.technologies.utilities import set_capex_model
 
 
 class EnergyHub:
@@ -158,8 +160,8 @@ class EnergyHub:
 
         # Model construction
         if not self.configuration.energybalance.copperplate:
-            self.model = mc.add_networks(self)
-        self.model = mc.add_nodes(self)
+            self.model = add_networks(self)
+        self.model = add_nodes(self)
 
         print('Constructing model completed in ' + str(round(time.time() - start)) + ' s')
 
@@ -174,9 +176,9 @@ class EnergyHub:
         print('Constructing balances...')
         start = time.time()
 
-        self.model = mc.add_energybalance(self)
-        self.model = mc.add_emissionbalance(self)
-        self.model = mc.add_system_costs(self)
+        self.model = add_energybalance(self)
+        self.model = add_emissionbalance(self)
+        self.model = add_system_costs(self)
 
         print('Constructing balances completed in ' + str(round(time.time() - start)) + ' s')
 
@@ -213,7 +215,7 @@ class EnergyHub:
         :return: None
         """
         self.data.read_single_technology_data(nodename, technologies)
-        mc.add_technology(self, nodename, technologies)
+        add_technology(self, nodename, technologies)
 
     def save_model(self, save_path, file_name):
         """

@@ -10,10 +10,6 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
     :param set set_tecsToAdd: list of technologies to add
     :return: b_node
     """
-
-    # COLLECT OBJECTS FROM ENERGYHUB
-    data = energyhub.data
-
     def init_technology_block(b_tec, tec):
         """
         Rule to construct technology
@@ -23,7 +19,7 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         :return: b_tec: technology block
         """
 
-        technology = data.technology_data[nodename][tec]
+        technology = energyhub.data.technology_data[nodename][tec]
         b_tec = technology.construct_general_constraints(b_tec, energyhub)
         b_tec = technology.construct_specific_constraints(b_tec, energyhub)
         if technology.big_m_transformation_required:

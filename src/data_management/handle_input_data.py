@@ -1,15 +1,12 @@
-import src.data_management.components as comp
-import src.global_variables as global_variables
-
-from .utilities import *
-from .import_data import import_jrc_climate_data
-from .components.network import Network
-
 import pandas as pd
 import copy
 import numpy as np
 from pathlib import Path
 
+import src.global_variables as global_variables
+from .utilities import *
+from .import_data import import_jrc_climate_data
+from src.components.networks import *
 
 
 class DataHandle:
@@ -366,23 +363,27 @@ class DataHandle:
 
 
         # New Networks
-        for network in self.topology.networks_new:
-            # netw_data = open_json(network, load_path)
+        for netw in self.topology.networks_new:
+            netw_data = open_json(netw, load_path)
+            netw_data['name'] = netw
 
-            self.network_data[network] = Network(network, load_path)
-            self.network_data[network].connection = self.topology.networks_new[network]['connection']
-            self.network_data[network].distance = self.topology.networks_new[network]['distance']
-            self.network_data[network].size_max_arcs = self.topology.networks_new[network]['size_max_arcs']
-            self.network_data[network].calculate_max_size_arc()
+            self.network_data[netw] = Network(netw_data)
+            self.network_data[netw].connection = self.topology.networks_new[netw]['connection']
+            self.network_data[netw].distance = self.topology.networks_new[netw]['distance']
+            self.network_data[netw].size_max_arcs = self.topology.networks_new[netw]['size_max_arcs']
+            self.network_data[netw].calculate_max_size_arc()
 
         # Existing Networks
-        for network in self.topology.networks_existing:
-            self.network_data[network + '_existing'] = Network(network, load_path)
-            self.network_data[network + '_existing'].existing = 1
-            self.network_data[network + '_existing'].connection = self.topology.networks_existing[network]['connection']
-            self.network_data[network + '_existing'].distance = self.topology.networks_existing[network]['distance']
-            self.network_data[network + '_existing'].size_initial = self.topology.networks_existing[network]['size']
-            self.network_data[network + '_existing'].calculate_max_size_arc()
+        for netw in self.topology.networks_existing:
+            netw_data = open_json(netw, load_path)
+            netw_data['name'] = netw
+
+            self.network_data[netw + '_existing'] = Network(netw_data)
+            self.network_data[netw + '_existing'].existing = 1
+            self.network_data[netw + '_existing'].connection = self.topology.networks_existing[netw]['connection']
+            self.network_data[netw + '_existing'].distance = self.topology.networks_existing[netw]['distance']
+            self.network_data[netw + '_existing'].size_initial = self.topology.networks_existing[netw]['size']
+            self.network_data[netw + '_existing'].calculate_max_size_arc()
 
     def pprint(self):
         """
@@ -669,12 +670,15 @@ class DataHandle_AveragedData(DataHandle):
         :param data_full_resolution: Data full resolution
         :param nr_timesteps_averaged: How many time-steps should be averaged?
         """
-        path = global_variables.datapathroot
+        load_path = global_variables.datapathroot
         for node in self.topology.nodes:
             self.technology_data[node] = {}
             # New technologies
             for technology in self.topology.technologies_new[node]:
-                self.technology_data[node][technology] = comp.Technology(technology, path)
+                tec_data = open_json(technology, load_path)
+                tec_data['name'] = technology
+                self.technology_data[node][technology] = select_technology(tec_data)
+
                 if self.technology_data[node][technology].technology_model == 'RES':
                     # Fit performance based on full resolution and average capacity factor
                     self.technology_data[node][technology].fit_technology_performance(
@@ -696,7 +700,10 @@ class DataHandle_AveragedData(DataHandle):
 
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
-                self.technology_data[node][technology + '_existing'] = comp.Technology(technology, path)
+                tec_data = open_json(technology, load_path)
+                tec_data['name'] = technology
+
+                self.technology_data[node][technology + '_existing'] = select_technology(tec_data)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = \
                     self.topology.technologies_existing[node][technology]

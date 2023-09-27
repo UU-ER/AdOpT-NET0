@@ -192,7 +192,7 @@ class HydroOpen(Technology):
 
         # This makes sure that only either input or output is larger zero.
         if allow_only_one_direction == 1:
-            global_variables.big_m_transformation_required = 1
+            self.big_m_transformation_required = 1
             s_indicators = range(0, 2)
 
             def init_input_output(dis, t, ind):

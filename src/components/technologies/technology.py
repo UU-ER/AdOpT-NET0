@@ -228,7 +228,7 @@ class Technology(ModelComponent):
             b_tec.para_bp_y = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_y'])
             b_tec.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
                                                                     economics.capex_data['piecewise_capex']['bp_y'])
-            global_variables.big_m_transformation_required = 1
+            self.big_m_transformation_required = 1
             b_tec.const_capex_aux = Piecewise(b_tec.var_capex_aux, b_tec.var_size,
                                               pw_pts=b_tec.para_bp_x,
                                               pw_constr_type='EQ',

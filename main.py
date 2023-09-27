@@ -28,7 +28,7 @@ distance.at['offshore', 'onshore'] = 100
 connection = dm.create_empty_network_matrix(topology.nodes)
 connection.at['onshore', 'offshore'] = 1
 connection.at['offshore', 'onshore'] = 1
-# topology.define_new_network('electricitySimple', distance=distance, connections=connection)
+topology.define_new_network('electricitySimple', distance=distance, connections=connection)
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)

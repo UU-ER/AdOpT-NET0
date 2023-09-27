@@ -1,7 +1,5 @@
 from types import SimpleNamespace
 
-big_m_transformation_required = 0
-
 clustered_data = 0
 
 averaged_data = 0
