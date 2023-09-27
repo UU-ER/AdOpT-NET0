@@ -1,5 +1,4 @@
 from pyomo.environ import *
-import src.global_variables as global_variables
 
 
 def add_energybalance(energyhub):
@@ -136,7 +135,7 @@ def add_emissionbalance(energyhub):
     # Emissionbalance is always at full resolution
     set_t = model.set_t_full
 
-    nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+    nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
 
     # Delete previously initialized constraints
     if model.find_component('const_emissions_tot'):
@@ -215,7 +214,7 @@ def add_system_costs(energyhub):
 
     # Cost is always at full resolution
     set_t = model.set_t_full
-    nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+    nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
 
     # Cost at each node
     def init_node_cost(const):

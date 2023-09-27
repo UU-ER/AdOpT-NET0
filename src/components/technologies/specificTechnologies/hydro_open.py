@@ -1,7 +1,6 @@
 from pyomo.environ import *
 from pyomo.gdp import *
 import numpy as np
-import src.global_variables as global_variables
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
@@ -142,7 +141,7 @@ class HydroOpen(Technology):
         if performance_data['maximum_discharge_time_discrete']:
             hydro_maximum_discharge = coeff['hydro_maximum_discharge']
 
-        nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+        nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
 
         # Additional decision variables
         b_tec.var_storage_level = Var(self.set_t, b_tec.set_input_carriers,

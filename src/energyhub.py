@@ -1,19 +1,18 @@
 from pyomo.environ import *
-
+import numpy as np
 import dill as pickle
-import src.global_variables as global_variables
 import time
 import copy
 import warnings
 import datetime
 from pathlib import Path
 
-from src.model_construction import *
-import src.data_management as dm
-from src.utilities import *
-from src.components.utilities import annualize, set_discount_rate
-from src.components.technologies.utilities import set_capex_model
-
+from .model_construction import *
+from .data_management import *
+from .utilities import *
+from .components.utilities import annualize, set_discount_rate
+from .components.technologies.utilities import set_capex_model
+from .result_management import ResultsHandle
 
 class EnergyHub:
     r"""
@@ -49,8 +48,9 @@ class EnergyHub:
         self.model = ConcreteModel()
 
         # INITIALIZE GLOBAL OPTIONS
-        global_variables.clustered_data = 0
-        global_variables.averaged_data = 0
+        self.model_information = data.model_information
+        self.model_information.clustered_data = 0
+        self.model_information.averaged_data = 0
 
         # INITIALIZE SOLUTION
         self.solution = None
@@ -62,24 +62,24 @@ class EnergyHub:
         self.data_storage = []
         if not self.configuration.optimization.typicaldays.N == 0:
             # If clustered
-            global_variables.clustered_data = 1
-            self.data_storage.append(dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays.N))
+            self.model_information.clustered_data = 1
+            self.data_storage.append(ClusteredDataHandle(data, self.configuration.optimization.typicaldays.N))
         else:
             self.data_storage.append(data)
 
         if self.configuration.optimization.timestaging:
             # Average data
-            global_variables.averaged_data = 1
+            self.model_information.averaged_data = 1
             self.model_first_stage = None
             self.solution_first_stage = None
-            self.data_storage.append(dm.DataHandle_AveragedData(self.data_storage[0], self.configuration.optimization.timestaging))
+            self.data_storage.append(DataHandle_AveragedData(self.data_storage[0], self.configuration.optimization.timestaging))
             self.data = self.data_storage[1]
         else:
             # Write data to self
             self.data = self.data_storage[0]
 
         # INITIALIZE RESULTS
-        self.results = dm.ResultsHandle(self.configuration)
+        self.results = ResultsHandle(self.configuration)
 
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
@@ -131,7 +131,7 @@ class EnergyHub:
         # Time Frame
         self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
 
-        if global_variables.clustered_data == 1:
+        if self.model_information.clustered_data == 1:
             self.model.set_t_clustered = RangeSet(1,len(self.data.topology.timesteps_clustered))
 
         # DEFINE VARIABLES
@@ -270,7 +270,7 @@ class EnergyHub:
             raise Exception("objective in Configurations is incorrect")
 
         # Second stage of time averaging algorithm
-        if global_variables.averaged_data and global_variables.averaged_data_specs.stage == 0:
+        if self.model_information.averaged_data and self.model_information.averaged_data_specs.stage == 0:
             self.__optimize_time_averaging_second_stage()
 
 
@@ -345,20 +345,20 @@ class EnergyHub:
         pareto_points = self.configuration.optimization.pareto_points
 
         # Min Cost
-        global_variables.pareto_point = 0
+        self.model_information.pareto_point = 0
         self.__optimize_cost()
         emissions_max = self.model.var_emissions_net.value
 
         # Min Emissions
-        global_variables.pareto_point = pareto_points + 1
+        self.model_information.pareto_point = pareto_points + 1
         self.__optimize_costs_minE()
         emissions_min = self.model.var_emissions_net.value
 
         # Emission limit
-        global_variables.pareto_point = 0
+        self.model_information.pareto_point = 0
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
         for pareto_point in range(0, pareto_points):
-            global_variables.pareto_point += 1
+            self.model_information.pareto_point += 1
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
@@ -373,7 +373,7 @@ class EnergyHub:
         Optimizes multiple runs with monte carlo
         """
         for run in range(0, self.configuration.optimization.monte_carlo.N):
-            global_variables.monte_carlo_run += 1
+            self.model_information.monte_carlo_run += 1
             self.__monte_carlo_set_cost_parameters()
             if run == 0:
                 self.__optimize(objective)
@@ -545,7 +545,7 @@ class EnergyHub:
             self.model.del_component(model.const_node_cost)
 
             # Add constraint again
-            nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+            nr_timesteps_averaged = self.model_information.averaged_data_specs.nr_timesteps_averaged
 
             def init_node_cost(const):
                 tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
@@ -599,7 +599,7 @@ class EnergyHub:
             self.model.del_component(model.const_node_cost)
 
             # Add constraint again
-            nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+            nr_timesteps_averaged = self.model_information.averaged_data_specs.nr_timesteps_averaged
 
             def init_node_cost(const):
                 tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
@@ -644,8 +644,8 @@ class EnergyHub:
         """
         Optimizes the second stage of the time_averaging algorithm
         """
-        global_variables.averaged_data_specs.stage += 1
-        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
+        self.model_information.averaged_data_specs.stage += 1
+        self.model_information.averaged_data_specs.nr_timesteps_averaged = 1
         bounds_on = 'no_storage'
         self.model_first_stage = self.model
         self.solution_first_stage = copy.deepcopy(self.solution)

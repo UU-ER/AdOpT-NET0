@@ -3,10 +3,10 @@ import copy
 import numpy as np
 from pathlib import Path
 
-import src.global_variables as global_variables
 from .utilities import *
 from .import_data import import_jrc_climate_data
-from src.components.networks import *
+from ..utilities import ModelInformation
+from ..components.networks import *
 
 
 class DataHandle:
@@ -39,6 +39,7 @@ class DataHandle:
         self.node_data = {}
         self.technology_data = {}
         self.network_data = {}
+        self.model_information = ModelInformation()
 
         self.global_data = GlobalData(topology)
 
@@ -309,7 +310,7 @@ class DataHandle:
         :return: self at ``self.Technology_Data[node][tec]``
         """
         load_path = Path(load_path)
-        global_variables.datapathroot = load_path
+        self.model_information.tec_data_path = load_path
 
         for node in self.topology.nodes:
             self.technology_data[node] = {}
@@ -332,7 +333,7 @@ class DataHandle:
                     self.topology.technologies_existing[node][technology]
                 self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
 
-    def read_single_technology_data(self, node, technologies, load_path='./data/Technology_Data/'):
+    def read_single_technology_data(self, node, technologies):
         """
         Reads technologies to DataHandle after it has been initialized.
 
@@ -341,7 +342,7 @@ class DataHandle:
         :param str path: path to read technology data from
         This function is only required if technologies are added to the model after the DataHandle has been initialized.
         """
-        load_path = Path(load_path)
+        load_path = self.model_information.tec_data_path
 
         for technology in technologies:
             tec_data = open_json(technology, load_path)
@@ -360,7 +361,8 @@ class DataHandle:
         :param str path: path to read network data from
         :return: self at ``self.Technology_Data[node][tec]``
         """
-
+        load_path = Path(load_path)
+        self.model_information.netw_data_path = load_path
 
         # New Networks
         for netw in self.topology.networks_new:
@@ -466,6 +468,7 @@ class ClusteredDataHandle(DataHandle):
         self.technology_data = {}
         self.network_data = data.network_data
         self.global_data = data.global_data
+        self.model_information = data.model_information
 
         # k-means specs
         self.k_means_specs = simplification_specs(data.topology.timesteps)
@@ -581,6 +584,7 @@ class DataHandle_AveragedData(DataHandle):
         self.technology_data = {}
         self.network_data = data.network_data
         self.global_data = data.global_data
+        self.model_information = data.model_information
 
 
         if hasattr(data, 'k_means_specs'):
@@ -601,7 +605,7 @@ class DataHandle_AveragedData(DataHandle):
             index=self.topology.timesteps,
             columns=['factor'])
 
-        global_variables.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
+        self.model_information.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
     def __average_data(self, data_full_resolution:DataHandle, nr_timesteps_averaged:int):
         """
@@ -641,7 +645,7 @@ class DataHandle_AveragedData(DataHandle):
                     average_series(global_data.data[series1][series2], nr_timesteps_averaged)
 
         # Average data for clustered resolution
-        if global_variables.clustered_data == 1:
+        if self.model_information.clustered_data == 1:
             # adjust timesteps
             end_interval = max(self.topology.timesteps_clustered)
             start_interval = min(self.topology.timesteps_clustered)
@@ -670,7 +674,7 @@ class DataHandle_AveragedData(DataHandle):
         :param data_full_resolution: Data full resolution
         :param nr_timesteps_averaged: How many time-steps should be averaged?
         """
-        load_path = global_variables.datapathroot
+        load_path = self.model_information.tec_data_path
         for node in self.topology.nodes:
             self.technology_data[node] = {}
             # New technologies

@@ -1,4 +1,3 @@
-import src.global_variables as global_variables
 from ..component import ModelComponent
 from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered
 from .utilities import set_capex_model
@@ -130,7 +129,7 @@ class Technology(ModelComponent):
         configuration = energyhub.configuration
 
         # MODELING TYPICAL DAYS
-        if global_variables.clustered_data:
+        if energyhub.model_information.clustered_data:
             if configuration.optimization.typicaldays.method == 2:
                 technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
                 if self.technology_model in technologies_modelled_with_full_res:
@@ -150,7 +149,7 @@ class Technology(ModelComponent):
         b_tec = self.__define_opex(b_tec, energyhub)
         b_tec = self.__define_emissions(b_tec, energyhub)
 
-        if global_variables.clustered_data and not self.modelled_with_full_res:
+        if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
             b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
 
         return b_tec
@@ -266,7 +265,7 @@ class Technology(ModelComponent):
 
         # set_t and sequence
         set_t = energyhub.model.set_t_full
-        if global_variables.clustered_data and not modelled_with_full_res:
+        if energyhub.model_information.clustered_data and not modelled_with_full_res:
             sequence = energyhub.data.k_means_specs.full_resolution['sequence']
 
         if existing:
@@ -283,7 +282,7 @@ class Technology(ModelComponent):
             b_tec.set_input_carriers = Set(initialize=performance_data['input_carrier'])
 
             def init_input_bounds(bounds, t, car):
-                if global_variables.clustered_data and not modelled_with_full_res:
+                if energyhub.model_information.clustered_data and not modelled_with_full_res:
                     return tuple(
                         fitted_performance.bounds['input'][car][sequence[t - 1] - 1, :] * size_max * rated_power)
                 else:
@@ -309,7 +308,7 @@ class Technology(ModelComponent):
 
         # set_t
         set_t = energyhub.model.set_t_full
-        if global_variables.clustered_data and not modelled_with_full_res:
+        if energyhub.model_information.clustered_data and not modelled_with_full_res:
             sequence = energyhub.data.k_means_specs.full_resolution['sequence']
 
         if existing:
@@ -321,7 +320,7 @@ class Technology(ModelComponent):
         b_tec.set_output_carriers = Set(initialize=performance_data['output_carrier'])
 
         def init_output_bounds(bounds, t, car):
-            if global_variables.clustered_data and not modelled_with_full_res:
+            if energyhub.model_information.clustered_data and not modelled_with_full_res:
                 return tuple(fitted_performance.bounds['output'][car][sequence[t - 1] - 1, :] * size_max * rated_power)
             else:
                 return tuple(fitted_performance.bounds['output'][car][t - 1, :] * size_max * rated_power)

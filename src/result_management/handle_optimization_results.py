@@ -1,6 +1,5 @@
 from types import SimpleNamespace
 import pandas as pd
-import src.global_variables as global_variables
 from pathlib import Path
 import numpy as np
 
@@ -50,10 +49,10 @@ class ResultsHandle:
         # Optimization info
         optimization_result = OptimizationResults(energyhub, self.save_detail)
         objective = energyhub.configuration.optimization.objective
-        pareto_point = global_variables.pareto_point
-        monte_carlo_run = global_variables.monte_carlo_run
+        pareto_point = energyhub.model_information.pareto_point
+        monte_carlo_run = energyhub.model_information.monte_carlo_run
         if self.timestaging:
-            time_stage = global_variables.averaged_data_specs.stage +1
+            time_stage = energyhub.model_information.averaged_data_specs.stage +1
         else:
             time_stage = 0
 
@@ -163,7 +162,7 @@ class OptimizationResults:
         carbon_costs = model.var_carbon_cost.value
         carbon_revenues = model.var_carbon_revenue.value
         set_t = model.set_t_full
-        nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+        nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
 
         tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex.value
                             for tec in model.node_blocks[node].set_tecsAtNode)
@@ -259,7 +258,7 @@ class OptimizationResults:
                     toNode = arc[1]
                     s = arc_data.var_size.value
                     capex = arc_data.var_capex.value
-                    if global_variables.clustered_data:
+                    if energyhub.model_information.clustered_data:
                         sequence = energyhub.data.k_means_specs.full_resolution['sequence']
                         opex_var = sum(arc_data.var_opex_variable[sequence[t - 1]].value
                                        for t in set_t)
@@ -327,7 +326,7 @@ class OptimizationResults:
                     technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
                     if technology_model == 'STOR':
-                        if global_variables.clustered_data:
+                        if energyhub.model_information.clustered_data:
                             time_set = model.set_t_full
                         else:
                             time_set = model.set_t_full
@@ -369,7 +368,7 @@ class OptimizationResults:
                         arc_data = netw_data.arc_block[arc]
                         df = pd.DataFrame()
 
-                        if global_variables.clustered_data:
+                        if energyhub.model_information.clustered_data:
                             sequence = energyhub.data.k_means_specs.full_resolution['sequence']
                             df['flow'] = [arc_data.var_flow[sequence[t - 1]].value for t in set_t]
                             df['losses'] = [arc_data.var_losses[sequence[t - 1]].value for t in set_t]

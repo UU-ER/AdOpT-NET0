@@ -1,8 +1,8 @@
-import src.data_management as dm
-from src.energyhub import EnergyHub as ehub
-import src.model_construction as mc
-from src.model_configuration import ModelConfiguration
 import numpy as np
+
+from src.data_management import *
+from src.energyhub import EnergyHub as ehub
+from src.model_configuration import ModelConfiguration
 
 
 def test_networks():
@@ -12,7 +12,7 @@ def test_networks():
     electricity demand @ node 2
     """
     # Test bidirectional
-    data = dm.load_object(r'./src/test/test_data/networks.p')
+    data = load_object(r'./src/test/test_data/networks.p')
     configuration = ModelConfiguration()
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
     data.network_data['hydrogenTest'].energy_consumption = {}
@@ -32,7 +32,7 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
 
     # Test no bidirectional
-    data = dm.load_object(r'./src/test/test_data/networks.p')
+    data = load_object(r'./src/test/test_data/networks.p')
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub2 = ehub(data, configuration)
@@ -47,7 +47,7 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
 
     # Test consumption at node
-    data = dm.load_object(r'./src/test/test_data/networks.p')
+    data = load_object(r'./src/test/test_data/networks.p')
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     energyhub3 = ehub(data, configuration)
     energyhub3.construct_model()
@@ -88,22 +88,22 @@ def test_existing_networks():
 
     configuration = ModelConfiguration()
 
-    data1 = dm.load_object(data_save_path1)
+    data1 = load_object(data_save_path1)
     ehub1 = run_ehub(data1, configuration)
     cost1 = ehub1.model.var_total_cost.value
     assert ehub1.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
-    data2 = dm.load_object(data_save_path2)
+    data2 = load_object(data_save_path2)
     ehub2 = run_ehub(data2, configuration)
     cost2 = ehub2.model.var_total_cost.value
     assert ehub2.solution.solver.termination_condition == 'optimal'
 
-    data3 = dm.load_object(data_save_path3)
+    data3 = load_object(data_save_path3)
     ehub3 = run_ehub(data3, configuration)
     cost3 = ehub3.model.var_total_cost.value
     assert ehub3.solution.solver.termination_condition == 'optimal'
 
-    data4 = dm.load_object(data_save_path4)
+    data4 = load_object(data_save_path4)
     ehub4 = run_ehub(data4, configuration)
     cost4 = ehub4.model.var_total_cost.value
     assert ehub4.solution.solver.termination_condition == 'optimal'
@@ -113,7 +113,7 @@ def test_existing_networks():
 
 def test_violation():
 
-    data = dm.load_object(r'./src/test/test_data/networks.p')
+    data = load_object(r'./src/test/test_data/networks.p')
 
     #model configuration
     configuration = ModelConfiguration()
@@ -129,7 +129,7 @@ def test_violation():
     assert energyhub.model.var_violation_cost.value == 200
 
 def test_copperplate():
-    data = dm.load_object(r'./src/test/test_data/networks.p')
+    data = load_object(r'./src/test/test_data/networks.p')
 
     # model configuration
     configuration = ModelConfiguration()
