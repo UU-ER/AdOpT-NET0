@@ -273,3 +273,16 @@ class GasTurbine(Technology):
         b_tec.const_n_on = Constraint(self.set_t, rule=init_n_on)
 
         return b_tec
+
+    def report_results(self, b_tec):
+        """
+        Function to report results of technologies after optimization
+
+        :param b_tec: technology model block
+        :return: dict results: holds results
+        """
+        super(GasTurbine, self).report_results(b_tec)
+
+        self.results['time_dependent']['modules_on'] = [b_tec.var_units_on[t].value for t in self.set_t]
+
+        return self.results

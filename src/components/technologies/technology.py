@@ -1,3 +1,5 @@
+import pandas as pd
+
 from ..component import ModelComponent
 from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered
 from .utilities import set_capex_model
@@ -153,6 +155,31 @@ class Technology(ModelComponent):
             b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
 
         return b_tec
+
+    def report_results(self, b_tec):
+        """
+        Function to report results of technologies after optimization
+
+        :param b_tec: technology model block
+        :return: dict results: holds results
+        """
+        self.results['time_independent']['size'] = [b_tec.var_size.value]
+        self.results['time_independent']['existing'] = [self.existing]
+        self.results['time_independent']['capex'] = [b_tec.var_capex.value]
+        self.results['time_independent']['opex_variable'] = [sum(b_tec.var_opex_variable[t].value for t in self.set_t)]
+        self.results['time_independent']['opex_fixed'] = [b_tec.var_opex_fixed.value]
+        self.results['time_independent']['emissions_pos'] = [sum(b_tec.var_tec_emissions_pos[t].value for t in self.set_t)]
+        self.results['time_independent']['emissions_neg'] = [sum(b_tec.var_tec_emissions_neg[t].value for t in self.set_t)]
+
+        for car in b_tec.set_input_carriers:
+            if b_tec.find_component('var_input'):
+                self.results['time_dependent']['input_' + car] = [b_tec.var_input[t, car].value for t in self.set_t]
+        for car in b_tec.set_output_carriers:
+            self.results['time_dependent']['output_' + car] = [b_tec.var_output[t, car].value for t in self.set_t]
+        self.results['time_dependent']['emissions_pos'] = [b_tec.var_tec_emissions_pos[t].value for t in self.set_t]
+        self.results['time_dependent']['emissions_neg'] = [b_tec.var_tec_emissions_neg[t].value for t in self.set_t]
+
+        return self.results
 
     def __define_size(self, b_tec):
         """
@@ -431,7 +458,6 @@ class Technology(ModelComponent):
         set_t_clustered = energyhub.model.set_t_clustered
         set_t_full = energyhub.model.set_t_full
         fitted_performance = self.fitted_performance
-        technology_model = self.technology_model
         existing = self.existing
         if existing:
             size_initial = self.size_initial

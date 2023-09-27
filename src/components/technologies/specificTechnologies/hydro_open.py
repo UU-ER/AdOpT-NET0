@@ -240,3 +240,18 @@ class HydroOpen(Technology):
         b_tec.const_max_spilling = Constraint(self.set_t, rule=init_maximal_spilling)
 
         return b_tec
+
+    def report_results(self, b_tec):
+        """
+        Function to report results of technologies after optimization
+
+        :param b_tec: technology model block
+        :return: dict results: holds results
+        """
+        super(HydroOpen, self).report_results(b_tec)
+
+        self.results['time_dependent']['spilling'] = [b_tec.var_spilling[t].value for t in self.set_t]
+        for car in b_tec.set_input_carriers:
+            self.results['time_dependent']['storagelevel_' + car] = [b_tec.var_storage_level[t, car].value for t in self.set_t]
+
+        return self.results

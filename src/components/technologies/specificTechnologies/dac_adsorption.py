@@ -297,3 +297,17 @@ class DacAdsorption(Technology):
             b_tec.const_ohmic_heating = Constraint(self.set_t, rule=init_ohmic_heating)
 
         return b_tec
+
+    def report_results(self, b_tec):
+        """
+        Function to report results of technologies after optimization
+
+        :param b_tec: technology model block
+        :return: dict results: holds results
+        """
+        super(DacAdsorption, self).report_results(b_tec)
+
+        self.results['time_dependent']['modules_on'] = [b_tec.var_modules_on[t].value for t in self.set_t]
+        self.results['time_dependent']['ohmic_heating'] = [b_tec.var_input_ohmic[t].value for t in self.set_t]
+
+        return self.results

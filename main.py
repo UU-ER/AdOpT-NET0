@@ -16,7 +16,7 @@ topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01
 topology.define_carriers(['electricity', 'gas', 'CO2', 'heat'])
 topology.define_nodes(['onshore', 'offshore'])
 # topology.define_new_technologies('onshore', ['Storage_Battery'])
-topology.define_new_technologies('onshore', ['Storage_Battery'])
+topology.define_new_technologies('onshore', ['Storage_Battery', 'WindTurbine_Offshore_6000'])
 
 # topology.define_existing_technologies('onshore', {'Storage_Battery': 100})
 
@@ -50,9 +50,9 @@ else:
 electricity_demand = np.ones(len(topology.timesteps)) * 1
 data.read_demand_data('onshore', 'electricity', electricity_demand)
 
-production_prof = np.ones(len(topology.timesteps)) * 11
+# production_prof = np.ones(len(topology.timesteps)) * 11
 
-data.read_production_profile('onshore', 'electricity', production_prof, 1)
+# data.read_production_profile('onshore', 'electricity', production_prof, 1)
 
 carbontax = np.ones(len(topology.timesteps)) * 11
 carbonsubsidy = np.ones(len(topology.timesteps)) * 11
@@ -82,11 +82,11 @@ configuration = ModelConfiguration()
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
-energyhub.quick_solve()
+results = energyhub.quick_solve()
 #
 # for tec in data.technology_data['offshore']:
 #     size = data.technology_data['offshore'][tec].model_block.report_results()
 #     print(size)
 #
 #
-# results.write_excel('./userData/', 'test')
+results.write_excel('./userData/', 'test')

@@ -1,6 +1,6 @@
 import time
 from pyomo.environ import *
-
+import pandas as pd
 
 class ModelComponent:
     """
@@ -19,6 +19,11 @@ class ModelComponent:
         self.decommission = data['decommission']
         self.economics = Economics(data['Economics'])
         self.big_m_transformation_required = 0
+
+        self.results = {}
+        self.results['time_dependent'] = pd.DataFrame()
+        self.results['time_independent'] = pd.DataFrame()
+
 
 
 class Economics:

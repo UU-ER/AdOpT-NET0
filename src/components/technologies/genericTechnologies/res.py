@@ -245,3 +245,23 @@ class Res(Technology):
                                                   rule=init_input_output)
 
         return b_tec
+
+    def report_results(self, b_tec):
+        """
+        Function to report results of technologies after optimization
+
+        :param b_tec: technology model block
+        :return: dict results: holds results
+        """
+        super(Res, self).report_results(b_tec)
+
+        rated_power = self.fitted_performance.rated_power
+        capfactor = self.fitted_performance.coefficients['capfactor']
+        if self.performance_data['curtailment'] == 2:
+            self.results['time_dependent']['units_on'] = [b_tec.var_size_on[t].value for t in self.set_t]
+        self.results['time_dependent']['max_out'] = [capfactor[t - 1] * b_tec.var_size.value * rated_power for t in self.set_t]
+        for car in b_tec.set_output_carriers:
+            self.results['time_dependent']['curtailment_' + car] = \
+                self.results['time_dependent']['max_out'] - self.results['time_dependent']['output_' + car]
+
+        return self.results

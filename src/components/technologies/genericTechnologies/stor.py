@@ -200,3 +200,17 @@ class Stor(Technology):
         b_tec.const_max_discharge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
 
         return b_tec
+
+    def report_results(self, b_tec):
+        """
+        Function to report results of technologies after optimization
+
+        :param b_tec: technology model block
+        :return: dict results: holds results
+        """
+        super(Stor, self).report_results(b_tec)
+
+        for car in b_tec.set_input_carriers:
+            self.results['time_dependent']['storagelevel_' + car] = [b_tec.var_storage_level[t, car].value for t in self.set_t]
+
+        return self.results

@@ -124,12 +124,15 @@ class OptimizationResults:
                                                'up',
                                                'gap'
                                                ])
-        self.technologies = pd.DataFrame(columns=['Node',
-                                                  'Technology',
-                                                  'Size',
+        self.technologies = pd.DataFrame(columns=['node',
+                                                  'technology',
+                                                  'size',
+                                                  'existing',
                                                   'capex',
+                                                  'opex_variable',
                                                   'opex_fixed',
-                                                  'opex_variable'
+                                                  'emissions_pos',
+                                                  'emissions_neg'
                                                   ])
         self.networks = pd.DataFrame(columns=['Network',
                                               'fromNode',
@@ -235,18 +238,20 @@ class OptimizationResults:
              from_technologies, from_networks, from_carriers,
              total_time, lb, ub, gap]
 
-        # Technology Sizes
+        # Technology Results
         for node_name in model.set_nodes:
             node_data = model.node_blocks[node_name]
+            self.detailed_results.nodes[node_name] = {}
+
             for tec_name in node_data.set_tecsAtNode:
-                tec_data = node_data.tech_blocks_active[tec_name]
-                s = tec_data.var_size.value
-                capex = tec_data.var_capex.value
-                opex_fix = tec_data.var_opex_fixed.value
-                opex_var = sum(tec_data.var_opex_variable[t].value
-                               for t in set_t)
-                self.technologies.loc[len(self.technologies.index)] = \
-                    [node_name, tec_name, s, capex, opex_fix, opex_var]
+                b_tec = node_data.tech_blocks_active[tec_name]
+                tec_results = energyhub.data.technology_data[node_name][tec_name].report_results(b_tec)
+                time_independent = tec_results['time_independent']
+                time_independent['technology'] = tec_name
+                time_independent['node'] = node_name
+
+                self.technologies = pd.concat([self.technologies, time_independent], ignore_index=True)
+                self.detailed_results.nodes[node_name][tec_name] = tec_results['time_dependent']
 
         # Network Sizes
         if not energyhub.configuration.energybalance.copperplate:
@@ -317,46 +322,7 @@ class OptimizationResults:
                     self.energybalance[node_name][car]['Demand'] = \
                         [node_data.para_demand[t, car].value for t in set_t]
 
-            # Detailed results for technologies
-            for node_name in model.set_nodes:
-                node_data = model.node_blocks[node_name]
-                self.detailed_results.nodes[node_name] = {}
-                for tec_name in node_data.set_tecsAtNode:
-                    tec_data = node_data.tech_blocks_active[tec_name]
-                    technology_model = energyhub.data.technology_data[node_name][tec_name].technology_model
 
-                    if technology_model == 'STOR':
-                        if energyhub.model_information.clustered_data:
-                            time_set = model.set_t_full
-                        else:
-                            time_set = model.set_t_full
-                        if tec_data.find_component('var_input'):
-                            input = tec_data.var_input
-                            output = tec_data.var_output
-
-                    else:
-                        time_set = set_t
-                        if tec_data.find_component('var_input'):
-                            input = tec_data.var_input
-                        output = tec_data.var_output
-
-                    df = pd.DataFrame()
-
-                    for car in tec_data.set_input_carriers:
-                        if tec_data.find_component('var_input'):
-                            df['input_' + car] = [input[t, car].value for t in time_set]
-
-                    for car in tec_data.set_output_carriers:
-                        df['output_' + car] = [output[t, car].value for t in time_set]
-
-                    if tec_data.find_component('var_storage_level'):
-                        for car in tec_data.set_input_carriers:
-                            df['storage_level_' + car] = [tec_data.var_storage_level[t, car].value for t in time_set]
-
-                    if tec_data.find_component('var_spilling'):
-                        df['spilling'] = [tec_data.var_spilling[t].value for t in time_set]
-
-                    self.detailed_results.nodes[node_name][tec_name] = df
 
             # Detailed results for networks
             if not energyhub.configuration.energybalance.copperplate:
