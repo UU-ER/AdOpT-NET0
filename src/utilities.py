@@ -39,3 +39,5 @@ class ModelInformation():
 
         self.tec_data_path = None
         self.netw_data_path = None
+
+        self.testing = 0

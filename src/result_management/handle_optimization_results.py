@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 from .utilities import create_save_folder
 import os
+import shutil
+
 
 class ResultsHandle:
     """
@@ -71,6 +73,9 @@ class ResultsHandle:
         if self.save_detail:
             self.save_path = create_save_folder(self.save_path, timestamp)
             results.write_detailed_results(self.save_path)
+
+        if energyhub.model_information.testing:
+            shutil.rmtree(self.save_path)
 
     def write_excel(self, file_name):
         """

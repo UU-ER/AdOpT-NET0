@@ -22,6 +22,7 @@ def test_technology_RES_PV():
     configuration = ModelConfiguration()
     data.technology_data['test_node1']['Photovoltaic'].performance_data['curtailment'] = 0
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -50,6 +51,7 @@ def test_technology_RES_WT():
     configuration = ModelConfiguration()
     data.technology_data['test_node1']['TestWindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -67,6 +69,7 @@ def test_technology_RES_WT():
     # Curtailment
     data.technology_data['test_node1']['TestWindTurbine_Onshore_1500'].performance_data['curtailment'] = 2
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -83,6 +86,7 @@ def test_technology_CONV1():
     configuration = ModelConfiguration()
     tecname = 'testCONV1_1'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -120,6 +124,7 @@ def test_technology_CONV1():
     configuration = ModelConfiguration()
     tecname = 'testCONV1_2'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -155,6 +160,7 @@ def test_technology_CONV1():
     data = load_object(r'./src/test/test_data/technology_CONV1_3.p')
     tecname = 'testCONV1_3'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -190,6 +196,7 @@ def test_technology_CONV1():
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -201,6 +208,7 @@ def test_technology_CONV1():
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -214,6 +222,7 @@ def test_technology_CONV2():
     configuration = ModelConfiguration()
     tecname = 'testCONV2_1'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -248,6 +257,7 @@ def test_technology_CONV2():
     data = load_object(r'./src/test/test_data/technology_CONV2_2.p')
     tecname = 'testCONV2_2'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -280,6 +290,7 @@ def test_technology_CONV2():
     data = load_object(r'./src/test/test_data/technology_CONV2_3.p')
     tecname = 'testCONV2_3'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -313,6 +324,7 @@ def test_technology_CONV2():
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
@@ -322,6 +334,7 @@ def test_technology_CONV2():
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -338,6 +351,7 @@ def test_technology_CONV3():
     configuration = ModelConfiguration()
     tecname = 'testCONV3_3'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -372,6 +386,7 @@ def test_technology_CONV3():
     data = load_object(r'./src/test/test_data/technology_CONV3_1.p')
     tecname = 'testCONV3_1'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -405,6 +420,7 @@ def test_technology_CONV3():
     data = load_object(r'./src/test/test_data/technology_CONV3_2.p')
     tecname = 'testCONV3_2'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -439,6 +455,7 @@ def test_technology_CONV3():
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -449,6 +466,7 @@ def test_technology_CONV3():
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -460,6 +478,7 @@ def test_technology_CONV4():
     configuration = ModelConfiguration()
     tecname = 'testCONV4_1'
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -482,6 +501,7 @@ def test_technology_CONV4():
     data = load_object(r'./src/test/test_data/technology_CONV4_2.p')
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
@@ -491,6 +511,7 @@ def test_technology_STOR():
     data = load_object(r'./src/test/test_data/technologySTOR.p')
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -511,6 +532,7 @@ def test_dac():
     configuration.optimization.typicaldays.N = 0
     # # Read data
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.quick_solve()
     cost1 = energyhub.model.var_total_cost.value
 
@@ -528,6 +550,7 @@ def test_dac():
 def test_existing_technologies():
     def run_EnergyHub(data, configuration):
         energyhub = EnergyHub(data, configuration)
+        energyhub.model_information.testing = 1
         energyhub.construct_model()
         energyhub.construct_balances()
         energyhub.solve()
@@ -551,6 +574,7 @@ def test_technology_OpenHydro():
     data = load_object(r'./src/test/test_data/technologyOpenHydro.p')
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -574,6 +598,7 @@ def test_technology_OpenHydro():
     data.read_technology_data()
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -596,6 +621,7 @@ def test_technology_OpenHydro():
 
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
@@ -604,6 +630,7 @@ def test_technology_OpenHydro():
     data = load_object(r'./src/test/test_data/technologyOpenHydro_max_discharge.p')
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
