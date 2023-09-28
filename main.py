@@ -89,4 +89,4 @@ results = energyhub.quick_solve()
 #     print(size)
 #
 #
-results.write_excel('./userData/', 'test')
+results.write_excel('test')
