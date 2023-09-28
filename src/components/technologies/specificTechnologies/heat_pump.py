@@ -165,11 +165,6 @@ class HeatPump(Technology):
         """
         super(HeatPump, self).construct_tech_model(b_tec, energyhub)
 
-        # Full or reduced resolution
-        self.input = b_tec.var_input
-        self.output = b_tec.var_output
-        self.set_t = energyhub.model.set_t_full
-
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         rated_power = self.fitted_performance.rated_power

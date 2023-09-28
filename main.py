@@ -12,7 +12,7 @@ data_save_path = Path('./user_data/data_handle_test')
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-03 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'CO2', 'heat'])
 topology.define_nodes(['onshore', 'offshore'])
 # topology.define_new_technologies('onshore', ['Storage_Battery'])
@@ -65,11 +65,11 @@ data.read_carbon_price_data(carbonsubsidy, 'subsidy')
 # data.read_demand_data('onshore', 'CO2', co2)
 
 # IMPORT
-# gas_import = np.ones(len(topology.timesteps)) * 100
-# data.read_import_limit_data('offshore', 'gas', gas_import)
-#
-# gas_price = np.ones(len(topology.timesteps)) * 1000
-# data.read_import_price_data('onshore', 'gas', gas_price)
+el_import = np.ones(len(topology.timesteps)) * 10000
+data.read_import_limit_data('onshore', 'electricity', el_import)
+
+el_price = np.ones(len(topology.timesteps)) * 1000000
+data.read_import_price_data('onshore', 'electricity', el_price)
 
 # READ TECHNOLOGY AND NETWORK DATA
 

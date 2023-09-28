@@ -17,6 +17,7 @@ class HydroOpen(Technology):
     def fit_technology_performance(self, node_data):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
+
         :param performance_data: contains X and y data of technology performance
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
         :param nr_seg: number of segments on piecewise defined function
@@ -64,8 +65,7 @@ class HydroOpen(Technology):
         Adds constraints to technology blocks for tec_type Hydro_Open, resembling a pumped hydro plant with
         additional natural inflows (defined in climate data)
 
-        The performance
-        functions are fitted in ``src.model_construction.technology_performance_fitting``.
+        
         Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
 
         **Parameter declarations:**
@@ -121,11 +121,6 @@ class HydroOpen(Technology):
 
         # Transformation required
         self.big_m_transformation_required = 1
-
-        # Full or reduced resolution
-        self.input = b_tec.var_input
-        self.output = b_tec.var_output
-        self.set_t = energyhub.model.set_t_full
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

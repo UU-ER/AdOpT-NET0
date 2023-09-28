@@ -19,6 +19,7 @@ class Stor(Technology):
     def fit_technology_performance(self, node_data):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
+
         :param node_data: contains data on demand, climate data, etc.
         :param performance_data: contains X and y data of technology performance
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
@@ -57,8 +58,7 @@ class Stor(Technology):
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
-        The performance
-        functions are fitted in ``src.model_construction.technology_performance_fitting``.
+        
         Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
 
         **Parameter declarations:**
@@ -112,10 +112,7 @@ class Stor(Technology):
         """
         super(Stor, self).construct_tech_model(b_tec, energyhub)
 
-        # Full or reduced resolution
-        self.input = b_tec.var_input
-        self.output = b_tec.var_output
-        self.set_t = energyhub.model.set_t_full
+        set_t_full = energyhub.model.set_t_full
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
@@ -130,7 +127,7 @@ class Stor(Technology):
         nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
 
         # Additional decision variables
-        b_tec.var_storage_level = Var(self.set_t, b_tec.set_input_carriers,
+        b_tec.var_storage_level = Var(set_t_full, b_tec.set_input_carriers,
                                       domain=NonNegativeReals,
                                       bounds=(b_tec.para_size_min, b_tec.para_size_max))
 
@@ -146,25 +143,44 @@ class Stor(Technology):
         def init_size_constraint(const, t, car):
             return b_tec.var_storage_level[t, car] <= b_tec.var_size
 
-        b_tec.const_size = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_size_constraint)
+        b_tec.const_size = Constraint(set_t_full, b_tec.set_input_carriers, rule=init_size_constraint)
 
         # Storage level calculation
-        def init_storage_level(const, t, car):
-            if t == 1:  # couple first and last time interval
-                return b_tec.var_storage_level[t, car] == \
-                       b_tec.var_storage_level[max(self.set_t), car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
-                       b_tec.var_storage_level[max(self.set_t), car] * ambient_loss_factor[
-                           max(self.set_t) - 1] ** nr_timesteps_averaged + \
-                       (eta_in * self.input[t, car] - 1 / eta_out * self.output[t, car]) * \
-                       sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
-            else:  # all other time intervalls
-                return b_tec.var_storage_level[t, car] == \
-                       b_tec.var_storage_level[t - 1, car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
-                       b_tec.var_storage_level[t, car] * ambient_loss_factor[t - 1] ** nr_timesteps_averaged + \
-                       (eta_in * self.input[t, car] - 1 / eta_out * self.output[t, car]) * \
-                       sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
+        if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
+            sequence = energyhub.data.k_means_specs.full_resolution['sequence']
+            def init_storage_level(const, t, car):
+                if t == 1:  # couple first and last time interval
+                    return b_tec.var_storage_level[t, car] == \
+                           b_tec.var_storage_level[max(set_t_full), car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                           b_tec.var_storage_level[max(set_t_full), car] * ambient_loss_factor[
+                               max(set_t_full) - 1] ** nr_timesteps_averaged + \
+                           (eta_in * self.input[sequence[t - 1], car] - 1 / eta_out * self.output[sequence[t - 1], car]) * \
+                           sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
+                else:  # all other time intervalls
+                    return b_tec.var_storage_level[t, car] == \
+                           b_tec.var_storage_level[t - 1, car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                           b_tec.var_storage_level[t, car] * ambient_loss_factor[t - 1] ** nr_timesteps_averaged + \
+                           (eta_in * self.input[sequence[t - 1], car] - 1 / eta_out * self.output[sequence[t - 1], car]) * \
+                           sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
 
-        b_tec.const_storage_level = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_storage_level)
+            b_tec.const_storage_level = Constraint(set_t_full, b_tec.set_input_carriers, rule=init_storage_level)
+        else:
+            def init_storage_level(const, t, car):
+                if t == 1:  # couple first and last time interval
+                    return b_tec.var_storage_level[t, car] == \
+                           b_tec.var_storage_level[max(set_t_full), car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                           b_tec.var_storage_level[max(set_t_full), car] * ambient_loss_factor[
+                               max(set_t_full) - 1] ** nr_timesteps_averaged + \
+                           (eta_in * self.input[t, car] - 1 / eta_out * self.output[
+                               t, car]) * \
+                           sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
+                else:  # all other time intervalls
+                    return b_tec.var_storage_level[t, car] == \
+                           b_tec.var_storage_level[t - 1, car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                           b_tec.var_storage_level[t, car] * ambient_loss_factor[t - 1] ** nr_timesteps_averaged + \
+                           (eta_in * self.input[t, car] - 1 / eta_out * self.output[t, car]) * \
+                           sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
+            b_tec.const_storage_level = Constraint(set_t_full, b_tec.set_input_carriers, rule=init_storage_level)
 
         # This makes sure that only either input or output is larger zero.
         if allow_only_one_direction == 1:
@@ -211,6 +227,6 @@ class Stor(Technology):
         super(Stor, self).report_results(b_tec)
 
         for car in b_tec.set_input_carriers:
-            self.results['time_dependent']['storagelevel_' + car] = [b_tec.var_storage_level[t, car].value for t in self.set_t]
+            self.results['time_dependent']['storagelevel_' + car] = [b_tec.var_storage_level[t, car].value for t in self.set_t_full]
 
         return self.results

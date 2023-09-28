@@ -20,11 +20,11 @@ class Conv4(Technology):
 
     def fit_technology_performance(self, node_data):
         """
-        Fits conversion technology type 1 and returns fitted parameters as a dict
+        Fits conversion technology type 4 and returns fitted parameters as a dict
+
         :param node_data: contains data on demand, climate data, etc.
         :param performance_data: contains X and y data of technology performance
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
-        :param nr_seg: number of segments on piecewise defined function
         """
 
         climate_data = node_data.data['climate_data']
@@ -41,8 +41,7 @@ class Conv4(Technology):
         Adds constraints to technology blocks for tec_type CONV4, i.e. :math:`output_{car} \leq S>)`
 
         This technology type resembles a technology with fixed output ratios and no inputs
-        Two different performance function fits are possible. The performance
-        functions are fitted in ``src.model_construction.technology_performance_fitting``.
+        Two different performance function fits are possible. 
 
         **Constraint declarations:**
 
@@ -74,10 +73,6 @@ class Conv4(Technology):
         :return: technology block
         """
         super(Conv4, self).construct_tech_model(b_tec, energyhub)
-
-        # Full or reduced resolution
-        self.output = b_tec.var_output
-        self.set_t = energyhub.model.set_t_full
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

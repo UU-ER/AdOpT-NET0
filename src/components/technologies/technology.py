@@ -45,31 +45,13 @@ class Technology(ModelComponent):
         self.input = []
         self.output = []
         self.set_t = []
+        self.set_t_full = []
 
 
     def construct_tech_model(self, b_tec, energyhub):
         r"""
-        Adds all technologies as model blocks to respective node.
-
-        This function initializes parameters and decision variables for all technologies at respective node.
-        For each technology, it adds one block indexed by the set of all technologies at the node :math:`S_n`.
         This function adds Sets, Parameters, Variables and Constraints that are common for all technologies.
-        For each technology type, individual parts are added. The following technology types of generic technologies
-        are currently available
-        (all contained in :func:`src.model_construction.technology_constraints.generic_technology_constraints`):
-
-        - Type RES: Renewable technology with cap_factor as input.
-        - Type CONV1: n inputs -> n output, fuel and output substitution.
-        - Type CONV2: n inputs -> n output, fuel substitution.
-        - Type CONV2: n inputs -> n output, no fuel and output substitution.
-        - Type STOR: Storage technology (1 input -> 1 output).
-
-        Additionally, the following specific technologies are available:
-
-        - Type DAC_adsorption: Direct Air Capture technology (adsorption).
-        - Type Heat_Pump: Three different types of heat pumps
-        - Type Gas_Turbine: Different types/sizes of gas turbines
-
+        For each technology type, individual parts are added.
         The following description is true for new technologies. For existing technologies a few adaptions are made
         (see below).
 
@@ -133,7 +115,7 @@ class Technology(ModelComponent):
         # MODELING TYPICAL DAYS
         if energyhub.model_information.clustered_data:
             if configuration.optimization.typicaldays.method == 2:
-                technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
+                technologies_modelled_with_full_res = ['RES', 'Hydro_Open']
                 if self.technology_model in technologies_modelled_with_full_res:
                     self.modelled_with_full_res = 1
                 else:
@@ -153,6 +135,12 @@ class Technology(ModelComponent):
 
         if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
             b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
+        else:
+            if not (self.technology_model == 'RES') and not (self.technology_model == 'CONV4'):
+                self.input = b_tec.var_input
+            self.output = b_tec.var_output
+            self.set_t = energyhub.model.set_t_full
+        self.set_t_full = energyhub.model.set_t_full
 
         return b_tec
 
@@ -167,18 +155,18 @@ class Technology(ModelComponent):
         self.results['time_independent']['size'] = [b_tec.var_size.value]
         self.results['time_independent']['existing'] = [self.existing]
         self.results['time_independent']['capex'] = [b_tec.var_capex.value]
-        self.results['time_independent']['opex_variable'] = [sum(b_tec.var_opex_variable[t].value for t in self.set_t)]
+        self.results['time_independent']['opex_variable'] = [sum(b_tec.var_opex_variable[t].value for t in self.set_t_full)]
         self.results['time_independent']['opex_fixed'] = [b_tec.var_opex_fixed.value]
-        self.results['time_independent']['emissions_pos'] = [sum(b_tec.var_tec_emissions_pos[t].value for t in self.set_t)]
-        self.results['time_independent']['emissions_neg'] = [sum(b_tec.var_tec_emissions_neg[t].value for t in self.set_t)]
+        self.results['time_independent']['emissions_pos'] = [sum(b_tec.var_tec_emissions_pos[t].value for t in self.set_t_full)]
+        self.results['time_independent']['emissions_neg'] = [sum(b_tec.var_tec_emissions_neg[t].value for t in self.set_t_full)]
 
         for car in b_tec.set_input_carriers:
             if b_tec.find_component('var_input'):
-                self.results['time_dependent']['input_' + car] = [b_tec.var_input[t, car].value for t in self.set_t]
+                self.results['time_dependent']['input_' + car] = [b_tec.var_input[t, car].value for t in self.set_t_full]
         for car in b_tec.set_output_carriers:
-            self.results['time_dependent']['output_' + car] = [b_tec.var_output[t, car].value for t in self.set_t]
-        self.results['time_dependent']['emissions_pos'] = [b_tec.var_tec_emissions_pos[t].value for t in self.set_t]
-        self.results['time_dependent']['emissions_neg'] = [b_tec.var_tec_emissions_neg[t].value for t in self.set_t]
+            self.results['time_dependent']['output_' + car] = [b_tec.var_output[t, car].value for t in self.set_t_full]
+        self.results['time_dependent']['emissions_pos'] = [b_tec.var_tec_emissions_pos[t].value for t in self.set_t_full]
+        self.results['time_dependent']['emissions_neg'] = [b_tec.var_tec_emissions_neg[t].value for t in self.set_t_full]
 
         return self.results
 
@@ -458,32 +446,34 @@ class Technology(ModelComponent):
         """
         set_t_clustered = energyhub.model.set_t_clustered
         set_t_full = energyhub.model.set_t_full
-        fitted_performance = self.fitted_performance
-        existing = self.existing
-        if existing:
+        self.set_t = set_t_clustered
+
+        if self.existing:
             size_initial = self.size_initial
             size_max = size_initial
         else:
             size_max = self.size_max
 
-        rated_power = fitted_performance.rated_power
+        rated_power = self.fitted_performance.rated_power
 
         sequence = energyhub.data.k_means_specs.full_resolution['sequence']
 
-        def init_input_bounds(bounds, t, car):
-            return tuple(fitted_performance.bounds['input'][car][t - 1, :] * size_max * rated_power)
+        if not (self.technology_model == 'RES') and not (self.technology_model == 'CONV4'):
+            def init_input_bounds(bounds, t, car):
+                return tuple(self.fitted_performance.bounds['input'][car][t - 1, :] * size_max * rated_power)
 
-        b_tec.var_input_aux = Var(set_t_clustered, b_tec.set_input_carriers, within=NonNegativeReals,
-                                  bounds=init_input_bounds)
+            b_tec.var_input_aux = Var(set_t_clustered, b_tec.set_input_carriers, within=NonNegativeReals,
+                                      bounds=init_input_bounds)
 
-        b_tec.const_link_full_resolution_input = link_full_resolution_to_clustered(b_tec.var_input_aux,
-                                                                                      b_tec.var_input,
-                                                                                      set_t_full,
-                                                                                      sequence,
-                                                                                      b_tec.set_input_carriers)
+            b_tec.const_link_full_resolution_input = link_full_resolution_to_clustered(b_tec.var_input_aux,
+                                                                                          b_tec.var_input,
+                                                                                          set_t_full,
+                                                                                          sequence,
+                                                                                          b_tec.set_input_carriers)
+            self.input = b_tec.var_input_aux
 
         def init_output_bounds(bounds, t, car):
-            return tuple(fitted_performance.bounds['output'][car][t - 1, :] * size_max * rated_power)
+            return tuple(self.fitted_performance.bounds['output'][car][t - 1, :] * size_max * rated_power)
 
         b_tec.var_output_aux = Var(set_t_clustered, b_tec.set_output_carriers, within=NonNegativeReals,
                                    bounds=init_output_bounds)
@@ -493,5 +483,7 @@ class Technology(ModelComponent):
                                                                                        set_t_full,
                                                                                        sequence,
                                                                                        b_tec.set_output_carriers)
+
+        self.output = b_tec.var_output_aux
 
         return b_tec

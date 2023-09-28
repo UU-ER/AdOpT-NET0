@@ -170,5 +170,5 @@ class ModelConfiguration:
         # self.performance.dynamics = 0
 
         self.reporting = SimpleNamespace()
-        self.reporting.save_detailed = 0
+        self.reporting.save_detailed = 1
         self.reporting.save_path = './userData/'

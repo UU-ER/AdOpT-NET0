@@ -175,8 +175,7 @@ class Res(Technology):
 
         **Parameter declarations:**
 
-        - Capacity Factor of technology for each time step. The capacity factor has been calculated in
-          ``src.model_construction.technology_performance_fitting``
+        - Capacity Factor of technology for each time step.
 
         **Constraint declarations:**
 
@@ -203,10 +202,6 @@ class Res(Technology):
             curtailment = performance_data['curtailment']
         else:
             curtailment = 0
-
-        # Full or reduced resolution
-        self.output = b_tec.var_output
-        self.set_t = energyhub.model.set_t_full
 
         # PARAMETERS
         # Set capacity factors

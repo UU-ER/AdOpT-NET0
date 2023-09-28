@@ -167,11 +167,6 @@ class GasTurbine(Technology):
         # Transformation required
         self.big_m_transformation_required = 1
 
-        # Full or reduced resolution
-        self.input = b_tec.var_input
-        self.output = b_tec.var_output
-        self.set_t = energyhub.model.set_t_full
-
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         coeff = self.fitted_performance.coefficients
