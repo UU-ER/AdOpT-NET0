@@ -2,6 +2,7 @@ from types import SimpleNamespace
 import pandas as pd
 from pathlib import Path
 import numpy as np
+from .utilities import create_save_folder
 
 class ResultsHandle:
     """
@@ -11,7 +12,8 @@ class ResultsHandle:
         self.pareto = 0
         self.monte_carlo = 0
         self.timestaging = 0
-        self.save_detail = configuration.optimization.save_detail
+        self.save_detail = configuration.reporting.save_detailed
+        self.save_path = Path(configuration.reporting.save_path)
 
         self.summary = pd.DataFrame(columns=[
             'Objective',
@@ -38,7 +40,7 @@ class ResultsHandle:
             'gap'
             ])
 
-        self.detailed_results = []
+        self.save_path = create_save_folder(self.save_path)
 
     def add_optimization_result(self, energyhub, timestamp):
         """
@@ -66,9 +68,10 @@ class ResultsHandle:
         summary['Time_stamp'] = timestamp
         self.summary = pd.concat([self.summary, summary])
 
-        self.detailed_results.append(optimization_result)
+        if self.save_detail:
+            OptimizationResults.write_detailed_results(self.save_path)
 
-    def write_excel(self, save_path, file_name):
+    def write_excel(self, file_name):
         """
         Writes results to excel
         :param str save_path: folder save path
@@ -76,28 +79,18 @@ class ResultsHandle:
         :return:
         """
 
-        save_path = Path(save_path)
+        save_path = Path(self.save_path)
         path = save_path / (file_name + '.xlsx')
 
-        if self.save_detail == 'minimal':
-            with pd.ExcelWriter(path) as writer:
-                self.summary.to_excel(writer, sheet_name='Summary')
-        else:
-            with pd.ExcelWriter(path) as writer:
-                self.summary.to_excel(writer, sheet_name='Summary')
-
-            i = 1
-            for result in self.detailed_results:
-                file_name_detail = file_name + '_detailed_' + str(i)
-                result.write_detailed_excel(save_path / (file_name_detail + '.xlsx'))
-                i += 1
+        with pd.ExcelWriter(path) as writer:
+            self.summary.to_excel(writer, sheet_name='Summary')
 
 
 class OptimizationResults:
     """
     Class to handle optimization results from a single run
     """
-    def __init__(self, energyhub, detail = 'full'):
+    def __init__(self, energyhub, detail):
         """
         Reads results to ResultHandle for viewing or export
 
@@ -141,17 +134,22 @@ class OptimizationResults:
                                               'capex',
                                               'opex_fixed',
                                               'opex_variable',
-                                              'total_flow'
+                                              'total_flow',
+                                              'total_emissions'
                                               ])
         self.energybalance = {}
-        self.detailed_results = SimpleNamespace(key1='nodes', key2='networks')
-        self.detailed_results.nodes = {}
-        self.detailed_results.networks = {}
+
+        self.detail = detail
+
+        if self.detail:
+            self.detailed_results = SimpleNamespace(key1='nodes', key2='networks')
+            self.detailed_results.nodes = {}
+            self.detailed_results.networks = {}
 
         if energyhub.solution.solver.termination_condition == 'optimal':
-            self.read_results(energyhub, detail)
+            self.read_results(energyhub)
 
-    def read_results(self, energyhub, detail):
+    def read_results(self, energyhub):
         model = energyhub.model
 
         # Solver status
@@ -241,45 +239,30 @@ class OptimizationResults:
         # Technology Results
         for node_name in model.set_nodes:
             node_data = model.node_blocks[node_name]
-            self.detailed_results.nodes[node_name] = {}
+            if self.detail:
+                self.detailed_results.nodes[node_name] = {}
 
             for tec_name in node_data.set_tecsAtNode:
                 b_tec = node_data.tech_blocks_active[tec_name]
                 tec_results = energyhub.data.technology_data[node_name][tec_name].report_results(b_tec)
                 time_independent = tec_results['time_independent']
-                time_independent['technology'] = tec_name
                 time_independent['node'] = node_name
 
                 self.technologies = pd.concat([self.technologies, time_independent], ignore_index=True)
-                self.detailed_results.nodes[node_name][tec_name] = tec_results['time_dependent']
+                if self.detail:
+                    self.detailed_results.nodes[node_name][tec_name] = tec_results['time_dependent']
 
-        # Network Sizes
+        # Network Results
         if not energyhub.configuration.energybalance.copperplate:
             for netw_name in model.set_networks:
-                netw_data = model.network_block[netw_name]
-                for arc in netw_data.set_arcs:
-                    arc_data = netw_data.arc_block[arc]
-                    fromNode = arc[0]
-                    toNode = arc[1]
-                    s = arc_data.var_size.value
-                    capex = arc_data.var_capex.value
-                    if energyhub.model_information.clustered_data:
-                        sequence = energyhub.data.k_means_specs.full_resolution['sequence']
-                        opex_var = sum(arc_data.var_opex_variable[sequence[t - 1]].value
-                                       for t in set_t)
-                        total_flow = sum(arc_data.var_flow[sequence[t - 1]].value
-                                         for t in set_t)
-                    else:
-                        opex_var = sum(arc_data.var_opex_variable[t].value
-                                       for t in set_t)
-                        total_flow = sum(arc_data.var_flow[t].value
-                                         for t in set_t)
-                    opex_fix = netw_data.para_opex_fixed.value * arc_data.var_capex_aux.value
+                b_netw = model.network_block[netw_name]
+                netw_results = energyhub.data.network_data[netw_name].report_results(b_netw)
 
-                    self.networks.loc[len(self.networks.index)] = \
-                        [netw_name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow]
+                self.networks = pd.concat([self.networks, netw_results['time_independent']], ignore_index=True)
+                if self.detail:
+                    self.detailed_results.networks[netw_name] = netw_results['time_dependent']
 
-        if detail == 'full':
+        if self.detail:
             # Energy Balance @ each node
             for node_name in model.set_nodes:
                 self.energybalance[node_name] = {}
@@ -322,41 +305,41 @@ class OptimizationResults:
                     self.energybalance[node_name][car]['Demand'] = \
                         [node_data.para_demand[t, car].value for t in set_t]
 
+            #
+            #
+            # # Detailed results for networks
+            # if not energyhub.configuration.energybalance.copperplate:
+            #
+            #     for netw_name in model.set_networks:
+            #         netw_data = model.network_block[netw_name]
+            #         self.detailed_results.networks[netw_name] = {}
+            #         for arc in netw_data.set_arcs:
+            #             arc_data = netw_data.arc_block[arc]
+            #             df = pd.DataFrame()
+            #
+            #             if energyhub.model_information.clustered_data:
+            #                 sequence = energyhub.data.k_means_specs.full_resolution['sequence']
+            #                 df['flow'] = [arc_data.var_flow[sequence[t - 1]].value for t in set_t]
+            #                 df['losses'] = [arc_data.var_losses[sequence[t - 1]].value for t in set_t]
+            #                 if netw_data.find_component('var_consumption_send'):
+            #                     for car in netw_data.set_consumed_carriers:
+            #                         df['consumption_send' + car] = \
+            #                             [arc_data.var_consumption_send[sequence[t - 1], car].value for t in set_t]
+            #                         df['consumption_receive' + car] = \
+            #                             [arc_data.var_consumption_receive[sequence[t - 1], car].value for t in set_t]
+            #             else:
+            #                 df['flow'] = [arc_data.var_flow[t].value for t in set_t]
+            #                 df['losses'] = [arc_data.var_losses[t].value for t in set_t]
+            #                 if netw_data.find_component('var_consumption_send'):
+            #                     for car in netw_data.set_consumed_carriers:
+            #                         df['consumption_send' + car] = \
+            #                             [arc_data.var_consumption_send[t, car].value for t in set_t]
+            #                         df['consumption_receive' + car] = \
+            #                             [arc_data.var_consumption_receive[t, car].value for t in set_t]
+            #
+            #             self.detailed_results.networks[netw_name]['_'.join(arc)] = df
 
-
-            # Detailed results for networks
-            if not energyhub.configuration.energybalance.copperplate:
-
-                for netw_name in model.set_networks:
-                    netw_data = model.network_block[netw_name]
-                    self.detailed_results.networks[netw_name] = {}
-                    for arc in netw_data.set_arcs:
-                        arc_data = netw_data.arc_block[arc]
-                        df = pd.DataFrame()
-
-                        if energyhub.model_information.clustered_data:
-                            sequence = energyhub.data.k_means_specs.full_resolution['sequence']
-                            df['flow'] = [arc_data.var_flow[sequence[t - 1]].value for t in set_t]
-                            df['losses'] = [arc_data.var_losses[sequence[t - 1]].value for t in set_t]
-                            if netw_data.find_component('var_consumption_send'):
-                                for car in netw_data.set_consumed_carriers:
-                                    df['consumption_send' + car] = \
-                                        [arc_data.var_consumption_send[sequence[t - 1], car].value for t in set_t]
-                                    df['consumption_receive' + car] = \
-                                        [arc_data.var_consumption_receive[sequence[t - 1], car].value for t in set_t]
-                        else:
-                            df['flow'] = [arc_data.var_flow[t].value for t in set_t]
-                            df['losses'] = [arc_data.var_losses[t].value for t in set_t]
-                            if netw_data.find_component('var_consumption_send'):
-                                for car in netw_data.set_consumed_carriers:
-                                    df['consumption_send' + car] = \
-                                        [arc_data.var_consumption_send[t, car].value for t in set_t]
-                                    df['consumption_receive' + car] = \
-                                        [arc_data.var_consumption_receive[t, car].value for t in set_t]
-
-                        self.detailed_results.networks[netw_name]['_'.join(arc)] = df
-
-    def write_detailed_excel(self, save_path):
+    def write_detailed_results(self, save_path):
         """
         Writes results to excel table
 

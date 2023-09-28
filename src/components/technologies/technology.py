@@ -163,6 +163,7 @@ class Technology(ModelComponent):
         :param b_tec: technology model block
         :return: dict results: holds results
         """
+        self.results['time_independent']['technology'] = [self.name]
         self.results['time_independent']['size'] = [b_tec.var_size.value]
         self.results['time_independent']['existing'] = [self.existing]
         self.results['time_independent']['capex'] = [b_tec.var_capex.value]

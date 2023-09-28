@@ -225,9 +225,6 @@ class Network(ModelComponent):
         self.set_nodes = energyhub.model.set_nodes
         self.set_t = energyhub.model.set_t_full
 
-        set_t = energyhub.model.set_t_full
-
-
         b_netw = self.__define_possible_arcs(b_netw, energyhub)
 
         if self.performance_data['bidirectional'] == 1:
@@ -285,6 +282,81 @@ class Network(ModelComponent):
             b_netw = self.__define_energyconsumption_total(b_netw)
 
         return b_netw
+
+    def report_results(self, b_netw):
+        """
+        Function to report results of networks after optimization
+
+        :param b_netw: network model block
+        :return: dict results: holds results
+        """
+        self.results['time_independent'] = pd.DataFrame(columns=['Network',
+                                              'fromNode',
+                                              'toNode',
+                                              'Size',
+                                              'capex',
+                                              'opex_fixed',
+                                              'opex_variable',
+                                              'total_flow',
+                                              'total_emissions'
+                                              ])
+
+        for arc_name in b_netw.set_arcs:
+            arc = b_netw.arc_block[arc_name]
+            fromNode = arc_name[0]
+            toNode = arc_name[1]
+            s = arc.var_size.value
+            capex = arc.var_capex.value
+            # if energyhub.model_information.clustered_data:
+            #     sequence = energyhub.k_means_specs.full_resolution['sequence']
+            #     opex_var = sum(arc.var_opex_variable[sequence[t - 1]].value
+            #                    for t in self.set_t)
+            #     total_flow = sum(arc.var_flow[sequence[t - 1]].value
+            #                      for t in self.set_t)
+            #     total_emissions = ...
+            # else:
+            opex_var = sum(arc.var_opex_variable[t].value
+                           for t in self.set_t)
+            total_flow = sum(arc.var_flow[t].value
+                             for t in self.set_t)
+            opex_fix = b_netw.para_opex_fixed.value * arc.var_capex_aux.value
+            total_emissions = sum(arc.var_flow[t].value for t in self.set_t) * b_netw.para_emissionfactor + \
+                   sum(arc.var_losses[t].value for t in self.set_t) * b_netw.para_loss2emissions
+            self.results['time_independent'].loc[len(self.results['time_independent'].index)] = \
+                [self.name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow, total_emissions]
+
+            index = pd.MultiIndex.from_tuples(zip(['flow'], [fromNode], [toNode]), names=['variable', 'fromNode', 'toNode'])
+            data = pd.DataFrame([arc.var_flow[t].value for t in self.set_t], columns=index)
+            self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+
+            index = pd.MultiIndex.from_tuples(zip(['losses'], [fromNode], [toNode]), names=['variable', 'fromNode', 'toNode'])
+            data = pd.DataFrame([arc.var_losses[t].value for t in self.set_t], columns=index)
+            self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+
+            if arc.find_component('var_consumption_send'):
+                for car in b_netw.set_consumed_carriers:
+                    # if energyhub.model_information.clustered_data:
+                    #     index = pd.MultiIndex.from_tuples(zip(['consumption_send' + car], [fromNode], [toNode]),
+                    #                                       names=['variable', 'fromNode', 'toNode'])
+                    #     data = pd.DataFrame([arc.var_consumption_send[sequence[t-1], car].value for t in self.set_t], columns=index)
+                    #     self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+                    #
+                    #     index = pd.MultiIndex.from_tuples(zip(['consumption_receive' + car], [fromNode], [toNode]),
+                    #                                       names=['variable', 'fromNode', 'toNode'])
+                    #     data = pd.DataFrame([arc.var_consumption_receive[sequence[t-1], car].value for t in self.set_t], columns=index)
+                    #     self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+                    # else:
+                    index = pd.MultiIndex.from_tuples(zip(['consumption_send' + car], [fromNode], [toNode]),
+                                                      names=['variable', 'fromNode', 'toNode'])
+                    data = pd.DataFrame([arc.var_consumption_send[t, car].value for t in self.set_t], columns=index)
+                    self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+
+                    index = pd.MultiIndex.from_tuples(zip(['consumption_receive' + car], [fromNode], [toNode]),
+                                                      names=['variable', 'fromNode', 'toNode'])
+                    data = pd.DataFrame([arc.var_consumption_receive[t, car].value for t in self.set_t], columns=index)
+                    self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+
+        return self.results
 
     def __define_possible_arcs(self, b_netw, energyhub):
         """

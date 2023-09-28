@@ -6,6 +6,7 @@ import copy
 import warnings
 import datetime
 from pathlib import Path
+import os
 
 from .model_construction import *
 from .data_management import *
@@ -83,6 +84,21 @@ class EnergyHub:
 
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
+
+        self.__perform_preprocessing_checks()
+
+
+    def __perform_preprocessing_checks(self):
+        """
+        Checks some things, before constructing or solving the model
+        :return:
+        """
+        # Check if save-path exists
+        save_path = Path(self.configuration.reporting.save_path)
+        if not os.path.exists(save_path) or not \
+                os.path.isdir(save_path):
+            raise FileNotFoundError(f"The folder '{save_path}' does not exist. Create the folder or change the folder "
+                                    f"name in the configuration")
 
     def quick_solve(self):
         """

@@ -135,13 +135,10 @@ class ModelConfiguration:
         self.solveroptions.intfeastol = 1e-5
         self.solveroptions.feastol = 1e-5
         self.solveroptions.numericfocus = 0
-
-
         self.solveroptions.cuts = -1
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
-        self.optimization.save_detail = 'full'
         self.optimization.save_log_files = 0
         self.optimization.emission_limit = 0
         self.optimization.monte_carlo = SimpleNamespace()
@@ -172,3 +169,6 @@ class ModelConfiguration:
         self.performance = SimpleNamespace()
         # self.performance.dynamics = 0
 
+        self.reporting = SimpleNamespace()
+        self.reporting.save_detailed = 1
+        self.reporting.save_path = './userData/'
