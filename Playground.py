@@ -55,9 +55,9 @@ if execute == 1:
     tecname = 'testCONV1_2'
 
     # change test technology dynamic parameters
-    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
     # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = max(data.node_data['test_node1'].data['demand']['heat']) / 1
-    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 0
     data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
     data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
     # data.technology_data['test_node1'][tecname].size_max = 1.5
