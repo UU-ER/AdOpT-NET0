@@ -530,7 +530,6 @@ def create_data_time_algorithms():
     # CLIMATE DATA
     climate_data_path = './src/test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
-    data.read_climate_data_from_file('test_node2', climate_data_path)
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 10
