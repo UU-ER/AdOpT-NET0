@@ -51,30 +51,33 @@ if execute == 1:
 execute = 1
 
 if execute == 1:
-    data = dm.load_object(r'./test/test_data/technology_dynamics_CONV1_2.p')
-    tecname = 'testCONV1_2'
+    data = dm.load_object(r'./test/test_data/technology_dynamics_CONV1_4.p')
+    tecname = 'testCONV1_4'
 
     # change test technology dynamic parameters
-    data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
-    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = max(data.node_data['test_node1'].data['demand']['heat']) / 1
-    data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 0
-    data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
-    data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = max(data.node_data['test_node1'].data['demand']['heat']) *.75
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 0
+    data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.5
+    data.technology_data['test_node1'][tecname].performance_data['SU_time'] = 2
+    data.technology_data['test_node1'][tecname].performance_data['SD_time'] = 1
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
     # data.technology_data['test_node1'][tecname].size_max = 1.5
+    main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
 
-    allowed_fitting_error = 0.1
+
+
     configuration = ModelConfiguration()
     configuration.performance.dynamics = 1
 
-    energyhub = EnergyHub(data, configuration)
-
     # Solve model
+    energyhub = EnergyHub(data, configuration)
     energyhub.quick_solve()
+
     print('finish')
 
     for i in range(1, 10):
-        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_2'].var_x[i].value)
-
+        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_4'].var_x[i].value)
 
 execute = 0
 

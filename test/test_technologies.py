@@ -609,7 +609,7 @@ def test_fast_dynamics():
     """
     Test SU/SD load, maximum number of startups, ramping rate and standby power
     heat demand @ node 1
-    Performance type 2, gas,H2 -> heat, electricity
+    Performance type 2 and 3, gas,H2 -> heat, electricity
     """
     # turn dynamics on
     configuration = ModelConfiguration()
@@ -805,3 +805,88 @@ def test_fast_dynamics():
                     energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, main_car].value,
                     3)
                 assert main_in_5 <= 0.8 * tec_size
+
+def test_slow_dynamics():
+    """
+    Test SU/SD time for slow dynamics (perf type 4)
+    heat demand @ node 1
+    For conv1 conv2 and conv3, gas,H2 -> heat, electricity
+    """
+    # turn dynamics on
+    configuration = ModelConfiguration()
+    configuration.performance.dynamics = 1
+
+    CONV_Type = [1, 2, 3]
+    for j in CONV_Type:
+
+        data_load_path = './test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(4) + '.p'
+        data = dm.load_object(data_load_path)
+        tecname = 'testCONV' + str(j) + '_' + str(4)
+
+        #change SU time and SD time
+        SU_time = 2
+        SD_time = 1
+        min_part_load = 0.5
+        data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = min_part_load
+        data.technology_data['test_node1'][tecname].performance_data['SU_time'] = SU_time
+        data.technology_data['test_node1'][tecname].performance_data['SD_time'] = SD_time
+
+        # Calculate SU and SD trajectories
+        SU_trajectory = []
+        for i in range(1, SU_time + 1):
+            SU_trajectory.append((min_part_load / (SU_time + 1)) * i)
+
+        SD_trajectory = []
+        for i in range(1, SD_time + 1):
+            SD_trajectory.append((min_part_load / (SD_time + 1)) * i)
+        SD_trajectory = sorted(SD_trajectory, reverse=True)
+
+
+        if j != 3:
+
+            # Solve model
+            energyhub = EnergyHub(data, configuration)
+            energyhub.quick_solve()
+
+            # collect results
+            tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value,
+                             3)
+
+            gas_in_3 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[3, 'gas'].value, 3)
+            gas_in_5 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
+            gas_in_6 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value, 3)
+            hydrogen_in_3 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                    3, 'hydrogen'].value, 3)
+            hydrogen_in_5 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                    5, 'hydrogen'].value, 3)
+            hydrogen_in_6 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                    6, 'hydrogen'].value, 3)
+
+            assert (gas_in_3 + hydrogen_in_3) == round(SD_trajectory[0] * tec_size, 3)
+            assert (gas_in_5 + hydrogen_in_5) == round(SU_trajectory[0] * tec_size, 3)
+            assert (gas_in_6 + hydrogen_in_6) == round(SU_trajectory[1] * tec_size, 3)
+
+        else:
+            main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
+
+
+            # Solve model
+            energyhub = EnergyHub(data, configuration)
+            energyhub.quick_solve()
+
+            main_in_3 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[3, main_car].value, 3)
+            main_in_5 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, main_car].value, 3)
+            main_in_6 = round(
+                energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, main_car].value, 3)
+
+            assert main_in_3 == round(SD_trajectory[0] * tec_size)
+            assert main_in_5 == round(SU_trajectory[0] * tec_size)
+            assert main_in_6 == round(SU_trajectory[1] * tec_size)
