@@ -64,7 +64,6 @@ def constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub):
     technology_model = tec_data.technology_model
 
     # Collect variables
-    var_x = b_tec.var_x
     var_y = b_tec.var_y
     var_z = b_tec.var_z
     input = b_tec.var_input
@@ -76,45 +75,21 @@ def constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub):
     rated_power = tec_data.fitted_performance.rated_power
 
     # SU load limit
-    s_indicators = range(0, 3)
-
+    s_indicators = range(0, 2)
     def init_SU_load(dis, t, ind):
         if ind == 0:  # no startup (y=0)
             dis.const_y_off = Constraint(expr=var_y[t] == 0)
-            dis.const_x_off = Constraint(expr=var_x[t] == 0)
 
-            def init_off_load_limit(cons, t):
-                if technology_model == 'CONV1' or technology_model == 'CONV2':
-                    return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
-                           <= b_tec.var_size * rated_power
-                elif technology_model == 'CONV3':
-                    return input[t, main_car] <= b_tec.var_size * rated_power
-            dis.const_off_load_limit = Constraint(set_t, rule=init_off_load_limit)
-
-        elif ind == 2:  # tech in startup
+        else:  # tech in startup
             dis.const_y_on = Constraint(expr=var_y[t] == 1)
-            dis.const_x_on = Constraint(expr=var_x[t] == 1)
 
-            def init_SU_load_limit(cons, t):
+            def init_SU_load_limit(cons):
                 if technology_model == 'CONV1' or technology_model == 'CONV2':
                     return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
                            <= b_tec.var_size * SU_load * rated_power
                 elif technology_model == 'CONV3':
                     return input[t, main_car] <= b_tec.var_size * SU_load * rated_power
-            dis.const_SU_load_limit = Constraint(set_t, rule=init_SU_load_limit)
-
-        else:  # tech on
-            dis.const_y_off = Constraint(expr=var_y[t] == 0)
-            dis.const_x_on = Constraint(expr=var_x[t] == 1)
-
-            def init_on_load_limit(cons, t):
-                if technology_model == 'CONV1' or technology_model == 'CONV2':
-                    return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
-                           <= b_tec.var_size * rated_power
-                elif technology_model == 'CONV3':
-                    return input[t, main_car] <= b_tec.var_size * rated_power
-
-            dis.const_on_load_limit = Constraint(set_t, rule=init_on_load_limit)
+            dis.const_SU_load_limit = Constraint(rule=init_SU_load_limit)
 
     b_tec.dis_SU_load = Disjunct(set_t, s_indicators, rule=init_SU_load)
 
@@ -122,97 +97,29 @@ def constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub):
         return [b_tec.dis_SU_load[t, i] for i in s_indicators]
     b_tec.disjunction_SU_load = Disjunction(set_t, rule=bind_disjunctions_SU_load)
 
-    # #SD load limit
-    # s_indicators = range(0, 2)
-    # def init_SD_load(dis, t, ind):
-    #     if ind == 0:  # no shutdown (z=0)
-    #         dis.const_z_off = Constraint(expr=var_z[t] == 0)
-    #
-    #     else:  # tech in shutdown
-    #         dis.const_z_on = Constraint(expr=var_z[t] == 1)
-    #
-    #         def init_SD_load_limit(cons, t):
-    #             if t == 1:
-    #                 return Constraint.Skip
-    #             else:
-    #                 if technology_model == 'CONV1' or technology_model == 'CONV2':
-    #                     return sum(input[t - 1, car_input] for car_input in b_tec.set_input_carriers)\
-    #                            <= b_tec.var_size * SD_load * rated_power
-    #                 elif technology_model == 'CONV3':
-    #                     return input[t - 1, main_car] <= b_tec.var_size * SD_load * rated_power
-    #         dis.const_SD_load_limit = Constraint(set_t, rule=init_SD_load_limit)
-    # b_tec.dis_SD_load = Disjunct(set_t, s_indicators, rule=init_SD_load)
-    #
-    # def bind_disjunctions_SD_load(dis, t):
-    #     return [b_tec.dis_SD_load[t, i] for i in s_indicators]
-    # b_tec.disjunction_SD_load = Disjunction(set_t, rule=bind_disjunctions_SD_load)
+    #SD load limit
+    s_indicators = range(0, 2)
+    def init_SD_load(dis, t, ind):
+        if ind == 0:  # no shutdown (z=0)
+            dis.const_z_off = Constraint(expr=var_z[t] == 0)
+
+        else:  # tech in shutdown
+            dis.const_z_on = Constraint(expr=var_z[t] == 1)
+
+            def init_SD_load_limit(cons):
+                if t == 1:
+                    return Constraint.Skip
+                else:
+                    if technology_model == 'CONV1' or technology_model == 'CONV2':
+                        return sum(input[t - 1, car_input] for car_input in b_tec.set_input_carriers)\
+                               <= b_tec.var_size * SD_load * rated_power
+                    elif technology_model == 'CONV3':
+                        return input[t - 1, main_car] <= b_tec.var_size * SD_load * rated_power
+            dis.const_SD_load_limit = Constraint(rule=init_SD_load_limit)
+    b_tec.dis_SD_load = Disjunct(set_t, s_indicators, rule=init_SD_load)
+
+    def bind_disjunctions_SD_load(dis, t):
+        return [b_tec.dis_SD_load[t, i] for i in s_indicators]
+    b_tec.disjunction_SD_load = Disjunction(set_t, rule=bind_disjunctions_SD_load)
 
     return b_tec
-
-
-# def constraints_fast_SUSD_dynamics(b_tec, tec_data, energyhub):
-#     """Add description here"""
-#     model = energyhub.model
-#     set_t = model.set_t_full
-#     technology_model = tec_data.technology_model
-#
-#     # Collect variables
-#     var_y = b_tec.var_y
-#     var_z = b_tec.var_z
-#     input = b_tec.var_input
-#
-#     # Collect parameters
-#     SU_load = tec_data.performance_data['SU_load']
-#     SD_load = tec_data.performance_data['SD_load']
-#     main_car = tec_data.performance_data['main_input_carrier']
-#     rated_power = tec_data.fitted_performance.rated_power
-#
-#     # SU load limit
-#     s_indicators = range(0, 2)
-#     def init_SU_load(dis, t, ind):
-#         if ind == 0:  # no startup (y=0)
-#             dis.const_y_off = Constraint(expr=var_y[t] == 0)
-#
-#         else:  # tech in startup
-#             dis.const_y_on = Constraint(expr=var_y[t] == 1)
-#
-#             def init_SU_load_limit(cons, t):
-#                 if technology_model == 'CONV1' or technology_model == 'CONV2':
-#                     return sum(input[t, car_input] for car_input in b_tec.set_input_carriers) \
-#                            <= b_tec.var_size * SU_load * rated_power
-#                 elif technology_model == 'CONV3':
-#                     return input[t, main_car] <= b_tec.var_size * SU_load * rated_power
-#             dis.const_SU_load_limit = Constraint(set_t, rule=init_SU_load_limit)
-#
-#     b_tec.dis_SU_load = Disjunct(set_t, s_indicators, rule=init_SU_load)
-#
-#     def bind_disjunctions_SU_load(dis, t):
-#         return [b_tec.dis_SU_load[t, i] for i in s_indicators]
-#     b_tec.disjunction_SU_load = Disjunction(set_t, rule=bind_disjunctions_SU_load)
-#
-#     #SD load limit
-#     s_indicators = range(0, 2)
-#     def init_SD_load(dis, t, ind):
-#         if ind == 0:  # no shutdown (z=0)
-#             dis.const_z_off = Constraint(expr=var_z[t] == 0)
-#
-#         else:  # tech in shutdown
-#             dis.const_z_on = Constraint(expr=var_z[t] == 1)
-#
-#             def init_SD_load_limit(cons, t):
-#                 if t == 1:
-#                     return Constraint.Skip
-#                 else:
-#                     if technology_model == 'CONV1' or technology_model == 'CONV2':
-#                         return sum(input[t - 1, car_input] for car_input in b_tec.set_input_carriers)\
-#                                <= b_tec.var_size * SD_load * rated_power
-#                     elif technology_model == 'CONV3':
-#                         return input[t - 1, main_car] <= b_tec.var_size * SD_load * rated_power
-#             dis.const_SD_load_limit = Constraint(set_t, rule=init_SD_load_limit)
-#     b_tec.dis_SD_load = Disjunct(set_t, s_indicators, rule=init_SD_load)
-#
-#     def bind_disjunctions_SD_load(dis, t):
-#         return [b_tec.dis_SD_load[t, i] for i in s_indicators]
-#     b_tec.disjunction_SD_load = Disjunction(set_t, rule=bind_disjunctions_SD_load)
-#
-#     return b_tec
