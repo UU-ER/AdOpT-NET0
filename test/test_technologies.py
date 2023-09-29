@@ -611,161 +611,717 @@ def test_fast_dynamics():
     heat demand @ node 1
     Performance type 2, gas,H2 -> heat, electricity
     """
-    # Test for CONV1
-    data = dm.load_object(r'./test/test_data/technology_dynamics_CONV1_2.p')
-    tecname = 'testCONV1_2'
-
     # turn dynamics on
     configuration = ModelConfiguration()
     configuration.performance.dynamics = 1
 
-    # Test technology dynamic parameters: standby power and max startups
-    data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
-    data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
-    data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    perf_function_type = [2, 3]
+    CONV_Type = [1, 2, 3]
+    for j in CONV_Type:
+        for i in perf_function_type:
+            data_load_path = './test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(i) + '.p'
+            data = dm.load_object(data_load_path)
+            tecname = 'testCONV' + str(j) + '_' + str(i)
 
-    # Solve model
-    energyhub1 = EnergyHub(data, configuration)
-    energyhub1.quick_solve()
+            if j != 3:
+                # Test technology dynamic parameters: standby power and max startups
+                data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+                data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+                data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
 
-    assert energyhub1.solution.solver.termination_condition == 'optimal'
-    tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
-    gas_in_6 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,3)
-    gas_in_7 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,3)
-    SU_number = sum(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
+                # Solve model
+                energyhub1 = EnergyHub(data, configuration)
+                energyhub1.quick_solve()
+
+                assert energyhub1.solution.solver.termination_condition == 'optimal'
+                tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value,
+                                 3)
+                gas_in_6 = round(
+                    energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value, 3)
+                gas_in_7 = round(
+                    energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
+                SU_number = sum(
+                    energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
                     range(1, len(energyhub1.data.topology.timesteps) + 1))
 
-    assert gas_in_6 <= 0.1 * tec_size
-    assert gas_in_7 <= 0.1 * tec_size
-    assert SU_number <= 1
+                assert gas_in_6 <= 0.1 * tec_size
+                assert gas_in_7 <= 0.1 * tec_size
+                assert SU_number <= 1
 
-    # Test technology dynamic parameters: ramping rate
-    RR = max(data.node_data['test_node1'].data['demand']['heat']) / 2
-    data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
+                # Test technology dynamic parameters: ramping rate
+                RR = max(data.node_data['test_node1'].data['demand']['heat']) / 2
+                data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
 
-    # Solve model
-    energyhub2 = EnergyHub(data, configuration)
-    energyhub2.quick_solve()
+                # Solve model
+                energyhub2 = EnergyHub(data, configuration)
+                energyhub2.quick_solve()
 
-    assert energyhub2.solution.solver.termination_condition == 'optimal'
+                assert energyhub2.solution.solver.termination_condition == 'optimal'
 
-    gas_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value, 3)
-    gas_in_2 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(
-        energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
-        3)
-    assert abs((gas_in_1 + hydrogen_in_1) - (gas_in_2 + hydrogen_in_2)) <= RR
+                gas_in_1 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+                hydrogen_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                                          1, 'hydrogen'].value, 3)
+                gas_in_2 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+                hydrogen_in_2 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                        2, 'hydrogen'].value,
+                    3)
+                assert round(abs((gas_in_1 + hydrogen_in_1) - (gas_in_2 + hydrogen_in_2)), 3) <= RR
 
-    gas_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
-    hydrogen_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
-    gas_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value, 3)
-    hydrogen_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'hydrogen'].value, 3)
-    assert abs((gas_in_5 + hydrogen_in_5) - (gas_in_6 + hydrogen_in_6)) <= RR
+                gas_in_5 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
+                hydrogen_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                                          5, 'hydrogen'].value, 3)
+                gas_in_6 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value, 3)
+                hydrogen_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                                          6, 'hydrogen'].value, 3)
+                assert round(abs((gas_in_5 + hydrogen_in_5) - (gas_in_6 + hydrogen_in_6)), 3) <= RR
 
-    gas_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
-    hydrogen_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
-    gas_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'gas'].value, 3)
-    hydrogen_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'hydrogen'].value, 3)
-    assert abs((gas_in_7 + hydrogen_in_7) - (gas_in_8 + hydrogen_in_8)) <= RR
+                gas_in_7 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
+                hydrogen_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                                          7, 'hydrogen'].value, 3)
+                gas_in_8 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'gas'].value, 3)
+                hydrogen_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                                          8, 'hydrogen'].value, 3)
+                assert round(abs((gas_in_7 + hydrogen_in_7) - (gas_in_8 + hydrogen_in_8)), 3) <= RR
 
-    # Test technology dynamic parameters: SU_load and SD_load
-    data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
-    data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
-    data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+                # Test technology dynamic parameters: SU_load and SD_load
+                data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+                data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
+                data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
 
-    # Solve model
-    energyhub3 = EnergyHub(data, configuration)
-    energyhub3.quick_solve()
+                # Solve model
+                energyhub3 = EnergyHub(data, configuration)
+                energyhub3.quick_solve()
 
-    assert energyhub3.solution.solver.termination_condition == 'optimal'
-    tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+                assert energyhub3.solution.solver.termination_condition == 'optimal'
+                tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value,
+                                 3)
 
-    gas_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
-    hydrogen_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
-    assert gas_in_7 + hydrogen_in_7 <= 0.6 * tec_size
+                gas_in_7 = round(
+                    energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
+                hydrogen_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                                          7, 'hydrogen'].value, 3)
+                print(tecname)
+                assert gas_in_7 + hydrogen_in_7 <= 0.6 * tec_size
 
-    gas_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
-    hydrogen_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
-    assert gas_in_5 + hydrogen_in_5 <= 0.8 * tec_size
+                gas_in_5 = round(
+                    energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
+                hydrogen_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
+                                          5, 'hydrogen'].value, 3)
+                assert gas_in_5 + hydrogen_in_5 <= 0.8 * tec_size
 
-    # Test for CONV1_3
-    data = dm.load_object(r'./test/test_data/technology_dynamics_CONV1_3.p')
-    tecname = 'testCONV1_3'
+            else:
+                main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
 
-    # turn dynamics on
-    configuration = ModelConfiguration()
-    configuration.performance.dynamics = 1
+                # Test technology dynamic parameters: standby power and max startups
+                data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+                data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+                data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
 
-    # Test technology dynamic parameters: standby power and max startups
-    data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
-    data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
-    data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+                # Solve model
+                energyhub1 = EnergyHub(data, configuration)
+                energyhub1.quick_solve()
 
-    # Solve model
-    energyhub1 = EnergyHub(data, configuration)
-    energyhub1.quick_solve()
-
-    assert energyhub1.solution.solver.termination_condition == 'optimal'
-    tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
-    gas_in_6 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,3)
-    gas_in_7 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,3)
-    SU_number = sum(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
+                assert energyhub1.solution.solver.termination_condition == 'optimal'
+                tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value,
+                                 3)
+                gas_in_6 = round(
+                    energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,
+                    3)
+                gas_in_7 = round(
+                    energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+                    3)
+                SU_number = sum(
+                    energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
                     range(1, len(energyhub1.data.topology.timesteps) + 1))
 
-    assert gas_in_6 <= 0.1 * tec_size
-    assert gas_in_7 <= 0.1 * tec_size
-    assert SU_number <= 1
+                assert gas_in_6 <= 0.1 * tec_size
+                assert gas_in_7 <= 0.1 * tec_size
+                assert SU_number <= 1
 
-    # Test technology dynamic parameters: ramping rate
-    RR = max(data.node_data['test_node1'].data['demand']['heat']) / 2
-    data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
+                # Test technology dynamic parameters: ramping rate
+                RR = max(data.node_data['test_node1'].data['demand']['heat']) * 0.75
+                data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
 
-    # Solve model
-    energyhub2 = EnergyHub(data, configuration)
-    energyhub2.quick_solve()
+                # Solve model
+                energyhub2 = EnergyHub(data, configuration)
+                energyhub2.quick_solve()
 
-    assert energyhub2.solution.solver.termination_condition == 'optimal'
+                assert energyhub2.solution.solver.termination_condition == 'optimal'
 
-    gas_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
-    hydrogen_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value, 3)
-    gas_in_2 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
-    hydrogen_in_2 = round(
-        energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
-        3)
-    assert abs((gas_in_1 + hydrogen_in_1) - (gas_in_2 + hydrogen_in_2)) <= RR
+                main_in_1 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, main_car].value,
+                    3)
+                main_in_2 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, main_car].value,
+                    3)
 
-    gas_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
-    hydrogen_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
-    gas_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value, 3)
-    hydrogen_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'hydrogen'].value, 3)
-    assert abs((gas_in_5 + hydrogen_in_5) - (gas_in_6 + hydrogen_in_6)) <= RR
+                assert abs(main_in_1 - main_in_2) <= RR
 
-    gas_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
-    hydrogen_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
-    gas_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'gas'].value, 3)
-    hydrogen_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'hydrogen'].value, 3)
-    assert abs((gas_in_7 + hydrogen_in_7) - (gas_in_8 + hydrogen_in_8)) <= RR
+                main_in_5 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, main_car].value,
+                    3)
+                main_in_6 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, main_car].value,
+                    3)
 
-    # Test technology dynamic parameters: SU_load and SD_load
-    data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
-    data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
-    data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+                assert abs(main_in_5 - main_in_6) <= RR
 
-    # Solve model
-    energyhub3 = EnergyHub(data, configuration)
-    energyhub3.quick_solve()
+                main_in_7 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, main_car].value,
+                    3)
+                main_in_8 = round(
+                    energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, main_car].value,
+                    3)
 
-    assert energyhub3.solution.solver.termination_condition == 'optimal'
-    tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+                assert abs(main_in_7 - main_in_8) <= RR
 
-    gas_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
-    hydrogen_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
-    assert gas_in_7 + hydrogen_in_7 <= 0.6 * tec_size
-    gas_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
-    hydrogen_in_5 = round(
-        energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value,
-        3)
-    assert gas_in_5 + hydrogen_in_5 <= 0.8 * tec_size
+                # Test technology dynamic parameters: SU_load and SD_load
+                data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+                data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
+                data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+
+                # Solve model
+                energyhub3 = EnergyHub(data, configuration)
+                energyhub3.quick_solve()
+
+                assert energyhub3.solution.solver.termination_condition == 'optimal'
+                tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value,
+                                 3)
+
+                main_in_7 = round(
+                    energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, main_car].value,
+                    3)
+
+                assert main_in_7 <= 0.6 * tec_size
+
+                main_in_5 = round(
+                    energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, main_car].value,
+                    3)
+                assert main_in_5 <= 0.8 * tec_size
 
 
+
+
+    # # Test for CONV1_2
+    # data = dm.load_object(r'./test/test_data/technology_dynamics_CONV1_2.p')
+    # tecname = 'testCONV1_2'
+    #
+    # # turn dynamics on
+    # configuration = ModelConfiguration()
+    # configuration.performance.dynamics = 1
+    #
+    # # Test technology dynamic parameters: standby power and max startups
+    # data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    #
+    # # Solve model
+    # energyhub1 = EnergyHub(data, configuration)
+    # energyhub1.quick_solve()
+    #
+    # assert energyhub1.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    # gas_in_6 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,3)
+    # gas_in_7 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,3)
+    # SU_number = sum(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
+    #                 range(1, len(energyhub1.data.topology.timesteps) + 1))
+    #
+    # assert gas_in_6 <= 0.1 * tec_size
+    # assert gas_in_7 <= 0.1 * tec_size
+    # assert SU_number <= 1
+    #
+    # # Test technology dynamic parameters: ramping rate
+    # RR = max(data.node_data['test_node1'].data['demand']['heat']) / 2
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
+    #
+    # # Solve model
+    # energyhub2 = EnergyHub(data, configuration)
+    # energyhub2.quick_solve()
+    #
+    # assert energyhub2.solution.solver.termination_condition == 'optimal'
+    #
+    # gas_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    # hydrogen_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value, 3)
+    # gas_in_2 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    # hydrogen_in_2 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
+    #     3)
+    # assert abs((gas_in_1 + hydrogen_in_1) - (gas_in_2 + hydrogen_in_2)) <= RR
+    #
+    # gas_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
+    # hydrogen_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
+    # gas_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value, 3)
+    # hydrogen_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'hydrogen'].value, 3)
+    # assert abs((gas_in_5 + hydrogen_in_5) - (gas_in_6 + hydrogen_in_6)) <= RR
+    #
+    # gas_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
+    # hydrogen_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
+    # gas_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'gas'].value, 3)
+    # hydrogen_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'hydrogen'].value, 3)
+    # assert abs((gas_in_7 + hydrogen_in_7) - (gas_in_8 + hydrogen_in_8)) <= RR
+    #
+    # # Test technology dynamic parameters: SU_load and SD_load
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
+    # data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+    #
+    # # Solve model
+    # energyhub3 = EnergyHub(data, configuration)
+    # energyhub3.quick_solve()
+    #
+    # assert energyhub3.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    #
+    # gas_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
+    # hydrogen_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
+    # assert gas_in_7 + hydrogen_in_7 <= 0.6 * tec_size
+    #
+    # gas_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
+    # hydrogen_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
+    # assert gas_in_5 + hydrogen_in_5 <= 0.8 * tec_size
+    #
+    # # Test for CONV1_3
+    # data = dm.load_object(r'./test/test_data/technology_dynamics_CONV1_3.p')
+    # tecname = 'testCONV1_3'
+    #
+    # # turn dynamics on
+    # configuration = ModelConfiguration()
+    # configuration.performance.dynamics = 1
+    #
+    # # Test technology dynamic parameters: standby power and max startups
+    # data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    #
+    # # Solve model
+    # energyhub1 = EnergyHub(data, configuration)
+    # energyhub1.quick_solve()
+    #
+    # assert energyhub1.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    # gas_in_6 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,3)
+    # gas_in_7 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,3)
+    # SU_number = sum(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
+    #                 range(1, len(energyhub1.data.topology.timesteps) + 1))
+    #
+    # assert gas_in_6 <= 0.1 * tec_size
+    # assert gas_in_7 <= 0.1 * tec_size
+    # assert SU_number <= 1
+    #
+    # # Test technology dynamic parameters: ramping rate
+    # RR = max(data.node_data['test_node1'].data['demand']['heat']) / 2
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
+    #
+    # # Solve model
+    # energyhub2 = EnergyHub(data, configuration)
+    # energyhub2.quick_solve()
+    #
+    # assert energyhub2.solution.solver.termination_condition == 'optimal'
+    #
+    # gas_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
+    # hydrogen_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value, 3)
+    # gas_in_2 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value, 3)
+    # hydrogen_in_2 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
+    #     3)
+    # assert abs((gas_in_1 + hydrogen_in_1) - (gas_in_2 + hydrogen_in_2)) <= RR
+    #
+    # gas_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
+    # hydrogen_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
+    # gas_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value, 3)
+    # hydrogen_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'hydrogen'].value, 3)
+    # assert abs((gas_in_5 + hydrogen_in_5) - (gas_in_6 + hydrogen_in_6)) <= RR
+    #
+    # gas_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
+    # hydrogen_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
+    # gas_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'gas'].value, 3)
+    # hydrogen_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'hydrogen'].value, 3)
+    # assert abs((gas_in_7 + hydrogen_in_7) - (gas_in_8 + hydrogen_in_8)) <= RR
+    #
+    # # Test technology dynamic parameters: SU_load and SD_load
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
+    # data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+    #
+    # # Solve model
+    # energyhub3 = EnergyHub(data, configuration)
+    # energyhub3.quick_solve()
+    #
+    # assert energyhub3.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    #
+    # gas_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value, 3)
+    # hydrogen_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
+    # assert gas_in_7 + hydrogen_in_7 <= 0.6 * tec_size
+    # gas_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value, 3)
+    # hydrogen_in_5 = round(
+    #     energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value,
+    #     3)
+    # assert gas_in_5 + hydrogen_in_5 <= 0.8 * tec_size
+    #
+    # # Test for CONV2_2
+    # data = dm.load_object(r'./test/test_data/technology_dynamics_CONV2_2.p')
+    # tecname = 'testCONV2_2'
+    #
+    # # turn dynamics on
+    # configuration = ModelConfiguration()
+    # configuration.performance.dynamics = 1
+    #
+    # # Test technology dynamic parameters: standby power and max startups
+    # data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    #
+    # # Solve model
+    # energyhub1 = EnergyHub(data, configuration)
+    # energyhub1.quick_solve()
+    #
+    # assert energyhub1.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    # gas_in_6 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,
+    #                  3)
+    # gas_in_7 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+    #                  3)
+    # SU_number = sum(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
+    #                 range(1, len(energyhub1.data.topology.timesteps) + 1))
+    #
+    # assert gas_in_6 <= 0.1 * tec_size
+    # assert gas_in_7 <= 0.1 * tec_size
+    # assert SU_number <= 1
+    #
+    # # Test technology dynamic parameters: ramping rate
+    # RR = max(data.node_data['test_node1'].data['demand']['heat']) / 2
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
+    #
+    # # Solve model
+    # energyhub2 = EnergyHub(data, configuration)
+    # energyhub2.quick_solve()
+    #
+    # assert energyhub2.solution.solver.termination_condition == 'optimal'
+    #
+    # gas_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value,
+    #                  3)
+    # hydrogen_in_1 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value, 3)
+    # gas_in_2 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value,
+    #                  3)
+    # hydrogen_in_2 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
+    #     3)
+    # assert abs((gas_in_1 + hydrogen_in_1) - (gas_in_2 + hydrogen_in_2)) <= RR
+    #
+    # gas_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value,
+    #                  3)
+    # hydrogen_in_5 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
+    # gas_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,
+    #                  3)
+    # hydrogen_in_6 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'hydrogen'].value, 3)
+    # assert abs((gas_in_5 + hydrogen_in_5) - (gas_in_6 + hydrogen_in_6)) <= RR
+    #
+    # gas_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+    #                  3)
+    # hydrogen_in_7 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
+    # gas_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'gas'].value,
+    #                  3)
+    # hydrogen_in_8 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'hydrogen'].value, 3)
+    # assert abs((gas_in_7 + hydrogen_in_7) - (gas_in_8 + hydrogen_in_8)) <= RR
+    #
+    # # Test technology dynamic parameters: SU_load and SD_load
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
+    # data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+    #
+    # # Solve model
+    # energyhub3 = EnergyHub(data, configuration)
+    # energyhub3.quick_solve()
+    #
+    # assert energyhub3.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    #
+    # gas_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+    #                  3)
+    # hydrogen_in_7 = round(
+    #     energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
+    # assert gas_in_7 + hydrogen_in_7 <= 0.6 * tec_size
+    #
+    # gas_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value,
+    #                  3)
+    # hydrogen_in_5 = round(
+    #     energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
+    # assert gas_in_5 + hydrogen_in_5 <= 0.8 * tec_size
+    #
+    # # Test for CONV2_3
+    # data = dm.load_object(r'./test/test_data/technology_dynamics_CONV2_3.p')
+    # tecname = 'testCONV2_3'
+    #
+    # # turn dynamics on
+    # configuration = ModelConfiguration()
+    # configuration.performance.dynamics = 1
+    #
+    # # Test technology dynamic parameters: standby power and max startups
+    # data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    #
+    # # Solve model
+    # energyhub1 = EnergyHub(data, configuration)
+    # energyhub1.quick_solve()
+    #
+    # assert energyhub1.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    # gas_in_6 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,
+    #                  3)
+    # gas_in_7 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+    #                  3)
+    # SU_number = sum(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
+    #                 range(1, len(energyhub1.data.topology.timesteps) + 1))
+    #
+    # assert gas_in_6 <= 0.1 * tec_size
+    # assert gas_in_7 <= 0.1 * tec_size
+    # assert SU_number <= 1
+    #
+    # # Test technology dynamic parameters: ramping rate
+    # RR = max(data.node_data['test_node1'].data['demand']['heat']) / 2
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
+    #
+    # # Solve model
+    # energyhub2 = EnergyHub(data, configuration)
+    # energyhub2.quick_solve()
+    #
+    # assert energyhub2.solution.solver.termination_condition == 'optimal'
+    #
+    # gas_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value,
+    #                  3)
+    # hydrogen_in_1 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value, 3)
+    # gas_in_2 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'gas'].value,
+    #                  3)
+    # hydrogen_in_2 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, 'hydrogen'].value,
+    #     3)
+    # assert abs((gas_in_1 + hydrogen_in_1) - (gas_in_2 + hydrogen_in_2)) <= RR
+    #
+    # gas_in_5 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value,
+    #                  3)
+    # hydrogen_in_5 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value, 3)
+    # gas_in_6 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,
+    #                  3)
+    # hydrogen_in_6 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'hydrogen'].value, 3)
+    # assert abs((gas_in_5 + hydrogen_in_5) - (gas_in_6 + hydrogen_in_6)) <= RR
+    #
+    # gas_in_7 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+    #                  3)
+    # hydrogen_in_7 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
+    # gas_in_8 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'gas'].value,
+    #                  3)
+    # hydrogen_in_8 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, 'hydrogen'].value, 3)
+    # assert abs((gas_in_7 + hydrogen_in_7) - (gas_in_8 + hydrogen_in_8)) <= RR
+    #
+    # # Test technology dynamic parameters: SU_load and SD_load
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
+    # data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+    #
+    # # Solve model
+    # energyhub3 = EnergyHub(data, configuration)
+    # energyhub3.quick_solve()
+    #
+    # assert energyhub3.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    #
+    # gas_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+    #                  3)
+    # hydrogen_in_7 = round(
+    #     energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'hydrogen'].value, 3)
+    # assert gas_in_7 + hydrogen_in_7 <= 0.6 * tec_size
+    # gas_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'gas'].value,
+    #                  3)
+    # hydrogen_in_5 = round(
+    #     energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, 'hydrogen'].value,
+    #     3)
+    # assert gas_in_5 + hydrogen_in_5 <= 0.8 * tec_size
+
+    # # Test for CONV3_2
+    # data = dm.load_object(r'./test/test_data/technology_dynamics_CONV3_2.p')
+    # tecname = 'testCONV3_2'
+    #
+    # # turn dynamics on
+    # configuration = ModelConfiguration()
+    # configuration.performance.dynamics = 1
+    #
+    # main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
+    #
+    # # Test technology dynamic parameters: standby power and max startups
+    # data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    #
+    # # Solve model
+    # energyhub1 = EnergyHub(data, configuration)
+    # energyhub1.quick_solve()
+    #
+    # assert energyhub1.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    # gas_in_6 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,
+    #                  3)
+    # gas_in_7 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+    #                  3)
+    # SU_number = sum(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
+    #                 range(1, len(energyhub1.data.topology.timesteps) + 1))
+    #
+    # assert gas_in_6 <= 0.1 * tec_size
+    # assert gas_in_7 <= 0.1 * tec_size
+    # assert SU_number <= 1
+    #
+    # # Test technology dynamic parameters: ramping rate
+    # RR = max(data.node_data['test_node1'].data['demand']['heat']) * 0.75
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
+    #
+    # # Solve model
+    # energyhub2 = EnergyHub(data, configuration)
+    # energyhub2.quick_solve()
+    #
+    # assert energyhub2.solution.solver.termination_condition == 'optimal'
+    #
+    # main_in_1 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, main_car].value, 3)
+    # main_in_2 = round(energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, main_car].value, 3)
+    #
+    # assert abs(main_in_1 - main_in_2) <= RR
+    #
+    # main_in_5 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, main_car].value, 3)
+    # main_in_6 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, main_car].value, 3)
+    #
+    # assert abs(main_in_5 - main_in_6) <= RR
+    #
+    # main_in_7 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, main_car].value, 3)
+    # main_in_8 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, main_car].value, 3)
+    #
+    # assert abs(main_in_7 - main_in_8) <= RR
+    #
+    # # Test technology dynamic parameters: SU_load and SD_load
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
+    # data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+    #
+    # # Solve model
+    # energyhub3 = EnergyHub(data, configuration)
+    # energyhub3.quick_solve()
+    #
+    # assert energyhub3.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    #
+    # main_in_7 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, main_car].value,
+    #                  3)
+    #
+    # assert main_in_7 <= 0.6 * tec_size
+    #
+    # main_in_5 = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, main_car].value,
+    #                  3)
+    # assert main_in_5 <= 0.8 * tec_size
+    #
+    # # Test for CONV3_3
+    # data = dm.load_object(r'./test/test_data/technology_dynamics_CONV3_3.p')
+    # tecname = 'testCONV3_3'
+    #
+    # # turn dynamics on
+    # configuration = ModelConfiguration()
+    # configuration.performance.dynamics = 1
+    #
+    # main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
+    #
+    # # Test technology dynamic parameters: standby power and max startups
+    # data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.3
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 1
+    #
+    # # Solve model
+    # energyhub1 = EnergyHub(data, configuration)
+    # energyhub1.quick_solve()
+    #
+    # assert energyhub1.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    # gas_in_6 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, 'gas'].value,
+    #                  3)
+    # gas_in_7 = round(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, 'gas'].value,
+    #                  3)
+    # SU_number = sum(energyhub1.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_y[i].value for i in
+    #                 range(1, len(energyhub1.data.topology.timesteps) + 1))
+    #
+    # assert gas_in_6 <= 0.1 * tec_size
+    # assert gas_in_7 <= 0.1 * tec_size
+    # assert SU_number <= 1
+    #
+    # # Test technology dynamic parameters: ramping rate
+    # RR = max(data.node_data['test_node1'].data['demand']['heat']) * 0.75
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = RR
+    #
+    # # Solve model
+    # energyhub2 = EnergyHub(data, configuration)
+    # energyhub2.quick_solve()
+    #
+    # assert energyhub2.solution.solver.termination_condition == 'optimal'
+    #
+    # main_in_1 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, main_car].value, 3)
+    # main_in_2 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[2, main_car].value, 3)
+    #
+    # assert abs(main_in_1 - main_in_2) <= RR
+    #
+    # main_in_5 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, main_car].value, 3)
+    # main_in_6 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[6, main_car].value, 3)
+    #
+    # assert abs(main_in_5 - main_in_6) <= RR
+    #
+    # main_in_7 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, main_car].value, 3)
+    # main_in_8 = round(
+    #     energyhub2.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[8, main_car].value, 3)
+    #
+    # assert abs(main_in_7 - main_in_8) <= RR
+    #
+    # # Test technology dynamic parameters: SU_load and SD_load
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
+    # data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
+    #
+    # # Solve model
+    # energyhub3 = EnergyHub(data, configuration)
+    # energyhub3.quick_solve()
+    #
+    # assert energyhub3.solution.solver.termination_condition == 'optimal'
+    # tec_size = round(energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
+    #
+    # main_in_7 = round(
+    #     energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[7, main_car].value,
+    #     3)
+    #
+    # assert main_in_7 <= 0.6 * tec_size
+    #
+    # main_in_5 = round(
+    #     energyhub3.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[5, main_car].value,
+    #     3)
+    # assert main_in_5 <= 0.8 * tec_size
+    #
+    #

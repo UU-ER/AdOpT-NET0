@@ -476,7 +476,7 @@ def create_data_technology_dynamics():
             # CLIMATE DATA
             data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
 
-            if i == 2:
+            if i == 2 or i == 3:
                 demand_h = np.ones(len(topology.timesteps))
                 demand_h[0] = 0.6
                 demand_h[1] = 1
@@ -488,6 +488,21 @@ def create_data_technology_dynamics():
                 demand_h[7] = 0.7
                 demand_h[8] = 1
                 data.read_demand_data('test_node1', 'heat', demand_h)
+
+                # IMPORT/EXPORT LIMITS
+                import_lim = np.ones(len(topology.timesteps)) * 10
+                import_lim[5] = 0.5
+                import_lim[6] = 0.5
+                data.read_import_limit_data('test_node1', 'gas', import_lim)
+                import_lim = np.ones(len(topology.timesteps)) * 10
+                if j != 3:
+                    import_lim[5] = 0
+                    import_lim[6] = 0
+                data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
+                export_lim = np.ones(len(topology.timesteps)) * 10
+                data.read_export_limit_data('test_node1', 'electricity', export_lim)
+                export_lim = np.ones(len(topology.timesteps)) * 10
+                data.read_export_limit_data('test_node1', 'heat', export_lim)
             elif i == 4:
                 demand_h = np.ones(len(topology.timesteps))
                 demand_h[0] = 1
@@ -501,24 +516,24 @@ def create_data_technology_dynamics():
                 demand_h[8] = 1
                 data.read_demand_data('test_node1', 'heat', demand_h)
 
-            # PRICE DATA
-            if j != 3:
-                price = np.ones(len(topology.timesteps)) * 1
-                data.read_import_price_data('test_node1', 'gas', price)
+                # IMPORT/EXPORT LIMITS
+                import_lim = np.ones(len(topology.timesteps)) * 10
+                import_lim[2] = 0.5
+                import_lim[3] = 0.5
+                import_lim[4] = 0.5
+                import_lim[5] = 0.5
+                data.read_import_limit_data('test_node1', 'gas', import_lim)
+                import_lim = np.ones(len(topology.timesteps)) * 10
+                import_lim[4] = 0
+                data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
+                export_lim = np.ones(len(topology.timesteps)) * 10
+                data.read_export_limit_data('test_node1', 'electricity', export_lim)
+                export_lim = np.ones(len(topology.timesteps)) * 10
+                data.read_export_limit_data('test_node1', 'heat', export_lim)
 
-            # IMPORT/EXPORT LIMITS
-            import_lim = np.ones(len(topology.timesteps)) * 10
-            import_lim[5] = 0.5
-            import_lim[6] = 0.5
-            data.read_import_limit_data('test_node1', 'gas', import_lim)
-            import_lim = np.ones(len(topology.timesteps)) * 10
-            import_lim[5] = 0
-            import_lim[6] = 0
-            data.read_import_limit_data('test_node1', 'hydrogen', import_lim)
-            export_lim = np.ones(len(topology.timesteps)) * 10
-            data.read_export_limit_data('test_node1', 'electricity', export_lim)
-            export_lim = np.ones(len(topology.timesteps)) * 10
-            data.read_export_limit_data('test_node1', 'heat', export_lim)
+            # PRICE DATA
+            price = np.ones(len(topology.timesteps)) * 1
+            data.read_import_price_data('test_node1', 'gas', price)
 
             # READ TECHNOLOGY AND NETWORK DATA
             data.read_technology_data()
