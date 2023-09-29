@@ -458,7 +458,7 @@ def create_data_technology_dynamics():
     Technology type 1, 2, 3, gas,H2 -> heat, electricity
     """
 
-    perf_function_type = [2, 4]
+    perf_function_type = [2, 3, 4]
     CONV_Type = [1, 2, 3]
     for j in CONV_Type:
         for i in perf_function_type:
@@ -508,8 +508,8 @@ def create_data_technology_dynamics():
 
             # IMPORT/EXPORT LIMITS
             import_lim = np.ones(len(topology.timesteps)) * 10
-            import_lim[5] = 0.2
-            import_lim[6] = 0.2
+            import_lim[5] = 0.5
+            import_lim[6] = 0.5
             data.read_import_limit_data('test_node1', 'gas', import_lim)
             import_lim = np.ones(len(topology.timesteps)) * 10
             import_lim[5] = 0
