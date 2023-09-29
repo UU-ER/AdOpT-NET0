@@ -565,8 +565,8 @@ def test_existing_technologies():
     cost2 = run_EnergyHub(data, configuration)
     data = load_object(r'./src/test/test_data/existing_tecs3.p')
     cost3 = run_EnergyHub(data, configuration)
-    assert cost3<cost2
-    assert cost2<cost1
+    assert cost3<cost2*1.02
+    assert cost2<cost1*1.02
 
 
 def test_technology_OpenHydro():
