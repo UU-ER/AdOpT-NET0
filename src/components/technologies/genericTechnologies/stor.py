@@ -147,20 +147,19 @@ class Stor(Technology):
 
         # Storage level calculation
         if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
-            sequence = energyhub.data.k_means_specs.full_resolution['sequence']
             def init_storage_level(const, t, car):
                 if t == 1:  # couple first and last time interval
                     return b_tec.var_storage_level[t, car] == \
                            b_tec.var_storage_level[max(set_t_full), car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
                            b_tec.var_storage_level[max(set_t_full), car] * ambient_loss_factor[
                                max(set_t_full) - 1] ** nr_timesteps_averaged + \
-                           (eta_in * self.input[sequence[t - 1], car] - 1 / eta_out * self.output[sequence[t - 1], car]) * \
+                           (eta_in * self.input[self.sequence[t - 1], car] - 1 / eta_out * self.output[self.sequence[t - 1], car]) * \
                            sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
                 else:  # all other time intervalls
                     return b_tec.var_storage_level[t, car] == \
                            b_tec.var_storage_level[t - 1, car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
                            b_tec.var_storage_level[t, car] * ambient_loss_factor[t - 1] ** nr_timesteps_averaged + \
-                           (eta_in * self.input[sequence[t - 1], car] - 1 / eta_out * self.output[sequence[t - 1], car]) * \
+                           (eta_in * self.input[self.sequence[t - 1], car] - 1 / eta_out * self.output[self.sequence[t - 1], car]) * \
                            sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
 
             b_tec.const_storage_level = Constraint(set_t_full, b_tec.set_input_carriers, rule=init_storage_level)

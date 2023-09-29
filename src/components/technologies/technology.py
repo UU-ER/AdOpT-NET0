@@ -46,7 +46,7 @@ class Technology(ModelComponent):
         self.output = []
         self.set_t = []
         self.set_t_full = []
-
+        self.sequence = []
 
     def construct_tech_model(self, b_tec, energyhub):
         r"""
@@ -115,7 +115,7 @@ class Technology(ModelComponent):
         # MODELING TYPICAL DAYS
         if energyhub.model_information.clustered_data:
             if configuration.optimization.typicaldays.method == 2:
-                technologies_modelled_with_full_res = ['RES', 'Hydro_Open']
+                technologies_modelled_with_full_res = ['RES', 'STOR' 'Hydro_Open']
                 if self.technology_model in technologies_modelled_with_full_res:
                     self.modelled_with_full_res = 1
                 else:
@@ -140,6 +140,7 @@ class Technology(ModelComponent):
                 self.input = b_tec.var_input
             self.output = b_tec.var_output
             self.set_t = energyhub.model.set_t_full
+            self.sequence = list(self.set_t)
         self.set_t_full = energyhub.model.set_t_full
 
         return b_tec
@@ -447,6 +448,7 @@ class Technology(ModelComponent):
         set_t_clustered = energyhub.model.set_t_clustered
         set_t_full = energyhub.model.set_t_full
         self.set_t = set_t_clustered
+        self.sequence = energyhub.data.k_means_specs.full_resolution['sequence']
 
         if self.existing:
             size_initial = self.size_initial

@@ -34,7 +34,6 @@ class Network(ModelComponent):
 
         self.set_nodes = []
         self.set_t = []
-        self.big_m_transformation_required = 0
 
 
     def calculate_energy_consumption(self):

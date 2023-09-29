@@ -71,11 +71,11 @@ class ResultsHandle:
         self.summary = pd.concat([self.summary, summary])
 
         if self.save_detail:
-            self.save_path = create_save_folder(self.save_path, timestamp)
-            results.write_detailed_results(self.save_path)
+            create_save_folder(self.save_path, timestamp)
+            results.write_detailed_results(Path.joinpath(self.save_path, timestamp))
 
         if energyhub.model_information.testing:
-            shutil.rmtree(self.save_path)
+            shutil.rmtree(Path.joinpath(self.save_path, timestamp))
 
     def write_excel(self, file_name):
         """
@@ -85,8 +85,7 @@ class ResultsHandle:
         :return:
         """
 
-        save_path = Path(self.save_path)
-        path = save_path / (file_name + '.xlsx')
+        path = self.save_path / (file_name + '.xlsx')
 
         with pd.ExcelWriter(path) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')
@@ -342,9 +341,10 @@ class OptimizationResults:
 
                 # Energy balance
                 save_energybalance_path = Path.joinpath(save_node_path, 'Energybalance.xlsx')
-                with pd.ExcelWriter(save_energybalance_path) as writer:
-                    for car in self.energybalance[node]:
-                        self.energybalance[node][car].to_excel(writer, sheet_name=car)
+                if self.energybalance[node]:
+                    with pd.ExcelWriter(save_energybalance_path) as writer:
+                        for car in self.energybalance[node]:
+                            self.energybalance[node][car].to_excel(writer, sheet_name=car)
 
                 # Technology operation
                 save_technologies_path = Path.joinpath(save_node_path, 'TechnologyOperation.xlsx')

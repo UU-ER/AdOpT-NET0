@@ -303,7 +303,7 @@ class DacAdsorption(Technology):
         """
         super(DacAdsorption, self).report_results(b_tec)
 
-        self.results['time_dependent']['modules_on'] = [b_tec.var_modules_on[t].value for t in self.set_t]
-        self.results['time_dependent']['ohmic_heating'] = [b_tec.var_input_ohmic[t].value for t in self.set_t]
+        self.results['time_dependent']['modules_on'] = [b_tec.var_modules_on[self.sequence[t - 1]].value for t in self.set_t_full]
+        self.results['time_dependent']['ohmic_heating'] = [b_tec.var_input_ohmic[self.sequence[t - 1]].value for t in self.set_t_full]
 
         return self.results

@@ -518,23 +518,14 @@ def create_data_time_algorithms():
     data_save_path = './src/test/test_data/time_algorithms.p'
 
     topology = SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='03-31 23:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-03 23:00', resolution=1)
     topology.define_carriers(['electricity', 'gas', 'hydrogen'])
-    topology.define_nodes(['test_node1','test_node2'])
-    topology.define_new_technologies('test_node1', ['GasTurbine_simple', 'Storage_Battery'])
-    topology.define_new_technologies('test_node2', ['Photovoltaic', 'TestWindTurbine_Onshore_1500'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['Storage_Battery', 'Photovoltaic', 'TestWindTurbine_Onshore_1500',
+                                                    'GasTurbine_simple'])
 
     # Initialize instance of DataHandle
     data = DataHandle(topology)
-
-    # NETWORKS
-    distance = create_empty_network_matrix(topology.nodes)
-    distance.at['test_node1', 'test_node2'] = 1
-    distance.at['test_node2', 'test_node1'] = 1
-    connection = create_empty_network_matrix(topology.nodes)
-    connection.at['test_node1', 'test_node2'] = 1
-    connection.at['test_node2', 'test_node1'] = 1
-    topology.define_new_network('electricityTest', distance=distance, connections=connection)
 
     # CLIMATE DATA
     climate_data_path = './src/test/climate_data_test.p'
@@ -542,12 +533,22 @@ def create_data_time_algorithms():
     data.read_climate_data_from_file('test_node2', climate_data_path)
 
     # DEMAND
-    electricity_demand = np.ones(len(topology.timesteps)) * 100
+    electricity_demand = np.ones(len(topology.timesteps)) * 10
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # IMPORT
-    gas_import = np.ones(len(topology.timesteps)) * 10
+    gas_import = np.ones(len(topology.timesteps)) * 200
     data.read_import_limit_data('test_node1', 'gas', gas_import)
+
+    gas_price = np.ones(len(topology.timesteps)) * 500
+    data.read_import_price_data('test_node1', 'gas', gas_price)
+
+    # IMPORT
+    el_import = np.ones(len(topology.timesteps)) * 200
+    data.read_import_limit_data('test_node1', 'electricity', el_import)
+
+    el_price = np.ones(len(topology.timesteps)) * 1000
+    data.read_import_price_data('test_node1', 'electricity', el_price)
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data()

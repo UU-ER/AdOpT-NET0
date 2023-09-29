@@ -9,7 +9,6 @@ def setup_before_tests():
     """
 
 
-
     # Create Folder
     folder_path = Path("test/test_data")
 
