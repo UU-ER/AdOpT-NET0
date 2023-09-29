@@ -621,7 +621,7 @@ def test_fast_dynamics():
     CONV_Type = [1, 2, 3]
     for j in CONV_Type:
         for i in perf_function_type:
-            data_load_path = './test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(i) + '.p'
+            data_load_path = r'./test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(i) + '.p'
             data = dm.load_object(data_load_path)
             tecname = 'testCONV' + str(j) + '_' + str(i)
 
@@ -821,7 +821,7 @@ def test_slow_dynamics():
     CONV_Type = [1, 2, 3]
     for j in CONV_Type:
 
-        data_load_path = './test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(4) + '.p'
+        data_load_path = r'./test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(4) + '.p'
         data = dm.load_object(data_load_path)
         tecname = 'testCONV' + str(j) + '_' + str(4)
 

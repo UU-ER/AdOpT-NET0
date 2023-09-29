@@ -24,6 +24,7 @@ def setup_before_tests():
     create_data_technology_type1_PV()
     create_data_technology_type1_WT()
     create_data_technology_CONV()
+    create_data_technology_dynamics()
     create_data_network()
     create_data_addtechnology()
     create_data_technologySTOR()
