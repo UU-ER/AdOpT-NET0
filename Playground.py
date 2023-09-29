@@ -23,46 +23,74 @@ execute = 1
 
 # MODEL SCALING
 if execute == 1:
-    # TOPOLOGY
-    topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
-    topology.define_carriers(['electricity'])
-    topology.define_nodes(['A'])
-    topology.define_new_technologies('A', ['Photovoltaic'])
+    m = ConcreteModel()
 
-    # Initialize instance of DataHandle
-    data = dm.DataHandle(topology)
+    m.a = Var()
+    m.b = Var()
 
-    # CLIMATE DATA
+    m.c1 = Constraint(expr=0.00001 * m.a + 0.0002 * m.b==0.0004)
+    m.c2 = Constraint(expr=0.00004 * m.a + 40 * m.b==0.5)
 
-    data.read_climate_data_from_file('A', './data/climate_data_onshore.txt')
+    m.obj = Objective(expr = 1000*m.a + 2000 * m.b)
 
-    # DEMAND
-    electricity_demand = np.ones(len(topology.timesteps)) * 1
-    data.read_demand_data('A', 'electricity', electricity_demand)
+    solver = SolverFactory('gurobi')
+    solution = solver.solve(m, tee=True)
 
-    # IMPORT
-    import_lim = np.ones(len(topology.timesteps)) * 10000
-    data.read_import_limit_data('A', 'electricity', import_lim)
+    m.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    m.scaling_factor[m.obj] = 1e-3
+    m.scaling_factor[m.a] = 1e-3
+    # m.scaling_factor[m.c1] = 1e3
+    # m.scaling_factor[m.a] = 1e-4
+    # m.scaling_factor[m.a] = 1e-4
+    TransformationFactory('core.scale_model').apply_to(m)
+    solution = solver.solve(m, tee=True)
 
-    # READ TECHNOLOGY AND NETWORK DATA
+    # m.display()
 
-    data.read_technology_data()
-    data.read_network_data()
 
-    # SAVING/LOADING DATA FILE
-    configuration = ModelConfiguration()
 
-    # # Read data
-    energyhub = EnergyHub(data, configuration)
-    energyhub.construct_model()
-    energyhub.construct_balances()
 
-    energyhub.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
-    # energyhub.model.scaling_factor[energyhub.model.node_blocks['A'].var_import_flow] = 1e-4  # scale import
 
-    # energyhub.solve()
-    results = energyhub.solve()
+    # # TOPOLOGY
+    # topology = dm.SystemTopology()
+    # topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    # topology.define_carriers(['electricity'])
+    # topology.define_nodes(['A'])
+    # topology.define_new_technologies('A', ['Photovoltaic'])
+    #
+    # # Initialize instance of DataHandle
+    # data = dm.DataHandle(topology)
+    #
+    # # CLIMATE DATA
+    #
+    # data.read_climate_data_from_file('A', './data/climate_data_onshore.txt')
+    #
+    # # DEMAND
+    # electricity_demand = np.ones(len(topology.timesteps)) * 1
+    # data.read_demand_data('A', 'electricity', electricity_demand)
+    #
+    # # IMPORT
+    # import_lim = np.ones(len(topology.timesteps)) * 10000
+    # data.read_import_limit_data('A', 'electricity', import_lim)
+    #
+    # # READ TECHNOLOGY AND NETWORK DATA
+    #
+    # data.read_technology_data()
+    # data.read_network_data()
+    #
+    # # SAVING/LOADING DATA FILE
+    # configuration = ModelConfiguration()
+    #
+    # # # Read data
+    # energyhub = EnergyHub(data, configuration)
+    # energyhub.construct_model()
+    # energyhub.construct_balances()
+    #
+    # energyhub.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    # # energyhub.model.scaling_factor[energyhub.model.node_blocks['A'].var_import_flow] = 1e-4  # scale import
+    #
+    # # energyhub.solve()
+    # results = energyhub.solve()
 
 
 execute = 0
