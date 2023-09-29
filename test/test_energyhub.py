@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 from pyomo.environ import *
@@ -291,5 +292,58 @@ def test_simplification_algorithms():
     configuration.optimization.monte_carlo.on_what = ['Technologies']
     energyhub5 = ehub(data, configuration)
     energyhub5.quick_solve()
+
+def test_carbon_tax():
+    """
+    Model with a furnace and a heat demand
+    """
+    data = dm.load_object(r'./test/test_data/carbon_tax.p')
+    configuration = ModelConfiguration()
+    data.technology_data['onshore']['Furnace_NG'].performance_data['performance_function_type'] = 1
+    data.technology_data['onshore']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1'] = 0.9
+
+    energyhub = ehub(data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    # total emissions
+    emissionsTOT = energyhub.model.var_emissions_pos.value
+
+    # cost of carbon
+    carbon_cost1 = energyhub.model.var_carbon_cost.value
+    carbon_cost2 = emissionsTOT * 10
+    assert abs((carbon_cost1 - carbon_cost2) / carbon_cost1)<= 0.01
+
+def test_carbon_subsidy():
+    """
+    Model with DAC, import of electricity and heat
+    """
+    data = dm.load_object(r'./test/test_data/carbon_subsidy.p')
+
+    #test subsidy
+    carbon_subsidy = np.ones(len(data.topology.timesteps)) * 10
+    data.read_carbon_price_data(carbon_subsidy, 'subsidy')
+
+
+    configuration = ModelConfiguration()
+    energyhub = ehub(data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+    energyhub.solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    # total emissions
+    negative_emissions = energyhub.model.var_emissions_neg.value
+
+    # cost of carbon
+    carbon_revenues1 = energyhub.model.var_carbon_revenue.value
+    carbon_revenues2 = negative_emissions * 10
+    assert abs((carbon_revenues1 - carbon_revenues2) / carbon_revenues1)<= 0.01
+
+
 
 

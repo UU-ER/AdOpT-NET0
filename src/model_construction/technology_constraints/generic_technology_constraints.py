@@ -1521,6 +1521,7 @@ def constraints_tec_STOR(b_tec, tec_data, energyhub):
     # DATA OF TECHNOLOGY
     performance_data = tec_data.performance_data
     coeff = tec_data.fitted_performance.coefficients
+    rated_power = tec_data.fitted_performance.rated_power
 
     # Full resolution
     input = b_tec.var_input
@@ -1537,7 +1538,7 @@ def constraints_tec_STOR(b_tec, tec_data, energyhub):
     # Additional decision variables
     b_tec.var_storage_level = Var(set_t, b_tec.set_input_carriers,
                                   domain=NonNegativeReals,
-                                  bounds=(b_tec.para_size_min, b_tec.para_size_max))
+                                  bounds=(b_tec.para_size_min, b_tec.para_size_max * rated_power))
 
     # Abdditional parameters
     eta_in = coeff['eta_in']
@@ -1549,7 +1550,7 @@ def constraints_tec_STOR(b_tec, tec_data, energyhub):
 
     # Size constraint
     def init_size_constraint(const, t, car):
-        return b_tec.var_storage_level[t, car] <= b_tec.var_size
+        return b_tec.var_storage_level[t, car] <= b_tec.var_size * rated_power
     b_tec.const_size = Constraint(set_t, b_tec.set_input_carriers, rule=init_size_constraint)
 
     # Storage level calculation
@@ -1593,11 +1594,11 @@ def constraints_tec_STOR(b_tec, tec_data, energyhub):
 
     # Maximal charging and discharging rates
     def init_maximal_charge(const,t,car):
-        return input[t, car] <= charge_max * b_tec.var_size
+        return input[t, car] <= charge_max * b_tec.var_size * rated_power
     b_tec.const_max_charge = Constraint(set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
 
     def init_maximal_discharge(const,t,car):
-        return output[t, car] <= discharge_max * b_tec.var_size
+        return output[t, car] <= discharge_max * b_tec.var_size * rated_power
     b_tec.const_max_discharge = Constraint(set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
 
     return b_tec

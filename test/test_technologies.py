@@ -8,6 +8,7 @@ import pandas as pd
 
 
 
+
 def test_technology_RES_PV():
     """
     Run a model with one node.
@@ -520,6 +521,7 @@ def test_dac():
     cost2 = energyhub.model.var_total_cost.value
 
     assert abs(cost1 - cost2) / cost1 <= 0.1
+
 
 
 def test_existing_technologies():

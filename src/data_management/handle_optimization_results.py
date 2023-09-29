@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 import pandas as pd
 import src.global_variables as global_variables
+from pathlib import Path
 import numpy as np
 
 class ResultsHandle:
@@ -21,6 +22,7 @@ class ResultsHandle:
             'Time_stage',
             'Total_Cost',
             'Emission_Cost',
+            'Emission_Revenues',
             'Technology_Cost',
             'Network_Cost',
             'Import_Cost',
@@ -68,20 +70,28 @@ class ResultsHandle:
 
         self.detailed_results.append(optimization_result)
 
-    def write_excel(self, path):
+    def write_excel(self, save_path, file_name):
         """
         Writes results to excel
-        :param path: save path
+        :param str save_path: folder save path
+        :param str file_name: file save name
         :return:
         """
-        file_name = path + '.xlsx'
-        with pd.ExcelWriter(file_name) as writer:
-            self.summary.to_excel(writer, sheet_name='Summary')
 
-        i = 1
-        if not self.save_detail == 'minimal':
+        save_path = Path(save_path)
+        path = save_path / (file_name + '.xlsx')
+
+        if self.save_detail == 'minimal':
+            with pd.ExcelWriter(path) as writer:
+                self.summary.to_excel(writer, sheet_name='Summary')
+        else:
+            with pd.ExcelWriter(path) as writer:
+                self.summary.to_excel(writer, sheet_name='Summary')
+
+            i = 1
             for result in self.detailed_results:
-                result.write_excel(path + '_detailed_' + str(i))
+                file_name_detail = file_name + '_detailed_' + str(i)
+                result.write_detailed_excel(save_path / (file_name_detail + '.xlsx'))
                 i += 1
 
 
@@ -99,6 +109,7 @@ class OptimizationResults:
         """
         self.summary = pd.DataFrame(columns=['Total_Cost',
                                                'Emission_Cost',
+                                               'Emission_Revenues',
                                                'Technology_Cost',
                                                'Network_Cost',
                                                'Import_Cost',
@@ -150,9 +161,8 @@ class OptimizationResults:
 
         # Economics
         total_cost = model.var_total_cost.value
-        # emission_cost = model.var_emission_cost.value
-        # Todo: Add this here, if it is done
-        emission_cost = 0
+        carbon_costs = model.var_carbon_cost.value
+        carbon_revenues = model.var_carbon_revenue.value
         set_t = model.set_t_full
         nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
@@ -175,7 +185,7 @@ class OptimizationResults:
                               for t in set_t)
                           for node in model.set_nodes)
         export_revenue = sum(sum(sum(model.node_blocks[node].var_export_flow[t, car].value *
-                                     model.node_blocks[node].para_export_price[t, car] *
+                                     model.node_blocks[node].para_export_price[t, car].value *
                                         nr_timesteps_averaged
                                      for car in model.node_blocks[node].set_carriers)
                                  for t in set_t)
@@ -218,7 +228,7 @@ class OptimizationResults:
 
         self.summary.loc[len(self.summary.index)] = \
             [total_cost,
-             emission_cost,
+             carbon_costs, carbon_revenues,
              tec_cost, netw_cost,
              import_cost, export_revenue,
              violation_cost,
@@ -261,7 +271,7 @@ class OptimizationResults:
                                        for t in set_t)
                         total_flow = sum(arc_data.var_flow[t].value
                                          for t in set_t)
-                    opex_fix = capex * netw_data.para_opex_fixed.value
+                    opex_fix = netw_data.para_opex_fixed.value * arc_data.var_capex_aux.value
 
                     self.networks.loc[len(self.networks.index)] = \
                         [netw_name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow]
@@ -382,29 +392,26 @@ class OptimizationResults:
 
                         self.detailed_results.networks[netw_name]['_'.join(arc)] = df
 
-    def write_excel(self, path):
+    def write_detailed_excel(self, save_path):
         """
         Writes results to excel table
 
-        :param str path: path to write excel to
+        :param Path save_path: path to write excel to
         """
         def shorten_string(str, length):
             if len(str) > length:
                 str = str[0:length-1]
             return str
 
-        file_name = path + '.xlsx'
-
-        with pd.ExcelWriter(file_name) as writer:
+        with pd.ExcelWriter(save_path) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')
             self.technologies.to_excel(writer, sheet_name='TechnologySizes')
             self.networks.to_excel(writer, sheet_name='Networks')
             for node in self.energybalance:
                 for car in self.energybalance[node]:
                     sheet_name = shorten_string(node + '_' + car, 30)
-                    self.energybalance[node][car].to_excel(writer, sheet_name='Balance_' + node + '_' + car)
+                    self.energybalance[node][car].to_excel(writer, sheet_name=sheet_name)
             for node in self.detailed_results.nodes:
                 for tec_name in self.detailed_results.nodes[node]:
                     sheet_name = shorten_string(node + '_' + tec_name, 30)
-                    self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=
-                                                                              'Tec_' + node + '_' + tec_name)
+                    self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=sheet_name)

@@ -1,30 +1,41 @@
 from src.data_management.components.utilities import Economics
 import json
+import pandas as pd
+from pathlib import Path
 
 class Network:
     """
     Class to read and manage data for technologies
     """
-    def __init__(self, network):
+
+    def __init__(self, network: dict, load_path: Path):
         """
         Initializes technology class from technology name
 
         The network name needs to correspond to the name of a JSON file in ./data/network_data.
 
-        :param str network: name of technology to read data
+        :param dict network: name of technology to read data
+        :param Path load_path: path to read network data from
         """
-        netw_data = read_network_data_from_json(network)
+        netw_data = read_network_data_from_json(network['name'], load_path)
 
         # General information
-        self.name = network
-        self.existing = 0
-        self.connection = []
-        self.distance = []
-        self.size_initial = []
+        self.name = network['name']
+        self.existing = network['existing']
+        self.connection = network['connection']
+        self.distance = network['distance']
+        if self.existing:
+            self.size_initial = network['size']
+
         self.size_is_int = netw_data['size_is_int']
         self.size_min = netw_data['size_min']
         self.size_max = netw_data['size_max']
         self.decommission = netw_data['decommission']
+        if network['size_max_arcs'] is not None:
+            self.size_max_arcs = network['size_max_arcs']
+        else:
+            self.size_max_arcs = pd.DataFrame(self.size_max, index=self.distance.index, columns=self.distance.columns)
+
         self.energy_consumption = {}
 
         # Economics
@@ -70,12 +81,14 @@ class Network:
         self.energy_consumption = self.energy_consumption
 
 
-def read_network_data_from_json(network):
+def read_network_data_from_json(network, path):
     """
     Reads network data from json file
     """
     # Read in JSON files
-    with open('./data/network_data/' + network + '.json') as json_file:
+    path = Path('./data/network_data/')
+    network = network + '.json'
+    with open(path / network) as json_file:
         network_data = json.load(json_file)
     # Assign name
     network_data['Name'] = network

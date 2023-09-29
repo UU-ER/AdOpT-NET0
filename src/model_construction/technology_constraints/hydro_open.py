@@ -85,14 +85,6 @@ def constraints_tec_hydro_open(b_tec, tec_data, energyhub):
 
     nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
 
-    # Additional decision variables
-    b_tec.var_storage_level = Var(set_t, b_tec.set_input_carriers,
-                                  domain=NonNegativeReals,
-                                  bounds=(b_tec.para_size_min, b_tec.para_size_max))
-    b_tec.var_spilling = Var(set_t,
-                                  domain=NonNegativeReals,
-                                  bounds=(b_tec.para_size_min, b_tec.para_size_max))
-
     # Abdditional parameters
     eta_in = coeff['eta_in']
     eta_out = coeff['eta_out']
@@ -102,6 +94,13 @@ def constraints_tec_hydro_open(b_tec, tec_data, energyhub):
     hydro_natural_inflow = coeff['hydro_inflow']
     spilling_max = coeff['spilling_max']
 
+    # Additional decision variables
+    b_tec.var_storage_level = Var(set_t, b_tec.set_input_carriers,
+                                  domain=NonNegativeReals,
+                                  bounds=(b_tec.para_size_min, b_tec.para_size_max))
+    b_tec.var_spilling = Var(set_t,
+                                  domain=NonNegativeReals,
+                                  bounds=(b_tec.para_size_min, b_tec.para_size_max * spilling_max))
 
     # Size constraint
     def init_size_constraint(const, t, car):
