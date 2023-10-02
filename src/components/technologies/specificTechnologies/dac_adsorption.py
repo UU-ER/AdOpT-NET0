@@ -307,3 +307,14 @@ class DacAdsorption(Technology):
         self.results['time_dependent']['ohmic_heating'] = [b_tec.var_input_ohmic[self.sequence[t - 1]].value for t in self.set_t_full]
 
         return self.results
+
+    def define_ramping_rates(self, b_tec):
+        """
+        Constraints the inputs for a ramping rate
+
+        :param b_tec: technology model block
+        :return:
+        """
+        super(DacAdsorption, self).define_ramping_rates(b_tec)
+
+        raise Exception('Ramping rates cannot be defined for DAC Adsorption')

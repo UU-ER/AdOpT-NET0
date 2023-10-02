@@ -1,11 +1,19 @@
 import pandas as pd
+from pyomo.gdp import *
+from warnings import warn
+from pyomo.environ import *
 
 from ..component import ModelComponent
 from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered
 from .utilities import set_capex_model
 
-from pyomo.environ import *
-
+"""
+Suggestions:
+- Consistently have dynamics switched on and off with 0 and 1 (in the JSON files have two 'areas', one that controls
+the switching on and off, and the other one with parameters
+- I think, how it is formulated now, we would need a switch that skips the '__define_dynamics' function if for a certain 
+technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). 
+"""
 
 class Technology(ModelComponent):
     """
@@ -133,6 +141,21 @@ class Technology(ModelComponent):
         b_tec = self.__define_opex(b_tec, energyhub)
         b_tec = self.__define_emissions(b_tec, energyhub)
 
+        # RAMPING RATES
+        if hasattr(self.performance_data, "ramping_rate"):
+            if self.performance_data.ramping_rate >= 0:
+                b_tec = self.define_ramping_rates(b_tec)
+
+        # DYNAMICS
+        if energyhub.configuration.performance.dynamics:
+            b_tec = self.__define_dynamics(b_tec)
+        else:
+            if hasattr(self.performance_data, "performance_function_type"):
+                if self.performance_data.performance_function_type == 4:
+                    self.performance_data.performance_function_type = 3
+                    warn('Switching dynamics off for performance function type 4, type changed to 3 for ' + self.name)
+
+        # CLUSTERED DATA
         if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
             b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
         else:
@@ -487,5 +510,147 @@ class Technology(ModelComponent):
                                                                                        b_tec.set_output_carriers)
 
         self.output = b_tec.var_output_aux
+
+        return b_tec
+
+    def __define_dynamics(self, b_tec):
+        """
+        Add documentation
+        :param b_tec:
+        :return:
+        """
+        SU_load = self.performance_data['SU_load']
+        SD_load = self.performance_data['SD_load']
+        max_startups = self.performance_data['max_startups']
+        performance_function_type4 = hasattr(self.performance_data, "performance_function_type") and \
+                                     (self.performance_data.performance_function_type == 4)
+        if (max_startups > -1) or (SU_load + SD_load < 2) or performance_function_type4:
+            b_tec = self.__dynamics_SUSD_logic(b_tec)
+        if not performance_function_type4 and (SU_load + SD_load < 2):
+            b_tec = self.__dynamics_fast_SUSD_dynamics(b_tec)
+
+        return b_tec
+
+    def define_ramping_rates(self, b_tec):
+        """
+        Defines constraints for the ramping rate, this is done in the technology child classes
+        :param b_tec: technology model block
+        :return:
+        """
+        return b_tec
+
+    def __dynamics_SUSD_logic(self, b_tec):
+        """"Add description"""
+        # New variables
+        b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+        b_tec.var_y = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+        b_tec.var_z = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+
+        # Collect parameters
+        SU_time = self.performance_data['SU_time']
+        SD_time = self.performance_data['SD_time']
+        min_uptime = self.performance_data['min_uptime']
+        min_downtime = self.performance_data['min_downtime'] + SU_time + SD_time
+        max_startups = self.performance_data['max_startups']
+
+        # Enforce startup/shutdown logic
+        def init_SUSD_logic1(const, t):
+            if t == 1:
+                return Constraint.Skip
+            else:
+                return b_tec.var_x[t] - b_tec.var_x[t - 1] == b_tec.var_y[t] - b_tec.var_z[t]
+
+        b_tec.const_SUSD_logic1 = Constraint(self.set_t_full, rule=init_SUSD_logic1)
+
+        def init_SUSD_logic2(const, t):
+            if t >= min_uptime:
+                return b_tec.var_y[t - min_uptime + 1] <= b_tec.var_x[t]
+            else:
+                return b_tec.var_y[len(self.set_t_full) + (t - min_uptime + 1)] <= b_tec.var_x[t]
+
+        b_tec.const_SUSD_logic2 = Constraint(self.set_t_full, rule=init_SUSD_logic2)
+
+        def init_SUSD_logic3(const, t):
+            if t >= min_downtime:
+                return b_tec.var_z[t - min_downtime + 1] <= 1 - b_tec.var_x[t]
+            else:
+                return b_tec.var_z[len(self.set_t_full) + (t - min_downtime + 1)] <= 1 - b_tec.var_x[t]
+
+        b_tec.const_SUSD_logic3 = Constraint(self.set_t_full, rule=init_SUSD_logic3)
+
+        # Constrain number of startups
+        if not max_startups == -1:
+            def init_max_startups(const):
+                return sum(b_tec.var_y[t] for t in self.set_t_full) <= max_startups
+
+            b_tec.const_max_startups = Constraint(rule=init_max_startups)
+
+        return b_tec
+
+    def __dynamics_fast_SUSD_dynamics(self, b_tec):
+        """Add description here"""
+        # Collect variables
+        var_y = b_tec.var_y
+        var_z = b_tec.var_z
+
+        # Collect parameters
+        SU_load = self.performance_data['SU_load']
+        SD_load = self.performance_data['SD_load']
+        main_car = self.performance_data['main_input_carrier']
+        rated_power = self.fitted_performance.rated_power
+
+        # SU load limit
+        s_indicators = range(0, 2)
+
+        def init_SU_load(dis, t, ind):
+            if ind == 0:  # no startup (y=0)
+                dis.const_y_off = Constraint(expr=var_y[t] == 0)
+
+            else:  # tech in startup
+                dis.const_y_on = Constraint(expr=var_y[t] == 1)
+
+                def init_SU_load_limit(cons):
+                    if self.technology_model == 'CONV3':
+                        return self.input[t, main_car] <= b_tec.var_size * SU_load * rated_power
+                    else:
+                        return sum(self.input[t, car_input] for car_input in b_tec.set_input_carriers) \
+                               <= b_tec.var_size * SU_load * rated_power
+                dis.const_SU_load_limit = Constraint(rule=init_SU_load_limit)
+
+        b_tec.dis_SU_load = Disjunct(self.set_t_full, s_indicators, rule=init_SU_load)
+
+        def bind_disjunctions_SU_load(dis, t):
+            return [b_tec.dis_SU_load[t, i] for i in s_indicators]
+
+        b_tec.disjunction_SU_load = Disjunction(self.set_t_full, rule=bind_disjunctions_SU_load)
+
+        # SD load limit
+        s_indicators = range(0, 2)
+
+        def init_SD_load(dis, t, ind):
+            if ind == 0:  # no shutdown (z=0)
+                dis.const_z_off = Constraint(expr=var_z[t] == 0)
+
+            else:  # tech in shutdown
+                dis.const_z_on = Constraint(expr=var_z[t] == 1)
+
+                def init_SD_load_limit(cons):
+                    if t == 1:
+                        return Constraint.Skip
+                    else:
+                        if self.technology_model == 'CONV3':
+                            return self.input[t - 1, main_car] <= b_tec.var_size * SD_load * rated_power
+                        else:
+                            return sum(self.input[t - 1, car_input] for car_input in b_tec.set_input_carriers) \
+                                   <= b_tec.var_size * SD_load * rated_power
+
+                dis.const_SD_load_limit = Constraint(rule=init_SD_load_limit)
+
+        b_tec.dis_SD_load = Disjunct(self.set_t_full, s_indicators, rule=init_SD_load)
+
+        def bind_disjunctions_SD_load(dis, t):
+            return [b_tec.dis_SD_load[t, i] for i in s_indicators]
+
+        b_tec.disjunction_SD_load = Disjunction(self.set_t_full, rule=bind_disjunctions_SD_load)
 
         return b_tec

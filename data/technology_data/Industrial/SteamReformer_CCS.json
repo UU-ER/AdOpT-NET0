@@ -7,7 +7,7 @@
   "Economics": {
     "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/unit total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 1.786E+6,
+    "unit_CAPEX": 1786000.0,
     "piecewise_CAPEX": {
       "bp_x": [
         0.7,
@@ -15,9 +15,9 @@
         90000
       ],
       "bp_y": [
-        1.7571425264E+7,
-        3.57089268E+7,
-        3.77513964E+10
+        17571425.264,
+        35708926.8,
+        37751396400.0
       ]
     },
     "OPEX_variable": 0,
@@ -59,7 +59,16 @@
           0.00017533
         ]
       }
-    }
+    },
+    "ramping_rate": 0,
+    "standby_power": 0,
+    "min_uptime": 1,
+    "min_downtime": 1,
+    "SU_time": 0,
+    "SD_time": 0,
+    "SU_load": 1,
+    "SD_load": 1,
+    "max_startups": -1
   },
   "Units": {
     "size": "MW",

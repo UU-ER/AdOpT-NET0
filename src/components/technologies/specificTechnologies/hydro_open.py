@@ -250,3 +250,49 @@ class HydroOpen(Technology):
             self.results['time_dependent']['storagelevel_' + car] = [b_tec.var_storage_level[t, car].value for t in self.set_t]
 
         return self.results
+
+    def define_ramping_rates(self, b_tec):
+        """
+        Constraints the inputs for a ramping rate. Implemented for input and output
+
+        :param b_tec: technology model block
+        :return:
+        """
+        super(HydroOpen, self).define_ramping_rates(b_tec)
+
+        ramping_rate = self.performance_data['ramping_rate']
+
+        def init_ramping_down_rate_input(const, t):
+            if t > 1:
+                return -ramping_rate <= sum(self.input[t, car_input] - self.input[t-1, car_input]
+                                                for car_input in b_tec.set_input_carriers)
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_down_rate_input = Constraint(self.set_t, rule=init_ramping_down_rate_input)
+
+        def init_ramping_up_rate_input(const, t):
+            if t > 1:
+                return sum(self.input[t, car_input] - self.input[t-1, car_input]
+                               for car_input in b_tec.set_input_carriers) <= ramping_rate
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_up_rate_input = Constraint(self.set_t, rule=init_ramping_up_rate_input)
+
+
+        def init_ramping_down_rate_output(const, t):
+            if t > 1:
+                return -ramping_rate <= sum(self.output[t, car_output] - self.output[t-1, car_output]
+                                                for car_output in b_tec.set_ouput_carriers)
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_down_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
+
+        def init_ramping_down_rate_output(const, t):
+            if t > 1:
+                return sum(self.output[t, car_output] - self.output[t-1, car_output]
+                               for car_output in b_tec.set_ouput_carriers) <= ramping_rate
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_up_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
+
+        return b_tec

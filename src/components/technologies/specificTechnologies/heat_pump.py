@@ -313,3 +313,32 @@ class HeatPump(Technology):
         b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec
+
+    def define_ramping_rates(self, b_tec):
+        """
+        Constraints the inputs for a ramping rate
+
+        :param b_tec: technology model block
+        :return:
+        """
+        super(HeatPump, self).define_ramping_rates(b_tec)
+
+        ramping_rate = self.performance_data['ramping_rate']
+
+        def init_ramping_down_rate(const, t):
+            if t > 1:
+                return -ramping_rate <= sum(self.input[t, car_input] - self.input[t-1, car_input]
+                                                for car_input in b_tec.set_input_carriers)
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_down_rate = Constraint(self.set_t, rule=init_ramping_down_rate)
+
+        def init_ramping_up_rate(const, t):
+            if t > 1:
+                return sum(self.input[t, car_input] - self.input[t-1, car_input]
+                               for car_input in b_tec.set_input_carriers) <= ramping_rate
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_up_rate = Constraint(self.set_t, rule=init_ramping_up_rate)
+
+        return b_tec

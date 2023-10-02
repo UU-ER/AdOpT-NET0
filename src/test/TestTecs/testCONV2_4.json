@@ -1,5 +1,5 @@
 {
-  "tec_type": "CONV3",
+  "tec_type": "CONV2",
   "size_min": 0,
   "size_max": 500,
   "size_is_int": 0,
@@ -28,7 +28,7 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 1,
+    "performance_function_type": 4,
     "input_carrier": [
       "gas",
       "hydrogen"
@@ -39,7 +39,7 @@
       "electricity"
     ],
     "emission_factor": 0,
-    "min_part_load": 0.1,
+    "min_part_load": 0.5,
     "performance": {
       "in": [
         0,
@@ -71,8 +71,8 @@
     "standby_power": 0,
     "min_uptime": 1,
     "min_downtime": 1,
-    "SU_time": 0,
-    "SD_time": 0,
+    "SU_time": 1,
+    "SD_time": 1,
     "SU_load": 1,
     "SD_load": 1,
     "max_startups": -1

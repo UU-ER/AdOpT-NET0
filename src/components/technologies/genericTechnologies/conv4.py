@@ -137,3 +137,14 @@ class Conv4(Technology):
         b_tec.disjunction_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec
+
+    def define_ramping_rates(self, b_tec):
+        """
+        Constraints the inputs for a ramping rate
+
+        :param b_tec: technology model block
+        :return:
+        """
+        super(Conv4, self).define_ramping_rates(b_tec)
+
+        raise Exception('Ramping rates cannot be defined for Conversion Technology Type 4')

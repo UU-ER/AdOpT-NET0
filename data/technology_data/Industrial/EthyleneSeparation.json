@@ -56,7 +56,16 @@
       "crackedgas": 1,
       "electricity": 0.083,
       "steam": 0.492
-    }
+    },
+    "ramping_rate": 0,
+    "standby_power": 0,
+    "min_uptime": 1,
+    "min_downtime": 1,
+    "SU_time": 0,
+    "SD_time": 0,
+    "SU_load": 1,
+    "SD_load": 1,
+    "max_startups": -1
   },
   "Units": {
     "size": "tonne/hr",
