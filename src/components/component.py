@@ -4,7 +4,8 @@ import pandas as pd
 
 class ModelComponent:
     """
-    Class to read and manage data for technologies
+    Class to read and manage data for technologies and networks. This class inherits its attributes to the technology
+    and network classes.
     """
     def __init__(self, data):
         """

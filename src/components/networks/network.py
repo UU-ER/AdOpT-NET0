@@ -13,7 +13,7 @@ class Network(ModelComponent):
     """
     def __init__(self, netw_data):
         """
-        Initializes technology class from technology name
+        Initializes technology class from network name
 
         The network name needs to correspond to the name of a JSON file in ./data/network_data.
 
