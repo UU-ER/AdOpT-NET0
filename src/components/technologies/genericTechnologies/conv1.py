@@ -96,21 +96,6 @@ class Conv1(Technology):
         size_based_on = performance_data['size_based_on']
         performance_function_type = performance_data['performance_function_type']
 
-        # Adapt dynamics
-        SU_load = performance_data['SU_load']
-        SD_load = performance_data['SD_load']
-        max_startups = performance_data['max_startups']
-
-        if energyhub.configuration.performance.dynamics:
-            if performance_function_type == 4 or max_startups > -1 or SU_load + SD_load < 2:
-                b_tec = self.__dynamics_SUSD_logic(b_tec)
-            if not performance_function_type == 4 and SU_load + SD_load < 2:
-                b_tec = self.__dynamics_fast_SUSD_dynamics(b_tec)
-        else:
-            if performance_function_type == 4:
-                self.performance_data.performance_function_type = 3
-                warn('Switching dynamics off for performance function type 4, type changed to 3 for ' + self.name)
-
         # Technology Constraints
         if performance_function_type == 1:
             b_tec = self.__performance_function_type_1(b_tec)

@@ -8,12 +8,16 @@ from ..utilities import annualize, set_discount_rate, link_full_resolution_to_cl
 from .utilities import set_capex_model
 
 """
+TODO
 Suggestions:
-- Consistently have dynamics switched on and off with 0 and 1 (in the JSON files have two 'areas', one that controls
-the switching on and off, and the other one with parameters
+- in __SUSD logic, check if SUSD time and min up and down time are switched on, if not, set to default and warn (maybe somewhere else?)
+- in __define_dynamics define a switch that constraints min up and down time
 - I think, how it is formulated now, we would need a switch that skips the '__define_dynamics' function if for a certain 
 technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). 
 - Add the x,y,z variables to the reporting (self.report_results)
+- Change parameters to -1 in JSON files -> Julia
+- Move define_ramping_rates to child classes and call it from there (rename to __define_ramping_rates) -> Jan
+- Standby power missing -> Jan
 """
 
 class Technology(ModelComponent):
@@ -142,9 +146,9 @@ class Technology(ModelComponent):
         b_tec = self.__define_opex(b_tec, energyhub)
         b_tec = self.__define_emissions(b_tec, energyhub)
 
-        # RAMPING RATES
+        # RAMPING RATES (MOVE TO CHILD CLASSES)
         if hasattr(self.performance_data, "ramping_rate"):
-            if self.performance_data.ramping_rate >= 0:
+            if not self.performance_data.ramping_rate == -1:
                 b_tec = self.define_ramping_rates(b_tec)
 
         # DYNAMICS
@@ -528,7 +532,7 @@ class Technology(ModelComponent):
         if (max_startups > -1) or (SU_load + SD_load < 2) or performance_function_type4:
             b_tec = self.__dynamics_SUSD_logic(b_tec)
         if not performance_function_type4 and (SU_load + SD_load < 2):
-            b_tec = self.__dynamics_fast_SUSD_dynamics(b_tec)
+            b_tec = self.__dynamics_fast_SUSD(b_tec)
 
         return b_tec
 
@@ -588,7 +592,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def __dynamics_fast_SUSD_dynamics(self, b_tec):
+    def __dynamics_fast_SUSD(self, b_tec):
         """Add description here"""
         # Collect variables
         var_y = b_tec.var_y
