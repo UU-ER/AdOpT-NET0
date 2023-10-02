@@ -12,13 +12,13 @@ data_save_path = Path('./user_data/data_handle_test')
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
-topology.define_carriers(['electricity', 'gas', 'hydrogen'])
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-03 23:00', resolution=1)
+topology.define_carriers(['electricity', 'gas', 'CO2', 'heat'])
 topology.define_nodes(['onshore', 'offshore'])
-topology.define_new_technologies('onshore', ['Storage_Battery'])
-topology.define_new_technologies('offshore', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
+# topology.define_new_technologies('onshore', ['Storage_Battery'])
+topology.define_new_technologies('onshore', ['Storage_Battery', 'WindTurbine_Offshore_6000'])
 
-topology.define_existing_technologies('onshore', {'Storage_Battery': 100})
+# topology.define_existing_technologies('onshore', {'Storage_Battery': 100})
 
 
 distance = dm.create_empty_network_matrix(topology.nodes)
@@ -50,9 +50,9 @@ else:
 electricity_demand = np.ones(len(topology.timesteps)) * 1
 data.read_demand_data('onshore', 'electricity', electricity_demand)
 
-production_prof = np.ones(len(topology.timesteps)) * 11
+# production_prof = np.ones(len(topology.timesteps)) * 11
 
-data.read_production_profile('onshore', 'electricity', production_prof, 1)
+# data.read_production_profile('onshore', 'electricity', production_prof, 1)
 
 carbontax = np.ones(len(topology.timesteps)) * 11
 carbonsubsidy = np.ones(len(topology.timesteps)) * 11
@@ -65,11 +65,11 @@ data.read_carbon_price_data(carbonsubsidy, 'subsidy')
 # data.read_demand_data('onshore', 'CO2', co2)
 
 # IMPORT
-# gas_import = np.ones(len(topology.timesteps)) * 100
-# data.read_import_limit_data('offshore', 'gas', gas_import)
-#
-# gas_price = np.ones(len(topology.timesteps)) * 1000
-# data.read_import_price_data('onshore', 'gas', gas_price)
+el_import = np.ones(len(topology.timesteps)) * 10000
+data.read_import_limit_data('onshore', 'electricity', el_import)
+
+el_price = np.ones(len(topology.timesteps)) * 1000000
+data.read_import_price_data('onshore', 'electricity', el_price)
 
 # READ TECHNOLOGY AND NETWORK DATA
 
@@ -83,4 +83,10 @@ configuration = ModelConfiguration()
 # # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
-results.write_excel('./userData/', 'test')
+#
+# for tec in data.technology_data['offshore']:
+#     size = data.technology_data['offshore'][tec].model_block.report_results()
+#     print(size)
+#
+#
+results.write_excel('test')

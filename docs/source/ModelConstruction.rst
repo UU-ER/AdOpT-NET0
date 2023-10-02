@@ -31,6 +31,7 @@ To construct the model, you need to have the system topology and input data defi
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
+    energyhub.solve()
 
 Then the model can be solved as documented :ref:`here <model_solving>`. To construct the model and solve it in
 one go, you can also do the following. The function combines model construction and solving for convenience.

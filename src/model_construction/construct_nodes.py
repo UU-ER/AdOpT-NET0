@@ -1,8 +1,7 @@
-import src.model_construction as mc
+from ..model_construction import add_technology
 
 import numpy as np
 from pyomo.environ import *
-import src.global_variables as global_variables
 
 
 def determine_carriers_at_node(energyhub, node):
@@ -281,7 +280,7 @@ def add_nodes(energyhub):
 
         # BLOCKS
         # Add technologies as blocks
-        b_node = mc.add_technology(energyhub, nodename, b_node.set_tecsAtNode)
+        b_node = add_technology(energyhub, nodename, b_node.set_tecsAtNode)
 
         return b_node
 

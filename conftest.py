@@ -1,6 +1,6 @@
 import pytest
-from create_test_data import *
 import os
+from create_test_data import *
 from pathlib import Path
 
 @pytest.fixture(autouse=True)
@@ -8,6 +8,7 @@ def setup_before_tests():
     """
     Fixture to create the test data before running all tests
     """
+
 
     # Create Folder
     folder_path = Path("test/test_data")
