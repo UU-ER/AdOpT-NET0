@@ -33,7 +33,7 @@ def create_data_test_data_handle():
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -77,7 +77,7 @@ def create_data_model1():
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -119,7 +119,7 @@ def create_data_model2():
     data.read_import_limit_data('test_node1', 'gas', gas_import)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -175,7 +175,7 @@ def create_data_emissionbalance1():
     data.read_import_emissionfactor_data('onshore', 'gas', gas_imp_emis)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -215,7 +215,7 @@ def create_data_emissionbalance2():
     data.read_import_emissionfactor_data('test_node1', 'gas', gas_imp_emis)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -257,7 +257,7 @@ def create_data_technology_type1_PV():
     data.read_import_limit_data('test_node1', 'electricity', import_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -299,7 +299,7 @@ def create_data_technology_type1_WT():
     data.read_import_limit_data('test_node1', 'electricity', import_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -354,7 +354,7 @@ def create_data_technology_CONV():
                 data.read_export_limit_data('test_node1', 'electricity', export_lim)
 
                 # READ TECHNOLOGY AND NETWORK DATA
-                data.read_technology_data()
+                data.read_technology_data(load_path = './src/test/TestTecs')
                 data.read_network_data()
 
                 # SAVING/LOADING DATA FILE
@@ -389,7 +389,7 @@ def create_data_technologySTOR():
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -458,7 +458,7 @@ def create_data_network():
     data.read_import_limit_data('test_node2', 'electricity', import_lim)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -502,7 +502,7 @@ def create_data_addtechnology():
     data.read_demand_data('test_node2', 'electricity', demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -550,7 +550,7 @@ def create_data_time_algorithms():
     data.read_import_price_data('test_node1', 'electricity', el_price)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -584,7 +584,7 @@ def create_data_optimization_types():
     import_lim = np.ones(len(topology.timesteps)) * 10000
     data.read_import_limit_data('test_node1', 'gas', import_lim)
 
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     data.technology_data['test_node1']['Photovoltaic'].economics.capex_data['unit_capex'] = 200
@@ -623,7 +623,7 @@ def create_data_existing_technologies():
         data.read_import_limit_data('test_node1', 'electricity', import_lim)
 
         # READ TECHNOLOGY AND NETWORK DATA
-        data.read_technology_data()
+        data.read_technology_data(load_path = './src/test/TestTecs')
         data.read_network_data()
         return data
 
@@ -672,7 +672,7 @@ def create_data_existing_networks():
         data.read_import_limit_data('test_node2', 'electricity', import_lim)
 
         # READ TECHNOLOGY AND NETWORK DATA
-        data.read_technology_data()
+        data.read_technology_data(load_path = './src/test/TestTecs')
         data.read_network_data()
         return data
 
@@ -732,7 +732,7 @@ def create_test_data_dac():
     heat_import = np.ones(len(topology.timesteps)) * 100
     data.read_import_limit_data('test_node1', 'heat', heat_import)
 
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     data_save_path = './src/test/test_data/dac.p'
@@ -771,7 +771,7 @@ def create_data_technologyOpen_Hydro():
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -802,7 +802,7 @@ def create_data_technologyOpen_Hydro():
     data.read_demand_data('test_node1', 'electricity', electricity_demand)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -842,7 +842,7 @@ def create_data_carbon_tax():
     data.read_import_limit_data('onshore', 'gas', gas_import)
 
     # READ TECHNOLOGY AND NETWORK DATA
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
     # SAVING/LOADING DATA FILE
@@ -883,7 +883,7 @@ def create_data_carbon_subsidy():
     #carbon_export = np.ones(len(topology.timesteps)) * 1
     #data.read_import_limit_data('test_node1', 'CO2', carbon_export)
 
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     data.read_network_data()
 
 
