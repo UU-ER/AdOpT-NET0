@@ -13,6 +13,7 @@ Suggestions:
 the switching on and off, and the other one with parameters
 - I think, how it is formulated now, we would need a switch that skips the '__define_dynamics' function if for a certain 
 technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). 
+- Add the x,y,z variables to the reporting (self.report_results)
 """
 
 class Technology(ModelComponent):
