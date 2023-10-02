@@ -1,7 +1,7 @@
 # User Folders
-user_data
+userData
 results
-test/test_data/
+/src/test/test_data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

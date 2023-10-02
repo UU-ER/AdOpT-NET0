@@ -1,13 +1,20 @@
 import pytest
-from create_test_data import *
 import os
+from create_test_data import *
+from pathlib import Path
 
 @pytest.fixture(autouse=True)
 def setup_before_tests():
     """
     Fixture to create the test data before running all tests
     """
-    print('Creating Test Data')
+
+
+    # Create Folder
+    folder_path = Path("test/test_data")
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
     # Create Test Data
     create_data_test_data_handle()
@@ -34,10 +41,6 @@ def setup_before_tests():
     yield
 
     # Place your teardown code here
-    print('Deleting test data')
-
-    folder_path = "test/test_data"
-
     if os.path.exists(folder_path) and os.path.isdir(folder_path):
         file_list = os.listdir(folder_path)
         for file_name in file_list:
