@@ -24,7 +24,8 @@ Fist, we create an empty topology and fill it with a system design. Hereby note:
 
 - Node names can be chosen freely
 - Carrier names need to follow the same naming convention as in the technology files
-- Technology names need to be the same as the JSON file names in ``.\data\technology_data``
+- Technology names need to be the same as the JSON file names in ``.\data\technology_data``. You can also use a
+  different directory to read in the technology data.
 
 .. testcode::
 
@@ -110,11 +111,12 @@ is accounted for. Below is an example of how to use the k-means algorithm:
     # Load a DataHandle instance
     data = dm.load_data_handle(r'./userdata/systemData.p')
 
-    # Initialize an instance of the ClusteredDataHandle
-    clustered_data = dm.ClusteredDataHandle()
+    # Load ModelConfiguration
+    configuration = ModelConfiguration()
 
-    # Specify number of typical days
-    nr_days_cluster = 20
+    # Specify a number of typical days
+    configuration.optimization.typicaldays.N = 50
 
-    # Perform clustering
-    clustered_data.cluster_data(data, nr_days_cluster)
+    # Solve
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()

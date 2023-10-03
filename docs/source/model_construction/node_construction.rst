@@ -5,4 +5,4 @@ node. Technologies are added to the respective node calling ``src.model_construc
 from within.
 
 .. automodule:: src.model_construction.construct_nodes
-    :members:
+    :members: add_nodes

@@ -125,23 +125,20 @@ class ModelConfiguration:
         self.solveroptions.timelim = 10
         self.solveroptions.threads = 0
         self.solveroptions.mipfocus = 0
+        self.solveroptions.logfile = ""
         self.solveroptions.nodefilestart = 0.5
         self.solveroptions.method = -1
         self.solveroptions.heuristics = 0.05
         self.solveroptions.presolve = -1
         self.solveroptions.branchdir = 0
-        self.solveroptions.lpwarmstart = 2
+        self.solveroptions.lpwarmstart = 0
         self.solveroptions.intfeastol = 1e-5
         self.solveroptions.feastol = 1e-5
         self.solveroptions.numericfocus = 0
-        self.solveroptions.scaling = 0
-
-
         self.solveroptions.cuts = -1
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
-        self.optimization.save_detail = 'full'
         self.optimization.save_log_files = 0
         self.optimization.emission_limit = 0
         self.optimization.monte_carlo = SimpleNamespace()
@@ -172,3 +169,6 @@ class ModelConfiguration:
         self.performance = SimpleNamespace()
         # self.performance.dynamics = 0
 
+        self.reporting = SimpleNamespace()
+        self.reporting.save_detailed = 1
+        self.reporting.save_path = './userData/'

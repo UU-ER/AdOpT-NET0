@@ -1,17 +1,19 @@
 from pyomo.environ import *
-from pyomo.util.infeasible import log_infeasible_constraints
-
-import src.model_construction as mc
-import src.data_management as dm
-from src.utilities import *
 import numpy as np
 import dill as pickle
-import src.global_variables as global_variables
 import time
 import copy
 import warnings
 import datetime
+from pathlib import Path
+import os
 
+from .model_construction import *
+from .data_management import *
+from .utilities import *
+from .components.utilities import annualize, set_discount_rate
+from .components.technologies.utilities import set_capex_model
+from .result_management import ResultsHandle
 
 class EnergyHub:
     r"""
@@ -47,8 +49,9 @@ class EnergyHub:
         self.model = ConcreteModel()
 
         # INITIALIZE GLOBAL OPTIONS
-        global_variables.clustered_data = 0
-        global_variables.averaged_data = 0
+        self.model_information = data.model_information
+        self.model_information.clustered_data = 0
+        self.model_information.averaged_data = 0
 
         # INITIALIZE SOLUTION
         self.solution = None
@@ -60,27 +63,42 @@ class EnergyHub:
         self.data_storage = []
         if not self.configuration.optimization.typicaldays.N == 0:
             # If clustered
-            global_variables.clustered_data = 1
-            self.data_storage.append(dm.ClusteredDataHandle(data, self.configuration.optimization.typicaldays.N))
+            self.model_information.clustered_data = 1
+            self.data_storage.append(ClusteredDataHandle(data, self.configuration.optimization.typicaldays.N))
         else:
             self.data_storage.append(data)
 
         if self.configuration.optimization.timestaging:
             # Average data
-            global_variables.averaged_data = 1
+            self.model_information.averaged_data = 1
             self.model_first_stage = None
             self.solution_first_stage = None
-            self.data_storage.append(dm.DataHandle_AveragedData(self.data_storage[0], self.configuration.optimization.timestaging))
+            self.data_storage.append(DataHandle_AveragedData(self.data_storage[0], self.configuration.optimization.timestaging))
             self.data = self.data_storage[1]
         else:
             # Write data to self
             self.data = self.data_storage[0]
 
         # INITIALIZE RESULTS
-        self.results = dm.ResultsHandle(self.configuration)
+        self.results = ResultsHandle(self.configuration)
 
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
+
+        self.__perform_preprocessing_checks()
+
+
+    def __perform_preprocessing_checks(self):
+        """
+        Checks some things, before constructing or solving the model
+        :return:
+        """
+        # Check if save-path exists
+        save_path = Path(self.configuration.reporting.save_path)
+        if not os.path.exists(save_path) or not \
+                os.path.isdir(save_path):
+            raise FileNotFoundError(f"The folder '{save_path}' does not exist. Create the folder or change the folder "
+                                    f"name in the configuration")
 
     def quick_solve(self):
         """
@@ -93,6 +111,7 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
+
         self.solve()
         return self.results
 
@@ -128,7 +147,7 @@ class EnergyHub:
         # Time Frame
         self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
 
-        if global_variables.clustered_data == 1:
+        if self.model_information.clustered_data == 1:
             self.model.set_t_clustered = RangeSet(1,len(self.data.topology.timesteps_clustered))
 
         # DEFINE VARIABLES
@@ -157,8 +176,8 @@ class EnergyHub:
 
         # Model construction
         if not self.configuration.energybalance.copperplate:
-            self.model = mc.add_networks(self)
-        self.model = mc.add_nodes(self)
+            self.model = add_networks(self)
+        self.model = add_nodes(self)
 
         print('Constructing model completed in ' + str(round(time.time() - start)) + ' s')
 
@@ -173,9 +192,9 @@ class EnergyHub:
         print('Constructing balances...')
         start = time.time()
 
-        self.model = mc.add_energybalance(self)
-        self.model = mc.add_emissionbalance(self)
-        self.model = mc.add_system_costs(self)
+        self.model = add_energybalance(self)
+        self.model = add_emissionbalance(self)
+        self.model = add_system_costs(self)
 
         print('Constructing balances completed in ' + str(round(time.time() - start)) + ' s')
 
@@ -200,7 +219,7 @@ class EnergyHub:
 
         return self.results
 
-    def add_technology_to_node(self, nodename, technologies, path:str='./data/technology_data/'):
+    def add_technology_to_node(self, nodename, technologies):
         """
         Adds technologies retrospectively to the model.
 
@@ -211,20 +230,20 @@ class EnergyHub:
         :param list technologies: list of technologies that should be added to nodename
         :return: None
         """
-        self.data.read_single_technology_data(nodename, technologies, path)
-        mc.add_technology(self, nodename, technologies)
+        self.data.read_single_technology_data(nodename, technologies)
+        add_technology(self, nodename, technologies)
 
-    def save_model(self, file_path, file_name):
+    def save_model(self, save_path, file_name):
         """
         Saves an instance of the energyhub instance to the specified path (using pickel/dill).
 
         The object can later be loaded using into the work space using :func:`~load_energyhub_instance`
 
-        :param file_path: path to save
-        :param file_name: filename
+        :param str file_path: path to save
+        :param str file_name: filename
         :return: None
         """
-        with open(file_path + '/' + file_name, mode='wb') as file:
+        with open(Path(save_path) / file_name, mode='wb') as file:
             pickle.dump(self, file)
 
     def __define_solver_settings(self):
@@ -267,7 +286,7 @@ class EnergyHub:
             raise Exception("objective in Configurations is incorrect")
 
         # Second stage of time averaging algorithm
-        if global_variables.averaged_data and global_variables.averaged_data_specs.stage == 0:
+        if self.model_information.averaged_data and self.model_information.averaged_data_specs.stage == 0:
             self.__optimize_time_averaging_second_stage()
 
 
@@ -305,7 +324,7 @@ class EnergyHub:
         self.__call_solver()
 
 
-    def __optimize_costs_emissionlimit(self):
+    def __optimize_costs_emissionslimit(self):
         """
         Minimize costs at emission limit
         """
@@ -342,20 +361,20 @@ class EnergyHub:
         pareto_points = self.configuration.optimization.pareto_points
 
         # Min Cost
-        global_variables.pareto_point = 0
+        self.model_information.pareto_point = 0
         self.__optimize_cost()
         emissions_max = self.model.var_emissions_net.value
 
         # Min Emissions
-        global_variables.pareto_point = -1
+        self.model_information.pareto_point = pareto_points + 1
         self.__optimize_costs_minE()
         emissions_min = self.model.var_emissions_net.value
 
         # Emission limit
-        global_variables.pareto_point = 0
+        self.model_information.pareto_point = 0
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
         for pareto_point in range(0, pareto_points):
-            global_variables.pareto_point += 1
+            self.model_information.pareto_point += 1
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
@@ -369,9 +388,8 @@ class EnergyHub:
         """
         Optimizes multiple runs with monte carlo
         """
-        global_variables.monte_carlo_run = 0
         for run in range(0, self.configuration.optimization.monte_carlo.N):
-            global_variables.monte_carlo_run += 1
+            self.model_information.monte_carlo_run += 1
             self.__monte_carlo_set_cost_parameters()
             if run == 0:
                 self.__optimize(objective)
@@ -392,17 +410,18 @@ class EnergyHub:
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(self.model.objective)
         if self.configuration.optimization.save_log_files:
+            # TransformationFactory('core.scale_model').apply_to(self.model)
+
             self.solution = self.solver.solve(self.model,
                                               tee=True,
                                               warmstart=True,
-                                              keepfiles = True,
-                                              logfile='./log_files/log' + time_stamp + '.txt')
+                                              logfile=Path('./log_files/') / ('log_' + time_stamp))
         else:
-            self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
-        # log_infeasible_constraints(self.model, tol=1E-4, log_expression=True, log_variables=True)
+            # TransformationFactory('core.scale_model').apply_to(self.model)
 
+            self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
-        self.results.add_optimization_result(self, time_stamp)
+        self.results.report_optimization_result(self, time_stamp)
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
@@ -542,7 +561,7 @@ class EnergyHub:
             self.model.del_component(model.const_node_cost)
 
             # Add constraint again
-            nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+            nr_timesteps_averaged = self.model_information.averaged_data_specs.nr_timesteps_averaged
 
             def init_node_cost(const):
                 tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
@@ -596,7 +615,7 @@ class EnergyHub:
             self.model.del_component(model.const_node_cost)
 
             # Add constraint again
-            nr_timesteps_averaged = global_variables.averaged_data_specs.nr_timesteps_averaged
+            nr_timesteps_averaged = self.model_information.averaged_data_specs.nr_timesteps_averaged
 
             def init_node_cost(const):
                 tec_capex = sum(sum(model.node_blocks[node].tech_blocks_active[tec].var_capex
@@ -641,8 +660,8 @@ class EnergyHub:
         """
         Optimizes the second stage of the time_averaging algorithm
         """
-        global_variables.averaged_data_specs.stage += 1
-        global_variables.averaged_data_specs.nr_timesteps_averaged = 1
+        self.model_information.averaged_data_specs.stage += 1
+        self.model_information.averaged_data_specs.nr_timesteps_averaged = 1
         bounds_on = 'no_storage'
         self.model_first_stage = self.model
         self.solution_first_stage = copy.deepcopy(self.solution)
@@ -693,13 +712,13 @@ class EnergyHub:
             m_full.size_constraints_netw = Block(m_full.set_networks, rule=size_constraint_block_netw_init)
 
 
-def load_energyhub_instance(file_path):
+def load_energyhub_instance(load_path):
     """
     Loads an energyhub instance from file.
 
     :param str file_path: path to previously saved energyhub instance
     :return: energyhub instance
     """
-    with open(file_path, mode='rb') as file:
+    with open(Path(load_path), mode='rb') as file:
         energyhub = pickle.load(file)
     return energyhub

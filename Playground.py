@@ -5,11 +5,11 @@ import pvlib
 import numpy as np
 import requests
 import json
+from pathlib import Path
 import pandas as pd
 from timezonefinder import TimezoneFinder
 import src.data_management as dm
 from src.energyhub import EnergyHub
-from src.data_management.components.fit_technology_performance import fit_piecewise_function
 from scipy.interpolate import griddata
 # from netCDF4 import Dataset
 
@@ -20,6 +20,80 @@ from src.model_configuration import ModelConfiguration
 
 
 execute = 1
+
+# MODEL SCALING
+if execute == 1:
+    m = ConcreteModel()
+
+    m.a = Var()
+    m.b = Var()
+
+    m.c1 = Constraint(expr=0.00001 * m.a + 0.0002 * m.b==0.0004)
+    m.c2 = Constraint(expr=0.00004 * m.a + 40 * m.b==0.5)
+
+    m.obj = Objective(expr = 1000*m.a + 2000 * m.b)
+
+    solver = SolverFactory('gurobi')
+    solution = solver.solve(m, tee=True)
+
+    m.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    m.scaling_factor[m.obj] = 1e-3
+    m.scaling_factor[m.a] = 1e-3
+    # m.scaling_factor[m.c1] = 1e3
+    # m.scaling_factor[m.a] = 1e-4
+    # m.scaling_factor[m.a] = 1e-4
+    TransformationFactory('core.scale_model').apply_to(m)
+    solution = solver.solve(m, tee=True)
+
+    # m.display()
+
+
+
+
+
+    # # TOPOLOGY
+    # topology = dm.SystemTopology()
+    # topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    # topology.define_carriers(['electricity'])
+    # topology.define_nodes(['A'])
+    # topology.define_new_technologies('A', ['Photovoltaic'])
+    #
+    # # Initialize instance of DataHandle
+    # data = dm.DataHandle(topology)
+    #
+    # # CLIMATE DATA
+    #
+    # data.read_climate_data_from_file('A', './data/climate_data_onshore.txt')
+    #
+    # # DEMAND
+    # electricity_demand = np.ones(len(topology.timesteps)) * 1
+    # data.read_demand_data('A', 'electricity', electricity_demand)
+    #
+    # # IMPORT
+    # import_lim = np.ones(len(topology.timesteps)) * 10000
+    # data.read_import_limit_data('A', 'electricity', import_lim)
+    #
+    # # READ TECHNOLOGY AND NETWORK DATA
+    #
+    # data.read_technology_data()
+    # data.read_network_data()
+    #
+    # # SAVING/LOADING DATA FILE
+    # configuration = ModelConfiguration()
+    #
+    # # # Read data
+    # energyhub = EnergyHub(data, configuration)
+    # energyhub.construct_model()
+    # energyhub.construct_balances()
+    #
+    # energyhub.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    # # energyhub.model.scaling_factor[energyhub.model.node_blocks['A'].var_import_flow] = 1e-4  # scale import
+    #
+    # # energyhub.solve()
+    # results = energyhub.solve()
+
+
+execute = 0
 
 if execute == 1:
     # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
@@ -61,8 +135,8 @@ if execute == 1:
     topology.define_new_network('electricityTest', distance=distance, connections=connection)
 
     # CLIMATE DATA
-    data.read_climate_data_from_file('test_node1', r'./test/climate_data_test.p')
-    data.read_climate_data_from_file('test_node2', r'./test/climate_data_test.p')
+    data.read_climate_data_from_file('test_node1', r'./src/test/climate_data_test.p')
+    data.read_climate_data_from_file('test_node2', r'./src/test/climate_data_test.p')
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 100
@@ -136,7 +210,7 @@ if execute == 1:
     # Solve model
     energyhub_clustered.solve_model()
     results1 = energyhub_clustered.write_results()
-    results1.write_excel(r'.\userData\results_clustered')
+    results1.write_excel(Path('./userData'), 'results_clustered')
 
 
     # SOLVE WITH FULL RESOLUTION
@@ -147,7 +221,7 @@ if execute == 1:
     # Solve model
     energyhub.solve_model()
     results2 = energyhub.write_results()
-    results2.write_excel(r'.\userData\results_full')
+    results2.write_excel(Path('./userData'), 'results_full')
 
 execute = 0
 #region How to formulate hierarchical models with blocks
@@ -518,7 +592,7 @@ if execute == 1:
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 #endregion
 
-execute = 1
+execute = 0
 #region How to make an API request for ERA5
 if execute == 1:
     lon = 8
