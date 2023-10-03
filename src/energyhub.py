@@ -112,8 +112,6 @@ class EnergyHub:
         self.construct_model()
         self.construct_balances()
 
-        self.model.pprint()
-
         self.solve()
         return self.results
 
@@ -401,8 +399,14 @@ class EnergyHub:
 
     def __scale_model(self):
 
-        f = self.configuration.scaling_factors
+        f = self.configuration.scaling_factors.general
         self.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+
+        # Scale technologies
+        for node in self.model.node_blocks:
+            for tec in self.model.node_blocks[node].tech_blocks_active:
+                b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
+                self.model = self.data.technology_data[node][tec].scale_model(b_tec, self.model, self.configuration)
 
         # Scale energybalance
         if f.energy_vars >= 0:
@@ -421,25 +425,28 @@ class EnergyHub:
                 self.model.scaling_factor[self.model.node_blocks[node].const_generic_production] = f.energy_vars
 
                 for tec in self.model.node_blocks[node].tech_blocks_active:
-                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_output] = f.energy_vars
+
+                    b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
+                    self.model = self.data.technology_data[node][tec].scale_model(b_tec, self.model, self.configuration)
+
                     # self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_size] = f.energy_vars
                     # self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_input_output] = f.energy_vars
 
         # Scale Costs
-        if f.cost_vars >= 0:
-            self.model.scaling_factor[self.model.const_node_cost] = f.cost_vars
-            self.model.scaling_factor[self.model.const_netw_cost] = f.cost_vars
-            self.model.scaling_factor[self.model.const_revenue_carbon] = f.cost_vars
-            self.model.scaling_factor[self.model.const_cost_carbon] = f.cost_vars
-            self.model.scaling_factor[self.model.const_cost] = f.cost_vars
-            for node in self.model.node_blocks:
-                for tec in self.model.node_blocks[node].tech_blocks_active:
-                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_capex_aux] = f.cost_vars
-                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_capex] = f.cost_vars
-                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_capex_aux] = f.cost_vars
-                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_capex] = f.cost_vars
-                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_opex_variable] = f.cost_vars
-                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_opex_fixed] = f.cost_vars
+        # if f.cost_vars >= 0:
+        #     self.model.scaling_factor[self.model.const_node_cost] = f.cost_vars
+        #     self.model.scaling_factor[self.model.const_netw_cost] = f.cost_vars
+        #     self.model.scaling_factor[self.model.const_revenue_carbon] = f.cost_vars
+        #     self.model.scaling_factor[self.model.const_cost_carbon] = f.cost_vars
+        #     self.model.scaling_factor[self.model.const_cost] = f.cost_vars
+        #     for node in self.model.node_blocks:
+        #         for tec in self.model.node_blocks[node].tech_blocks_active:
+        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_capex_aux] = f.cost_vars
+        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_capex] = f.cost_vars
+        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_capex_aux] = f.cost_vars
+        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_capex] = f.cost_vars
+        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_opex_variable] = f.cost_vars
+        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_opex_fixed] = f.cost_vars
 
 
 

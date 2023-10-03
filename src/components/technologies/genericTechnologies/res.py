@@ -260,3 +260,19 @@ class Res(Technology):
                 self.results['time_dependent']['max_out'] - self.results['time_dependent']['output_' + car]
 
         return self.results
+
+    def scale_model(self, b_tec, model, configuration):
+        """
+        Scales technology model
+        """
+        super(Res, self).scale_model(b_tec, model, configuration)
+
+        f = configuration.scaling_factors.general
+
+        # Constraints
+        model.scaling_factor[b_tec.const_input_output] = 1e2
+        if b_tec.find_component('const_curtailed_units'):
+            model.scaling_factor[b_tec.const_curtailed_units] = 1
+
+        return model
+

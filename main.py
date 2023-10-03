@@ -39,11 +39,11 @@ if from_file == 1:
     # data.read_climate_data_from_file('offshore', './data/climate_data_offshore.txt')
 
 # DEMAND
-electricity_demand = np.ones(len(topology.timesteps)) * 1000
-data.read_demand_data('onshore', 'electricity', electricity_demand)
-
-production_prof = np.ones(len(topology.timesteps)) * 1000
-data.read_production_profile('onshore', 'electricity', production_prof, 1)
+# electricity_demand = np.ones(len(topology.timesteps)) * 1000
+# data.read_demand_data('onshore', 'electricity', electricity_demand)
+#
+# production_prof = np.ones(len(topology.timesteps)) * 1000
+# data.read_production_profile('onshore', 'electricity', production_prof, 1)
 #
 # carbontax = np.ones(len(topology.timesteps)) * 11
 # carbonsubsidy = np.ones(len(topology.timesteps)) * 11

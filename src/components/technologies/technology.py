@@ -171,6 +171,42 @@ class Technology(ModelComponent):
 
         return self.results
 
+    def scale_model(self, b_tec, model, configuration):
+        """
+        Scales technology model
+        """
+        f = configuration.scaling_factors.general
+
+        # Variables
+        model.scaling_factor[b_tec.var_output] = 1
+        model.scaling_factor[b_tec.var_capex_aux] = 1e-2
+        model.scaling_factor[b_tec.var_capex] = 1e-2
+        model.scaling_factor[b_tec.var_size] = 1
+        model.scaling_factor[b_tec.var_opex_variable] = 1
+        model.scaling_factor[b_tec.var_opex_fixed] = 1
+        model.scaling_factor[b_tec.var_tec_emissions_pos] = 1
+        model.scaling_factor[b_tec.var_tec_emissions_neg] = 1
+
+        if b_tec.find_component('var_input'):
+            model.scaling_factor[b_tec.var_input] = 1
+        if b_tec.find_component('var_input_aux'):
+            model.scaling_factor[b_tec.var_input_aux] = 1
+        if b_tec.find_component('var_output_aux'):
+            model.scaling_factor[b_tec.var_output_aux] = 1
+
+        # Constraints
+        model.scaling_factor[b_tec.const_capex_aux] = 1e-2
+        model.scaling_factor[b_tec.const_capex] = 1e-2
+        model.scaling_factor[b_tec.const_opex_variable] = 1
+        model.scaling_factor[b_tec.const_opex_fixed] = 1
+        model.scaling_factor[b_tec.const_tec_emissions_pos] = 1
+        model.scaling_factor[b_tec.const_tec_emissions_neg] = 1
+        if b_tec.find_component('const_link_full_resolution_input'):
+            model.scaling_factor[b_tec.const_link_full_resolution_input] = 1
+
+
+        return model
+
     def __define_size(self, b_tec):
         """
         Defines variables and parameters related to technology size.
