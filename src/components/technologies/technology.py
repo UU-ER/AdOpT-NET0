@@ -16,6 +16,7 @@ Suggestions:
 technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). 
 - Add the x,y,z variables to the reporting (self.report_results)
 - Change parameters to -1 in JSON files
+- Delete src/model_construction/generic_technology_constraints.py
 """
 
 class Technology(ModelComponent):
