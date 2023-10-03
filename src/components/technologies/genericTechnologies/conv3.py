@@ -97,6 +97,7 @@ class Conv3(Technology):
         performance_data = self.performance_data
         rated_power = self.fitted_performance.rated_power
         performance_function_type = performance_data['performance_function_type']
+        standby_power = self.performance_data['standby_power']
         phi = {}
         for car in self.performance_data['input_ratios']:
             phi[car] = self.performance_data['input_ratios'][car]
@@ -116,15 +117,23 @@ class Conv3(Technology):
             if car_input == self.main_car:
                 return Constraint.Skip
             else:
-                return self.input[t, car_input] == phi[car_input] * self.input[t, self.main_car]
+                if standby_power == 0:
+                    return self.input[t, car_input] == phi[car_input] * self.input[t, self.main_car]
+                else:
+                    return self.input[t, car_input] == phi[car_input] * self.input[t, self.main_car] * b_tec.var_x[t]
 
-        b_tec.const_input_input = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_input_input)
+        b_tec.const_input_input = Constraint(self.set_t_full, b_tec.set_input_carriers, rule=init_input_input)
 
         # size constraint based main carrier input
         def init_size_constraint(const, t):
             return self.input[t, self.main_car] <= b_tec.var_size * rated_power
 
         b_tec.const_size = Constraint(self.set_t, rule=init_size_constraint)
+
+        # RAMPING RATES
+        if hasattr(self.performance_data, "ramping_rate"):
+            if not self.performance_data.ramping_rate == -1:
+                b_tec = self.__define_ramping_rates(b_tec)
 
         return b_tec
 
@@ -166,25 +175,45 @@ class Conv3(Technology):
             alpha2[car] = self.fitted_performance.coefficients[car]['alpha2']
         rated_power = self.fitted_performance.rated_power
         min_part_load = self.performance_data['min_part_load']
+        standby_power = self.performance_data['standby_power']
 
         if min_part_load == 0:
-            warn('Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + b_tec.local_name)
+            warn('Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + self.name)
 
         # define disjuncts
         s_indicators = range(0, 2)
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def init_input_off(const, car_input):
-                    return self.input[t, car_input] == 0
 
-                dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
+                if standby_power == 0:
+
+                    def init_input_off(const, car_input):
+                        return self.input[t, car_input] == 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                else:
+
+                    def init_input_off(const, car_input):
+                        return self.input[t, car_input] >= 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                    def init_standby_power(const):
+                        return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
+                    dis.const_standby_power = Constraint(rule=init_standby_power)
+
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
 
                 dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+
             else:  # technology on
+
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+
                 # input-output relation
                 def init_input_output_on(const, car_output):
                     return self.output[t, car_output] == \
@@ -227,15 +256,26 @@ class Conv3(Technology):
             alpha2[car] = self.fitted_performance.coefficients[car]['alpha2']
         rated_power = self.fitted_performance.rated_power
         min_part_load = self.performance_data['min_part_load']
+        standby_power = self.performance_data['standby_power']
 
         s_indicators = range(0, len(bp_x))
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
-                def init_input_off(const, car_input):
-                    return self.input[t, car_input] == 0
 
-                dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+                if standby_power == 0:
+                    def init_input_off(const, car_input):
+                        return self.input[t, car_input] == 0
+                    dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                else:
+                    def init_input_off(const, car_input):
+                        return self.input[t, car_input] >= 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                    def init_standby_power(const):
+                        return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
+                    dis.const_standby_power = Constraint(rule=init_standby_power)
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
@@ -292,8 +332,7 @@ class Conv3(Technology):
         bp_x = self.fitted_performance.coefficients['out']['bp_x']
         rated_power = self.fitted_performance.rated_power
         min_part_load = self.performance_data['min_part_load']
-        main_car = self.performance_data['main_input_carrier']
-        
+
         if SU_time + SD_time == 0:
             warn('Having performance_function_type = 4 with no slow SU/SDs usually makes no sense.')
 
@@ -362,12 +401,12 @@ class Conv3(Technology):
                 dis.const_z_off = Constraint(rule=init_z_off)
 
                 def init_input_SU(cons):
-                    return self.input[t, main_car] == b_tec.var_size * SU_trajectory[ind - 1]
+                    return self.input[t, self.main_car] == b_tec.var_size * SU_trajectory[ind - 1]
 
                 dis.const_input_SU = Constraint(rule=init_input_SU)
 
                 def init_output_SU(const, car_output):
-                    return self.output[t, car_output] == alpha1[car_output][0] * self.input[t, main_car] + \
+                    return self.output[t, car_output] == alpha1[car_output][0] * self.input[t, self.main_car] + \
                            alpha2[car_output][0] * b_tec.var_size * rated_power
 
                 dis.const_output_SU = Constraint(b_tec.set_output_carriers, rule=init_output_SU)
@@ -393,12 +432,12 @@ class Conv3(Technology):
                 dis.const_y_off = Constraint(rule=init_y_off)
 
                 def init_input_SD(cons):
-                    return self.input[t, main_car] == b_tec.var_size * SD_trajectory[ind_SD - 1]
+                    return self.input[t, self.main_car] == b_tec.var_size * SD_trajectory[ind_SD - 1]
 
                 dis.const_input_SD = Constraint(rule=init_input_SD)
 
                 def init_output_SD(const, car_output):
-                    return self.output[t, car_output] == alpha1[car_output][0] * self.input[t, main_car] + \
+                    return self.output[t, car_output] == alpha1[car_output][0] * self.input[t, self.main_car] + \
                            alpha2[car_output][0] * b_tec.var_size * rated_power
 
                 dis.const_output_SD = Constraint(b_tec.set_output_carriers, rule=init_output_SD)
@@ -408,22 +447,22 @@ class Conv3(Technology):
                 dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 def init_input_on1(const):
-                    return self.input[t, main_car] >= bp_x[ind_bpx - 1] * b_tec.var_size * rated_power
+                    return self.input[t, self.main_car] >= bp_x[ind_bpx - 1] * b_tec.var_size * rated_power
                 dis.const_input_on1 = Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
-                    return self.input[t, main_car] <= bp_x[ind_bpx] * b_tec.var_size * rated_power
+                    return self.input[t, self.main_car] <= bp_x[ind_bpx] * b_tec.var_size * rated_power
                 dis.const_input_on2 = Constraint(rule=init_input_on2)
 
                 def init_output_on(const, car_output):
                     return self.output[t, car_output] == \
-                           alpha1[car_output][ind_bpx - 1] * self.input[t, main_car] + \
+                           alpha1[car_output][ind_bpx - 1] * self.input[t, self.main_car] + \
                            alpha2[car_output][ind_bpx - 1] * b_tec.var_size * rated_power
                 dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
 
                 # min part load relation
                 def init_min_partload(const):
-                    return self.input[t, main_car] >= min_part_load * b_tec.var_size * rated_power
+                    return self.input[t, self.main_car] >= min_part_load * b_tec.var_size * rated_power
 
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
@@ -436,15 +475,13 @@ class Conv3(Technology):
 
         return b_tec
 
-    def define_ramping_rates(self, b_tec):
+    def __define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate
 
         :param b_tec: technology model block
         :return:
         """
-        super(Conv3, self).define_ramping_rates(b_tec)
-
         ramping_rate = self.performance_data['ramping_rate']
 
         def init_ramping_down_rate(const, t):

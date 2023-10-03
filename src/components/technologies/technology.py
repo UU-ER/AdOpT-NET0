@@ -16,8 +16,10 @@ Suggestions:
 technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). 
 - Add the x,y,z variables to the reporting (self.report_results)
 - Change parameters to -1 in JSON files -> Julia
-- Move define_ramping_rates to child classes and call it from there (rename to __define_ramping_rates) -> Jan
 - Standby power missing -> Jan
+- I left out the part-load constraints in perf-func-type 1, hope that was correct? -> NO! -> Jan
+- For the standby power, why are all inputs >= 0, and not ==0, other than the main carrier? -> Jan
+- main_car CONV1?
 """
 
 class Technology(ModelComponent):
@@ -145,11 +147,6 @@ class Technology(ModelComponent):
         b_tec = self.__define_output(b_tec, energyhub)
         b_tec = self.__define_opex(b_tec, energyhub)
         b_tec = self.__define_emissions(b_tec, energyhub)
-
-        # RAMPING RATES (MOVE TO CHILD CLASSES)
-        if hasattr(self.performance_data, "ramping_rate"):
-            if not self.performance_data.ramping_rate == -1:
-                b_tec = self.define_ramping_rates(b_tec)
 
         # DYNAMICS
         if energyhub.configuration.performance.dynamics:
@@ -534,14 +531,6 @@ class Technology(ModelComponent):
         if not performance_function_type4 and (SU_load + SD_load < 2):
             b_tec = self.__dynamics_fast_SUSD(b_tec)
 
-        return b_tec
-
-    def define_ramping_rates(self, b_tec):
-        """
-        Defines constraints for the ramping rate, this is done in the technology child classes
-        :param b_tec: technology model block
-        :return:
-        """
         return b_tec
 
     def __dynamics_SUSD_logic(self, b_tec):

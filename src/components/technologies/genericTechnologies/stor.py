@@ -214,6 +214,11 @@ class Stor(Technology):
 
         b_tec.const_max_discharge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
 
+        # RAMPING RATES
+        if hasattr(self.performance_data, "ramping_rate"):
+            if not self.performance_data.ramping_rate == -1:
+                b_tec = self.__define_ramping_rates(b_tec)
+
         return b_tec
 
     def report_results(self, b_tec):
@@ -230,15 +235,13 @@ class Stor(Technology):
 
         return self.results
 
-    def define_ramping_rates(self, b_tec):
+    def __define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate. Implemented for input and output
 
         :param b_tec: technology model block
         :return:
         """
-        super(Stor, self).define_ramping_rates(b_tec)
-
         ramping_rate = self.performance_data['ramping_rate']
 
         def init_ramping_down_rate_input(const, t):

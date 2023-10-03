@@ -182,6 +182,11 @@ class HeatPump(Technology):
             return self.input[t, 'electricity'] <= b_tec.var_size * rated_power
         b_tec.const_size = Constraint(self.set_t, rule=init_size_constraint)
 
+        # RAMPING RATES
+        if hasattr(self.performance_data, "ramping_rate"):
+            if not self.performance_data.ramping_rate == -1:
+                b_tec = self.__define_ramping_rates(b_tec)
+
         return b_tec
 
     def __performance_function_type_1(self, b_tec):
@@ -314,15 +319,13 @@ class HeatPump(Technology):
 
         return b_tec
 
-    def define_ramping_rates(self, b_tec):
+    def __define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate
 
         :param b_tec: technology model block
         :return:
         """
-        super(HeatPump, self).define_ramping_rates(b_tec)
-
         ramping_rate = self.performance_data['ramping_rate']
 
         def init_ramping_down_rate(const, t):

@@ -267,6 +267,11 @@ class GasTurbine(Technology):
 
         b_tec.const_n_on = Constraint(self.set_t, rule=init_n_on)
 
+        # RAMPING RATES
+        if hasattr(self.performance_data, "ramping_rate"):
+            if not self.performance_data.ramping_rate == -1:
+                b_tec = self.__define_ramping_rates(b_tec)
+
         return b_tec
 
     def report_results(self, b_tec):
@@ -282,15 +287,13 @@ class GasTurbine(Technology):
 
         return self.results
 
-    def define_ramping_rates(self, b_tec):
+    def __define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate
 
         :param b_tec: technology model block
         :return:
         """
-        super(GasTurbine, self).define_ramping_rates(b_tec)
-
         ramping_rate = self.performance_data['ramping_rate']
 
         def init_ramping_down_rate(const, t):
