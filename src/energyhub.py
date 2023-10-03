@@ -112,6 +112,8 @@ class EnergyHub:
         self.construct_model()
         self.construct_balances()
 
+        self.model.pprint()
+
         self.solve()
         return self.results
 
@@ -396,6 +398,54 @@ class EnergyHub:
             else:
                 self.__call_solver()
 
+
+    def __scale_model(self):
+
+        f = self.configuration.scaling_factors
+        self.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+
+        # Scale energybalance
+        if f.energy_vars >= 0:
+            self.model.scaling_factor[self.model.const_energybalance] = f.energy_vars
+            for node in self.model.node_blocks:
+                self.model.scaling_factor[self.model.node_blocks[node].var_import_flow] = f.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].var_export_flow] = f.energy_vars
+
+                self.model.scaling_factor[self.model.node_blocks[node].var_netw_inflow] = f.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_netw_inflow] = f.energy_vars
+
+                self.model.scaling_factor[self.model.node_blocks[node].var_netw_outflow] = f.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_netw_outflow] = f.energy_vars
+
+                self.model.scaling_factor[self.model.node_blocks[node].var_generic_production] = f.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_generic_production] = f.energy_vars
+
+                for tec in self.model.node_blocks[node].tech_blocks_active:
+                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_output] = f.energy_vars
+                    # self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_size] = f.energy_vars
+                    # self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_input_output] = f.energy_vars
+
+        # Scale Costs
+        if f.cost_vars >= 0:
+            self.model.scaling_factor[self.model.const_node_cost] = f.cost_vars
+            self.model.scaling_factor[self.model.const_netw_cost] = f.cost_vars
+            self.model.scaling_factor[self.model.const_revenue_carbon] = f.cost_vars
+            self.model.scaling_factor[self.model.const_cost_carbon] = f.cost_vars
+            self.model.scaling_factor[self.model.const_cost] = f.cost_vars
+            for node in self.model.node_blocks:
+                for tec in self.model.node_blocks[node].tech_blocks_active:
+                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_capex_aux] = f.cost_vars
+                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_capex] = f.cost_vars
+                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_capex_aux] = f.cost_vars
+                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_capex] = f.cost_vars
+                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_opex_variable] = f.cost_vars
+                    self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_opex_fixed] = f.cost_vars
+
+
+
+
+        TransformationFactory('core.scale_model').apply_to(self.model)
+
     def __call_solver(self):
         """
         Calls the solver and solves the model
@@ -409,6 +459,12 @@ class EnergyHub:
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(self.model.objective)
+            if self.configuration.scaling:
+                warnings.warn('Model scaling with persistent solvers not supported currently')
+        else:
+            if self.configuration.scaling:
+                self.__scale_model()
+
         if self.configuration.optimization.save_log_files:
             # TransformationFactory('core.scale_model').apply_to(self.model)
 

@@ -172,3 +172,9 @@ class ModelConfiguration:
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
         self.reporting.save_path = './userData/'
+
+
+        self.scaling = 1
+        self.scaling_factors = SimpleNamespace()
+        self.scaling_factors.energy_vars = 1e-3
+        self.scaling_factors.cost_vars = 1e-2
