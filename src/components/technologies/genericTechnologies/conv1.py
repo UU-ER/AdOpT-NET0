@@ -14,6 +14,7 @@ class Conv1(Technology):
         super().__init__(tec_data)
 
         self.fitted_performance = None
+        self.main_car = self.performance_data['main_input_carrier']
 
     def fit_technology_performance(self, node_data):
         """
@@ -143,6 +144,8 @@ class Conv1(Technology):
         """
         # Performance parameter:
         alpha1 = self.fitted_performance.coefficients['out']['alpha1']
+        rated_power = self.fitted_performance.rated_power
+        min_part_load = self.performance_data['min_part_load']
 
         # Input-output correlation
         def init_input_output(const, t):
@@ -150,8 +153,14 @@ class Conv1(Technology):
                        for car_output in b_tec.set_output_carriers) == \
                    alpha1 * sum(self.input[t, car_input]
                                 for car_input in b_tec.set_input_carriers)
-
         b_tec.const_input_output = Constraint(self.set_t, rule=init_input_output)
+
+        if min_part_load > 0:
+            def init_min_part_load(const, t):
+                return min_part_load * b_tec.var_size * rated_power <= \
+                       sum(self.input[t, car_input] for car_input in b_tec.set_input_carriers)
+            b_tec.const_min_part_load = Constraint(self.set_t, rule=init_min_part_load)
+
 
         return b_tec
 
@@ -190,13 +199,12 @@ class Conv1(Technology):
                         return self.input[t, car_input] == 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
                 else:
-                    def init_input_off(const, car_input):
-                        return self.input[t, car_input] >= 0
-                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
-
-                    def init_standby_power(const):
-                        return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
-                    dis.const_standby_power = Constraint(rule=init_standby_power)
+                    def init_standby_power(const, car_input):
+                        if car_input == self.main_car:
+                            return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
+                        else:
+                            return self.input[t, car_input] == 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_standby_power)
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
@@ -264,13 +272,12 @@ class Conv1(Technology):
                         return self.input[t, car_input] == 0
                     dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
                 else:
-                    def init_input_off(const, car_input):
-                        return self.input[t, car_input] >= 0
-                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
-
-                    def init_standby_power(const):
-                        return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
-                    dis.const_standby_power = Constraint(rule=init_standby_power)
+                    def init_standby_power(const, car_input):
+                        if car_input == self.main_car:
+                            return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
+                        else:
+                            return self.input[t, car_input] == 0
+                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_standby_power)
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0

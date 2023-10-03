@@ -15,11 +15,7 @@ Suggestions:
 - I think, how it is formulated now, we would need a switch that skips the '__define_dynamics' function if for a certain 
 technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). 
 - Add the x,y,z variables to the reporting (self.report_results)
-- Change parameters to -1 in JSON files -> Julia
-- Standby power missing -> Jan
-- I left out the part-load constraints in perf-func-type 1, hope that was correct? -> NO! -> Jan
-- For the standby power, why are all inputs >= 0, and not ==0, other than the main carrier? -> Jan
-- main_car CONV1?
+- Change parameters to -1 in JSON files
 """
 
 class Technology(ModelComponent):
