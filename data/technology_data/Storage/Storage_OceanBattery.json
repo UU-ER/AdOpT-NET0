@@ -1,5 +1,5 @@
 {
-  "tec_type": "Ocean_Battery",
+  "tec_type": "OceanBattery",
   "size_min": 0,
   "size_max": 1.0E+7,
   "size_is_int": 0,

@@ -50,8 +50,9 @@ class ResultsHandle:
         :return:
         """
         # Optimization info
+        create_save_folder(self.save_path, timestamp)
         results = OptimizationResults(self.save_detail)
-        results.read_results(energyhub)
+        results.read_results(energyhub, Path.joinpath(self.save_path, timestamp))
         objective = energyhub.configuration.optimization.objective
         pareto_point = energyhub.model_information.pareto_point
         monte_carlo_run = energyhub.model_information.monte_carlo_run
@@ -71,7 +72,6 @@ class ResultsHandle:
         self.summary = pd.concat([self.summary, summary])
 
         if self.save_detail:
-            create_save_folder(self.save_path, timestamp)
             results.write_detailed_results(Path.joinpath(self.save_path, timestamp))
 
         if energyhub.model_information.testing:
@@ -150,7 +150,7 @@ class OptimizationResults:
             self.detailed_results.nodes = {}
             self.detailed_results.networks = {}
 
-    def read_results(self, energyhub):
+    def read_results(self, energyhub, save_path):
 
         if energyhub.solution.solver.termination_condition == 'optimal':
             model = energyhub.model
@@ -255,6 +255,9 @@ class OptimizationResults:
                     if self.detail:
                         self.detailed_results.nodes[node_name][tec_name] = tec_results['time_dependent']
 
+                    if 'specific_design' in  tec_results:
+                        tec_results['specific_design'].to_excel(Path.joinpath(save_path, tec_name + '_' + node_name + '.xlsx'))
+
             # Network Results
             if not energyhub.configuration.energybalance.copperplate:
                 for netw_name in model.set_networks:
@@ -352,3 +355,4 @@ class OptimizationResults:
                     with pd.ExcelWriter(save_technologies_path) as writer:
                         for tec_name in self.detailed_results.nodes[node]:
                             self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=tec_name)
+

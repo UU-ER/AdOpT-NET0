@@ -1,3 +1,6 @@
+import time
+
+from pyomo.core import TransformationFactory
 from pyomo.environ import *
 
 def annualize(r, t):
@@ -46,3 +49,17 @@ def link_full_resolution_to_clustered(var_clustered, var_full, set_t, sequence, 
         constraint = Constraint(set_t, set1, set2, rule=init_link_full_resolution)
 
     return constraint
+
+
+def perform_disjunct_relaxation(model_block, method = 'gdp.bigm'):
+    """
+    Performs big-m transformation for respective component
+    :param component: component
+    :return: component
+    """
+    print('\t\tBig-M Transformation...')
+    start = time.time()
+    xfrm = TransformationFactory(method)
+    xfrm.apply_to(model_block)
+    print('\t\tBig-M Transformation completed in ' + str(round(time.time() - start)) + ' s')
+    return model_block

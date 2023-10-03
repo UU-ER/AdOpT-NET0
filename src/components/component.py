@@ -1,5 +1,3 @@
-import time
-from pyomo.environ import *
 import pandas as pd
 
 class ModelComponent:
@@ -48,18 +46,3 @@ class Economics:
         self.discount_rate = economics['discount_rate']
         self.lifetime = economics['lifetime']
         self.decommission_cost = economics['decommission_cost']
-
-
-def perform_disjunct_relaxation(model_block, method = 'gdp.bigm'):
-    """
-    Performs big-m transformation for respective component
-    :param component: component
-    :return: component
-    """
-    print('\t\tBig-M Transformation...')
-    start = time.time()
-    xfrm = TransformationFactory(method)
-    xfrm.apply_to(model_block)
-    print('\t\tBig-M Transformation completed in ' + str(round(time.time() - start)) + ' s')
-    return model_block
-

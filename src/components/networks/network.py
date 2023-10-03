@@ -1,6 +1,5 @@
-from ..component import ModelComponent, perform_disjunct_relaxation
-from ..utilities import annualize, set_discount_rate
-
+from ..component import ModelComponent
+from ..utilities import annualize, set_discount_rate, perform_disjunct_relaxation
 
 import pandas as pd
 import copy
@@ -264,6 +263,8 @@ class Network(ModelComponent):
 
             if b_arc.big_m_transformation_required:
                 b_arc = perform_disjunct_relaxation(b_arc)
+
+            return b_arc
 
         b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_block_init)
 
