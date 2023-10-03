@@ -100,6 +100,9 @@ class EnergyHub:
             raise FileNotFoundError(f"The folder '{save_path}' does not exist. Create the folder or change the folder "
                                     f"name in the configuration")
 
+        # TODO if dynamics_on:
+        #     check that parameters are defined for each technology used in set_tec_types
+
     def quick_solve(self):
         """
         Quick-solves the model (constructs model and balances and solves model).

@@ -12,7 +12,7 @@ TODO
 Suggestions:
 - I think, how it is formulated now, we would need a switch that skips the '__define_dynamics' function if for a certain 
 technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). -> Or check for the tec_type and define 
-a list of tec_types that allow for dynamics?
+a list of tec_types that allow for dynamics? --> implement in energyhub.__perform_preprocessing_checks and __define_dynamics
 - add dynamics parameters for missing tecs such as storage? test also?
 - add sources to documentation
 - Delete src/model_construction/generic_technology_constraints.py
