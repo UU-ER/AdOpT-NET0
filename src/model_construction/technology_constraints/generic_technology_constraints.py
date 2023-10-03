@@ -217,7 +217,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
             if ind == 0:  # technology off
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power == 0:
+                if standby_power == -1:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -266,7 +266,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
             if ind == 0:  # technology off
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power == 0:
+                if standby_power == -1:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -318,9 +318,12 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
 
         # slow startup and shutdown dynamics
     elif performance_function_type == 4:
-        if SU_time + SD_time == 0:
-            warnings.warn(
-                'Having performance_function_type = 4 with no slow SU/SDs usually makes no sense.')
+        if SU_time <= 0 and SD_time <= 0:
+            warnings.warn('Having performance_function_type = 4 with no slow SU/SDs usually makes no sense.')
+        elif SU_time < 0:
+            SU_time = 0
+        elif SD_time < 0:
+            SD_time = 0
 
         # Calculate SU and SD trajectories
         if SU_time > 0:
@@ -646,7 +649,7 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
             if ind == 0:  # technology off
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power == 0:
+                if standby_power == -1:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -695,7 +698,7 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
             if ind == 0:  # technology off
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power == 0:
+                if standby_power == -1:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -1078,7 +1081,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
             if ind == 0:  # technology off
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power > 0:
+                if not standby_power == -1:
                     def init_input_off(const, car_input):
                         return input[t, car_input] >= 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -1125,7 +1128,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
             if ind == 0:  # technology off
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power == 0:
+                if standby_power == -1:
                     def init_input_off(const, car_input):
                         return input[t, car_input] == 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -1336,7 +1339,7 @@ def constraints_tec_CONV3(b_tec, tec_data, energyhub):
         if car_input == main_car:
             return Constraint.Skip
         else:
-            if standby_power == 0:
+            if standby_power == -1:
                 return input[t, car_input] == phi[car_input] * input[t, main_car]
             else:
                 return input[t, car_input] == phi[car_input] * input[t, main_car] * b_tec.var_x[t]

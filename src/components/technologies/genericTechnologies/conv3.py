@@ -113,7 +113,7 @@ class Conv3(Technology):
             if car_input == self.main_car:
                 return Constraint.Skip
             else:
-                if standby_power == 0:
+                if standby_power == -1:
                     return self.input[t, car_input] == phi[car_input] * self.input[t, self.main_car]
                 else:
                     return self.input[t, car_input] == phi[car_input] * self.input[t, self.main_car] * b_tec.var_x[t]
@@ -193,7 +193,7 @@ class Conv3(Technology):
 
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                if standby_power == 0:
+                if standby_power == -1:
 
                     def init_input_off(const, car_input):
                         return self.input[t, car_input] == 0
@@ -268,7 +268,7 @@ class Conv3(Technology):
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
 
-                if standby_power == 0:
+                if standby_power == -1:
                     def init_input_off(const, car_input):
                         return self.input[t, car_input] == 0
                     dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
@@ -323,7 +323,10 @@ class Conv3(Technology):
 
     def __performance_function_type_4(self, b_tec):
         """
-        Documentation
+        Piece-wise linear, minimal partload, includes constraints for slow (>1h) startup and shutdown trajectories.
+        Constraints are based on equations ...
+        :param b_tec: technology block
+        :return: technology block
         """
         # Transformation required
         self.big_m_transformation_required = 1
@@ -337,8 +340,12 @@ class Conv3(Technology):
         rated_power = self.fitted_performance.rated_power
         min_part_load = self.performance_data['min_part_load']
 
-        if SU_time + SD_time == 0:
+        if SU_time <= 0 and SD_time <= 0:
             warn('Having performance_function_type = 4 with no slow SU/SDs usually makes no sense.')
+        elif SU_time < 0:
+            SU_time = 0
+        elif SD_time < 0:
+            SD_time = 0
 
         # Calculate SU and SD trajectories
         if SU_time > 0:

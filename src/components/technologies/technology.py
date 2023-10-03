@@ -10,12 +10,11 @@ from .utilities import set_capex_model
 """
 TODO
 Suggestions:
-- in __SUSD logic, check if SUSD time and min up and down time are switched on, if not, set to default and warn (maybe somewhere else?)
-- in __define_dynamics define a switch that constraints min up and down time
 - I think, how it is formulated now, we would need a switch that skips the '__define_dynamics' function if for a certain 
-technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). 
-- Add the x,y,z variables to the reporting (self.report_results)
-- Change parameters to -1 in JSON files
+technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). -> Or check for the tec_type and define 
+a list of tec_types that allow for dynamics?
+- add dynamics parameters for missing tecs such as storage? test also?
+- add sources to documentation
 - Delete src/model_construction/generic_technology_constraints.py
 """
 
@@ -190,6 +189,12 @@ class Technology(ModelComponent):
             self.results['time_dependent']['output_' + car] = [b_tec.var_output[t, car].value for t in self.set_t_full]
         self.results['time_dependent']['emissions_pos'] = [b_tec.var_tec_emissions_pos[t].value for t in self.set_t_full]
         self.results['time_dependent']['emissions_neg'] = [b_tec.var_tec_emissions_neg[t].value for t in self.set_t_full]
+        if b_tec.find_component('var_x'):
+            self.results['time_dependent']['var_x'] = [b_tec.var_x[t].value for t in self.set_t_full]
+        if b_tec.find_component('var_y'):
+            self.results['time_dependent']['var_y'] = [b_tec.var_y[t].value for t in self.set_t_full]
+        if b_tec.find_component('var_z'):
+            self.results['time_dependent']['var_z'] = [b_tec.var_z[t].value for t in self.set_t_full]
 
         return self.results
 
@@ -514,28 +519,48 @@ class Technology(ModelComponent):
 
     def __define_dynamics(self, b_tec):
         """
-        Add documentation
+        Selects the dynamic constraints that are required based on the technology dynamic performance parameters or the
+        performance function type.
         :param b_tec:
         :return:
         """
         SU_load = self.performance_data['SU_load']
         SD_load = self.performance_data['SD_load']
+        min_uptime = self.performance_data['min_uptime']
+        min_downtime = self.performance_data['min_downtime']
         max_startups = self.performance_data['max_startups']
         performance_function_type4 = hasattr(self.performance_data, "performance_function_type") and \
                                      (self.performance_data.performance_function_type == 4)
-        if (max_startups > -1) or (SU_load + SD_load < 2) or performance_function_type4:
+        if (min_uptime + min_downtime > -2) or (max_startups > -1) or (SU_load + SD_load > -2) or \
+                performance_function_type4:
             b_tec = self.__dynamics_SUSD_logic(b_tec)
-        if not performance_function_type4 and (SU_load + SD_load < 2):
+        if not performance_function_type4 and (SU_load + SD_load > -2):
             b_tec = self.__dynamics_fast_SUSD(b_tec)
 
         return b_tec
 
     def __dynamics_SUSD_logic(self, b_tec):
-        """"Add description"""
+        """
+        Adds the startup and shutdown logic to the technology model and constrains the maximum number of startups.
+        Based on equations ...
+
+        """
         # New variables
         b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
         b_tec.var_y = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
         b_tec.var_z = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+
+        # Check for default values
+        para_names = ['SU_time', 'SD_time']
+        for para in para_names:
+            if self.performance_data[para] < 0:
+                self.performance_data[para] = 0
+                warn("Using SU/SD logic constraints, parameter" + para + "set to default value 0")
+        para_names = ['min_uptime', 'min_downtime']
+        for para in para_names:
+            if self.performance_data[para] < 0:
+                self.performance_data[para] = 1
+                warn("Using SU/SD logic constraints, parameter" + para + "set to default value 1")
 
         # Collect parameters
         SU_time = self.performance_data['SU_time']
@@ -579,10 +604,21 @@ class Technology(ModelComponent):
         return b_tec
 
     def __dynamics_fast_SUSD(self, b_tec):
-        """Add description here"""
+        """
+        Adds startup and shutdown load constraints to the model. Based on equations ...
+
+        """
         # Collect variables
         var_y = b_tec.var_y
         var_z = b_tec.var_z
+
+        # Check for default values
+        para_names = ['SU_load', 'SD_load']
+        for para in para_names:
+            if self.performance_data[para] < 0:
+                self.performance_data[para] = 1
+                warn("Using SU/SD load constraints, parameter" + para + "set to default value 1")
+
 
         # Collect parameters
         SU_load = self.performance_data['SU_load']
