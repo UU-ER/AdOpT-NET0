@@ -13,18 +13,19 @@ topology.define_carriers(['electricity', 'gas'])
 topology.define_nodes(['onshore', 'offshore'])
 
 # Our offshore farm
-topology.define_existing_technologies('offshore', {'WindTurbine_Offshore_11000': 150})
-topology.define_existing_technologies('onshore', {'PowerPlant_Gas': 2000, 'Photovoltaic': 200})
+topology.define_new_technologies('offshore', ['WindTurbine_Offshore_11000'])
+topology.define_new_technologies('onshore', ['Photovoltaic'])
+topology.define_existing_technologies('onshore', {'PowerPlant_Gas': 2000})
 
 # Our electricity connection to shore
-size_matrix = dm.create_empty_network_matrix(topology.nodes)
-size_matrix.at['onshore', 'offshore'] = 0
-size_matrix.at['offshore', 'onshore'] = 1
+connection = dm.create_empty_network_matrix(topology.nodes)
+connection.at['onshore', 'offshore'] = 1
+connection.at['offshore', 'onshore'] = 1
 distance_matrix = dm.create_empty_network_matrix(topology.nodes)
 distance_matrix.at['onshore', 'offshore'] = 80
 distance_matrix.at['offshore', 'onshore'] = 80
 
-topology.define_existing_network('electricityDC_uni', size=size_matrix, distance=distance_matrix)
+topology.define_new_network('electricityDC_int', connections=connection, distance=distance_matrix)
 
 carbon_price = 100
 gas_import_limit = 5000
@@ -61,12 +62,3 @@ configuration = ModelConfiguration()
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve()
 
-# results.write_excel('./cases/wind_meets_gas/results/Results_Simple')
-# # pl.plot_balance_at_node(results, 'electricity')
-#
-energyhub.add_technology_to_node('offshore', ['Storage_OceanBattery'], path='./cases/wind_meets_gas/Technology_Data/')
-energyhub.construct_balances()
-results = energyhub.solve()
-
-# Export to Excel
-results.write_excel('./cases/wind_meets_gas/results/Results_OceanBattery')

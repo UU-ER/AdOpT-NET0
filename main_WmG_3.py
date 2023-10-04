@@ -15,7 +15,7 @@ topology.define_nodes(['onshore', 'offshore'])
 # Our offshore farm
 topology.define_new_technologies('offshore', ['Storage_OceanBattery'])
 topology.define_existing_technologies('offshore', {'WindTurbine_Offshore_11000': 150})
-topology.define_existing_technologies('onshore', {'PowerPlant_Gas': 2000, 'Photovoltaic': 800})
+topology.define_existing_technologies('onshore', {'PowerPlant_Gas': 2000, 'Photovoltaic': 1500})
 
 # Our electricity connection to shore
 size_matrix = dm.create_empty_network_matrix(topology.nodes)
@@ -63,7 +63,7 @@ energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
 
 # Export to Excel
-results.write_excel('./cases/wind_meets_gas/results/Results_unidirectional_PV800')
+results.write_excel('./cases/wind_meets_gas/results/Results_unidirectional_PV1500')
 
 
 
@@ -78,7 +78,7 @@ topology.define_nodes(['onshore', 'offshore'])
 # Our offshore farm
 topology.define_new_technologies('offshore', ['Storage_OceanBattery'])
 topology.define_existing_technologies('offshore', {'WindTurbine_Offshore_11000': 150})
-topology.define_existing_technologies('onshore', {'PowerPlant_Gas': 2000, 'Photovoltaic': 800})
+topology.define_existing_technologies('onshore', {'PowerPlant_Gas': 2000, 'Photovoltaic': 1500})
 
 # Our electricity connection to shore
 size_matrix = dm.create_empty_network_matrix(topology.nodes)
@@ -126,5 +126,5 @@ energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
 
 # Export to Excel
-results.write_excel('./cases/wind_meets_gas/results/Results_bidirectional_PV800')
+results.write_excel('./cases/wind_meets_gas/results/Results_bidirectional_PV1500')
 
