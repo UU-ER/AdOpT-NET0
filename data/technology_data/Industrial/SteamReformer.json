@@ -15,9 +15,9 @@
         100000
       ],
       "bp_y": [
-        1.003E+7,
-        1.98E+7,
-        2.4015E+10
+        10030000.0,
+        19800000.0,
+        24015000000.0
       ]
     },
     "OPEX_variable": 0,
@@ -54,7 +54,16 @@
           0.025
         ]
       }
-    }
+    },
+    "ramping_rate": -1,
+    "standby_power": -1,
+    "min_uptime": -1,
+    "min_downtime": -1,
+    "SU_time": -1,
+    "SD_time": -1,
+    "SU_load": -1,
+    "SD_load": -1,
+    "max_startups": -1
   },
   "Units": {
     "size": "MW",
