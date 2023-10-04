@@ -72,7 +72,7 @@
     "min_uptime": -1,
     "min_downtime": -1,
     "SU_time": 1,
-    "SD_time": 1,
+    "SD_time": -1,
     "SU_load": -1,
     "SD_load": -1,
     "max_startups": -1
