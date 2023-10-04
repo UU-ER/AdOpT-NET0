@@ -13,7 +13,6 @@ Suggestions:
 - I think, how it is formulated now, we would need a switch that skips the '__define_dynamics' function if for a certain 
 technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). -> Or check for the tec_type and define 
 a list of tec_types that allow for dynamics? --> implement in energyhub.__perform_preprocessing_checks and __define_dynamics
-- add dynamics parameters for missing tecs such as storage? test also?
 - add sources to documentation
 - Delete src/model_construction/generic_technology_constraints.py
 """
@@ -126,7 +125,7 @@ class Technology(ModelComponent):
         # MODELING TYPICAL DAYS
         if energyhub.model_information.clustered_data:
             if configuration.optimization.typicaldays.method == 2:
-                technologies_modelled_with_full_res = ['RES', 'STOR' 'Hydro_Open']
+                technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
                 if self.technology_model in technologies_modelled_with_full_res:
                     self.modelled_with_full_res = 1
                 else:
@@ -146,7 +145,11 @@ class Technology(ModelComponent):
 
         # DYNAMICS
         if energyhub.configuration.performance.dynamics:
-            b_tec = self.__define_dynamics(b_tec)
+            technologies_modelled_with_dynamics = ['CONV1', 'CONV2', 'CONV3']
+            if self.technology_model in technologies_modelled_with_dynamics:
+                b_tec = self.__define_dynamics(b_tec)
+            else:
+                warn('Modeling dynamic constraints not enabled for technology type' + self.name)
         else:
             if hasattr(self.performance_data, "performance_function_type"):
                 if self.performance_data.performance_function_type == 4:
