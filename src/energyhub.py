@@ -81,6 +81,7 @@ class EnergyHub:
 
         # INITIALIZE RESULTS
         self.results = ResultsHandle(self.configuration)
+        self.detailed_results = []
 
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
@@ -113,8 +114,7 @@ class EnergyHub:
         self.construct_balances()
 
         self.solve()
-        return self.results
-
+        return self.detailed_results
 
     def construct_model(self):
         """
@@ -217,7 +217,7 @@ class EnergyHub:
         else:
             self.__optimize(objective)
 
-        return self.results
+        return self.detailed_results
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -421,7 +421,7 @@ class EnergyHub:
 
             self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
-        self.results.report_optimization_result(self, time_stamp)
+        self.detailed_results = self.results.report_optimization_result(self, time_stamp)
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)

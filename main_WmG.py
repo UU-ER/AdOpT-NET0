@@ -60,5 +60,13 @@ configuration = ModelConfiguration()
 
 # Solve the model
 energyhub = EnergyHub(data, configuration)
-energyhub.quick_solve()
+results = energyhub.quick_solve()
+
+print(results.summary)
+print(results.technologies)
+print(results.networks)
+
+
+
+
 

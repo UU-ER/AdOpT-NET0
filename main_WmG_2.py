@@ -76,7 +76,6 @@ topology.define_carriers(['electricity', 'gas'])
 topology.define_nodes(['onshore', 'offshore'])
 
 # Our offshore farm
-topology.define_new_technologies('offshore', ['Storage_OceanBattery'])
 topology.define_existing_technologies('offshore', {'WindTurbine_Offshore_11000': 150})
 topology.define_existing_technologies('onshore', {'PowerPlant_Gas': 2000, 'Photovoltaic': 800})
 

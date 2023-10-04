@@ -136,6 +136,7 @@ class ModelConfiguration:
         self.solveroptions.feastol = 1e-5
         self.solveroptions.numericfocus = 0
         self.solveroptions.cuts = -1
+        self.solveroptions.scaling = 0
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
