@@ -324,7 +324,11 @@ class Conv3(Technology):
     def __performance_function_type_4(self, b_tec):
         """
         Piece-wise linear, minimal partload, includes constraints for slow (>1h) startup and shutdown trajectories.
-        Constraints are based on equations ...
+
+        Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L., & Hobbs, B. F. (2017). Hidden
+        power system inflexibilities imposed by traditional unit commitment formulations. Applied Energy, 191, 223–238.
+        https://doi.org/10.1016/J.APENERGY.2017.01.089
+
         :param b_tec: technology block
         :return: technology block
         """
