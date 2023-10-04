@@ -95,8 +95,8 @@ if execute == 1:
 execute = 1
 
 if execute == 1:
-    data = dm.load_object(r'./src/test/test_data/technology_dynamics_CONV1_4.p')
-    tecname = 'testCONV1_4'
+    data = dm.load_object(r'./src/test/test_data/technology_dynamics_CONV1_2.p')
+    tecname = 'testCONV1_2'
 
     # change test technology dynamic parameters
     # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
@@ -105,7 +105,7 @@ if execute == 1:
     data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.5
     data.technology_data['test_node1'][tecname].performance_data['SU_time'] = 2
     # data.technology_data['test_node1'][tecname].performance_data['SD_time'] = 1
-    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
+    data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
     # data.technology_data['test_node1'][tecname].size_max = 1.5
     main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
 

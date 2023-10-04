@@ -10,9 +10,6 @@ from .utilities import set_capex_model
 """
 TODO
 Suggestions:
-- I think, how it is formulated now, we would need a switch that skips the '__define_dynamics' function if for a certain 
-technology we dont have it (i.e. if SU_load, SD_load, max_startups doesnt exist). -> Or check for the tec_type and define 
-a list of tec_types that allow for dynamics? --> implement in energyhub.__perform_preprocessing_checks and __define_dynamics
 - add sources to documentation
 - Delete src/model_construction/generic_technology_constraints.py
 """
@@ -143,6 +140,17 @@ class Technology(ModelComponent):
         b_tec = self.__define_opex(b_tec, energyhub)
         b_tec = self.__define_emissions(b_tec, energyhub)
 
+        # CLUSTERED DATA
+        if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
+            b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
+        else:
+            if not (self.technology_model == 'RES') and not (self.technology_model == 'CONV4'):
+                self.input = b_tec.var_input
+            self.output = b_tec.var_output
+            self.set_t = energyhub.model.set_t_full
+            self.sequence = list(self.set_t)
+        self.set_t_full = energyhub.model.set_t_full
+
         # DYNAMICS
         if energyhub.configuration.performance.dynamics:
             technologies_modelled_with_dynamics = ['CONV1', 'CONV2', 'CONV3']
@@ -155,17 +163,6 @@ class Technology(ModelComponent):
                 if self.performance_data.performance_function_type == 4:
                     self.performance_data.performance_function_type = 3
                     warn('Switching dynamics off for performance function type 4, type changed to 3 for ' + self.name)
-
-        # CLUSTERED DATA
-        if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
-            b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
-        else:
-            if not (self.technology_model == 'RES') and not (self.technology_model == 'CONV4'):
-                self.input = b_tec.var_input
-            self.output = b_tec.var_output
-            self.set_t = energyhub.model.set_t_full
-            self.sequence = list(self.set_t)
-        self.set_t_full = energyhub.model.set_t_full
 
         return b_tec
 
@@ -532,8 +529,8 @@ class Technology(ModelComponent):
         min_uptime = self.performance_data['min_uptime']
         min_downtime = self.performance_data['min_downtime']
         max_startups = self.performance_data['max_startups']
-        performance_function_type4 = hasattr(self.performance_data, "performance_function_type") and \
-                                     (self.performance_data.performance_function_type == 4)
+        performance_function_type4 = ("performance_function_type" in self.performance_data) and \
+                                     (self.performance_data['performance_function_type'] == 4)
         if (min_uptime + min_downtime > -2) or (max_startups > -1) or (SU_load + SD_load > -2) or \
                 performance_function_type4:
             b_tec = self.__dynamics_SUSD_logic(b_tec)
@@ -545,7 +542,10 @@ class Technology(ModelComponent):
     def __dynamics_SUSD_logic(self, b_tec):
         """
         Adds the startup and shutdown logic to the technology model and constrains the maximum number of startups.
-        Based on equations ...
+
+        Based on Equations 4-5 in Morales-España, G., Ramírez-Elizondo, L., & Hobbs, B. F. (2017). Hidden power system
+        inflexibilities imposed by traditional unit commitment formulations. Applied Energy, 191, 223–238.
+        https://doi.org/10.1016/J.APENERGY.2017.01.089
 
         """
         # New variables
@@ -558,12 +558,12 @@ class Technology(ModelComponent):
         for para in para_names:
             if self.performance_data[para] < 0:
                 self.performance_data[para] = 0
-                warn("Using SU/SD logic constraints, parameter" + para + "set to default value 0")
+                warn("Using SU/SD logic constraints, parameter " + str(para) + " set to default value 0")
         para_names = ['min_uptime', 'min_downtime']
         for para in para_names:
             if self.performance_data[para] < 0:
                 self.performance_data[para] = 1
-                warn("Using SU/SD logic constraints, parameter" + para + "set to default value 1")
+                warn("Using SU/SD logic constraints, parameter " + str(para) + " set to default value 1")
 
         # Collect parameters
         SU_time = self.performance_data['SU_time']
@@ -608,19 +608,20 @@ class Technology(ModelComponent):
 
     def __dynamics_fast_SUSD(self, b_tec):
         """
-        Adds startup and shutdown load constraints to the model. Based on equations ...
+        Adds startup and shutdown load constraints to the model.
+
+        Based on Equations 9-11 and 13 in Morales-España, G., Ramírez-Elizondo, L., & Hobbs, B. F. (2017). Hidden power
+        system inflexibilities imposed by traditional unit commitment formulations. Applied Energy, 191, 223–238.
+        https://doi.org/10.1016/J.APENERGY.2017.01.089
 
         """
-        # Collect variables
-        var_y = b_tec.var_y
-        var_z = b_tec.var_z
 
         # Check for default values
         para_names = ['SU_load', 'SD_load']
         for para in para_names:
             if self.performance_data[para] < 0:
                 self.performance_data[para] = 1
-                warn("Using SU/SD load constraints, parameter" + para + "set to default value 1")
+                warn("Using SU/SD load constraints, parameter" + str(para) + "set to default value 1")
 
 
         # Collect parameters
@@ -634,10 +635,10 @@ class Technology(ModelComponent):
 
         def init_SU_load(dis, t, ind):
             if ind == 0:  # no startup (y=0)
-                dis.const_y_off = Constraint(expr=var_y[t] == 0)
+                dis.const_y_off = Constraint(expr=b_tec.var_y[t] == 0)
 
             else:  # tech in startup
-                dis.const_y_on = Constraint(expr=var_y[t] == 1)
+                dis.const_y_on = Constraint(expr=b_tec.var_y[t] == 1)
 
                 def init_SU_load_limit(cons):
                     if self.technology_model == 'CONV3':
@@ -659,10 +660,10 @@ class Technology(ModelComponent):
 
         def init_SD_load(dis, t, ind):
             if ind == 0:  # no shutdown (z=0)
-                dis.const_z_off = Constraint(expr=var_z[t] == 0)
+                dis.const_z_off = Constraint(expr=b_tec.var_z[t] == 0)
 
             else:  # tech in shutdown
-                dis.const_z_on = Constraint(expr=var_z[t] == 1)
+                dis.const_z_on = Constraint(expr=b_tec.var_z[t] == 1)
 
                 def init_SD_load_limit(cons):
                     if t == 1:
