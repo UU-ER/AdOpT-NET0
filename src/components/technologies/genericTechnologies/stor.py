@@ -229,3 +229,23 @@ class Stor(Technology):
             self.results['time_dependent']['storagelevel_' + car] = [b_tec.var_storage_level[t, car].value for t in self.set_t_full]
 
         return self.results
+
+    def scale_model(self, b_tec, model, configuration):
+        """
+        Scales technology model
+        """
+        super(Stor, self).scale_model(b_tec, model, configuration)
+
+        f = configuration.scaling_factors.general
+
+        # Constraints
+        model.scaling_factor[b_tec.var_storage_level] = 1e2
+        model.scaling_factor[b_tec.const_size] = 1e2
+        model.scaling_factor[b_tec.const_storage_level] = 1e2
+        model.scaling_factor[b_tec.const_output_to_zero] = 1e2
+        model.scaling_factor[b_tec.const_input_to_zero] = 1e2
+        model.scaling_factor[b_tec.const_max_charge] = 1e2
+        model.scaling_factor[b_tec.const_max_discharge] = 1e2
+
+
+        return model

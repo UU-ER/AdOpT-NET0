@@ -1,3 +1,5 @@
+import warnings
+
 from ..component import ModelComponent, perform_disjunct_relaxation
 from ..utilities import annualize, set_discount_rate
 
@@ -356,6 +358,15 @@ class Network(ModelComponent):
                     self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
 
         return self.results
+
+
+    def scale_model(self, b_tec, model, configuration):
+        """
+        Scales technology model
+        """
+        warnings.warn('To be implemented')
+
+        return model
 
     def __define_possible_arcs(self, b_netw, energyhub):
         """

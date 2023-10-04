@@ -204,7 +204,6 @@ class Technology(ModelComponent):
         if b_tec.find_component('const_link_full_resolution_input'):
             model.scaling_factor[b_tec.const_link_full_resolution_input] = 1
 
-
         return model
 
     def __define_size(self, b_tec):
