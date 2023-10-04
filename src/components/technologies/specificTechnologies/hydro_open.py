@@ -268,6 +268,6 @@ class HydroOpen(Technology):
             model.scaling_factor[b_tec.const_storage_level] = f['const_storage_level']
             model.scaling_factor[b_tec.const_max_charge] = f['const_max_charge']
             model.scaling_factor[b_tec.const_max_discharge] = f['const_max_discharge']
-            model.scaling_factor[b_tec.const_max_discharge] = f['const_max_discharge']
+            model.scaling_factor[b_tec.const_max_spilling] = f['const_max_spilling']
 
         return model

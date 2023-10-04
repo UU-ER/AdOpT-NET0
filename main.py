@@ -18,16 +18,16 @@ topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01
 topology.define_carriers(['electricity'])
 topology.define_nodes(['onshore'])
 # topology.define_nodes(['onshore', 'offshore'])
-topology.define_new_technologies('onshore', ['Photovoltaic'])
-#
-# distance = dm.create_empty_network_matrix(topology.nodes)
-# distance.at['onshore', 'offshore'] = 100
-# distance.at['offshore', 'onshore'] = 100
-#
-# connection = dm.create_empty_network_matrix(topology.nodes)
-# connection.at['onshore', 'offshore'] = 1
-# connection.at['offshore', 'onshore'] = 1
-# topology.define_new_network('electricitySimple', distance=distance, connections=connection)
+# topology.define_new_technologies('onshore', ['Photovoltaic'])
+
+distance = dm.create_empty_network_matrix(topology.nodes)
+distance.at['onshore', 'offshore'] = 1
+distance.at['offshore', 'onshore'] = 1
+
+connection = dm.create_empty_network_matrix(topology.nodes)
+connection.at['onshore', 'offshore'] = 1
+connection.at['offshore', 'onshore'] = 1
+topology.define_new_network('electricitySimple', distance=distance, connections=connection)
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)

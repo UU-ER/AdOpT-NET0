@@ -407,6 +407,11 @@ class EnergyHub:
                 b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
                 self.model = self.data.technology_data[node][tec].scale_model(b_tec, self.model, self.configuration)
 
+        # Scale networks
+        for netw in self.model.network_block:
+            b_netw = self.model.network_block[netw]
+            self.model = self.data.network_data[netw].scale_model(b_netw, self.model, self.configuration)
+
         # Scale energybalance
         if f.energy_vars >= 0:
             self.model.scaling_factor[self.model.const_energybalance] = f.energy_vars

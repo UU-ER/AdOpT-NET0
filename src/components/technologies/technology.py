@@ -202,7 +202,8 @@ class Technology(ModelComponent):
 
             # Constraints
             model.scaling_factor[b_tec.const_capex_aux] = f['const_capex']
-            model.scaling_factor[b_tec.const_capex] = f['const_capex']
+            if b_tec.find_component('const_capex'):
+                model.scaling_factor[b_tec.const_capex] = f['const_capex']
             model.scaling_factor[b_tec.const_opex_variable] = f['const_opex_variable']
             model.scaling_factor[b_tec.const_opex_fixed] = f['const_opex_fixed']
             model.scaling_factor[b_tec.const_tec_emissions_pos] = f['const_tec_emissions_pos']

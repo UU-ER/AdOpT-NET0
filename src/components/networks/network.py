@@ -36,6 +36,10 @@ class Network(ModelComponent):
 
         self.set_nodes = []
         self.set_t = []
+        
+        self.scaling_factors = []
+        if 'ScalingFactors' in netw_data:
+            self.scaling_factors = netw_data['ScalingFactors']
 
 
     def calculate_energy_consumption(self):
@@ -360,11 +364,58 @@ class Network(ModelComponent):
         return self.results
 
 
-    def scale_model(self, b_tec, model, configuration):
+    def scale_model(self, b_netw, model, configuration):
         """
         Scales technology model
         """
-        warnings.warn('To be implemented')
+
+        if self.scaling_factors:
+            f = self.scaling_factors
+            # Variables
+            model.scaling_factor[b_netw.var_capex] = f['var_capex']
+            model.scaling_factor[b_netw.var_opex_variable] = f['var_opex_variable']
+            model.scaling_factor[b_netw.var_opex_fixed] = f['var_opex_fixed']
+            model.scaling_factor[b_netw.var_netw_emissions_pos] = f['var_netw_emissions_pos']
+            model.scaling_factor[b_netw.var_inflow] = f['var_inflow']
+            model.scaling_factor[b_netw.var_outflow] = f['var_outflow']
+            if self.energy_consumption:
+                model.scaling_factor[b_netw.var_consumption] = f['var_consumption']
+
+            # Constraints
+            if b_netw.find_component('const_capex_aux'):
+                model.scaling_factor[b_netw.const_capex_aux] = f['const_capex']
+            model.scaling_factor[b_netw.const_capex] = f['const_capex']
+            model.scaling_factor[b_netw.const_opex_fixed] = f['const_opex_fixed']
+            model.scaling_factor[b_netw.const_opex_var] = f['const_opex_var']
+            model.scaling_factor[b_netw.const_inflow] = f['const_inflow']
+            model.scaling_factor[b_netw.const_outflow] = f['const_outflow']
+            model.scaling_factor[b_netw.const_netw_emissions] = f['const_netw_emissions']
+            if self.energy_consumption:
+                model.scaling_factor[b_netw.const_netw_consumption] = f['const_netw_consumption']
+            if b_netw.find_component('const_size_bidirectional'):
+                model.scaling_factor[b_netw.const_size_bidirectional] = f['const_size_bidirectional']
+
+            for arc in b_netw.arc_block:
+                # Variables
+                b_arc = b_netw.arc_block[arc]
+                model.scaling_factor[b_arc.var_size] = f['var_size']
+                model.scaling_factor[b_arc.var_capex_aux] = f['var_capex']
+                model.scaling_factor[b_arc.var_capex] = f['var_capex']
+                model.scaling_factor[b_arc.var_opex_variable] = f['var_opex_variable']
+                model.scaling_factor[b_arc.var_flow] = f['var_flow']
+                model.scaling_factor[b_arc.var_losses] = f['var_losses']
+                if self.energy_consumption:
+                    model.scaling_factor[b_arc.var_consumption_send] = f['var_consumption']
+                    model.scaling_factor[b_arc.var_consumption_receive] = f['var_consumption']
+            
+                # Constraints
+                model.scaling_factor[b_arc.const_flowlosses] = f['const_flowlosses']
+                model.scaling_factor[b_arc.const_flow_size_high] = f['var_flow']
+                model.scaling_factor[b_arc.const_flow_size_low] = f['var_flow']
+                model.scaling_factor[b_arc.const_opex_variable] = f['const_opex_var']
+                if self.energy_consumption:
+                    model.scaling_factor[b_arc.const_consumption_send] = f['const_netw_consumption']
+                    model.scaling_factor[b_arc.const_consumption_receive] = f['const_netw_consumption']
 
         return model
 
