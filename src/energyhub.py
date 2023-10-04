@@ -396,7 +396,6 @@ class EnergyHub:
             else:
                 self.__call_solver()
 
-
     def __scale_model(self):
 
         f = self.configuration.scaling_factors.general

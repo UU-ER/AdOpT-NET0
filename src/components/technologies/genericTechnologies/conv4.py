@@ -144,12 +144,16 @@ class Conv4(Technology):
         """
         super(Conv4, self).scale_model(b_tec, model, configuration)
 
-        f = configuration.scaling_factors.general
+        if self.scaling_factors:
 
-        # Constraints
-        model.scaling_factor[b_tec.const_output_output] = 1e2
-        model.scaling_factor[b_tec.const_size] = 1e2
-        if self.performance_data['performance_function_type'] > 1:
-            warn('Model Scaling for Conv4 only implemented for performance function type 1')
+            f = self.scaling_factors
+
+            # Constraints
+            model.scaling_factor[b_tec.const_output_output] = f['const_output_output']
+            model.scaling_factor[b_tec.const_size] = f['const_size']
+            if b_tec.find_component('const_curtailed_units'):
+                model.scaling_factor[b_tec.const_curtailed_units] = f['const_curtailed_units']
+            if self.performance_data['performance_function_type'] > 1:
+                warn('Model Scaling for Conv4 only implemented for performance function type 1')
 
         return model

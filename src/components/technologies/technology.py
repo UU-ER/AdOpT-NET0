@@ -48,6 +48,10 @@ class Technology(ModelComponent):
         self.set_t_full = []
         self.sequence = []
 
+        self.scaling_factors = []
+        if 'ScalingFactors' in tec_data:
+            self.scaling_factors = tec_data['ScalingFactors']
+
     def construct_tech_model(self, b_tec, energyhub):
         r"""
         This function adds Sets, Parameters, Variables and Constraints that are common for all technologies.
@@ -175,34 +179,36 @@ class Technology(ModelComponent):
         """
         Scales technology model
         """
-        f = configuration.scaling_factors.general
 
-        # Variables
-        model.scaling_factor[b_tec.var_output] = 1
-        model.scaling_factor[b_tec.var_capex_aux] = 1e-2
-        model.scaling_factor[b_tec.var_capex] = 1e-2
-        model.scaling_factor[b_tec.var_size] = 1
-        model.scaling_factor[b_tec.var_opex_variable] = 1
-        model.scaling_factor[b_tec.var_opex_fixed] = 1
-        model.scaling_factor[b_tec.var_tec_emissions_pos] = 1
-        model.scaling_factor[b_tec.var_tec_emissions_neg] = 1
+        if self.scaling_factors:
+            f = self.scaling_factors
 
-        if b_tec.find_component('var_input'):
-            model.scaling_factor[b_tec.var_input] = 1
-        if b_tec.find_component('var_input_aux'):
-            model.scaling_factor[b_tec.var_input_aux] = 1
-        if b_tec.find_component('var_output_aux'):
-            model.scaling_factor[b_tec.var_output_aux] = 1
+            # Variables
+            model.scaling_factor[b_tec.var_output] = f['var_output']
+            model.scaling_factor[b_tec.var_capex_aux] = f['var_capex']
+            model.scaling_factor[b_tec.var_capex] = f['var_capex']
+            model.scaling_factor[b_tec.var_size] = f['var_size']
+            model.scaling_factor[b_tec.var_opex_variable] = f['var_opex_variable']
+            model.scaling_factor[b_tec.var_opex_fixed] = f['var_opex_fixed']
+            model.scaling_factor[b_tec.var_tec_emissions_pos] = f['var_tec_emissions_pos']
+            model.scaling_factor[b_tec.var_tec_emissions_neg] = f['var_tec_emissions_neg']
 
-        # Constraints
-        model.scaling_factor[b_tec.const_capex_aux] = 1e-2
-        model.scaling_factor[b_tec.const_capex] = 1e-2
-        model.scaling_factor[b_tec.const_opex_variable] = 1
-        model.scaling_factor[b_tec.const_opex_fixed] = 1
-        model.scaling_factor[b_tec.const_tec_emissions_pos] = 1
-        model.scaling_factor[b_tec.const_tec_emissions_neg] = 1
-        if b_tec.find_component('const_link_full_resolution_input'):
-            model.scaling_factor[b_tec.const_link_full_resolution_input] = 1
+            if b_tec.find_component('var_input'):
+                model.scaling_factor[b_tec.var_input] = f['var_input']
+            if b_tec.find_component('var_input_aux'):
+                model.scaling_factor[b_tec.var_input_aux] = f['var_input']
+            if b_tec.find_component('var_output_aux'):
+                model.scaling_factor[b_tec.var_output_aux] = f['var_output']
+
+            # Constraints
+            model.scaling_factor[b_tec.const_capex_aux] = f['const_capex']
+            model.scaling_factor[b_tec.const_capex] = f['const_capex']
+            model.scaling_factor[b_tec.const_opex_variable] = f['const_opex_variable']
+            model.scaling_factor[b_tec.const_opex_fixed] = f['const_opex_fixed']
+            model.scaling_factor[b_tec.const_tec_emissions_pos] = f['const_tec_emissions_pos']
+            model.scaling_factor[b_tec.const_tec_emissions_neg] = f['const_tec_emissions_neg']
+            if b_tec.find_component('const_link_full_resolution_input'):
+                model.scaling_factor[b_tec.const_link_full_resolution_input] = f['const_link_full_resolution_input']
 
         return model
 

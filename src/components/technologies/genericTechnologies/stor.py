@@ -236,16 +236,15 @@ class Stor(Technology):
         """
         super(Stor, self).scale_model(b_tec, model, configuration)
 
-        f = configuration.scaling_factors.general
+        if self.scaling_factors:
 
-        # Constraints
-        model.scaling_factor[b_tec.var_storage_level] = 1e2
-        model.scaling_factor[b_tec.const_size] = 1e2
-        model.scaling_factor[b_tec.const_storage_level] = 1e2
-        model.scaling_factor[b_tec.const_output_to_zero] = 1e2
-        model.scaling_factor[b_tec.const_input_to_zero] = 1e2
-        model.scaling_factor[b_tec.const_max_charge] = 1e2
-        model.scaling_factor[b_tec.const_max_discharge] = 1e2
+            f = self.scaling_factors
 
+            # Constraints
+            model.scaling_factor[b_tec.var_storage_level] = f['var_storage_level']
+            model.scaling_factor[b_tec.const_size] = f['const_size']
+            model.scaling_factor[b_tec.const_storage_level] = f['const_storage_level']
+            model.scaling_factor[b_tec.const_max_charge] = f['const_max_charge']
+            model.scaling_factor[b_tec.const_max_discharge] = f['const_max_discharge']
 
         return model

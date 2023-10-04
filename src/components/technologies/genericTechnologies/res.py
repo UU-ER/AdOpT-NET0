@@ -267,12 +267,14 @@ class Res(Technology):
         """
         super(Res, self).scale_model(b_tec, model, configuration)
 
-        f = configuration.scaling_factors.general
+        if self.scaling_factors:
 
-        # Constraints
-        model.scaling_factor[b_tec.const_input_output] = 1e2
-        if b_tec.find_component('const_curtailed_units'):
-            model.scaling_factor[b_tec.const_curtailed_units] = 1
+            f = self.scaling_factors
+
+            # Constraints
+            model.scaling_factor[b_tec.const_input_output] = f['const_input_output']
+            if b_tec.find_component('const_curtailed_units'):
+                model.scaling_factor[b_tec.const_curtailed_units] = f['const_curtailed_units']
 
         return model
 
