@@ -1,8 +1,9 @@
 {
-  "tec_type": "CONV4",
+  "tec_type": "CONV1",
   "size_min": 0,
   "size_max": 500,
   "size_is_int": 0,
+  "size_based_on": "input",
   "decommission": 0,
   "Economics": {
     "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
@@ -20,7 +21,7 @@
         407317.19901567
       ]
     },
-    "OPEX_variable": 1,
+    "OPEX_variable": 0,
     "OPEX_fixed": 0,
     "discount_rate": 0,
     "lifetime": 1,
@@ -28,17 +29,32 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 2,
-    "main_output_carrier": "electricity",
+    "performance_function_type": 4,
+    "input_carrier": [
+      "gas",
+      "hydrogen"
+    ],
+    "main_input_carrier": "gas",
     "output_carrier": [
       "heat",
       "electricity"
     ],
     "emission_factor": 0,
-    "min_part_load": 1,
-    "output_ratios": {
-      "electricity": 1,
-      "heat": 0.5
+    "min_part_load": 0.5,
+    "performance": {
+      "in": [
+        0,
+        0.4,
+        0.6,
+        1
+      ],
+      "out": [
+        0,
+        0.4,
+        0.55,
+        0.75
+      ],
+      "nr_segments_piecewise": 2
     },
     "ramping_rate": -1,
     "standby_power": -1,
@@ -49,5 +65,16 @@
     "SU_load": -1,
     "SD_load": -1,
     "max_startups": -1
+  },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "gas": "MW",
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "heat": "MW",
+      "electricity": "MW"
+    }
   }
 }
