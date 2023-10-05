@@ -36,6 +36,8 @@ class Economics:
         self.capex_data = {}
         if 'unit_CAPEX' in economics:
             self.capex_data['unit_capex'] = economics['unit_CAPEX']
+        if 'fix_CAPEX' in economics:
+                self.capex_data['fix_capex'] = economics['fix_CAPEX']
         if 'piecewise_CAPEX' in economics:
             self.capex_data['piecewise_capex'] = economics['piecewise_CAPEX']
         if 'gamma1' in economics:
