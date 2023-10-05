@@ -62,4 +62,3 @@ def perform_disjunct_relaxation(model_block, method = 'gdp.bigm'):
     xfrm.apply_to(model_block)
     print('\t\tBig-M Transformation completed in ' + str(round(time.time() - start)) + ' s')
     return model_block
-

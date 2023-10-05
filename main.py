@@ -15,30 +15,36 @@ data_save_path = Path('./user_data/data_handle_test')
 # TOPOLOGY
 topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
-topology.define_carriers(['electricity', 'gas', 'hydrogen'])
+topology.define_carriers(['electricity', 'gas', 'hydrogen', 'heat'])
 topology.define_nodes(['onshore'])
 # topology.define_nodes(['onshore', 'offshore'])
 # topology.define_new_technologies('onshore', ['Storage_Battery'])
 topology.define_new_technologies('onshore', ['Photovoltaic'])
-topology.define_new_technologies('onshore', ['GasTurbine_simple'])
+# topology.define_new_technologies('onshore', ['testCONV4_1'])
+# topology.define_new_technologies('onshore', ['GasTurbine_simple'])
+# topology.define_new_technologies('onshore', ['TestPumpedHydro_Open'])
 
-# distance = dm.create_empty_network_matrix(topology.nodes)
-# distance.at['onshore', 'offshore'] = 1
-# distance.at['offshore', 'onshore'] = 1
-#
-# connection = dm.create_empty_network_matrix(topology.nodes)
-# connection.at['onshore', 'offshore'] = 1
-# connection.at['offshore', 'onshore'] = 1
-# topology.define_new_network('electricitySimple', distance=distance, connections=connection)
+distance = dm.create_empty_network_matrix(topology.nodes)
+distance.at['onshore', 'offshore'] = 1
+distance.at['offshore', 'onshore'] = 1
+
+connection = dm.create_empty_network_matrix(topology.nodes)
+connection.at['onshore', 'offshore'] = 1
+connection.at['offshore', 'onshore'] = 1
+topology.define_new_network('electricitySimple', distance=distance, connections=connection)
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)
+
 
 # CLIMATE DATA
 from_file = 1
 if from_file == 1:
     data.read_climate_data_from_file('onshore', './data/climate_data_onshore.txt')
     # data.read_climate_data_from_file('offshore', './data/climate_data_offshore.txt')
+
+inflow = np.ones(len(topology.timesteps)) * 1000
+data.read_hydro_natural_inflow('onshore', 'TestPumpedHydro_Open', inflow)
 
 # DEMAND
 electricity_demand = np.ones(len(topology.timesteps)) * 1000

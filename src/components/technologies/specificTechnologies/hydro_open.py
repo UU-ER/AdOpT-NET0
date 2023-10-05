@@ -4,6 +4,7 @@ import numpy as np
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
+from ...utilities import read_dict_value
 
 
 class HydroOpen(Technology):
@@ -306,17 +307,17 @@ class HydroOpen(Technology):
         """
         super(HydroOpen, self).scale_model(b_tec, model, configuration)
 
-        if self.scaling_factors:
+        f = self.scaling_factors
+        f_global = configuration.scaling_factors
 
-            f = self.scaling_factors
-
-            # Constraints
-            model.scaling_factor[b_tec.var_storage_level] = f['var_storage_level']
-            model.scaling_factor[b_tec.var_spilling] = f['var_spilling']
-            model.scaling_factor[b_tec.const_size] = f['const_size']
-            model.scaling_factor[b_tec.const_storage_level] = f['const_storage_level']
-            model.scaling_factor[b_tec.const_max_charge] = f['const_max_charge']
-            model.scaling_factor[b_tec.const_max_discharge] = f['const_max_discharge']
-            model.scaling_factor[b_tec.const_max_spilling] = f['const_max_spilling']
-
+        # Constraints
+        model.scaling_factor[b_tec.var_storage_level] = read_dict_value(f, 'var_storage_level') * f_global.energy_vars
+        model.scaling_factor[b_tec.var_spilling] = read_dict_value(f, 'var_spilling') * f_global.energy_vars
+        model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
+        model.scaling_factor[b_tec.const_storage_level] = read_dict_value(f, 'const_storage_level') * f_global.energy_vars
+        model.scaling_factor[b_tec.const_max_charge] = read_dict_value(f, 'const_max_charge') * f_global.energy_vars
+        model.scaling_factor[b_tec.const_max_discharge] = read_dict_value(f, 'const_max_discharge') * f_global.energy_vars
+        model.scaling_factor[b_tec.const_max_spilling] = read_dict_value(f, 'const_max_spilling') * f_global.energy_vars
+        if b_tec.find_component('const_max_discharge2'):
+            model.scaling_factor[b_tec.const_max_discharge2] = read_dict_value(f, 'const_max_discharge2') * f_global.energy_vars
         return model

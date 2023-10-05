@@ -22,26 +22,5 @@
   "size_min": 0,
   "size_max": 1,
   "size_is_int": 0,
-  "decommission": 0,
-  "ScalingFactors": {
-    "var_capex": 1,
-    "var_opex_variable": 1,
-    "var_opex_fixed": 1,
-    "var_inflow": 1,
-    "var_outflow": 1,
-    "var_netw_emissions_pos": 1,
-    "var_size": 1,
-    "var_flow": 1,
-    "var_losses": 1,
-    "var_consumption": 1,
-    "const_capex": 1,
-    "const_opex_fixed": 1,
-    "const_opex_var": 1,
-    "const_inflow": 1,
-    "const_outflow": 1,
-    "const_netw_emissions": 1,
-    "const_netw_consumption": 1,
-    "const_flowlosses": 1,
-    "const_size_bidirectional": 1
-  }
+  "decommission": 0
 }

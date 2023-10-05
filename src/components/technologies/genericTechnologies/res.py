@@ -8,6 +8,7 @@ import numpy as np
 
 from ..technology import Technology
 from ..utilities import FittedPerformance
+from ...utilities import read_dict_value
 
 class Res(Technology):
     def __init__(self,
@@ -270,12 +271,12 @@ class Res(Technology):
         if self.scaling_factors:
 
             f = self.scaling_factors
-            f_global = configuration.scaling_factors.general
+            f_global = configuration.scaling_factors
 
             # Constraints
-            model.scaling_factor[b_tec.const_input_output] = f['const_input_output'] * f_global.energy_vars
+            model.scaling_factor[b_tec.const_input_output] = read_dict_value(f, 'const_input_output') * f_global.energy_vars
             if b_tec.find_component('const_curtailed_units'):
-                model.scaling_factor[b_tec.const_curtailed_units] = f['const_curtailed_units']
+                model.scaling_factor[b_tec.const_curtailed_units] = read_dict_value(f, 'const_curtailed_units')
 
         return model
 

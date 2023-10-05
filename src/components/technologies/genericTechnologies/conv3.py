@@ -5,6 +5,7 @@ from warnings import warn
 
 from ..genericTechnologies.utilities import fit_performance_generic_tecs
 from ..technology import Technology
+from ...utilities import read_dict_value
 
 
 class Conv3(Technology):
@@ -524,12 +525,15 @@ class Conv3(Technology):
         if self.scaling_factors:
 
             f = self.scaling_factors
+            f_global = configuration.scaling_factors
 
             # Constraints
-            model.scaling_factor[b_tec.const_input_input] = f['const_input_input']
-            model.scaling_factor[b_tec.const_size] = f['const_size']
+            model.scaling_factor[b_tec.const_input_input] = read_dict_value(f, 'const_input_input') * f_global.energy_vars
+            model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
             if self.performance_data['performance_function_type'] == 1:
-                model.scaling_factor[b_tec.const_input_output] = f['const_input_output']
+                model.scaling_factor[b_tec.const_input_output] = read_dict_value(f, 'const_input_output') * f_global.energy_vars
+                if self.performance_data['min_part_load'] > 0:
+                    model.scaling_factor[b_tec.const_min_part_load] = read_dict_value(f, 'const_input_output') * f_global.energy_vars
             else:
                 warn('Model Scaling for Conv3 only implemented for performance function type 1')
 

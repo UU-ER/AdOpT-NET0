@@ -46,3 +46,18 @@ def link_full_resolution_to_clustered(var_clustered, var_full, set_t, sequence, 
         constraint = Constraint(set_t, set1, set2, rule=init_link_full_resolution)
 
     return constraint
+
+def read_dict_value(dict, key):
+    """
+    Reads a value from a dictonary
+    :param dict: dictonary
+    :param key: dict key
+    :return:
+    """
+    dict_value = 1
+
+    if dict:
+        if key in dict:
+            dict_value = dict[key]
+
+    return dict_value

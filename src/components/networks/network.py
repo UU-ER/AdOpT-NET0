@@ -1,7 +1,7 @@
 import warnings
 
 from ..component import ModelComponent, perform_disjunct_relaxation
-from ..utilities import annualize, set_discount_rate
+from ..utilities import annualize, set_discount_rate, read_dict_value
 
 
 import pandas as pd
@@ -369,53 +369,54 @@ class Network(ModelComponent):
         Scales technology model
         """
 
-        if self.scaling_factors:
-            f = self.scaling_factors
+        f = self.scaling_factors
+        f_global = configuration.scaling_factors
+
+        # Variables
+        model.scaling_factor[b_netw.var_capex] = read_dict_value(f, 'var_capex') * f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_netw.var_opex_variable] = read_dict_value(f, 'var_opex_variable') * f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_netw.var_opex_fixed] = read_dict_value(f, 'var_opex_fixed') * f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_netw.var_netw_emissions_pos] = read_dict_value(f, 'var_netw_emissions_pos')
+        model.scaling_factor[b_netw.var_inflow] = read_dict_value(f, 'var_inflow') * f_global.energy_vars
+        model.scaling_factor[b_netw.var_outflow] = read_dict_value(f, 'var_outflow') * f_global.energy_vars
+        if self.energy_consumption:
+            model.scaling_factor[b_netw.var_consumption] = read_dict_value(f, 'var_consumption') * f_global.energy_vars
+
+        # Constraints
+        if b_netw.find_component('const_capex_aux'):
+            model.scaling_factor[b_netw.const_capex_aux] = read_dict_value(f, 'const_capex') * f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_netw.const_capex] = read_dict_value(f, 'const_capex') * f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_netw.const_opex_fixed] = read_dict_value(f, 'const_opex_fixed') * f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_netw.const_opex_var] = read_dict_value(f, 'const_opex_var') * f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_netw.const_inflow] = read_dict_value(f, 'const_inflow') * f_global.energy_vars
+        model.scaling_factor[b_netw.const_outflow] = read_dict_value(f, 'const_outflow') * f_global.energy_vars
+        model.scaling_factor[b_netw.const_netw_emissions] = read_dict_value(f, 'const_netw_emissions')
+        if self.energy_consumption:
+            model.scaling_factor[b_netw.const_netw_consumption] = read_dict_value(f, 'const_netw_consumption') * f_global.energy_vars
+        if b_netw.find_component('const_size_bidirectional'):
+            model.scaling_factor[b_netw.const_size_bidirectional] = read_dict_value(f, 'const_size_bidirectional')
+
+        for arc in b_netw.arc_block:
             # Variables
-            model.scaling_factor[b_netw.var_capex] = f['var_capex']
-            model.scaling_factor[b_netw.var_opex_variable] = f['var_opex_variable']
-            model.scaling_factor[b_netw.var_opex_fixed] = f['var_opex_fixed']
-            model.scaling_factor[b_netw.var_netw_emissions_pos] = f['var_netw_emissions_pos']
-            model.scaling_factor[b_netw.var_inflow] = f['var_inflow']
-            model.scaling_factor[b_netw.var_outflow] = f['var_outflow']
+            b_arc = b_netw.arc_block[arc]
+            model.scaling_factor[b_arc.var_size] = read_dict_value(f, 'var_size') * f_global.energy_vars
+            model.scaling_factor[b_arc.var_capex_aux] = read_dict_value(f, 'var_capex') * f_global.cost_vars
+            model.scaling_factor[b_arc.var_capex] = read_dict_value(f, 'var_capex') * f_global.cost_vars
+            model.scaling_factor[b_arc.var_opex_variable] = read_dict_value(f, 'var_opex_variable') * f_global.cost_vars * f_global.cost_vars
+            model.scaling_factor[b_arc.var_flow] = read_dict_value(f, 'var_flow') * f_global.energy_vars
+            model.scaling_factor[b_arc.var_losses] = read_dict_value(f, 'var_losses') * f_global.energy_vars
             if self.energy_consumption:
-                model.scaling_factor[b_netw.var_consumption] = f['var_consumption']
+                model.scaling_factor[b_arc.var_consumption_send] = read_dict_value(f, 'var_consumption') * f_global.energy_vars
+                model.scaling_factor[b_arc.var_consumption_receive] = read_dict_value(f, 'var_consumption') * f_global.energy_vars
 
             # Constraints
-            if b_netw.find_component('const_capex_aux'):
-                model.scaling_factor[b_netw.const_capex_aux] = f['const_capex']
-            model.scaling_factor[b_netw.const_capex] = f['const_capex']
-            model.scaling_factor[b_netw.const_opex_fixed] = f['const_opex_fixed']
-            model.scaling_factor[b_netw.const_opex_var] = f['const_opex_var']
-            model.scaling_factor[b_netw.const_inflow] = f['const_inflow']
-            model.scaling_factor[b_netw.const_outflow] = f['const_outflow']
-            model.scaling_factor[b_netw.const_netw_emissions] = f['const_netw_emissions']
+            model.scaling_factor[b_arc.const_flowlosses] = read_dict_value(f, 'const_flowlosses') * f_global.energy_vars
+            model.scaling_factor[b_arc.const_flow_size_high] = read_dict_value(f, 'var_flow') * f_global.energy_vars
+            model.scaling_factor[b_arc.const_flow_size_low] = read_dict_value(f, 'var_flow') * f_global.energy_vars
+            model.scaling_factor[b_arc.const_opex_variable] = read_dict_value(f, 'const_opex_var') * f_global.energy_vars * f_global.cost_vars
             if self.energy_consumption:
-                model.scaling_factor[b_netw.const_netw_consumption] = f['const_netw_consumption']
-            if b_netw.find_component('const_size_bidirectional'):
-                model.scaling_factor[b_netw.const_size_bidirectional] = f['const_size_bidirectional']
-
-            for arc in b_netw.arc_block:
-                # Variables
-                b_arc = b_netw.arc_block[arc]
-                model.scaling_factor[b_arc.var_size] = f['var_size']
-                model.scaling_factor[b_arc.var_capex_aux] = f['var_capex']
-                model.scaling_factor[b_arc.var_capex] = f['var_capex']
-                model.scaling_factor[b_arc.var_opex_variable] = f['var_opex_variable']
-                model.scaling_factor[b_arc.var_flow] = f['var_flow']
-                model.scaling_factor[b_arc.var_losses] = f['var_losses']
-                if self.energy_consumption:
-                    model.scaling_factor[b_arc.var_consumption_send] = f['var_consumption']
-                    model.scaling_factor[b_arc.var_consumption_receive] = f['var_consumption']
-            
-                # Constraints
-                model.scaling_factor[b_arc.const_flowlosses] = f['const_flowlosses']
-                model.scaling_factor[b_arc.const_flow_size_high] = f['var_flow']
-                model.scaling_factor[b_arc.const_flow_size_low] = f['var_flow']
-                model.scaling_factor[b_arc.const_opex_variable] = f['const_opex_var']
-                if self.energy_consumption:
-                    model.scaling_factor[b_arc.const_consumption_send] = f['const_netw_consumption']
-                    model.scaling_factor[b_arc.const_consumption_receive] = f['const_netw_consumption']
+                model.scaling_factor[b_arc.const_consumption_send] = read_dict_value(f, 'const_netw_consumption') * f_global.energy_vars
+                model.scaling_factor[b_arc.const_consumption_receive] = read_dict_value(f, 'const_netw_consumption') * f_global.energy_vars
 
         return model
 

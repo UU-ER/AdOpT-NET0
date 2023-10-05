@@ -6,6 +6,7 @@ import numpy as np
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
+from ...utilities import read_dict_value
 
 
 class Conv4(Technology):
@@ -147,12 +148,11 @@ class Conv4(Technology):
         if self.scaling_factors:
 
             f = self.scaling_factors
+            f_global = configuration.scaling_factors
 
             # Constraints
-            model.scaling_factor[b_tec.const_output_output] = f['const_output_output']
-            model.scaling_factor[b_tec.const_size] = f['const_size']
-            if b_tec.find_component('const_curtailed_units'):
-                model.scaling_factor[b_tec.const_curtailed_units] = f['const_curtailed_units']
+            model.scaling_factor[b_tec.const_output_output] = read_dict_value(f, 'const_output_output') * f_global.energy_vars
+            model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
             if self.performance_data['performance_function_type'] > 1:
                 warn('Model Scaling for Conv4 only implemented for performance function type 1')
 

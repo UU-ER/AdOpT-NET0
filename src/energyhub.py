@@ -410,7 +410,7 @@ class EnergyHub:
 
     def __scale_model(self):
 
-        f = self.configuration.scaling_factors.general
+        f_global = self.configuration.scaling_factors
         self.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
         # Scale technologies
@@ -425,34 +425,35 @@ class EnergyHub:
             self.model = self.data.network_data[netw].scale_model(b_netw, self.model, self.configuration)
 
         # Scale objective
-        self.model.scaling_factor[self.model.objective] = f.energy_vars
+        self.model.scaling_factor[self.model.objective] = f_global.energy_vars * f_global.cost_vars
 
-        # Scale energy-variables
-        if f.energy_vars >= 0:
-            self.model.scaling_factor[self.model.const_energybalance] = f.energy_vars
-            self.model.scaling_factor[self.model.const_node_cost] = f.energy_vars
-            self.model.scaling_factor[self.model.const_netw_cost] = f.energy_vars
-            self.model.scaling_factor[self.model.const_revenue_carbon] = f.energy_vars
-            self.model.scaling_factor[self.model.const_cost_carbon] = f.energy_vars
+        # Scale globals
+        if f_global.energy_vars >= 0:
+            self.model.scaling_factor[self.model.const_energybalance] = f_global.energy_vars
+            self.model.scaling_factor[self.model.const_cost] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.const_node_cost] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.const_netw_cost] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.const_revenue_carbon] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.const_cost_carbon] = f_global.energy_vars * f_global.cost_vars
 
-            self.model.scaling_factor[self.model.var_node_cost] = f.energy_vars
-            self.model.scaling_factor[self.model.var_netw_cost] = f.energy_vars
-            self.model.scaling_factor[self.model.var_total_cost] = f.energy_vars
-            self.model.scaling_factor[self.model.var_carbon_revenue] = f.energy_vars
-            self.model.scaling_factor[self.model.var_carbon_cost] = f.energy_vars
+            self.model.scaling_factor[self.model.var_node_cost] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.var_netw_cost] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.var_total_cost] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.var_carbon_revenue] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.var_carbon_cost] = f_global.energy_vars * f_global.cost_vars
 
             for node in self.model.node_blocks:
-                self.model.scaling_factor[self.model.node_blocks[node].var_import_flow] = f.energy_vars
-                self.model.scaling_factor[self.model.node_blocks[node].var_export_flow] = f.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].var_import_flow] = f_global.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].var_export_flow] = f_global.energy_vars
 
-                self.model.scaling_factor[self.model.node_blocks[node].var_netw_inflow] = f.energy_vars
-                self.model.scaling_factor[self.model.node_blocks[node].const_netw_inflow] = f.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].var_netw_inflow] = f_global.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_netw_inflow] = f_global.energy_vars
 
-                self.model.scaling_factor[self.model.node_blocks[node].var_netw_outflow] = f.energy_vars
-                self.model.scaling_factor[self.model.node_blocks[node].const_netw_outflow] = f.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].var_netw_outflow] = f_global.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_netw_outflow] = f_global.energy_vars
 
-                self.model.scaling_factor[self.model.node_blocks[node].var_generic_production] = f.energy_vars
-                self.model.scaling_factor[self.model.node_blocks[node].const_generic_production] = f.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].var_generic_production] = f_global.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_generic_production] = f_global.energy_vars
             #
             #     for tec in self.model.node_blocks[node].tech_blocks_active:
             #

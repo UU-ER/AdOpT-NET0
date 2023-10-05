@@ -6,6 +6,7 @@ import numpy as np
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
+from ...utilities import read_dict_value
 
 
 class Stor(Technology):
@@ -291,14 +292,14 @@ class Stor(Technology):
         if self.scaling_factors:
 
             f = self.scaling_factors
-            f_global = configuration.scaling_factors.general
+            f_global = configuration.scaling_factors
 
             # Constraints
-            model.scaling_factor[b_tec.var_storage_level] = f['var_storage_level'] * f_global.energy_vars
-            model.scaling_factor[b_tec.const_size] = f['const_size'] * f_global.energy_vars
-            model.scaling_factor[b_tec.const_storage_level] = f['const_storage_level'] * f_global.energy_vars
-            model.scaling_factor[b_tec.const_max_charge] = f['const_max_charge'] * f_global.energy_vars
-            model.scaling_factor[b_tec.const_max_discharge] = f['const_max_discharge'] * f_global.energy_vars
+            model.scaling_factor[b_tec.var_storage_level] = read_dict_value(f, 'var_storage_level') * f_global.energy_vars
+            model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
+            model.scaling_factor[b_tec.const_storage_level] = read_dict_value(f, 'const_storage_level') * f_global.energy_vars
+            model.scaling_factor[b_tec.const_max_charge] = read_dict_value(f, 'const_max_charge') * f_global.energy_vars
+            model.scaling_factor[b_tec.const_max_discharge] = read_dict_value(f, 'const_max_discharge') * f_global.energy_vars
 
             if self.performance_data['allow_only_one_direction'] == 1:
                 for dis in b_tec.dis_input_output:
