@@ -8,6 +8,7 @@
     "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
     "unit_CAPEX": 300000,
+    "fix_CAPEX": 0,
     "piecewise_CAPEX": {
       "bp_x": [
         0,
@@ -36,7 +37,7 @@
     ],
     "main_input_carrier": "gas",
     "output_carrier": [
-      "heat"
+      "steam"
     ],
     "emission_factor": 0.185,
     "min_part_load": 0,
@@ -46,7 +47,7 @@
         1
       ],
       "out": {
-        "heat": [
+        "steam": [
           0,
           0.92
         ]
@@ -68,7 +69,7 @@
       "gas": "MW"
     },
     "output_carrier": {
-      "heat": "MW"
+      "steam": "MW"
     }
   }
 }

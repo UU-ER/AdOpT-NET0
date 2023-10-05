@@ -6,8 +6,9 @@
   "decommission": 0,
   "Economics": {
     "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/unit total output, OPEX_fixed in % of CAPEX_annual",
-    "CAPEX_model": 1,
-    "unit_CAPEX": 1000,
+    "CAPEX_model": 3,
+    "unit_CAPEX": 265160,
+    "fix_CAPEX": 6.92E+07,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
@@ -20,7 +21,7 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 2,
+    "performance_function_type": 1,
     "input_carrier": [
       "crackedgas",
       "steam"
@@ -30,10 +31,7 @@
       "crackedgas"
     ],
     "emission_factor": 0,
-    "min_part_load": [
-      0,
-      1
-    ],
+    "min_part_load": 0,
     "performance": {
       "in": [
         0,
