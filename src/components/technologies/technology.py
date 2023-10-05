@@ -277,6 +277,18 @@ class Technology(ModelComponent):
                                               pw_constr_type='EQ',
                                               f_rule=b_tec.para_bp_y_annual,
                                               pw_repn='SOS2')
+        elif capex_model == 3:
+            b_tec.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
+            b_tec.para_fix_capex = Param(domain=Reals, initialize=economics.capex_data['fix_capex'], mutable=True)
+            b_tec.para_unit_capex_annual = Param(domain=Reals,
+                                                 initialize=annualization_factor * economics.capex_data['unit_capex'],
+                                                 mutable=True)
+            b_tec.para_fix_capex_annual = Param(domain=Reals,
+                                                 initialize=annualization_factor * economics.capex_data['fix_capex'],
+                                                 mutable=True)
+            b_tec.const_capex_aux = Constraint(
+                expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
+
         # CAPEX
         if self.existing and not self.decommission:
             b_tec.var_capex = Param(domain=Reals, initialize=0)
