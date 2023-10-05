@@ -87,6 +87,8 @@ def add_nodes(energyhub):
 
     - Import Flow for each time step
     - Export Flow for each time step
+    - Network Inflow for each time step
+    - Network Outflow for each time step
     - Cost at node (includes technology costs (CAPEX, OPEX) and import/export costs), see constraint declarations
 
     **Constraint declarations**

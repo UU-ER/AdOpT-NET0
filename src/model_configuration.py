@@ -107,11 +107,11 @@ class ModelConfiguration:
 
     List of technology and network performance settings that can be specified:
 
-    +----------------------+--------------------------------------------------------+-------------+---------+
-    | Name                 | Definition                                             | Options     | Default |
-    +----------------------+--------------------------------------------------------+-------------+---------+
-    | dynamics             | Determines if dynamics are used                        | {0,1}       | 0       |
-    +----------------------+--------------------------------------------------------+-------------+---------+
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | Name       | Definition                                                                                  | Options | Default |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | dynamics   | Determines if dynamics are used                                                             | {0,1}   | 0       |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
     """
 
     def __init__(self):
@@ -167,7 +167,7 @@ class ModelConfiguration:
         self.economic.global_simple_capex_model = 0
 
         self.performance = SimpleNamespace()
-        # self.performance.dynamics = 0
+        self.performance.dynamics = 0
 
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1

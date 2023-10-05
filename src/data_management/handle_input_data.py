@@ -509,7 +509,7 @@ class ClusteredDataHandle(DataHandle):
         # Read data back in
         self.__read_clustered_data(clustered_data)
 
-        self.read_technology_data()
+        self.read_technology_data(load_path = './src/test/TestTecs')
 
     def __read_clustered_data(self, clustered_data:pd.DataFrame):
         """
