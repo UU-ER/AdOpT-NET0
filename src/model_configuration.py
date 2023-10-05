@@ -176,4 +176,4 @@ class ModelConfiguration:
         self.scaling = 1
         self.scaling_factors = SimpleNamespace()
         self.scaling_factors.energy_vars = 1e-3
-        self.scaling_factors.cost_vars = 1
+        self.scaling_factors.cost_vars = 1e-4

@@ -47,6 +47,7 @@ class EnergyHub:
 
         # INITIALIZE MODEL
         self.model = ConcreteModel()
+        self.scaled_model = []
 
         # INITIALIZE GLOBAL OPTIONS
         self.model_information = data.model_information
@@ -482,8 +483,7 @@ class EnergyHub:
 
 
 
-        TransformationFactory('core.scale_model').apply_to(self.model)
-        self.model.pprint()
+        self.scaled_model = TransformationFactory('core.scale_model').create_using(self.model)
 
     def __call_solver(self):
         """
@@ -496,25 +496,26 @@ class EnergyHub:
 
         start = time.time()
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
-        if self.configuration.solveroptions.solver == 'gurobi_persistent':
-            self.solver.set_objective(self.model.objective)
-            if self.configuration.scaling:
-                warnings.warn('Model scaling with persistent solvers not supported currently')
+
+        if self.configuration.scaling == 1:
+            self.__scale_model()
+            model = self.scaled_model
         else:
-            if self.configuration.scaling == 1:
-                self.__scale_model()
+            model = self.model
+
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.set_objective(model.objective)
 
         if self.configuration.optimization.save_log_files:
-            # TransformationFactory('core.scale_model').apply_to(self.model)
-
-            self.solution = self.solver.solve(self.model,
-                                              tee=True,
-                                              warmstart=True,
-                                              logfile=Path('./log_files/') / ('log_' + time_stamp))
+            self.solution = self.solver.solve(model,tee=True,
+                                      warmstart=True,
+                                      logfile=Path('./log_files/') / ('log_' + time_stamp))
         else:
-            # TransformationFactory('core.scale_model').apply_to(self.model)
+            self.solution = self.solver.solve(model, tee=True, warmstart=True)
 
-            self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
+        if self.configuration.scaling == 1:
+            TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
+
         self.solution.write()
         self.detailed_results = self.results.report_optimization_result(self, time_stamp)
 

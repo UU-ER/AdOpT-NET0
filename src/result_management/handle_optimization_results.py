@@ -163,7 +163,6 @@ class OptimizationResults:
             ub = energyhub.solution.problem(0).upper_bound
             gap = ub - lb
 
-            # Economics
             total_cost = model.var_total_cost.value
             carbon_costs = model.var_carbon_cost.value
             carbon_revenues = model.var_carbon_revenue.value
