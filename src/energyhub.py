@@ -111,7 +111,6 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
-
         self.solve()
         return self.results
 
@@ -155,13 +154,13 @@ class EnergyHub:
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
+        self.model.var_carbon_revenue = Var()
+        self.model.var_carbon_cost = Var()
 
         # Global Emission variables
         self.model.var_emissions_pos = Var()
         self.model.var_emissions_neg = Var()
         self.model.var_emissions_net = Var()
-        self.model.var_carbon_revenue = Var()
-        self.model.var_carbon_cost = Var()
 
         # Parameters
         def init_carbon_subsidy(para, t):
@@ -412,9 +411,23 @@ class EnergyHub:
             b_netw = self.model.network_block[netw]
             self.model = self.data.network_data[netw].scale_model(b_netw, self.model, self.configuration)
 
-        # Scale energybalance
+        # Scale objective
+        self.model.scaling_factor[self.model.objective] = f.energy_vars
+
+        # Scale energy-variables
         if f.energy_vars >= 0:
             self.model.scaling_factor[self.model.const_energybalance] = f.energy_vars
+            self.model.scaling_factor[self.model.const_node_cost] = f.energy_vars
+            self.model.scaling_factor[self.model.const_netw_cost] = f.energy_vars
+            self.model.scaling_factor[self.model.const_revenue_carbon] = f.energy_vars
+            self.model.scaling_factor[self.model.const_cost_carbon] = f.energy_vars
+
+            self.model.scaling_factor[self.model.var_node_cost] = f.energy_vars
+            self.model.scaling_factor[self.model.var_netw_cost] = f.energy_vars
+            self.model.scaling_factor[self.model.var_total_cost] = f.energy_vars
+            self.model.scaling_factor[self.model.var_carbon_revenue] = f.energy_vars
+            self.model.scaling_factor[self.model.var_carbon_cost] = f.energy_vars
+
             for node in self.model.node_blocks:
                 self.model.scaling_factor[self.model.node_blocks[node].var_import_flow] = f.energy_vars
                 self.model.scaling_factor[self.model.node_blocks[node].var_export_flow] = f.energy_vars
@@ -427,11 +440,11 @@ class EnergyHub:
 
                 self.model.scaling_factor[self.model.node_blocks[node].var_generic_production] = f.energy_vars
                 self.model.scaling_factor[self.model.node_blocks[node].const_generic_production] = f.energy_vars
-
-                for tec in self.model.node_blocks[node].tech_blocks_active:
-
-                    b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
-                    self.model = self.data.technology_data[node][tec].scale_model(b_tec, self.model, self.configuration)
+            #
+            #     for tec in self.model.node_blocks[node].tech_blocks_active:
+            #
+            #         b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
+            #         self.model = self.data.technology_data[node][tec].scale_model(b_tec, self.model, self.configuration)
 
                     # self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_size] = f.energy_vars
                     # self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_input_output] = f.energy_vars
@@ -456,6 +469,7 @@ class EnergyHub:
 
 
         TransformationFactory('core.scale_model').apply_to(self.model)
+        self.model.pprint()
 
     def __call_solver(self):
         """
@@ -473,7 +487,7 @@ class EnergyHub:
             if self.configuration.scaling:
                 warnings.warn('Model scaling with persistent solvers not supported currently')
         else:
-            if self.configuration.scaling:
+            if self.configuration.scaling == 1:
                 self.__scale_model()
 
         if self.configuration.optimization.save_log_files:

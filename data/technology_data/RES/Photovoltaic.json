@@ -41,7 +41,7 @@
     "const_opex_fixed": 1,
     "const_tec_emissions_pos": 1,
     "const_tec_emissions_neg": 1,
-    "const_input_output": 1e3,
+    "const_input_output": 1,
     "const_curtailed_units": 1
   }
 }

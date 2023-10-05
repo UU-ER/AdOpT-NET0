@@ -1,7 +1,7 @@
 {
   "tec_type": "STOR",
   "size_min": 0,
-  "size_max": 1.0E+7,
+  "size_max": 1000,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
@@ -46,5 +46,25 @@
     "output_carrier": {
       "electricity": "MW"
     }
+  },
+  "ScalingFactors": {
+    "var_output": 1,
+    "var_input": 1,
+    "var_capex": 1,
+    "var_size": 1,
+    "var_opex_variable": 1,
+    "var_opex_fixed": 1,
+    "var_tec_emissions_pos": 1,
+    "var_tec_emissions_neg": 1,
+    "const_capex": 1,
+    "const_opex_variable": 1,
+    "const_opex_fixed": 1,
+    "const_tec_emissions_pos": 1,
+    "const_tec_emissions_neg": 1,
+    "var_storage_level": 1,
+    "const_size": 1,
+    "const_storage_level": 1,
+    "const_max_charge": 1,
+    "const_max_discharge": 1
   }
 }

@@ -239,12 +239,25 @@ class Stor(Technology):
         if self.scaling_factors:
 
             f = self.scaling_factors
+            f_global = configuration.scaling_factors.general
 
             # Constraints
-            model.scaling_factor[b_tec.var_storage_level] = f['var_storage_level']
-            model.scaling_factor[b_tec.const_size] = f['const_size']
-            model.scaling_factor[b_tec.const_storage_level] = f['const_storage_level']
-            model.scaling_factor[b_tec.const_max_charge] = f['const_max_charge']
-            model.scaling_factor[b_tec.const_max_discharge] = f['const_max_discharge']
+            model.scaling_factor[b_tec.var_storage_level] = f['var_storage_level'] * f_global.energy_vars
+            model.scaling_factor[b_tec.const_size] = f['const_size'] * f_global.energy_vars
+            model.scaling_factor[b_tec.const_storage_level] = f['const_storage_level'] * f_global.energy_vars
+            model.scaling_factor[b_tec.const_max_charge] = f['const_max_charge'] * f_global.energy_vars
+            model.scaling_factor[b_tec.const_max_discharge] = f['const_max_discharge'] * f_global.energy_vars
+
+            if self.performance_data['allow_only_one_direction'] == 1:
+                for dis in b_tec.dis_input_output:
+                    if b_tec.dis_input_output[dis].find_component('const_input_to_zero'):
+                        model.scaling_factor[b_tec.dis_input_output[dis].const_input_to_zero] = f_global.energy_vars
+                    if b_tec.dis_input_output[dis].find_component('const_output_to_zero'):
+                        model.scaling_factor[b_tec.dis_input_output[dis].const_output_to_zero] = f_global.energy_vars
+
+                # F**** Disjunctions
+                for relaxed_disj in b_tec._pyomo_gdp_bigm_reformulation.relaxedDisjuncts:
+                    if b_tec._pyomo_gdp_bigm_reformulation.relaxedDisjuncts[relaxed_disj].find_component('transformedConstraints'):
+                        model.scaling_factor[b_tec._pyomo_gdp_bigm_reformulation.relaxedDisjuncts[relaxed_disj].transformedConstraints] = f_global.energy_vars
 
         return model

@@ -285,13 +285,14 @@ class Conv1(Technology):
         if self.scaling_factors:
 
             f = self.scaling_factors
+            f_global = configuration.scaling_factors.general
 
             # Constraints
             model.scaling_factor[b_tec.const_size] = f['const_size']
             if b_tec.find_component('const_max_input'):
-                model.scaling_factor[b_tec.const_max_input] = f['const_max_input']
+                model.scaling_factor[b_tec.const_max_input] = f['const_max_input'] * f_global.energy_vars
             if self.performance_data['performance_function_type'] == 1:
-                model.scaling_factor[b_tec.const_input_output] = f['const_input_output']
+                model.scaling_factor[b_tec.const_input_output] = f['const_input_output'] * f_global.energy_vars
             else:
                 warn('Model Scaling for Conv3 only implemented for performance function type 1')
 

@@ -270,9 +270,10 @@ class Res(Technology):
         if self.scaling_factors:
 
             f = self.scaling_factors
+            f_global = configuration.scaling_factors.general
 
             # Constraints
-            model.scaling_factor[b_tec.const_input_output] = f['const_input_output']
+            model.scaling_factor[b_tec.const_input_output] = f['const_input_output'] * f_global.energy_vars
             if b_tec.find_component('const_curtailed_units'):
                 model.scaling_factor[b_tec.const_curtailed_units] = f['const_curtailed_units']
 
