@@ -17,7 +17,7 @@ topology.define_carriers(['electricity', 'gas', 'hydrogen', 'heat'])
 topology.define_nodes(['onshore'])
 # topology.define_nodes(['onshore', 'offshore'])
 # topology.define_new_technologies('onshore', ['Storage_Battery'])
-topology.define_new_technologies('onshore', ['Photovoltaic', 'Storage_Battery', 'WindTurbine_Onshore_4000'])
+# topology.define_new_technologies('onshore', ['Photovoltaic', 'Storage_Battery', 'WindTurbine_Onshore_4000'])
 # topology.define_new_technologies('onshore', ['testCONV4_1'])
 # topology.define_new_technologies('onshore', ['GasTurbine_simple'])
 # topology.define_new_technologies('onshore', ['TestPumpedHydro_Open'])
@@ -46,7 +46,9 @@ if from_file == 1:
 # DEMAND
 electricity_demand = np.ones(len(topology.timesteps)) * 1000
 data.read_demand_data('onshore', 'electricity', electricity_demand)
-#
+data.read_import_limit_data('onshore', 'electricity', electricity_demand)
+data.read_import_price_data('onshore', 'electricity', np.ones(len(topology.timesteps)) * 60)
+data.read_import_emissionfactor_data('onshore', 'electricity', np.ones(len(data.topology.timesteps)) * 0.1)
 # production_prof = np.ones(len(topology.timesteps)) * 1000
 # data.read_production_profile('onshore', 'electricity', production_prof, 1)
 #
