@@ -71,7 +71,6 @@ class ResultsHandle:
         self.summary = pd.concat([self.summary, summary])
 
         if self.save_detail:
-            create_save_folder(self.save_path, timestamp)
             results.write_detailed_results(Path.joinpath(self.save_path, timestamp))
 
         if energyhub.model_information.testing:

@@ -134,12 +134,11 @@ class ModelConfiguration:
         self.solveroptions.lpwarmstart = 0
         self.solveroptions.intfeastol = 1e-5
         self.solveroptions.feastol = 1e-5
-        self.solveroptions.numericfocus = 0
+        self.solveroptions.numericfocus = 2
         self.solveroptions.cuts = -1
 
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
-        self.optimization.save_log_files = 0
         self.optimization.emission_limit = 0
         self.optimization.monte_carlo = SimpleNamespace()
         self.optimization.monte_carlo.on = 0
@@ -176,4 +175,4 @@ class ModelConfiguration:
         self.scaling = 1
         self.scaling_factors = SimpleNamespace()
         self.scaling_factors.energy_vars = 1e-3
-        self.scaling_factors.cost_vars = 1
+        self.scaling_factors.cost_vars = 1e-3

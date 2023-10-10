@@ -7,13 +7,14 @@ import warnings
 import datetime
 from pathlib import Path
 import os
+import sys
 
 from .model_construction import *
 from .data_management import *
 from .utilities import *
 from .components.utilities import annualize, set_discount_rate
 from .components.technologies.utilities import set_capex_model
-from .result_management import ResultsHandle
+from .result_management import ResultsHandle, create_save_folder
 
 class EnergyHub:
     r"""
@@ -155,7 +156,7 @@ class EnergyHub:
                 return Set.Skip
 
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=self.data.network_data.keys())
+        self.model.set_networks = Set(initialize=list(self.data.network_data.keys()))
 
         # Time Frame
         self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
@@ -272,9 +273,8 @@ class EnergyHub:
                 self.configuration.solveroptions.solver = 'gurobi_persistent'
             self.solver = get_gurobi_parameters(self.configuration.solveroptions)
 
-        else:
-            # Any other solver, to be implemented in the future
-            pass
+        elif self.configuration.solveroptions.solver == 'glpk':
+            self.solver =  get_glpk_parameters(self.configuration.solveroptions)
 
         # For persistent solver, set model instance
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
@@ -426,22 +426,22 @@ class EnergyHub:
             self.model = self.data.network_data[netw].scale_model(b_netw, self.model, self.configuration)
 
         # Scale objective
-        self.model.scaling_factor[self.model.objective] = f_global.energy_vars * f_global.cost_vars
+        self.model.scaling_factor[self.model.objective] = f_global.cost_vars
 
         # Scale globals
         if f_global.energy_vars >= 0:
             self.model.scaling_factor[self.model.const_energybalance] = f_global.energy_vars
-            self.model.scaling_factor[self.model.const_cost] = f_global.energy_vars * f_global.cost_vars
-            self.model.scaling_factor[self.model.const_node_cost] = f_global.energy_vars * f_global.cost_vars
-            self.model.scaling_factor[self.model.const_netw_cost] = f_global.energy_vars * f_global.cost_vars
-            self.model.scaling_factor[self.model.const_revenue_carbon] = f_global.energy_vars * f_global.cost_vars
-            self.model.scaling_factor[self.model.const_cost_carbon] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.const_cost] = f_global.cost_vars
+            self.model.scaling_factor[self.model.const_node_cost] = f_global.cost_vars
+            self.model.scaling_factor[self.model.const_netw_cost] = f_global.cost_vars
+            self.model.scaling_factor[self.model.const_revenue_carbon] = f_global.cost_vars
+            self.model.scaling_factor[self.model.const_cost_carbon] = f_global.cost_vars
 
-            self.model.scaling_factor[self.model.var_node_cost] = f_global.energy_vars * f_global.cost_vars
-            self.model.scaling_factor[self.model.var_netw_cost] = f_global.energy_vars * f_global.cost_vars
-            self.model.scaling_factor[self.model.var_total_cost] = f_global.energy_vars * f_global.cost_vars
-            self.model.scaling_factor[self.model.var_carbon_revenue] = f_global.energy_vars * f_global.cost_vars
-            self.model.scaling_factor[self.model.var_carbon_cost] = f_global.energy_vars * f_global.cost_vars
+            self.model.scaling_factor[self.model.var_node_cost] = f_global.cost_vars
+            self.model.scaling_factor[self.model.var_netw_cost] = f_global.cost_vars
+            self.model.scaling_factor[self.model.var_total_cost] = f_global.cost_vars
+            self.model.scaling_factor[self.model.var_carbon_revenue] = f_global.cost_vars
+            self.model.scaling_factor[self.model.var_carbon_cost] = f_global.cost_vars
 
             for node in self.model.node_blocks:
                 self.model.scaling_factor[self.model.node_blocks[node].var_import_flow] = f_global.energy_vars
@@ -455,32 +455,6 @@ class EnergyHub:
 
                 self.model.scaling_factor[self.model.node_blocks[node].var_generic_production] = f_global.energy_vars
                 self.model.scaling_factor[self.model.node_blocks[node].const_generic_production] = f_global.energy_vars
-            #
-            #     for tec in self.model.node_blocks[node].tech_blocks_active:
-            #
-            #         b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
-            #         self.model = self.data.technology_data[node][tec].scale_model(b_tec, self.model, self.configuration)
-
-                    # self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_size] = f.energy_vars
-                    # self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_input_output] = f.energy_vars
-
-        # Scale Costs
-        # if f.cost_vars >= 0:
-        #     self.model.scaling_factor[self.model.const_node_cost] = f.cost_vars
-        #     self.model.scaling_factor[self.model.const_netw_cost] = f.cost_vars
-        #     self.model.scaling_factor[self.model.const_revenue_carbon] = f.cost_vars
-        #     self.model.scaling_factor[self.model.const_cost_carbon] = f.cost_vars
-        #     self.model.scaling_factor[self.model.const_cost] = f.cost_vars
-        #     for node in self.model.node_blocks:
-        #         for tec in self.model.node_blocks[node].tech_blocks_active:
-        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_capex_aux] = f.cost_vars
-        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].var_capex] = f.cost_vars
-        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_capex_aux] = f.cost_vars
-        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_capex] = f.cost_vars
-        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_opex_variable] = f.cost_vars
-        #             self.model.scaling_factor[self.model.node_blocks[node].tech_blocks_active[tec].const_opex_fixed] = f.cost_vars
-
-
 
 
         self.scaled_model = TransformationFactory('core.scale_model').create_using(self.model)
@@ -503,15 +477,34 @@ class EnergyHub:
         else:
             model = self.model
 
+        save_path = Path.joinpath(Path(self.configuration.reporting.save_path), time_stamp)
+        create_save_folder(save_path)
+
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(model.objective)
 
-        if self.configuration.optimization.save_log_files:
-            self.solution = self.solver.solve(model,tee=True,
-                                      warmstart=True,
-                                      logfile=Path('./log_files/') / ('log_' + time_stamp))
+        # with open(Path(save_path / 'model.txt'), 'w') as f:
+        #     # Redirect the standard output to the file
+        #     original_stdout = sys.stdout
+        #     sys.stdout = f
+        #
+        #     # Print the pprint output to the file
+        #     model.pprint()
+        #
+        #     # Restore the standard output
+        #     sys.stdout = original_stdout
+
+        if self.configuration.solveroptions.solver == 'glpk':
+            self.solution = self.solver.solve(model,
+                                          tee=True,logfile=str(Path(save_path / 'log.txt')),
+                                          keepfiles=True)
         else:
-            self.solution = self.solver.solve(model, tee=True, warmstart=True)
+            self.solution = self.solver.solve(model,
+                                          tee=True,
+                                          warmstart=True,
+                                          logfile=str(Path(save_path / 'log.txt')),
+                                          keepfiles=True)
+
 
         if self.configuration.scaling == 1:
             TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)

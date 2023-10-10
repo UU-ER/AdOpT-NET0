@@ -108,7 +108,7 @@ class Conv2(Technology):
 
         # Maximum input of carriers
         if 'max_input' in performance_data:
-            b_tec.set_max_input_carriers = Set(initialize=performance_data['max_input'].keys())
+            b_tec.set_max_input_carriers = Set(initialize=list(performance_data['max_input'].keys()))
 
             def init_max_input(const, t, car):
                 return self.input[t, car] <= performance_data['max_input'][car] * \

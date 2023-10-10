@@ -503,7 +503,7 @@ def constraints_tec_CONV1(b_tec, tec_data, energyhub):
 
     # Maximum input of carriers
     if 'max_input' in performance_data:
-        b_tec.set_max_input_carriers = Set(initialize=performance_data['max_input'].keys())
+        b_tec.set_max_input_carriers = Set(initialize=list(performance_data['max_input'].keys()))
         def init_max_input(const, t, car):
             return input[t, car] <= performance_data['max_input'][car] * \
                 sum(input[t, car_input] for car_input in b_tec.set_input_carriers)
@@ -928,7 +928,7 @@ def constraints_tec_CONV2(b_tec, tec_data, energyhub):
 
     # Maximum input of carriers
     if 'max_input' in performance_data:
-        b_tec.set_max_input_carriers = Set(initialize=performance_data['max_input'].keys())
+        b_tec.set_max_input_carriers = Set(initialize=list(performance_data['max_input'].keys()))
         def init_max_input(const, t, car):
             return input[t, car] <= performance_data['max_input'][car] * \
                 sum(input[t, car_input] for car_input in b_tec.set_input_carriers)

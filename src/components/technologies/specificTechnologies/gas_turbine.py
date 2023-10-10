@@ -183,7 +183,7 @@ class GasTurbine(Technology):
         f = coeff['f']
 
         # Additional decision variables
-        size_max = self.performance_data.size_max
+        size_max = self.size_max
 
         def init_input_bounds(bd, t):
             if len(performance_data['input_carrier']) == 2:
