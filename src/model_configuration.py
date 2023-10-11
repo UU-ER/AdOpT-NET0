@@ -133,7 +133,7 @@ class ModelConfiguration:
         self.solveroptions.branchdir = 0
         self.solveroptions.lpwarmstart = 0
         self.solveroptions.intfeastol = 1e-5
-        self.solveroptions.feastol = 1e-5
+        self.solveroptions.feastol = 1e-6
         self.solveroptions.numericfocus = 2
         self.solveroptions.cuts = -1
 
