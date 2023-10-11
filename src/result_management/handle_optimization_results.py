@@ -16,6 +16,7 @@ class ResultsHandle:
         self.timestaging = 0
         self.save_detail = configuration.reporting.save_detailed
         self.save_path = Path(configuration.reporting.save_path)
+        self.case_name = configuration.reporting.case_name
 
         self.summary = pd.DataFrame(columns=[
             'Objective',
@@ -59,6 +60,13 @@ class ResultsHandle:
         else:
             time_stage = 0
 
+        # Save path
+        if self.case_name == -1:
+            result_folder_path = Path.joinpath(self.save_path, timestamp)
+        else:
+            case_study = str(timestamp) + '_' + self.case_name
+            result_folder_path = Path.joinpath(self.save_path, case_study)
+
         # Summary
         summary = results.summary
         summary['Objective'] = objective
@@ -70,24 +78,28 @@ class ResultsHandle:
         self.summary = pd.concat([self.summary, summary])
 
         if self.save_detail:
-            results.write_detailed_results(Path.joinpath(self.save_path, timestamp))
+            results.write_detailed_results(result_folder_path)
+        else:
+            self.write_excel(result_folder_path)
 
         if energyhub.model_information.testing:
             shutil.rmtree(Path.joinpath(self.save_path, timestamp))
 
         return results
 
-    def write_excel(self, file_name):
+    def write_excel(self, result_folder_path):
         """
         Writes results to excel
-        :param str save_path: folder save path
-        :param str file_name: file save name
+        :param Path result_folder_path: folder save path
         :return:
         """
 
-        path = self.save_path / (file_name + '.xlsx')
+        save_summary_path = Path.joinpath(result_folder_path, 'Summary.xlsx')
 
-        with pd.ExcelWriter(path) as writer:
+        if not os.path.isdir(result_folder_path):
+            os.makedirs(result_folder_path)
+
+        with pd.ExcelWriter(save_summary_path) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')
 
 
