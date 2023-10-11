@@ -21,6 +21,7 @@ def save_object(data, save_path):
     with open(save_path, 'wb') as handle:
         pickle.dump(data, handle)
 
+
 def load_object(load_path):
     """
     Loads a previously saved object
