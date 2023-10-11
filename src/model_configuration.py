@@ -15,12 +15,6 @@ class ModelConfiguration:
     | objective          | String specifying the objective/type         | 'costs', 'emissions_pos', 'emissions_neg',  | 'costs' |
     |                    | of optimization                              | 'emissions_minC', 'pareto'                  |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | save_detail        | What information is saved                    | 'minimal', 'basic', 'full'                  |         |
-    |                    | minimal: saves only emissions and costs      |                                             |         |
-    |                    | basic: additionally technology/network sizes |                                             |         |
-    |                    | costs and emissions as individual excel      |                                             |         |
-    |                    | all: saves full information in excel         |                                             |         |
-    +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.sd     | Value defining the range in which variables  |                                             | 0.2     |
     |                    | are varied in Monte Carlo simulations        |                                             |         |
     |                    | (defined as the standard deviation of the    |                                             |         |
@@ -112,6 +106,20 @@ class ModelConfiguration:
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
     | dynamics   | Determines if dynamics are used                                                             | {0,1}   | 0       |
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
+
+    List of reporting settings that can be specified:
+
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | Name                       | Definition                                             | Options     | Default     |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | save_detailed              | Setting to select how the results are saved. When      | {0,1}       | 1           |
+    |                            | turned off only the summary is saved.                  |             |             |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | save_path                  | Option to define the save path.                        |             |'./userData/'|
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | case_name                  | Option to define a case study name that is added to    |{str of name,| -1          |
+    |                            | the results folder name.                               |     -1}     |             |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
     """
 
     def __init__(self):
@@ -171,3 +179,4 @@ class ModelConfiguration:
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
         self.reporting.save_path = './userData/'
+        self.reporting.case_name = -1
