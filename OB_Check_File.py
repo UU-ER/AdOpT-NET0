@@ -80,7 +80,7 @@ data.read_demand_data('onshore', 'electricity', electricity_demand)
 el_export = np.ones(len(topology.timesteps)) * 100
 data.read_export_limit_data('onshore', 'electricity', el_export)
 
-el_export_price = np.ones(len(topology.timesteps)) * 800
+el_export_price = np.ones(len(topology.timesteps)) * 1000000000
 data.read_export_price_data('onshore', 'electricity', el_export_price)
 # el_export_price_low = 500
 # el_export_price_high = 1000
