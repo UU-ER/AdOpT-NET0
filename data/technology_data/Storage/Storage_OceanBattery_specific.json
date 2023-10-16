@@ -7,7 +7,7 @@
   "Economics": {
     "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 3,
-    "unit_CAPEX": 500000,
+    "unit_CAPEX": 0,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
@@ -33,12 +33,18 @@
       "eta_out": 0.96,
       "lambda": 0.001,
       "theta": 0,
-      "charge_max": 0.33333333333333331,
-      "discharge_max": 0.33333333333333331,
+      "charge_min": 0,
+      "charge_max": 1000,
+      "discharge_min": 0,
+      "discharge_max": 1000,
       "min_fill": 0.02,
+      "water_depth": 30,
       "pump_slots": 2,
       "turbine_slots": 2
-    }
+    },
+    "nr_segments": 1,
+    "frequency": 50,
+    "pole_pairs": 3
   },
   "Units": {
     "size": "MWh",

@@ -1,5 +1,5 @@
 from pyomo.environ import *
-from components.utilities import perform_disjunct_relaxation
+from src.components.utilities import perform_disjunct_relaxation
 
 
 def add_networks(energyhub):

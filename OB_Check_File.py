@@ -16,10 +16,9 @@ topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-03
 topology.define_carriers(['electricity'])
 topology.define_nodes(['onshore'])
 # topology.define_new_technologies('onshore', ['Storage_Battery'])
-topology.define_new_technologies('onshore', ['Storage_OceanBattery', 'WindTurbine_Offshore_6000'])
+topology.define_new_technologies('onshore', ['Storage_OceanBattery_specific'])
 
 # topology.define_existing_technologies('onshore', {'Storage_Battery': 100})
-#
 #
 # distance = dm.create_empty_network_matrix(topology.nodes)
 # distance.at['onshore', 'offshore'] = 100
@@ -46,13 +45,47 @@ if from_file == 1:
 #     lon = 4.4
 #     data.read_climate_data_from_api('offshore', lon, lat,save_path='./data/climate_data_offshore.txt')
 
+
+# PRODUCTION
+electricity_production = np.ones(len(topology.timesteps)) * 1000
+data.read_production_profile('onshore', 'electricity', electricity_production, 1)
+
 # DEMAND
-electricity_demand = np.ones(len(topology.timesteps)) * 1
+electricity_demand_low = 800
+electricity_demand_high = 1000
+electricity_demand = np.zeros(len(topology.timesteps))
+for i in range(len(topology.timesteps)):
+    if i % 2 == 0:
+        electricity_demand[i] = electricity_demand_low
+    else:
+        electricity_demand[i] = electricity_demand_high
 data.read_demand_data('onshore', 'electricity', electricity_demand)
 
-# production_prof = np.ones(len(topology.timesteps)) * 11
+# IMPORT
+# el_import = np.ones(len(topology.timesteps)) * 100
+# data.read_import_limit_data('onshore', 'electricity', el_import)
+#
+# el_import_price_low = 600
+# el_import_price_high = 900
+# el_import_price = np.zeros(len(topology.timesteps))
+# for i in range(len(topology.timesteps)):
+#     if i % 2 == 0:
+#         el_import_price[i] = el_import_price_low
+#     else:
+#         el_import_price[i] = el_import_price_high
+# # el_import_price = np.ones(len(topology.timesteps)) * 1000
+# data.read_import_price_data('onshore', 'electricity', el_import_price)
 
-# data.read_production_profile('onshore', 'electricity', production_prof, 1)
+# EXPORT
+el_export = np.ones(len(topology.timesteps)) * 100
+data.read_export_limit_data('onshore', 'electricity', el_export)
+
+el_export_price = np.ones(len(topology.timesteps)) * 800
+data.read_export_price_data('onshore', 'electricity', el_export_price)
+# el_export_price_low = 500
+# el_export_price_high = 1000
+
+
 
 # carbontax = np.ones(len(topology.timesteps)) * 11
 # carbonsubsidy = np.ones(len(topology.timesteps)) * 11
@@ -64,12 +97,6 @@ data.read_demand_data('onshore', 'electricity', electricity_demand)
 # co2 = np.ones(len(topology.timesteps)) * 10000/8760
 # data.read_demand_data('onshore', 'CO2', co2)
 
-# IMPORT
-# el_import = np.ones(len(topology.timesteps)) * 10000
-# data.read_import_limit_data('onshore', 'electricity', el_import)
-#
-# el_price = np.ones(len(topology.timesteps)) * 1000000
-# data.read_import_price_data('onshore', 'electricity', el_price)
 
 # READ TECHNOLOGY AND NETWORK DATA
 
