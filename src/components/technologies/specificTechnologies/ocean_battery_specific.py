@@ -184,8 +184,6 @@ class OceanBattery(Technology):
 
         self.save_specific_design = energyhub.configuration.reporting.save_path
 
-        set_t_full = energyhub.model.set_t_full
-
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         coeff = self.fitted_performance.coefficients
@@ -198,11 +196,54 @@ class OceanBattery(Technology):
         outflow_max = coeff['discharge_max']
         min_fill = coeff['min_fill']
 
-        capex_pumps = {}
-        capex_pumps[0] = 0
-        capex_pumps[1] = 1 # Axial
-        capex_pumps[2] = 1 # Mixed-flow
-        capex_pumps[3] = 1 # Radial
+
+        nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
+
+        b_tec = self.__define_vars(b_tec)
+        b_tec = self.__define_storage_level(b_tec, nr_timesteps_averaged)
+        b_tec = self.__define_pumps_simple(b_tec)
+        b_tec = self.__define_turbines_simple(b_tec)
+
+        # TURBINE BLOCK
+        # TODO Put equations in file. Test in playground.
+
+        # Aggregate Input/Output
+        def init_total_input(const, t, car):
+            return b_tec.var_input[t, car] == \
+                   sum(b_tec.pump_block[pump].var_input[t] for pump in b_tec.set_pump_slots)
+        b_tec.const_total_input = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_total_input)
+
+        def init_total_output(const, t, car):
+            return b_tec.var_output[t, car] == \
+                   sum(b_tec.turbine_block[turbine].var_output[t] for turbine in b_tec.set_turbine_slots)
+        b_tec.const_total_output = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_total_output)
+
+        def init_total_inflow(const, t):
+            return b_tec.var_total_inflow[t] == \
+                   sum(b_tec.pump_block[pump].var_inflow[t] for pump in b_tec.set_pump_slots)
+        b_tec.const_total_inflow = Constraint(self.set_t, rule=init_total_inflow)
+
+        def init_total_outflow(const, t):
+            return b_tec.var_total_outflow[t] == \
+                   sum(b_tec.turbine_block[turbine].var_outflow[t] for turbine in b_tec.set_turbine_slots)
+        b_tec.const_total_outflow = Constraint(self.set_t, rule=init_total_outflow)
+
+        # CAPEX Calculation
+        b_tec.const_capex_aux = Constraint(expr= 10 * b_tec.var_size +
+                                                sum(b_tec.turbine_block[turbine].var_capex for turbine in
+                                                    b_tec.set_turbine_slots) +
+                                                sum(b_tec.pump_block[pump].var_capex for pump in
+                                                    b_tec.set_pump_slots) ==
+                                                b_tec.var_capex_aux)
+
+        return b_tec
+
+    def __define_turbines(self, b_tec):
+
+        coeff = self.fitted_performance.coefficients
+
+        outflow_min = coeff['discharge_min']
+        outflow_max = coeff['discharge_max']
 
         capex_turbines = {}
         capex_turbines[0] = 0
@@ -210,14 +251,6 @@ class OceanBattery(Technology):
         capex_turbines[2] = 1 # Kaplan
         capex_turbines[3] = 1 # Pelton
 
-        nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
-
-        b_tec = self.__define_vars(b_tec)
-        b_tec = self.__define_storage_level(b_tec, nr_timesteps_averaged)
-        b_tec = self.__define_pumps(b_tec)
-
-        # TURBINE BLOCK
-        # TODO Put equations in file. Test in playground.
 
         def turbines_block_init(b_turbine):
             """
@@ -232,6 +265,7 @@ class OceanBattery(Technology):
 
             def init_para_capex(para, turbine_type):
                 return capex_turbines[turbine_type]
+
             b_turbine.para_capex = Param(b_turbine.set_turbine_types, rule=init_para_capex)
 
             # Decision Variables
@@ -245,25 +279,27 @@ class OceanBattery(Technology):
             # CAPEX needs to be fixed
             b_turbine.var_capex = Var(domain=NonNegativeReals, bounds=(0, b_turbine.para_size_max * 100))
             b_turbine.var_turbine_type = Var(domain=NonNegativeReals,
-                                          bounds=(min(turbine_types), max(turbine_types)))
+                                             bounds=(min(turbine_types), max(turbine_types)))
 
             def init_turbine_types(dis, type):
-                if type == 0: # slot not used
+                if type == 0:  # slot not used
                     # add size/capex/performance constraints etc.
                     dis.const_turbine_type = Constraint(expr=b_turbine.var_turbine_type == 0)
 
                     def init_output(const, t):
                         return b_turbine.var_output[t] == 0
+
                     dis.const_output = Constraint(self.set_t, rule=init_output)
 
                     def init_outflow(const, t):
                         return b_turbine.var_outflow[t] == 0
+
                     dis.const_outflow = Constraint(self.set_t, rule=init_outflow)
 
                     dis.const_size = Constraint(expr=b_turbine.var_size == 0)
                     dis.const_capex = Constraint(expr=b_turbine.var_capex == 0)
 
-                elif type == 1: # Francis
+                elif type == 1:  # Francis
 
                     dis.const_turbine_type = Constraint(expr=b_turbine.var_turbine_type == 1)
 
@@ -271,46 +307,47 @@ class OceanBattery(Technology):
                     dis.const_size = Constraint(expr=1 <= b_turbine.var_size)
 
                     # CAPEX CONSTRAINT
-                    dis.const_capex = Constraint(expr=b_turbine.var_capex == b_turbine.var_size * b_turbine.para_capex[type])
+                    dis.const_capex = Constraint(
+                        expr=b_turbine.var_capex == b_turbine.var_size * b_turbine.para_capex[type])
 
                     # POWER / FLOW DISJUNCTION
                     alpha1 = self.performance_data['turbine_performance']['Francis']['P_out']['alpha1']
                     alpha2 = self.performance_data['turbine_performance']['Francis']['P_out']['alpha2']
                     bp_x = self.performance_data['turbine_performance']['Francis']['P_out']['bp_x']
 
-                    # s_indicators_outputs = range(0, len(bp_x))
-                    #
-                    # def init_power_outflow(dis, t, ind):
-                    #
-                    #     if ind == 0: # turbine off
-                    #         def init_outflow_off(const):
-                    #             return b_turbine.var_outflow[t] == 0
-                    #         dis.const_outflow_off = Constraint(rule=init_outflow_off)
-                    #
-                    #         def init_output_off(const):
-                    #             return b_turbine.var_output[t] == 0
-                    #         dis.const_output_off = Constraint(rule=init_output_off)
-                    #
-                    #     else:
-                    #         def init_outflow_lb(const):
-                    #             return b_turbine.var_outflow[t] >= bp_x[ind - 1]
-                    #         dis.const_outflow_lb = Constraint(rule=init_outflow_lb)
-                    #
-                    #         def init_outflow_ub(const):
-                    #             return b_turbine.var_outflow[t] <= bp_x[ind]
-                    #         dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
-                    #
-                    #         def init_output_on(const, car_output):
-                    #             return self.output[t, car_output] == alpha1[ind - 1] * b_turbine.var_outflow[t] + alpha2[ind - 1]
-                    #         dis.const_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
-                    #
-                    # b_turbine.dis_power_outflow1 = Disjunct(set_t_full, s_indicators_outputs, rule=init_power_outflow)
-                    #
-                    # def bind_disjunctions_turbine(dis, t):
-                    #     return [b_turbine.dis_power_outflow1[t, i] for i in s_indicators_outputs]
-                    # b_turbine.disjunction_turbine_1 = Disjunction(set_t_full, rule=bind_disjunctions_turbine)
+                    s_indicators_outputs = range(0, len(bp_x))
 
-                elif type == 2: # Kaplan
+                    def init_power_outflow(dis, t, ind):
+
+                        if ind == 0: # turbine off
+                            def init_outflow_off(const):
+                                return b_turbine.var_outflow[t] == 0
+                            dis.const_outflow_off = Constraint(rule=init_outflow_off)
+
+                            def init_output_off(const):
+                                return b_turbine.var_output[t] == 0
+                            dis.const_output_off = Constraint(rule=init_output_off)
+
+                        else:
+                            def init_outflow_lb(const):
+                                return b_turbine.var_outflow[t] >= bp_x[ind - 1]
+                            dis.const_outflow_lb = Constraint(rule=init_outflow_lb)
+
+                            def init_outflow_ub(const):
+                                return b_turbine.var_outflow[t] <= bp_x[ind]
+                            dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
+
+                            def init_output_on(const, car_output):
+                                return self.output[t, car_output] == alpha1[ind - 1] * b_turbine.var_outflow[t] + alpha2[ind - 1]
+                            dis.const_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
+
+                    b_turbine.dis_power_outflow1 = Disjunct(self.set_t_full, s_indicators_outputs, rule=init_power_outflow)
+
+                    def bind_disjunctions_turbine(dis, t):
+                        return [b_turbine.dis_power_outflow1[t, i] for i in s_indicators_outputs]
+                    b_turbine.disjunction_turbine_1 = Disjunction(self.set_t_full, rule=bind_disjunctions_turbine)
+
+                elif type == 2:  # Kaplan
 
                     dis.const_turbine_type = Constraint(expr=b_turbine.var_turbine_type == 2)
 
@@ -327,45 +364,45 @@ class OceanBattery(Technology):
                     bp_x = self.performance_data['turbine_performance']['Kaplan']['P_out']['bp_x']
 
                     s_indicators_outputs = range(0, len(bp_x))
-                    #
-                    # def init_power_outflow(dis, t, ind):
-                    #
-                    #     if ind == 0:  # turbine off
-                    #         def init_outflow_off(const):
-                    #             return b_turbine.var_outflow[t] == 0
-                    #
-                    #         dis.const_outflow_off = Constraint(rule=init_outflow_off)
-                    #
-                    #         def init_output_off(const):
-                    #             return b_turbine.var_output[t] == 0
-                    #
-                    #         dis.const_output_off = Constraint(rule=init_output_off)
-                    #
-                    #     else:
-                    #         def init_outflow_lb(const):
-                    #             return b_turbine.var_outflow[t] >= bp_x[ind - 1]
-                    #
-                    #         dis.const_outflow_lb = Constraint(rule=init_outflow_lb)
-                    #
-                    #         def init_outflow_ub(const):
-                    #             return b_turbine.var_outflow[t] <= bp_x[ind]
-                    #
-                    #         dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
-                    #
-                    #         def init_output_on(const, car_output):
-                    #             return self.output[t, car_output] == alpha1[ind - 1] * b_turbine.var_outflow[t] + alpha2[
-                    #                 ind - 1]
-                    #
-                    #         dis.const_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
-                    #
-                    # b_turbine.dis_power_outflow2 = Disjunct(set_t_full, s_indicators_outputs, rule=init_power_outflow)
-                    #
-                    # def bind_disjunctions_turbine(dis, t):
-                    #     return [b_turbine.dis_power_outflow2[t, i] for i in s_indicators_outputs]
-                    #
-                    # b_turbine.disjunction_turbine_2 = Disjunction(set_t_full, rule=bind_disjunctions_turbine)
 
-                elif type == 3: # Pelton
+                    def init_power_outflow(dis, t, ind):
+
+                        if ind == 0:  # turbine off
+                            def init_outflow_off(const):
+                                return b_turbine.var_outflow[t] == 0
+
+                            dis.const_outflow_off = Constraint(rule=init_outflow_off)
+
+                            def init_output_off(const):
+                                return b_turbine.var_output[t] == 0
+
+                            dis.const_output_off = Constraint(rule=init_output_off)
+
+                        else:
+                            def init_outflow_lb(const):
+                                return b_turbine.var_outflow[t] >= bp_x[ind - 1]
+
+                            dis.const_outflow_lb = Constraint(rule=init_outflow_lb)
+
+                            def init_outflow_ub(const):
+                                return b_turbine.var_outflow[t] <= bp_x[ind]
+
+                            dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
+
+                            def init_output_on(const, car_output):
+                                return self.output[t, car_output] == alpha1[ind - 1] * b_turbine.var_outflow[t] + alpha2[
+                                    ind - 1]
+
+                            dis.const_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
+
+                    b_turbine.dis_power_outflow2 = Disjunct(self.set_t_full, s_indicators_outputs, rule=init_power_outflow)
+
+                    def bind_disjunctions_turbine(dis, t):
+                        return [b_turbine.dis_power_outflow2[t, i] for i in s_indicators_outputs]
+
+                    b_turbine.disjunction_turbine_2 = Disjunction(self.set_t_full, rule=bind_disjunctions_turbine)
+
+                elif type == 3:  # Pelton
 
                     dis.const_turbine_type = Constraint(expr=b_turbine.var_turbine_type == 3)
 
@@ -408,16 +445,144 @@ class OceanBattery(Technology):
                             dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
 
                             def init_output_on(const, car_output):
-                                return self.output[t, car_output] == alpha1[ind - 1] * b_turbine.var_outflow[t] + alpha2[
-                                    ind - 1]
+                                return self.output[t, car_output] == alpha1[ind - 1] * b_turbine.var_outflow[t] + \
+                                       alpha2[
+                                           ind - 1]
 
                             dis.const_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
 
-                    b_turbine.dis_power_outflow3 = Disjunct(set_t_full, s_indicators_outputs, rule=init_power_outflow)
+                    b_turbine.dis_power_outflow3 = Disjunct(self.set_t_full, s_indicators_outputs,
+                                                            rule=init_power_outflow)
 
                     def bind_disjunctions_turbine(dis, t):
                         return [b_turbine.dis_power_outflow3[t, i] for i in s_indicators_outputs]
-                    b_turbine.disjunction_turbine_3 = Disjunction(set_t_full, rule=bind_disjunctions_turbine)
+
+                    b_turbine.disjunction_turbine_3 = Disjunction(self.set_t_full, rule=bind_disjunctions_turbine)
+
+            b_turbine.dis_turbine_types = Disjunct(turbine_types, rule=init_turbine_types)
+
+            # Bind disjuncts
+            def bind_disjunctions(dis):
+                return [b_turbine.dis_turbine_types[i] for i in turbine_types]
+
+            b_turbine.disjunction_turbine_types = Disjunction(rule=bind_disjunctions)
+
+            b_turbine = perform_disjunct_relaxation(b_turbine)
+
+            return b_turbine
+
+        b_tec.turbine_block = Block(b_tec.set_turbine_slots, rule=turbines_block_init)
+
+        return b_tec
+
+
+    def __define_turbines_simple(self, b_tec):
+
+        coeff = self.fitted_performance.coefficients
+
+        outflow_min = coeff['discharge_min']
+        outflow_max = coeff['discharge_max']
+
+        capex_turbines = {}
+        capex_turbines[0] = 0
+        capex_turbines[1] = 1 # Francis
+        capex_turbines[2] = 1 # Kaplan
+        capex_turbines[3] = 1 # Pelton
+
+
+        def turbines_block_init(b_turbine):
+            """
+
+            """
+            turbine_types = range(0, 2)
+            b_turbine.set_turbine_types = RangeSet(max(turbine_types))
+
+            # Parameters
+            b_turbine.para_size_min = Param(initialize=0)
+            b_turbine.para_size_max = Param(initialize=10)
+
+            def init_para_capex(para, turbine_type):
+                return capex_turbines[turbine_type]
+            b_turbine.para_capex = Param(b_turbine.set_turbine_types, rule=init_para_capex)
+
+            # Decision Variables
+            b_turbine.var_size = Var(domain=NonNegativeReals,
+                                     bounds=(b_turbine.para_size_min, b_turbine.para_size_max))
+            b_turbine.var_output = Var(self.set_t_full, domain=NonNegativeReals,
+                                       bounds=(b_turbine.para_size_min, b_turbine.para_size_max))
+            b_turbine.var_outflow = Var(self.set_t_full, domain=NonNegativeReals,
+                                        bounds=(b_turbine.para_size_min * outflow_min,
+                                                b_turbine.para_size_max * outflow_max))
+            # CAPEX needs to be fixed
+            b_turbine.var_capex = Var(domain=NonNegativeReals, bounds=(0, b_turbine.para_size_max * 100))
+            b_turbine.var_turbine_type = Var(domain=NonNegativeReals,
+                                             bounds=(min(turbine_types), max(turbine_types)))
+
+            def init_turbine_types(dis, type):
+                if type == 0:  # slot not used
+                    # add size/capex/performance constraints etc.
+                    dis.const_turbine_type = Constraint(expr=b_turbine.var_turbine_type == 0)
+
+                    def init_output(const, t):
+                        return b_turbine.var_output[t] == 0
+
+                    dis.const_output = Constraint(self.set_t, rule=init_output)
+
+                    def init_outflow(const, t):
+                        return b_turbine.var_outflow[t] == 0
+
+                    dis.const_outflow = Constraint(self.set_t, rule=init_outflow)
+
+                    dis.const_size = Constraint(expr=b_turbine.var_size == 0)
+                    dis.const_capex = Constraint(expr=b_turbine.var_capex == 0)
+
+                elif type == 1:  # Francis
+
+                    dis.const_turbine_type = Constraint(expr=b_turbine.var_turbine_type == 1)
+
+                    # SIZE CONSTRAINT
+                    dis.const_size = Constraint(expr=1 <= b_turbine.var_size)
+
+                    # CAPEX CONSTRAINT
+                    dis.const_capex = Constraint(
+                        expr=b_turbine.var_capex == b_turbine.var_size * b_turbine.para_capex[type])
+
+                    # POWER / FLOW DISJUNCTION
+                    alpha1 = self.performance_data['turbine_performance']['Francis']['P_out']['alpha1']
+                    alpha2 = self.performance_data['turbine_performance']['Francis']['P_out']['alpha2']
+                    bp_x = self.performance_data['turbine_performance']['Francis']['P_out']['bp_x']
+
+                    s_indicators_outputs = range(0, len(bp_x))
+
+                    def init_power_outflow(dis, t, ind):
+
+                        if ind == 0: # turbine off
+                            def init_outflow_off(const):
+                                return b_turbine.var_outflow[t] == 0
+                            dis.const_outflow_off = Constraint(rule=init_outflow_off)
+
+                            def init_output_off(const):
+                                return b_turbine.var_output[t] == 0
+                            dis.const_output_off = Constraint(rule=init_output_off)
+
+                        else:
+                            def init_outflow_lb(const):
+                                return b_turbine.var_outflow[t] >= bp_x[ind - 1]
+                            dis.const_outflow_lb = Constraint(rule=init_outflow_lb)
+
+                            def init_outflow_ub(const):
+                                return b_turbine.var_outflow[t] <= bp_x[ind]
+                            dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
+
+                            def init_output_on(const, car_output):
+                                return self.output[t, car_output] == alpha1[ind - 1] * b_turbine.var_outflow[t] + alpha2[ind - 1]
+                            dis.const_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
+
+                    b_turbine.dis_power_outflow1 = Disjunct(self.set_t_full, s_indicators_outputs, rule=init_power_outflow)
+
+                    def bind_disjunctions_turbine(dis, t):
+                        return [b_turbine.dis_power_outflow1[t, i] for i in s_indicators_outputs]
+                    b_turbine.disjunction_turbine_1 = Disjunction(self.set_t_full, rule=bind_disjunctions_turbine)
 
             b_turbine.dis_turbine_types = Disjunct(turbine_types, rule=init_turbine_types)
 
@@ -428,52 +593,32 @@ class OceanBattery(Technology):
 
             b_turbine = perform_disjunct_relaxation(b_turbine)
 
-            #     mc.perform_disjunct_relaxation(b_turbine)
             return b_turbine
 
         b_tec.turbine_block = Block(b_tec.set_turbine_slots, rule=turbines_block_init)
 
-        # Aggregate Input/Output
-        def init_total_input(const, t, car):
-            return b_tec.var_input[t, car] == \
-                   sum(b_tec.pump_block[pump].var_input[t] for pump in b_tec.set_pump_slots)
-
-        b_tec.const_total_input = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_total_input)
-
-        def init_total_output(const, t, car):
-            return b_tec.var_output[t, car] == \
-                   sum(b_tec.turbine_block[turbine].var_output[t] for turbine in b_tec.set_turbine_slots)
-
-        b_tec.const_total_output = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_total_output)
-
-        def init_total_inflow(const, t):
-            return b_tec.var_total_inflow[t] == \
-                   sum(b_tec.pump_block[pump].var_inflow[t] for pump in b_tec.set_pump_slots)
-
-        b_tec.const_total_inflow = Constraint(self.set_t, rule=init_total_inflow)
-
-        def init_total_outflow(const, t):
-            return b_tec.var_total_outflow[t] == \
-                   sum(b_tec.turbine_block[turbine].var_outflow[t] for turbine in b_tec.set_turbine_slots)
-
-        b_tec.const_total_outflow = Constraint(self.set_t, rule=init_total_outflow)
-
-        # CAPEX Calculation
-        b_tec.const_capex_aux = Constraint(expr=10 * b_tec.var_size +
-                                                sum(b_tec.turbine_block[turbine].var_capex for turbine in
-                                                    b_tec.set_turbine_slots) +
-                                                sum(b_tec.pump_block[pump].var_capex for pump in
-                                                    b_tec.set_pump_slots) ==
-                                                b_tec.var_capex_aux)
-
         return b_tec
 
-    def __define_pumps(self, b_tec):
+
+    def __define_pumps_simple(self, b_tec):
+
+        coeff = self.fitted_performance.coefficients
+
+        inflow_min = coeff['charge_min'] # flow per MW
+        inflow_max = coeff['charge_max']
+
+        capex_pumps = {}
+        capex_pumps[0] = 0
+        capex_pumps[1] = 1 # Axial
+        capex_pumps[2] = 1 # Mixed-flow
+        capex_pumps[3] = 1 # Radial
+
+
         def pumps_block_init(b_pump):
             """
 
             """
-            pump_types = range(0, 4)
+            pump_types = range(0, 2)
             b_pump.set_pump_types = RangeSet(max(pump_types))
 
             # Parameters
@@ -488,9 +633,9 @@ class OceanBattery(Technology):
             # Decision Variables
             b_pump.var_size = Var(domain=NonNegativeReals,
                                   bounds=(b_pump.para_size_min, b_pump.para_size_max))
-            b_pump.var_input = Var(set_t_full, domain=NonNegativeReals,
+            b_pump.var_input = Var(self.set_t_full, domain=NonNegativeReals,
                                    bounds=(b_pump.para_size_min, b_pump.para_size_max))
-            b_pump.var_inflow = Var(set_t_full, domain=NonNegativeReals,
+            b_pump.var_inflow = Var(self.set_t_full, domain=NonNegativeReals,
                                     bounds=(b_pump.para_size_min * inflow_min, b_pump.para_size_max * inflow_max))
             b_pump.var_pump_type = Var(domain=NonNegativeReals,
                                        bounds=(min(pump_types), max(pump_types)))
@@ -525,43 +670,166 @@ class OceanBattery(Technology):
 
                     # CAPEX CONSTRAINT
                     dis.const_capex = Constraint(expr=b_pump.var_capex == b_pump.var_size * b_pump.para_capex[type])
-                    #
-                    # # POWER / FLOW DISJUNCTION
-                    # alpha1 = self.performance_data['pump_performance']['Axial']['P_in']['alpha1']
-                    # alpha2 = self.performance_data['pump_performance']['Axial']['P_in']['alpha2']
-                    # bp_x = self.performance_data['pump_performance']['Axial']['P_in']['bp_x']
-                    #
-                    # s_indicators_inputs = range(0, len(bp_x))
-                    #
-                    # def init_power_inflow(dis, t, ind):
-                    #
-                    #     if ind == 0: # pump off
-                    #         def init_inflow_off(const):
-                    #             return b_pump.var_inflow[t] == 0
-                    #         dis.const_inflow_off = Constraint(rule=init_inflow_off)
-                    #
-                    #         def init_input_off(const):
-                    #             return b_pump.var_input[t] == 0
-                    #         dis.const_input_off = Constraint(rule=init_input_off)
-                    #
-                    #     else:
-                    #         def init_inflow_lb(const):
-                    #             return b_pump.var_inflow[t] >= bp_x[ind - 1]
-                    #         dis.const_inflow_lb = Constraint(rule=init_inflow_lb)
-                    #
-                    #         def init_inflow_ub(const):
-                    #             return b_pump.var_inflow[t] <= bp_x[ind]
-                    #         dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
-                    #
-                    #         def init_input_on(const, car_input):
-                    #             return self.input[t, car_input] == alpha1[ind - 1] * b_pump.var_inflow[t] + alpha2[ind - 1]
-                    #         dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
-                    #
-                    # b_pump.dis_power_inflow1 = Disjunct(set_t_full, s_indicators_inputs, rule=init_power_inflow)
-                    #
-                    # def bind_disjunctions_pump(dis, t):
-                    #     return [b_pump.dis_power_inflow1[t, i] for i in s_indicators_inputs]
-                    # b_pump.disjunction_pump_1 = Disjunction(set_t_full, rule=bind_disjunctions_pump)
+
+                    # POWER / FLOW DISJUNCTION
+                    alpha1 = self.performance_data['pump_performance']['Axial']['P_in']['alpha1']
+                    alpha2 = self.performance_data['pump_performance']['Axial']['P_in']['alpha2']
+                    bp_x = self.performance_data['pump_performance']['Axial']['P_in']['bp_x']
+
+                    s_indicators_inputs = range(0, len(bp_x))
+
+                    def init_power_inflow(dis, t, ind):
+
+                        if ind == 0: # pump off
+                            def init_inflow_off(const):
+                                return b_pump.var_inflow[t] == 0
+                            dis.const_inflow_off = Constraint(rule=init_inflow_off)
+
+                            def init_input_off(const):
+                                return b_pump.var_input[t] == 0
+                            dis.const_input_off = Constraint(rule=init_input_off)
+
+                        else:
+                            def init_inflow_lb(const):
+                                return b_pump.var_inflow[t] >= bp_x[ind - 1]
+                            dis.const_inflow_lb = Constraint(rule=init_inflow_lb)
+
+                            def init_inflow_ub(const):
+                                return b_pump.var_inflow[t] <= bp_x[ind]
+                            dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
+
+                            def init_input_on(const, car_input):
+                                return self.input[t, car_input] == alpha1[ind - 1] * b_pump.var_inflow[t] + alpha2[ind - 1]
+                            dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
+
+                    b_pump.dis_power_inflow1 = Disjunct(self.set_t_full, s_indicators_inputs, rule=init_power_inflow)
+
+                    def bind_disjunctions_pump(dis, t):
+                        return [b_pump.dis_power_inflow1[t, i] for i in s_indicators_inputs]
+                    b_pump.disjunction_pump_1 = Disjunction(self.set_t_full, rule=bind_disjunctions_pump)
+
+            b_pump.dis_pump_types = Disjunct(pump_types, rule=init_pump_types)
+
+            # Bind disjuncts
+            def bind_disjunctions(dis):
+                return [b_pump.dis_pump_types[i] for i in pump_types]
+            b_pump.disjunction_pump_types = Disjunction(rule=bind_disjunctions)
+
+            b_pump = perform_disjunct_relaxation(b_pump)
+
+            return b_pump
+
+        b_tec.pump_block = Block(b_tec.set_pump_slots, rule=pumps_block_init)
+
+        return b_tec
+
+    def __define_pumps(self, b_tec):
+
+        coeff = self.fitted_performance.coefficients
+
+        inflow_min = coeff['charge_min'] # flow per MW
+        inflow_max = coeff['charge_max']
+
+        capex_pumps = {}
+        capex_pumps[0] = 0
+        capex_pumps[1] = 1 # Axial
+        capex_pumps[2] = 1 # Mixed-flow
+        capex_pumps[3] = 1 # Radial
+
+
+        def pumps_block_init(b_pump):
+            """
+
+            """
+            pump_types = range(0, 4)
+            b_pump.set_pump_types = RangeSet(max(pump_types))
+
+            # Parameters
+            b_pump.para_size_min = Param(initialize=0)
+            b_pump.para_size_max = Param(initialize=10)
+
+            def init_para_capex(para, pump_type):
+                return capex_pumps[pump_type]
+
+            b_pump.para_capex = Param(b_pump.set_pump_types, rule=init_para_capex)
+
+            # Decision Variables
+            b_pump.var_size = Var(domain=NonNegativeReals,
+                                  bounds=(b_pump.para_size_min, b_pump.para_size_max))
+            b_pump.var_input = Var(self.set_t_full, domain=NonNegativeReals,
+                                   bounds=(b_pump.para_size_min, b_pump.para_size_max))
+            b_pump.var_inflow = Var(self.set_t_full, domain=NonNegativeReals,
+                                    bounds=(b_pump.para_size_min * inflow_min, b_pump.para_size_max * inflow_max))
+            b_pump.var_pump_type = Var(domain=NonNegativeReals,
+                                       bounds=(min(pump_types), max(pump_types)))
+
+            # THIS NEEDS TO BE FIXED
+            b_pump.var_capex = Var(domain=NonNegativeReals, bounds=(0, b_pump.para_size_max * 100))
+
+            def init_pump_types(dis, type):
+                if type == 0:  # slot not used
+
+                    dis.const_pump_type = Constraint(expr=b_pump.var_pump_type == 0)
+
+                    def init_input(const, t):
+                        return b_pump.var_input[t] == 0
+
+                    dis.const_input = Constraint(self.set_t, rule=init_input)
+
+                    def init_inflow(const, t):
+                        return b_pump.var_inflow[t] == 0
+
+                    dis.const_inflow = Constraint(self.set_t, rule=init_inflow)
+
+                    dis.const_size = Constraint(expr=b_pump.var_size == 0)
+                    dis.const_capex = Constraint(expr=b_pump.var_capex == 0)
+
+                elif type == 1:  # type 1: Axial
+
+                    dis.const_pump_type = Constraint(expr=b_pump.var_pump_type == 1)
+
+                    # SIZE CONSTRAINT
+                    dis.const_size = Constraint(expr=1 <= b_pump.var_size)
+
+                    # CAPEX CONSTRAINT
+                    dis.const_capex = Constraint(expr=b_pump.var_capex == b_pump.var_size * b_pump.para_capex[type])
+
+                    # POWER / FLOW DISJUNCTION
+                    alpha1 = self.performance_data['pump_performance']['Axial']['P_in']['alpha1']
+                    alpha2 = self.performance_data['pump_performance']['Axial']['P_in']['alpha2']
+                    bp_x = self.performance_data['pump_performance']['Axial']['P_in']['bp_x']
+
+                    s_indicators_inputs = range(0, len(bp_x))
+
+                    def init_power_inflow(dis, t, ind):
+
+                        if ind == 0: # pump off
+                            def init_inflow_off(const):
+                                return b_pump.var_inflow[t] == 0
+                            dis.const_inflow_off = Constraint(rule=init_inflow_off)
+
+                            def init_input_off(const):
+                                return b_pump.var_input[t] == 0
+                            dis.const_input_off = Constraint(rule=init_input_off)
+
+                        else:
+                            def init_inflow_lb(const):
+                                return b_pump.var_inflow[t] >= bp_x[ind - 1]
+                            dis.const_inflow_lb = Constraint(rule=init_inflow_lb)
+
+                            def init_inflow_ub(const):
+                                return b_pump.var_inflow[t] <= bp_x[ind]
+                            dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
+
+                            def init_input_on(const, car_input):
+                                return self.input[t, car_input] == alpha1[ind - 1] * b_pump.var_inflow[t] + alpha2[ind - 1]
+                            dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
+
+                    b_pump.dis_power_inflow1 = Disjunct(self.set_t_full, s_indicators_inputs, rule=init_power_inflow)
+
+                    def bind_disjunctions_pump(dis, t):
+                        return [b_pump.dis_power_inflow1[t, i] for i in s_indicators_inputs]
+                    b_pump.disjunction_pump_1 = Disjunction(self.set_t_full, rule=bind_disjunctions_pump)
 
                 elif type == 2:  # type 2: Mixed-flow
 
@@ -573,42 +841,42 @@ class OceanBattery(Technology):
                     # CAPEX CONSTRAINT
                     dis.const_capex = Constraint(expr=b_pump.var_capex == b_pump.var_size * b_pump.para_capex[type])
 
-                    # # POWER / FLOW DISJUNCTION
-                    # alpha1 = self.performance_data['pump_performance']['Mixed_flow']['P_in']['alpha1']
-                    # alpha2 = self.performance_data['pump_performance']['Mixed_flow']['P_in']['alpha2']
-                    # bp_x = self.performance_data['pump_performance']['Mixed_flow']['P_in']['bp_x']
-                    #
-                    # s_indicators_inputs = range(0, len(bp_x))
-                    #
-                    # def init_power_inflow(dis, t, ind):
-                    #
-                    #     if ind == 0: # pump off
-                    #         def init_inflow_off(const):
-                    #             return b_pump.var_inflow[t] == 0
-                    #         dis.const_inflow_off = Constraint(rule=init_inflow_off)
-                    #
-                    #         def init_input_off(const):
-                    #             return b_pump.var_input[t] == 0
-                    #         dis.const_input_off = Constraint(rule=init_input_off)
-                    #
-                    #     else:
-                    #         def init_inflow_lb(const):
-                    #             return b_pump.var_inflow[t] >= bp_x[ind - 1]
-                    #         dis.const_inflow_lb = Constraint(rule=init_inflow_lb)
-                    #
-                    #         def init_inflow_ub(const):
-                    #             return b_pump.var_inflow[t] <= bp_x[ind]
-                    #         dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
-                    #
-                    #         def init_input_on(const, car_input):
-                    #             return self.input[t, car_input] == alpha1[ind - 1] * b_pump.var_inflow[t] + alpha2[ind - 1]
-                    #         dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
-                    #
-                    # b_pump.dis_power_inflow2 = Disjunct(set_t_full, s_indicators_inputs, rule=init_power_inflow)
-                    #
-                    # def bind_disjunctions_pump(dis, t):
-                    #     return [b_pump.dis_power_inflow2[t, i] for i in s_indicators_inputs]
-                    # b_pump.disjunction_pump_2 = Disjunction(set_t_full, rule=bind_disjunctions_pump)
+                    # POWER / FLOW DISJUNCTION
+                    alpha1 = self.performance_data['pump_performance']['Mixed_flow']['P_in']['alpha1']
+                    alpha2 = self.performance_data['pump_performance']['Mixed_flow']['P_in']['alpha2']
+                    bp_x = self.performance_data['pump_performance']['Mixed_flow']['P_in']['bp_x']
+
+                    s_indicators_inputs = range(0, len(bp_x))
+
+                    def init_power_inflow(dis, t, ind):
+
+                        if ind == 0: # pump off
+                            def init_inflow_off(const):
+                                return b_pump.var_inflow[t] == 0
+                            dis.const_inflow_off = Constraint(rule=init_inflow_off)
+
+                            def init_input_off(const):
+                                return b_pump.var_input[t] == 0
+                            dis.const_input_off = Constraint(rule=init_input_off)
+
+                        else:
+                            def init_inflow_lb(const):
+                                return b_pump.var_inflow[t] >= bp_x[ind - 1]
+                            dis.const_inflow_lb = Constraint(rule=init_inflow_lb)
+
+                            def init_inflow_ub(const):
+                                return b_pump.var_inflow[t] <= bp_x[ind]
+                            dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
+
+                            def init_input_on(const, car_input):
+                                return self.input[t, car_input] == alpha1[ind - 1] * b_pump.var_inflow[t] + alpha2[ind - 1]
+                            dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
+
+                    b_pump.dis_power_inflow2 = Disjunct(self.set_t_full, s_indicators_inputs, rule=init_power_inflow)
+
+                    def bind_disjunctions_pump(dis, t):
+                        return [b_pump.dis_power_inflow2[t, i] for i in s_indicators_inputs]
+                    b_pump.disjunction_pump_2 = Disjunction(self.set_t_full, rule=bind_disjunctions_pump)
 
                 elif type == 3:  # type 2: Radial
 
@@ -620,42 +888,42 @@ class OceanBattery(Technology):
                     # CAPEX CONSTRAINT
                     dis.const_capex = Constraint(expr=b_pump.var_capex == b_pump.var_size * b_pump.para_capex[type])
 
-                    # # POWER / FLOW DISJUNCTION
-                    # alpha1 = self.performance_data['pump_performance']['Radial']['P_in']['alpha1']
-                    # alpha2 = self.performance_data['pump_performance']['Radial']['P_in']['alpha2']
-                    # bp_x = self.performance_data['pump_performance']['Radial']['P_in']['bp_x']
-                    #
-                    # s_indicators_inputs = range(0, len(bp_x))
-                    #
-                    # def init_power_inflow(dis, t, ind):
-                    #
-                    #     if ind == 0: # pump off
-                    #         def init_inflow_off(const):
-                    #             return b_pump.var_inflow[t] == 0
-                    #         dis.const_inflow_off = Constraint(rule=init_inflow_off)
-                    #
-                    #         def init_input_off(const):
-                    #             return b_pump.var_input[t] == 0
-                    #         dis.const_input_off = Constraint(rule=init_input_off)
-                    #
-                    #     else:
-                    #         def init_inflow_lb(const):
-                    #             return b_pump.var_inflow[t] >= bp_x[ind - 1]
-                    #         dis.const_inflow_lb = Constraint(rule=init_inflow_lb)
-                    #
-                    #         def init_inflow_ub(const):
-                    #             return b_pump.var_inflow[t] <= bp_x[ind]
-                    #         dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
-                    #
-                    #         def init_input_on(const, car_input):
-                    #             return self.input[t, car_input] == alpha1[ind - 1] * b_pump.var_inflow[t] + alpha2[ind - 1]
-                    #         dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
-                    #
-                    # b_pump.dis_power_inflow3 = Disjunct(set_t_full, s_indicators_inputs, rule=init_power_inflow)
-                    #
-                    # def bind_disjunctions_pump(dis, t):
-                    #     return [b_pump.dis_power_inflow3[t, i] for i in s_indicators_inputs]
-                    # b_pump.disjunction_pump_3 = Disjunction(set_t_full, rule=bind_disjunctions_pump)
+                    # POWER / FLOW DISJUNCTION
+                    alpha1 = self.performance_data['pump_performance']['Radial']['P_in']['alpha1']
+                    alpha2 = self.performance_data['pump_performance']['Radial']['P_in']['alpha2']
+                    bp_x = self.performance_data['pump_performance']['Radial']['P_in']['bp_x']
+
+                    s_indicators_inputs = range(0, len(bp_x))
+
+                    def init_power_inflow(dis, t, ind):
+
+                        if ind == 0: # pump off
+                            def init_inflow_off(const):
+                                return b_pump.var_inflow[t] == 0
+                            dis.const_inflow_off = Constraint(rule=init_inflow_off)
+
+                            def init_input_off(const):
+                                return b_pump.var_input[t] == 0
+                            dis.const_input_off = Constraint(rule=init_input_off)
+
+                        else:
+                            def init_inflow_lb(const):
+                                return b_pump.var_inflow[t] >= bp_x[ind - 1]
+                            dis.const_inflow_lb = Constraint(rule=init_inflow_lb)
+
+                            def init_inflow_ub(const):
+                                return b_pump.var_inflow[t] <= bp_x[ind]
+                            dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
+
+                            def init_input_on(const, car_input):
+                                return self.input[t, car_input] == alpha1[ind - 1] * b_pump.var_inflow[t] + alpha2[ind - 1]
+                            dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
+
+                    b_pump.dis_power_inflow3 = Disjunct(self.set_t_full, s_indicators_inputs, rule=init_power_inflow)
+
+                    def bind_disjunctions_pump(dis, t):
+                        return [b_pump.dis_power_inflow3[t, i] for i in s_indicators_inputs]
+                    b_pump.disjunction_pump_3 = Disjunction(self.set_t_full, rule=bind_disjunctions_pump)
 
                     # def init_inflow(const, t):
                     #     return b_pump.var_inflow[t] <= b_pump.var_size
