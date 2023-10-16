@@ -421,9 +421,16 @@ class EnergyHub:
 
         start = time.time()
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
+        save_path = Path(self.configuration.reporting.save_path)
 
-        save_path = Path.joinpath(Path(self.configuration.reporting.save_path), time_stamp)
-        create_save_folder(save_path)
+        # Save path
+        if self.configuration.reporting.case_name == -1:
+            result_folder_path = Path.joinpath(save_path, time_stamp)
+        else:
+            time_stamp = str(time_stamp) + '_' + self.configuration.reporting.case_name
+            result_folder_path = Path.joinpath(save_path, time_stamp)
+
+        create_save_folder(result_folder_path)
 
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(self.model.objective)
@@ -431,7 +438,7 @@ class EnergyHub:
         self.solution = self.solver.solve(self.model,
                                           tee=True,
                                           warmstart=True,
-                                          logfile=str(Path(save_path / 'log.txt')),
+                                          logfile=str(Path(result_folder_path / 'log.txt')),
                                           keepfiles=True)
 
         self.solution.write()

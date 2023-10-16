@@ -16,7 +16,6 @@ class ResultsHandle:
         self.timestaging = 0
         self.save_detail = configuration.reporting.save_detailed
         self.save_path = Path(configuration.reporting.save_path)
-        self.case_name = configuration.reporting.case_name
 
         self.summary = pd.DataFrame(columns=[
             'Objective',
@@ -61,11 +60,7 @@ class ResultsHandle:
             time_stage = 0
 
         # Save path
-        if self.case_name == -1:
-            result_folder_path = Path.joinpath(self.save_path, timestamp)
-        else:
-            case_study = str(timestamp) + '_' + self.case_name
-            result_folder_path = Path.joinpath(self.save_path, case_study)
+        result_folder_path = Path.joinpath(self.save_path, timestamp)
 
         # Summary
         summary = results.summary
