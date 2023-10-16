@@ -650,7 +650,7 @@ def test_fast_dynamics():
     for j in CONV_Type:
         for i in perf_function_type:
             data_load_path = r'./test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(i) + '.p'
-            data = dm.load_object(data_load_path)
+            data = load_object(data_load_path)
             tecname = 'testCONV' + str(j) + '_' + str(i)
 
             if j != 3:
@@ -851,7 +851,7 @@ def test_slow_dynamics():
     for j in CONV_Type:
 
         data_load_path = r'./test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(4) + '.p'
-        data = dm.load_object(data_load_path)
+        data = load_object(data_load_path)
         tecname = 'testCONV' + str(j) + '_' + str(4)
 
         #change SU time and SD time
