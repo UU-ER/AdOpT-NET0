@@ -29,7 +29,8 @@
     }
   },
   "ScalingFactors": {
-    "const_capex_aux": 1e-1,
-    "const_input_output": 1e2
+    "const_capex_aux": 1e-3,
+    "const_input_output": 1e2,
+    "var_capex_aux": 1e-1
   }
 }

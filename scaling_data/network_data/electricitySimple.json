@@ -24,6 +24,8 @@
   "size_is_int": 0,
   "decommission": 0,
   "ScalingFactors": {
-    "const_flowlosses": 1e15
+    "const_flowlosses": 1e4,
+    "var_losses": 1e1,
+    "const_flow_size_high": 1
   }
 }

@@ -12,13 +12,12 @@ data_save_path = Path('./user_data/data_handle_test')
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen', 'heat'])
 # topology.define_nodes(['onshore'])
 topology.define_nodes(['onshore', 'offshore'])
-# topology.define_new_technologies('onshore', ['Photovoltaic', 'Storage_Battery', 'WindTurbine_Onshore_4000',
-#                                              'GasTurbine_simple'])
-# topology.define_new_technologies('offshore', ['WindTurbine_Offshore_6000'])
+topology.define_new_technologies('onshore', ['Photovoltaic', 'Storage_Battery', 'WindTurbine_Onshore_4000', 'GasTurbine_simple'])
+topology.define_new_technologies('offshore', ['WindTurbine_Offshore_6000'])
 
 distance = dm.create_empty_network_matrix(topology.nodes)
 distance.at['onshore', 'offshore'] = 100
@@ -47,35 +46,35 @@ else:
 
 #
 # # DEMAND
-# electricity_demand = np.ones(len(topology.timesteps)) * 1000
-# data.read_demand_data('onshore', 'electricity', electricity_demand)
+electricity_demand = np.ones(len(topology.timesteps)) * 1000
+data.read_demand_data('onshore', 'electricity', electricity_demand)
 #
-# import_lim = np.ones(len(topology.timesteps)) * 100
-# data.read_import_limit_data('onshore', 'electricity', import_lim)
-# gas_import = np.ones(len(topology.timesteps)) * 2000
-# data.read_import_limit_data('onshore', 'gas', gas_import)
-#
-# import_lim = np.ones(len(topology.timesteps)) * 10000
-# data.read_export_limit_data('onshore', 'heat', import_lim)
-#
-# data.read_import_price_data('onshore', 'electricity', np.ones(len(topology.timesteps)) * 60)
-# data.read_import_emissionfactor_data('onshore', 'electricity', np.ones(len(data.topology.timesteps)) * 0.1)
-# production_prof = np.ones(len(topology.timesteps)) * 1000
-# data.read_production_profile('onshore', 'electricity', production_prof, 1)
-#
-# carbontax = np.ones(len(topology.timesteps)) * 11
-# carbonsubsidy = np.ones(len(topology.timesteps)) * 11
-#
-# data.read_carbon_price_data(carbontax, 'tax')
-# data.read_carbon_price_data(carbonsubsidy, 'subsidy')
-#
-# gas_price = np.ones(len(topology.timesteps)) * 70
-# data.read_import_price_data('onshore', 'gas', gas_price)
+import_lim = np.ones(len(topology.timesteps)) * 100
+data.read_import_limit_data('onshore', 'electricity', import_lim)
+gas_import = np.ones(len(topology.timesteps)) * 2000
+data.read_import_limit_data('onshore', 'gas', gas_import)
+
+import_lim = np.ones(len(topology.timesteps)) * 10000
+data.read_export_limit_data('onshore', 'heat', import_lim)
+
+data.read_import_price_data('onshore', 'electricity', np.ones(len(topology.timesteps)) * 60)
+data.read_import_emissionfactor_data('onshore', 'electricity', np.ones(len(data.topology.timesteps)) * 0.1)
+production_prof = np.ones(len(topology.timesteps)) * 1000
+data.read_production_profile('onshore', 'electricity', production_prof, 1)
+
+carbontax = np.ones(len(topology.timesteps)) * 11
+carbonsubsidy = np.ones(len(topology.timesteps)) * 11
+
+data.read_carbon_price_data(carbontax, 'tax')
+data.read_carbon_price_data(carbonsubsidy, 'subsidy')
+
+gas_price = np.ones(len(topology.timesteps)) * 70
+data.read_import_price_data('onshore', 'gas', gas_price)
 
 # READ TECHNOLOGY AND NETWORK DATA
 
 data.read_technology_data(load_path = './scaling_data/technology_data')
-data.read_network_data()
+data.read_network_data(load_path = './scaling_data/network_data')
 
 
 # SAVING/LOADING DATA FILE
@@ -89,7 +88,7 @@ configuration.reporting.save_path = './userData/Scaling'
 
 # SAVING/LOADING DATA FILE
 configuration.scaling = 1
-configuration.scaling_factors.energy_vars = 1
+configuration.scaling_factors.energy_vars = 1e-2
 configuration.scaling_factors.cost_vars = 1
 
 

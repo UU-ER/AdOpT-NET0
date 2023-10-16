@@ -215,28 +215,28 @@ class Technology(ModelComponent):
         f_global = configuration.scaling_factors
 
         # Variables
-        # model.scaling_factor[b_tec.var_output] = read_dict_value(f, 'var_output') * f_global.energy_vars
-        # model.scaling_factor[b_tec.var_capex_aux] = read_dict_value(f, 'var_capex') * f_global.cost_vars
-        # model.scaling_factor[b_tec.var_capex] = read_dict_value(f, 'var_capex') * f_global.cost_vars
-        # model.scaling_factor[b_tec.var_size] = read_dict_value(f, 'var_size')* f_global.energy_vars
-        # model.scaling_factor[b_tec.var_opex_variable] = read_dict_value(f, 'var_opex_variable') * f_global.cost_vars
-        # model.scaling_factor[b_tec.var_opex_fixed] = read_dict_value(f, 'var_opex_fixed') * f_global.cost_vars
-        # model.scaling_factor[b_tec.var_tec_emissions_pos] = read_dict_value(f, 'var_tec_emissions_pos')
-        # model.scaling_factor[b_tec.var_tec_emissions_neg] = read_dict_value(f, 'var_tec_emissions_neg')
+        model.scaling_factor[b_tec.var_output] = read_dict_value(f, 'var_output') * f_global.energy_vars
+        model.scaling_factor[b_tec.var_capex_aux] = read_dict_value(f, 'var_capex_aux')* f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_tec.var_capex] = read_dict_value(f, 'var_capex')* f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_tec.var_size] = read_dict_value(f, 'var_size')* f_global.energy_vars
+        model.scaling_factor[b_tec.var_opex_variable] = read_dict_value(f, 'var_opex_variable')* f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_tec.var_opex_fixed] = read_dict_value(f, 'var_opex_fixed')* f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_tec.var_tec_emissions_pos] = read_dict_value(f, 'var_tec_emissions_pos')
+        model.scaling_factor[b_tec.var_tec_emissions_neg] = read_dict_value(f, 'var_tec_emissions_neg')
 
-        # if b_tec.find_component('var_input'):
-        #     model.scaling_factor[b_tec.var_input] = read_dict_value(f, 'var_input')* f_global.energy_vars
-        # if b_tec.find_component('var_input_aux'):
-        #     model.scaling_factor[b_tec.var_input_aux] = read_dict_value(f, 'var_input')* f_global.energy_vars
-        # if b_tec.find_component('var_output_aux'):
-        #     model.scaling_factor[b_tec.var_output_aux] = read_dict_value(f, 'var_output')* f_global.energy_vars
+        if b_tec.find_component('var_input'):
+            model.scaling_factor[b_tec.var_input] = read_dict_value(f, 'var_input')* f_global.energy_vars
+        if b_tec.find_component('var_input_aux'):
+            model.scaling_factor[b_tec.var_input_aux] = read_dict_value(f, 'var_input')* f_global.energy_vars
+        if b_tec.find_component('var_output_aux'):
+            model.scaling_factor[b_tec.var_output_aux] = read_dict_value(f, 'var_output')* f_global.energy_vars
 
         # Constraints
-        model.scaling_factor[b_tec.const_capex_aux] = read_dict_value(f, 'const_capex_aux') * f_global.cost_vars
+        model.scaling_factor[b_tec.const_capex_aux] = read_dict_value(f, 'const_capex_aux') * f_global.energy_vars * f_global.cost_vars
         if b_tec.find_component('const_capex'):
-            model.scaling_factor[b_tec.const_capex] = read_dict_value(f, 'const_capex') * f_global.cost_vars
-        model.scaling_factor[b_tec.const_opex_variable] = read_dict_value(f, 'const_opex_variable') * f_global.cost_vars
-        model.scaling_factor[b_tec.const_opex_fixed] = read_dict_value(f, 'const_opex_fixed') * f_global.cost_vars
+            model.scaling_factor[b_tec.const_capex] = read_dict_value(f, 'const_capex')* f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_tec.const_opex_variable] = read_dict_value(f, 'const_opex_variable')* f_global.energy_vars * f_global.cost_vars
+        model.scaling_factor[b_tec.const_opex_fixed] = read_dict_value(f, 'const_opex_fixed')* f_global.energy_vars * f_global.cost_vars
         model.scaling_factor[b_tec.const_tec_emissions_pos] = read_dict_value(f, 'const_tec_emissions_pos')
         model.scaling_factor[b_tec.const_tec_emissions_neg] = read_dict_value(f, 'const_tec_emissions_neg')
         if b_tec.find_component('const_link_full_resolution_input'):
