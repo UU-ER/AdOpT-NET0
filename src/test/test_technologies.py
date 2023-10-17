@@ -649,7 +649,7 @@ def test_fast_dynamics():
     CONV_Type = [1, 2, 3]
     for j in CONV_Type:
         for i in perf_function_type:
-            data_load_path = r'./test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(i) + '.p'
+            data_load_path = r'./src/test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(i) + '.p'
             data = load_object(data_load_path)
             tecname = 'testCONV' + str(j) + '_' + str(i)
 
@@ -661,6 +661,7 @@ def test_fast_dynamics():
 
                 # Solve model
                 energyhub1 = EnergyHub(data, configuration)
+                energyhub1.model_information.testing = 1
                 energyhub1.quick_solve()
 
                 assert energyhub1.solution.solver.termination_condition == 'optimal'
@@ -684,6 +685,7 @@ def test_fast_dynamics():
 
                 # Solve model
                 energyhub2 = EnergyHub(data, configuration)
+                energyhub2.model_information.testing = 1
                 energyhub2.quick_solve()
 
                 assert energyhub2.solution.solver.termination_condition == 'optimal'
@@ -727,6 +729,7 @@ def test_fast_dynamics():
 
                 # Solve model
                 energyhub3 = EnergyHub(data, configuration)
+                energyhub3.model_information.testing = 1
                 energyhub3.quick_solve()
 
                 assert energyhub3.solution.solver.termination_condition == 'optimal'
@@ -756,6 +759,7 @@ def test_fast_dynamics():
 
                 # Solve model
                 energyhub1 = EnergyHub(data, configuration)
+                energyhub1.model_information.testing = 1
                 energyhub1.quick_solve()
 
                 assert energyhub1.solution.solver.termination_condition == 'optimal'
@@ -781,6 +785,7 @@ def test_fast_dynamics():
 
                 # Solve model
                 energyhub2 = EnergyHub(data, configuration)
+                energyhub2.model_information.testing = 1
                 energyhub2.quick_solve()
 
                 assert energyhub2.solution.solver.termination_condition == 'optimal'
@@ -819,6 +824,7 @@ def test_fast_dynamics():
 
                 # Solve model
                 energyhub3 = EnergyHub(data, configuration)
+                energyhub3.model_information.testing = 1
                 energyhub3.quick_solve()
 
                 assert energyhub3.solution.solver.termination_condition == 'optimal'
@@ -850,7 +856,7 @@ def test_slow_dynamics():
     CONV_Type = [1, 2, 3]
     for j in CONV_Type:
 
-        data_load_path = r'./test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(4) + '.p'
+        data_load_path = r'./src/test/test_data/technology_dynamics_CONV' + str(j) + '_' + str(4) + '.p'
         data = load_object(data_load_path)
         tecname = 'testCONV' + str(j) + '_' + str(4)
 
@@ -877,6 +883,7 @@ def test_slow_dynamics():
 
             # Solve model
             energyhub = EnergyHub(data, configuration)
+            energyhub.model_information.testing = 1
             energyhub.quick_solve()
 
             # collect results
@@ -909,6 +916,7 @@ def test_slow_dynamics():
 
             # Solve model
             energyhub = EnergyHub(data, configuration)
+            energyhub.model_information.testing = 1
             energyhub.quick_solve()
 
             main_in_3 = round(
