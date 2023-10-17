@@ -1,13 +1,14 @@
 {
   "tec_type": "Hydro_Open",
   "size_min": 0,
-  "size_max": 1.0E+7,
+  "size_max": 10000000.0,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
     "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
     "unit_CAPEX": 500000,
+    "fix_CAPEX": 0,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"

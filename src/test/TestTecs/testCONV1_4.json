@@ -1,57 +1,60 @@
 {
-  "tec_type": "CONV2",
+  "tec_type": "CONV1",
   "size_min": 0,
-  "size_max": 2.5,
+  "size_max": 500,
   "size_is_int": 0,
+  "size_based_on": "input",
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 300000,
-    "fix_CAPEX": 0,
-    "piecewise_CAPEX": {
+    "unit_CAPEX": 10,
+    "piecewise_CAPEX_annual": {
       "bp_x": [
         0,
-        0.07,
-        0.2,
-        2.5
+        50,
+        500
       ],
       "bp_y": [
-        0,
-        12647,
-        23446,
-        173406
+        0.00013147,
+        70086.96129956,
+        407317.19901567
       ]
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0.02,
-    "discount_rate": 0.1,
-    "lifetime": 25,
+    "OPEX_fixed": 0,
+    "discount_rate": 0,
+    "lifetime": 1,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 1,
+    "performance_function_type": 4,
     "input_carrier": [
-      "gas"
+      "gas",
+      "hydrogen"
     ],
     "main_input_carrier": "gas",
     "output_carrier": [
-      "heat"
+      "heat",
+      "electricity"
     ],
-    "emission_factor": 0.185,
-    "min_part_load": 0,
+    "emission_factor": 0,
+    "min_part_load": 0.5,
     "performance": {
       "in": [
         0,
+        0.4,
+        0.6,
         1
       ],
-      "out": {
-        "heat": [
-          0,
-          0.92
-        ]
-      }
+      "out": [
+        0,
+        0.4,
+        0.55,
+        0.75
+      ],
+      "nr_segments_piecewise": 2
     },
     "ramping_rate": -1,
     "standby_power": -1,
@@ -66,10 +69,12 @@
   "Units": {
     "size": "MW",
     "input_carrier": {
-      "gas": "MW"
+      "gas": "MW",
+      "hydrogen": "MW"
     },
     "output_carrier": {
-      "heat": "MW"
+      "heat": "MW",
+      "electricity": "MW"
     }
   }
 }

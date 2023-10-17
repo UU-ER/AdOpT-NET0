@@ -77,6 +77,8 @@ class ResultsHandle:
         if energyhub.model_information.testing:
             shutil.rmtree(Path.joinpath(self.save_path, timestamp))
 
+        return results
+
     def write_excel(self, file_name):
         """
         Writes results to excel

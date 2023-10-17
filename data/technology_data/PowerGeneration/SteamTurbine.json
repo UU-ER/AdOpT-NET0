@@ -7,6 +7,7 @@
     "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
     "unit_CAPEX": 60000,
+    "fix_CAPEX": 0,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
