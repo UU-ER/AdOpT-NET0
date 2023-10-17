@@ -121,7 +121,7 @@ class ModelConfiguration:
 
         self.solveroptions = SimpleNamespace()
         self.solveroptions.solver = 'gurobi'
-        self.solveroptions.mipgap = 0.001
+        self.solveroptions.mipgap = 0.05
         self.solveroptions.timelim = 10
         self.solveroptions.threads = 0
         self.solveroptions.mipfocus = 0
@@ -171,4 +171,4 @@ class ModelConfiguration:
 
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
-        self.reporting.save_path = './userData/'
+        self.reporting.save_path = './userData/OB'
