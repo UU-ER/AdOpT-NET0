@@ -1,11 +1,18 @@
 import pandas as pd
+from pyomo.gdp import *
+from warnings import warn
+from pyomo.environ import *
 
 from ..component import ModelComponent
 from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered
 from .utilities import set_capex_model
 
-from pyomo.environ import *
-
+"""
+TODO
+Suggestions:
+- add sources to documentation
+- Delete src/model_construction/generic_technology_constraints.py
+"""
 
 class Technology(ModelComponent):
     """
@@ -79,10 +86,15 @@ class Technology(ModelComponent):
         - Fixed OPEX
 
         **Constraint declarations**
-        - CAPEX, can be linear (for ``capex_model == 1``) or piecewise linear (for ``capex_model == 2``). Linear is defined as:
+        - CAPEX, can be linear (for ``capex_model == 1``), piecewise linear (for ``capex_model == 2``) or linear with
+        a fixed cost when the technology is installed (for ``capex_model == 3``). Linear is defined as:
 
         .. math::
             CAPEX_{tec} = Size_{tec} * UnitCost_{tec}
+
+        while linear with fixed installation costs is defined as:
+                .. math::
+            CAPEX_{tec} = Size_{tec} * UnitCost_{tec} + FixCost_{tec}
 
         - Variable OPEX: defined per unit of output for the main carrier:
 
@@ -115,7 +127,7 @@ class Technology(ModelComponent):
         # MODELING TYPICAL DAYS
         if energyhub.model_information.clustered_data:
             if configuration.optimization.typicaldays.method == 2:
-                technologies_modelled_with_full_res = ['RES', 'STOR' 'Hydro_Open']
+                technologies_modelled_with_full_res = ['RES', 'STOR', 'Hydro_Open']
                 if self.technology_model in technologies_modelled_with_full_res:
                     self.modelled_with_full_res = 1
                 else:
@@ -133,6 +145,7 @@ class Technology(ModelComponent):
         b_tec = self.__define_opex(b_tec, energyhub)
         b_tec = self.__define_emissions(b_tec, energyhub)
 
+        # CLUSTERED DATA
         if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
             b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
         else:
@@ -142,6 +155,19 @@ class Technology(ModelComponent):
             self.set_t = energyhub.model.set_t_full
             self.sequence = list(self.set_t)
         self.set_t_full = energyhub.model.set_t_full
+
+        # DYNAMICS
+        if energyhub.configuration.performance.dynamics:
+            technologies_modelled_with_dynamics = ['CONV1', 'CONV2', 'CONV3']
+            if self.technology_model in technologies_modelled_with_dynamics:
+                b_tec = self.__define_dynamics(b_tec)
+            else:
+                warn('Modeling dynamic constraints not enabled for technology type' + self.name)
+        else:
+            if hasattr(self.performance_data, "performance_function_type"):
+                if self.performance_data.performance_function_type == 4:
+                    self.performance_data.performance_function_type = 3
+                    warn('Switching dynamics off for performance function type 4, type changed to 3 for ' + self.name)
 
         return b_tec
 
@@ -168,6 +194,12 @@ class Technology(ModelComponent):
             self.results['time_dependent']['output_' + car] = [b_tec.var_output[t, car].value for t in self.set_t_full]
         self.results['time_dependent']['emissions_pos'] = [b_tec.var_tec_emissions_pos[t].value for t in self.set_t_full]
         self.results['time_dependent']['emissions_neg'] = [b_tec.var_tec_emissions_neg[t].value for t in self.set_t_full]
+        if b_tec.find_component('var_x'):
+            self.results['time_dependent']['var_x'] = [b_tec.var_x[t].value for t in self.set_t_full]
+        if b_tec.find_component('var_y'):
+            self.results['time_dependent']['var_y'] = [b_tec.var_y[t].value for t in self.set_t_full]
+        if b_tec.find_component('var_z'):
+            self.results['time_dependent']['var_z'] = [b_tec.var_z[t].value for t in self.set_t_full]
 
         return self.results
 
@@ -250,6 +282,18 @@ class Technology(ModelComponent):
                                               pw_constr_type='EQ',
                                               f_rule=b_tec.para_bp_y_annual,
                                               pw_repn='SOS2')
+        elif capex_model == 3:
+            b_tec.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
+            b_tec.para_fix_capex = Param(domain=Reals, initialize=economics.capex_data['fix_capex'], mutable=True)
+            b_tec.para_unit_capex_annual = Param(domain=Reals,
+                                                 initialize=annualization_factor * economics.capex_data['unit_capex'],
+                                                 mutable=True)
+            b_tec.para_fix_capex_annual = Param(domain=Reals,
+                                                 initialize=annualization_factor * economics.capex_data['fix_capex'],
+                                                 mutable=True)
+            b_tec.const_capex_aux = Constraint(
+                expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
+
         # CAPEX
         if self.existing and not self.decommission:
             b_tec.var_capex = Param(domain=Reals, initialize=0)
@@ -487,5 +531,174 @@ class Technology(ModelComponent):
                                                                                        b_tec.set_output_carriers)
 
         self.output = b_tec.var_output_aux
+
+        return b_tec
+
+    def __define_dynamics(self, b_tec):
+        """
+        Selects the dynamic constraints that are required based on the technology dynamic performance parameters or the
+        performance function type.
+        :param b_tec:
+        :return:
+        """
+        SU_load = self.performance_data['SU_load']
+        SD_load = self.performance_data['SD_load']
+        min_uptime = self.performance_data['min_uptime']
+        min_downtime = self.performance_data['min_downtime']
+        max_startups = self.performance_data['max_startups']
+        performance_function_type4 = ("performance_function_type" in self.performance_data) and \
+                                     (self.performance_data['performance_function_type'] == 4)
+        if (min_uptime + min_downtime > -2) or (max_startups > -1) or (SU_load + SD_load > -2) or \
+                performance_function_type4:
+            b_tec = self.__dynamics_SUSD_logic(b_tec)
+        if not performance_function_type4 and (SU_load + SD_load > -2):
+            b_tec = self.__dynamics_fast_SUSD(b_tec)
+
+        return b_tec
+
+    def __dynamics_SUSD_logic(self, b_tec):
+        """
+        Adds the startup and shutdown logic to the technology model and constrains the maximum number of startups.
+
+        Based on Equations 4-5 in Morales-España, G., Ramírez-Elizondo, L., & Hobbs, B. F. (2017). Hidden power system
+        inflexibilities imposed by traditional unit commitment formulations. Applied Energy, 191, 223–238.
+        https://doi.org/10.1016/J.APENERGY.2017.01.089
+
+        """
+        # New variables
+        b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+        b_tec.var_y = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+        b_tec.var_z = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+
+        # Check for default values
+        para_names = ['SU_time', 'SD_time']
+        for para in para_names:
+            if self.performance_data[para] < 0:
+                self.performance_data[para] = 0
+                warn("Using SU/SD logic constraints, parameter " + str(para) + " set to default value 0")
+        para_names = ['min_uptime', 'min_downtime']
+        for para in para_names:
+            if self.performance_data[para] < 0:
+                self.performance_data[para] = 1
+                warn("Using SU/SD logic constraints, parameter " + str(para) + " set to default value 1")
+
+        # Collect parameters
+        SU_time = self.performance_data['SU_time']
+        SD_time = self.performance_data['SD_time']
+        min_uptime = self.performance_data['min_uptime']
+        min_downtime = self.performance_data['min_downtime'] + SU_time + SD_time
+        max_startups = self.performance_data['max_startups']
+
+        # Enforce startup/shutdown logic
+        def init_SUSD_logic1(const, t):
+            if t == 1:
+                return Constraint.Skip
+            else:
+                return b_tec.var_x[t] - b_tec.var_x[t - 1] == b_tec.var_y[t] - b_tec.var_z[t]
+
+        b_tec.const_SUSD_logic1 = Constraint(self.set_t_full, rule=init_SUSD_logic1)
+
+        def init_SUSD_logic2(const, t):
+            if t >= min_uptime:
+                return b_tec.var_y[t - min_uptime + 1] <= b_tec.var_x[t]
+            else:
+                return b_tec.var_y[len(self.set_t_full) + (t - min_uptime + 1)] <= b_tec.var_x[t]
+
+        b_tec.const_SUSD_logic2 = Constraint(self.set_t_full, rule=init_SUSD_logic2)
+
+        def init_SUSD_logic3(const, t):
+            if t >= min_downtime:
+                return b_tec.var_z[t - min_downtime + 1] <= 1 - b_tec.var_x[t]
+            else:
+                return b_tec.var_z[len(self.set_t_full) + (t - min_downtime + 1)] <= 1 - b_tec.var_x[t]
+
+        b_tec.const_SUSD_logic3 = Constraint(self.set_t_full, rule=init_SUSD_logic3)
+
+        # Constrain number of startups
+        if not max_startups == -1:
+            def init_max_startups(const):
+                return sum(b_tec.var_y[t] for t in self.set_t_full) <= max_startups
+
+            b_tec.const_max_startups = Constraint(rule=init_max_startups)
+
+        return b_tec
+
+    def __dynamics_fast_SUSD(self, b_tec):
+        """
+        Adds startup and shutdown load constraints to the model.
+
+        Based on Equations 9-11 and 13 in Morales-España, G., Ramírez-Elizondo, L., & Hobbs, B. F. (2017). Hidden power
+        system inflexibilities imposed by traditional unit commitment formulations. Applied Energy, 191, 223–238.
+        https://doi.org/10.1016/J.APENERGY.2017.01.089
+
+        """
+
+        # Check for default values
+        para_names = ['SU_load', 'SD_load']
+        for para in para_names:
+            if self.performance_data[para] < 0:
+                self.performance_data[para] = 1
+                warn("Using SU/SD load constraints, parameter" + str(para) + "set to default value 1")
+
+
+        # Collect parameters
+        SU_load = self.performance_data['SU_load']
+        SD_load = self.performance_data['SD_load']
+        main_car = self.performance_data['main_input_carrier']
+        rated_power = self.fitted_performance.rated_power
+
+        # SU load limit
+        s_indicators = range(0, 2)
+
+        def init_SU_load(dis, t, ind):
+            if ind == 0:  # no startup (y=0)
+                dis.const_y_off = Constraint(expr=b_tec.var_y[t] == 0)
+
+            else:  # tech in startup
+                dis.const_y_on = Constraint(expr=b_tec.var_y[t] == 1)
+
+                def init_SU_load_limit(cons):
+                    if self.technology_model == 'CONV3':
+                        return self.input[t, main_car] <= b_tec.var_size * SU_load * rated_power
+                    else:
+                        return sum(self.input[t, car_input] for car_input in b_tec.set_input_carriers) \
+                               <= b_tec.var_size * SU_load * rated_power
+                dis.const_SU_load_limit = Constraint(rule=init_SU_load_limit)
+
+        b_tec.dis_SU_load = Disjunct(self.set_t_full, s_indicators, rule=init_SU_load)
+
+        def bind_disjunctions_SU_load(dis, t):
+            return [b_tec.dis_SU_load[t, i] for i in s_indicators]
+
+        b_tec.disjunction_SU_load = Disjunction(self.set_t_full, rule=bind_disjunctions_SU_load)
+
+        # SD load limit
+        s_indicators = range(0, 2)
+
+        def init_SD_load(dis, t, ind):
+            if ind == 0:  # no shutdown (z=0)
+                dis.const_z_off = Constraint(expr=b_tec.var_z[t] == 0)
+
+            else:  # tech in shutdown
+                dis.const_z_on = Constraint(expr=b_tec.var_z[t] == 1)
+
+                def init_SD_load_limit(cons):
+                    if t == 1:
+                        return Constraint.Skip
+                    else:
+                        if self.technology_model == 'CONV3':
+                            return self.input[t - 1, main_car] <= b_tec.var_size * SD_load * rated_power
+                        else:
+                            return sum(self.input[t - 1, car_input] for car_input in b_tec.set_input_carriers) \
+                                   <= b_tec.var_size * SD_load * rated_power
+
+                dis.const_SD_load_limit = Constraint(rule=init_SD_load_limit)
+
+        b_tec.dis_SD_load = Disjunct(self.set_t_full, s_indicators, rule=init_SD_load)
+
+        def bind_disjunctions_SD_load(dis, t):
+            return [b_tec.dis_SD_load[t, i] for i in s_indicators]
+
+        b_tec.disjunction_SD_load = Disjunction(self.set_t_full, rule=bind_disjunctions_SD_load)
 
         return b_tec

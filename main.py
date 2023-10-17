@@ -18,6 +18,7 @@ topology.define_nodes(['onshore'])
 # topology.define_new_technologies('onshore', ['Storage_Battery'])
 topology.define_new_technologies('onshore', ['Storage_OceanBattery', 'WindTurbine_Offshore_6000'])
 
+
 # topology.define_existing_technologies('onshore', {'Storage_Battery': 100})
 #
 #
@@ -83,10 +84,4 @@ configuration = ModelConfiguration()
 # # Read data
 energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
-#
-# for tec in data.technology_data['offshore']:
-#     size = data.technology_data['offshore'][tec].model_block.report_results()
-#     print(size)
-#
-#
-# results.write_excel('test')
+

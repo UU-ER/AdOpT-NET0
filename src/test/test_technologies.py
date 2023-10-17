@@ -595,7 +595,7 @@ def test_technology_OpenHydro():
     # electricity WT, stored in open hydro
     data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'][0] = 0
     data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'][1] = 0
-    data.read_technology_data()
+    data.read_technology_data(load_path = './src/test/TestTecs')
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
     energyhub.model_information.testing = 1
