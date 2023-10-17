@@ -1,6 +1,7 @@
 # TODO: Implement option for complete linearization
 # TODO: Implement length of time step
 # TODO: Implement all technologies
+from diagnostics import get_infeasibile_constraints, configure_logging
 from src.model_configuration import ModelConfiguration
 import src.data_management as dm
 from src.energyhub import EnergyHub
@@ -93,10 +94,14 @@ configuration.scaling_factors.cost_vars = 1
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
+configure_logging(save_path= Path('./diagnostics/infeasibility_log.txt'))
 energyhub.quick_solve()
+get_infeasibile_constraints(energyhub.model, tolerance=1e-6)
 
 energyhub.configuration.scaling = 1
+
 energyhub.solve()
+get_infeasibile_constraints(energyhub.model, tolerance=1e-4)
 
 
 # results.write_excel('./userData/', 'test')

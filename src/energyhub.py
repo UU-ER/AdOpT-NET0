@@ -9,6 +9,7 @@ from pathlib import Path
 import os
 import sys
 
+from .diagnostics import get_infeasibile_constraints
 from .model_construction import *
 from .data_management import *
 from .utilities import *
@@ -409,7 +410,7 @@ class EnergyHub:
             else:
                 self.__call_solver()
 
-    def __scale_model(self):
+    def scale_model(self):
 
         f_global = self.configuration.scaling_factors
         self.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
@@ -474,10 +475,12 @@ class EnergyHub:
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
 
         if self.configuration.scaling == 1:
-            self.__scale_model()
+            self.scale_model()
             model = self.scaled_model
+            get_infeasibile_constraints(model, tolerance=1e-5)
         else:
             model = self.model
+
 
         save_path = Path.joinpath(Path(self.configuration.reporting.save_path), time_stamp)
         create_save_folder(save_path)
