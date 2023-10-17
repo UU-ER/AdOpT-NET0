@@ -121,7 +121,7 @@ class ModelConfiguration:
 
         self.solveroptions = SimpleNamespace()
         self.solveroptions.solver = 'gurobi'
-        self.solveroptions.mipgap = 0.001
+        self.solveroptions.mipgap = 0.02
         self.solveroptions.timelim = 10
         self.solveroptions.threads = 0
         self.solveroptions.mipfocus = 0

@@ -59,8 +59,8 @@ data.read_export_limit_data('onshore', 'heat', import_lim)
 
 data.read_import_price_data('onshore', 'electricity', np.ones(len(topology.timesteps)) * 60)
 data.read_import_emissionfactor_data('onshore', 'electricity', np.ones(len(data.topology.timesteps)) * 0.1)
-production_prof = np.ones(len(topology.timesteps)) * 1000
-data.read_production_profile('onshore', 'electricity', production_prof, 1)
+# production_prof = np.ones(len(topology.timesteps)) * 1000
+# data.read_production_profile('onshore', 'electricity', production_prof, 1)
 
 carbontax = np.ones(len(topology.timesteps)) * 11
 carbonsubsidy = np.ones(len(topology.timesteps)) * 11
@@ -87,14 +87,16 @@ configuration.reporting.save_path = './userData/Scaling'
 # energyhub.quick_solve()
 
 # SAVING/LOADING DATA FILE
-configuration.scaling = 1
+configuration.scaling = 0
 configuration.scaling_factors.energy_vars = 1e-2
 configuration.scaling_factors.cost_vars = 1
-
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve()
+
+energyhub.configuration.scaling = 1
+energyhub.solve()
 
 
 # results.write_excel('./userData/', 'test')
