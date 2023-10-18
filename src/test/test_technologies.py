@@ -723,7 +723,7 @@ def test_fast_dynamics():
                 assert round(abs((gas_in_7 + hydrogen_in_7) - (gas_in_8 + hydrogen_in_8)), 3) <= RR
 
                 # Test technology dynamic parameters: SU_load and SD_load
-                data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+                data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = -1
                 data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
                 data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
 
@@ -818,7 +818,7 @@ def test_fast_dynamics():
                 assert abs(main_in_7 - main_in_8) <= RR
 
                 # Test technology dynamic parameters: SU_load and SD_load
-                data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = 0
+                data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = -1
                 data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.6
                 data.technology_data['test_node1'][tecname].performance_data['SD_load'] = 0.8
 
