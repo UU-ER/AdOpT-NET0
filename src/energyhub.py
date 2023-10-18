@@ -477,7 +477,6 @@ class EnergyHub:
         if self.configuration.scaling == 1:
             self.scale_model()
             model = self.scaled_model
-            get_infeasibile_constraints(model, tolerance=1e-5)
         else:
             model = self.model
 
@@ -504,6 +503,7 @@ class EnergyHub:
                                           tee=True,logfile=str(Path(save_path / 'log.txt')),
                                           keepfiles=True)
         else:
+            get_infeasibile_constraints(model, tolerance=1e-4)
             self.solution = self.solver.solve(model,
                                           tee=True,
                                           warmstart=True,
