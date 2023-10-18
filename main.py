@@ -13,7 +13,7 @@ data_save_path = Path('./user_data/data_handle_test')
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen', 'heat'])
 # topology.define_nodes(['onshore'])
 topology.define_nodes(['onshore', 'offshore'])
@@ -90,6 +90,7 @@ configuration.reporting.save_path = './userData/Scaling'
 configuration.scaling = 0
 configuration.scaling_factors.energy_vars = 1e-2
 configuration.scaling_factors.cost_vars = 1
+# configuration.solveroptions.presolve = 0
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
