@@ -13,7 +13,7 @@ data_save_path = Path('./user_data/data_handle_test')
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen', 'heat'])
 # topology.define_nodes(['onshore'])
 topology.define_nodes(['onshore', 'offshore'])
@@ -73,7 +73,6 @@ gas_price = np.ones(len(topology.timesteps)) * 70
 data.read_import_price_data('onshore', 'gas', gas_price)
 
 # READ TECHNOLOGY AND NETWORK DATA
-
 data.read_technology_data(load_path = './scaling_data/technology_data')
 data.read_network_data(load_path = './scaling_data/network_data')
 
