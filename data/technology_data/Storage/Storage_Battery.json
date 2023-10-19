@@ -35,8 +35,8 @@
       "eta_out": 0.96,
       "lambda": 0.001,
       "theta": 0,
-      "charge_max": 0.33333333333333331,
-      "discharge_max": 0.33333333333333331
+      "charge_max": 0.3,
+      "discharge_max": 0.3
     }
   },
   "Units": {
@@ -49,23 +49,9 @@
     }
   },
   "ScalingFactors": {
-    "var_output": 1,
-    "var_input": 1,
-    "var_capex": 1,
-    "var_size": 1,
-    "var_opex_variable": 1,
-    "var_opex_fixed": 1,
-    "var_tec_emissions_pos": 1,
-    "var_tec_emissions_neg": 1,
-    "const_capex": 1,
-    "const_opex_variable": 1,
-    "const_opex_fixed": 1,
-    "const_tec_emissions_pos": 1,
-    "const_tec_emissions_neg": 1,
-    "var_storage_level": 1,
-    "const_size": 1,
-    "const_storage_level": 1,
-    "const_max_charge": 1,
-    "const_max_discharge": 1
+    "const_opex_variable": 1e2,
+    "const_opex_fixed": 1e2,
+    "const_capex_aux": 1e-3,
+    "var_capex_aux": 1e-1
   }
 }

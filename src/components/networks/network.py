@@ -1,8 +1,7 @@
 import warnings
 
-from ..component import ModelComponent, perform_disjunct_relaxation
-from ..utilities import annualize, set_discount_rate, read_dict_value
-
+from ..component import ModelComponent
+from ..utilities import annualize, set_discount_rate, read_dict_value, perform_disjunct_relaxation
 
 import pandas as pd
 import copy
