@@ -7,7 +7,6 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 import numpy as np
 from pathlib import Path
-from pyomo.environ import *
 
 # Save Data File to file
 data_save_path = Path('./user_data/data_handle_test')
@@ -48,15 +47,15 @@ else:
 
 #
 # # DEMAND
-electricity_demand = np.ones(len(topology.timesteps)) * 1000
+electricity_demand = np.ones(len(topology.timesteps)) * 1000000
 data.read_demand_data('onshore', 'electricity', electricity_demand)
 #
-import_lim = np.ones(len(topology.timesteps)) * 100
+import_lim = np.ones(len(topology.timesteps)) * 100000
 data.read_import_limit_data('onshore', 'electricity', import_lim)
-gas_import = np.ones(len(topology.timesteps)) * 2000
+gas_import = np.ones(len(topology.timesteps)) * 2000000
 data.read_import_limit_data('onshore', 'gas', gas_import)
 
-import_lim = np.ones(len(topology.timesteps)) * 10000
+import_lim = np.ones(len(topology.timesteps)) * 100000
 data.read_export_limit_data('onshore', 'heat', import_lim)
 
 data.read_import_price_data('onshore', 'electricity', np.ones(len(topology.timesteps)) * 60)
@@ -74,8 +73,8 @@ gas_price = np.ones(len(topology.timesteps)) * 70
 data.read_import_price_data('onshore', 'gas', gas_price)
 
 # READ TECHNOLOGY AND NETWORK DATA
-data.read_technology_data(load_path = './scaling_data/technology_data')
-data.read_network_data(load_path = './scaling_data/network_data')
+data.read_technology_data(load_path = './scaling_data2/technology_data')
+data.read_network_data(load_path = './scaling_data2/network_data')
 
 
 # SAVING/LOADING DATA FILE
@@ -91,6 +90,7 @@ configuration.reporting.save_path = './userData/Scaling'
 configuration.scaling = 0
 configuration.scaling_factors.energy_vars = 1e-2
 configuration.scaling_factors.cost_vars = 1
+# configuration.solveroptions.presolve = 0
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
@@ -99,9 +99,6 @@ energyhub.quick_solve()
 # get_infeasibile_constraints(energyhub.model, tolerance=1e-4)
 
 energyhub.configuration.scaling = 1
-
-for var in energyhub.model.component_data_objects(Var):
-    var.fix(var.value)
 
 energyhub.solve()
 # get_infeasibile_constraints(energyhub.model, tolerance=1e-4)
