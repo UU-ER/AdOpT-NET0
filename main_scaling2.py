@@ -47,15 +47,15 @@ else:
 
 #
 # # DEMAND
-electricity_demand = np.ones(len(topology.timesteps)) * 100000
+electricity_demand = np.ones(len(topology.timesteps)) * 1000000
 data.read_demand_data('onshore', 'electricity', electricity_demand)
 #
-import_lim = np.ones(len(topology.timesteps)) * 100
+import_lim = np.ones(len(topology.timesteps)) * 100000
 data.read_import_limit_data('onshore', 'electricity', import_lim)
-gas_import = np.ones(len(topology.timesteps)) * 2000
+gas_import = np.ones(len(topology.timesteps)) * 2000000
 data.read_import_limit_data('onshore', 'gas', gas_import)
 
-import_lim = np.ones(len(topology.timesteps)) * 10000
+import_lim = np.ones(len(topology.timesteps)) * 100000
 data.read_export_limit_data('onshore', 'heat', import_lim)
 
 data.read_import_price_data('onshore', 'electricity', np.ones(len(topology.timesteps)) * 60)
