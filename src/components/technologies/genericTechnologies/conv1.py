@@ -5,7 +5,6 @@ from warnings import warn
 
 from ..genericTechnologies.utilities import fit_performance_generic_tecs
 from ..technology import Technology
-from ...utilities import read_dict_value
 
 
 class Conv1(Technology):
@@ -236,6 +235,7 @@ class Conv1(Technology):
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
+
         b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec

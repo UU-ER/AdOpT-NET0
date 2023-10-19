@@ -9,7 +9,6 @@ from scipy.interpolate import griddata
 
 from ..utilities import FittedPerformance, fit_piecewise_function
 from ..technology import Technology
-from ...utilities import read_dict_value
 
 
 class DacAdsorption(Technology):

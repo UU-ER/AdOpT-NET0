@@ -8,7 +8,6 @@ import numpy as np
 
 from ..technology import Technology
 from ..utilities import FittedPerformance
-from ...utilities import read_dict_value
 
 class Res(Technology):
     def __init__(self,

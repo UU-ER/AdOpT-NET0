@@ -50,22 +50,6 @@ def link_full_resolution_to_clustered(var_clustered, var_full, set_t, sequence, 
 
     return constraint
 
-def read_dict_value(dict, key):
-    """
-    Reads a value from a dictonary
-    :param dict: dictonary
-    :param key: dict key
-    :return:
-    """
-    dict_value = 1
-
-    if dict:
-        if key in dict:
-            dict_value = dict[key]
-
-    return dict_value
-
-
 class Economics:
     """
     Class to manage economic data of technologies and networks
@@ -104,6 +88,23 @@ def perform_disjunct_relaxation(model_block, method = 'gdp.bigm'):
     print('\t\t'+ method + ' Transformation completed in ' + str(round(time.time() - start)) + ' s')
     return model_block
 
+
+def read_dict_value(dict, key):
+    """
+    Reads a value from a dictonary
+    :param dict: dictonary
+    :param key: dict key
+    :return:
+    """
+    dict_value = 1
+
+    if dict:
+        if key in dict:
+            dict_value = dict[key]
+
+    return dict_value
+
+
 def determine_variable_scaling(model, model_block, f, f_global):
     """
     Scale model block variables
@@ -125,6 +126,7 @@ def determine_variable_scaling(model, model_block, f, f_global):
             model.scaling_factor[var] = global_scaling_factor
 
     return model
+
 
 def determine_constraint_scaling(model, model_block, f, f_global):
     """

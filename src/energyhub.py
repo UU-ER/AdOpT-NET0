@@ -494,13 +494,13 @@ class EnergyHub:
 
         if self.configuration.solveroptions.solver == 'glpk':
             self.solution = self.solver.solve(model,
-                                          tee=True,logfile=str(Path(save_path / 'log.txt')),
+                                          tee=True,logfile=str(Path(result_folder_path / 'log.txt')),
                                           keepfiles=True)
         else:
             self.solution = self.solver.solve(model,
                                           tee=True,
                                           warmstart=True,
-                                          logfile=str(Path(save_path / 'log.txt')),
+                                          logfile=str(Path(result_folder_path / 'log.txt')),
                                           keepfiles=True)
 
 

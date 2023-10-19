@@ -14,7 +14,6 @@ def get_infeasibile_constraints(m, tolerance = 1e-3):
     """
     logger = logging.getLogger(__name__)
 
-    # log_infeasible_constraints(m, log_expression=False, log_variables=True, tol=tolerance)
     for constr in m.component_data_objects(ctype=Constraint, active=True, descend_into=True):
         body_value = value(constr.body, exception=False)
         infeasible = 0
@@ -34,7 +33,6 @@ def get_infeasibile_constraints(m, tolerance = 1e-3):
                 elif body_value - ub > tolerance:
                     infeasible = 1
                     infeasibility = infeasibility + (body_value - ub)
-
 
         if infeasible:
             logger.info(constr.name + " is infeasible by " + str(infeasibility))

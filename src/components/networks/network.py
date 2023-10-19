@@ -1,7 +1,7 @@
 import warnings
 
 from ..component import ModelComponent
-from ..utilities import annualize, set_discount_rate, read_dict_value, perform_disjunct_relaxation
+from ..utilities import annualize, set_discount_rate, read_dict_value, perform_disjunct_relaxation, determine_variable_scaling, determine_constraint_scaling
 
 import pandas as pd
 import copy
@@ -371,64 +371,14 @@ class Network(ModelComponent):
         f = self.scaling_factors
         f_global = configuration.scaling_factors
 
-        # Variables
-        model.scaling_factor[b_netw.var_capex] = read_dict_value(f, 'var_capex') * f_global.energy_vars * f_global.cost_vars
-        model.scaling_factor[b_netw.var_opex_variable] = read_dict_value(f, 'var_opex_variable') * f_global.energy_vars * f_global.cost_vars
-        model.scaling_factor[b_netw.var_opex_fixed] = read_dict_value(f, 'var_opex_fixed') * f_global.energy_vars * f_global.cost_vars
-        model.scaling_factor[b_netw.var_netw_emissions_pos] = read_dict_value(f, 'var_netw_emissions_pos')
-        model.scaling_factor[b_netw.var_inflow] = read_dict_value(f, 'var_inflow') * f_global.energy_vars
-        model.scaling_factor[b_netw.var_outflow] = read_dict_value(f, 'var_outflow') * f_global.energy_vars
-        if self.energy_consumption:
-            model.scaling_factor[b_netw.var_consumption] = read_dict_value(f, 'var_consumption') * f_global.energy_vars
-
-        # Constraints
-        if b_netw.find_component('const_capex_aux'):
-            model.scaling_factor[b_netw.const_capex_aux] = read_dict_value(f, 'const_capex_aux') * f_global.energy_vars * f_global.cost_vars
-        model.scaling_factor[b_netw.const_capex] = read_dict_value(f, 'const_capex') * f_global.energy_vars * f_global.cost_vars
-        model.scaling_factor[b_netw.const_opex_fixed] = read_dict_value(f, 'const_opex_fixed') * f_global.energy_vars * f_global.cost_vars
-        model.scaling_factor[b_netw.const_opex_var] = read_dict_value(f, 'const_opex_var') * f_global.energy_vars * f_global.cost_vars
-        model.scaling_factor[b_netw.const_inflow] = read_dict_value(f, 'const_inflow') * f_global.energy_vars
-        model.scaling_factor[b_netw.const_outflow] = read_dict_value(f, 'const_outflow') * f_global.energy_vars
-        model.scaling_factor[b_netw.const_netw_emissions] = read_dict_value(f, 'const_netw_emissions')
-        if self.energy_consumption:
-            model.scaling_factor[b_netw.const_netw_consumption] = read_dict_value(f, 'const_netw_consumption') * f_global.energy_vars
-        if b_netw.find_component('const_size_bidirectional'):
-            model.scaling_factor[b_netw.const_size_bidirectional] = read_dict_value(f, 'const_size_bidirectional') * f_global.energy_vars
-
-        # F**** Disjunctions
-        for relaxed_disj in b_netw._pyomo_gdp_bigm_reformulation.relaxedDisjuncts:
-            if b_netw._pyomo_gdp_bigm_reformulation.relaxedDisjuncts[relaxed_disj].find_component(
-                    'transformedConstraints'):
-                model.scaling_factor[b_netw._pyomo_gdp_bigm_reformulation.relaxedDisjuncts[
-                    relaxed_disj].transformedConstraints] = f_global.energy_vars
+        model = determine_variable_scaling(model, b_netw, f, f_global)
+        model = determine_constraint_scaling(model, b_netw, f, f_global)
 
         for arc in b_netw.arc_block:
-            # Variables
             b_arc = b_netw.arc_block[arc]
-            model.scaling_factor[b_arc.var_size] = read_dict_value(f, 'var_size') * f_global.energy_vars
-            model.scaling_factor[b_arc.var_capex_aux] = read_dict_value(f, 'var_capex') * f_global.energy_vars * f_global.cost_vars
-            model.scaling_factor[b_arc.var_capex] = read_dict_value(f, 'var_capex') * f_global.energy_vars * f_global.cost_vars
-            model.scaling_factor[b_arc.var_opex_variable] = read_dict_value(f, 'var_opex_variable') * f_global.energy_vars * f_global.cost_vars
-            model.scaling_factor[b_arc.var_flow] = read_dict_value(f, 'var_flow') * f_global.energy_vars
-            model.scaling_factor[b_arc.var_losses] = read_dict_value(f, 'var_losses') * f_global.energy_vars
-            if self.energy_consumption:
-                model.scaling_factor[b_arc.var_consumption_send] = read_dict_value(f, 'var_consumption') * f_global.energy_vars
-                model.scaling_factor[b_arc.var_consumption_receive] = read_dict_value(f, 'var_consumption') * f_global.energy_vars
 
-            # Constraints
-            model.scaling_factor[b_arc.const_flowlosses] = read_dict_value(f, 'const_flowlosses') * f_global.energy_vars
-            model.scaling_factor[b_arc.const_flow_size_high] = read_dict_value(f, 'const_flow_size_high') * f_global.energy_vars
-            model.scaling_factor[b_arc.const_flow_size_low] = read_dict_value(f, 'var_flow') * f_global.energy_vars
-            model.scaling_factor[b_arc.const_opex_variable] = read_dict_value(f, 'const_opex_var') * f_global.energy_vars * f_global.cost_vars
-            if self.energy_consumption:
-                model.scaling_factor[b_arc.const_consumption_send] = read_dict_value(f, 'const_netw_consumption') * f_global.energy_vars
-                model.scaling_factor[b_arc.const_consumption_receive] = read_dict_value(f, 'const_netw_consumption') * f_global.energy_vars
-
-            for relaxed_disj in b_arc._pyomo_gdp_bigm_reformulation.relaxedDisjuncts:
-                if b_arc._pyomo_gdp_bigm_reformulation.relaxedDisjuncts[relaxed_disj].find_component(
-                        'transformedConstraints'):
-                    model.scaling_factor[b_arc._pyomo_gdp_bigm_reformulation.relaxedDisjuncts[
-                        relaxed_disj].transformedConstraints] = f_global.energy_vars
+            model = determine_variable_scaling(model, b_arc, f, f_global)
+            model = determine_constraint_scaling(model, b_arc, f, f_global)
 
         return model
 

@@ -182,7 +182,7 @@ class ModelConfiguration:
         self.performance = SimpleNamespace()
         self.performance.dynamics = 0
 
-        self.scaling = 1
+        self.scaling = 0
         self.scaling_factors = SimpleNamespace()
         self.scaling_factors.energy_vars = 1e-3
         self.scaling_factors.cost_vars = 1e-3

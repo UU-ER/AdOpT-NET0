@@ -4,7 +4,6 @@ import numpy as np
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
-from ...utilities import read_dict_value
 
 
 class HydroOpen(Technology):

@@ -4,7 +4,7 @@ from warnings import warn
 from pyomo.environ import *
 
 from ..component import ModelComponent
-from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered, read_dict_value, determine_variable_scaling, determine_constraint_scaling
+from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered, determine_variable_scaling, determine_constraint_scaling
 from .utilities import set_capex_model
 
 """
