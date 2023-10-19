@@ -236,7 +236,6 @@ class Conv1(Technology):
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
-
         b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec
@@ -529,23 +528,3 @@ class Conv1(Technology):
         b_tec.const_ramping_up_rate = Constraint(self.set_t, rule=init_ramping_up_rate)
 
         return b_tec
-
-    def scale_model(self, b_tec, model, configuration):
-        """
-        Scales technology model
-        """
-        super(Conv1, self).scale_model(b_tec, model, configuration)
-
-        f = self.scaling_factors
-        f_global = configuration.scaling_factors
-
-        # Constraints
-        model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
-        if b_tec.find_component('const_max_input'):
-            model.scaling_factor[b_tec.const_max_input] =  read_dict_value(f, 'const_max_input')* f_global.energy_vars
-        if self.performance_data['performance_function_type'] == 1:
-            model.scaling_factor[b_tec.const_input_output] =  read_dict_value(f, 'const_input_output')* f_global.energy_vars
-        else:
-            warn('Model Scaling for Conv3 only implemented for performance function type 1')
-
-        return model

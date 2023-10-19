@@ -427,7 +427,7 @@ class EnergyHub:
             self.model = self.data.network_data[netw].scale_model(b_netw, self.model, self.configuration)
 
         # Scale objective
-        self.model.scaling_factor[self.model.objective] = f_global.cost_vars
+        self.model.scaling_factor[self.model.objective] = f_global.objective *  f_global.cost_vars
 
         # Scale globals
         if f_global.energy_vars >= 0:
@@ -488,10 +488,6 @@ class EnergyHub:
             model = self.scaled_model
         else:
             model = self.model
-
-
-        save_path = Path.joinpath(Path(self.configuration.reporting.save_path), time_stamp)
-        create_save_folder(save_path)
 
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(model.objective)

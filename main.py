@@ -8,13 +8,14 @@ from src.energyhub import EnergyHub
 import numpy as np
 from pathlib import Path
 from pyomo.environ import *
+import time
 
 # Save Data File to file
 data_save_path = Path('./user_data/data_handle_test')
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen', 'heat'])
 # topology.define_nodes(['onshore'])
 topology.define_nodes(['onshore', 'offshore'])
@@ -100,8 +101,7 @@ energyhub.quick_solve()
 
 energyhub.configuration.scaling = 1
 
-for var in energyhub.model.component_data_objects(Var):
-    var.fix(var.value)
+time.sleep(5)
 
 energyhub.solve()
 # get_infeasibile_constraints(energyhub.model, tolerance=1e-4)

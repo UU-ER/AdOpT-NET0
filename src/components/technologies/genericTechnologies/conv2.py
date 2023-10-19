@@ -531,27 +531,3 @@ class Conv2(Technology):
         b_tec.const_ramping_up_rate = Constraint(self.set_t, rule=init_ramping_up_rate)
 
         return b_tec
-
-    def scale_model(self, b_tec, model, configuration):
-        """
-        Scales technology model
-        """
-        super(Conv2, self).scale_model(b_tec, model, configuration)
-
-        if self.scaling_factors:
-
-            f = self.scaling_factors
-            f_global = configuration.scaling_factors
-
-            # Constraints
-            model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
-            if b_tec.find_component('const_max_input'):
-                model.scaling_factor[b_tec.const_max_input] = read_dict_value(f, 'const_max_input') * f_global.energy_vars
-            if self.performance_data['performance_function_type'] == 1:
-                model.scaling_factor[b_tec.const_input_output] = read_dict_value(f, 'const_input_output') * f_global.energy_vars
-                if self.performance_data['min_part_load'] > 0:
-                    model.scaling_factor[b_tec.const_min_part_load] = read_dict_value(f, 'const_input_output') * f_global.energy_vars
-            else:
-                warn('Model Scaling for Conv2 only implemented for performance function type 1')
-
-        return model

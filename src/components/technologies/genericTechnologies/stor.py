@@ -282,35 +282,3 @@ class Stor(Technology):
         b_tec.const_ramping_up_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
 
         return b_tec
-
-    def scale_model(self, b_tec, model, configuration):
-        """
-        Scales technology model
-        """
-        super(Stor, self).scale_model(b_tec, model, configuration)
-
-        if self.scaling_factors:
-
-            f = self.scaling_factors
-            f_global = configuration.scaling_factors
-
-            # Constraints
-            model.scaling_factor[b_tec.var_storage_level] = read_dict_value(f, 'var_storage_level') * f_global.energy_vars
-            model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
-            model.scaling_factor[b_tec.const_storage_level] = read_dict_value(f, 'const_storage_level') * f_global.energy_vars
-            model.scaling_factor[b_tec.const_max_charge] = read_dict_value(f, 'const_max_charge') * f_global.energy_vars
-            model.scaling_factor[b_tec.const_max_discharge] = read_dict_value(f, 'const_max_discharge') * f_global.energy_vars
-
-            if self.performance_data['allow_only_one_direction'] == 1:
-                for dis in b_tec.dis_input_output:
-                    if b_tec.dis_input_output[dis].find_component('const_input_to_zero'):
-                        model.scaling_factor[b_tec.dis_input_output[dis].const_input_to_zero] = f_global.energy_vars
-                    if b_tec.dis_input_output[dis].find_component('const_output_to_zero'):
-                        model.scaling_factor[b_tec.dis_input_output[dis].const_output_to_zero] = f_global.energy_vars
-
-                # F**** Disjunctions
-                for relaxed_disj in b_tec._pyomo_gdp_bigm_reformulation.relaxedDisjuncts:
-                    if b_tec._pyomo_gdp_bigm_reformulation.relaxedDisjuncts[relaxed_disj].find_component('transformedConstraints'):
-                        model.scaling_factor[b_tec._pyomo_gdp_bigm_reformulation.relaxedDisjuncts[relaxed_disj].transformedConstraints] = f_global.energy_vars
-
-        return model

@@ -300,24 +300,3 @@ class HydroOpen(Technology):
         b_tec.const_ramping_up_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
 
         return b_tec
-
-    def scale_model(self, b_tec, model, configuration):
-        """
-        Scales technology model
-        """
-        super(HydroOpen, self).scale_model(b_tec, model, configuration)
-
-        f = self.scaling_factors
-        f_global = configuration.scaling_factors
-
-        # Constraints
-        model.scaling_factor[b_tec.var_storage_level] = read_dict_value(f, 'var_storage_level') * f_global.energy_vars
-        model.scaling_factor[b_tec.var_spilling] = read_dict_value(f, 'var_spilling') * f_global.energy_vars
-        model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
-        model.scaling_factor[b_tec.const_storage_level] = read_dict_value(f, 'const_storage_level') * f_global.energy_vars
-        model.scaling_factor[b_tec.const_max_charge] = read_dict_value(f, 'const_max_charge') * f_global.energy_vars
-        model.scaling_factor[b_tec.const_max_discharge] = read_dict_value(f, 'const_max_discharge') * f_global.energy_vars
-        model.scaling_factor[b_tec.const_max_spilling] = read_dict_value(f, 'const_max_spilling') * f_global.energy_vars
-        if b_tec.find_component('const_max_discharge2'):
-            model.scaling_factor[b_tec.const_max_discharge2] = read_dict_value(f, 'const_max_discharge2') * f_global.energy_vars
-        return model

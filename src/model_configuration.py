@@ -124,6 +124,8 @@ class ModelConfiguration:
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
     | cost_vars  | Scaling factor used for all cost  variables                                                 |         | 1e-3    |
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | objective  | Scaling factor used for objective function                                                  |         | 1       |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
     """
 
     def __init__(self):
@@ -167,6 +169,7 @@ class ModelConfiguration:
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
         self.reporting.save_path = './userData/'
+        self.reporting.case_name = -1
 
         self.energybalance = SimpleNamespace()
         self.energybalance.violation = -1
@@ -183,3 +186,4 @@ class ModelConfiguration:
         self.scaling_factors = SimpleNamespace()
         self.scaling_factors.energy_vars = 1e-3
         self.scaling_factors.cost_vars = 1e-3
+        self.scaling_factors.objective = 1

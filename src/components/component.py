@@ -1,6 +1,6 @@
 import pandas as pd
 
-from components.utilities import Economics
+from ..components.utilities import Economics
 
 class ModelComponent:
     """

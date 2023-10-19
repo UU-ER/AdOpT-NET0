@@ -261,24 +261,3 @@ class Res(Technology):
                 self.results['time_dependent']['max_out'] - self.results['time_dependent']['output_' + car]
 
         return self.results
-
-    def scale_model(self, b_tec, model, configuration):
-        """
-        Scales technology model
-        """
-        super(Res, self).scale_model(b_tec, model, configuration)
-
-        if self.scaling_factors:
-
-            f = self.scaling_factors
-            f_global = configuration.scaling_factors
-
-            # Constraints
-            model.scaling_factor[b_tec.const_input_output] = read_dict_value(f, 'const_input_output') * f_global.energy_vars
-            if b_tec.find_component('const_curtailed_units'):
-                model.scaling_factor[b_tec.const_curtailed_units] = read_dict_value(f, 'const_curtailed_units') * f_global.energy_vars
-            if b_tec.find_component('var_size_on'):
-                model.scaling_factor[b_tec.var_size_on] = read_dict_value(f, 'var_size_on') * f_global.energy_vars
-
-        return model
-

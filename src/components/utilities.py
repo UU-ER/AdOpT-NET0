@@ -103,3 +103,47 @@ def perform_disjunct_relaxation(model_block, method = 'gdp.bigm'):
     xfrm.apply_to(model_block)
     print('\t\t'+ method + ' Transformation completed in ' + str(round(time.time() - start)) + ' s')
     return model_block
+
+def determine_variable_scaling(model, model_block, f, f_global):
+    """
+    Scale model block variables
+
+    :param model_block: pyomo model block
+    :param f: individual scaling factors
+    :param f_global: global scaling factors
+    :return: model_block
+    """
+    for var in model_block.component_objects(Var, active=True):
+        var_name = var.name.split('.')[-1]
+
+        # Determine global scaling factor
+        global_scaling_factor = f_global.energy_vars * read_dict_value(f, var_name)
+        if 'capex' in var_name or 'opex' in var_name:
+            global_scaling_factor = global_scaling_factor * f_global.cost_vars
+
+        if not var_name.startswith('binary_indicator'):
+            model.scaling_factor[var] = global_scaling_factor
+
+    return model
+
+def determine_constraint_scaling(model, model_block, f, f_global):
+    """
+    Scale model block variables
+
+    :param model_block: pyomo model block
+    :param f: individual scaling factors
+    :param f_global: global scaling factors
+    :return: model_block
+    """
+    for constr in model_block.component_objects(Constraint, active=True):
+        const_name = constr.name.split('.')[-1]
+
+        # Determine global scaling factor
+        global_scaling_factor = read_dict_value(f, const_name) * f_global.energy_vars
+        if 'capex' in const_name or 'opex' in const_name:
+            global_scaling_factor = global_scaling_factor * f_global.cost_vars
+
+        if not const_name.endswith('xor'):
+            model.scaling_factor[constr] = global_scaling_factor
+
+    return model

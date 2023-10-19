@@ -138,22 +138,3 @@ class Conv4(Technology):
         b_tec.disjunction_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec
-
-    def scale_model(self, b_tec, model, configuration):
-        """
-        Scales technology model
-        """
-        super(Conv4, self).scale_model(b_tec, model, configuration)
-
-        if self.scaling_factors:
-
-            f = self.scaling_factors
-            f_global = configuration.scaling_factors
-
-            # Constraints
-            model.scaling_factor[b_tec.const_output_output] = read_dict_value(f, 'const_output_output') * f_global.energy_vars
-            model.scaling_factor[b_tec.const_size] = read_dict_value(f, 'const_size') * f_global.energy_vars
-            if self.performance_data['performance_function_type'] > 1:
-                warn('Model Scaling for Conv4 only implemented for performance function type 1')
-
-        return model
