@@ -1,5 +1,5 @@
 from pyomo.environ import *
-from components.utilities import perform_disjunct_relaxation
+from ..components.utilities import perform_disjunct_relaxation
 
 
 def add_technology(energyhub, nodename, set_tecsToAdd):

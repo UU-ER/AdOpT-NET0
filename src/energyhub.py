@@ -472,7 +472,16 @@ class EnergyHub:
         print('Solving Model...')
 
         start = time.time()
+        # Saving
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
+        save_path = Path(self.configuration.reporting.save_path)
+        if self.configuration.reporting.case_name == -1:
+            result_folder_path = Path.joinpath(save_path, time_stamp)
+        else:
+            time_stamp = str(time_stamp) + '_' + self.configuration.reporting.case_name
+            result_folder_path = Path.joinpath(save_path, time_stamp)
+
+        create_save_folder(result_folder_path)
 
         if self.configuration.scaling == 1:
             self.scale_model()
@@ -487,23 +496,11 @@ class EnergyHub:
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(model.objective)
 
-        # with open(Path(save_path / 'model.txt'), 'w') as f:
-        #     # Redirect the standard output to the file
-        #     original_stdout = sys.stdout
-        #     sys.stdout = f
-        #
-        #     # Print the pprint output to the file
-        #     model.pprint()
-        #
-        #     # Restore the standard output
-        #     sys.stdout = original_stdout
-
         if self.configuration.solveroptions.solver == 'glpk':
             self.solution = self.solver.solve(model,
                                           tee=True,logfile=str(Path(save_path / 'log.txt')),
                                           keepfiles=True)
         else:
-            get_infeasibile_constraints(model, tolerance=1e-4)
             self.solution = self.solver.solve(model,
                                           tee=True,
                                           warmstart=True,
