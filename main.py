@@ -13,7 +13,7 @@ data_save_path = Path('./user_data/data_handle_test')
 # TOPOLOGY
 topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-03 23:00', resolution=1)
-topology.define_carriers(['electricity', 'gas', 'CO2', 'heat'])
+topology.define_carriers(['electricity', 'gas', 'CO2', 'heat', 'hydrogen'])
 topology.define_nodes(['onshore', 'offshore'])
 # topology.define_new_technologies('onshore', ['Storage_Battery'])
 topology.define_new_technologies('onshore', ['GasTurbine_simple', 'WindTurbine_Offshore_6000'])

@@ -10,7 +10,6 @@ def get_gurobi_parameters(solveroptions):
     solver.options['MIPGap'] = solveroptions.mipgap
     solver.options['MIPFocus'] = solveroptions.mipfocus
     solver.options['Threads'] = solveroptions.threads
-    solver.options['LogFile'] = solveroptions.logfile
     solver.options['NodefileStart'] = solveroptions.nodefilestart
     solver.options['Method'] = solveroptions.method
     solver.options['Heuristics'] = solveroptions.heuristics

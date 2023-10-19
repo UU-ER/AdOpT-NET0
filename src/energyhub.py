@@ -7,13 +7,14 @@ import warnings
 import datetime
 from pathlib import Path
 import os
+import sys
 
 from .model_construction import *
 from .data_management import *
 from .utilities import *
 from .components.utilities import annualize, set_discount_rate
 from .components.technologies.utilities import set_capex_model
-from .result_management import ResultsHandle
+from .result_management import ResultsHandle, create_save_folder
 
 class EnergyHub:
     r"""
@@ -155,7 +156,7 @@ class EnergyHub:
                 return Set.Skip
 
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=self.data.network_data.keys())
+        self.model.set_networks = Set(initialize=list(self.data.network_data.keys()))
 
         # Time Frame
         self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
@@ -168,13 +169,13 @@ class EnergyHub:
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
+        self.model.var_carbon_revenue = Var()
+        self.model.var_carbon_cost = Var()
 
         # Global Emission variables
         self.model.var_emissions_pos = Var()
         self.model.var_emissions_neg = Var()
         self.model.var_emissions_net = Var()
-        self.model.var_carbon_revenue = Var()
-        self.model.var_carbon_cost = Var()
 
         # Parameters
         def init_carbon_subsidy(para, t):
@@ -420,19 +421,26 @@ class EnergyHub:
 
         start = time.time()
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
+        save_path = Path(self.configuration.reporting.save_path)
+
+        # Save path
+        if self.configuration.reporting.case_name == -1:
+            result_folder_path = Path.joinpath(save_path, time_stamp)
+        else:
+            time_stamp = str(time_stamp) + '_' + self.configuration.reporting.case_name
+            result_folder_path = Path.joinpath(save_path, time_stamp)
+
+        create_save_folder(result_folder_path)
+
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(self.model.objective)
-        if self.configuration.optimization.save_log_files:
-            # TransformationFactory('core.scale_model').apply_to(self.model)
 
-            self.solution = self.solver.solve(self.model,
-                                              tee=True,
-                                              warmstart=True,
-                                              logfile=Path('./log_files/') / ('log_' + time_stamp))
-        else:
-            # TransformationFactory('core.scale_model').apply_to(self.model)
+        self.solution = self.solver.solve(self.model,
+                                          tee=True,
+                                          warmstart=True,
+                                          logfile=str(Path(result_folder_path / 'log.txt')),
+                                          keepfiles=True)
 
-            self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
         self.solution.write()
         self.detailed_results = self.results.report_optimization_result(self, time_stamp)
 
