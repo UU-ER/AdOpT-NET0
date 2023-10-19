@@ -9,7 +9,6 @@ from pathlib import Path
 import os
 import sys
 
-from .diagnostics import get_infeasibile_constraints
 from .model_construction import *
 from .data_management import *
 from .utilities import *
@@ -127,6 +126,7 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
+
         self.solve()
         return self.detailed_results
 
@@ -472,7 +472,6 @@ class EnergyHub:
         print('Solving Model...')
 
         start = time.time()
-        # Saving
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
         save_path = Path(self.configuration.reporting.save_path)
         if self.configuration.reporting.case_name == -1:
@@ -502,7 +501,6 @@ class EnergyHub:
                                           warmstart=True,
                                           logfile=str(Path(result_folder_path / 'log.txt')),
                                           keepfiles=True)
-
 
         if self.configuration.scaling == 1:
             TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
