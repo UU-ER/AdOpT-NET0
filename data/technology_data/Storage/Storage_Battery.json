@@ -1,21 +1,22 @@
 {
   "tec_type": "STOR",
   "size_min": 0,
-  "size_max": 1.0E+7,
+  "size_max": 1000,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
     "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 300000,
+    "unit_CAPEX": 500000,
+    "fix_CAPEX": 0,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
-    "OPEX_variable": 0.2,
-    "OPEX_fixed": 0.3,
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0.04,
     "discount_rate": 0.1,
-    "lifetime": 20,
+    "lifetime": 10,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
@@ -34,8 +35,8 @@
       "eta_out": 0.96,
       "lambda": 0.001,
       "theta": 0,
-      "charge_max": 0.33333333333333331,
-      "discharge_max": 0.33333333333333331
+      "charge_max": 0.3,
+      "discharge_max": 0.3
     }
   },
   "Units": {
@@ -46,5 +47,11 @@
     "output_carrier": {
       "electricity": "MW"
     }
+  },
+  "ScalingFactors": {
+    "const_opex_variable": 1e2,
+    "const_opex_fixed": 1e2,
+    "const_capex_aux": 1e-3,
+    "var_capex_aux": 1e-1
   }
 }

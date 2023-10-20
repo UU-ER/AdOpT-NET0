@@ -12,21 +12,21 @@ class ModelConfiguration:
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | Name               | Definition                                   | Options                                     | Default |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | objective          | String specifying the objective/type         | 'costs', 'emissions_pos', 'emissions_neg',  | 'costs' |
-    |                    | of optimization                              | 'emissions_minC', 'pareto'                  |         |
+    | objective          | String specifying the objective/type         | 'costs', 'emissions_pos', 'emissions_net',  | 'costs' |
+    |                    | of optimization                              | 'emissions_minC', 'costs_emissionlimit'     |         |
+    |                    |                                              | 'pareto',                                   |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | save_detail        | What information is saved                    | 'minimal', 'basic', 'full'                  |         |
-    |                    | minimal: saves only emissions and costs      |                                             |         |
-    |                    | basic: additionally technology/network sizes |                                             |         |
-    |                    | costs and emissions as individual excel      |                                             |         |
-    |                    | all: saves full information in excel         |                                             |         |
+    | save_detail        | What information is saved                    | 1, 0                                        |         |
+    |                    | 0: saves only emissions, costs, technology/  |                                             |         |
+    |                    | network sizes                                |                                             |         |
+    |                    | 1: saves operation and energybalance as well |                                             |         |
+    +--------------------+----------------------------------------------+---------------------------------------------+---------+
+    | monte_carlo.on     | Turn monte carlo simulation on               | 1,0                                         | 0       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.sd     | Value defining the range in which variables  |                                             | 0.2     |
     |                    | are varied in Monte Carlo simulations        |                                             |         |
     |                    | (defined as the standard deviation of the    |                                             |         |
     |                    | original value)                              |                                             |         |
-    +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.on     | Turn monte carlo simulation on               |                                             | 0       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.N      | Number of Monte Carlo simulations            |                                             | 100     |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
@@ -39,9 +39,7 @@ class ModelConfiguration:
     | timestaging        | Defines number of timesteps that are averaged|                                             | 0       |
     |                    | (0 = off) :ref:`check here <time_averaging>` |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | techstaging        | Switch to turn tecstaging on/off             | {0,1}                                       | 0       |
-    +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | typicaldays.nr     | Determines number of typical days (0 = off)  |                                             | 0       |
+    | typicaldays.N      | Determines number of typical days (0 = off)  |                                             | 0       |
     |                    | :ref:`check here <clustering>`               |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | typicaldays.method | Determine method used for modeling           | {2}                                         | 2       |
@@ -55,15 +53,13 @@ class ModelConfiguration:
     +---------------+---------------------------------------------------------------------+------------------------+----------+
     | solver        | String specifying the solver used                                   | 'gurobi'               | 'gurobi' |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
-    | threads       | Value to define MIP gap                                             |                        | 0.001    |
+    | mipgap        | Value to define MIP gap                                             |                        | 0.001    |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
     | timelim       | Value to define time limit in hours                                 |                        | 10       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
     | threads       | Value to define number of threads (default is maximum available)    |                        | 0        |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
     | mipfocus      | Modifies high level solution strategy                               | {0,1,2,3}              | 0        |
-    +---------------+---------------------------------------------------------------------+------------------------+----------+
-    | logfile       | String to define the location of the logfile                        |                        | ""       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
     | nodefilestart | Parameter to decide when nodes are compressed and written to disk   |                        | 60       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
@@ -78,6 +74,10 @@ class ModelConfiguration:
     | lpwarmstart   | Controls whether and how warm start information is used for LP      | {0, 1, 2}              | 0        |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
     | intfeastol    | Value that determines the integer feasibility tolerance             |                        | 1e-5     |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | feastol       | Value that determines feasibility for all constraints               |                        | 1e-6     |
+    +---------------+---------------------------------------------------------------------+------------------------+----------+
+    | numericfocus  | Degree of which gurobi tries to detect and manage numeric issues    | {0, 1, 2, 3}           | 0        |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
     | cuts          | Setting defining the aggressiveness of the global cut               | {-1, 0, 1, 2, 3}       | -1       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
@@ -107,11 +107,25 @@ class ModelConfiguration:
 
     List of technology and network performance settings that can be specified:
 
-    +----------------------+--------------------------------------------------------+-------------+---------+
-    | Name                 | Definition                                             | Options     | Default |
-    +----------------------+--------------------------------------------------------+-------------+---------+
-    | dynamics             | Determines if dynamics are used                        | {0,1}       | 0       |
-    +----------------------+--------------------------------------------------------+-------------+---------+
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | Name       | Definition                                                                                  | Options | Default |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | dynamics   | Determines if dynamics are used                                                             | {0,1}   | 0       |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+
+    List of scaling options (see also: :ref:`here <scaling>`):
+
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | Name       | Definition                                                                                  | Options | Default |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | scaling    | Determines if model is scaled. If 1, it uses global and component specific scaling factors  | {0,1}   | 0       |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | energy_vars| Scaling factor used for all energy variables                                                |         | 1e-3    |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | cost_vars  | Scaling factor used for all cost  variables                                                 |         | 1e-3    |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
+    | objective  | Scaling factor used for objective function                                                  |         | 1       |
+    +------------+---------------------------------------------------------------------------------------------+---------+---------+
     """
 
     def __init__(self):
@@ -119,28 +133,8 @@ class ModelConfiguration:
         Initializer of ModelConfiguration Class
         """
 
-        self.solveroptions = SimpleNamespace()
-        self.solveroptions.solver = 'gurobi'
-        self.solveroptions.mipgap = 0.001
-        self.solveroptions.timelim = 10
-        self.solveroptions.threads = 0
-        self.solveroptions.mipfocus = 0
-        self.solveroptions.logfile = ""
-        self.solveroptions.nodefilestart = 0.5
-        self.solveroptions.method = -1
-        self.solveroptions.heuristics = 0.05
-        self.solveroptions.presolve = -1
-        self.solveroptions.branchdir = 0
-        self.solveroptions.lpwarmstart = 0
-        self.solveroptions.intfeastol = 1e-5
-        self.solveroptions.feastol = 1e-5
-        self.solveroptions.numericfocus = 0
-        self.solveroptions.cuts = -1
-        self.solveroptions.scaling = 0
-
         self.optimization = SimpleNamespace()
         self.optimization.objective = 'costs'
-        self.optimization.save_log_files = 0
         self.optimization.emission_limit = 0
         self.optimization.monte_carlo = SimpleNamespace()
         self.optimization.monte_carlo.on = 0
@@ -148,16 +142,34 @@ class ModelConfiguration:
         self.optimization.monte_carlo.N = 4
         self.optimization.monte_carlo.on_what = ['Technologies']
         self.optimization.pareto_points = 5
-
         self.optimization.timestaging = 0
-
         self.optimization.typicaldays = SimpleNamespace()
         self.optimization.typicaldays.N = 0
         self.optimization.typicaldays.method = 2
 
         # self.optimization.tecstaging = 0
 
-        self.modelconstruction = SimpleNamespace()
+        self.solveroptions = SimpleNamespace()
+        self.solveroptions.solver = 'gurobi'
+        self.solveroptions.mipgap = 0.02
+        self.solveroptions.timelim = 10
+        self.solveroptions.threads = 0
+        self.solveroptions.mipfocus = 0
+        self.solveroptions.nodefilestart = 0.5
+        self.solveroptions.method = -1
+        self.solveroptions.heuristics = 0.05
+        self.solveroptions.presolve = -1
+        self.solveroptions.branchdir = 0
+        self.solveroptions.lpwarmstart = 0
+        self.solveroptions.intfeastol = 1e-5
+        self.solveroptions.feastol = 1e-6
+        self.solveroptions.numericfocus = 0
+        self.solveroptions.cuts = -1
+
+        self.reporting = SimpleNamespace()
+        self.reporting.save_detailed = 1
+        self.reporting.save_path = './userData/'
+        self.reporting.case_name = -1
 
         self.energybalance = SimpleNamespace()
         self.energybalance.violation = -1
@@ -168,8 +180,10 @@ class ModelConfiguration:
         self.economic.global_simple_capex_model = 0
 
         self.performance = SimpleNamespace()
-        # self.performance.dynamics = 0
+        self.performance.dynamics = 0
 
-        self.reporting = SimpleNamespace()
-        self.reporting.save_detailed = 1
-        self.reporting.save_path = './userData/'
+        self.scaling = 0
+        self.scaling_factors = SimpleNamespace()
+        self.scaling_factors.energy_vars = 1e-3
+        self.scaling_factors.cost_vars = 1e-3
+        self.scaling_factors.objective = 1

@@ -7,7 +7,8 @@
   "Economics": {
     "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/unit total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": -1000,
+    "unit_CAPEX": 787730,
+    "fix_CAPEX": 2.06E+08,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
@@ -31,10 +32,7 @@
       "steam"
     ],
     "emission_factor": 0,
-    "min_part_load": [
-      0,
-      1
-    ],
+    "min_part_load": 0,
     "performance": {
       "in": [
         0,
@@ -54,17 +52,26 @@
     "input_ratios": {
       "naphtha": 1,
       "electricity": 1.476
-    }
+    },
+    "ramping_rate": -1,
+    "standby_power": -1,
+    "min_uptime": -1,
+    "min_downtime": -1,
+    "SU_time": -1,
+    "SD_time": -1,
+    "SU_load": -1,
+    "SD_load": -1,
+    "max_startups": -1
   },
   "Units": {
     "size": "tonne/hr",
     "input_carrier": {
-      "naphtha": "tonne",
-      "electricity": "MW"
+      "naphtha": "",
+      "electricity": ""
     },
     "output_carrier": {
-      "crackedgas": "tonne",
-      "steam": "MW"
+      "crackedgas": "",
+      "steam": ""
     }
   }
 }

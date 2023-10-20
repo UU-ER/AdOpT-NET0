@@ -1,6 +1,7 @@
-from ..component import ModelComponent, perform_disjunct_relaxation
-from ..utilities import annualize, set_discount_rate
+import warnings
 
+from ..component import ModelComponent
+from ..utilities import annualize, set_discount_rate, read_dict_value, perform_disjunct_relaxation, determine_variable_scaling, determine_constraint_scaling
 
 import pandas as pd
 import copy
@@ -34,6 +35,10 @@ class Network(ModelComponent):
 
         self.set_nodes = []
         self.set_t = []
+        
+        self.scaling_factors = []
+        if 'ScalingFactors' in netw_data:
+            self.scaling_factors = netw_data['ScalingFactors']
 
 
     def calculate_energy_consumption(self):
@@ -357,6 +362,26 @@ class Network(ModelComponent):
 
         return self.results
 
+
+    def scale_model(self, b_netw, model, configuration):
+        """
+        Scales technology model
+        """
+
+        f = self.scaling_factors
+        f_global = configuration.scaling_factors
+
+        model = determine_variable_scaling(model, b_netw, f, f_global)
+        model = determine_constraint_scaling(model, b_netw, f, f_global)
+
+        for arc in b_netw.arc_block:
+            b_arc = b_netw.arc_block[arc]
+
+            model = determine_variable_scaling(model, b_arc, f, f_global)
+            model = determine_constraint_scaling(model, b_arc, f, f_global)
+
+        return model
+
     def __define_possible_arcs(self, b_netw, energyhub):
         """
         Define all possible arcs that have a connection
@@ -560,7 +585,7 @@ class Network(ModelComponent):
         Constructs constraints for network energy consumption
         """
         # Set of consumed carriers
-        b_netw.set_consumed_carriers = Set(initialize=self.energy_consumption.keys())
+        b_netw.set_consumed_carriers = Set(initialize=list(self.energy_consumption.keys()))
 
         # Parameters
         def init_cons_send1(para, car):

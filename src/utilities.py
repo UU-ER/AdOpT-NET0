@@ -2,10 +2,7 @@ from pyomo.environ import *
 from types import SimpleNamespace
 
 def get_gurobi_parameters(solveroptions):
-    if solveroptions.solver.startswith('gurobi'):
-        solver = SolverFactory(solveroptions.solver, solver_io='python')
-    else:
-        solver = SolverFactory(solveroptions.solver)
+    solver = SolverFactory(solveroptions.solver, solver_io='python')
     solver.options['TimeLimit'] = solveroptions.timelim * 3600
     solver.options['MIPGap'] = solveroptions.mipgap
     solver.options['MIPFocus'] = solveroptions.mipfocus
@@ -21,6 +18,11 @@ def get_gurobi_parameters(solveroptions):
     solver.options['Cuts'] = solveroptions.cuts
     solver.options['NumericFocus'] = solveroptions.numericfocus
     solver.options['ScaleFlag'] = solveroptions.scaling
+
+    return solver
+
+def get_glpk_parameters(solveroptions):
+    solver = SolverFactory('glpk')
 
     return solver
 
