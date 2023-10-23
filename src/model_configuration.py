@@ -82,7 +82,21 @@ class ModelConfiguration:
     | cuts          | Setting defining the aggressiveness of the global cut               | {-1, 0, 1, 2, 3}       | -1       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
 
-       List of energy balance settings that can be specified:
+    List of reporting settings that can be specified:
+
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | Name                       | Definition                                             | Options     | Default     |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | save_detailed              | Setting to select how the results are saved. When      | {0,1}       | 1           |
+    |                            | turned off only the summary is saved.                  |             |             |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | save_path                  | Option to define the save path.                        |             |'./userData/'|
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | case_name                  | Option to define a case study name that is added to    |{str of name,| -1          |
+    |                            | the results folder name.                               |     -1}     |             |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+
+    List of energy balance settings that can be specified:
 
     +-------------+----------------------------------------------------------------------------+---------+---------+
     | Name        | Definition                                                                 | Options | Default |
@@ -126,6 +140,7 @@ class ModelConfiguration:
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
     | objective  | Scaling factor used for objective function                                                  |         | 1       |
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
+
     """
 
     def __init__(self):
