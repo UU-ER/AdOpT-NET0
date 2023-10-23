@@ -107,7 +107,7 @@ The ranges given out by gurobi are:
     RHS range        [1e+00, 1e+03]
 
 
-To solve the unscaled model, we specify global scaling factors in the configuration:
+To solve a scaled model, we specify global scaling factors in the configuration:
 
 .. testcode::
 

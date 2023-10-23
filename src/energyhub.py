@@ -411,6 +411,10 @@ class EnergyHub:
                 self.__call_solver()
 
     def scale_model(self):
+        """
+        Creates a scaled model in self.scaled_model using the scale factors specified in the json files for technologies
+        and networks as well as the global scaling factors specified. See also the documentation on model scaling.
+        """
 
         f_global = self.configuration.scaling_factors
         self.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
