@@ -16,11 +16,6 @@ class ModelConfiguration:
     |                    | of optimization                              | 'emissions_minC', 'costs_emissionlimit'     |         |
     |                    |                                              | 'pareto',                                   |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | save_detail        | What information is saved                    | 1, 0                                        |         |
-    |                    | 0: saves only emissions, costs, technology/  |                                             |         |
-    |                    | network sizes                                |                                             |         |
-    |                    | 1: saves operation and energybalance as well |                                             |         |
-    +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.on     | Turn monte carlo simulation on               | 1,0                                         | 0       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.sd     | Value defining the range in which variables  |                                             | 0.2     |
