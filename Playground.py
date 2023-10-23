@@ -17,21 +17,24 @@ import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
+from src.diagnostics import get_infeasibile_constraints
 
+execute = 1
 
-execute = 0
-
-# MODEL SCALING
+# MODEL SCALING/ Infeasibilities
 if execute == 1:
     m = ConcreteModel()
 
-    m.a = Var()
-    m.b = Var()
+    m.a = Var(initialize=1.0)
+    m.b = Var(initialize=1.0)
 
     m.c1 = Constraint(expr=0.00001 * m.a + 0.0002 * m.b==0.0004)
     m.c2 = Constraint(expr=0.00004 * m.a + 40 * m.b==0.5)
 
     m.obj = Objective(expr = 1000*m.a + 2000 * m.b)
+
+    m.pprint()
+    get_infeasibile_constraints(m)
 
     solver = SolverFactory('gurobi')
     solution = solver.solve(m, tee=True)

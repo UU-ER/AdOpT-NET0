@@ -1,7 +1,7 @@
 {
   "tec_type": "STOR",
   "size_min": 0,
-  "size_max": 1.0E+7,
+  "size_max": 1000,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
@@ -35,8 +35,8 @@
       "eta_out": 0.96,
       "lambda": 0.001,
       "theta": 0,
-      "charge_max": 0.33333333333333331,
-      "discharge_max": 0.33333333333333331
+      "charge_max": 0.3,
+      "discharge_max": 0.3
     }
   },
   "Units": {
@@ -47,5 +47,11 @@
     "output_carrier": {
       "electricity": "MW"
     }
+  },
+  "ScalingFactors": {
+    "const_opex_variable": 1e2,
+    "const_opex_fixed": 1e2,
+    "const_capex_aux": 1e-3,
+    "var_capex_aux": 1e-1
   }
 }

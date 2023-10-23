@@ -33,6 +33,7 @@ Table of Content
    ModelConfiguration
    ModelConstruction
    ModelSolve
+   ModelDiagnostics
    ResultDataManagement
    ForDevelopers
 

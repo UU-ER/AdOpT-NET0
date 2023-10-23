@@ -111,7 +111,7 @@ class Res(Technology):
         # Output Bounds
         self.fitted_performance.bounds['output']['electricity'] = output_bounds
         # Coefficients
-        self.fitted_performance.coefficients['capfactor'] = capacity_factor
+        self.fitted_performance.coefficients['capfactor'] = round(capacity_factor, 3)
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
         # Other Data
@@ -162,7 +162,7 @@ class Res(Technology):
         # Output Bounds
         self.fitted_performance.bounds['output']['electricity'] = output_bounds
         # Coefficients
-        self.fitted_performance.coefficients['capfactor'] = capacity_factor[0]
+        self.fitted_performance.coefficients['capfactor'] = capacity_factor[0].round(3)
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
         # Other Data

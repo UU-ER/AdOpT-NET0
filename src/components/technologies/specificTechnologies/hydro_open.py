@@ -233,7 +233,7 @@ class HydroOpen(Technology):
             return b_tec.var_spilling[t] <= spilling_max * b_tec.var_size
 
         b_tec.const_max_spilling = Constraint(self.set_t, rule=init_maximal_spilling)
-        
+
         # RAMPING RATES
         if "ramping_rate" in self.performance_data:
             if not self.performance_data['ramping_rate']   == -1:

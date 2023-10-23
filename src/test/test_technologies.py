@@ -7,9 +7,6 @@ from src.energyhub import EnergyHub
 from src.model_configuration import ModelConfiguration
 
 
-
-
-
 def test_technology_RES_PV():
     """
     Run a model with one node.
