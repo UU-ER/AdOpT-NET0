@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from scipy.interpolate import griddata
+import random
 
 import src.utilities
 from src.components.technologies.utilities import FittedPerformance, fit_piecewise_function
@@ -250,7 +251,8 @@ class OceanBattery(Technology):
             """
             Block indexed by the number of slots
             """
-            turbine_types = range(0, 2)
+
+            turbine_types = range(0, 4)
             b_turbine_slot.set_turbine_types = RangeSet(max(turbine_types))
 
             # Parameters
@@ -300,22 +302,23 @@ class OceanBattery(Technology):
                         """
                         Block holding one turbine type
                         """
-                        b_turbine_performance.const_turbine_type = Constraint(expr=b_turbine_slot.var_turbine_type == type)
+                        b_turbine_performance.const_turbine_type = Constraint(
+                            expr=b_turbine_slot.var_turbine_type == type)
 
                         # SIZE CONSTRAINT
                         # b_turbine_performance.const_size = Constraint(expr=1 <= b_turbine_slot.var_size)
 
                         # CAPEX CONSTRAINT
                         b_turbine_performance.const_capex = Constraint(
-                            expr=b_turbine_slot.var_capex == b_turbine_slot.var_size * b_turbine_slot.para_capex[type])
+                            expr=b_turbine_slot.var_capex == b_turbine_slot.var_size * b_turbine_slot.para_capex[type] * random.uniform(0.99, 1.01))
 
                         alpha1 = self.performance_data['turbine_performance'][turbine_names[type]]['P_out']['alpha1']
                         alpha2 = self.performance_data['turbine_performance'][turbine_names[type]]['P_out']['alpha2']
                         bp_x = self.performance_data['turbine_performance'][turbine_names[type]]['P_out']['bp_x']
 
-                        s_indicators_inputs = range(0, len(bp_x))
+                        s_indicators_outputs = range(0, len(bp_x))
 
-                        def init_power_inflow(dis, t, ind):
+                        def init_power_outflow(dis, t, ind):
                             if ind == 0: # turbine off
                                 def init_outflow_off(const):
                                     return b_turbine_slot.var_outflow[t] == 0
@@ -339,14 +342,15 @@ class OceanBattery(Technology):
                                         t] + alpha2[ind - 1]
                                 dis.const_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
 
-                        b_turbine_performance.dis_power_inflow = Disjunct(self.set_t_full, s_indicators_inputs,
-                                                            rule=init_power_inflow)
+                        b_turbine_performance.dis_power_outflow = Disjunct(self.set_t_full, s_indicators_outputs,
+                                                                           rule=init_power_outflow)
 
                         def bind_disjunctions_turbine(dis, t):
-                            return [b_turbine_performance.dis_power_inflow[t, i] for i in s_indicators_inputs]
-                        b_turbine_performance.disjunction_turbine = Disjunction(self.set_t_full, rule=bind_disjunctions_turbine)
+                            return [b_turbine_performance.dis_power_outflow[t, i] for i in s_indicators_outputs]
+                        b_turbine_performance.disjunction_turbine = Disjunction(self.set_t_full,
+                                                                                rule=bind_disjunctions_turbine)
 
-                        b_turbine_performance = perform_disjunct_relaxation(b_turbine_performance)
+                        b_turbine_performance = perform_disjunct_relaxation(b_turbine_performance, method='gdp.hull')
 
                         return b_turbine_performance
 
@@ -361,7 +365,7 @@ class OceanBattery(Technology):
                 return [b_turbine_slot.dis_turbine_types[i] for i in turbine_types]
             b_turbine_slot.disjunction_turbine_types = Disjunction(rule=bind_disjunctions)
 
-            b_turbine_slot = perform_disjunct_relaxation(b_turbine_slot)
+            b_turbine_slot = perform_disjunct_relaxation(b_turbine_slot, method='gdp.hull')
 
             return b_turbine_slot
 
@@ -372,7 +376,7 @@ class OceanBattery(Technology):
 
     def __define_pumps(self, b_tec):
         """
-        This function establishes all components for the pumps. Is is organized in multiple levels
+        This function establishes all components for the pumps. It is organized in multiple levels
         (hierarchical) with the following structure. Description in brackets is the pyomo component type.
 
         pump_block, indexed by pump slots (Block)
@@ -454,7 +458,7 @@ class OceanBattery(Technology):
 
                         # CAPEX CONSTRAINT
                         b_pump_performance.const_capex = Constraint(
-                            expr=b_pump_slot.var_capex == b_pump_slot.var_size * b_pump_slot.para_capex[type])
+                            expr=b_pump_slot.var_capex == b_pump_slot.var_size * b_pump_slot.para_capex[type] * random.uniform(0.99, 1.01))
 
                         alpha1 = self.performance_data['pump_performance'][pump_names[type]]['P_in']['alpha1']
                         alpha2 = self.performance_data['pump_performance'][pump_names[type]]['P_in']['alpha2']
@@ -487,13 +491,13 @@ class OceanBattery(Technology):
                                 dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
 
                         b_pump_performance.dis_power_inflow = Disjunct(self.set_t_full, s_indicators_inputs,
-                                                            rule=init_power_inflow)
+                                                                       rule=init_power_inflow)
 
                         def bind_disjunctions_pump(dis, t):
                             return [b_pump_performance.dis_power_inflow[t, i] for i in s_indicators_inputs]
                         b_pump_performance.disjunction_pump = Disjunction(self.set_t_full, rule=bind_disjunctions_pump)
 
-                        b_pump_performance = perform_disjunct_relaxation(b_pump_performance)
+                        b_pump_performance = perform_disjunct_relaxation(b_pump_performance, method = 'gdp.hull')
 
                         return b_pump_performance
 
@@ -508,7 +512,7 @@ class OceanBattery(Technology):
                 return [b_pump_slot.dis_pump_types[i] for i in pump_types]
             b_pump_slot.disjunction_pump_types = Disjunction(rule=bind_disjunctions)
 
-            b_pump_slot = perform_disjunct_relaxation(b_pump_slot)
+            b_pump_slot = perform_disjunct_relaxation(b_pump_slot, method='gdp.hull')
 
             return b_pump_slot
 
