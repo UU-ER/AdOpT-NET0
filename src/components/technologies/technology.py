@@ -293,6 +293,9 @@ class Technology(ModelComponent):
                                                  mutable=True)
             b_tec.const_capex_aux = Constraint(
                 expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
+        elif capex_model == 4:
+            pass
+            # Needs to be overwritten in specific technology
 
         # CAPEX
         if self.existing and not self.decommission:
