@@ -205,16 +205,17 @@ class OceanBattery2(Technology):
         b_tec.para_pump_size_max = Param(initialize=10)
         b_tec.para_turbine_size_min = Param(initialize=0)
         b_tec.para_turbine_size_max = Param(initialize=10)
-        b_tec.para_energy_density_reservoir = Param(initialize=10) # Todo: Why do we need this to calculate the capex?
-        b_tec.para_unit_capex_annual_reservoir = Param(domain=Reals,
-                                             initialize=annualization_factor * economics.capex_data['unit_capex'],
-                                             mutable=True)
+        b_tec.para_unit_capex_reservoir = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
+        b_tec.para_unit_capex_reservoir_annual = Param(domain=Reals,
+                                                       initialize=annualization_factor * economics.capex_data['unit_capex'],
+                                                       mutable=True)
+        # Todo: do recalculation to EUR/m³ here
 
         # Method sections
         b_tec = self.__define_vars(b_tec)
         b_tec = self.__define_storage_level(b_tec, nr_timesteps_averaged)
-        b_tec = self.__define_turbines(b_tec)
-        b_tec = self.__define_pumps(b_tec)
+        b_tec = self.__define_turbines(b_tec, energyhub)
+        b_tec = self.__define_pumps(b_tec, energyhub)
 
         # Aggregate Input/Output
         def init_total_input(const, t, car):
@@ -238,18 +239,15 @@ class OceanBattery2(Technology):
         b_tec.const_total_outflow = Constraint(self.set_t, rule=init_total_outflow)
 
         # CAPEX Calculation
-        # TODO check CAPEX calculation (is written here to overwrite the standard formulation in the technology file)
-        b_tec.const_capex_aux = Constraint(expr=b_tec.para_unit_capex_annual_reservoir * b_tec.para_energy_density_reservoir *
-                                                b_tec.var_size + sum(b_tec.var_capex_turbine[turbine] for
+        b_tec.const_capex_aux = Constraint(expr=b_tec.para_unit_capex_reservoir_annual * b_tec.var_size +
+                                                sum(b_tec.var_capex_turbine[turbine] for
                                                                      turbine in b_tec.set_turbine_slots) +
-                                                sum(b_tec.var_capex_pump[pump] for pump in b_tec.set_pump_slots)
-                                                == b_tec.var_capex_aux)
-
-        # b_tec.pprint()
+                                                sum(b_tec.var_capex_pump[pump] for pump in b_tec.set_pump_slots) ==
+                                                b_tec.var_capex_aux)
 
         return b_tec
 
-    def __define_turbines(self, b_tec):
+    def __define_turbines(self, b_tec, energyhub):
         """
         This function establishes all components for the turbines. Is is organized in multiple levels
         (hierarchical) with the following structure. Description in brackets is the pyomo component type.
@@ -264,13 +262,18 @@ class OceanBattery2(Technology):
 
         outflow_min = coeff['outflow_min']
         outflow_max = coeff['outflow_max']
-        # Todo: Annualize
+
+        configuration = energyhub.configuration
+        economics = self.economics
+        discount_rate = set_discount_rate(configuration, economics)
+        annualization_factor = annualize(discount_rate, economics.lifetime)
+
         turbine_names = {1: 'Francis', 2: 'Kaplan', 3: 'Pelton'}
         capex_turbines = {}
         capex_turbines[0] = 0
-        capex_turbines[1] = coeff['capex_turbines']['Francis']
-        capex_turbines[2] = coeff['capex_turbines']['Kaplan']
-        capex_turbines[3] = coeff['capex_turbines']['Pelton']
+        capex_turbines[1] = annualization_factor * coeff['capex_turbines']['Francis']
+        capex_turbines[2] = annualization_factor * coeff['capex_turbines']['Kaplan']
+        capex_turbines[3] = annualization_factor * coeff['capex_turbines']['Pelton']
 
         turbine_types = range(1, 4)
 
@@ -278,7 +281,6 @@ class OceanBattery2(Technology):
             """
             Disjunct deciding on the turbine type
             """
-        # b_tec.const_turbine_type = Constraint(expr= b_tec.var_turbine_type == type)
             def turbine_block_init(b_turbine):
                 """
                 Block holding all turbine slots
@@ -396,7 +398,7 @@ class OceanBattery2(Technology):
         return b_tec
 
 
-    def __define_pumps(self, b_tec):
+    def __define_pumps(self, b_tec, energyhub):
         """
         This function establishes all components for the pumps. It is organized in multiple levels
         (hierarchical) with the following structure. Description in brackets is the pyomo component type.
@@ -412,13 +414,17 @@ class OceanBattery2(Technology):
         inflow_min = coeff['inflow_min'] # flow per MW
         inflow_max = coeff['inflow_max'] # Todo: use as lower/upper bound
 
-        # Todo: Annualize
+        configuration = energyhub.configuration
+        economics = self.economics
+        discount_rate = set_discount_rate(configuration, economics)
+        annualization_factor = annualize(discount_rate, economics.lifetime)
+
         pump_names = {1: 'Axial', 2: 'Mixed_flow', 3: 'Radial'}
         capex_pumps = {}
         capex_pumps[0] = 0
-        capex_pumps[1] = coeff['capex_pumps']['Axial']
-        capex_pumps[2] = coeff['capex_pumps']['Mixed_flow']
-        capex_pumps[3] = coeff['capex_pumps']['Radial']
+        capex_pumps[1] = annualization_factor * coeff['capex_pumps']['Axial']
+        capex_pumps[2] = annualization_factor * coeff['capex_pumps']['Mixed_flow']
+        capex_pumps[3] = annualization_factor * coeff['capex_pumps']['Radial']
 
         pump_types = range(1, 4)
 
@@ -427,7 +433,6 @@ class OceanBattery2(Technology):
             Disjunct deciding on the pump type
             """
 
-            # b_tec.const_pump_type = Constraint(expr= b_tec.var_pump_type == type)
             def pump_block_init(b_pump):
                 """
                 Block holding all pump slots
