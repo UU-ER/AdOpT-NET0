@@ -7,7 +7,7 @@
   "Economics": {
     "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 4,
-    "unit_CAPEX": 0,
+    "unit_CAPEX": 10000,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
@@ -29,30 +29,29 @@
     ],
     "emission_factor": 0,
     "performance": {
-      "eta_in": 0.96,
-      "eta_out": 0.96,
-      "lambda": 0.001,
+      "lambda": 0,
       "theta": 0,
-      "charge_min": 0,
-      "charge_max": 1000,
-      "discharge_min": 0,
-      "discharge_max": 1000,
+      "inflow_min": 0,
+      "inflow_max": 1000,
+      "outflow_min": 0,
+      "outflow_max": 1000,
       "min_fill": 0.02,
-      "water_depth": 30,
       "pump_slots": 2,
-      "turbine_slots": 2
-    },
-    "nr_segments": 1,
-    "frequency": 50,
-    "pole_pairs": 3
-  },
-  "Units": {
-    "size": "MWh",
-    "input_carrier": {
-      "electricity": "MW"
-    },
-    "output_carrier": {
-      "electricity": "MW"
+      "turbine_slots": 2,
+      "nr_segments": 1,
+      "frequency": 50,
+      "pole_pairs": 3,
+      "nominal_head": 50,
+      "capex_turbines": {
+        "Francis": 10,
+        "Kaplan": 12,
+        "Pelton": 14
+      },
+      "capex_pumps": {
+        "Axial": 1,
+        "Mixed_flow": 1,
+        "Radial": 1
+      }
     }
   }
 }
