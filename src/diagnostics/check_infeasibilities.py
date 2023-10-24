@@ -5,7 +5,7 @@ from pyomo.core import Constraint, Var, value
 
 def get_infeasibile_constraints(m, tolerance = 1e-3):
     """
-    Gets violated constraints of a pyomo model and send them to the logger
+    gets the infeasibile constraints of a pyomo model and prints them to file
 
     :param m: pyomo model
     :param Path save_path: path to save
