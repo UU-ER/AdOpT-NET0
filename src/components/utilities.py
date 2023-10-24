@@ -117,12 +117,14 @@ def determine_variable_scaling(model, model_block, f, f_global):
     for var in model_block.component_objects(Var, active=True):
         var_name = var.name.split('.')[-1]
 
-        # Determine global scaling factor
-        global_scaling_factor = f_global.energy_vars * read_dict_value(f, var_name)
-        if 'capex' in var_name or 'opex' in var_name:
-            global_scaling_factor = global_scaling_factor * f_global.cost_vars
+        # check if var is integer
+        var_is_integer = any([var[index].is_integer() for index in var.index_set()])
 
-        if not var_name.startswith('binary_indicator'):
+        if not var_is_integer:
+            # Determine global scaling factor
+            global_scaling_factor = f_global.energy_vars * read_dict_value(f, var_name)
+            if 'capex' in var_name or 'opex' in var_name:
+                global_scaling_factor = global_scaling_factor * f_global.cost_vars
             model.scaling_factor[var] = global_scaling_factor
 
     return model
