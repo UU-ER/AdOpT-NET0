@@ -338,10 +338,19 @@ class OceanBattery2(Technology):
                             #     'alpha2']
                             # bp_x = self.performance_data['turbine_performance'][turbine_names[type]]['Q_out']['bp_x']
 
+                            if type == 1:
+                                alpha1 = [2.3]
+                                alpha2 = [0]
+                                bp_x = [0.1, 1]
+                            elif type == 2:
+                                alpha1 = [2.2]
+                                alpha2 = [0]
+                                bp_x = [0.5, 1]
+                            elif type == 3:
+                                alpha1 = [2.4]
+                                alpha2 = [0]
+                                bp_x = [0.05, 1]
 
-                            alpha1 = [2.3]
-                            alpha2 = [0]
-                            bp_x = [0.1, 1]
 
                             s_indicators_onoff = range(0, len(bp_x))
 
@@ -493,11 +502,18 @@ class OceanBattery2(Technology):
                             # alpha2 = self.performance_data['pump_performance'][pump_names[type]]['Q_in']['alpha2']
                             # bp_x = self.performance_data['pump_performance'][pump_names[type]]['Q_in']['bp_x']
 
-                            alpha1 = [1.8]
-                            alpha2 = [0]
-                            bp_x = [0.1, 1]
-                            #
-                            # inflow = alpha1[0]
+                            if type == 1:
+                                alpha1 = [1.8]
+                                alpha2 = [0]
+                                bp_x = [0.1, 1]
+                            elif type == 2:
+                                alpha1 = [2.1]
+                                alpha2 = [0]
+                                bp_x = [0.7, 1]
+                            elif type == 3:
+                                alpha1 = [1.7]
+                                alpha2 = [0]
+                                bp_x = [0.2, 1]
 
                             s_indicators_onoff = range(0, 2)
 
@@ -523,6 +539,7 @@ class OceanBattery2(Technology):
                                                 b_tec.var_size_single_pump)
                                     dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
 
+                                    # TODO: We need the size in this equation (also in the turbine)!
                                     def init_input_on(const):
                                         return (b_tec.var_inflow_pump[t, pump_slot] == alpha1[ind - 1] *
                                                 b_tec.var_input_pump[t, pump_slot] + alpha2[ind - 1])

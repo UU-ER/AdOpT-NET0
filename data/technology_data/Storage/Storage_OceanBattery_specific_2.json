@@ -43,14 +43,14 @@
       "pole_pairs": 3,
       "nominal_head": 50,
       "capex_turbines": {
-        "Francis": 1,
-        "Kaplan": 2,
-        "Pelton": 3
+        "Francis": 2,
+        "Kaplan": 2.1,
+        "Pelton": 1.5
       },
       "capex_pumps": {
-        "Axial": 1,
+        "Axial": 1.8,
         "Mixed_flow": 2,
-        "Radial": 3
+        "Radial": 1.5
       }
     }
   }
