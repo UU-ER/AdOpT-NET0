@@ -90,8 +90,8 @@ class ModelConfiguration:
     | case_name                  | Option to define a case study name that is added to    |{str of name,| -1          |
     |                            | the results folder name.                               |     -1}     |             |
     +----------------------------+--------------------------------------------------------+-------------+-------------+
-    | write_solution_diagnostics | If 1, writes (1) solution quality, (2) pyomo to gurobi |{0,1}        | 0           |
-    |                            | variable map and (3) constraint map to file.           |             |             |
+    | write_solution_diagnostics | If 1, writes solution quality, if 2 also writes pyomo  |{0,1,2}      | 0           |
+    |                            | to gurobi variable map and constraint map to file.     |             |             |
     +----------------------------+--------------------------------------------------------+-------------+-------------+
 
     List of energy balance settings that can be specified:

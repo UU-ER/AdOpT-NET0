@@ -509,7 +509,7 @@ class EnergyHub:
         if self.configuration.scaling == 1:
             TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
 
-        if self.configuration.reporting.write_solution_diagnostics == 1:
+        if self.configuration.reporting.write_solution_diagnostics >= 1:
             self.__write_solution_diagnostics(result_folder_path)
 
         self.solution.write()
@@ -531,15 +531,16 @@ class EnergyHub:
             model.printQuality()  # Call the function that prints something
             sys.stdout = sys.__stdout__  # Reset stdout to the console
 
-        # Write constraint map to txt
-        with open(f'{save_path}/diag_constraint_map.txt', 'w') as file:
-            for key, value in constraint_map.items():
-                file.write(f'{key}: {value}\n')
+        if self.configuration.reporting.write_solution_diagnostics >=2:
+            # Write constraint map to txt
+            with open(f'{save_path}/diag_constraint_map.txt', 'w') as file:
+                for key, value in constraint_map.items():
+                    file.write(f'{key}: {value}\n')
 
-        # Write var map to txt
-        with open(f'{save_path}/diag_variable_map.txt', 'w') as file:
-            for key, value in variable_map._dict.items():
-                file.write(f'{value[0].name}: {value[1]}\n')
+            # Write var map to txt
+            with open(f'{save_path}/diag_variable_map.txt', 'w') as file:
+                for key, value in variable_map._dict.items():
+                    file.write(f'{value[0].name}: {value[1]}\n')
 
     def __monte_carlo_set_cost_parameters(self):
         """
