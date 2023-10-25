@@ -411,6 +411,10 @@ class EnergyHub:
                 self.__call_solver()
 
     def scale_model(self):
+        """
+        Creates a scaled model in self.scaled_model using the scale factors specified in the json files for technologies
+        and networks as well as the global scaling factors specified. See also the documentation on model scaling.
+        """
 
         f_global = self.configuration.scaling_factors
         self.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
@@ -505,12 +509,37 @@ class EnergyHub:
         if self.configuration.scaling == 1:
             TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
 
+        if self.configuration.reporting.write_solution_diagnostics == 1:
+            self.__write_solution_diagnostics(result_folder_path)
+
         self.solution.write()
         self.detailed_results = self.results.report_optimization_result(self, time_stamp)
 
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
+
+    def __write_solution_diagnostics(self, save_path):
+
+        model = self.solver._solver_model
+        constraint_map = self.solver._pyomo_con_to_solver_con_map
+        variable_map = self.solver._pyomo_var_to_solver_var_map
+
+        # Write solution quality to txt
+        with open(f'{save_path}/diag_solution_quality.txt', 'w') as file:
+            sys.stdout = file  # Redirect stdout to the file
+            model.printQuality()  # Call the function that prints something
+            sys.stdout = sys.__stdout__  # Reset stdout to the console
+
+        # Write constraint map to txt
+        with open(f'{save_path}/diag_constraint_map.txt', 'w') as file:
+            for key, value in constraint_map.items():
+                file.write(f'{key}: {value}\n')
+
+        # Write var map to txt
+        with open(f'{save_path}/diag_variable_map.txt', 'w') as file:
+            for key, value in variable_map._dict.items():
+                file.write(f'{value[0].name}: {value[1]}\n')
 
     def __monte_carlo_set_cost_parameters(self):
         """

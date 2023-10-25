@@ -16,11 +16,6 @@ class ModelConfiguration:
     |                    | of optimization                              | 'emissions_minC', 'costs_emissionlimit'     |         |
     |                    |                                              | 'pareto',                                   |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | save_detail        | What information is saved                    | 1, 0                                        |         |
-    |                    | 0: saves only emissions, costs, technology/  |                                             |         |
-    |                    | network sizes                                |                                             |         |
-    |                    | 1: saves operation and energybalance as well |                                             |         |
-    +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.on     | Turn monte carlo simulation on               | 1,0                                         | 0       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.sd     | Value defining the range in which variables  |                                             | 0.2     |
@@ -82,7 +77,24 @@ class ModelConfiguration:
     | cuts          | Setting defining the aggressiveness of the global cut               | {-1, 0, 1, 2, 3}       | -1       |
     +---------------+---------------------------------------------------------------------+------------------------+----------+
 
-       List of energy balance settings that can be specified:
+    List of reporting settings that can be specified:
+
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | Name                       | Definition                                             | Options     | Default     |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | save_detailed              | Setting to select how the results are saved. When      | {0,1}       | 1           |
+    |                            | turned off only the summary is saved.                  |             |             |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | save_path                  | Option to define the save path.                        |             |'./userData/'|
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | case_name                  | Option to define a case study name that is added to    |{str of name,| -1          |
+    |                            | the results folder name.                               |     -1}     |             |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | write_solution_diagnostics | If 1, writes (1) solution quality, (2) pyomo to gurobi |{0,1}        | 0           |
+    |                            | variable map and (3) constraint map to file.           |             |             |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
+
+    List of energy balance settings that can be specified:
 
     +-------------+----------------------------------------------------------------------------+---------+---------+
     | Name        | Definition                                                                 | Options | Default |
@@ -126,6 +138,7 @@ class ModelConfiguration:
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
     | objective  | Scaling factor used for objective function                                                  |         | 1       |
     +------------+---------------------------------------------------------------------------------------------+---------+---------+
+
     """
 
     def __init__(self):
@@ -170,6 +183,7 @@ class ModelConfiguration:
         self.reporting.save_detailed = 1
         self.reporting.save_path = './userData/'
         self.reporting.case_name = -1
+        self.reporting.write_solution_diagnostics = 0
 
         self.energybalance = SimpleNamespace()
         self.energybalance.violation = -1
