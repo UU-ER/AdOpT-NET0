@@ -89,9 +89,9 @@ class OceanBattery2(Technology):
             self.performance_data['pump_performance'][pump] = pumps.get_group(pump)
 
             # WATCH OUT DIRTY FIX
-            factor = self.performance_data['pump_performance'][pump]['Q_in'] / self.performance_data['pump_performance'][pump]['P_in']
+            normalisation_factor = self.performance_data['pump_performance'][pump]['Q_in'] / self.performance_data['pump_performance'][pump]['P_in']
             self.performance_data['pump_performance'][pump]['P_in'] = self.performance_data['pump_performance'][pump]['P_in'] / max(self.performance_data['pump_performance'][pump]['P_in'])
-            self.performance_data['pump_performance'][pump]['Q_in'] = self.performance_data['pump_performance'][pump]['P_in'] * factor
+            self.performance_data['pump_performance'][pump]['Q_in'] = self.performance_data['pump_performance'][pump]['P_in'] * normalisation_factor
 
 
         # Perform fitting
@@ -128,9 +128,9 @@ class OceanBattery2(Technology):
             self.performance_data['turbine_performance'][turbine] = turbines.get_group(turbine)
 
             # WATCH OUT DIRTY FIX
-            factor = self.performance_data['turbine_performance'][turbine]['Q_out'] / self.performance_data['turbine_performance'][turbine]['P_out']
+            normalisation_factor = self.performance_data['turbine_performance'][turbine]['Q_out'] / self.performance_data['turbine_performance'][turbine]['P_out']
             self.performance_data['turbine_performance'][turbine]['P_out'] = self.performance_data['turbine_performance'][turbine]['P_out'] / max(self.performance_data['turbine_performance'][turbine]['P_out'])
-            self.performance_data['turbine_performance'][turbine]['Q_out'] = self.performance_data['turbine_performance'][turbine]['P_out'] * factor
+            self.performance_data['turbine_performance'][turbine]['Q_out'] = self.performance_data['turbine_performance'][turbine]['P_out'] * normalisation_factor
 
 
         # Perform fitting
@@ -337,9 +337,9 @@ class OceanBattery2(Technology):
                             # alpha2 = self.performance_data['turbine_performance'][turbine_names[type]]['Q_out'][
                             #     'alpha2']
                             # bp_x = self.performance_data['turbine_performance'][turbine_names[type]]['Q_out']['bp_x']
-                            #
 
-                            alpha1 = [1]
+
+                            alpha1 = [2.3]
                             alpha2 = [0]
                             bp_x = [0.1, 1]
 
@@ -493,11 +493,11 @@ class OceanBattery2(Technology):
                             # alpha2 = self.performance_data['pump_performance'][pump_names[type]]['Q_in']['alpha2']
                             # bp_x = self.performance_data['pump_performance'][pump_names[type]]['Q_in']['bp_x']
 
-                            alpha1 = [1]
+                            alpha1 = [1.8]
                             alpha2 = [0]
                             bp_x = [0.1, 1]
-
-                            inflow = alpha1[0]
+                            #
+                            # inflow = alpha1[0]
 
                             s_indicators_onoff = range(0, 2)
 
@@ -539,9 +539,7 @@ class OceanBattery2(Technology):
                             b_pump_performance.disjunction_pump_onoff = Disjunction(self.set_t_full,
                                                                                           rule=bind_disjunctions_pump_onoff)
                             b_pump_performance = perform_disjunct_relaxation(b_pump_performance,
-                                                                                method='gdp.bigm')
-
-                            b_pump_performance.pprint()
+                                                                                method='gdp.hull')
 
                             return b_pump_performance
 
