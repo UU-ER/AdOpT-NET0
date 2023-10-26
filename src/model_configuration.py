@@ -90,6 +90,9 @@ class ModelConfiguration:
     | case_name                  | Option to define a case study name that is added to    |{str of name,| -1          |
     |                            | the results folder name.                               |     -1}     |             |
     +----------------------------+--------------------------------------------------------+-------------+-------------+
+    | write_solution_diagnostics | If 1, writes solution quality, if 2 also writes pyomo  |{0,1,2}      | 0           |
+    |                            | to gurobi variable map and constraint map to file.     |             |             |
+    +----------------------------+--------------------------------------------------------+-------------+-------------+
 
     List of energy balance settings that can be specified:
 
@@ -180,6 +183,7 @@ class ModelConfiguration:
         self.reporting.save_detailed = 1
         self.reporting.save_path = './userData/'
         self.reporting.case_name = -1
+        self.reporting.write_solution_diagnostics = 0
 
         self.energybalance = SimpleNamespace()
         self.energybalance.violation = -1
