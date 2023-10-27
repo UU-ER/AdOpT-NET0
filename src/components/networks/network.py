@@ -80,7 +80,7 @@ class Network(ModelComponent):
         :return:
         """
         if self.existing == 0:
-            if self.size_max_arcs == None:
+            if not isinstance(self.size_max_arcs, pd.DataFrame):
                 # Use max size
                 self.size_max_arcs = pd.DataFrame(self.size_max, index=self.distance.index, columns=self.distance.columns)
         elif self.existing == 1:
