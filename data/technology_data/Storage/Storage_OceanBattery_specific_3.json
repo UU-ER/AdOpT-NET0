@@ -31,10 +31,6 @@
     "performance": {
       "lambda": 0,
       "theta": 0,
-      "inflow_min": 0,
-      "inflow_max": 1000,
-      "outflow_min": 0,
-      "outflow_max": 1000,
       "min_fill": 0.02,
       "pump_slots": 2,
       "turbine_slots": 2,
@@ -43,7 +39,11 @@
       "pole_pairs": 3,
       "nominal_head": 50,
       "capex_turbines": 2,
-      "capex_pumps": 1.8
+      "capex_pumps": 1.8,
+      "pump_flow_ub": 20,
+      "pump_power_ub": 20,
+      "turbine_flow_ub": 20,
+      "turbine_power_ub": 20
     }
   }
 }
