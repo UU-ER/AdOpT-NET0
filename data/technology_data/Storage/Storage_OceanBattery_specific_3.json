@@ -1,5 +1,5 @@
 {
-  "tec_type": "OceanBattery2",
+  "tec_type": "OceanBattery3",
   "size_min": 0,
   "size_max": 1000,
   "size_is_int": 0,
@@ -42,16 +42,8 @@
       "frequency": 50,
       "pole_pairs": 3,
       "nominal_head": 50,
-      "capex_turbines": {
-        "Francis": 2,
-        "Kaplan": 2.1,
-        "Pelton": 1.5
-      },
-      "capex_pumps": {
-        "Axial": 1.8,
-        "Mixed_flow": 2,
-        "Radial": 1.5
-      }
+      "capex_turbines": 2,
+      "capex_pumps": 1.8
     }
   }
 }
