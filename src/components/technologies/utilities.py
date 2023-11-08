@@ -75,7 +75,7 @@ def fit_piecewise_function(X, Y, nr_segments):
     :param np.array X: x-values of data
     :param np.array Y: y-values of data
     :param nr_seg: number of segments on piecewise defined function
-    :return: x and y breakpoints, slope and intercept parameters of piecewise defined function
+    :return: x and y breakpoints, slope (alpha1) and intercept (alpha2) parameters of piecewise defined function
     """
 
     def regress_piecewise(x, y, nr_segments, x_bp=None):

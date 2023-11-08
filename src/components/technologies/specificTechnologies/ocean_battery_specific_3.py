@@ -61,132 +61,140 @@ class OceanBattery3(Technology):
         pole_pairs = self.fitted_performance.coefficients['pole_pairs']
         N = (120*frequency)/(pole_pairs*2)
         omega = 2*np.pi*N/60
-        nr_segments =  self.fitted_performance.coefficients['nr_segments']
-        #
-        # # PUMPS: PRE-PROCESSING AND FITTING
-        # self.performance_data['pump_performance'] = {}
-        #
-        # # obtain performance data from file
-        # performance_pumps = pd.read_csv('data/technology_data/Pump_performance.csv', delimiter=";")
-        #
-        # # convert performance data from (omega s, eta) to (Qin, Pin)
-        # performance_pumps['Q_in'] = performance_pumps.apply(lambda row: ((row['Specific_rotational_speed'] *
-        #                                                                   ((9.81 * nominal_head) ** 0.75)) / omega) ** 2,
-        #                                                     axis=1)
-        #
-        # performance_pumps['P_in'] = performance_pumps.apply(lambda row: (9.81 * 1000 * nominal_head * row['Q_in']) /
-        #                                                                 (row['Efficiency'] / 100) * 10 ** -6, axis=1)
-        #
-        #
-        #
-        # # group performance data per pump type
-        # pumps = performance_pumps.groupby('Pump_type')
-        # for pump in ['Axial', 'Mixed_flow', 'Radial']:
-        #     self.performance_data['pump_performance'][pump] = pumps.get_group(pump)
-        #
-        #     # WATCH OUT DIRTY FIX
-        #     normalisation_factor = self.performance_data['pump_performance'][pump]['Q_in'] / self.performance_data['pump_performance'][pump]['P_in']
-        #     self.performance_data['pump_performance'][pump]['P_in'] = self.performance_data['pump_performance'][pump]['P_in'] / max(self.performance_data['pump_performance'][pump]['P_in'])
-        #     self.performance_data['pump_performance'][pump]['Q_in'] = self.performance_data['pump_performance'][pump]['P_in'] * normalisation_factor
-        #
-        #
-        # # Perform fitting
-        # for pump in ['Axial', 'Mixed_flow', 'Radial']:
-        #     # parameters to be fitted
-        #     x = self.performance_data['pump_performance'][pump]['P_in']
-        #     y = {}
-        #     y['Q_in'] = self.performance_data['pump_performance'][pump]['Q_in']
-        #
-        #     # fitting data
-        #     fit_pump = fit_piecewise_function(x, y, nr_segments)
-        #
-        #     # Pass to dictionary
-        #     self.performance_data['pump_performance'][pump] = fit_pump
+        nr_segments_design =  self.fitted_performance.coefficients['nr_segments_design']
+        nr_segments_performance =  self.fitted_performance.coefficients['nr_segments_performance']
+
+        # PUMPS: PRE-PROCESSING AND FITTING
+        self.performance_data['pump_performance'] = {}
+
+        # obtain performance data from file
+        performance_pumps = pd.read_csv('data/technology_data/Pump_performance.csv', delimiter=";")
+
+        # convert performance data from (omega s, eta) to (Qin, Pin)
+        performance_pumps['Q_in'] = performance_pumps.apply(lambda row: ((row['Specific_rotational_speed'] *
+                                                                          ((9.81 * nominal_head) ** 0.75)) / omega) ** 2,
+                                                            axis=1)
+
+        performance_pumps['P_in'] = performance_pumps.apply(lambda row: (9.81 * 1000 * nominal_head * row['Q_in']) /
+                                                                        (row['Efficiency'] / 100) * 10 ** -6, axis=1)
+
+
+
+        # group performance data per pump type
+        pumps = performance_pumps.groupby('Pump_type')
+        for pump in ['Axial', 'Mixed_flow', 'Radial']:
+            self.performance_data['pump_performance'][pump] = pumps.get_group(pump)
+
+            # WATCH OUT DIRTY FIX
+            normalisation_factor = self.performance_data['pump_performance'][pump]['Q_in'] / self.performance_data['pump_performance'][pump]['P_in']
+            self.performance_data['pump_performance'][pump]['P_in'] = self.performance_data['pump_performance'][pump]['P_in'] / max(self.performance_data['pump_performance'][pump]['P_in'])
+            self.performance_data['pump_performance'][pump]['Q_in'] = self.performance_data['pump_performance'][pump]['P_in'] * normalisation_factor
+
+
+        # Perform fitting
+        for pump in ['Axial', 'Mixed_flow', 'Radial']:
+            # parameters to be fitted
+            x = self.performance_data['pump_performance'][pump]['P_in']
+            y = {}
+            y['Q_in'] = self.performance_data['pump_performance'][pump]['Q_in']
+
+            # fitting data
+            fit_pump = fit_piecewise_function(x, y, nr_segments_performance)
+
+            # Pass to dictionary
+            self.performance_data['pump_performance'][pump] = fit_pump
+
+        self.__fit_turbine(node_data)
+
+        # Todo: input and output bounds are defined once as flows and here as electricity in/out
+        # Input Bounds
+        for car in self.performance_data['input_carrier']:
+            self.fitted_performance.bounds['input'][car] = np.column_stack((np.zeros(shape=time_steps),
+                                                            np.ones(shape=time_steps) * 10))
+
+
+    def __fit_turbine(self, node_data):
+
+        # Parameters needed for turbine performance calculations
+        turbine_slots = self.fitted_performance.coefficients['turbine_slots']
+        nominal_head = self.fitted_performance.coefficients['nominal_head']
+        frequency = self.fitted_performance.coefficients['frequency']
+        pole_pairs = self.fitted_performance.coefficients['pole_pairs']
+        N = (120*frequency)/(pole_pairs*2)
+        omega = 2*np.pi*N/60
+        nr_segments_design =  self.fitted_performance.coefficients['nr_segments_design']
+        nr_segments_performance =  self.fitted_performance.coefficients['nr_segments_performance']
 
         # TURBINES: PRE-PROCESSING AND FITTING
         self.performance_data['turbine_performance'] = {}
 
         # TODO formulate constraints on diameter + on specific rotational speed for Francis turbine
-
         # obtain performance curves (omega s, Ds) and (omega s, efficiency)
         Design_turbine = pd.read_csv('data/ob_input_data/Turbines_balje_diagram2.csv')
         Francis_efficiency = pd.read_csv('data/ob_input_data/Turbines_Francis_efficiency.csv', delimiter=';')
-
         # remove values that are outside of the Francis turbine operating range
-        Design_turbine = Design_turbine[(Design_turbine['Specific_rotational_speed'] >= 0.25) & (Design_turbine['Specific_rotational_speed'] <= 2.5)]
-
+        Design_turbine = Design_turbine[(Design_turbine['Specific_rotational_speed'] >= 0.25) & (
+                    Design_turbine['Specific_rotational_speed'] <= 2.5)]
         # calculate design flow from optimum Ds, omega-s curve
         Design_turbine['Q_design'] = Design_turbine.apply(lambda row: ((row['Specific_rotational_speed']
-                                                                                        *((9.81 * nominal_head) ** 0.75))
-                                                                                       / omega) ** 2, axis=1)
-
+                                                                        * ((9.81 * nominal_head) ** 0.75))
+                                                                       / omega) ** 2, axis=1)
         # calculate diameter at this design flow
         Design_turbine['D'] = Design_turbine.apply(lambda row: ((row['D_s'] * (row['Q_design'] ** 0.5))
-                                                                                / ((9.81 * nominal_head) ** 0.25)),
-                                                                   axis=1)
-
+                                                                / ((9.81 * nominal_head) ** 0.25)),
+                                                   axis=1)
         # obtain efficiency at these design specific rotational speed
         interpolate_efficiency = interpolate.interp1d(Francis_efficiency['Specific_rotational_speed'],
                                                       Francis_efficiency['Eta_design'], kind='linear',
                                                       fill_value='extrapolate')
         Design_turbine['Eta_design'] = interpolate_efficiency(Design_turbine['Specific_rotational_speed'])
-
         # calculate the design power output that is obtained with the design flow at design efficiency
         Design_turbine['P_design'] = (Design_turbine['Eta_design'] * Design_turbine['Q_design']
-                                              * 1000 * 9.81 * nominal_head * 10 ** -6)
-
+                                      * 1000 * 9.81 * nominal_head * 10 ** -6)
         # Interpolate values for the equally spaced points using linear interpolation
         x_values = np.linspace(Design_turbine['Q_design'].min(), Design_turbine['Q_design'].max(), 20)
         interpolated_y = interp1d(Design_turbine['Q_design'], Design_turbine['P_design'], kind='linear')(x_values)
-
         # get performance data for that turbine
         y = {}
         y['P_design'] = interpolated_y
-
         # fitting data
-        fit_turbine = fit_piecewise_function(x_values, y, nr_segments)
-
+        fit_turbine = fit_piecewise_function(x_values, y, nr_segments_design)
         self.performance_data['Design_turbine'] = fit_turbine
+
 
         # plt.figure(figsize=(8, 6))
         # plt.scatter(Design_turbine['Q_design'], Design_turbine['P_design'], color='r')
         # plt.scatter(x_values, interpolated_y, color='b')
         # plt.plot(fit_turbine['Q_out']['bp_x'], fit_turbine['Q_out']['bp_y'], 'rx-')
         # plt.show()
-
-        turbine_efficiency_partload = pd.read_csv('data/ob_input_data/turbine_performance_part_load.csv', header=None)
-
-        x = turbine_efficiency_partload[0].values
+        turbine_efficiency_partload = pd.read_csv('data/ob_input_data/turbine_performance_part_load.csv')
+        turbine_efficiency_partload['Eta'] = turbine_efficiency_partload['Eta'] / 100
+        turbine_efficiency_partload['Q'] = turbine_efficiency_partload['Q'] / 100
+        # scale down efficiency to match values from design
+        delta_max_eff = max(turbine_efficiency_partload['Eta']) - max(Design_turbine['Eta_design'])
+        turbine_efficiency_partload['Eta'] = turbine_efficiency_partload['Eta'] - delta_max_eff
+        turbine_efficiency_partload['P'] = (turbine_efficiency_partload['Eta'] * turbine_efficiency_partload[
+            'Q'] * 1000 * 9.81 * nominal_head * 10 ** -6)
+        x = turbine_efficiency_partload['Q'].values
         y = {}
-        y['P_perf'] = turbine_efficiency_partload[1].values
-        fit_turbine_perf = fit_piecewise_function(x, y, nr_segments)
-
-        plt.scatter(turbine_efficiency_partload[0], turbine_efficiency_partload[1], color='r')
-        plt.plot(fit_turbine_perf['P_perf']['bp_x'], fit_turbine_perf['P_perf']['bp_y'], 'rx-')
-
+        y['P_perf'] = turbine_efficiency_partload['P'].values
+        fit_turbine_perf = fit_piecewise_function(x, y, nr_segments_performance)
+        # plt.scatter(turbine_efficiency_partload['Q'], turbine_efficiency_partload['P'], color='r')
+        # plt.plot(fit_turbine_perf['P_perf']['bp_x'], fit_turbine_perf['P_perf']['bp_y'], 'rx-')
         self.performance_data['Performance_turbine'] = fit_turbine_perf
 
-        # perform fitting
-        x = self.performance_data['Efficiency_offdesign_francis']['Rated_flow']
-        y = {}
-        y['Efficiency'] = self.performance_data['Efficiency_offdesign_francis']['Efficiency']
+        # Derive bounds
+        # Climate data & Number of timesteps
+        climate_data = node_data.data['climate_data']
+        time_steps = len(climate_data)
 
-        fit_turbine_efficiency_off = fit_piecewise_function(x, y, nr_segments)
-        self.performance_data['Efficiency_offdesign_francis'] = fit_turbine_efficiency_off
+        self.bounds['turbine_flow_ub'] = max(fit_turbine_perf['P_perf']['bp_x'])* max(fit_turbine['P_design']['bp_x'])
+        self.bounds['turbine_power_ub'] = fit_turbine_perf['P_perf']['alpha2'][-1] * max(fit_turbine['P_design']['bp_y']) + fit_turbine_perf['P_perf']['alpha1'][-1] * self.bounds['turbine_flow_ub']
+        # Output Bounds
+        for car in self.performance_data['output_carrier']:
+            self.fitted_performance.bounds['output'][car] = np.column_stack((np.zeros(shape=time_steps),
+                                                             np.ones(shape=time_steps) * turbine_slots * self.bounds['turbine_power_ub']))
 
-
-        # Perform fitting
-        for turbine in ['Francis', 'Kaplan', 'Pelton']:
-            # get performance data for that turbine
-            x = self.performance_data['turbine_performance'][turbine]['P_out']
-            y = {}
-            y['Q_out'] = self.performance_data['turbine_performance'][turbine]['Q_out']
-
-            # fitting data
-            fit_turbine = fit_piecewise_function(x, y, nr_segments)
-
-            # Pass to dictionary
-            self.performance_data['turbine_performance'][turbine] = fit_turbine
 
     def __calulate_bounds(self, energyhub):
 
@@ -196,8 +204,6 @@ class OceanBattery3(Technology):
         self.bounds['size_max'] = self.size_max
         self.bounds['pump_flow_ub'] = 10
         self.bounds['pump_power_ub'] = self.bounds['pump_flow_ub'] * 5
-        self.bounds['turbine_flow_ub'] = 10
-        self.bounds['turbine_power_ub'] = self.bounds['turbine_flow_ub'] * 5
 
         # Global parameters
         configuration = energyhub.configuration
@@ -290,7 +296,7 @@ class OceanBattery3(Technology):
         b_tec = self.__define_storage_level(b_tec, nr_timesteps_averaged)
         b_tec = self.__define_turbine_design(b_tec)
         b_tec = self.__define_pump_design(b_tec)
-        b_tec = self.__define_turbines(b_tec, energyhub)
+        b_tec = self.__define_turbine_performance(b_tec, energyhub)
         b_tec = self.__define_pumps(b_tec, energyhub)
 
         # Aggregate Input/Output
@@ -405,15 +411,18 @@ class OceanBattery3(Technology):
 
     def __define_turbine_design(self, b_tec):
         # Turbine design (determines design flowrate and design power)
-        bp_x = [0.1, 0.9, 1.2]
-        alpha2 = [1.8, 2]
-        alpha1 = [0, 0.1]
+
+        fit_turbine_design = self.performance_data['Design_turbine']['P_design']
+
+        bp_x = fit_turbine_design['bp_x']
+        alpha2 = fit_turbine_design['alpha2']
+        alpha1 = fit_turbine_design['alpha1']
         s_indicators_turbine_design = range(0, len(bp_x) - 1)
 
         def turbine_design_dis_init(dis, ind):
             def init_design_power(const):
-                return b_tec.var_designpower_single_turbine == alpha1[ind] + alpha2[
-                    ind] * b_tec.var_designflow_single_turbine
+                return b_tec.var_designpower_single_turbine == alpha1[ind] * b_tec.var_designflow_single_turbine\
+                       + alpha2[ind]
 
             dis.const_design_power = Constraint(rule=init_design_power)
 
@@ -468,7 +477,7 @@ class OceanBattery3(Technology):
 
         return b_tec
 
-    def __define_turbines(self, b_tec, energyhub):
+    def __define_turbine_performance(self, b_tec, energyhub):
         """
         This function establishes all components for the turbines. Is is organized in multiple levels
         (hierarchical) with the following structure. Description in brackets is the pyomo component type.
@@ -489,6 +498,12 @@ class OceanBattery3(Technology):
         capex_turbines = {}
         capex_turbines[0] = 0
         capex_turbines[1] = annualization_factor * coeff['capex_turbines']
+
+        fit_turbine_performance = self.performance_data['Performance_turbine']['P_perf']
+
+        bp_x = fit_turbine_performance['bp_x']
+        beta2 = fit_turbine_performance['alpha2']
+        beta1 = fit_turbine_performance['alpha1']
 
         # Turbine performance
         s_indicators_install = range(0, 2)
@@ -522,10 +537,6 @@ class OceanBattery3(Technology):
 
                 def turbine_performance_block_init(b_turbine_performance):
 
-                    beta1 = [2.3]
-                    beta2 = [0]
-                    bp_x = [0.1, 1]
-
                     s_indicators_onoff = range(0, len(bp_x))
 
                     def turbine_onoff_dis_init(dis, t, ind):
@@ -551,8 +562,8 @@ class OceanBattery3(Technology):
 
                             def init_output_on(const):
                                 return (b_tec.var_output_turbine[t, turb_slot] ==
-                                        beta1[ind - 1] * b_tec.var_designpower_single_turbine +
-                                        beta2[ind - 1] * b_tec.var_outflow_turbine[t, turb_slot])
+                                        beta2[ind - 1] * b_tec.var_designpower_single_turbine +
+                                        beta1[ind - 1] * b_tec.var_outflow_turbine[t, turb_slot])
                             dis.const_output_on = Constraint(rule=init_output_on)
 
                         return dis
