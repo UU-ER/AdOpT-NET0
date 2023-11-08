@@ -54,57 +54,80 @@ class OceanBattery3(Technology):
 
         # Time dependent coefficients
         self.fitted_performance.time_dependent_coefficients = 1
+        self.__fit_turbine(node_data)
+        self.__fit_pump(node_data)
 
-        # Parameters needed for pump and turbine performance calculations
+    def __fit_pump(self, node_data):
+
+        # Parameters needed for pump performance calculations
+        pump_slots = self.fitted_performance.coefficients['pump_slots']
         nominal_head = self.fitted_performance.coefficients['nominal_head']
         frequency = self.fitted_performance.coefficients['frequency']
         pole_pairs = self.fitted_performance.coefficients['pole_pairs']
-        N = (120*frequency)/(pole_pairs*2)
-        omega = 2*np.pi*N/60
-        nr_segments_design =  self.fitted_performance.coefficients['nr_segments_design']
-        nr_segments_performance =  self.fitted_performance.coefficients['nr_segments_performance']
+        N = (120 * frequency) / (pole_pairs * 2)
+        omega = 2 * np.pi * N / 60
+        nr_segments_design = self.fitted_performance.coefficients['nr_segments_design']
+        nr_segments_performance = self.fitted_performance.coefficients['nr_segments_performance']
 
         # PUMPS: PRE-PROCESSING AND FITTING
         self.performance_data['pump_performance'] = {}
 
-        # obtain performance data from file
-        performance_pumps = pd.read_csv('data/technology_data/Pump_performance.csv', delimiter=";")
+        # TODO formulate constraints on diameter
+        # obtain performance curves (omega s, Ds) and (omega s, efficiency)
+        Design_pump = pd.read_csv('data/ob_input_data/Pumps_balje_diagram.csv')
+        Centrifugal_efficiency = pd.read_csv('data/ob_input_data/Pumps_centrifugal_efficiency.csv',
+                                             delimiter=';')
 
-        # convert performance data from (omega s, eta) to (Qin, Pin)
-        performance_pumps['Q_in'] = performance_pumps.apply(lambda row: ((row['Specific_rotational_speed'] *
-                                                                          ((9.81 * nominal_head) ** 0.75)) / omega) ** 2,
-                                                            axis=1)
+        # TODO: decide which pump curve is used - Francis reversible = centrifugal?
+        # remove values that are outside of the chosen pumps operating range
+        Design_pump = Design_pump[(Design_pump['Specific_rotational_speed'] >= 0.2) &
+                                  (Design_pump['Specific_rotational_speed'] <= 1.2)]
+        # calculate design flow from optimum Ds, omega-s curve
+        Design_pump['Q_design'] = Design_pump.apply(lambda row: ((row['Specific_rotational_speed']
+                                                                        * ((9.81 * nominal_head) ** 0.75))
+                                                                       / omega) ** 2, axis=1)
+        # calculate diameter at this design flow
+        Design_pump['D'] = Design_pump.apply(lambda row: ((row['D_s'] * (row['Q_design'] ** 0.5))
+                                                                / ((9.81 * nominal_head) ** 0.25)), axis=1)
 
-        performance_pumps['P_in'] = performance_pumps.apply(lambda row: (9.81 * 1000 * nominal_head * row['Q_in']) /
-                                                                        (row['Efficiency'] / 100) * 10 ** -6, axis=1)
+        # obtain efficiency at these design specific rotational speed
+        interpolate_pump_efficiency = interpolate.interp1d(Centrifugal_efficiency['Specific_rotational_speed'],
+                                                           Centrifugal_efficiency['Eta_design'], kind='linear',
+                                                           fill_value='extrapolate')
+        Design_pump['Eta_design'] = interpolate_pump_efficiency(Design_pump['Specific_rotational_speed'])
+
+        # calculate the design power output that is obtained with the design flow at design efficiency
+        Design_pump['P_design'] = (((Design_pump['Q_design'] * 1000 * 9.81 * nominal_head) / Design_pump['Eta_design'])
+                                   * 10 ** -6)
+
+        # Interpolate values for the equally spaced points using linear interpolation
+        x_values = np.linspace(Design_pump['Q_design'].min(), Design_pump['Q_design'].max(), 20)
+        interpolated_y = interp1d(Design_pump['Q_design'], Design_pump['P_design'], kind='linear')(x_values)
+
+        # get performance data for that pump
+        y = {}
+        y['P_design'] = interpolated_y
+
+        # fitting data
+        fit_pump = fit_piecewise_function(x_values, y, nr_segments_design)
+        self.performance_data['Design_pump'] = fit_pump
 
 
 
-        # group performance data per pump type
-        pumps = performance_pumps.groupby('Pump_type')
-        for pump in ['Axial', 'Mixed_flow', 'Radial']:
-            self.performance_data['pump_performance'][pump] = pumps.get_group(pump)
-
-            # WATCH OUT DIRTY FIX
-            normalisation_factor = self.performance_data['pump_performance'][pump]['Q_in'] / self.performance_data['pump_performance'][pump]['P_in']
-            self.performance_data['pump_performance'][pump]['P_in'] = self.performance_data['pump_performance'][pump]['P_in'] / max(self.performance_data['pump_performance'][pump]['P_in'])
-            self.performance_data['pump_performance'][pump]['Q_in'] = self.performance_data['pump_performance'][pump]['P_in'] * normalisation_factor
 
 
-        # Perform fitting
-        for pump in ['Axial', 'Mixed_flow', 'Radial']:
-            # parameters to be fitted
-            x = self.performance_data['pump_performance'][pump]['P_in']
-            y = {}
-            y['Q_in'] = self.performance_data['pump_performance'][pump]['Q_in']
-
-            # fitting data
-            fit_pump = fit_piecewise_function(x, y, nr_segments_performance)
-
-            # Pass to dictionary
-            self.performance_data['pump_performance'][pump] = fit_pump
-
-        self.__fit_turbine(node_data)
+        # # Perform fitting
+        # for pump in ['Axial', 'Mixed_flow', 'Radial']:
+        #     # parameters to be fitted
+        #     x = self.performance_data['pump_performance'][pump]['P_in']
+        #     y = {}
+        #     y['Q_in'] = self.performance_data['pump_performance'][pump]['Q_in']
+        #
+        #     # fitting data
+        #     fit_pump = fit_piecewise_function(x, y, nr_segments_performance)
+        #
+        #     # Pass to dictionary
+        #     self.performance_data['pump_performance'][pump] = fit_pump
 
         # Todo: input and output bounds are defined once as flows and here as electricity in/out
         # Input Bounds
@@ -128,9 +151,9 @@ class OceanBattery3(Technology):
         # TURBINES: PRE-PROCESSING AND FITTING
         self.performance_data['turbine_performance'] = {}
 
-        # TODO formulate constraints on diameter + on specific rotational speed for Francis turbine
+        # TODO formulate constraints on diameter
         # obtain performance curves (omega s, Ds) and (omega s, efficiency)
-        Design_turbine = pd.read_csv('data/ob_input_data/Turbines_balje_diagram2.csv')
+        Design_turbine = pd.read_csv('data/ob_input_data/Turbines_balje_diagram.csv')
         Francis_efficiency = pd.read_csv('data/ob_input_data/Turbines_Francis_efficiency.csv', delimiter=';')
         # remove values that are outside of the Francis turbine operating range
         Design_turbine = Design_turbine[(Design_turbine['Specific_rotational_speed'] >= 0.25) & (

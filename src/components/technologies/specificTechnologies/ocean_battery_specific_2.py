@@ -114,7 +114,7 @@ class OceanBattery2(Technology):
         # TODO formulate constraints on diameter + on specific rotational speed for Francis turbine
 
         # obtain performance curves (omega s, Ds) and (omega s, efficiency)
-        Design_turbine = pd.read_csv('data/ob_input_data/Turbines_balje_diagram2.csv')
+        Design_turbine = pd.read_csv('data/ob_input_data/Turbines_balje_diagram.csv')
         Francis_efficiency = pd.read_csv('data/ob_input_data/Turbines_Francis_efficiency.csv', delimiter=';')
 
         # remove values that are outside of the Francis turbine operating range
