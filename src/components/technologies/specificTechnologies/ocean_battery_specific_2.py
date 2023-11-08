@@ -11,6 +11,7 @@ import copy
 from warnings import warn
 import pandas as pd
 import numpy as np
+from scipy import interpolate
 from pathlib import Path
 from scipy.interpolate import griddata
 import random
@@ -19,7 +20,7 @@ import src.utilities
 from src.components.technologies.utilities import FittedPerformance, fit_piecewise_function
 from src.components.technologies.technology import Technology
 from src.components.utilities import perform_disjunct_relaxation
-from ...utilities import annualize, set_discount_rate
+from src.components.utilities import annualize, set_discount_rate
 
 
 class OceanBattery2(Technology):
@@ -109,6 +110,53 @@ class OceanBattery2(Technology):
 
         # TURBINES: PRE-PROCESSING AND FITTING
         self.performance_data['turbine_performance'] = {}
+
+        # TODO formulate constraints on diameter + on specific rotational speed for Francis turbine
+
+        # obtain performance curves (omega s, Ds) and (omega s, efficiency)
+        Design_turbine = pd.read_csv('data/ob_input_data/Turbines_balje_diagram2.csv')
+        Francis_efficiency = pd.read_csv('data/ob_input_data/Turbines_Francis_efficiency.csv', delimiter=';')
+
+        # remove values that are outside of the Francis turbine operating range
+        francis_filter = ((Design_turbine['Specific_rotational_speed'] >= 0.25) &
+                          (Design_turbine['Specific_rotational_speed'] <= 2.5))
+        Design_turbine_francis = Design_turbine[francis_filter]
+
+        # calculate design flow from optimum Ds, omega-s curve
+        Design_turbine_francis['Q_design'] = Design_turbine_francis.apply(lambda row: ((row['Specific_rotational_speed']
+                                                                                        *((9.81 * nominal_head) ** 0.75))
+                                                                                       / omega) ** 2, axis=1)
+
+        # calculate diameter at this design flow
+        Design_turbine_francis['D'] = Design_turbine_francis.apply(lambda row: ((row['D_s'] * (row['Q_design'] ** 0.5))
+                                                                                / ((9.81 * nominal_head) ** 0.25)),
+                                                                   axis=1)
+
+        # obtain efficiency at these design specific rotational speed
+        interpolate_efficiency = interpolate.interp1d(Francis_efficiency['Specific_rotational_speed'],
+                                                      Francis_efficiency['Eta_design'], kind='linear',
+                                                      fill_value='extrapolate')
+        Design_turbine_francis['Eta_design'] = interpolate_efficiency(Design_turbine_francis['Specific_rotational_speed'])
+
+        # calculate the design power output that is obtained with the design flow at design efficiency
+        Design_turbine_francis['P_design'] = (Design_turbine_francis['Eta_design'] * Design_turbine_francis['Q_design']
+                                              * 1000 * 9.81 * nominal_head * 10 ** -6)
+
+        self.performance_data['Design_turbine_francis'] = Design_turbine_francis
+
+        Francis_efficiency_offdesign = pd.read_csv('data/ob_input_data/Francis_offdesign_efficiency.csv')
+
+        self.performance_data['Efficiency_offdesign_francis'] = Francis_efficiency_offdesign
+
+        # perform fitting
+        x = self.performance_data['Efficiency_offdesign_francis']['Rated_flow']
+        y = {}
+        y['Efficiency'] = self.performance_data['Efficiency_offdesign_francis']['Efficiency']
+
+        fit_turbine_efficiency_off = fit_piecewise_function(x, y, nr_segments)
+        self.performance_data['Efficiency_offdesign_francis'] = fit_turbine_efficiency_off
+
+
 
         # obtain performance data from file
         performance_turbines = pd.read_csv('data/technology_data/Turbine_performance.csv', delimiter=";")
@@ -420,7 +468,6 @@ class OceanBattery2(Technology):
             return [b_tec.dis_turbine_type[i] for i in turbine_types]
         b_tec.disjunction_turbine_type = Disjunction(rule=bind_disjunctions_turbine_type)
 
-        # TODO: move
         b_tec = perform_disjunct_relaxation(b_tec, method='gdp.hull')
 
         return b_tec
