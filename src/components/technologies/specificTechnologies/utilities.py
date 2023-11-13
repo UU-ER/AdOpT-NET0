@@ -27,11 +27,12 @@ def fit_turbomachinery(machinery_data):
     design = design[(design['Specific_rotational_speed'] >= machinery_data['omega_s_min']) &
                     (design['Specific_rotational_speed'] <= machinery_data['omega_s_max'])]
     # calculate design flow from optimum Ds, omega-s curve
-    design['Q_design'] = design.apply(lambda row: ((row['Specific_rotational_speed']
+    conversion_factor_flow_rate = 3600 # from m³/s to m³/h
+    design['Q_design'] = design.apply(lambda row: (((row['Specific_rotational_speed']
                                                     * ((9.81 * nominal_head) ** 0.75))
-                                                   / omega) ** 2, axis=1)
+                                                   / omega) ** 2) * conversion_factor_flow_rate, axis=1)
     # calculate diameter at this design flow
-    design['D'] = design.apply(lambda row: ((row['D_s'] * (row['Q_design'] ** 0.5))
+    design['D'] = design.apply(lambda row: ((row['D_s'] * ((row['Q_design'] / conversion_factor_flow_rate) ** 0.5))
                                             / ((9.81 * nominal_head) ** 0.25)), axis=1)
 
     # obtain efficiency at these design specific rotational speed
@@ -42,7 +43,7 @@ def fit_turbomachinery(machinery_data):
 
     # calculate the design power output that is obtained with the design flow at design efficiency
     if machinery_data['type'] == 'pump':
-        design['P_design'] = design['Q_design'] * 1000 * 9.81 * nominal_head * (10 ** -6) * design['Eta_design']
+        design['P_design'] = design['Q_design'] * 1000 * 9.81 * nominal_head * (10 ** -6) / design['Eta_design']
     elif machinery_data['type'] == 'turbine':
         design['P_design'] = design['Q_design'] * 1000 * 9.81 * nominal_head * (10 ** -6) * design['Eta_design']
 
@@ -66,7 +67,7 @@ def fit_turbomachinery(machinery_data):
     efficiency_partload['Eta'] = efficiency_partload['Eta'] - delta_max_eff
 
     if machinery_data['type'] == 'pump':
-        efficiency_partload['P'] = efficiency_partload['Q'] * 1000 * 9.81 * nominal_head * (10 ** -6) * \
+        efficiency_partload['P'] = efficiency_partload['Q'] * 1000 * 9.81 * nominal_head * (10 ** -6) / \
                                    efficiency_partload['Eta']
     elif machinery_data['type'] == 'turbine':
         efficiency_partload['P'] = efficiency_partload['Q'] * 1000 * 9.81 * nominal_head * (10 ** -6) * \

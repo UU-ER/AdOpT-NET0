@@ -40,11 +40,7 @@
       "pole_pairs": 3,
       "nominal_head": 50,
       "capex_turbines": 2,
-      "capex_pumps": 1.8,
-      "pump_flow_ub": 20,
-      "pump_power_ub": 20,
-      "turbine_flow_ub": 20,
-      "turbine_power_ub": 20
+      "capex_pumps": 1.8
     }
   }
 }
