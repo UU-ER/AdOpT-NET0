@@ -17,7 +17,7 @@ class Settings():
         self.climate_year = 2008
         if test:
             self.start_date = '05-01 00:00'
-            self.end_date = '05-05 23:00'
+            self.end_date = '05-01 23:00'
         else:
             self.start_date = '01-01 00:00'
             self.end_date = '12-31 23:00'

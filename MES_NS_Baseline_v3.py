@@ -38,11 +38,11 @@ for stage in ['ElectricityGrid']:
 
     # Read data
     dm.write_to_technology_data(settings)
-    data.read_technology_data(path=settings.tec_data_path)
-    data.read_network_data(path=settings.netw_data_path)
+    data.read_technology_data(load_path = settings.tec_data_path)
+    data.read_network_data(load_path=settings.netw_data_path)
     data = dm.define_charging_efficiencies(settings, nodes, data)
 
     # Solve
     energyhub = EnergyHub(data, configuration)
     results = energyhub.quick_solve()
-    results.write_excel(settings.save_path)
+    # results.write_excel(settings.save_path)

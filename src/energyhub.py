@@ -104,16 +104,17 @@ class EnergyHub:
                                     f"name in the configuration")
 
         # check if technologies have dynamic parameters
-        for node in self.data.topology.nodes:
-            for tec in self.data.technology_data[node]:
-                if self.data.technology_data[node][tec].technology_model in ['CONV1', 'CONV2', 'CONV3']:
-                    par_check = ['max_startups', 'min_uptime', 'min_downtime', 'SU_load', 'SD_load', 'SU_time', 'SD_time']
-                    count = 0
-                    for par in par_check:
-                        if par not in self.data.technology_data[node][tec].performance_data:
-                            raise ValueError(
-                                f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
-                                f"json files or switch off the dynamics.")
+        if self.configuration.performance.dynamics == 1:
+            for node in self.data.topology.nodes:
+                for tec in self.data.technology_data[node]:
+                    if self.data.technology_data[node][tec].technology_model in ['CONV1', 'CONV2', 'CONV3']:
+                        par_check = ['max_startups', 'min_uptime', 'min_downtime', 'SU_load', 'SD_load', 'SU_time', 'SD_time']
+                        count = 0
+                        for par in par_check:
+                            if par not in self.data.technology_data[node][tec].performance_data:
+                                raise ValueError(
+                                    f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
+                                    f"json files or switch off the dynamics.")
 
     def quick_solve(self):
         """
