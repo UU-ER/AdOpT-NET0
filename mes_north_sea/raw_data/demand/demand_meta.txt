@@ -1,0 +1,29 @@
+Demand_TimeSeries_2030_NationalTrends_without_bat.xlsx
+Date retrieved: 19.07.2022
+Source (URL): www.entsoe.eu/outlooks/eraa/2022/eraa-downloads/
+Source (description): Part of the Demand Dataset for ERAA 2022
+Description: Contains hourly electricity demand data for the year 2030 for the scenario National Trends for different climate years (1982-2016) and bidding zones. Import/Exports as well as flexibility measures are substracted already. Electricity demand for hydrogen is included.
+
+electricity_pypsa.csv
+Date retrieved: 19.07.2022
+Source (URL): https://github.com/fneum/spatial-sector-dashboard
+Source (description): Results from Neumann et al. (2023): The Potential Role of a Hydrogen Network in Europe
+Description: Contains aggregated electricity demand per node used in their paper. The data in the csv file is an extract from resources.nc
+
+Industry_Demand.xlsx
+Date retrieved: 2023-11-21
+Source (URL): www.ec.europa.eu/eurostat/databrowser/view/TEN00129/default/table
+Source (description): Final energy consumption in industry by type of fuel (here: electricity)
+Description: Contains data on industrial electricity consumption
+
+sbs_sectors_data.xlsx
+Date retrieved: 2023-11-21
+Source (URL): www.ec.europa.eu/eurostat/databrowser/view/SBS_R_NUTS06_R2__custom_6923182/default/table
+Source (description): SBS data by NUTS 2 regions and NACE Rev. 2 (from 2008 onwards)
+Description: Contains data on the number of employees in the manufacturing sector
+
+ten00123_page_spreadsheet.xlsx
+Date retrieved: 2023-11-21
+Source (URL): www.ec.europa.eu/eurostat/databrowser/view/TEN00123$DEFAULTVIEW/default/table
+Source (description): Final energy consumption by product
+Description: Contains data on the electricity demand for comparison

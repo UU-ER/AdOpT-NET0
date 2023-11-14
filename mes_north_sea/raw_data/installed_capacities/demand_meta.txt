@@ -1,0 +1,5 @@
+InstalledCapacities_nonRE.xlsx
+Date edited: 22.11.2023
+Sources (URL): www.entsoe.eu/outlooks/eraa/2022/eraa-downloads/, www.github.com/PyPSA/powerplantmatching
+Source (description): Calculates installed capacities per node of natural gas, nuclear, hydro run-of-river, pumped hydro (reservoir), pumped hydro (closed loop), pumped hydro (open loop), biomass
+Description: See SI of paper for further explanation
