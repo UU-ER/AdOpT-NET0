@@ -17,7 +17,7 @@ from src.components.technologies.utilities import FittedPerformance
 from src.components.technologies.technology import Technology
 from src.components.utilities import perform_disjunct_relaxation
 from src.components.utilities import annualize, set_discount_rate
-from src.components.technologies.specificTechnologies.utilities import fit_turbomachinery
+from src.components.technologies.specificTechnologies.utilities import fit_turbomachinery, fit_turbomachinery_capex
 
 
 class OceanBattery3(Technology):
@@ -60,6 +60,11 @@ class OceanBattery3(Technology):
         pump_data['nr_segments_design'] = self.fitted_performance.coefficients['nr_segments_design']
         pump_data['nr_segments_performance'] = self.fitted_performance.coefficients['nr_segments_performance']
         self.performance_data['pump'] = fit_turbomachinery(pump_data)
+        pump_data['capex_constant_a'] = 1.753
+        pump_data['capex_constant_b'] = 0.9623
+        pump_data['capex_constant_c'] = -0.3566
+        pump_data['nr_segments_capex'] = self.fitted_performance.coefficients['nr_segments_capex']
+        self.economics.capex_data['pump'] = fit_turbomachinery_capex(pump_data)
 
         # pd.DataFrame.from_dict(self.performance_data['pump']).to_excel('C:/Users/6574114/Documents/Research/EHUB-Py/userData/OB/pump_performance.xlsx')
 
@@ -83,6 +88,11 @@ class OceanBattery3(Technology):
         turbine_data['nr_segments_design'] = self.fitted_performance.coefficients['nr_segments_design']
         turbine_data['nr_segments_performance'] = self.fitted_performance.coefficients['nr_segments_performance']
         self.performance_data['turbine'] = fit_turbomachinery(turbine_data)
+        turbine_data['capex_constant_a'] = 2.927
+        turbine_data['capex_constant_b'] = 1.174
+        turbine_data['capex_constant_c'] = -0.4933
+        turbine_data['nr_segments_capex'] = self.fitted_performance.coefficients['nr_segments_capex']
+        self.economics.capex_data['turbine'] = fit_turbomachinery_capex(turbine_data)
 
         # pd.DataFrame.from_dict(self.performance_data['turbine']).to_excel('C:/Users/6574114/Documents/Research/EHUB-Py/userData/OB/turbine_performance.xlsx')
 

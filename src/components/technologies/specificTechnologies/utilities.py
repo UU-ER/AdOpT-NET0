@@ -103,3 +103,43 @@ def fit_turbomachinery(machinery_data):
                                    fit_performance['performance']['alpha1'][-1] * performance_data['bounds']['Q_ub']
 
     return performance_data
+
+def fit_turbomachinery_capex(machinery_data):
+
+    # capex constants & calculation from AlZohbi (2018)
+    capex_data = {}
+    nominal_head = machinery_data['nominal_head']
+    nr_segments_capex = machinery_data['nr_segments_capex']
+    capex_constant_a = machinery_data['capex_constant_a']
+    capex_constant_b = machinery_data['capex_constant_b']
+    capex_constant_c = machinery_data['capex_constant_c']
+    inflation_correction = 1.2692 # from 2018-2023 EUR
+
+    # for pump P in kW, for turbine P in MW: basevalue is for 1 MW.
+    capex_basevalue = (capex_constant_a * (1 ** capex_constant_b) * (nominal_head ** capex_constant_c) *
+                       inflation_correction)
+
+    # scaling factor: using capex calculation by Aggidis et al. (2010) - equation 13
+    capex_constant_a_scaling = 12000
+    capex_constant_b_scaling = 0.2
+    capex_constant_c_scaling = 0.56
+
+    size_values = np.arange(0.1, 10.1, 0.1) # is P in MW
+    df_size_scaling = pd.DataFrame({'size_P': size_values})
+
+    # P in kW: basevalue is for 1 MW
+    capex_basevalue_scaling = (capex_constant_a_scaling * ((1000/(nominal_head ** capex_constant_b_scaling)) ** capex_constant_c_scaling))
+    df_size_scaling['scaling_factor'] = ((capex_constant_a_scaling * (((df_size_scaling['size_P'].values * 1000)/
+                                                                       (nominal_head ** capex_constant_b_scaling))
+                                                         ** capex_constant_c_scaling))) / capex_basevalue_scaling
+
+    df_size_scaling['capex'] = df_size_scaling['scaling_factor'].values * capex_basevalue
+
+    x = df_size_scaling['size_P'].values
+    y = {}
+    y['capex'] = df_size_scaling['capex'].values
+    fit_capex = fit_piecewise_function(x, y, nr_segments_capex)
+
+    capex_data['capex'] = fit_capex['capex']
+
+    return capex_data

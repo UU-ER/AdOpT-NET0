@@ -38,6 +38,7 @@
       "pump_type": "centrifugal",
       "nr_segments_design": 2,
       "nr_segments_performance": 3,
+      "nr_segments_capex": 1,
       "frequency": 50,
       "pole_pairs": 3,
       "nominal_head": 30,
