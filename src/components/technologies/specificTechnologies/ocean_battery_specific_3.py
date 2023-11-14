@@ -13,8 +13,7 @@ import numpy as np
 from pathlib import Path
 
 
-import src.utilities
-from src.components.technologies.utilities import FittedPerformance, fit_piecewise_function
+from src.components.technologies.utilities import FittedPerformance
 from src.components.technologies.technology import Technology
 from src.components.utilities import perform_disjunct_relaxation
 from src.components.utilities import annualize, set_discount_rate
@@ -46,12 +45,15 @@ class OceanBattery3(Technology):
 
         # Fit pumps
         pump_data = {}
-        pump_data['balje_data_path'] = Path('data/ob_input_data/Pumps_balje_diagram.csv')
-        pump_data['design_data_path'] = Path('data/ob_input_data/Pumps_centrifugal_efficiency.csv')
-        pump_data['partload_data_path'] = Path('data/ob_input_data/pump_performance_part_load.csv')
-        pump_data['omega_s_min'] = 0.2
-        pump_data['omega_s_max'] = 1.2
         pump_data['type'] = 'pump'
+        pump_data['subtype'] = self.fitted_performance.coefficients['pump_type']
+        if pump_data['subtype'] == 'centrifugal':
+            pump_data['omega_s_min'] = 0.2
+            pump_data['omega_s_max'] = 1.8
+        else:
+            pump_data['omega_s_min'] = 0
+            pump_data['omega_s_max'] = 10000
+        pump_data['min_power'] = 0
         pump_data['nominal_head'] = self.fitted_performance.coefficients['nominal_head']
         pump_data['frequency'] = self.fitted_performance.coefficients['frequency']
         pump_data['pole_pairs'] = self.fitted_performance.coefficients['pole_pairs']
@@ -59,20 +61,30 @@ class OceanBattery3(Technology):
         pump_data['nr_segments_performance'] = self.fitted_performance.coefficients['nr_segments_performance']
         self.performance_data['pump'] = fit_turbomachinery(pump_data)
 
+        # pd.DataFrame.from_dict(self.performance_data['pump']).to_excel('C:/Users/6574114/Documents/Research/EHUB-Py/userData/OB/pump_performance.xlsx')
+
         # Fit turbine
         turbine_data = {}
-        turbine_data['balje_data_path'] = Path('data/ob_input_data/Turbines_balje_diagram.csv')
-        turbine_data['design_data_path'] = Path('data/ob_input_data/Turbines_Francis_efficiency.csv')
-        turbine_data['partload_data_path'] = Path('data/ob_input_data/turbine_performance_part_load.csv')
-        turbine_data['omega_s_min'] = 0.25
-        turbine_data['omega_s_max'] = 2.5
         turbine_data['type'] = 'turbine'
+        turbine_data['subtype'] = self.fitted_performance.coefficients['turbine_type']
+        if turbine_data['subtype'] == 'francis':
+            turbine_data['omega_s_min'] = 0.25
+            turbine_data['omega_s_max'] = 2.5
+        elif turbine_data['subtype'] == 'kaplan':
+            turbine_data['omega_s_min'] = 1.7
+            turbine_data['omega_s_max'] = 6
+        else:
+            turbine_data['omega_s_min'] = 0
+            turbine_data['omega_s_max'] = 10000
+        turbine_data['min_power'] = 0.5
         turbine_data['nominal_head'] = self.fitted_performance.coefficients['nominal_head']
         turbine_data['frequency'] = self.fitted_performance.coefficients['frequency']
         turbine_data['pole_pairs'] = self.fitted_performance.coefficients['pole_pairs']
         turbine_data['nr_segments_design'] = self.fitted_performance.coefficients['nr_segments_design']
         turbine_data['nr_segments_performance'] = self.fitted_performance.coefficients['nr_segments_performance']
         self.performance_data['turbine'] = fit_turbomachinery(turbine_data)
+
+        # pd.DataFrame.from_dict(self.performance_data['turbine']).to_excel('C:/Users/6574114/Documents/Research/EHUB-Py/userData/OB/turbine_performance.xlsx')
 
         # Derive bounds
         climate_data = node_data.data['climate_data']
@@ -178,7 +190,7 @@ class OceanBattery3(Technology):
         b_tec = self.__define_turbine_design(b_tec)
         b_tec = self.__define_pump_design(b_tec)
         b_tec = self.__define_turbine_performance(b_tec, energyhub)
-        b_tec = self.__define_pump_performance(b_tec, energyhub)
+        # b_tec = self.__define_pump_performance(b_tec, energyhub)
 
         # Aggregate Input/Output
         def init_total_input(const, t, car):

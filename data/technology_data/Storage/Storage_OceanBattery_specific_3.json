@@ -34,11 +34,13 @@
       "min_fill": 0.02,
       "pump_slots": 2,
       "turbine_slots": 2,
+      "turbine_type": "kaplan",
+      "pump_type": "centrifugal",
       "nr_segments_design": 2,
       "nr_segments_performance": 3,
       "frequency": 50,
       "pole_pairs": 3,
-      "nominal_head": 50,
+      "nominal_head": 30,
       "capex_turbines": 2,
       "capex_pumps": 1.8
     }
