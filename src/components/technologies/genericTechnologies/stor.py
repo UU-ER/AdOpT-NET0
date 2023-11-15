@@ -186,6 +186,11 @@ class Stor(Technology):
             self.big_m_transformation_required = 1
             s_indicators = range(0, 2)
 
+            # Cut according to Germans work
+            def init_cut_bidirectional(const, t, car):
+                return self.output[t, car] / discharge_max + self.input[t, car] / charge_max <= b_tec.var_size
+            b_tec.const_cut_bidirectional = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_cut_bidirectional)
+
             def init_input_output(dis, t, ind):
                 if ind == 0:  # input only
                     def init_output_to_zero(const, car_input):

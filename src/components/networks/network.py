@@ -823,17 +823,22 @@ class Network(ModelComponent):
 
         s_indicators = range(0, 2)
 
+        # Cut according to Germans work
+        def init_cut_bidirectional(const, t, node_from, node_to):
+            return b_netw.arc_block[node_from, node_to].var_flow[t] + b_netw.arc_block[node_to, node_from].var_flow[t]\
+                   <= b_netw.arc_block[node_from, node_to].var_size
+        b_netw.const_cut_bidirectional = Constraint(self.set_t, b_netw.set_arcs_unique, rule=init_cut_bidirectional)
+
         # Flow only possible in one direction
         def init_bidirectional(dis, t, node_from, node_to, ind):
             if ind == 0:
                 def init_bidirectional1(const):
                     return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
-
                 dis.const_flow_zero = Constraint(rule=init_bidirectional1)
+
             else:
                 def init_bidirectional2(const):
                     return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
-
                 dis.const_flow_zero = Constraint(rule=init_bidirectional2)
 
         b_netw.dis_one_direction_only = Disjunct(self.set_t, b_netw.set_arcs_unique, s_indicators,
