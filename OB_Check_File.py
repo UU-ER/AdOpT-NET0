@@ -9,7 +9,6 @@ from src.energyhub import EnergyHub
 import numpy as np
 from pathlib import Path
 
-from pyomo.util.infeasible import log_infeasible_constraints
 
 
 # Save Data File to file

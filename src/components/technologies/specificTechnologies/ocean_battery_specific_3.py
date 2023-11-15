@@ -185,8 +185,8 @@ class OceanBattery3(Technology):
         economics = self.economics
         discount_rate = set_discount_rate(configuration, economics)
         annualization_factor = annualize(discount_rate, economics.lifetime)
-        self.bounds['capex_turbines'] = annualization_factor * coeff['capex_turbines']
-        self.bounds['capex_pumps'] = annualization_factor * coeff['capex_turbines']
+        self.bounds['capex_turbines'] = annualization_factor * coeff['capex_turbines'] * self.performance_data['turbine']['bounds']['Q_ub']
+        self.bounds['capex_pumps'] = annualization_factor * coeff['capex_turbines'] * self.performance_data['pump']['bounds']['Q_ub']
 
         b_tec.para_unit_capex_reservoir = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
         b_tec.para_unit_capex_reservoir_annual = Param(domain=Reals,
@@ -200,7 +200,7 @@ class OceanBattery3(Technology):
         b_tec = self.__define_turbine_design(b_tec)
         b_tec = self.__define_pump_design(b_tec)
         b_tec = self.__define_turbine_performance(b_tec, energyhub)
-        # b_tec = self.__define_pump_performance(b_tec, energyhub)
+        b_tec = self.__define_pump_performance(b_tec, energyhub)
 
         # Aggregate Input/Output
         def init_total_input(const, t, car):
@@ -469,7 +469,7 @@ class OceanBattery3(Technology):
                             dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
 
                             def init_output_on(const):
-                                return (b_tec.var_output_turbine[t, turb_slot] <=
+                                return (b_tec.var_output_turbine[t, turb_slot] ==
                                         beta1[ind - 1] * b_tec.var_outflow_turbine[t, turb_slot] +
                                         b_tec.var_designflow_single_turbine *
                                         (bp_y[ind - 1] - beta1[ind - 1] * bp_x[ind - 1]))
@@ -589,7 +589,7 @@ class OceanBattery3(Technology):
                             dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
 
                             def init_input_on(const):
-                                return (b_tec.var_input_pump[t, pump_slot] >=
+                                return (b_tec.var_input_pump[t, pump_slot] ==
                                         beta1[ind - 1] * b_tec.var_inflow_pump[t, pump_slot] +
                                         b_tec.var_designflow_single_pump *
                                         (bp_y[ind - 1] - beta1[ind - 1] * bp_x[ind - 1]))
