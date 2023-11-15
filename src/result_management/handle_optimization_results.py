@@ -156,6 +156,7 @@ class OptimizationResults:
             self.detailed_results = SimpleNamespace(key1='nodes', key2='networks')
             self.detailed_results.nodes = {}
             self.detailed_results.networks = {}
+            self.detailed_results.specific_design = {}
 
     def read_results(self, energyhub):
 
@@ -261,6 +262,10 @@ class OptimizationResults:
                     if self.detail:
                         self.detailed_results.nodes[node_name][tec_name] = tec_results['time_dependent']
 
+                    if 'specific_design' in  tec_results:
+                        self.detailed_results.specific_design[node_name] = {}
+                        self.detailed_results.specific_design[node_name][tec_name] = tec_results['specific_design']
+
             # Network Results
             if not energyhub.configuration.energybalance.copperplate:
                 for netw_name in model.set_networks:
@@ -358,3 +363,12 @@ class OptimizationResults:
                     with pd.ExcelWriter(save_technologies_path) as writer:
                         for tec_name in self.detailed_results.nodes[node]:
                             self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=tec_name)
+
+                # Specific design
+                save_detailed_design_path = Path.joinpath(save_node_path, 'TechnologyDesign.xlsx')
+                if self.detailed_results.specific_design[node]:
+                    with pd.ExcelWriter(save_detailed_design_path) as writer:
+                        for tec_name in self.detailed_results.specific_design[node]:
+                            self.detailed_results.specific_design[node][tec_name].to_excel(writer, sheet_name=tec_name)
+
+
