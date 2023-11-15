@@ -595,6 +595,14 @@ class OceanBattery3(Technology):
                                         (bp_y[ind - 1] - beta1[ind - 1] * bp_x[ind - 1]))
                             dis.const_input_on = Constraint(rule=init_input_on)
 
+                            # nr_pieces = range(1, len(bp_x))
+                            # def init_input_on(const, piece):
+                            #     return (b_tec.var_input_pump[t, pump_slot] >=
+                            #             beta1[piece - 1] * b_tec.var_inflow_pump[t, pump_slot] +
+                            #             b_tec.var_designflow_single_pump *
+                            #             (bp_y[piece - 1] - beta1[piece - 1] * bp_x[piece - 1]))
+                            # dis.const_input_on = Constraint(nr_pieces, rule=init_input_on)
+
                         return dis
 
                     b_pump_performance.dis_pump_onoff = Disjunct(self.set_t_full, s_indicators_onoff,
