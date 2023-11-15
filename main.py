@@ -7,10 +7,10 @@ import numpy as np
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
-topology.define_carriers(['electricity', 'gas', 'hydrogen', 'heat'])
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 10:00', resolution=1)
+topology.define_carriers(['electricity', 'gas', 'hydrogen', 'heat', 'steam'])
 topology.define_nodes(['onshore', 'offshore'])
-topology.define_new_technologies('onshore', ['Photovoltaic', 'Storage_Battery', 'WindTurbine_Onshore_4000', 'GasTurbine_simple'])
+topology.define_new_technologies('onshore', ['Photovoltaic', 'Storage_Battery', 'WindTurbine_Onshore_4000', 'GasTurbine_simple', 'Boiler_El'])
 topology.define_new_technologies('offshore', ['WindTurbine_Offshore_6000'])
 
 distance = dm.create_empty_network_matrix(topology.nodes)
