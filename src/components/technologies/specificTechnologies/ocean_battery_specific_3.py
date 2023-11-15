@@ -50,9 +50,12 @@ class OceanBattery3(Technology):
         if pump_data['subtype'] == 'centrifugal':
             pump_data['omega_s_min'] = 0.2
             pump_data['omega_s_max'] = 1.8
-        else:
-            pump_data['omega_s_min'] = 0
-            pump_data['omega_s_max'] = 10000
+        elif pump_data['subtype'] == 'mixedflow':
+            pump_data['omega_s_min'] = 1
+            pump_data['omega_s_max'] = 3
+        elif pump_data['subtype'] == 'axial':
+            pump_data['omega_s_min'] = 2
+            pump_data['omega_s_max'] = 8
         pump_data['min_power'] = 0
         pump_data['nominal_head'] = self.fitted_performance.coefficients['nominal_head']
         pump_data['frequency'] = self.fitted_performance.coefficients['frequency']
@@ -78,9 +81,6 @@ class OceanBattery3(Technology):
         elif turbine_data['subtype'] == 'kaplan':
             turbine_data['omega_s_min'] = 1.7
             turbine_data['omega_s_max'] = 6
-        else:
-            turbine_data['omega_s_min'] = 0
-            turbine_data['omega_s_max'] = 10000
         turbine_data['min_power'] = 0.5
         turbine_data['nominal_head'] = self.fitted_performance.coefficients['nominal_head']
         turbine_data['frequency'] = self.fitted_performance.coefficients['frequency']
@@ -301,12 +301,12 @@ class OceanBattery3(Technology):
             if t == 1:  # couple first and last time interval
                 return b_tec.var_storage_level[t] == \
                        b_tec.var_storage_level[max(self.set_t_full)] * (1 - eta_lambda) ** nr_timesteps_averaged + \
-                       (b_tec.var_total_inflow[t] - b_tec.var_total_outflow[t]) * \
+                       (b_tec.var_total_inflow[t] * 3600 - b_tec.var_total_outflow[t]  * 3600) * \
                        sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
             else:  # all other time intervals
                 return b_tec.var_storage_level[t] == \
                        b_tec.var_storage_level[t - 1] * (1 - eta_lambda) ** nr_timesteps_averaged + \
-                       (b_tec.var_total_inflow[t] - b_tec.var_total_outflow[t]) * \
+                       (b_tec.var_total_inflow[t] * 3600- b_tec.var_total_outflow[t] * 3600) * \
                        sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
 
         b_tec.const_storage_level = Constraint(self.set_t_full, b_tec.set_input_carriers, rule=init_storage_level)
@@ -409,6 +409,7 @@ class OceanBattery3(Technology):
         fit = self.performance_data['turbine']['performance']
 
         bp_x = fit['bp_x']
+        bp_y = fit['bp_y']
         beta2 = fit['alpha2']
         beta1 = fit['alpha1']
 
@@ -468,9 +469,10 @@ class OceanBattery3(Technology):
                             dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
 
                             def init_output_on(const):
-                                return (b_tec.var_output_turbine[t, turb_slot] ==
-                                        beta2[ind - 1] * b_tec.var_designpower_single_turbine +
-                                        beta1[ind - 1] * b_tec.var_outflow_turbine[t, turb_slot])
+                                return (b_tec.var_output_turbine[t, turb_slot] <=
+                                        beta1[ind - 1] * b_tec.var_outflow_turbine[t, turb_slot] +
+                                        b_tec.var_designflow_single_turbine *
+                                        (bp_y[ind - 1] - beta1[ind - 1] * bp_x[ind - 1]))
                             dis.const_output_on = Constraint(rule=init_output_on)
 
                         return dis
@@ -527,6 +529,7 @@ class OceanBattery3(Technology):
         fit = self.performance_data['pump']['performance']
 
         bp_x = fit['bp_x']
+        bp_y = fit['bp_y']
         beta2 = fit['alpha2']
         beta1 = fit['alpha1']
 
@@ -586,9 +589,10 @@ class OceanBattery3(Technology):
                             dis.const_inflow_ub = Constraint(rule=init_inflow_ub)
 
                             def init_input_on(const):
-                                return (b_tec.var_input_pump[t, pump_slot] ==
-                                        beta1[ind - 1] * b_tec.var_designpower_single_pump +
-                                        beta2[ind - 1] * b_tec.var_inflow_pump[t, pump_slot])
+                                return (b_tec.var_input_pump[t, pump_slot] >=
+                                        beta1[ind - 1] * b_tec.var_inflow_pump[t, pump_slot] +
+                                        b_tec.var_designflow_single_pump *
+                                        (bp_y[ind - 1] - beta1[ind - 1] * bp_x[ind - 1]))
                             dis.const_input_on = Constraint(rule=init_input_on)
 
                         return dis

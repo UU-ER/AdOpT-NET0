@@ -7,7 +7,7 @@
   "Economics": {
     "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 4,
-    "unit_CAPEX": 1,
+    "unit_CAPEX": 0.0001,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
@@ -34,7 +34,7 @@
       "min_fill": 0.02,
       "pump_slots": 2,
       "turbine_slots": 2,
-      "turbine_type": "kaplan",
+      "turbine_type": "francis",
       "pump_type": "centrifugal",
       "nr_segments_design": 2,
       "nr_segments_performance": 3,
@@ -42,8 +42,8 @@
       "frequency": 50,
       "pole_pairs": 3,
       "nominal_head": 30,
-      "capex_turbines": 2,
-      "capex_pumps": 1.8
+      "capex_turbines": 0.001,
+      "capex_pumps": 0.001
     }
   }
 }

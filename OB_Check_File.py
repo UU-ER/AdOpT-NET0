@@ -9,12 +9,15 @@ from src.energyhub import EnergyHub
 import numpy as np
 from pathlib import Path
 
+from pyomo.util.infeasible import log_infeasible_constraints
+
+
 # Save Data File to file
 data_save_path = Path('./user_data/data_handle_test')
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 00:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 05:00', resolution=1)
 topology.define_carriers(['electricity'])
 topology.define_nodes(['offshore'])
 topology.define_new_technologies('offshore', ['Storage_OceanBattery_specific_3'])
@@ -57,21 +60,21 @@ data.read_import_limit_data('offshore', 'electricity', el_import)
 # EXPORT
 el_export = np.ones(len(topology.timesteps)) * 1000
 data.read_export_limit_data('offshore', 'electricity', el_export)
-# 
-# el_import_price_low = 500
-# el_import_price_high = 1000
-# el_import_price = np.zeros(len(topology.timesteps))
-# for i in range(len(topology.timesteps)):
-#     if i % 2 == 0:
-#         el_import_price[i] = el_import_price_low
-#     else:
-#         el_import_price[i] = el_import_price_high
-# # el_import_price = np.ones(len(topology.timesteps)) * 1000
-loadpath_electricityprice = 'C:/Users/6574114/Documents/Research/EHUB-Py/data/ob_input_data/day_ahead_2019.csv'
-price_el = pd.read_csv(loadpath_electricityprice)
-price_el = price_el['Day-ahead Price [EUR/MWh]'][0:8760].values.tolist()
-data.read_import_price_data('offshore', 'electricity', price_el)
-data.read_export_price_data('offshore', 'electricity', price_el)
+
+el_import_price_low = 0
+el_import_price_high = 1000
+el_import_price = np.zeros(len(topology.timesteps))
+for i in range(len(topology.timesteps)):
+    if i % 2 == 0:
+        el_import_price[i] = el_import_price_low
+    else:
+        el_import_price[i] = el_import_price_high
+# el_import_price = np.ones(len(topology.timesteps)) * 1000
+# loadpath_electricityprice = 'C:/Users/6574114/Documents/Research/EHUB-Py/data/ob_input_data/day_ahead_2019.csv'
+# price_el = pd.read_csv(loadpath_electricityprice)
+# price_el = price_el['Day-ahead Price [EUR/MWh]'][0:8760].values.tolist()
+data.read_import_price_data('offshore', 'electricity', el_import_price)
+data.read_export_price_data('offshore', 'electricity', el_import_price)
 # el_export_price_low = 500
 # el_export_price_high = 1000
 

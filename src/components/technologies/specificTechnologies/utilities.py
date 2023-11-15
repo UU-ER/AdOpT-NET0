@@ -31,7 +31,6 @@ def fit_turbomachinery(machinery_data):
     coefficients = np.polyfit(design_efficiency['Specific_rotational_speed'], design_efficiency['Eta_design'], 2)
     poly_fit = np.poly1d(coefficients)
 
-    avg_diff = design_efficiency['Specific_rotational_speed'].diff().dropna().mean()
     new_omega_s = np.linspace(machinery_data['omega_s_min'], machinery_data['omega_s_max'], 20)
     new_eta_design = poly_fit(new_omega_s)
     design_efficiency = pd.DataFrame({'Specific_rotational_speed':  list(new_omega_s),
@@ -61,7 +60,7 @@ def fit_turbomachinery(machinery_data):
     design = design[(design['P_design'] >= machinery_data['min_power'])]
 
     conversion_factor_flow_rate = 3600 # from m³/s to m³/h
-    design['Q_design'] = design['Q_design'] * conversion_factor_flow_rate
+    # design['Q_design'] = design['Q_design'] * conversion_factor_flow_rate
 
     # Interpolate values for the equally spaced points using linear interpolation
     x_values = np.linspace(design['Q_design'].min(), design['Q_design'].max(), 5)
@@ -89,6 +88,7 @@ def fit_turbomachinery(machinery_data):
         efficiency_partload['P'] = efficiency_partload['Q'] * 1000 * 9.81 * nominal_head * (10 ** -6) * \
                                    efficiency_partload['Eta']
 
+
     x = efficiency_partload['Q'].values
     y = {}
     y['performance'] = efficiency_partload['P'].values
@@ -96,11 +96,13 @@ def fit_turbomachinery(machinery_data):
 
     performance_data['performance'] = fit_performance['performance']
 
+    # efficiency_partload[efficiency_partload['Q'] == 1]['P'].values
+
     # Bounds
     performance_data['bounds'] = {}
-    performance_data['bounds']['Q_ub'] = max(fit_performance['performance']['bp_x']) * max(fit_design['design']['bp_x'])
-    performance_data['bounds']['P_ub'] = fit_performance['performance']['alpha2'][-1] * max(fit_design['design']['bp_y']) + \
-                                   fit_performance['performance']['alpha1'][-1] * performance_data['bounds']['Q_ub']
+    performance_data['bounds']['Q_ub'] = performance_data['performance']['bp_x'][-1] * max(performance_data['design']['bp_x'])
+    performance_data['bounds']['P_ub'] = performance_data['performance']['alpha1'][-1] * performance_data['bounds']['Q_ub'] + \
+                                         max(performance_data['design']['bp_x']) * (performance_data['performance']['bp_y'][-2]-performance_data['performance']['alpha1'][-1] * performance_data['performance']['bp_x'][-2])
 
     return performance_data
 
