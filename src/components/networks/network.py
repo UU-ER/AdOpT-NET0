@@ -1,5 +1,7 @@
+import warnings
+
 from ..component import ModelComponent
-from ..utilities import annualize, set_discount_rate, perform_disjunct_relaxation
+from ..utilities import annualize, set_discount_rate, read_dict_value, perform_disjunct_relaxation, determine_variable_scaling, determine_constraint_scaling
 
 import pandas as pd
 import copy
@@ -33,6 +35,10 @@ class Network(ModelComponent):
 
         self.set_nodes = []
         self.set_t = []
+
+        self.scaling_factors = []
+        if 'ScalingFactors' in netw_data:
+            self.scaling_factors = netw_data['ScalingFactors']
 
 
     def calculate_energy_consumption(self):
@@ -74,7 +80,7 @@ class Network(ModelComponent):
         :return:
         """
         if self.existing == 0:
-            if self.size_max_arcs == None:
+            if not isinstance(self.size_max_arcs, pd.DataFrame):
                 # Use max size
                 self.size_max_arcs = pd.DataFrame(self.size_max, index=self.distance.index, columns=self.distance.columns)
         elif self.existing == 1:
@@ -358,6 +364,26 @@ class Network(ModelComponent):
 
         return self.results
 
+
+    def scale_model(self, b_netw, model, configuration):
+        """
+        Scales technology model
+        """
+
+        f = self.scaling_factors
+        f_global = configuration.scaling_factors
+
+        model = determine_variable_scaling(model, b_netw, f, f_global)
+        model = determine_constraint_scaling(model, b_netw, f, f_global)
+
+        for arc in b_netw.arc_block:
+            b_arc = b_netw.arc_block[arc]
+
+            model = determine_variable_scaling(model, b_arc, f, f_global)
+            model = determine_constraint_scaling(model, b_arc, f, f_global)
+
+        return model
+
     def __define_possible_arcs(self, b_netw, energyhub):
         """
         Define all possible arcs that have a connection
@@ -561,7 +587,7 @@ class Network(ModelComponent):
         Constructs constraints for network energy consumption
         """
         # Set of consumed carriers
-        b_netw.set_consumed_carriers = Set(initialize=self.energy_consumption.keys())
+        b_netw.set_consumed_carriers = Set(initialize=list(self.energy_consumption.keys()))
 
         # Parameters
         def init_cons_send1(para, car):
@@ -799,17 +825,22 @@ class Network(ModelComponent):
 
         s_indicators = range(0, 2)
 
+        # Cut according to Germans work
+        def init_cut_bidirectional(const, t, node_from, node_to):
+            return b_netw.arc_block[node_from, node_to].var_flow[t] + b_netw.arc_block[node_to, node_from].var_flow[t]\
+                   <= b_netw.arc_block[node_from, node_to].var_size
+        b_netw.const_cut_bidirectional = Constraint(self.set_t, b_netw.set_arcs_unique, rule=init_cut_bidirectional)
+
         # Flow only possible in one direction
         def init_bidirectional(dis, t, node_from, node_to, ind):
             if ind == 0:
                 def init_bidirectional1(const):
                     return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
-
                 dis.const_flow_zero = Constraint(rule=init_bidirectional1)
+
             else:
                 def init_bidirectional2(const):
                     return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
-
                 dis.const_flow_zero = Constraint(rule=init_bidirectional2)
 
         b_netw.dis_one_direction_only = Disjunct(self.set_t, b_netw.set_arcs_unique, s_indicators,

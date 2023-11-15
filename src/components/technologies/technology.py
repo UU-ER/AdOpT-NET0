@@ -4,7 +4,7 @@ from warnings import warn
 from pyomo.environ import *
 
 from ..component import ModelComponent
-from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered
+from ..utilities import annualize, set_discount_rate, link_full_resolution_to_clustered, determine_variable_scaling, determine_constraint_scaling
 from .utilities import set_capex_model
 
 """
@@ -54,6 +54,10 @@ class Technology(ModelComponent):
         self.set_t = []
         self.set_t_full = []
         self.sequence = []
+
+        self.scaling_factors = []
+        if 'ScalingFactors' in tec_data:
+            self.scaling_factors = tec_data['ScalingFactors']
 
     def construct_tech_model(self, b_tec, energyhub):
         r"""
@@ -202,6 +206,19 @@ class Technology(ModelComponent):
             self.results['time_dependent']['var_z'] = [b_tec.var_z[t].value for t in self.set_t_full]
 
         return self.results
+
+    def scale_model(self, b_tec, model, configuration):
+        """
+        Scales technology model
+        """
+
+        f = self.scaling_factors
+        f_global = configuration.scaling_factors
+
+        model = determine_variable_scaling(model, b_tec, f, f_global)
+        model = determine_constraint_scaling(model, b_tec, f, f_global)
+
+        return model
 
     def __define_size(self, b_tec):
         """

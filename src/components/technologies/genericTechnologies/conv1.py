@@ -121,7 +121,7 @@ class Conv1(Technology):
 
         # Maximum input of carriers
         if 'max_input' in performance_data:
-            b_tec.set_max_input_carriers = Set(initialize=performance_data['max_input'].keys())
+            b_tec.set_max_input_carriers = Set(initialize=list(performance_data['max_input'].keys()))
 
             def init_max_input(const, t, car):
                 return self.input[t, car] <= performance_data['max_input'][car] * \
@@ -130,8 +130,8 @@ class Conv1(Technology):
             b_tec.const_max_input = Constraint(self.set_t, b_tec.set_max_input_carriers, rule=init_max_input)
 
         # RAMPING RATES
-        if hasattr(self.performance_data, "ramping_rate"):
-            if not self.performance_data.ramping_rate == -1:
+        if "ramping_rate" in self.performance_data:
+            if not self.performance_data['ramping_rate']   == -1:
                 b_tec = self.__define_ramping_rates(b_tec)
 
         return b_tec

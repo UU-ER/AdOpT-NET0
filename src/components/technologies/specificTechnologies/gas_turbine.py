@@ -182,7 +182,7 @@ class GasTurbine(Technology):
         f = coeff['f']
 
         # Additional decision variables
-        size_max = self.performance_data.size_max
+        size_max = self.size_max
 
         def init_input_bounds(bd, t):
             if len(performance_data['input_carrier']) == 2:
@@ -268,8 +268,8 @@ class GasTurbine(Technology):
         b_tec.const_n_on = Constraint(self.set_t, rule=init_n_on)
 
         # RAMPING RATES
-        if hasattr(self.performance_data, "ramping_rate"):
-            if not self.performance_data.ramping_rate == -1:
+        if "ramping_rate" in self.performance_data:
+            if not self.performance_data['ramping_rate']   == -1:
                 b_tec = self.__define_ramping_rates(b_tec)
 
         return b_tec

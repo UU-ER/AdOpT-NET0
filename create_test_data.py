@@ -34,7 +34,7 @@ def create_data_test_data_handle():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -78,7 +78,7 @@ def create_data_model1():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -120,7 +120,7 @@ def create_data_model2():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -176,7 +176,7 @@ def create_data_emissionbalance1():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -216,7 +216,7 @@ def create_data_emissionbalance2():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -258,7 +258,7 @@ def create_data_technology_type1_PV():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -300,7 +300,7 @@ def create_data_technology_type1_WT():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -355,7 +355,7 @@ def create_data_technology_CONV():
 
                 # READ TECHNOLOGY AND NETWORK DATA
                 data.read_technology_data(load_path = './src/test/TestTecs')
-                data.read_network_data()
+                data.read_network_data(load_path = './src/test/TestNetworks')
 
                 # SAVING/LOADING DATA FILE
                 data.save(data_save_path)
@@ -390,7 +390,7 @@ def create_data_technologySTOR():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -459,7 +459,7 @@ def create_data_network():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -551,7 +551,7 @@ def create_data_technology_dynamics():
 
             # READ TECHNOLOGY AND NETWORK DATA
             data.read_technology_data(load_path='./src/test/TestTecs')
-            data.read_network_data()
+            data.read_network_data(load_path = './src/test/TestNetworks')
 
             # SAVING/LOADING DATA FILE
             data.save(data_save_path)
@@ -595,7 +595,7 @@ def create_data_addtechnology():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -643,7 +643,7 @@ def create_data_time_algorithms():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -677,7 +677,7 @@ def create_data_optimization_types():
     data.read_import_limit_data('test_node1', 'gas', import_lim)
 
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     data.technology_data['test_node1']['Photovoltaic'].economics.capex_data['unit_capex'] = 200
     data.technology_data['test_node1']['GasTurbine_simple'].economics.capex_data['unit_capex'] = 10
@@ -716,7 +716,7 @@ def create_data_existing_technologies():
 
         # READ TECHNOLOGY AND NETWORK DATA
         data.read_technology_data(load_path = './src/test/TestTecs')
-        data.read_network_data()
+        data.read_network_data(load_path = './src/test/TestNetworks')
         return data
 
     topology1 = create_topology()
@@ -765,7 +765,7 @@ def create_data_existing_networks():
 
         # READ TECHNOLOGY AND NETWORK DATA
         data.read_technology_data(load_path = './src/test/TestTecs')
-        data.read_network_data()
+        data.read_network_data(load_path = './src/test/TestNetworks')
         return data
 
     topology1 = create_topology()
@@ -825,7 +825,7 @@ def create_test_data_dac():
     data.read_import_limit_data('test_node1', 'heat', heat_import)
 
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     data_save_path = './src/test/test_data/dac.p'
 
@@ -864,7 +864,7 @@ def create_data_technologyOpen_Hydro():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -895,7 +895,7 @@ def create_data_technologyOpen_Hydro():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -935,7 +935,7 @@ def create_data_carbon_tax():
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
@@ -976,7 +976,7 @@ def create_data_carbon_subsidy():
     #data.read_import_limit_data('test_node1', 'CO2', carbon_export)
 
     data.read_technology_data(load_path = './src/test/TestTecs')
-    data.read_network_data()
+    data.read_network_data(load_path = './src/test/TestNetworks')
 
 
     data_save_path = './src/test/test_data/carbon_subsidy.p'

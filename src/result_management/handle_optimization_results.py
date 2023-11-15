@@ -2,7 +2,6 @@ from types import SimpleNamespace
 import pandas as pd
 from pathlib import Path
 import numpy as np
-from .utilities import create_save_folder
 import os
 import shutil
 
@@ -50,9 +49,8 @@ class ResultsHandle:
         :return:
         """
         # Optimization info
-        create_save_folder(self.save_path, timestamp)
         results = OptimizationResults(self.save_detail)
-        results.read_results(energyhub, Path.joinpath(self.save_path, timestamp))
+        results.read_results(energyhub)
         objective = energyhub.configuration.optimization.objective
         pareto_point = energyhub.model_information.pareto_point
         monte_carlo_run = energyhub.model_information.monte_carlo_run
@@ -60,6 +58,9 @@ class ResultsHandle:
             time_stage = energyhub.model_information.averaged_data_specs.stage + 1
         else:
             time_stage = 0
+
+        # Save path
+        result_folder_path = Path.joinpath(self.save_path, timestamp)
 
         # Summary
         summary = results.summary
@@ -72,24 +73,28 @@ class ResultsHandle:
         self.summary = pd.concat([self.summary, summary])
 
         if self.save_detail:
-            results.write_detailed_results(Path.joinpath(self.save_path, timestamp))
+            results.write_detailed_results(result_folder_path)
+        else:
+            self.write_excel(result_folder_path)
 
         if energyhub.model_information.testing:
             shutil.rmtree(Path.joinpath(self.save_path, timestamp))
 
         return results
 
-    def write_excel(self, file_name):
+    def write_excel(self, result_folder_path):
         """
         Writes results to excel
-        :param str save_path: folder save path
-        :param str file_name: file save name
+        :param Path result_folder_path: folder save path
         :return:
         """
 
-        path = self.save_path / (file_name + '.xlsx')
+        save_summary_path = Path.joinpath(result_folder_path, 'Summary.xlsx')
 
-        with pd.ExcelWriter(path) as writer:
+        if not os.path.isdir(result_folder_path):
+            os.makedirs(result_folder_path)
+
+        with pd.ExcelWriter(save_summary_path) as writer:
             self.summary.to_excel(writer, sheet_name='Summary')
 
 
@@ -152,7 +157,7 @@ class OptimizationResults:
             self.detailed_results.nodes = {}
             self.detailed_results.networks = {}
 
-    def read_results(self, energyhub, save_path):
+    def read_results(self, energyhub):
 
         if energyhub.solution.solver.termination_condition == 'optimal':
             model = energyhub.model
@@ -163,7 +168,6 @@ class OptimizationResults:
             ub = energyhub.solution.problem(0).upper_bound
             gap = ub - lb
 
-            # Economics
             total_cost = model.var_total_cost.value
             carbon_costs = model.var_carbon_cost.value
             carbon_revenues = model.var_carbon_revenue.value
@@ -256,9 +260,6 @@ class OptimizationResults:
                     self.technologies = pd.concat([self.technologies, time_independent], ignore_index=True)
                     if self.detail:
                         self.detailed_results.nodes[node_name][tec_name] = tec_results['time_dependent']
-
-                    if 'specific_design' in  tec_results:
-                        tec_results['specific_design'].to_excel(Path.joinpath(save_path, tec_name + '_' + node_name + '.xlsx'))
 
             # Network Results
             if not energyhub.configuration.energybalance.copperplate:
@@ -357,4 +358,3 @@ class OptimizationResults:
                     with pd.ExcelWriter(save_technologies_path) as writer:
                         for tec_name in self.detailed_results.nodes[node]:
                             self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=tec_name)
-

@@ -7,13 +7,14 @@ import warnings
 import datetime
 from pathlib import Path
 import os
+import sys
 
 from .model_construction import *
 from .data_management import *
 from .utilities import *
 from .components.utilities import annualize, set_discount_rate
 from .components.technologies.utilities import set_capex_model
-from .result_management import ResultsHandle
+from .result_management import ResultsHandle, create_save_folder
 
 class EnergyHub:
     r"""
@@ -47,6 +48,7 @@ class EnergyHub:
 
         # INITIALIZE MODEL
         self.model = ConcreteModel()
+        self.scaled_model = []
 
         # INITIALIZE GLOBAL OPTIONS
         self.model_information = data.model_information
@@ -102,16 +104,17 @@ class EnergyHub:
                                     f"name in the configuration")
 
         # check if technologies have dynamic parameters
-        for node in self.data.topology.nodes:
-            for tec in self.data.technology_data[node]:
-                if self.data.technology_data[node][tec].technology_model in ['CONV1', 'CONV2', 'CONV3']:
-                    par_check = ['max_startups', 'min_uptime', 'min_downtime', 'SU_load', 'SD_load', 'SU_time', 'SD_time']
-                    count = 0
-                    for par in par_check:
-                        if par not in self.data.technology_data[node][tec].performance_data:
-                            raise ValueError(
-                                f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
-                                f"json files or switch off the dynamics.")
+        if self.configuration.performance.dynamics:
+            for node in self.data.topology.nodes:
+                for tec in self.data.technology_data[node]:
+                    if self.data.technology_data[node][tec].technology_model in ['CONV1', 'CONV2', 'CONV3']:
+                        par_check = ['max_startups', 'min_uptime', 'min_downtime', 'SU_load', 'SD_load', 'SU_time', 'SD_time']
+                        count = 0
+                        for par in par_check:
+                            if par not in self.data.technology_data[node][tec].performance_data:
+                                raise ValueError(
+                                    f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
+                                    f"json files or switch off the dynamics.")
 
     def quick_solve(self):
         """
@@ -155,7 +158,7 @@ class EnergyHub:
                 return Set.Skip
 
         self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=self.data.network_data.keys())
+        self.model.set_networks = Set(initialize=list(self.data.network_data.keys()))
 
         # Time Frame
         self.model.set_t_full = RangeSet(1,len(self.data.topology.timesteps))
@@ -168,13 +171,13 @@ class EnergyHub:
         self.model.var_node_cost = Var()
         self.model.var_netw_cost = Var()
         self.model.var_total_cost = Var()
+        self.model.var_carbon_revenue = Var()
+        self.model.var_carbon_cost = Var()
 
         # Global Emission variables
         self.model.var_emissions_pos = Var()
         self.model.var_emissions_neg = Var()
         self.model.var_emissions_net = Var()
-        self.model.var_carbon_revenue = Var()
-        self.model.var_carbon_cost = Var()
 
         # Parameters
         def init_carbon_subsidy(para, t):
@@ -272,9 +275,8 @@ class EnergyHub:
                 self.configuration.solveroptions.solver = 'gurobi_persistent'
             self.solver = get_gurobi_parameters(self.configuration.solveroptions)
 
-        else:
-            # Any other solver, to be implemented in the future
-            pass
+        elif self.configuration.solveroptions.solver == 'glpk':
+            self.solver =  get_glpk_parameters(self.configuration.solveroptions)
 
         # For persistent solver, set model instance
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
@@ -409,6 +411,62 @@ class EnergyHub:
             else:
                 self.__call_solver()
 
+    def scale_model(self):
+        """
+        Creates a scaled model in self.scaled_model using the scale factors specified in the json files for technologies
+        and networks as well as the global scaling factors specified. See also the documentation on model scaling.
+        """
+
+        f_global = self.configuration.scaling_factors
+        self.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+
+        # Scale technologies
+        for node in self.model.node_blocks:
+            for tec in self.model.node_blocks[node].tech_blocks_active:
+                b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
+                self.model = self.data.technology_data[node][tec].scale_model(b_tec, self.model, self.configuration)
+
+        # Scale networks
+        for netw in self.model.network_block:
+            b_netw = self.model.network_block[netw]
+            self.model = self.data.network_data[netw].scale_model(b_netw, self.model, self.configuration)
+
+        # Scale objective
+        self.model.scaling_factor[self.model.objective] = f_global.objective *  f_global.cost_vars
+
+        # Scale globals
+        if f_global.energy_vars >= 0:
+            self.model.scaling_factor[self.model.const_energybalance] = f_global.energy_vars
+            self.model.scaling_factor[self.model.const_cost] = f_global.cost_vars * f_global.energy_vars
+            self.model.scaling_factor[self.model.const_node_cost] = f_global.cost_vars * f_global.energy_vars
+            self.model.scaling_factor[self.model.const_netw_cost] = f_global.cost_vars * f_global.energy_vars
+            self.model.scaling_factor[self.model.const_revenue_carbon] = f_global.cost_vars * f_global.energy_vars
+            self.model.scaling_factor[self.model.const_cost_carbon] = f_global.cost_vars * f_global.energy_vars
+
+            self.model.scaling_factor[self.model.var_node_cost] = f_global.cost_vars * f_global.energy_vars
+            self.model.scaling_factor[self.model.var_netw_cost] = f_global.cost_vars * f_global.energy_vars
+            self.model.scaling_factor[self.model.var_total_cost] = f_global.cost_vars * f_global.energy_vars
+            self.model.scaling_factor[self.model.var_carbon_revenue] = f_global.cost_vars * f_global.energy_vars
+            self.model.scaling_factor[self.model.var_carbon_cost] = f_global.cost_vars * f_global.energy_vars
+
+            for node in self.model.node_blocks:
+                self.model.scaling_factor[self.model.node_blocks[node].var_import_flow] = f_global.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].var_export_flow] = f_global.energy_vars
+
+                self.model.scaling_factor[self.model.node_blocks[node].var_netw_inflow] = f_global.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_netw_inflow] = f_global.energy_vars
+
+                self.model.scaling_factor[self.model.node_blocks[node].var_netw_outflow] = f_global.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_netw_outflow] = f_global.energy_vars
+
+                self.model.scaling_factor[self.model.node_blocks[node].var_generic_production] = f_global.energy_vars
+                self.model.scaling_factor[self.model.node_blocks[node].const_generic_production] = f_global.energy_vars
+
+
+        self.scaled_model = TransformationFactory('core.scale_model').create_using(self.model)
+        # self.scaled_model.pprint()
+
+
     def __call_solver(self):
         """
         Calls the solver and solves the model
@@ -420,25 +478,70 @@ class EnergyHub:
 
         start = time.time()
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
-        if self.configuration.solveroptions.solver == 'gurobi_persistent':
-            self.solver.set_objective(self.model.objective)
-        if self.configuration.optimization.save_log_files:
-            # TransformationFactory('core.scale_model').apply_to(self.model)
-
-            self.solution = self.solver.solve(self.model,
-                                              tee=True,
-                                              warmstart=True,
-                                              logfile=Path('./log_files/') / ('log_' + time_stamp))
+        save_path = Path(self.configuration.reporting.save_path)
+        if self.configuration.reporting.case_name == -1:
+            result_folder_path = Path.joinpath(save_path, time_stamp)
         else:
-            # TransformationFactory('core.scale_model').apply_to(self.model)
+            time_stamp = str(time_stamp) + '_' + self.configuration.reporting.case_name
+            result_folder_path = Path.joinpath(save_path, time_stamp)
 
-            self.solution = self.solver.solve(self.model, tee=True, warmstart=True)
+        create_save_folder(result_folder_path)
+
+        if self.configuration.scaling == 1:
+            self.scale_model()
+            model = self.scaled_model
+        else:
+            model = self.model
+
+        if self.configuration.solveroptions.solver == 'gurobi_persistent':
+            self.solver.set_objective(model.objective)
+
+        if self.configuration.solveroptions.solver == 'glpk':
+            self.solution = self.solver.solve(model,
+                                          tee=True,logfile=str(Path(result_folder_path / 'log.txt')),
+                                          keepfiles=True)
+        else:
+            self.solution = self.solver.solve(model,
+                                          tee=True,
+                                          warmstart=True,
+                                          logfile=str(Path(result_folder_path / 'log.txt')),
+                                          keepfiles=True)
+
+        if self.configuration.scaling == 1:
+            TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
+
+        if self.configuration.reporting.write_solution_diagnostics >= 1:
+            self.__write_solution_diagnostics(result_folder_path)
+
         self.solution.write()
         self.detailed_results = self.results.report_optimization_result(self, time_stamp)
 
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
+
+    def __write_solution_diagnostics(self, save_path):
+
+        model = self.solver._solver_model
+        constraint_map = self.solver._pyomo_con_to_solver_con_map
+        variable_map = self.solver._pyomo_var_to_solver_var_map
+
+        # Write solution quality to txt
+        with open(f'{save_path}/diag_solution_quality.txt', 'w') as file:
+            sys.stdout = file  # Redirect stdout to the file
+            model.printQuality()  # Call the function that prints something
+            sys.stdout = sys.__stdout__  # Reset stdout to the console
+
+        if self.configuration.reporting.write_solution_diagnostics >=2:
+            # Write constraint map to txt
+            with open(f'{save_path}/diag_constraint_map.txt', 'w') as file:
+                for key, value in constraint_map.items():
+                    file.write(f'{key}: {value}\n')
+
+            # Write var map to txt
+            with open(f'{save_path}/diag_variable_map.txt', 'w') as file:
+                for key, value in variable_map._dict.items():
+                    file.write(f'{value[0].name}: {value[1]}\n')
 
     def __monte_carlo_set_cost_parameters(self):
         """

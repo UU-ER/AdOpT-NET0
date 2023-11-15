@@ -107,7 +107,7 @@ class Conv2(Technology):
 
         # Maximum input of carriers
         if 'max_input' in performance_data:
-            b_tec.set_max_input_carriers = Set(initialize=performance_data['max_input'].keys())
+            b_tec.set_max_input_carriers = Set(initialize=list(performance_data['max_input'].keys()))
 
             def init_max_input(const, t, car):
                 return self.input[t, car] <= performance_data['max_input'][car] * \
@@ -116,8 +116,8 @@ class Conv2(Technology):
             b_tec.const_max_input = Constraint(self.set_t, b_tec.set_max_input_carriers, rule=init_max_input)
 
         # RAMPING RATES
-        if hasattr(self.performance_data, "ramping_rate"):
-            if not self.performance_data.ramping_rate == -1:
+        if "ramping_rate" in self.performance_data:
+            if not self.performance_data['ramping_rate']   == -1:
                 b_tec = self.__define_ramping_rates(b_tec)
 
         return b_tec
@@ -339,9 +339,12 @@ class Conv2(Technology):
         # Performance Parameters
         SU_time = self.performance_data['SU_time']
         SD_time = self.performance_data['SD_time']
-        alpha1 = self.fitted_performance.coefficients['out']['alpha1']
-        alpha2 = self.fitted_performance.coefficients['out']['alpha2']
-        bp_x = self.fitted_performance.coefficients['out']['bp_x']
+        alpha1 = {}
+        alpha2 = {}
+        for car in self.performance_data['performance']['out']:
+            bp_x = self.fitted_performance.coefficients[car]['bp_x']
+            alpha1[car] = self.fitted_performance.coefficients[car]['alpha1']
+            alpha2[car] = self.fitted_performance.coefficients[car]['alpha2']
         rated_power = self.fitted_performance.rated_power
         min_part_load = self.performance_data['min_part_load']
 
