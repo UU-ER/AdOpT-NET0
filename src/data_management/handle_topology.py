@@ -36,6 +36,7 @@ class SystemTopology:
         time_resolution = str(resolution) + 'h'
         self.timestep_length_h = resolution
         self.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
+        self.fraction_of_year_modelled = (self.timesteps[-1] - self.timesteps[0]) / pd.Timedelta(days=365)
 
     def define_carriers(self, carriers:list):
         """

@@ -19,7 +19,7 @@ import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 from src.diagnostics import get_infeasibile_constraints
 
-execute = 1
+execute = 0
 
 # MODEL SCALING/ Infeasibilities
 if execute == 1:
@@ -95,7 +95,7 @@ if execute == 1:
     # # energyhub.solve()
     # results = energyhub.solve()
 
-execute = 1
+execute = 0
 
 if execute == 1:
     data = dm.load_object(r'./src/test/test_data/technology_dynamics_CONV1_2.p')
@@ -196,6 +196,7 @@ if execute == 1:
 
     # Solve model
     energyhub.quick_solve()
+
 
 execute = 0
 
