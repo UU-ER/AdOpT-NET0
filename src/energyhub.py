@@ -51,6 +51,7 @@ class EnergyHub:
         self.scaled_model = []
 
         # INITIALIZE GLOBAL OPTIONS
+        self.topology = data.topology
         self.model_information = data.model_information
         self.model_information.clustered_data = 0
         self.model_information.averaged_data = 0
@@ -578,8 +579,10 @@ class EnergyHub:
         tec_data = self.data.technology_data[node][tec]
         economics = tec_data.economics
         discount_rate = set_discount_rate(self.configuration, economics)
+        fraction_of_year_modelled = self.topology.fraction_of_year_modelled
+
         capex_model = set_capex_model(self.configuration, economics)
-        annualization_factor = annualize(discount_rate, economics.lifetime)
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
 
@@ -615,8 +618,10 @@ class EnergyHub:
         netw_data = self.data.network_data[netw]
         economics = netw_data.economics
         discount_rate = set_discount_rate(self.configuration, economics)
+        fraction_of_year_modelled = self.topology.fraction_of_year_modelled
+
         capex_model = economics.capex_model
-        annualization_factor = annualize(discount_rate, economics.lifetime)
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         b_netw =self.model.network_block[netw]
 

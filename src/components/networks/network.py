@@ -479,9 +479,10 @@ class Network(ModelComponent):
 
         # CHECK FOR GLOBAL ECONOMIC OPTIONS
         discount_rate = set_discount_rate(configuration, economics)
+        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
 
         # CAPEX
-        annualization_factor = annualize(discount_rate, economics.lifetime)
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         if economics.capex_model == 1:
             b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
