@@ -11,7 +11,7 @@ from pyomo.gdp import *
 import pandas as pd
 import numpy as np
 from pathlib import Path
-
+import random
 
 from src.components.technologies.utilities import FittedPerformance
 from src.components.technologies.technology import Technology
@@ -454,7 +454,7 @@ class OceanBattery3(Technology):
 
                 # CAPEX constraint
                 def init_turbine_installed_capex(const):
-                    return b_tec.var_capex_turbine[turb_slot] == ((capex_turbines['alpha_1'][0] * b_tec.var_designpower_single_turbine
+                    return b_tec.var_capex_turbine[turb_slot] == random.uniform(0.99, 1.01) * ((capex_turbines['alpha_1'][0] * b_tec.var_designpower_single_turbine
                                                                   + capex_turbines['alpha_2'][0]) * annualization_factor)
                 dis.const_turbine_installed_capex = Constraint(rule=init_turbine_installed_capex)
 
@@ -601,7 +601,7 @@ class OceanBattery3(Technology):
 
                 # CAPEX constraint
                 def init_pump_installed_capex(const):
-                    return b_tec.var_capex_pump[pump_slot] == ((capex_pumps['alpha_1'][0] * b_tec.var_designpower_single_pump
+                    return b_tec.var_capex_pump[pump_slot] == random.uniform(0.99, 1.01) * ((capex_pumps['alpha_1'][0] * b_tec.var_designpower_single_pump
                                                                 + capex_pumps['alpha_2'][0]) * annualization_factor)
                 dis.const_pump_installed_capex = Constraint(rule=init_pump_installed_capex)
 

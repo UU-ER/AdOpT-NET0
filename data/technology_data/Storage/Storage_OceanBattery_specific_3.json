@@ -1,7 +1,7 @@
 {
   "tec_type": "OceanBattery3",
   "size_min": 0,
-  "size_max": 1000,
+  "size_max": 100000,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
@@ -33,8 +33,8 @@
       "lambda": 0,
       "theta": 0,
       "min_fill": 0.02,
-      "pump_slots": 2,
-      "turbine_slots": 2,
+      "pump_slots": 6,
+      "turbine_slots": 6,
       "turbine_type": "francis",
       "pump_type": "centrifugal",
       "nr_segments_design": 2,

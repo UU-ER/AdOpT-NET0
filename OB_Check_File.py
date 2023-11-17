@@ -16,7 +16,7 @@ data_save_path = Path('./user_data/data_handle_test')
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 05:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-02 23:00', resolution=1)
 topology.define_carriers(['electricity'])
 topology.define_nodes(['offshore'])
 topology.define_new_technologies('offshore', ['Storage_OceanBattery_specific_3'])
@@ -60,18 +60,30 @@ data.read_import_limit_data('offshore', 'electricity', el_import)
 el_export = np.ones(len(topology.timesteps)) * 1000
 data.read_export_limit_data('offshore', 'electricity', el_export)
 
-el_import_price_low = 100
-el_import_price_high = 1000
-el_import_price = np.zeros(len(topology.timesteps))
-for i in range(len(topology.timesteps)):
-    if i % 2 == 0:
-        el_import_price[i] = el_import_price_low
-    else:
-        el_import_price[i] = el_import_price_high
-# el_import_price = np.ones(len(topology.timesteps)) * 1000
-# loadpath_electricityprice = 'C:/Users/6574114/Documents/Research/EHUB-Py/data/ob_input_data/day_ahead_2019.csv'
-# price_el = pd.read_csv(loadpath_electricityprice)
-# price_el = price_el['Day-ahead Price [EUR/MWh]'][0:8760].values.tolist()
+use_el_profile = 1
+
+if use_el_profile ==0:
+    el_import_price_low = 100
+    el_import_price_high = 1000
+    el_import_price = np.zeros(len(topology.timesteps))
+    for i in range(len(topology.timesteps)):
+        if i % 2 == 0:
+            el_import_price[i] = el_import_price_low
+        else:
+            el_import_price[i] = el_import_price_high
+else:
+    loadpath_electricityprice = 'C:/Users/6574114/Documents/Research/EHUB-Py/data/ob_input_data/day_ahead_2019.csv'
+    el_import_price = pd.read_csv(loadpath_electricityprice)
+    el_import_price = el_import_price['Day-ahead Price [EUR/MWh]'][0:8760]
+    el_import_price = el_import_price.interpolate()
+
+    # Rescale electricity price profile
+    el_import_price = np.array(el_import_price)
+    mean_price = np.mean(el_import_price.mean())
+    std_deviation = np.std(el_import_price)
+    new_std_deviation = std_deviation * 10
+    el_import_price = mean_price + (el_import_price - mean_price) * (new_std_deviation / std_deviation)
+
 data.read_import_price_data('offshore', 'electricity', el_import_price)
 data.read_export_price_data('offshore', 'electricity', el_import_price)
 # el_export_price_low = 500
