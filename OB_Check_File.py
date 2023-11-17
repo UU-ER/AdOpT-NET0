@@ -60,7 +60,7 @@ data.read_import_limit_data('offshore', 'electricity', el_import)
 el_export = np.ones(len(topology.timesteps)) * 1000
 data.read_export_limit_data('offshore', 'electricity', el_export)
 
-el_import_price_low = 0
+el_import_price_low = 100
 el_import_price_high = 1000
 el_import_price = np.zeros(len(topology.timesteps))
 for i in range(len(topology.timesteps)):

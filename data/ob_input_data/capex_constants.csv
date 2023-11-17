@@ -1,0 +1,5 @@
+﻿type;a;b;c
+turbine_francis;2.927;1.174;-0.4933
+turbine_kaplan;2.76;0.5774;-0.1193
+turbine_pelton;1.984;1.427;-0.4808
+pump_general;1.753;0.9623;-0.3566
