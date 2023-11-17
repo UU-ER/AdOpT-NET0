@@ -82,7 +82,8 @@ else:
     mean_price = np.mean(el_import_price.mean())
     std_deviation = np.std(el_import_price)
     new_std_deviation = std_deviation * 10
-    el_import_price = mean_price + (el_import_price - mean_price) * (new_std_deviation / std_deviation)
+    new_mean = 60
+    el_import_price = new_mean + (el_import_price - mean_price) * (new_std_deviation / std_deviation)
 
 data.read_import_price_data('offshore', 'electricity', el_import_price)
 data.read_export_price_data('offshore', 'electricity', el_import_price)
