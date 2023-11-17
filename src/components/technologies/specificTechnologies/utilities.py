@@ -118,15 +118,22 @@ def fit_turbomachinery_capex(machinery_data):
     inflation_correction = 1.2692 # from 2018-2023 EUR
 
     # for pump P in kW, for turbine P in MW: basevalue is for 1 MW.
-    capex_basevalue = (capex_constant_a * (1 ** capex_constant_b) * (nominal_head ** capex_constant_c) *
-                       inflation_correction)
+    if machinery_data['type'] == 'pump':
+        capex_basevalue = (capex_constant_a * (1000 ** capex_constant_b) * (nominal_head ** capex_constant_c) *
+                           inflation_correction)
+    elif machinery_data['type'] == 'turbine':
+        capex_basevalue = (capex_constant_a * (1 ** capex_constant_b) * (nominal_head ** capex_constant_c) *
+                           inflation_correction) * 10 ** 6
+
 
     # scaling factor: using capex calculation by Aggidis et al. (2010) - equation 13
     capex_constant_a_scaling = 12000
     capex_constant_b_scaling = 0.2
     capex_constant_c_scaling = 0.56
 
-    size_values = np.arange(0.1, 10.1, 0.1) # is P in MW
+    fitting_coeff = machinery_data['fitting_coeff']
+
+    size_values = np.linspace(fitting_coeff['design']['bp_y'][0], fitting_coeff['design']['bp_y'][-1], 20) # is P in MW
     df_size_scaling = pd.DataFrame({'size_P': size_values})
 
     # P in kW: basevalue is for 1 MW
@@ -142,6 +149,6 @@ def fit_turbomachinery_capex(machinery_data):
     y['capex'] = df_size_scaling['capex'].values
     fit_capex = fit_piecewise_function(x, y, nr_segments_capex)
 
-    capex_data['capex'] = fit_capex['capex']
+    capex_data = fit_capex['capex']
 
     return capex_data

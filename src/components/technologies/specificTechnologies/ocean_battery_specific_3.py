@@ -63,7 +63,8 @@ class OceanBattery3(Technology):
         pump_data['nr_segments_design'] = self.fitted_performance.coefficients['nr_segments_design']
         pump_data['nr_segments_performance'] = self.fitted_performance.coefficients['nr_segments_performance']
         self.performance_data['pump'] = fit_turbomachinery(pump_data)
-        pump_data['capex_constant_a'] = 1.753
+        pump_data['fitting_coeff'] = fit_turbomachinery(pump_data)
+        pump_data['capex_constant_a'] = 1753
         pump_data['capex_constant_b'] = 0.9623
         pump_data['capex_constant_c'] = -0.3566
         pump_data['nr_segments_capex'] = self.fitted_performance.coefficients['nr_segments_capex']
@@ -88,6 +89,7 @@ class OceanBattery3(Technology):
         turbine_data['nr_segments_design'] = self.fitted_performance.coefficients['nr_segments_design']
         turbine_data['nr_segments_performance'] = self.fitted_performance.coefficients['nr_segments_performance']
         self.performance_data['turbine'] = fit_turbomachinery(turbine_data)
+        turbine_data['fitting_coeff'] = fit_turbomachinery(turbine_data)
         turbine_data['capex_constant_a'] = 2.927
         turbine_data['capex_constant_b'] = 1.174
         turbine_data['capex_constant_c'] = -0.4933
@@ -187,8 +189,16 @@ class OceanBattery3(Technology):
         fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
         annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
-        self.bounds['capex_turbines'] = annualization_factor * coeff['capex_turbines'] * self.performance_data['turbine']['bounds']['Q_ub']
-        self.bounds['capex_pumps'] = annualization_factor * coeff['capex_turbines'] * self.performance_data['pump']['bounds']['Q_ub']
+        capex_turbines = {}
+        capex_turbines['alpha_1'] = self.economics.capex_data['turbine']['alpha1']
+        capex_turbines['alpha_2'] = self.economics.capex_data['turbine']['alpha2']
+
+        capex_pumps = {}
+        capex_pumps['alpha_1'] = self.economics.capex_data['pump']['alpha1']
+        capex_pumps['alpha_2'] = self.economics.capex_data['pump']['alpha2']
+
+        self.bounds['capex_turbines'] = annualization_factor * (capex_turbines['alpha_1'][-1] * self.performance_data['turbine']['bounds']['P_ub'] + capex_turbines['alpha_2'][-1])
+        self.bounds['capex_pumps'] = annualization_factor * (capex_pumps['alpha_1'][-1] * self.performance_data['pump']['bounds']['P_ub'] + capex_pumps['alpha_2'][-1])
 
         b_tec.para_unit_capex_reservoir = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
         b_tec.para_unit_capex_reservoir_annual = Param(domain=Reals,
@@ -226,6 +236,7 @@ class OceanBattery3(Technology):
         b_tec.const_total_outflow = Constraint(self.set_t, rule=init_total_outflow)
 
         # CAPEX Calculation
+        # TODO add annualization_factor to var_capex pump and turbine
         b_tec.const_capex_aux = Constraint(expr=b_tec.para_unit_capex_reservoir_annual * b_tec.var_size +
                                                 sum(b_tec.var_capex_turbine[turbine] for
                                                                      turbine in b_tec.set_turbine_slots) +
@@ -406,8 +417,8 @@ class OceanBattery3(Technology):
         annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         capex_turbines = {}
-        capex_turbines[0] = 0
-        capex_turbines[1] = annualization_factor * coeff['capex_turbines']
+        capex_turbines['alpha_1'] = self.economics.capex_data['turbine']['alpha1']
+        capex_turbines['alpha_2'] = self.economics.capex_data['turbine']['alpha2']
 
         fit = self.performance_data['turbine']['performance']
 
@@ -443,7 +454,8 @@ class OceanBattery3(Technology):
 
                 # CAPEX constraint
                 def init_turbine_installed_capex(const):
-                    return b_tec.var_capex_turbine[turb_slot] == (capex_turbines[ind] * b_tec.var_designflow_single_turbine)
+                    return b_tec.var_capex_turbine[turb_slot] == ((capex_turbines['alpha_1'][0] * b_tec.var_designpower_single_turbine
+                                                                  + capex_turbines['alpha_2'][0]) * annualization_factor)
                 dis.const_turbine_installed_capex = Constraint(rule=init_turbine_installed_capex)
 
                 def turbine_performance_block_init(b_turbine_performance):
@@ -465,7 +477,7 @@ class OceanBattery3(Technology):
                             dis.const_output_off = Constraint(rule=init_output_off)
 
                         else: # on
-                            if self.fitted_performance.coefficients['performance_function_type'] == 0:
+                            if self.fitted_performance.coefficients['performance_function_simplification'] == 0:
                                 # on the curve
                                 def init_outflow_lb(const):
                                     return (b_tec.var_outflow_turbine[t, turb_slot] >= bp_x[ind - 1] *
@@ -552,8 +564,8 @@ class OceanBattery3(Technology):
         annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         capex_pumps = {}
-        capex_pumps[0] = 0
-        capex_pumps[1] = annualization_factor * coeff['capex_pumps']
+        capex_pumps['alpha_1'] = self.economics.capex_data['pump']['alpha1']
+        capex_pumps['alpha_2'] = self.economics.capex_data['pump']['alpha2']
 
         fit = self.performance_data['pump']['performance']
 
@@ -589,7 +601,8 @@ class OceanBattery3(Technology):
 
                 # CAPEX constraint
                 def init_pump_installed_capex(const):
-                    return b_tec.var_capex_pump[pump_slot] == (capex_pumps[ind] * b_tec.var_designflow_single_pump)
+                    return b_tec.var_capex_pump[pump_slot] == ((capex_pumps['alpha_1'][0] * b_tec.var_designpower_single_pump
+                                                                + capex_pumps['alpha_2'][0]) * annualization_factor)
                 dis.const_pump_installed_capex = Constraint(rule=init_pump_installed_capex)
 
                 def pump_performance_block_init(b_pump_performance):
