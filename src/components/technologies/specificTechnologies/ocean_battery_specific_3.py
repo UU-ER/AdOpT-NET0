@@ -643,14 +643,23 @@ class OceanBattery3(Technology):
         self.results['time_dependent']['total_inflow'] = [b_tec.var_total_inflow[t].value for t in self.set_t_full]
         self.results['time_dependent']['total_outflow'] = [b_tec.var_total_outflow[t].value for t in self.set_t_full]
 
-        # TODO rewrite the results reporting according to new (block) structures.
         for pump in b_tec.set_pump_slots:
-            self.results['time_dependent']['var_inflow' + str(pump)] = [b_tec.var_inflow_pump[t, pump].value for t in self.set_t]
+            self.results['time_dependent']['var_inflow' + str(pump)] = [b_tec.var_inflow_pump[t, pump].value for t in self.set_t] * 3600
             self.results['time_dependent']['var_input' + str(pump)] = [b_tec.var_input_pump[t, pump].value for t in self.set_t]
+            self.results['time_dependent']['pump_efficiency' + str(pump)] = \
+                [((b_tec.var_inflow_pump[t, pump].value * 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * 10 ** -6) /
+                            b_tec.var_input_pump[t, pump].value) if b_tec.var_input_pump[t, pump].value != 0 else 0
+                    for t in self.set_t]
 
         for turb in b_tec.set_pump_slots:
-            self.results['time_dependent']['var_outflow' + str(turb)] = [b_tec.var_outflow_turbine[t, turb].value for t in self.set_t]
+            self.results['time_dependent']['var_outflow' + str(turb)] = [b_tec.var_outflow_turbine[t, turb].value for t in self.set_t] * 3600
             self.results['time_dependent']['var_output' + str(turb)] = [b_tec.var_output_turbine[t, turb].value for t in self.set_t]
+            self.results['time_dependent']['turbine_efficiency' + str(turb)] = \
+                [((b_tec.var_output_turbine[t, turb].value /
+                  (b_tec.var_outflow_turbine[t, turb].value * 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * 10 ** -6)))
+                 if b_tec.var_outflow_turbine[t, turb].value != 0 else 0
+                 for t in self.set_t
+                ]
 
         design = {}
         design['reservoir_size'] = b_tec.var_size.value
