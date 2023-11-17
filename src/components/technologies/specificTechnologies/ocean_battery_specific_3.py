@@ -81,7 +81,7 @@ class OceanBattery3(Technology):
         elif turbine_data['subtype'] == 'kaplan':
             turbine_data['omega_s_min'] = 1.7
             turbine_data['omega_s_max'] = 6
-        turbine_data['min_power'] = 0.5
+        turbine_data['min_power'] = 0
         turbine_data['nominal_head'] = self.fitted_performance.coefficients['nominal_head']
         turbine_data['frequency'] = self.fitted_performance.coefficients['frequency']
         turbine_data['pole_pairs'] = self.fitted_performance.coefficients['pole_pairs']
@@ -184,7 +184,9 @@ class OceanBattery3(Technology):
         configuration = energyhub.configuration
         economics = self.economics
         discount_rate = set_discount_rate(configuration, economics)
-        annualization_factor = annualize(discount_rate, economics.lifetime)
+        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
+
         self.bounds['capex_turbines'] = annualization_factor * coeff['capex_turbines'] * self.performance_data['turbine']['bounds']['Q_ub']
         self.bounds['capex_pumps'] = annualization_factor * coeff['capex_turbines'] * self.performance_data['pump']['bounds']['Q_ub']
 
@@ -400,7 +402,8 @@ class OceanBattery3(Technology):
         configuration = energyhub.configuration
         economics = self.economics
         discount_rate = set_discount_rate(configuration, economics)
-        annualization_factor = annualize(discount_rate, economics.lifetime)
+        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         capex_turbines = {}
         capex_turbines[0] = 0
@@ -445,7 +448,11 @@ class OceanBattery3(Technology):
 
                 def turbine_performance_block_init(b_turbine_performance):
 
-                    s_indicators_onoff = range(0, len(bp_x))
+                    if self.fitted_performance.coefficients['performance_function_simplification'] == 0:
+                        s_indicators_onoff = range(0, len(bp_x))
+                    else:
+                        s_indicators_onoff = range(0, 2)
+
 
                     def turbine_onoff_dis_init(dis, t, ind):
                         if ind == 0: # off
@@ -458,22 +465,43 @@ class OceanBattery3(Technology):
                             dis.const_output_off = Constraint(rule=init_output_off)
 
                         else: # on
-                            def init_outflow_lb(const):
-                                return (b_tec.var_outflow_turbine[t, turb_slot] >= bp_x[ind - 1] *
-                                        b_tec.var_designflow_single_turbine)
-                            dis.const_outflow_lb = Constraint(rule=init_outflow_lb)
+                            if self.fitted_performance.coefficients['performance_function_type'] == 0:
+                                # on the curve
+                                def init_outflow_lb(const):
+                                    return (b_tec.var_outflow_turbine[t, turb_slot] >= bp_x[ind - 1] *
+                                            b_tec.var_designflow_single_turbine)
+                                dis.const_outflow_lb = Constraint(rule=init_outflow_lb)
 
-                            def init_outflow_ub(const):
-                                return (b_tec.var_outflow_turbine[t, turb_slot] <= bp_x[ind] *
-                                        b_tec.var_designflow_single_turbine)
-                            dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
+                                def init_outflow_ub(const):
+                                    return (b_tec.var_outflow_turbine[t, turb_slot] <= bp_x[ind] *
+                                            b_tec.var_designflow_single_turbine)
+                                dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
 
-                            def init_output_on(const):
-                                return (b_tec.var_output_turbine[t, turb_slot] ==
-                                        beta1[ind - 1] * b_tec.var_outflow_turbine[t, turb_slot] +
-                                        b_tec.var_designflow_single_turbine *
-                                        (bp_y[ind - 1] - beta1[ind - 1] * bp_x[ind - 1]))
-                            dis.const_output_on = Constraint(rule=init_output_on)
+                                def init_output_on(const):
+                                    return (b_tec.var_output_turbine[t, turb_slot] ==
+                                            beta1[ind - 1] * b_tec.var_outflow_turbine[t, turb_slot] +
+                                            b_tec.var_designflow_single_turbine *
+                                            (bp_y[ind - 1] - beta1[ind - 1] * bp_x[ind - 1]))
+                                dis.const_output_on = Constraint(rule=init_output_on)
+                            else:
+                                # below the curve
+                                def init_outflow_lb(const):
+                                    return (b_tec.var_outflow_turbine[t, turb_slot] >= bp_x[0] *
+                                            b_tec.var_designflow_single_turbine)
+                                dis.const_outflow_lb = Constraint(rule=init_outflow_lb)
+
+                                def init_outflow_ub(const):
+                                    return (b_tec.var_outflow_turbine[t, turb_slot] <= bp_x[-1] *
+                                            b_tec.var_designflow_single_turbine)
+                                dis.const_outflow_ub = Constraint(rule=init_outflow_ub)
+
+                                nr_pieces = range(1, len(bp_x))
+                                def init_output_on(const, piece):
+                                    return (b_tec.var_output_turbine[t, turb_slot] <=
+                                            beta1[piece - 1] * b_tec.var_outflow_turbine[t, turb_slot] +
+                                            b_tec.var_designflow_single_turbine *
+                                            (bp_y[piece - 1] - beta1[piece - 1] * bp_x[piece - 1]))
+                                dis.const_output_on = Constraint(nr_pieces, rule=init_output_on)
 
                         return dis
 
@@ -520,7 +548,8 @@ class OceanBattery3(Technology):
         configuration = energyhub.configuration
         economics = self.economics
         discount_rate = set_discount_rate(configuration, economics)
-        annualization_factor = annualize(discount_rate, economics.lifetime)
+        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         capex_pumps = {}
         capex_pumps[0] = 0
@@ -595,14 +624,6 @@ class OceanBattery3(Technology):
                                         (bp_y[ind - 1] - beta1[ind - 1] * bp_x[ind - 1]))
                             dis.const_input_on = Constraint(rule=init_input_on)
 
-                            # nr_pieces = range(1, len(bp_x))
-                            # def init_input_on(const, piece):
-                            #     return (b_tec.var_input_pump[t, pump_slot] >=
-                            #             beta1[piece - 1] * b_tec.var_inflow_pump[t, pump_slot] +
-                            #             b_tec.var_designflow_single_pump *
-                            #             (bp_y[piece - 1] - beta1[piece - 1] * bp_x[piece - 1]))
-                            # dis.const_input_on = Constraint(nr_pieces, rule=init_input_on)
-
                         return dis
 
                     b_pump_performance.dis_pump_onoff = Disjunct(self.set_t_full, s_indicators_onoff,
@@ -640,11 +661,11 @@ class OceanBattery3(Technology):
         super(OceanBattery3, self).report_results(b_tec)
 
         self.results['time_dependent']['storagelevel'] = [b_tec.var_storage_level[t].value for t in self.set_t_full]
-        self.results['time_dependent']['total_inflow'] = [b_tec.var_total_inflow[t].value for t in self.set_t_full]
-        self.results['time_dependent']['total_outflow'] = [b_tec.var_total_outflow[t].value for t in self.set_t_full]
+        self.results['time_dependent']['total_inflow'] = [b_tec.var_total_inflow[t].value * 3600 for t in self.set_t_full]
+        self.results['time_dependent']['total_outflow'] = [b_tec.var_total_outflow[t].value * 3600 for t in self.set_t_full]
 
         for pump in b_tec.set_pump_slots:
-            self.results['time_dependent']['var_inflow' + str(pump)] = [b_tec.var_inflow_pump[t, pump].value for t in self.set_t] * 3600
+            self.results['time_dependent']['var_inflow' + str(pump)] = [b_tec.var_inflow_pump[t, pump].value * 3600 for t in self.set_t]
             self.results['time_dependent']['var_input' + str(pump)] = [b_tec.var_input_pump[t, pump].value for t in self.set_t]
             self.results['time_dependent']['pump_efficiency' + str(pump)] = \
                 [((b_tec.var_inflow_pump[t, pump].value * 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * 10 ** -6) /
@@ -652,7 +673,7 @@ class OceanBattery3(Technology):
                     for t in self.set_t]
 
         for turb in b_tec.set_pump_slots:
-            self.results['time_dependent']['var_outflow' + str(turb)] = [b_tec.var_outflow_turbine[t, turb].value for t in self.set_t] * 3600
+            self.results['time_dependent']['var_outflow' + str(turb)] = [b_tec.var_outflow_turbine[t, turb].value * 3600 for t in self.set_t]
             self.results['time_dependent']['var_output' + str(turb)] = [b_tec.var_output_turbine[t, turb].value for t in self.set_t]
             self.results['time_dependent']['turbine_efficiency' + str(turb)] = \
                 [((b_tec.var_output_turbine[t, turb].value /
@@ -667,6 +688,14 @@ class OceanBattery3(Technology):
         design['single_pump_designpower'] = b_tec.var_designpower_single_pump.value
         design['single_turbine_designflow'] = b_tec.var_designflow_single_turbine.value * 3600
         design['single_turbine_designpower'] = b_tec.var_designpower_single_turbine.value
+        design['pump_fitting_design_minflow'] = 3600 * self.performance_data['pump']['design']['bp_x'][0]
+        design['pump_fitting_design_maxflow'] = 3600 * self.performance_data['pump']['design']['bp_x'][-1]
+        design['pump_fitting_design_minpower'] = self.performance_data['pump']['design']['bp_y'][0]
+        design['pump_fitting_design_maxpower'] = self.performance_data['pump']['design']['bp_y'][-1]
+        design['turbine_fitting_design_minflow'] = 3600 * self.performance_data['turbine']['design']['bp_x'][0]
+        design['turbine_fitting_design_maxflow'] = 3600 * self.performance_data['turbine']['design']['bp_x'][-1]
+        design['turbine_fitting_design_minpower'] = self.performance_data['turbine']['design']['bp_y'][0]
+        design['turbine_fitting_design_maxpower'] = self.performance_data['turbine']['design']['bp_y'][-1]
 
         for pump in b_tec.set_pump_slots:
             design['pump_' + str(pump) + '_capex'] = b_tec.var_capex_pump[pump].value

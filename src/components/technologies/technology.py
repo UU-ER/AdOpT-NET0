@@ -283,12 +283,17 @@ class Technology(ModelComponent):
             if self.economics.capex_model == 1:
                 max_capex = b_tec.para_size_max * \
                             economics.capex_data['unit_capex'] * annualization_factor
+                bounds = (0, max_capex)
             elif self.economics.capex_model == 2:
                 max_capex = b_tec.para_size_max * max(economics.capex_data['piecewise_capex']['bp_y']) * annualization_factor
+                bounds = (0, max_capex)
             elif self.economics.capex_model == 3:
                 max_capex = (b_tec.para_size_max *
                              economics.capex_data['unit_capex'] + economics.capex_data['fix_capex']) * annualization_factor
-            return (0, max_capex)
+                bounds = (0, max_capex)
+            else:
+                bounds = None
+            return bounds
 
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
@@ -334,12 +339,6 @@ class Technology(ModelComponent):
                 else:  # tech installed
                     dis.const_capex_aux = Constraint(
                         expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
-            b_tec.const_capex_aux = Constraint(
-                expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
-
-        elif capex_model == 4:
-            pass
-            # Needs to be overwritten in specific technology
 
             b_tec.dis_installation = Disjunct(s_indicators, rule=init_installation)
 
@@ -347,6 +346,12 @@ class Technology(ModelComponent):
                 return [b_tec.dis_installation[i] for i in s_indicators]
 
             b_tec.disjunction_installation = Disjunction(rule=bind_disjunctions)
+
+        elif capex_model == 4:
+            pass
+            # Needs to be overwritten in specific technology
+
+
 
         # CAPEX
         if self.existing and not self.decommission:

@@ -29,6 +29,7 @@
     ],
     "emission_factor": 0,
     "performance": {
+      "performance_function_simplification": 1,
       "lambda": 0,
       "theta": 0,
       "min_fill": 0.02,
@@ -42,8 +43,8 @@
       "frequency": 50,
       "pole_pairs": 3,
       "nominal_head": 30,
-      "capex_turbines": 0.001,
-      "capex_pumps": 0.001
+      "capex_turbines": 1,
+      "capex_pumps": 1
     }
   }
 }
