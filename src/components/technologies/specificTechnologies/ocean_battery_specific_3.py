@@ -663,9 +663,9 @@ class OceanBattery3(Technology):
 
         design = {}
         design['reservoir_size'] = b_tec.var_size.value
-        design['single_pump_designflow'] = b_tec.var_designflow_single_pump.value
+        design['single_pump_designflow'] = b_tec.var_designflow_single_pump.value * 3600
         design['single_pump_designpower'] = b_tec.var_designpower_single_pump.value
-        design['single_turbine_designflow'] = b_tec.var_designflow_single_turbine.value
+        design['single_turbine_designflow'] = b_tec.var_designflow_single_turbine.value * 3600
         design['single_turbine_designpower'] = b_tec.var_designpower_single_turbine.value
 
         for pump in b_tec.set_pump_slots:
