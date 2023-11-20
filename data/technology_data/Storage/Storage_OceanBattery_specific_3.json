@@ -15,7 +15,7 @@
     "OPEX_variable": 0,
     "OPEX_fixed": 0.04,
     "discount_rate": 0.1,
-    "lifetime": 10,
+    "lifetime": 25,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
@@ -42,7 +42,7 @@
       "nr_segments_capex": 1,
       "frequency": 50,
       "pole_pairs": 3,
-      "nominal_head": 30,
+      "nominal_head": 47.5,
       "capex_turbines": 1,
       "capex_pumps": 1
     }
