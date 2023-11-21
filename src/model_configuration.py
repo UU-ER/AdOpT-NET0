@@ -163,12 +163,12 @@ class ModelConfiguration:
         # self.optimization.tecstaging = 0
 
         self.solveroptions = SimpleNamespace()
-        self.solveroptions.solver = 'gurobi'
-        self.solveroptions.mipgap = 0.0005
+        self.solveroptions.solver = 'gurobi_persistent'
+        self.solveroptions.mipgap = 0.01
         self.solveroptions.timelim = 10
         self.solveroptions.threads = 0
         self.solveroptions.mipfocus = 0
-        self.solveroptions.nodefilestart = 0.5
+        self.solveroptions.nodefilestart = 5
         self.solveroptions.method = -1
         self.solveroptions.heuristics = 0.05
         self.solveroptions.presolve = -1
@@ -178,11 +178,12 @@ class ModelConfiguration:
         self.solveroptions.feastol = 1e-6
         self.solveroptions.numericfocus = 0
         self.solveroptions.cuts = -1
+        self.solveroptions.nodefiledir = '//ad.geo.uu.nl/Users/StaffUsers/6574114/gurobifiles/'
 
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
-        self.reporting.save_path = './userData/OB'
-        self.reporting.case_name = -1
+        self.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/OceanBattery/'
+        self.reporting.case_name = 'SD1_test'
         self.reporting.write_solution_diagnostics = 0
 
         self.energybalance = SimpleNamespace()

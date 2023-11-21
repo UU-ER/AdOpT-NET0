@@ -236,7 +236,6 @@ class OceanBattery3(Technology):
         b_tec.const_total_outflow = Constraint(self.set_t, rule=init_total_outflow)
 
         # CAPEX Calculation
-        # TODO add annualization_factor to var_capex pump and turbine
         b_tec.const_capex_aux = Constraint(expr=b_tec.para_unit_capex_reservoir_annual * b_tec.var_size +
                                                 sum(b_tec.var_capex_turbine[turbine] for
                                                                      turbine in b_tec.set_turbine_slots) +
