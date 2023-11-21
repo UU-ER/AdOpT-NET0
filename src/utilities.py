@@ -17,6 +17,7 @@ def get_gurobi_parameters(solveroptions):
     solver.options['FeasibilityTol'] = solveroptions.feastol
     solver.options['Cuts'] = solveroptions.cuts
     solver.options['NumericFocus'] = solveroptions.numericfocus
+    solver.options['NodefileDir'] = solveroptions.nodefiledir
 
     return solver
 
