@@ -367,12 +367,11 @@ class OceanBattery3(Technology):
         bp_x = fit['bp_x']
         alpha2 = fit['alpha2']
         alpha1 = fit['alpha1']
-
         s_indicators_pump_design = range(0, len(bp_x) - 1)
 
         def pump_design_dis_init(dis, ind):
             def init_design_power(const):
-                return b_tec.var_designpower_single_pump == alpha1[ind] + alpha2[ind] * b_tec.var_designflow_single_pump
+                return b_tec.var_designpower_single_pump == alpha1[ind] * b_tec.var_designflow_single_pump + alpha2[ind]
 
             dis.const_design_power = Constraint(rule=init_design_power)
 
