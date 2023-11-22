@@ -2,8 +2,9 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.interpolate import griddata
 
-result_folder = 'C:/Users/6145795/OneDrive - Universiteit Utrecht/ESCAPE_Conference paper_Data exchange/Results/v2/'
+result_folder = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/ESCAPE_Conference paper_Data exchange/Results/v2/'
 
 result_data = []
 for folder in os.listdir(result_folder):
@@ -38,14 +39,33 @@ for folder in os.listdir(result_folder):
                 result_data.append(parameters)
 
 result_df = pd.DataFrame(result_data)
-
 ### PLOT: CAPEX, SD, RESERVOIR SIZE
+reservoir_size = result_df[['SD', 'CAPEX', 'reservoir_size']]
+reservoir_size = reservoir_size.sort_values(by=['SD', 'CAPEX'])
+reservoir_size.pivot(index='SD', columns='CAPEX', values='reservoir_size')
 
-x = result_df["SD"]
-y = result_df["CAPEX"]
-z = result_df["reservoir_size"]
+
+x = result_df["SD"].values
+y = result_df["CAPEX"].values
+z = result_df["reservoir_size"].values
+
+x_p, y_p = np.meshgrid(np.linspace(x.min(), x.max(), 4),
+                                  np.linspace(y.min(), y.max(), 20))
+
+
+# x_p, y_p = np.meshgrid(x.unique(), y.unique())
+z_p = griddata((x, y), z, (x_p, y_p), method='linear')
+
+
 
 plt.figure()
+scatter = plt.scatter(x, y, c=z, cmap='viridis', edgecolors='k', marker='o', s=50)
+plt.show()
+
+
+
+plt.figure()
+plt.contourf(x_p,y_p,z_p)
 contour = plt.tricontour(x, y, z, cmap='viridis')
 plt.colorbar(contour, label='Reservoir Size [m3]')
 plt.xlabel('SD')
