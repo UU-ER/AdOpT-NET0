@@ -11,7 +11,6 @@ from pyomo.gdp import *
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import random
 
 from src.components.technologies.utilities import FittedPerformance
 from src.components.technologies.technology import Technology
@@ -406,9 +405,6 @@ class OceanBattery3(Technology):
                 Each turbine type is modelled as a block: turbine_performance_block (Block)
                     Each turbine type block (turbine_performance_block) contains a disjunct for on-off scheduling
         """
-
-        coeff = self.fitted_performance.coefficients
-
         configuration = energyhub.configuration
         economics = self.economics
         discount_rate = set_discount_rate(configuration, economics)
@@ -453,9 +449,18 @@ class OceanBattery3(Technology):
 
                 # CAPEX constraint
                 def init_turbine_installed_capex(const):
-                    return b_tec.var_capex_turbine[turb_slot] == random.uniform(0.99, 1.01) * ((capex_turbines['alpha_1'][0] * b_tec.var_designpower_single_turbine
+                    return b_tec.var_capex_turbine[turb_slot] == ((capex_turbines['alpha_1'][0] * b_tec.var_designpower_single_turbine
                                                                   + capex_turbines['alpha_2'][0]) * annualization_factor)
                 dis.const_turbine_installed_capex = Constraint(rule=init_turbine_installed_capex)
+
+                if turb_slot >= 2:
+                    def init_turbine_installation_hierarchy(const):
+                        return b_tec.var_capex_turbine[turb_slot] <= b_tec.var_capex_turbine[turb_slot-1]
+                    dis.const_turbine_installation_hierarchy = Constraint(rule=init_turbine_installation_hierarchy)
+
+                    def init_turbine_flow_hierarchy(const, t):
+                        return b_tec.var_outflow_turbine[t, turb_slot] <= b_tec.var_outflow_turbine[t, turb_slot-1]
+                    dis.const_turbine_flow_hierarchy = Constraint(self.set_t_full, rule=init_turbine_flow_hierarchy)
 
                 def turbine_performance_block_init(b_turbine_performance):
 
@@ -600,9 +605,18 @@ class OceanBattery3(Technology):
 
                 # CAPEX constraint
                 def init_pump_installed_capex(const):
-                    return b_tec.var_capex_pump[pump_slot] == random.uniform(0.99, 1.01) * ((capex_pumps['alpha_1'][0] * b_tec.var_designpower_single_pump
+                    return b_tec.var_capex_pump[pump_slot] == ((capex_pumps['alpha_1'][0] * b_tec.var_designpower_single_pump
                                                                 + capex_pumps['alpha_2'][0]) * annualization_factor)
                 dis.const_pump_installed_capex = Constraint(rule=init_pump_installed_capex)
+
+                if pump_slot >= 2:
+                    def init_pump_installation_hierarchy(const):
+                        return b_tec.var_capex_pump[pump_slot] <= b_tec.var_capex_pump[pump_slot-1]
+                    dis.const_pump_installation_hierarchy = Constraint(rule=init_pump_installation_hierarchy)
+
+                    def init_pump_flow_hierarchy(const, t):
+                        return b_tec.var_inflow_pump[t, pump_slot] <= b_tec.var_inflow_pump[t, pump_slot-1]
+                    dis.const_pump_flow_hierarchy = Constraint(self.set_t_full, rule=init_pump_flow_hierarchy)
 
                 def pump_performance_block_init(b_pump_performance):
 

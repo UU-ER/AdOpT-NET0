@@ -21,7 +21,7 @@ topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='05-01 00:00', end_date='05-31 23:00', resolution=1)
 topology.define_carriers(['electricity'])
 topology.define_nodes(['offshore'])
-topology.define_new_technologies('offshore', ['Storage_OceanBattery_specific_3'])
+topology.define_new_technologies('offshore', ['Storage_OceanBattery_specific_3_2bp'])
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)
@@ -83,7 +83,7 @@ data.read_technology_data()
 data.read_network_data()
 
 # Orignial values
-capex_original = data.technology_data['offshore']['Storage_OceanBattery_specific_3'].economics.capex_data['unit_capex']
+capex_original = data.technology_data['offshore']['Storage_OceanBattery_specific_3_2bp'].economics.capex_data['unit_capex']
 
 
 # SAVING/LOADING DATA FILE
@@ -95,7 +95,7 @@ energyhub = EnergyHub(data, configuration)
 results = energyhub.quick_solve()
 
 el_import_price_original = np.array(data.node_data['offshore'].data['import_prices']['electricity'])
-capex_original = energyhub.model.node_blocks['offshore'].tech_blocks_active['Storage_OceanBattery_specific_3'].para_unit_capex_reservoir_annual.value
+capex_original = energyhub.model.node_blocks['offshore'].tech_blocks_active['Storage_OceanBattery_specific_3_2bp'].para_unit_capex_reservoir_annual.value
 
 for sd in SD_list:
     for capex_share in CAPEX_list:
@@ -117,7 +117,7 @@ for sd in SD_list:
             b_node.para_export_price[t, 'electricity'] = el_import_price[t-1]
 
         # Change the capex
-        b_tec = b_node.tech_blocks_active['Storage_OceanBattery_specific_3']
+        b_tec = b_node.tech_blocks_active['Storage_OceanBattery_specific_3_2bp']
         # b_tec.para_unit_capex_reservoir_annual.pprint()
         b_tec.para_unit_capex_reservoir_annual = capex_original * capex_share
 
@@ -130,6 +130,6 @@ for sd in SD_list:
                                                 b_tec.var_capex_aux)
 
 
-        energyhub.configuration.reporting.case_name = 'MAY19_SD'+ str(round(sd,2)) + '_CAPEX' + str(round(capex_share,2))
+        energyhub.configuration.reporting.case_name = 'MAY19_2bp_SD'+ str(round(sd,2)) + '_CAPEX' + str(round(capex_share,2))
         energyhub.model = add_system_costs(energyhub)
         energyhub.solve()
