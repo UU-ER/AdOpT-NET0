@@ -80,6 +80,7 @@ def test_technology_CONV1():
     """
     # performance through origin
     data = load_object(r'./src/test/test_data/technology_CONV1_1.p')
+    cost_correction = data.topology.fraction_of_year_modelled
     configuration = ModelConfiguration()
     tecname = 'testCONV1_1'
     energyhub = EnergyHub(data, configuration)
@@ -90,7 +91,7 @@ def test_technology_CONV1():
     allowed_fitting_error = 0.1
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -104,7 +105,7 @@ def test_technology_CONV1():
     heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
-    assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
+    assert abs(tec_size * 10 * cost_correction- objective_value) / objective_value <= allowed_fitting_error
     assert hydrogen_in_1 == tec_size
     assert 0 == gas_in_1
     assert 0 == gas_in_2
@@ -118,6 +119,7 @@ def test_technology_CONV1():
     # performance not through origin
     allowed_fitting_error = 0.1
     data = load_object(r'./src/test/test_data/technology_CONV1_2.p')
+    cost_correction = data.topology.fraction_of_year_modelled
     configuration = ModelConfiguration()
     tecname = 'testCONV1_2'
     energyhub = EnergyHub(data, configuration)
@@ -126,7 +128,7 @@ def test_technology_CONV1():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -141,7 +143,7 @@ def test_technology_CONV1():
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
 
-    assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
+    assert abs(tec_size * 10 * cost_correction - objective_value) / objective_value <= allowed_fitting_error
     assert abs((hydrogen_in_1 - tec_size) / tec_size) <= allowed_fitting_error
     assert 0 == gas_in_1
     assert 0 == gas_in_2
@@ -155,6 +157,7 @@ def test_technology_CONV1():
     # piecewise
     allowed_fitting_error = 0.1
     data = load_object(r'./src/test/test_data/technology_CONV1_3.p')
+    cost_correction = data.topology.fraction_of_year_modelled
     tecname = 'testCONV1_3'
     energyhub = EnergyHub(data, configuration)
     energyhub.model_information.testing = 1
@@ -162,7 +165,7 @@ def test_technology_CONV1():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -177,7 +180,7 @@ def test_technology_CONV1():
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
 
-    assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
+    assert abs(tec_size * 10 * cost_correction - objective_value) / objective_value <= allowed_fitting_error
     assert hydrogen_in_1 == tec_size
     assert 0 == gas_in_1
     assert 0 == gas_in_2
@@ -216,6 +219,8 @@ def test_technology_CONV2():
     # performance through origin
     allowed_fitting_error = 0.05
     data = load_object(r'./src/test/test_data/technology_CONV2_1.p')
+    cost_correction = data.topology.fraction_of_year_modelled
+
     configuration = ModelConfiguration()
     tecname = 'testCONV2_1'
     energyhub = EnergyHub(data, configuration)
@@ -224,7 +229,7 @@ def test_technology_CONV2():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -238,7 +243,7 @@ def test_technology_CONV2():
     heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
-    assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
+    assert abs(tec_size * 10 * cost_correction - objective_value) / objective_value <= allowed_fitting_error
     assert 0.75 == heat_out_1
     assert 0.5 == heat_out_2
     assert hydrogen_in_1 == tec_size
@@ -252,6 +257,8 @@ def test_technology_CONV2():
     # performance not through origin
     allowed_fitting_error = 0.05
     data = load_object(r'./src/test/test_data/technology_CONV2_2.p')
+    cost_correction = data.topology.fraction_of_year_modelled
+
     tecname = 'testCONV2_2'
     energyhub = EnergyHub(data, configuration)
     energyhub.model_information.testing = 1
@@ -259,7 +266,7 @@ def test_technology_CONV2():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -273,7 +280,7 @@ def test_technology_CONV2():
     heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
-    assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
+    assert abs(tec_size * 10 * cost_correction - objective_value) / objective_value <= allowed_fitting_error
     assert 0.75 == heat_out_1
     assert 0.5 == heat_out_2
     assert 0 == gas_in_1
@@ -285,6 +292,8 @@ def test_technology_CONV2():
 
     # piecewise
     data = load_object(r'./src/test/test_data/technology_CONV2_3.p')
+    cost_correction = data.topology.fraction_of_year_modelled
+
     tecname = 'testCONV2_3'
     energyhub = EnergyHub(data, configuration)
     energyhub.model_information.testing = 1
@@ -292,7 +301,7 @@ def test_technology_CONV2():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -306,7 +315,7 @@ def test_technology_CONV2():
     heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
-    assert abs(tec_size * 10 - objective_value) / objective_value <= allowed_fitting_error
+    assert abs(tec_size * 10 * cost_correction - objective_value) / objective_value <= allowed_fitting_error
     assert 0.75 == heat_out_1
     assert 0.5 == heat_out_2
     assert 0 == gas_in_1
@@ -345,7 +354,10 @@ def test_technology_CONV3():
     """
     # Piecewise definition
     data = load_object(r'./src/test/test_data/technology_CONV3_3.p')
+    cost_correction = data.topology.fraction_of_year_modelled
+
     configuration = ModelConfiguration()
+    allowed_fitting_error = 0.25
     tecname = 'testCONV3_3'
     energyhub = EnergyHub(data, configuration)
     energyhub.model_information.testing = 1
@@ -353,7 +365,7 @@ def test_technology_CONV3():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 2)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -367,7 +379,7 @@ def test_technology_CONV3():
     heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
-    assert 10 == objective_value
+    assert abs(10 * cost_correction - objective_value) / 10 <= allowed_fitting_error
     assert gas_in_1 == tec_size
     assert 1 == gas_in_1
     assert 2 == hydrogen_in_1
@@ -381,6 +393,8 @@ def test_technology_CONV3():
     # performance through origin
     allowed_fitting_error = 0.25
     data = load_object(r'./src/test/test_data/technology_CONV3_1.p')
+    cost_correction = data.topology.fraction_of_year_modelled
+
     tecname = 'testCONV3_1'
     energyhub = EnergyHub(data, configuration)
     energyhub.model_information.testing = 1
@@ -388,7 +402,7 @@ def test_technology_CONV3():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -402,7 +416,7 @@ def test_technology_CONV3():
     heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
-    assert abs(10 - objective_value) / 10 <= allowed_fitting_error
+    assert abs(10 * cost_correction - objective_value) / 10 <= allowed_fitting_error
     assert gas_in_1 == tec_size
     assert abs(1 - gas_in_1) / 1 <= allowed_fitting_error
     assert abs(2 - hydrogen_in_1) / 2 <= allowed_fitting_error
@@ -415,6 +429,8 @@ def test_technology_CONV3():
 
     # performance not through origin
     data = load_object(r'./src/test/test_data/technology_CONV3_2.p')
+    cost_correction = data.topology.fraction_of_year_modelled
+
     tecname = 'testCONV3_2'
     energyhub = EnergyHub(data, configuration)
     energyhub.model_information.testing = 1
@@ -422,7 +438,7 @@ def test_technology_CONV3():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     tec_size = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_size.value, 3)
     gas_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'gas'].value, 3)
     hydrogen_in_1 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[1, 'hydrogen'].value,
@@ -436,7 +452,7 @@ def test_technology_CONV3():
     heat_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'heat'].value, 3)
     el_out_2 = round(energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[2, 'electricity'].value,
                      3)
-    assert abs(10 - objective_value) / 10 <= allowed_fitting_error
+    assert abs(10 * cost_correction - objective_value) / 10 <= allowed_fitting_error
     assert abs(gas_in_1 - tec_size) / tec_size <= allowed_fitting_error
     assert abs(gas_in_1 - round(1 - 0.05 / 0.75, 3)) / round(1 - 0.05 / 0.75, 3) <= allowed_fitting_error
     assert abs(gas_in_1 * 2- hydrogen_in_1)/hydrogen_in_1<= allowed_fitting_error
@@ -449,6 +465,7 @@ def test_technology_CONV3():
 
     # Min partload
     data = load_object(r'./src/test/test_data/technology_CONV3_2.p')
+
     data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
     data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
     energyhub = EnergyHub(data, configuration)
@@ -479,7 +496,7 @@ def test_technology_CONV4():
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    objective_value = round(energyhub.model.objective(), 3)
+    objective_value = round(energyhub.model.objective(), 6)
     heat_out_1 = round(
         energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_output[1, 'heat'].value, 3)
     el_out_1 = round(
