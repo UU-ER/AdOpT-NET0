@@ -274,24 +274,26 @@ class Technology(ModelComponent):
 
         economics = self.economics
         discount_rate = set_discount_rate(configuration, economics)
+        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
+
         capex_model = set_capex_model(configuration, economics)
 
         def calculate_max_capex():
             if self.economics.capex_model == 1:
                 max_capex = b_tec.para_size_max * \
-                            economics.capex_data['unit_capex']
+                            economics.capex_data['unit_capex'] * annualization_factor
             elif self.economics.capex_model == 2:
-                max_capex = b_tec.para_size_max * max(economics.capex_data['piecewise_capex']['bp_y'])
+                max_capex = b_tec.para_size_max * max(economics.capex_data['piecewise_capex']['bp_y']) * annualization_factor
             elif self.economics.capex_model == 3:
-                max_capex = b_tec.para_size_max * \
-                            economics.capex_data['unit_capex'] + economics.capex_data['fix_capex']
+                max_capex = (b_tec.para_size_max *
+                             economics.capex_data['unit_capex'] + economics.capex_data['fix_capex']) * annualization_factor
             return (0, max_capex)
 
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
         b_tec.var_capex_aux = Var(bounds=calculate_max_capex())
-        annualization_factor = annualize(discount_rate, economics.lifetime)
 
         if capex_model == 1:
             b_tec.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)

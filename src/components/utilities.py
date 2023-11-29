@@ -3,7 +3,7 @@ import time
 from pyomo.core import TransformationFactory
 from pyomo.environ import *
 
-def annualize(r, t):
+def annualize(r, t, year_fraction):
     """
     Calculates annualization factor
     :param r: interest rate
@@ -14,7 +14,7 @@ def annualize(r, t):
         annualization_factor = 1/t
     else:
         annualization_factor = r / (1 - (1 / (1 + r) ** t))
-    return annualization_factor
+    return annualization_factor * year_fraction
 
 
 def set_discount_rate(configuration, economics):

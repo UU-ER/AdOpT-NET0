@@ -13,6 +13,7 @@ def test_networks():
     """
     # Test bidirectional
     data = load_object(r'./src/test/test_data/networks.p')
+    cost_correction = data.topology.fraction_of_year_modelled
     configuration = ModelConfiguration()
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
     data.network_data['hydrogenTest'].energy_consumption = {}
@@ -28,7 +29,7 @@ def test_networks():
     res = energyhub1.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
     assert abs(should - res) / res <= 0.001
     # is capex correct
-    should = 1020
+    should = 1020 * cost_correction
     res = energyhub1.model.network_block['hydrogenTest'].var_capex.value
     assert abs(should - res) / res <= 0.001
 
@@ -50,6 +51,7 @@ def test_networks():
 
     # Test consumption at node
     data = load_object(r'./src/test/test_data/networks.p')
+    cost_correction = data.topology.fraction_of_year_modelled
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     energyhub3 = ehub(data, configuration)
     energyhub3.model_information.testing = 1
@@ -69,7 +71,7 @@ def test_networks():
     res = energyhub3.model.node_blocks['test_node2'].var_import_flow[2, 'electricity'].value
     assert abs(should - res) / res <= 0.001
     # Is objective correct
-    should = 2440
+    should = 2440 * cost_correction
     res = energyhub3.model.objective()
     assert abs(should - res) / res <= 0.001
 
