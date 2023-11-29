@@ -274,13 +274,27 @@ class Technology(ModelComponent):
 
         economics = self.economics
         discount_rate = set_discount_rate(configuration, economics)
+        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
+
         capex_model = set_capex_model(configuration, economics)
 
-        # CAPEX auxiliary (used to calculate theoretical CAPEX)
+        def calculate_max_capex():
+            if self.economics.capex_model == 1:
+                max_capex = b_tec.para_size_max * \
+                            economics.capex_data['unit_capex'] * annualization_factor
+            elif self.economics.capex_model == 2:
+                max_capex = b_tec.para_size_max * max(economics.capex_data['piecewise_capex']['bp_y']) * annualization_factor
+            elif self.economics.capex_model == 3:
+                max_capex = (b_tec.para_size_max *
+                             economics.capex_data['unit_capex'] + economics.capex_data['fix_capex']) * annualization_factor
+            return (0, max_capex)
+
+        # CAPEX auxilliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
-        b_tec.var_capex_aux = Var()
-        annualization_factor = annualize(discount_rate, economics.lifetime)
+        b_tec.var_capex_aux = Var(bounds=calculate_max_capex())
+
         if capex_model == 1:
             b_tec.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
             b_tec.para_unit_capex_annual = Param(domain=Reals,
@@ -308,8 +322,28 @@ class Technology(ModelComponent):
             b_tec.para_fix_capex_annual = Param(domain=Reals,
                                                  initialize=annualization_factor * economics.capex_data['fix_capex'],
                                                  mutable=True)
-            b_tec.const_capex_aux = Constraint(
-                expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
+
+            # capex unit commitment constraint
+            self.big_m_transformation_required = 1
+            s_indicators = range(0, 2)
+
+            def init_installation(dis, ind):
+                if ind == 0:  # tech not installed
+                    dis.const_capex_aux = Constraint(expr=b_tec.var_capex_aux == 0)
+                    dis.const_not_installed = Constraint(expr=b_tec.var_size == 0)
+                else:  # tech installed
+                    dis.const_capex_aux = Constraint(
+                        expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
+
+            b_tec.dis_installation = Disjunct(s_indicators, rule=init_installation)
+
+            def bind_disjunctions(dis):
+                return [b_tec.dis_installation[i] for i in s_indicators]
+
+            b_tec.disjunction_installation = Disjunction(rule=bind_disjunctions)
+
+            # b_tec.const_capex_aux = Constraint(
+            #     expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
 
         # CAPEX
         if self.existing and not self.decommission:
