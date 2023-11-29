@@ -8,6 +8,50 @@ from ..technology import Technology
 
 
 class Conv2(Technology):
+    """
+    This technology type resembles a technology with full input substitution, but different performance functions
+    for the respective output carriers, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
+    Three different performance function fits are possible.
+
+    **Constraint declarations:**
+
+    - Size constraints are formulated on the input.
+
+      .. math::
+         \sum(Input_{t, car}) \leq S
+
+    - It is possible to limit the maximum input of a carrier. This needs to be specified in the technology JSON files.
+      Then it holds:
+
+      .. math::
+        Input_{t, car} <= max_in_{car} * \sum(Input_{t, car})
+
+    - ``performance_function_type == 1``: Linear through origin, i.e.:
+
+      .. math::
+        Output_{t, car} == {\\alpha}_{1, car} \sum(Input_{t, car})
+
+    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
+      technology is in on, it holds:
+
+      .. math::
+        Output_{t, car} = {\\alpha}_{1, car} \sum(Input_{t, car}) + {\\alpha}_{2, car}
+
+      .. math::
+        \sum(Input_{car}) \geq Input_{min} * S
+
+      If the technology is off, input and output is set to 0:
+
+      .. math::
+         Output_{t, car} = 0
+
+      .. math::
+         \sum(Input_{t, car}) = 0
+
+    - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
+      The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
+      is defined piecewise for the respective number of pieces
+    """
 
     def __init__(self,
                  tec_data):
@@ -33,50 +77,7 @@ class Conv2(Technology):
 
     def construct_tech_model(self, b_tec, energyhub):
         """
-        Adds constraints to technology blocks for tec_type CONV2, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
-
-        This technology type resembles a technology with full input substitution, but different performance functions
-        for the respective output carriers.
-        Three different performance function fits are possible. 
-
-        **Constraint declarations:**
-
-        - Size constraints are formulated on the input.
-
-          .. math::
-             \sum(Input_{t, car}) \leq S
-
-        - It is possible to limit the maximum input of a carrier. This needs to be specified in the technology JSON files.
-          Then it holds:
-
-          .. math::
-            Input_{t, car} <= max_in_{car} * \sum(Input_{t, car})
-
-        - ``performance_function_type == 1``: Linear through origin, i.e.:
-
-          .. math::
-            Output_{t, car} == {\\alpha}_{1, car} \sum(Input_{t, car})
-
-        - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
-          technology is in on, it holds:
-
-          .. math::
-            Output_{t, car} = {\\alpha}_{1, car} \sum(Input_{t, car}) + {\\alpha}_{2, car}
-
-          .. math::
-            \sum(Input_{car}) \geq Input_{min} * S
-
-          If the technology is off, input and output is set to 0:
-
-          .. math::
-             Output_{t, car} = 0
-
-          .. math::
-             \sum(Input_{t, car}) = 0
-
-        - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
-          The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
-          is defined piecewise for the respective number of pieces
+        Adds constraints to technology blocks for tec_type CONV2
 
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance

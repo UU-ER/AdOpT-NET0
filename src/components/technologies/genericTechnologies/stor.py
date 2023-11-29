@@ -9,26 +9,82 @@ from ..technology import Technology
 
 
 class Stor(Technology):
+    """
+    This model resembles a storage technology.
+    Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
 
-    def __init__(self,
-                 tec_data):
+    **Parameter declarations:**
+
+    - :math:`{\\eta}_{in}`: Charging efficiency
+
+    - :math:`{\\eta}_{out}`: Discharging efficiency
+
+    - :math:`{\\lambda_1}`: Self-Discharging coefficient (independent of environment)
+
+    - :math:`{\\lambda_2(\\Theta)}`: Self-Discharging coefficient (dependent on environment)
+
+    - :math:`Input_{max}`: Maximal charging capacity in one time-slice
+
+    - :math:`Output_{max}`: Maximal discharging capacity in one time-slice
+
+    **Variable declarations:**
+
+    - Storage level in :math:`t`: :math:`E_t`
+
+    - Charging in in :math:`t`: :math:`Input_{t}`
+
+    - Discharging in in :math:`t`: :math:`Output_{t}`
+
+    **Constraint declarations:**
+
+    - Maximal charging and discharging:
+
+      .. math::
+        Input_{t} \leq Input_{max}
+
+      .. math::
+        Output_{t} \leq Output_{max}
+
+    - Size constraint:
+
+      .. math::
+        E_{t} \leq S
+
+    - Storage level calculation:
+
+      .. math::
+        E_{t} = E_{t-1} * (1 - \\lambda_1) - \\lambda_2(\\Theta) * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
+
+    - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
+      step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
+
+    - If an energy consumption for charging or dis-charging process is given, the respective carrier input is:
+
+      .. math::
+        Input_{t, car} = cons_{car, in} Input_{t}
+
+      .. math::
+        Input_{t, car} = cons_{car, out} Output_{t}
+    """
+
+    def __init__(self, tec_data):
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
 
     def fit_technology_performance(self, node_data):
         """
-        Fits conversion technology type 1 and returns fitted parameters as a dict
+        Fits conversion technology type STOR and returns fitted parameters as a dict
 
         :param node_data: contains data on demand, climate data, etc.
-        :param performance_data: contains X and y data of technology performance
-        :param performance_function_type: options for type of performance function (linear, piecewise,...)
-        :param nr_seg: number of segments on piecewise defined function
         """
 
         climate_data = node_data.data['climate_data']
 
         time_steps = len(climate_data)
+
+        # Main carrier (carrier to be stored)
+        self.main_car = self.performance_data['main_input_carrier']
 
         # Calculate ambient loss factor
         theta = self.performance_data['performance']['theta']
@@ -58,58 +114,11 @@ class Stor(Technology):
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
-        
-        Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
-
-        **Parameter declarations:**
-
-        - :math:`{\\eta}_{in}`: Charging efficiency
-
-        - :math:`{\\eta}_{out}`: Discharging efficiency
-
-        - :math:`{\\lambda_1}`: Self-Discharging coefficient (independent of environment)
-
-        - :math:`{\\lambda_2(\\Theta)}`: Self-Discharging coefficient (dependent on environment)
-
-        - :math:`Input_{max}`: Maximal charging capacity in one time-slice
-
-        - :math:`Output_{max}`: Maximal discharging capacity in one time-slice
-
-        **Variable declarations:**
-
-        - Storage level in :math:`t`: :math:`E_t`
-
-        - Charging in in :math:`t`: :math:`Input_{t}`
-
-        - Discharging in in :math:`t`: :math:`Output_{t}`
-
-        **Constraint declarations:**
-
-        - Maximal charging and discharging:
-
-          .. math::
-            Input_{t} \leq Input_{max}
-
-          .. math::
-            Output_{t} \leq Output_{max}
-
-        - Size constraint:
-
-          .. math::
-            E_{t} \leq S
-
-        - Storage level calculation:
-
-          .. math::
-            E_{t} = E_{t-1} * (1 - \\lambda_1) - \\lambda_2(\\Theta) * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
-
-        - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
-          step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
-
-        :param obj b_tec: technology block
-        :param Energyhub energyhub: energyhub instance
-        :return: technology block
+        :param b_tec:
+        :param energyhub:
+        :return: b_tec
         """
+
         super(Stor, self).construct_tech_model(b_tec, energyhub)
 
         set_t_full = energyhub.model.set_t_full
@@ -117,7 +126,6 @@ class Stor(Technology):
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         coeff = self.fitted_performance.coefficients
-        rated_power = self.fitted_performance.rated_power
 
         if 'allow_only_one_direction' in performance_data:
             allow_only_one_direction = performance_data['allow_only_one_direction']
@@ -127,7 +135,7 @@ class Stor(Technology):
         nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
 
         # Additional decision variables
-        b_tec.var_storage_level = Var(set_t_full, b_tec.set_input_carriers,
+        b_tec.var_storage_level = Var(set_t_full,
                                       domain=NonNegativeReals,
                                       bounds=(b_tec.para_size_min, b_tec.para_size_max))
 
@@ -140,46 +148,45 @@ class Stor(Technology):
         ambient_loss_factor = coeff['ambient_loss_factor']
 
         # Size constraint
-        def init_size_constraint(const, t, car):
-            return b_tec.var_storage_level[t, car] <= b_tec.var_size
-
-        b_tec.const_size = Constraint(set_t_full, b_tec.set_input_carriers, rule=init_size_constraint)
+        def init_size_constraint(const, t):
+            return b_tec.var_storage_level[t] <= b_tec.var_size
+        b_tec.const_size = Constraint(set_t_full, rule=init_size_constraint)
 
         # Storage level calculation
         if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
-            def init_storage_level(const, t, car):
+            def init_storage_level(const, t):
                 if t == 1:  # couple first and last time interval
-                    return b_tec.var_storage_level[t, car] == \
-                           b_tec.var_storage_level[max(set_t_full), car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
-                           b_tec.var_storage_level[max(set_t_full), car] * ambient_loss_factor[
+                    return b_tec.var_storage_level[t] == \
+                           b_tec.var_storage_level[max(set_t_full)] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                           b_tec.var_storage_level[max(set_t_full)] * ambient_loss_factor[
                                max(set_t_full) - 1] ** nr_timesteps_averaged + \
-                           (eta_in * self.input[self.sequence[t - 1], car] - 1 / eta_out * self.output[self.sequence[t - 1], car]) * \
+                           (eta_in * self.input[self.sequence[t - 1], self.main_car] - 1 / eta_out * self.output[self.sequence[t - 1], self.main_car]) * \
                            sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
                 else:  # all other time intervalls
-                    return b_tec.var_storage_level[t, car] == \
-                           b_tec.var_storage_level[t - 1, car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
-                           b_tec.var_storage_level[t, car] * ambient_loss_factor[t - 1] ** nr_timesteps_averaged + \
-                           (eta_in * self.input[self.sequence[t - 1], car] - 1 / eta_out * self.output[self.sequence[t - 1], car]) * \
+                    return b_tec.var_storage_level[t] == \
+                           b_tec.var_storage_level[t - 1] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                           b_tec.var_storage_level[t] * ambient_loss_factor[t - 1] ** nr_timesteps_averaged + \
+                           (eta_in * self.input[self.sequence[t - 1], self.main_car] - 1 / eta_out * self.output[self.sequence[t - 1], self.main_car]) * \
                            sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
 
-            b_tec.const_storage_level = Constraint(set_t_full, b_tec.set_input_carriers, rule=init_storage_level)
+            b_tec.const_storage_level = Constraint(set_t_full, rule=init_storage_level)
         else:
-            def init_storage_level(const, t, car):
+            def init_storage_level(const, t):
                 if t == 1:  # couple first and last time interval
-                    return b_tec.var_storage_level[t, car] == \
-                           b_tec.var_storage_level[max(set_t_full), car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
-                           b_tec.var_storage_level[max(set_t_full), car] * ambient_loss_factor[
+                    return b_tec.var_storage_level[t] == \
+                           b_tec.var_storage_level[max(set_t_full)] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                           b_tec.var_storage_level[max(set_t_full)] * ambient_loss_factor[
                                max(set_t_full) - 1] ** nr_timesteps_averaged + \
-                           (eta_in * self.input[t, car] - 1 / eta_out * self.output[
-                               t, car]) * \
+                           (eta_in * self.input[t, self.main_car] - 1 / eta_out * self.output[
+                               t, self.main_car]) * \
                            sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
                 else:  # all other time intervalls
-                    return b_tec.var_storage_level[t, car] == \
-                           b_tec.var_storage_level[t - 1, car] * (1 - eta_lambda) ** nr_timesteps_averaged - \
-                           b_tec.var_storage_level[t, car] * ambient_loss_factor[t - 1] ** nr_timesteps_averaged + \
-                           (eta_in * self.input[t, car] - 1 / eta_out * self.output[t, car]) * \
+                    return b_tec.var_storage_level[t] == \
+                           b_tec.var_storage_level[t - 1] * (1 - eta_lambda) ** nr_timesteps_averaged - \
+                           b_tec.var_storage_level[t] * ambient_loss_factor[t - 1] ** nr_timesteps_averaged + \
+                           (eta_in * self.input[t, self.main_car] - 1 / eta_out * self.output[t, self.main_car]) * \
                            sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged))
-            b_tec.const_storage_level = Constraint(set_t_full, b_tec.set_input_carriers, rule=init_storage_level)
+            b_tec.const_storage_level = Constraint(set_t_full, rule=init_storage_level)
 
         # This makes sure that only either input or output is larger zero.
         if allow_only_one_direction == 1:
@@ -187,15 +194,15 @@ class Stor(Technology):
             s_indicators = range(0, 2)
 
             # Cut according to Germans work
-            def init_cut_bidirectional(const, t, car):
-                return self.output[t, car] / discharge_max + self.input[t, car] / charge_max <= b_tec.var_size
-            b_tec.const_cut_bidirectional = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_cut_bidirectional)
+            def init_cut_bidirectional(const, t):
+                return self.output[t, self.main_car] / discharge_max + self.input[t, self.main_car] / charge_max <= b_tec.var_size
+            b_tec.const_cut_bidirectional = Constraint(self.set_t, rule=init_cut_bidirectional)
 
             def init_input_output(dis, t, ind):
                 if ind == 0:  # input only
-                    def init_output_to_zero(const, car_input):
-                        return self.output[t, car_input] == 0
-                    dis.const_output_to_zero = Constraint(b_tec.set_input_carriers, rule=init_output_to_zero)
+                    def init_output_to_zero(const, car_output):
+                        return self.output[t, car_output] == 0
+                    dis.const_output_to_zero = Constraint(b_tec.set_output_carriers, rule=init_output_to_zero)
 
                 elif ind == 1:  # output only
                     def init_input_to_zero(const, car_input):
@@ -210,14 +217,33 @@ class Stor(Technology):
             b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         # Maximal charging and discharging rates
-        def init_maximal_charge(const, t, car):
-            return self.input[t, car] <= charge_max * b_tec.var_size
-        b_tec.const_max_charge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
+        def init_maximal_charge(const, t):
+            return self.input[t, self.main_car] <= charge_max * b_tec.var_size
+        b_tec.const_max_charge = Constraint(self.set_t, rule=init_maximal_charge)
 
-        def init_maximal_discharge(const, t, car):
-            return self.output[t, car] <= discharge_max * b_tec.var_size
+        def init_maximal_discharge(const, t):
+            return self.output[t, self.main_car] <= discharge_max * b_tec.var_size
 
-        b_tec.const_max_discharge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
+        b_tec.const_max_discharge = Constraint(self.set_t, rule=init_maximal_discharge)
+
+        # Energy consumption charging/discharging
+        if 'energy_consumption' in coeff:
+            energy_consumption = coeff['energy_consumption']
+            if 'in' in energy_consumption:
+                b_tec.set_energyconsumption_carriers_in = Set(initialize=energy_consumption['in'].keys())
+
+                def init_energyconsumption_in(const, t, car):
+                    return self.input[t, car] == self.input[t, self.main_car] * energy_consumption['in'][car]
+                b_tec.const_energyconsumption_in = Constraint(self.set_t, b_tec.set_energyconsumption_carriers_in,
+                                                       rule=init_energyconsumption_in)
+
+            if 'out' in energy_consumption:
+                b_tec.set_energyconsumption_carriers_out = Set(initialize=energy_consumption['out'].keys())
+
+                def init_energyconsumption_out(const, t, car):
+                    return self.output[t, car] == self.output[t, self.main_car] * energy_consumption['out'][car]
+                b_tec.const_energyconsumption_out = Constraint(self.set_t, b_tec.set_energyconsumption_carriers_out,
+                                                       rule=init_energyconsumption_out)
 
         # RAMPING RATES
         if "ramping_rate" in self.performance_data:
@@ -235,8 +261,7 @@ class Stor(Technology):
         """
         super(Stor, self).report_results(b_tec)
 
-        for car in b_tec.set_input_carriers:
-            self.results['time_dependent']['storagelevel_' + car] = [b_tec.var_storage_level[t, car].value for t in self.set_t_full]
+        self.results['time_dependent']['storagelevel'] = [b_tec.var_storage_level[t].value for t in self.set_t_full]
 
         return self.results
 

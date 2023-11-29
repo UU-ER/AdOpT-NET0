@@ -10,6 +10,24 @@ from ..technology import Technology
 from ..utilities import FittedPerformance
 
 class Res(Technology):
+    """
+    Resembles a renewable technology with no input. The capacity factors of the technology are determined for each
+    individual technology type.
+
+    **Parameter declarations:**
+
+    - Capacity Factor of technology for each time step.
+
+    **Constraint declarations:**
+
+    - Output of technology. The output can be curtailed in three different ways. For ``curtailment == 0``, there is
+      no curtailment possible. For ``curtailment == 1``, the curtailment is continuous. For ``curtailment == 2``,
+      the size needs to be an integer, and the technology can only be curtailed discretely, i.e. by turning full
+      modules off. For ``curtailment == 0`` (default), it holds:
+
+    .. math::
+        Output_{t, car} = CapFactor_t * Size
+    """
     def __init__(self,
                 tec_data):
         super().__init__(tec_data)
@@ -39,11 +57,11 @@ class Res(Technology):
 
     def __perform_fitting_PV(self, climate_data, location, **kwargs):
         """
-        Calculates capacity factors and specific area requirements for a PV system
+        Calculates capacity factors and specific area requirements for a PV system using pvlib
+
         :param climate_data: contains information on weather data
         :param location: contains lon, lat and altitude
         :param PV_type: (optional) can specify a certain type of module
-        :return: returns capacity factors and specific area requirements
         """
         # Todo: get perfect tilting angle
         if not kwargs.__contains__('system_data'):
@@ -119,10 +137,22 @@ class Res(Technology):
 
 
     def __perform_fitting_ST(self, climate_data):
+        """
+        Calculates capacity factors and specific area requirements for a solar thermal system
+
+        :param climate_data: contains information on weather data
+        :return: returns capacity factors and specific area requirements
+        """
         # Todo: code this
         print('Not coded yet')
 
     def __perform_fitting_WT(self, climate_data, hubheight):
+        """
+        Calculates capacity factors for a wint turbine
+
+        :param climate_data: contains information on weather data
+        :param hubheight: hubheight of wind turbine
+        """
         # Load data for wind turbine type
         WT_data = pd.read_csv(Path('./data/technology_data/RES/WT_data/WT_data.csv'), delimiter=';')
         WT_data = WT_data[WT_data['TurbineName'] == self.name]
@@ -172,20 +202,6 @@ class Res(Technology):
     def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type RES (renewable technology)
-
-        **Parameter declarations:**
-
-        - Capacity Factor of technology for each time step.
-
-        **Constraint declarations:**
-
-        - Output of technology. The output can be curtailed in three different ways. For ``curtailment == 0``, there is
-          no curtailment possible. For ``curtailment == 1``, the curtailment is continuous. For ``curtailment == 2``,
-          the size needs to be an integer, and the technology can only be curtailed discretely, i.e. by turning full
-          modules off. For ``curtailment == 0`` (default), it holds:
-
-        .. math::
-            Output_{t, car} = CapFactor_t * Size
 
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance

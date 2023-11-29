@@ -12,6 +12,72 @@ from ..technology import Technology
 
 
 class GasTurbine(Technology):
+    """
+    Resembles gas turbines of different sizes.
+    Hydrogen and Natural Gas Turbines are possible at four different sizes, as indicated by the file names
+    of the data. Performance data and the model is taken from Weimann, L., Ellerker, M., Kramer, G. J., &
+    Gazzani, M. (2019). Modeling gas turbines in multi-energy systems: A linear model accounting for part-load
+    operation, fuel, temperature, and sizing effects. International Conference on Applied Energy.
+    https://doi.org/10.46855/energy-proceedings-5280
+
+    A small adaption is made: Natural gas turbines can co-fire hydrogen up to 5% of the energy content
+
+    **Parameter declarations:**
+
+    - :math:`Input_{min}`: Minimal input per turbine
+
+    - :math:`Input_{max}`: Maximal input per turbine
+
+    - :math:`in_{H2max}`: Maximal H2 admixture to fuel (only for natural gas turbines, default is 0.05)
+
+    - :math:`{\\alpha}`: Performance parameter for electricity output
+
+    - :math:`{\\beta}`: Performance parameter for electricity output
+
+    - :math:`{\\epsilon}`: Performance parameter for heat output
+
+    - :math:`f({\\Theta})`: Ambient temperature correction factor
+
+    **Variable declarations:**
+
+    - Total fuel input in :math:`t`: :math:`Input_{tot, t}`
+
+    - Number of turbines on in :math:`t`: :math:`N_{on,t}`
+
+    **Constraint declarations:**
+
+    - Input calculation (For hydrogen turbines, :math:`Input_{NG, t}` is zero, and the second constraint is removed):
+
+      .. math::
+        Input_{H2, t} + Input_{NG, t} = Input_{tot, t}
+
+      .. math::
+        Input_{H2, t} \leq in_{H2max} Input_{tot, t}
+
+    - Turbines on:
+
+      .. math::
+        N_{on, t} \leq S
+
+    - If technology is on:
+
+      .. math::
+        Output_{el,t} = ({\\alpha} Input_{tot, t} + {\\beta} * N_{on, t}) *f({\\Theta})
+
+      .. math::
+        Output_{th,t} = {\\epsilon} Input_{tot, t} - Output_{el,t}
+
+      .. math::
+        Input_{min} * N_{on, t} \leq Input_{tot, t} \leq Input_{max} * N_{on, t}
+
+    - If the technology is off, input and output is set to 0:
+
+      .. math::
+         \sum(Output_{t, car}) = 0
+
+      .. math::
+         \sum(Input_{t, car}) = 0
+    """
 
     def __init__(self,
                  tec_data):
@@ -92,71 +158,6 @@ class GasTurbine(Technology):
     def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for gas turbines
-
-        Hydrogen and Natural Gas Turbines are possible at four different sizes, as indicated by the file names
-        of the data. Performance data and the model is taken from Weimann, L., Ellerker, M., Kramer, G. J., &
-        Gazzani, M. (2019). Modeling gas turbines in multi-energy systems: A linear model accounting for part-load
-        operation, fuel, temperature, and sizing effects. International Conference on Applied Energy.
-        https://doi.org/10.46855/energy-proceedings-5280
-
-        A small adaption is made: Natural gas turbines can co-fire hydrogen up to 5% of the energy content
-
-
-        **Parameter declarations:**
-
-        - :math:`Input_{min}`: Minimal input per turbine
-
-        - :math:`Input_{max}`: Maximal input per turbine
-
-        - :math:`in_{H2max}`: Maximal H2 admixture to fuel (only for natural gas turbines, default is 0.05)
-
-        - :math:`{\\alpha}`: Performance parameter for electricity output
-
-        - :math:`{\\beta}`: Performance parameter for electricity output
-
-        - :math:`{\\epsilon}`: Performance parameter for heat output
-
-        - :math:`f({\\Theta})`: Ambient temperature correction factor
-
-        **Variable declarations:**
-
-        - Total fuel input in :math:`t`: :math:`Input_{tot, t}`
-
-        - Number of turbines on in :math:`t`: :math:`N_{on,t}`
-
-        **Constraint declarations:**
-
-        - Input calculation (For hydrogen turbines, :math:`Input_{NG, t}` is zero, and the second constraint is removed):
-
-          .. math::
-            Input_{H2, t} + Input_{NG, t} = Input_{tot, t}
-
-          .. math::
-            Input_{H2, t} \leq in_{H2max} Input_{tot, t}
-
-        - Turbines on:
-
-          .. math::
-            N_{on, t} \leq S
-
-        - If technology is on:
-
-          .. math::
-            Output_{el,t} = ({\\alpha} Input_{tot, t} + {\\beta} * N_{on, t}) *f({\\Theta})
-
-          .. math::
-            Output_{th,t} = {\\epsilon} Input_{tot, t} - Output_{el,t}
-
-          .. math::
-            Input_{min} * N_{on, t} \leq Input_{tot, t} \leq Input_{max} * N_{on, t}
-
-        - If the technology is off, input and output is set to 0:
-
-          .. math::
-             \sum(Output_{t, car}) = 0
-
-          .. math::
-             \sum(Input_{t, car}) = 0
 
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance

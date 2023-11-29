@@ -8,6 +8,52 @@ from ..technology import Technology
 
 
 class Conv3(Technology):
+    """
+    This technology type resembles a technology with different performance functions for the respective output
+    carriers. The performance function is based on the input of the main carrier , i.e.
+    :math:`output_{car} = f_{car}(input_{maincarrier})`.
+    The ratio between all input carriers is fixed.
+    Three different performance function fits are possible.
+
+    **Constraint declarations:**
+
+    - Size constraints are formulated on the input.
+
+      .. math::
+         Input_{t, maincarrier} \leq S
+
+    - The ratios of inputs for all performance function types are fixed and given as:
+
+      .. math::
+        Input_{t, car} = {\\phi}_{car} * Input_{t, maincarrier}
+
+    - ``performance_function_type == 1``: Linear through origin, i.e.:
+
+      .. math::
+        Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
+
+    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
+      technology is in on, it holds:
+
+      .. math::
+        Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier} + {\\alpha}_{2, car}
+
+      .. math::
+        Input_{maincarrier} \geq Input_{min} * S
+
+      If the technology is off, input and output is set to 0:
+
+      .. math::
+         Output_{t, car} = 0
+
+      .. math::
+         Input_{t, maincarrier} = 0
+
+    - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
+      The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
+      is defined piecewise for the respective number of pieces
+
+    """
 
     def __init__(self, tec_data):
         super().__init__(tec_data)
@@ -38,50 +84,7 @@ class Conv3(Technology):
 
     def construct_tech_model(self, b_tec, energyhub):
         """
-        Adds constraints to technology blocks for tec_type CONV3, i.e. :math:`output_{car} = f_{car}(input_{maincarrier})`
-
-        This technology type resembles a technology with different performance functions for the respective output
-        carriers. The performance function is based on the input of the main carrier.
-        The ratio between all input carriers is fixed.
-        Three different performance function fits are possible. 
-
-        **Constraint declarations:**
-
-        - Size constraints are formulated on the input.
-
-          .. math::
-             Input_{t, maincarrier} \leq S
-
-        - The ratios of inputs for all performance function types are fixed and given as:
-
-          .. math::
-            Input_{t, car} = {\\phi}_{car} * Input_{t, maincarrier}
-
-        - ``performance_function_type == 1``: Linear through origin, i.e.:
-
-          .. math::
-            Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
-
-        - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
-          technology is in on, it holds:
-
-          .. math::
-            Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier} + {\\alpha}_{2, car}
-
-          .. math::
-            Input_{maincarrier} \geq Input_{min} * S
-
-          If the technology is off, input and output is set to 0:
-
-          .. math::
-             Output_{t, car} = 0
-
-          .. math::
-             Input_{t, maincarrier} = 0
-
-        - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
-          The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
-          is defined piecewise for the respective number of pieces
+        Adds constraints to technology blocks for tec_type CONV3
 
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance
