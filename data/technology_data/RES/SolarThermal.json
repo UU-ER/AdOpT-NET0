@@ -5,9 +5,10 @@
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX in EUR/MW, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 630,
+    "comment": "CAPEX in EUR/MW, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "unit_CAPEX": 630000,
+    "fix_CAPEX": 0,
     "OPEX_variable": 0,
     "OPEX_fixed": 3.15,
     "discount_rate": 0.1,

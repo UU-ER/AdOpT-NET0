@@ -70,8 +70,8 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
     res = energyhub3.model.node_blocks['test_node2'].var_import_flow[2, 'electricity'].value
     assert abs(should - res) / res <= 0.001
-    # Is objective correct
-    should = 2440 * cost_correction
+    # Is objective correct (electricity import*price + invest in hydrogen pipeline)
+    should = 40*10 + 1000*cost_correction*2
     res = energyhub3.model.objective()
     assert abs(should - res) / res <= 0.001
 
