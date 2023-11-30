@@ -126,23 +126,23 @@ class Conv3(Technology):
                 if ind == 0:  # technology off
                     dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
-                    def init_input_input_off(const, car_input):
+                    def init_input_off(const, car_input):
                         if car_input == self.main_car:
                             return Constraint.Skip
                         else:
                             return self.input[t, car_input] == 0
-                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_input_off)
+                    dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
 
                 else:  # technology on
-                    dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                    dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
-                    def init_input_input_on(const, car_input):
+                    def init_input_on(const, car_input):
                         if car_input == self.main_car:
                             return Constraint.Skip
                         else:
                             return self.input[t, car_input] == phi[car_input] * self.input[t, self.main_car]
 
-                    b_tec.const_input_input = Constraint(b_tec.set_input_carriers, rule=init_input_input_on)
+                    dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
 
             b_tec.dis_input_input = Disjunct(self.set_t, s_indicators, rule=init_input_input)
 
