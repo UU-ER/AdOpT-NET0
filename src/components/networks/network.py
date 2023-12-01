@@ -810,9 +810,6 @@ class Network(ModelComponent):
         - size is equal in both directions
         - One directional flow possible only
         """
-
-        self.big_m_transformation_required = 1
-
         # Size in both direction is the same
         if self.decommission or not self.existing:
             def init_size_bidirectional(const, node_from, node_to):
@@ -823,33 +820,37 @@ class Network(ModelComponent):
 
         s_indicators = range(0, 2)
 
+        # Flow only possible in one direction
         # Cut according to Germans work
         def init_cut_bidirectional(const, t, node_from, node_to):
             return b_netw.arc_block[node_from, node_to].var_flow[t] + b_netw.arc_block[node_to, node_from].var_flow[t]\
                    <= b_netw.arc_block[node_from, node_to].var_size
         b_netw.const_cut_bidirectional = Constraint(self.set_t, b_netw.set_arcs_unique, rule=init_cut_bidirectional)
 
-        # Flow only possible in one direction
-        def init_bidirectional(dis, t, node_from, node_to, ind):
-            if ind == 0:
-                def init_bidirectional1(const):
-                    return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
-                dis.const_flow_zero = Constraint(rule=init_bidirectional1)
+        # Disjunction
+        if 'bidirectional_precise' in self.performance_data:
+            if self.performance_data['bidirectional_precise'] == 1:
+                self.big_m_transformation_required = 1
+                def init_bidirectional(dis, t, node_from, node_to, ind):
+                    if ind == 0:
+                        def init_bidirectional1(const):
+                            return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
+                        dis.const_flow_zero = Constraint(rule=init_bidirectional1)
 
-            else:
-                def init_bidirectional2(const):
-                    return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
-                dis.const_flow_zero = Constraint(rule=init_bidirectional2)
+                    else:
+                        def init_bidirectional2(const):
+                            return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
+                        dis.const_flow_zero = Constraint(rule=init_bidirectional2)
 
-        b_netw.dis_one_direction_only = Disjunct(self.set_t, b_netw.set_arcs_unique, s_indicators,
-                                                 rule=init_bidirectional)
+                b_netw.dis_one_direction_only = Disjunct(self.set_t, b_netw.set_arcs_unique, s_indicators,
+                                                         rule=init_bidirectional)
 
-        # Bind disjuncts
-        def bind_disjunctions(dis, t, node_from, node_to):
-            return [b_netw.dis_one_direction_only[t, node_from, node_to, i] for i in s_indicators]
+                # Bind disjuncts
+                def bind_disjunctions(dis, t, node_from, node_to):
+                    return [b_netw.dis_one_direction_only[t, node_from, node_to, i] for i in s_indicators]
 
-        b_netw.disjunction_one_direction_only = Disjunction(self.set_t, b_netw.set_arcs_unique,
-                                                            rule=bind_disjunctions)
+                b_netw.disjunction_one_direction_only = Disjunction(self.set_t, b_netw.set_arcs_unique,
+                                                                    rule=bind_disjunctions)
 
         return b_netw
 

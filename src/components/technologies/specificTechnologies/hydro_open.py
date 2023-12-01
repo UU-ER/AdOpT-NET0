@@ -119,9 +119,6 @@ class HydroOpen(Technology):
         """
         super(HydroOpen, self).construct_tech_model(b_tec, energyhub)
 
-        # Transformation required
-        self.big_m_transformation_required = 1
-
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         coeff = self.fitted_performance.coefficients
@@ -187,29 +184,36 @@ class HydroOpen(Technology):
 
         # This makes sure that only either input or output is larger zero.
         if allow_only_one_direction == 1:
-            self.big_m_transformation_required = 1
-            s_indicators = range(0, 2)
 
-            def init_input_output(dis, t, ind):
-                if ind == 0:  # input only
-                    def init_output_to_zero(const, car_input):
-                        return self.output[t, car_input] == 0
+            # Cut according to Germans work
+            def init_cut_bidirectional(const, t, car):
+                return self.output[t, car] / discharge_max + self.input[t, car] / charge_max <= b_tec.var_size
+            b_tec.const_cut_bidirectional = Constraint(self.set_t, b_tec.set_input_carriers,
+                                                       rule=init_cut_bidirectional)
 
-                    dis.const_output_to_zero = Constraint(b_tec.set_input_carriers, rule=init_output_to_zero)
+            #Disjunct modelling
+            if 'bidirectional_precise' in self.performance_data:
+                if self.performance_data['bidirectional_precise'] == 1:
+                    self.big_m_transformation_required = 1
+                    s_indicators = range(0, 2)
 
-                elif ind == 1:  # output only
-                    def init_input_to_zero(const, car_input):
-                        return self.input[t, car_input] == 0
+                    def init_input_output(dis, t, ind):
+                        if ind == 0:  # input only
+                            def init_output_to_zero(const, car_input):
+                                return self.output[t, car_input] == 0
+                            dis.const_output_to_zero = Constraint(b_tec.set_input_carriers, rule=init_output_to_zero)
 
-                    dis.const_input_to_zero = Constraint(b_tec.set_input_carriers, rule=init_input_to_zero)
+                        elif ind == 1:  # output only
+                            def init_input_to_zero(const, car_input):
+                                return self.input[t, car_input] == 0
+                            dis.const_input_to_zero = Constraint(b_tec.set_input_carriers, rule=init_input_to_zero)
 
-            b_tec.dis_input_output = Disjunct(self.set_t, s_indicators, rule=init_input_output)
+                    b_tec.dis_input_output = Disjunct(self.set_t, s_indicators, rule=init_input_output)
 
-            # Bind disjuncts
-            def bind_disjunctions(dis, t):
-                return [b_tec.dis_input_output[t, i] for i in s_indicators]
-
-            b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
+                    # Bind disjuncts
+                    def bind_disjunctions(dis, t):
+                        return [b_tec.dis_input_output[t, i] for i in s_indicators]
+                    b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t, car):
