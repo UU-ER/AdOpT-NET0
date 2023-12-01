@@ -25,11 +25,6 @@ for stage in ['Baseline']:
     topology = pp.define_networks(settings, topology)
     topology = pp.define_new_technologies(settings, nodes, topology)
 
-    if len(topology.timesteps) < 8760:
-        settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230912/TESTResult_' + settings.new_technologies_stage
-    else:
-        settings.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20230912/Result_' + settings.new_technologies_stage
-
     data = pp.define_data_handle(topology, nodes)
     data = pp.define_generic_production(settings, nodes, data)
     data = pp.define_hydro_inflow(settings, nodes, data)
@@ -43,5 +38,15 @@ for stage in ['Baseline']:
     data = pp.define_charging_efficiencies(settings, nodes, data)
 
     # Solve
+    if stage == 'Baseline':
+        configuration.optimization.objective = 'costs'
+
+    configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20231201/'
+
+    if len(topology.timesteps) < 8760:
+        configuration.reporting.case_name = 'TEST' + stage
+    else:
+        configuration.reporting.case_name = stage
+
     energyhub = EnergyHub(data, configuration)
     results = energyhub.quick_solve()

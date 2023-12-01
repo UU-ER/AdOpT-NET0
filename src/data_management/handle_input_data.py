@@ -326,8 +326,6 @@ class DataHandle:
             for technology in self.topology.technologies_existing[node].keys():
                 tec_data = open_json(technology, load_path)
                 tec_data['name'] = technology
-                print(technology)
-                print(tec_data)
                 self.technology_data[node][technology + '_existing'] = select_technology(tec_data)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = \
