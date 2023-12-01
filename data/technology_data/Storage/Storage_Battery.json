@@ -1,5 +1,5 @@
 {
-  "tec_type": "Ocean_Battery",
+  "tec_type": "STOR",
   "size_min": 0,
   "size_max": 1000,
   "size_is_int": 0,

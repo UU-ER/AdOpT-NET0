@@ -7,7 +7,6 @@ import numpy as np
 from pathlib import Path
 from scipy.interpolate import griddata
 
-import components.utilities
 from ..utilities import FittedPerformance, fit_piecewise_function
 from ..technology import Technology
 from ...utilities import perform_disjunct_relaxation

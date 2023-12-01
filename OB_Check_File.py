@@ -19,7 +19,7 @@ topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-02 23:00', resolution=1)
 topology.define_carriers(['electricity'])
 topology.define_nodes(['offshore'])
-topology.define_new_technologies('offshore', ['Storage_OceanBattery_specific_3'])
+topology.define_new_technologies('offshore', ['Storage_OceanBattery_general'])
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)

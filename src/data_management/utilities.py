@@ -241,10 +241,10 @@ def select_technology(tec_data):
         return HeatPump(tec_data)
     elif tec_data['tec_type'] == 'HydroOpen':
         return HydroOpen(tec_data)
-    elif tec_data['tec_type'] == 'OceanBattery':
-        return OceanBattery(tec_data)
     elif tec_data['tec_type'] == 'OceanBattery3':
         return OceanBattery3(tec_data)
+    elif tec_data['tec_type'] == 'OceanBattery':
+        return OceanBattery(tec_data)
 
 
 def open_json(tec, load_path):
