@@ -2,7 +2,7 @@
 userData
 results
 /src/test/test_data
-/mes_north_sea/raw_data/
+mes_north_sea/raw_data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
