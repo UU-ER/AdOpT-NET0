@@ -2,9 +2,10 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import griddata
+from scipy.interpolate import griddata, interpn
 
-result_folder = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/ESCAPE_Conference paper_Data exchange/Results/v2/'
+result_folder = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/ESCAPE_Conference paper_Data exchange/Results/v3/'
+save_path = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/ESCAPE_Conference paper_Data exchange/plots/'
 
 result_data = []
 for folder in os.listdir(result_folder):
@@ -27,80 +28,67 @@ for folder in os.listdir(result_folder):
                 parameters['CAPEX'] = capex_value
 
                 # calculate total pump size
-                pump_capex_rows = df[df.iloc[:,0].str.match(r'pump_\d+_capex') & (df.iloc[:, 1] > 0.1)]
+                pump_capex_rows = df[df.iloc[:,0].str.match(r'pump_\d+_capex') & (df.iloc[:, 1] > 0.01)]
                 nr_pumps_installed = pump_capex_rows.shape[0]
                 parameters['total_pump_size'] = parameters['single_pump_designpower'] * nr_pumps_installed
 
                 # calculate total turbine size
-                turbine_capex_rows = df[df.iloc[:,0].str.match(r'turbine_\d+_capex') & (df.iloc[:, 1] > 0.1)]
+                turbine_capex_rows = df[df.iloc[:,0].str.match(r'turbine_\d+_capex') & (df.iloc[:, 1] > 0.01)]
                 nr_turbine_installed = turbine_capex_rows.shape[0]
                 parameters['total_turbine_size'] = parameters['single_turbine_designpower'] * nr_turbine_installed
 
                 result_data.append(parameters)
 
 result_df = pd.DataFrame(result_data)
-### PLOT: CAPEX, SD, RESERVOIR SIZE
-reservoir_size = result_df[['SD', 'CAPEX', 'reservoir_size']]
-reservoir_size = reservoir_size.sort_values(by=['SD', 'CAPEX'])
-reservoir_size.pivot(index='SD', columns='CAPEX', values='reservoir_size')
+result_df.to_excel('C:/Users/6574114/OneDrive - Universiteit Utrecht/ESCAPE_Conference paper_Data exchange/oceanbatteryresults.xlsx')
+plt.rcParams.update({'font.size': 14})
 
 
-x = result_df["SD"].values
-y = result_df["CAPEX"].values
-z = result_df["reservoir_size"].values
-
-x_p, y_p = np.meshgrid(np.linspace(x.min(), x.max(), 4),
-                                  np.linspace(y.min(), y.max(), 20))
-
-
-# x_p, y_p = np.meshgrid(x.unique(), y.unique())
-z_p = griddata((x, y), z, (x_p, y_p), method='linear')
-
-
-
-plt.figure()
-scatter = plt.scatter(x, y, c=z, cmap='viridis', edgecolors='k', marker='o', s=50)
-plt.show()
-
-
-
-plt.figure()
-plt.contourf(x_p,y_p,z_p)
-contour = plt.tricontour(x, y, z, cmap='viridis')
-plt.colorbar(contour, label='Reservoir Size [m3]')
-plt.xlabel('SD')
-plt.ylabel('CAPEX')
-plt.title('Isolines of reservoir size')
-plt.grid(True)
-plt.show()
+def plot_size(x,y,z,z_label,l):
+    """
+    plots a contourplot on x,y,z with z_label and the levels l
+    """
+    x_s = [4, 9, 9]
+    y_s = [0.1, 0.1, 0.9]
+    x_p, y_p = np.meshgrid(np.linspace(x.min(), x.max(), 10),
+                           np.linspace(y.min(), y.max(), 10))
+    z_p = griddata((x.values, y.values), z, (x_p, y_p), method='linear')
+    fig1, ax = plt.subplots()
+    CS1 = ax.contourf(x_p, y_p, z_p, 50, cmap='viridis_r')
+    CS2 = ax.contour(x_p, y_p, z_p, levels=l, colors='black')
+    S = plt.scatter(x_s, y_s, marker='D', facecolors='white', edgecolors='black', s=60)
+    plt.clabel(CS2, fontsize=10)
+    plt.xlabel('Normalized standard deviation of electricity price')
+    plt.ylabel('Normalized capex of reservoir')
+    plt.xlim([1, 10])
+    plt.ylim([0.05, 1])
+    colorbar = plt.colorbar(CS1)
+    colorbar.set_label(z_label)
 
 
-### PLOT: CAPEX, SD, PUMP SIZE
-
+# PLOT: RESERVOIR SIZE
 x = result_df["SD"]
 y = result_df["CAPEX"]
-z = result_df["total_pump_size"]
+z = result_df["reservoir_size"] / 1000
+l = [50, 100, 150, 200, 250]
+z_label = 'Reservoir size in 1000 m³'
+plot_size(x,y,z,z_label,l)
+plt.savefig(save_path + 'reservoir_size.jpg', dpi=600, bbox_inches='tight')
 
-plt.figure()
-contour = plt.tricontour(x, y, z, cmap='viridis')
-plt.colorbar(contour, label='Installed pump capacity [MW]')
-plt.xlabel('SD')
-plt.ylabel('CAPEX')
-plt.title('Isolines of pump capacity installed')
-plt.grid(True)
-plt.show()
-
-### PLOT: CAPEX, SD, TURBINE SIZE
-
+# PLOT: Turbine Design
 x = result_df["SD"]
 y = result_df["CAPEX"]
 z = result_df["total_turbine_size"]
+l = [1.5, 3, 4.5, 6, 7.5, 9]
+z_label = 'total turbine design power (MW)'
+plot_size(x,y,z,z_label,l)
+plt.savefig(save_path + 'turbine_size.jpg', dpi=600, bbox_inches='tight')
 
-plt.figure()
-contour = plt.tricontour(x, y, z, cmap='viridis')
-plt.colorbar(contour, label='Installed turbine capacity [MW]')
-plt.xlabel('SD')
-plt.ylabel('CAPEX')
-plt.title('Isolines of turbine capacity installed')
-plt.grid(True)
-plt.show()
+# PLOT: Pump Design
+x = result_df["SD"]
+y = result_df["CAPEX"]
+z = result_df["total_pump_size"]
+l = [2, 4, 6]
+z_label = 'total pump design power (MW)'
+plot_size(x,y,z,z_label,l)
+plt.savefig(save_path + 'pump_size.jpg', dpi=600, bbox_inches='tight')
