@@ -48,8 +48,8 @@ data.read_import_limit_data('onshore', 'electricity', import_lim)
 gas_import = np.ones(len(topology.timesteps)) * 2000
 data.read_import_limit_data('onshore', 'gas', gas_import)
 
-import_lim = np.ones(len(topology.timesteps)) * 10000
-data.read_export_limit_data('onshore', 'heat', import_lim)
+export_lim = np.ones(len(topology.timesteps)) * 10000
+data.read_export_limit_data('onshore', 'heat', export_lim)
 
 data.read_import_price_data('onshore', 'electricity', np.ones(len(topology.timesteps)) * 60)
 data.read_import_emissionfactor_data('onshore', 'electricity', np.ones(len(data.topology.timesteps)) * 0.1)
