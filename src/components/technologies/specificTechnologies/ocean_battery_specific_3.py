@@ -206,12 +206,12 @@ class OceanBattery3(Technology):
         # Todo: do recalculation to EUR/m³ here
 
         # Method sections
-        b_tec = self.__define_vars(b_tec)
-        b_tec = self.__define_storage_level(b_tec, nr_timesteps_averaged)
-        b_tec = self.__define_turbine_design(b_tec)
-        b_tec = self.__define_pump_design(b_tec)
-        b_tec = self.__define_turbine_performance(b_tec, energyhub)
-        b_tec = self.__define_pump_performance(b_tec, energyhub)
+        b_tec = self._define_vars(b_tec)
+        b_tec = self._define_storage_level(b_tec, nr_timesteps_averaged)
+        b_tec = self._define_turbine_design(b_tec)
+        b_tec = self._define_pump_design(b_tec)
+        b_tec = self._define_turbine_performance(b_tec, energyhub)
+        b_tec = self._define_pump_performance(b_tec, energyhub)
 
         # Aggregate Input/Output
         def init_total_input(const, t, car):
@@ -224,16 +224,6 @@ class OceanBattery3(Technology):
                    sum(b_tec.var_output_turbine[t, turbine] for turbine in b_tec.set_turbine_slots)
         b_tec.const_total_output = Constraint(self.set_t, b_tec.set_output_carriers, rule=init_total_output)
 
-        def init_total_inflow(const, t):
-            return b_tec.var_total_inflow[t] == \
-                   sum(b_tec.var_inflow_pump[t, pump] for pump in b_tec.set_pump_slots)
-        b_tec.const_total_inflow = Constraint(self.set_t, rule=init_total_inflow)
-
-        def init_total_outflow(const, t):
-            return b_tec.var_total_outflow[t] == \
-                   sum(b_tec.var_outflow_turbine[t, turbine] for turbine in b_tec.set_turbine_slots)
-        b_tec.const_total_outflow = Constraint(self.set_t, rule=init_total_outflow)
-
         # CAPEX Calculation
         b_tec.const_capex_aux = Constraint(expr=b_tec.para_unit_capex_reservoir_annual * b_tec.var_size +
                                                 sum(b_tec.var_capex_turbine[turbine] for
@@ -243,7 +233,7 @@ class OceanBattery3(Technology):
 
         return b_tec
 
-    def __define_vars(self, b_tec):
+    def _define_vars(self, b_tec):
 
         # Additional parameters
         coeff = self.fitted_performance.coefficients
@@ -290,7 +280,7 @@ class OceanBattery3(Technology):
         return b_tec
 
 
-    def __define_storage_level(self, b_tec, nr_timesteps_averaged):
+    def _define_storage_level(self, b_tec, nr_timesteps_averaged):
 
         coeff = self.fitted_performance.coefficients
 
@@ -324,7 +314,7 @@ class OceanBattery3(Technology):
 
         return b_tec
 
-    def __define_turbine_design(self, b_tec):
+    def _define_turbine_design(self, b_tec):
         # Turbine design (determines design flowrate and design power)
 
         fit = self.performance_data['turbine']['design']
@@ -338,7 +328,6 @@ class OceanBattery3(Technology):
             def init_design_power(const):
                 return b_tec.var_designpower_single_turbine == alpha1[ind] * b_tec.var_designflow_single_turbine\
                        + alpha2[ind]
-
             dis.const_design_power = Constraint(rule=init_design_power)
 
             def init_design_power_lb(const):
@@ -360,7 +349,7 @@ class OceanBattery3(Technology):
 
         return b_tec
 
-    def __define_pump_design(self, b_tec):
+    def _define_pump_design(self, b_tec):
         # Pump design (determines design flowrate and design power)
         fit = self.performance_data['pump']['design']
 
@@ -394,7 +383,7 @@ class OceanBattery3(Technology):
 
         return b_tec
 
-    def __define_turbine_performance(self, b_tec, energyhub):
+    def _define_turbine_performance(self, b_tec, energyhub):
         """
         This function establishes all components for the turbines. Is is organized in multiple levels
         (hierarchical) with the following structure. Description in brackets is the pyomo component type.
@@ -545,9 +534,15 @@ class OceanBattery3(Technology):
                                                                 rule=bind_disjunctions_turbine_install)
         b_tec = perform_disjunct_relaxation(b_tec, method='gdp.hull')
 
+        # Total outflow
+        def init_total_outflow(const, t):
+            return b_tec.var_total_outflow[t] == \
+                   sum(b_tec.var_outflow_turbine[t, turbine] for turbine in b_tec.set_turbine_slots)
+        b_tec.const_total_outflow = Constraint(self.set_t, rule=init_total_outflow)
+
         return b_tec
 
-    def __define_pump_performance(self, b_tec, energyhub):
+    def _define_pump_performance(self, b_tec, energyhub):
         """
         This function establishes all components for the pumps. It is organized in multiple levels
         (hierarchical) with the following structure. Description in brackets is the pyomo component type.
@@ -673,6 +668,12 @@ class OceanBattery3(Technology):
             return [b_tec.dis_pump_install[pump_slot, i] for i in s_indicators_install]
         b_tec.disjunction_pump_install = Disjunction(b_tec.set_pump_slots, rule=bind_disjunctions_pump_install)
         b_tec = perform_disjunct_relaxation(b_tec, method='gdp.hull')
+
+        # Total Inflow
+        def init_total_inflow(const, t):
+            return b_tec.var_total_inflow[t] == \
+                   sum(b_tec.var_inflow_pump[t, pump] for pump in b_tec.set_pump_slots)
+        b_tec.const_total_inflow = Constraint(self.set_t, rule=init_total_inflow)
 
         return b_tec
 
