@@ -5,18 +5,198 @@ import pvlib
 import numpy as np
 import requests
 import json
+from pathlib import Path
 import pandas as pd
 from timezonefinder import TimezoneFinder
 import src.data_management as dm
 from src.energyhub import EnergyHub
-from src.data_management.components.fit_technology_performance import fit_piecewise_function
 from scipy.interpolate import griddata
-import sys
+# from netCDF4 import Dataset
 
 import src.data_management as dm
 from src.energyhub import EnergyHub as ehub
 import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
+from src.diagnostics import get_infeasibile_constraints
+
+execute = 0
+
+# MODEL SCALING/ Infeasibilities
+if execute == 1:
+    m = ConcreteModel()
+
+    m.a = Var(initialize=1.0)
+    m.b = Var(initialize=1.0)
+
+    m.c1 = Constraint(expr=0.00001 * m.a + 0.0002 * m.b==0.0004)
+    m.c2 = Constraint(expr=0.00004 * m.a + 40 * m.b==0.5)
+
+    m.obj = Objective(expr = 1000*m.a + 2000 * m.b)
+
+    m.pprint()
+    get_infeasibile_constraints(m)
+
+    solver = SolverFactory('gurobi')
+    solution = solver.solve(m, tee=True)
+
+    m.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    m.scaling_factor[m.obj] = 1e-3
+    m.scaling_factor[m.a] = 1e-3
+    # m.scaling_factor[m.c1] = 1e3
+    # m.scaling_factor[m.a] = 1e-4
+    # m.scaling_factor[m.a] = 1e-4
+    TransformationFactory('core.scale_model').apply_to(m)
+    solution = solver.solve(m, tee=True)
+
+    # m.display()
+
+
+
+
+
+    # # TOPOLOGY
+    # topology = dm.SystemTopology()
+    # topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
+    # topology.define_carriers(['electricity'])
+    # topology.define_nodes(['A'])
+    # topology.define_new_technologies('A', ['Photovoltaic'])
+    #
+    # # Initialize instance of DataHandle
+    # data = dm.DataHandle(topology)
+    #
+    # # CLIMATE DATA
+    #
+    # data.read_climate_data_from_file('A', './data/climate_data_onshore.txt')
+    #
+    # # DEMAND
+    # electricity_demand = np.ones(len(topology.timesteps)) * 1
+    # data.read_demand_data('A', 'electricity', electricity_demand)
+    #
+    # # IMPORT
+    # import_lim = np.ones(len(topology.timesteps)) * 10000
+    # data.read_import_limit_data('A', 'electricity', import_lim)
+    #
+    # # READ TECHNOLOGY AND NETWORK DATA
+    #
+    # data.read_technology_data()
+    # data.read_network_data()
+    #
+    # # SAVING/LOADING DATA FILE
+    # configuration = ModelConfiguration()
+    #
+    # # # Read data
+    # energyhub = EnergyHub(data, configuration)
+    # energyhub.construct_model()
+    # energyhub.construct_balances()
+    #
+    # energyhub.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+    # # energyhub.model.scaling_factor[energyhub.model.node_blocks['A'].var_import_flow] = 1e-4  # scale import
+    #
+    # # energyhub.solve()
+    # results = energyhub.solve()
+
+execute = 1
+
+if execute == 1:
+    data = dm.load_object(r'./src/test/test_data/technology_dynamics_CONV1_4.p')
+    tecname = 'testCONV1_4'
+
+    # change test technology dynamic parameters
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.2
+    # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = max(data.node_data['test_node1'].data['demand']['heat']) *.75
+    # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 0
+    data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.5
+    data.technology_data['test_node1'][tecname].performance_data['SU_time'] = 2
+    data.technology_data['test_node1'][tecname].performance_data['SD_time'] = 1
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
+    # data.technology_data['test_node1'][tecname].size_max = 1.5
+    main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
+
+
+
+    configuration = ModelConfiguration()
+    configuration.performance.dynamics = 1
+
+    # Solve model
+    energyhub = EnergyHub(data, configuration)
+    energyhub.quick_solve()
+
+    print('finish')
+
+
+    for i in range(1, 10):
+        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_2'].var_x[i].value)
+
+
+execute = 0
+
+if execute == 1:
+    # data = dm.load_object(r'./test/test_data/technology_CONV1_2.p')
+    data = dm.load_object(r'./test/test_data/time_algorithms.p')
+    data.read_technology_data()
+
+    # INITIALIZE MODEL CONFIGURATION
+    configuration = ModelConfiguration()
+    # configuration.optimization.typicaldays.N = 4
+    configuration.optimization.timestaging = 2
+    # configuration.energybalance.violation = -1
+    # configuration.energybalance.copperplate = 0
+
+    energyhub = EnergyHub(data, configuration)
+    # Solve model
+    energyhub.quick_solve()
+    print('finish')
+
+execute = 0
+
+if execute == 1:
+    topology = dm.SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
+    topology.define_carriers(['electricity', 'gas', 'hydrogen'])
+    topology.define_nodes(['test_node1', 'test_node2'])
+    topology.define_new_technologies('test_node1', ['GasTurbine_simple', 'Storage_Battery'])
+    topology.define_new_technologies('test_node2', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
+
+    # Initialize instance of DataHandle
+    data = dm.DataHandle(topology)
+
+    # NETWORKS
+    distance = dm.create_empty_network_matrix(topology.nodes)
+    distance.at['test_node1', 'test_node2'] = 1
+    distance.at['test_node2', 'test_node1'] = 1
+    connection = dm.create_empty_network_matrix(topology.nodes)
+    connection.at['test_node1', 'test_node2'] = 1
+    connection.at['test_node2', 'test_node1'] = 1
+    topology.define_new_network('electricityTest', distance=distance, connections=connection)
+
+    # CLIMATE DATA
+    data.read_climate_data_from_file('test_node1', r'./src/test/climate_data_test.p')
+    data.read_climate_data_from_file('test_node2', r'./src/test/climate_data_test.p')
+
+    # DEMAND
+    electricity_demand = np.ones(len(topology.timesteps)) * 100
+    data.read_demand_data('test_node1', 'electricity', electricity_demand)
+
+    # IMPORT
+    gas_import = np.ones(len(topology.timesteps)) * 10
+    data.read_import_limit_data('test_node1', 'gas', gas_import)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data()
+    # nr_days_cluster = 40
+    # clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
+    #
+    # INITIALIZE MODEL CONFIGURATION
+    configuration = ModelConfiguration()
+    configuration.optimization.timestaging = 4
+
+    energyhub = EnergyHub(data, configuration)
+    energyhub.construct_model()
+    energyhub.construct_balances()
+
+    # Solve model
+    energyhub.quick_solve()
+
 
 execute = 0
 
@@ -66,7 +246,7 @@ if execute == 1:
     # Solve model
     energyhub_clustered.solve_model()
     results1 = energyhub_clustered.write_results()
-    results1.write_excel(r'.\userData\results_clustered')
+    results1.write_excel(Path('./userData'), 'results_clustered')
 
 
     # SOLVE WITH FULL RESOLUTION
@@ -77,7 +257,7 @@ if execute == 1:
     # Solve model
     energyhub.solve_model()
     results2 = energyhub.write_results()
-    results2.write_excel(r'.\userData\results_full')
+    results2.write_excel(Path('./userData'), 'results_full')
 
 execute = 0
 #region How to formulate hierarchical models with blocks
@@ -221,7 +401,7 @@ if execute == 1:
     nr_bp = 3
 
     # Read performance data from file
-    performance_data = pd.read_csv('./data/technology_data/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
+    performance_data = pd.read_csv('data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt', sep=",")
     performance_data = performance_data.rename(columns={"T": "temp_air", "RH": "humidity"})
 
     # Unit Conversion of input data
@@ -447,3 +627,89 @@ if execute == 1:
         diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
         wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
 #endregion
+
+execute = 0
+#region How to make an API request for ERA5
+if execute == 1:
+    lon = 8
+    lat = 45
+    year = 2021
+
+    area = [lat + 0.1, lon - 0.1, lat - 0.1, lon + 0.1]
+    #
+    cds_client = cdsapi.Client()
+    #
+    # print('Retrieving ERA5 data, this might take a while!')
+    data = cds_client.retrieve(
+        'reanalysis-era5-single-levels',
+        {
+            'product_type': 'reanalysis',
+            'format': 'grib',
+            'variable': [
+                "100u",  # 100m_u-component_of_wind
+                "100v",  # 100m_v-component_of_wind
+                "fsr",  # forecast_surface_roughness
+                "sp",  # surface_pressure
+                "fdir",  # total_sky_direct_solar_radiation_at_surface
+                "ssrd",  # surface_solar_radiation_downwards
+                "2t",  # 2m_temperature
+                "2d", # 2m_dewpoint_temperature
+                "10u",  # 10m_u-component_of_wind
+                "10v",  # 10m_v-component_of_wind
+            ],
+            'year': year,
+            'month': [
+                '01'
+            ],
+            'day': [
+                '01', '02', '03',
+                '04', '05', '06',
+                '07', '08', '09',
+                '10', '11', '12',
+                '13', '14', '15',
+                '16', '17', '18',
+                '19', '20', '21',
+                '22', '23', '24',
+                '25', '26', '27',
+                '28', '29', '30',
+                '31',
+            ],
+            'time': [
+                '00:00', '01:00', '02:00',
+                '03:00', '04:00', '05:00',
+                '06:00', '07:00', '08:00',
+                '09:00', '10:00', '11:00',
+                '12:00', '13:00', '14:00',
+                '15:00', '16:00', '17:00',
+                '18:00', '19:00', '20:00',
+                '21:00', '22:00', '23:00',
+            ],
+            'area': area,
+        },
+        'download.grib')
+
+    data.download("C:/Users/6574114/Documents/Research/EHUB-Py/output2.nc")
+    filepath = "C:/Users/6574114/Documents/Research/EHUB-Py/output2.nc"
+    rootgrp = Dataset("test.nc", "w", format="NETCDF4")
+    print(rootgrp.data_model)
+    #
+    # climate_data = data['outputs']['tmy_hourly']
+    # temperature2m = dict()
+    # relative_humidity = dict()
+    # global_horizontal_irr = dict()
+    # direct_normal_irr = dict()
+    # diffuse_horizontal_irr = dict()
+    # wind_speed10m = dict()
+    #
+    # for t_interval in climate_data:
+    #     print(t_interval)
+    #     temperature2m[t_interval['time(UTC)']] = t_interval['T2m']
+    #     relative_humidity[t_interval['time(UTC)']] = t_interval['RH']
+    #     global_horizontal_irr[t_interval['time(UTC)']] = t_interval['G(h)']
+    #     direct_normal_irr[t_interval['time(UTC)']] = t_interval['Gb(n)']
+    #     diffuse_horizontal_irr[t_interval['time(UTC)']] = t_interval['Gd(h)']
+    #     wind_speed10m[t_interval['time(UTC)']] = t_interval['WS10m']
+
+
+
+

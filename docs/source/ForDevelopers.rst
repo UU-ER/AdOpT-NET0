@@ -1,6 +1,6 @@
 Developer Instruction
 =====================================
-This page contains general instructions for the developers that are working on the EnergyHub.
+This page contains general instructions for the developers that are working on the PyHub.
 
 Coding conventions
 -----------------------
@@ -101,6 +101,22 @@ As such, the documentation of a function can look like this:
 
 Testing new features
 ----------------------
-The energyhub comes with a test suite, located in ``.\test``. For new features, try to implement a \
+The energyhub comes with a test suite, located in ``.\src\test``. For new features, try to implement a \
 test function in one a respective module (or create a new module). All tests can be executed by \
-running py.test from the terminal.
+running ``coverage run -m pytest`` from the terminal.
+To check the code coverage of the test, run ``coverage report`` after the test.
+
+
+Working with GitHub
+-----------------------
+When you want to develop a new feature of the PyHub, there is a specific procedure you should follow regarding the use \
+of GitHub. We follow this procedure to prevent conflicts in the code when multiple people are developing/using the tool.
+
+We use the following guidelines when you are implementing a new feature:
+
+* Open a new branch from the main branch, using an intuitive name. Publish the branch to GitHub.
+* Implement the new feature in the branch. Commit the implemented changes to the branch, even if it is an intermediate version, to make sure that local changes (on your personal computer) are also saved online.
+* When the new feature is implemented, test it using the testfunctions (described above). If necessary, you can write a new test function to make sure it is tested in future versions.
+* Once it is tested, you can make a pull request from your branch. Please make sure that you request a review from at least one other colleague who is working on the tool. You can also add an open issue as label in the development option.
+* The colleague evaluates your code and can leave comments or require changes if that is necessary.
+* The branch can be merged by the colleague when the code is clear and all required changes are implemented. After merging the branch can be deleted, both locally and on GitHub.

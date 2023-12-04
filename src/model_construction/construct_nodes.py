@@ -1,9 +1,7 @@
-import src.model_construction as mc
+from ..model_construction import add_technology
 
 import numpy as np
 from pyomo.environ import *
-from pyomo.environ import units as u
-import src.global_variables as global_variables
 
 
 def determine_carriers_at_node(energyhub, node):
@@ -33,13 +31,15 @@ def determine_carriers_at_node(energyhub, node):
         carriers.extend(output_carriers)
 
     # From networks
-    for netw in model.set_networks:
-        # This can be further extended to check if node is connected to network
-        for car in model.network_block[netw].set_netw_carrier:
-            carriers.append(car)
-        if hasattr(model.network_block[netw], 'set_consumed_carriers'):
-            for car in model.network_block[netw].set_consumed_carriers:
+    if not energyhub.configuration.energybalance.copperplate:
+        for netw in model.set_networks:
+            # This can be further extended to check if node is connected to network
+            for car in model.network_block[netw].set_netw_carrier:
                 carriers.append(car)
+            if hasattr(model.network_block[netw], 'set_consumed_carriers'):
+                for car in model.network_block[netw].set_consumed_carriers:
+                    carriers.append(car)
+
     return carriers
 
 def determine_network_energy_consumption(energyhub):
@@ -53,10 +53,11 @@ def determine_network_energy_consumption(energyhub):
     # From networks
     # This can be further extended to check if node is connected to network
     network_energy_consumption = 0
-    for netw in model.set_networks:
-        if hasattr(model.network_block[netw], 'set_consumed_carriers'):
-            network_energy_consumption = 1
-    return network_energy_consumption
+    if not energyhub.configuration.energybalance.copperplate:
+        for netw in model.set_networks:
+            if hasattr(model.network_block[netw], 'set_consumed_carriers'):
+                network_energy_consumption = 1
+        return network_energy_consumption
 
 def add_nodes(energyhub):
     r"""
@@ -86,6 +87,8 @@ def add_nodes(energyhub):
 
     - Import Flow for each time step
     - Export Flow for each time step
+    - Network Inflow for each time step
+    - Network Outflow for each time step
     - Cost at node (includes technology costs (CAPEX, OPEX) and import/export costs), see constraint declarations
 
     **Constraint declarations**
@@ -113,6 +116,9 @@ def add_nodes(energyhub):
     model = energyhub.model
 
     def init_node_block(b_node, nodename):
+        print('_' * 60)
+        print('--- Adding Node ' + nodename + '... ---')
+
         # SETS: Get technologies for each node and make it a set for the block
         carriers = determine_carriers_at_node(energyhub, nodename)
         network_energy_consumption = determine_network_energy_consumption(energyhub)
@@ -126,82 +132,74 @@ def add_nodes(energyhub):
         # Demand
         def init_demand(para, t, car):
             return node_data.data['demand'][car][t - 1]
-        b_node.para_demand = Param(set_t, b_node.set_carriers,
-                                   rule=init_demand, units=u.MWh)
+        b_node.para_demand = Param(set_t, b_node.set_carriers, rule=init_demand, mutable=True)
 
         # Generic production profile
         def init_production_profile(para, t, car):
                 return node_data.data['production_profile'][car][t - 1]
-        b_node.para_production_profile = Param(set_t, b_node.set_carriers,
-                                       rule=init_production_profile, units=u.MWh)
+        b_node.para_production_profile = Param(set_t, b_node.set_carriers, rule=init_production_profile, mutable=True)
 
         # Import Prices
         def init_import_price(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['import_prices'][car][t - 1]
-        b_node.para_import_price = Param(set_t, b_node.set_carriers,
-                                         rule=init_import_price, units=u.EUR / u.MWh)
+        b_node.para_import_price = Param(set_t, b_node.set_carriers, rule=init_import_price, mutable=True)
 
         # Export Prices
-        def init_export_price_init(para, t, car):
+        def init_export_price(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['export_prices'][car][t - 1]
-        b_node.para_export_price = Param(set_t, b_node.set_carriers,
-                                         rule=init_export_price_init, units=u.EUR / u.MWh)
+        b_node.para_export_price = Param(set_t, b_node.set_carriers, rule=init_export_price, mutable=True)
 
         # Import Limit
         def init_import_limit(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['import_limit'][car][t - 1]
-        b_node.para_import_limit = Param(set_t, b_node.set_carriers,
-                                         rule=init_import_limit, units=u.MWh)
+        b_node.para_import_limit = Param(set_t, b_node.set_carriers, rule=init_import_limit)
 
         # Export Limit
         def init_export_limit(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['export_limit'][car][t - 1]
-        b_node.para_export_limit = Param(set_t, b_node.set_carriers,
-                                         rule=init_export_limit, units=u.MWh)
+        b_node.para_export_limit = Param(set_t, b_node.set_carriers, rule=init_export_limit)
 
         # Emission Factor
         def init_import_emissionfactor(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['import_emissionfactors'][car][t - 1]
-        b_node.para_import_emissionfactors = Param(set_t, b_node.set_carriers,
-                                                   rule=init_import_emissionfactor, units=u.t / u.MWh)
+        b_node.para_import_emissionfactors = Param(set_t, b_node.set_carriers, rule=init_import_emissionfactor, mutable=True)
 
         def init_export_emissionfactor(para, t, car):
             if nodename in data.node_data:
                 return node_data.data['export_emissionfactors'][car][t - 1]
-        b_node.para_export_emissionfactors = Param(set_t, b_node.set_carriers,
-                                                   rule=init_export_emissionfactor, units=u.t / u.MWh)
+        b_node.para_export_emissionfactors = Param(set_t, b_node.set_carriers, rule=init_export_emissionfactor, mutable=True)
 
         # DECISION VARIABLES
         # Interaction with network/system boundaries
         def init_import_bounds(var, t, car):
             return (0, b_node.para_import_limit[t, car])
-        b_node.var_import_flow = Var(set_t, b_node.set_carriers, bounds=init_import_bounds, units=u.MWh)
+        b_node.var_import_flow = Var(set_t, b_node.set_carriers, bounds=init_import_bounds)
 
         def init_export_bounds(var, t, car):
             return (0, b_node.para_export_limit[t, car])
-        b_node.var_export_flow = Var(set_t, b_node.set_carriers, bounds=init_export_bounds, units=u.MWh)
+        b_node.var_export_flow = Var(set_t, b_node.set_carriers, bounds=init_export_bounds)
 
-        b_node.var_netw_inflow = Var(set_t, b_node.set_carriers, units=u.MWh)
-        b_node.var_netw_outflow = Var(set_t, b_node.set_carriers, units=u.MWh)
+        b_node.var_netw_inflow = Var(set_t, b_node.set_carriers)
+        b_node.var_netw_outflow = Var(set_t, b_node.set_carriers)
 
         if network_energy_consumption:
-            b_node.var_netw_consumption = Var(set_t, b_node.set_carriers, units=u.MWh)
+            b_node.var_netw_consumption = Var(set_t, b_node.set_carriers)
 
         # Generic production profile
-        b_node.var_generic_production = Var(set_t, b_node.set_carriers, within=NonNegativeReals, units=u.MWh)
+        b_node.var_generic_production = Var(set_t, b_node.set_carriers, within=NonNegativeReals)
 
         # Emissions
-        b_node.var_import_emissions_pos = Var(set_t, b_node.set_carriers, units=u.t)
-        b_node.var_import_emissions_neg = Var(set_t, b_node.set_carriers, units=u.t)
-        b_node.var_export_emissions_pos = Var(set_t, b_node.set_carriers, units=u.t)
-        b_node.var_export_emissions_neg = Var(set_t, b_node.set_carriers, units=u.t)
-        b_node.var_car_emissions_pos = Var(set_t, within=NonNegativeReals, units=u.t)
-        b_node.var_car_emissions_neg = Var(set_t, within=NonNegativeReals, units=u.t)
+        b_node.var_import_emissions_pos = Var(set_t, b_node.set_carriers)
+        b_node.var_import_emissions_neg = Var(set_t, b_node.set_carriers)
+        b_node.var_export_emissions_pos = Var(set_t, b_node.set_carriers)
+        b_node.var_export_emissions_neg = Var(set_t, b_node.set_carriers)
+        b_node.var_car_emissions_pos = Var(set_t, within=NonNegativeReals)
+        b_node.var_car_emissions_neg = Var(set_t, within=NonNegativeReals)
 
         # CONSTRAINTS
         # Generic production constraint
@@ -261,29 +259,32 @@ def add_nodes(energyhub):
         b_node.const_car_emissions_neg = Constraint(set_t, rule=init_car_emissions_neg)
 
          # Define network constraints
-        def init_netw_inflow(const, t, car):
-            return b_node.var_netw_inflow[t,car] == sum(model.network_block[netw].var_inflow[t,car,nodename]
-                                                        for netw in model.set_networks
-                                                        if car in model.network_block[netw].set_netw_carrier)
-        b_node.const_netw_inflow = Constraint(set_t, b_node.set_carriers, rule=init_netw_inflow)
-
-        def init_netw_outflow(const, t, car):
-            return b_node.var_netw_outflow[t,car] == sum(model.network_block[netw].var_outflow[t,car,nodename]
-                                                        for netw in model.set_networks
-                                                        if car in model.network_block[netw].set_netw_carrier)
-        b_node.const_netw_outflow = Constraint(set_t, b_node.set_carriers, rule=init_netw_outflow)
-
-        if network_energy_consumption:
-            def init_netw_consumption(const, t, car):
-                return b_node.var_netw_consumption[t,car] == sum(model.network_block[netw].var_consumption[t,car,nodename]
+        if not energyhub.configuration.energybalance.copperplate:
+            def init_netw_inflow(const, t, car):
+                return b_node.var_netw_inflow[t,car] == sum(model.network_block[netw].var_inflow[t,car,nodename]
                                                             for netw in model.set_networks
-                                                             if data.network_data[netw].energy_consumption and
-                                                                 car in model.network_block[netw].set_consumed_carriers)
-            b_node.const_netw_consumption = Constraint(set_t, b_node.set_carriers, rule=init_netw_consumption)
+                                                            if car in model.network_block[netw].set_netw_carrier)
+            b_node.const_netw_inflow = Constraint(set_t, b_node.set_carriers, rule=init_netw_inflow)
+
+            def init_netw_outflow(const, t, car):
+                return b_node.var_netw_outflow[t,car] == sum(model.network_block[netw].var_outflow[t,car,nodename]
+                                                            for netw in model.set_networks
+                                                            if car in model.network_block[netw].set_netw_carrier)
+            b_node.const_netw_outflow = Constraint(set_t, b_node.set_carriers, rule=init_netw_outflow)
+
+            if network_energy_consumption:
+                def init_netw_consumption(const, t, car):
+                    return b_node.var_netw_consumption[t,car] == sum(model.network_block[netw].var_consumption[t,car,nodename]
+                                                                for netw in model.set_networks
+                                                                 if data.network_data[netw].energy_consumption and
+                                                                     car in model.network_block[netw].set_consumed_carriers)
+                b_node.const_netw_consumption = Constraint(set_t, b_node.set_carriers, rule=init_netw_consumption)
 
         # BLOCKS
         # Add technologies as blocks
-        b_node = mc.add_technology(energyhub, nodename, b_node.set_tecsAtNode)
+        b_node = add_technology(energyhub, nodename, b_node.set_tecsAtNode)
+
+        return b_node
 
     model.node_blocks = Block(model.set_nodes, rule=init_node_block)
 

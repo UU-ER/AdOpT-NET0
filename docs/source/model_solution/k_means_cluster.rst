@@ -23,9 +23,9 @@ an instance of the :func:`.ClusteredDataHandle` class and pass it to the :func:`
 
     # Set configuration (cluster into 40 typical days)
     configuration = ModelConfiguration()
-    configuration.optimization.typicaldays = 40
+    configuration.optimization.typicaldays.N = 40
 
 
     # Construct Model and solve
     energyhub = EnergyHub(data, configuration)
-    ehub.quick_solve_model()
+    ehub.quick_solve()

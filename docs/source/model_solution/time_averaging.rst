@@ -28,9 +28,9 @@ to the :func:`.EnergyHub` class:
 
     # Set configuration (use time-staging algorithm)
     configuration = ModelConfiguration()
-    configuration.optimization.timestaging = 1
+    configuration.optimization.timestaging = 4
 
 
     # Construct Model and solve
     energyhub = EnergyHub(data, configuration)
-    ehub.quick_solve_model()
+    ehub.quick_solve()

@@ -29,9 +29,11 @@ Table of Content
    :maxdepth: 2
 
    InputDataManagement
+   ModelComponents
    ModelConfiguration
    ModelConstruction
    ModelSolve
+   ModelDiagnostics
    ResultDataManagement
    ForDevelopers
 

@@ -9,6 +9,7 @@ to solve within a reasonable amount of time. Therefore, the framework offers add
 .. toctree::
     :maxdepth: 1
 
+    model_solution/scaling
     model_solution/k_means_cluster
     model_solution/time_averaging
 
@@ -25,4 +26,4 @@ After model construction, the method :func:`.EnergyHub.quick_solve_model()` can 
     configuration.optimization.objective = 'emissions_minC'
 
     energyhub = EnergyHub(data, configuration)
-    energyhub.quick_solve_model()
+    results = energyhub.quick_solve()

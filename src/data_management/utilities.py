@@ -1,8 +1,14 @@
-import pickle
+import warnings
+import dill as pickle
 import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np
 from types import SimpleNamespace
+import pvlib
+import os
+import json
+
+from ..components.technologies import *
 
 
 def save_object(data, save_path):
@@ -10,16 +16,17 @@ def save_object(data, save_path):
     Save object to path
 
     :param data: object to save
-    :param str save_path: path to save object to
+    :param Path save_path: path to save object to
     """
     with open(save_path, 'wb') as handle:
-        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(data, handle)
+
 
 def load_object(load_path):
     """
     Loads a previously saved object
 
-    :param load_path: Path to load object from
+    :param Path load_path: Path to load object from
     :return object: object loaded
     """
     with open(load_path, 'rb') as handle:
@@ -128,6 +135,35 @@ def average_series(series, nr_timesteps_averaged):
     return average
 
 
+def calculate_dni(data, lon, lat):
+    """
+    Calculate direct normal irradiance from ghi and dhi
+    :param DataFrame data: climate data
+    :return: data: climate data including dni
+    """
+    zenith = pvlib.solarposition.get_solarposition(data.index, lat, lon)
+    data['dni'] = pvlib.irradiance.dni(data['ghi'].to_numpy(), data['dhi'].to_numpy(), zenith['zenith'].to_numpy())
+    data['dni'] = data['dni'].fillna(0)
+    data['dni'] = data['dni'].where(data['dni'] > 0, 0)
+
+    return data['dni']
+
+
+def shorten_input_data(time_series, nr_time_steps):
+    """
+    Shortens time series to required length
+
+    :param list time_series: time_series to shorten
+    :param int nr_time_steps: nr of time steps to shorten to
+    """
+    if len(time_series) != nr_time_steps:
+        warnings.warn('Time series is longer than chosen time horizon - taking only the first ' + \
+                      'couple of time slices')
+        time_series = time_series[0:nr_time_steps]
+
+    return time_series
+
+
 class NodeData():
     """
     Class to handle node data
@@ -160,6 +196,76 @@ class NodeData():
         self.location.lon = None
         self.location.lat = None
         self.location.altitude = None
+
+
+class GlobalData():
+    """
+    Class to handle global data. All global time-dependent input data goes here
+    """
+    def __init__(self, topology):
+        self.data = {}
+        self.data_clustered = {}
+
+        variables = ['subsidy', 'tax']
+        self.data['carbon_prices'] = pd.DataFrame(index=topology.timesteps)
+        for var in variables:
+            self.data['carbon_prices'][var] = np.zeros(len(topology.timesteps))
+            
+def select_technology(tec_data):
+    """
+    Returns the correct subclass for a technology
+    
+    :param str tec_name: Technology Name 
+    :param int existing: if technology is existing 
+    :return: Technology Class
+    """
+    # Generic tecs
+    if tec_data['tec_type'] == 'RES':
+        return Res(tec_data)
+    elif tec_data['tec_type'] == 'CONV1':
+        return Conv1(tec_data)
+    elif tec_data['tec_type'] == 'CONV2':
+        return Conv2(tec_data)
+    elif tec_data['tec_type'] == 'CONV3':
+        return Conv3(tec_data)
+    elif tec_data['tec_type'] == 'CONV4':
+        return Conv4(tec_data)
+    elif tec_data['tec_type'] == 'STOR':
+        return Stor(tec_data)
+    # Specific tecs
+    elif tec_data['tec_type'] == 'DAC_Adsorption':
+        return DacAdsorption(tec_data)
+    elif tec_data['tec_type'].startswith('GasTurbine'):
+        return GasTurbine(tec_data)
+    elif tec_data['tec_type'].startswith('HeatPump'):
+        return HeatPump(tec_data)
+    elif tec_data['tec_type'] == 'HydroOpen':
+        return HydroOpen(tec_data)
+
+
+def open_json(tec, load_path):
+    # Read in JSON files
+    for path, subdirs, files in os.walk(load_path):
+        if 'data' in locals():
+            break
+        else:
+            for name in files:
+                if (tec + '.json') == name:
+                    filepath = os.path.join(path, name)
+                    with open(filepath) as json_file:
+                        data = json.load(json_file)
+                    break
+
+    # Assign name
+    if 'data' in locals():
+        data['Name'] = tec
+    else:
+        raise Exception('There is no json data file for technology ' + tec)
+
+    return data
+    
+
+
 
 
 
