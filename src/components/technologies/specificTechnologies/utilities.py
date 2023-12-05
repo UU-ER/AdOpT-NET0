@@ -106,6 +106,7 @@ def fit_turbomachinery(machinery_data):
 
     return performance_data
 
+
 def fit_turbomachinery_capex(machinery_data):
 
     # capex constants & calculation from AlZohbi (2018)
@@ -150,5 +151,84 @@ def fit_turbomachinery_capex(machinery_data):
     fit_capex = fit_piecewise_function(x, y, nr_segments_capex)
 
     capex_data = fit_capex['capex']
+
+    return capex_data
+
+
+def fit_turbomachinery_general(machinery_data):
+
+    performance_data = {}
+
+    # Parameters needed for pump performance calculations
+    nominal_head = machinery_data['nominal_head']
+    frequency = machinery_data['frequency']
+    pole_pairs = machinery_data['pole_pairs']
+    N = (120 * frequency) / (pole_pairs * 2)
+    omega = 2 * np.pi * N / 60
+
+    # Path read data from
+    data_path = 'data/ob_input_data/' + machinery_data['type'] + '_' + machinery_data['subtype'] + '/'
+
+    # obtain eff curve (omega s, efficiency)
+    design_efficiency = pd.read_csv(Path(data_path + 'efficiency.csv'))
+
+    # Find maximum design_efficiency and corresponding omega s from graph
+    max_index = design_efficiency['Eta_design'].idxmax()
+    max_eta_design = design_efficiency.loc[max_index, 'Eta_design']
+    omega_s_optimum = design_efficiency.loc[max_index, 'Specific_rotational_speed']
+
+    # calculate Q and P design at the max efficiency point
+    Q_design_optimum = omega_s_optimum * (((9.81 * nominal_head) ** 0.75) / omega) ** 2
+
+    # calculate the design power output that is obtained with the design flow at design efficiency
+    if machinery_data['type'] == 'pump':
+        P_design_optimum = Q_design_optimum * 1000 * 9.81 * nominal_head * (10 ** -6) / max_eta_design
+    elif machinery_data['type'] == 'turbine':
+        P_design_optimum = Q_design_optimum * 1000 * 9.81 * nominal_head * (10 ** -6) * max_eta_design
+
+    conversion_factor_flow_rate = 3600 # from m³/s to m³/h
+    Q_design_optimum = Q_design_optimum * conversion_factor_flow_rate
+
+    performance_data['design'] = {}
+    performance_data['design']['Eta_design'] = max_eta_design
+    performance_data['design']['P_design'] = P_design_optimum
+    performance_data['design']['Q_design'] = Q_design_optimum
+
+    return performance_data
+
+def fit_turbomachinery_capex_general(machinery_data):
+
+    # capex constants & calculation from AlZohbi (2018)
+    capex_data = {}
+    nominal_head = machinery_data['nominal_head']
+    capex_constant_a = machinery_data['capex_constant_a']
+    capex_constant_b = machinery_data['capex_constant_b']
+    capex_constant_c = machinery_data['capex_constant_c']
+    inflation_correction = 1.2692 # from 2018-2023 EUR
+
+    # for pump P in kW, for turbine P in MW: basevalue is for 1 MW.
+    if machinery_data['type'] == 'pump':
+        capex_basevalue = (capex_constant_a * (1000 ** capex_constant_b) * (nominal_head ** capex_constant_c) *
+                           inflation_correction)
+    elif machinery_data['type'] == 'turbine':
+        capex_basevalue = (capex_constant_a * (1 ** capex_constant_b) * (nominal_head ** capex_constant_c) *
+                           inflation_correction) * 10 ** 6
+
+    # scaling factor: using capex calculation by Aggidis et al. (2010) - equation 13
+    capex_constant_a_scaling = 12000
+    capex_constant_b_scaling = 0.2
+    capex_constant_c_scaling = 0.56
+
+    # CAPEX for design P, scaled from 1MW value.
+    P_design = machinery_data['P_design']
+
+    capex_basevalue_scaling = (capex_constant_a_scaling * ((1000/(nominal_head ** capex_constant_b_scaling))
+                                                           ** capex_constant_c_scaling))
+    scaling_factor = ((capex_constant_a_scaling * ((P_design / (nominal_head ** capex_constant_b_scaling))
+                                                   ** capex_constant_c_scaling))) / capex_basevalue_scaling
+
+    scaled_capex = scaling_factor * capex_basevalue
+
+    capex_data['design'] = scaled_capex
 
     return capex_data

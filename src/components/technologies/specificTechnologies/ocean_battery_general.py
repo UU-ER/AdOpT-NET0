@@ -16,7 +16,7 @@ from src.components.technologies.utilities import FittedPerformance
 from src.components.technologies.technology import Technology
 from src.components.utilities import perform_disjunct_relaxation
 from src.components.utilities import annualize, set_discount_rate
-from src.components.technologies.specificTechnologies.utilities import fit_turbomachinery, fit_turbomachinery_capex
+from src.components.technologies.specificTechnologies.utilities import fit_turbomachinery, fit_turbomachinery_capex, fit_turbomachinery_general, fit_turbomachinery_capex_general
 
 
 class OceanBattery(Technology):
@@ -42,60 +42,37 @@ class OceanBattery(Technology):
         # Time dependent coefficients
         self.fitted_performance.time_dependent_coefficients = 1
 
-        # Fit pumps
+        # Fit pump
         pump_data = {}
         pump_data['type'] = 'pump'
         pump_data['subtype'] = self.fitted_performance.coefficients['pump_type']
-        if pump_data['subtype'] == 'centrifugal':
-            pump_data['omega_s_min'] = 0.2
-            pump_data['omega_s_max'] = 1.8
-        elif pump_data['subtype'] == 'mixedflow':
-            pump_data['omega_s_min'] = 1
-            pump_data['omega_s_max'] = 3
-        elif pump_data['subtype'] == 'axial':
-            pump_data['omega_s_min'] = 2
-            pump_data['omega_s_max'] = 8
         pump_data['min_power'] = 0
         pump_data['nominal_head'] = self.fitted_performance.coefficients['nominal_head']
         pump_data['frequency'] = self.fitted_performance.coefficients['frequency']
         pump_data['pole_pairs'] = self.fitted_performance.coefficients['pole_pairs']
-        pump_data['nr_segments_design'] = self.fitted_performance.coefficients['nr_segments_design']
-        pump_data['nr_segments_performance'] = self.fitted_performance.coefficients['nr_segments_performance']
-        self.performance_data['pump'] = fit_turbomachinery(pump_data)
-        pump_data['fitting_coeff'] = fit_turbomachinery(pump_data)
+        self.performance_data['pump'] = fit_turbomachinery_general(pump_data)
+
+        pump_data['P_design'] = self.performance_data['pump']['design']['P_design']
         pump_data['capex_constant_a'] = 1753
         pump_data['capex_constant_b'] = 0.9623
         pump_data['capex_constant_c'] = -0.3566
-        pump_data['nr_segments_capex'] = self.fitted_performance.coefficients['nr_segments_capex']
-        self.economics.capex_data['pump'] = fit_turbomachinery_capex(pump_data)
-
-        # pd.DataFrame.from_dict(self.performance_data['pump']).to_excel('C:/Users/6574114/Documents/Research/EHUB-Py/userData/OB/pump_performance.xlsx')
+        self.economics.capex_data['pump'] = fit_turbomachinery_capex_general(pump_data)
 
         # Fit turbine
         turbine_data = {}
         turbine_data['type'] = 'turbine'
         turbine_data['subtype'] = self.fitted_performance.coefficients['turbine_type']
-        if turbine_data['subtype'] == 'francis':
-            turbine_data['omega_s_min'] = 0.25
-            turbine_data['omega_s_max'] = 2.5
-        elif turbine_data['subtype'] == 'kaplan':
-            turbine_data['omega_s_min'] = 1.7
-            turbine_data['omega_s_max'] = 6
         turbine_data['min_power'] = 0
         turbine_data['nominal_head'] = self.fitted_performance.coefficients['nominal_head']
         turbine_data['frequency'] = self.fitted_performance.coefficients['frequency']
         turbine_data['pole_pairs'] = self.fitted_performance.coefficients['pole_pairs']
-        turbine_data['nr_segments_design'] = self.fitted_performance.coefficients['nr_segments_design']
-        turbine_data['nr_segments_performance'] = self.fitted_performance.coefficients['nr_segments_performance']
-        self.performance_data['turbine'] = fit_turbomachinery(turbine_data)
-        turbine_data['fitting_coeff'] = fit_turbomachinery(turbine_data)
+        self.performance_data['turbine'] = fit_turbomachinery_general(turbine_data)
+
+        turbine_data['P_design'] = self.performance_data['turbine']['design']['P_design']
         turbine_data['capex_constant_a'] = 2.927
         turbine_data['capex_constant_b'] = 1.174
         turbine_data['capex_constant_c'] = -0.4933
-        turbine_data['nr_segments_capex'] = self.fitted_performance.coefficients['nr_segments_capex']
-        self.economics.capex_data['turbine'] = fit_turbomachinery_capex(turbine_data)
-
-        # pd.DataFrame.from_dict(self.performance_data['turbine']).to_excel('C:/Users/6574114/Documents/Research/EHUB-Py/userData/OB/turbine_performance.xlsx')
+        self.economics.capex_data['turbine'] = fit_turbomachinery_capex_general(turbine_data)
 
         # Derive bounds
         climate_data = node_data.data['climate_data']
@@ -114,7 +91,6 @@ class OceanBattery(Technology):
             self.fitted_performance.bounds['output'][car] = np.column_stack((np.zeros(shape=time_steps),
                                                              np.ones(shape=time_steps) * turbine_slots *
                                                                  self.performance_data['turbine']['bounds']['P_ub']))
-
 
     def construct_tech_model(self, b_tec, energyhub):
         """
