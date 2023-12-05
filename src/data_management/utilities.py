@@ -168,7 +168,7 @@ class NodeData():
     """
     Class to handle node data
     """
-    def __init__(self, topology):
+    def __init__(self, node_information, timesteps, carriers):
         # Initialize Node Data (all time-dependent input data goes here)
         self.data = {}
         self.data_clustered = {}
@@ -182,20 +182,22 @@ class NodeData():
                      'export_emissionfactors']
 
         for var in variables:
-            self.data[var] = pd.DataFrame(index=topology.timesteps)
-            for carrier in topology.carriers:
+            self.data[var] = pd.DataFrame(index=timesteps)
+            for carrier in carriers:
                 self.data[var][carrier] = 0
-        self.data['climate_data'] = pd.DataFrame(index=topology.timesteps)
+        self.data['climate_data'] = pd.DataFrame(index=timesteps)
 
         self.options = SimpleNamespace()
         self.options.production_profile_curtailment = {}
-        for carrier in topology.carriers:
+        for carrier in carriers:
             self.options.production_profile_curtailment[carrier]= 0
 
         self.location = SimpleNamespace()
-        self.location.lon = None
-        self.location.lat = None
-        self.location.altitude = None
+        if 'lon' in node_information:
+            self.location.lon = node_information['lon']
+            self.location.lat = node_information['lat']
+        if 'alt' in node_information:
+            self.location.altitude = node_information['alt']
 
 
 class GlobalData():

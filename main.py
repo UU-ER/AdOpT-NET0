@@ -8,14 +8,15 @@ import numpy as np
 
 # Save Data File to file
 data_save_path = r'.\user_data\data_handle_test'
-#
-# # TOPOLOGY
+
+# TOPOLOGY
 topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
-topology.define_nodes(['onshore', 'offshore'])
+topology.define_nodes({'onshore': {'lon': 5.16, 'lat': 52}, 'offshore': {'lon': 4.4, 'lat': 52.2}})
 topology.define_new_technologies('onshore', ['Storage_Battery'])
 topology.define_new_technologies('offshore', ['Photovoltaic', 'WindTurbine_Onshore_1500'])
+
 # topology.define_carriers(['electricity'])
 
 # configuration.optimization.timestaging = 1
@@ -34,7 +35,7 @@ topology.define_new_network('electricitySimple', distance=distance, connections=
 data = dm.DataHandle(topology)
 
 # CLIMATE DATA
-from_file = 1
+from_file = 0
 if from_file == 1:
     data.read_climate_data_from_file('onshore', r'.\data\climate_data_onshore.txt')
     data.read_climate_data_from_file('offshore', r'.\data\climate_data_offshore.txt')
@@ -62,23 +63,13 @@ data.read_demand_data('onshore', 'electricity', electricity_demand)
 data.read_technology_data()
 data.read_network_data()
 
+# topology.to_json('nodes.json')
+
 
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
-configuration.optimization.typicaldays = 0
+configuration.optimization.typicaldays.N = 0
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
-energyhub.quick_solve_model()
-results = energyhub.write_results()
-results.create_dashboard()
-# results.write_excel(r'.\userData\test_full')
-
-
-# configuration = ModelConfiguration()
-# configuration.optimization.timestaging = 4
-# # # Read data
-# energyhub = EnergyHub(data, configuration)
-# energyhub.quick_solve_model()
-# results = energyhub.write_results()
-# results.write_excel(r'.\userData\test_reduced')
+energyhub.quick_solve()
