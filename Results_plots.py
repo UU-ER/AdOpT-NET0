@@ -41,7 +41,7 @@ for folder in os.listdir(result_folder):
 
 result_df = pd.DataFrame(result_data)
 result_df.to_excel('C:/Users/6574114/OneDrive - Universiteit Utrecht/ESCAPE_Conference paper_Data exchange/oceanbatteryresults.xlsx')
-plt.rcParams.update({'font.size': 14})
+plt.rcParams.update({'font.size': 16})
 
 
 def plot_size(x,y,z,z_label,l):
@@ -55,9 +55,9 @@ def plot_size(x,y,z,z_label,l):
     z_p = griddata((x.values, y.values), z, (x_p, y_p), method='linear')
     fig1, ax = plt.subplots()
     CS1 = ax.contourf(x_p, y_p, z_p, 50, cmap='viridis_r')
-    CS2 = ax.contour(x_p, y_p, z_p, levels=l, colors='black')
+    CS2 = ax.contour(x_p, y_p, z_p, levels=l, colors='white')
     S = plt.scatter(x_s, y_s, marker='D', facecolors='white', edgecolors='black', s=60)
-    plt.clabel(CS2, fontsize=10)
+    plt.clabel(CS2, fontsize=12, colors='white')
     plt.xlabel('Normalized standard deviation of electricity price')
     plt.ylabel('Normalized capex of reservoir')
     plt.xlim([1, 10])
@@ -73,7 +73,7 @@ z = result_df["reservoir_size"] / 1000
 l = [50, 100, 150, 200, 250]
 z_label = 'Reservoir size in 1000 m³'
 plot_size(x,y,z,z_label,l)
-plt.savefig(save_path + 'reservoir_size.jpg', dpi=600, bbox_inches='tight')
+plt.savefig(save_path + 'reservoir_size.jpg', dpi=1000, bbox_inches='tight')
 
 # PLOT: Turbine Design
 x = result_df["SD"]
@@ -82,7 +82,7 @@ z = result_df["total_turbine_size"]
 l = [1.5, 3, 4.5, 6, 7.5, 9]
 z_label = 'total turbine design power (MW)'
 plot_size(x,y,z,z_label,l)
-plt.savefig(save_path + 'turbine_size.jpg', dpi=600, bbox_inches='tight')
+plt.savefig(save_path + 'turbine_size.jpg', dpi=1000, bbox_inches='tight')
 
 # PLOT: Pump Design
 x = result_df["SD"]
@@ -91,4 +91,4 @@ z = result_df["total_pump_size"]
 l = [2, 4, 6]
 z_label = 'total pump design power (MW)'
 plot_size(x,y,z,z_label,l)
-plt.savefig(save_path + 'pump_size.jpg', dpi=600, bbox_inches='tight')
+plt.savefig(save_path + 'pump_size.jpg', dpi=1000, bbox_inches='tight')

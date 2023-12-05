@@ -1,12 +1,12 @@
 {
   "tec_type": "OceanBattery",
   "size_min": 0,
-  "size_max": 250000,
-  "size_is_int": 0,
+  "size_max": 20,
+  "size_is_int": 1,
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
-    "CAPEX_model": 4,
+    "comment": "Unit Capex is in EUR/m³ of reservoir size. Pump and Turbine is added to this later.",
+    "CAPEX_model": 1,
     "unit_CAPEX": 84,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
@@ -34,13 +34,12 @@
       "min_fill": 0.02,
       "pump_slots": 6,
       "turbine_slots": 6,
+      "reservoir_volume": 250000,
       "turbine_type": "francis",
       "pump_type": "centrifugal",
       "frequency": 50,
       "pole_pairs": 3,
-      "nominal_head": 47.5,
-      "capex_turbines": 1,
-      "capex_pumps": 1
+      "nominal_head": 47.5
     }
   }
 }

@@ -189,10 +189,10 @@ def fit_turbomachinery_general(machinery_data):
     conversion_factor_flow_rate = 3600 # from m³/s to m³/h
     Q_design_optimum = Q_design_optimum * conversion_factor_flow_rate
 
-    performance_data['design'] = {}
-    performance_data['design']['Eta_design'] = max_eta_design
-    performance_data['design']['P_design'] = P_design_optimum
-    performance_data['design']['Q_design'] = Q_design_optimum
+    performance_data = {}
+    performance_data['Eta_design'] = max_eta_design
+    performance_data['P_design'] = P_design_optimum
+    performance_data['Q_design'] = Q_design_optimum
 
     return performance_data
 
@@ -229,6 +229,4 @@ def fit_turbomachinery_capex_general(machinery_data):
 
     scaled_capex = scaling_factor * capex_basevalue
 
-    capex_data['design'] = scaled_capex
-
-    return capex_data
+    return scaled_capex

@@ -106,7 +106,7 @@ class OceanBattery(Technology):
         pump_data['pole_pairs'] = self.fitted_performance.coefficients['pole_pairs']
         self.performance_data['pump'] = fit_turbomachinery_general(pump_data)
 
-        pump_data['P_design'] = self.performance_data['pump']['design']['P_design']
+        pump_data['P_design'] = self.performance_data['pump']['P_design']
         pump_data['capex_constant_a'] = 1753
         pump_data['capex_constant_b'] = 0.9623
         pump_data['capex_constant_c'] = -0.3566
@@ -122,27 +122,33 @@ class OceanBattery(Technology):
         turbine_data['pole_pairs'] = self.fitted_performance.coefficients['pole_pairs']
         self.performance_data['turbine'] = fit_turbomachinery_general(turbine_data)
 
-        turbine_data['P_design'] = self.performance_data['turbine']['design']['P_design']
+        turbine_data['P_design'] = self.performance_data['turbine']['P_design']
         turbine_data['capex_constant_a'] = 2.927
         turbine_data['capex_constant_b'] = 1.174
         turbine_data['capex_constant_c'] = -0.4933
         self.economics.capex_data['turbine'] = fit_turbomachinery_capex_general(turbine_data)
 
+        self.economics.capex_data['unit_capex'] = self.economics.capex_data['unit_capex'] + \
+                                                  self.economics.capex_data['turbine'] * self.fitted_performance.coefficients['turbine_slots']+ \
+                                                  self.economics.capex_data['pump'] * self.fitted_performance.coefficients['pump_slots']
+
         # Derive bounds
         climate_data = node_data.data['climate_data']
         time_steps = len(climate_data)
-        # pump_slots = self.fitted_performance.coefficients['pump_slots']
-        # turbine_slots = self.fitted_performance.coefficients['turbine_slots']
 
         # Input bounds
         for car in self.performance_data['input_carrier']:
             self.fitted_performance.bounds['input'][car] = np.column_stack((np.zeros(shape=time_steps),
-                                                            np.ones(shape=time_steps) * 1000))
+                                                            np.ones(shape=time_steps) *
+                                                            self.performance_data['pump']['P_design'] *
+                                                            self.fitted_performance.coefficients['pump_slots'] * self.size_max))
 
         # Output bounds
         for car in self.performance_data['output_carrier']:
             self.fitted_performance.bounds['output'][car] = np.column_stack((np.zeros(shape=time_steps),
-                                                             np.ones(shape=time_steps) * 1000))
+                                                             np.ones(shape=time_steps) *
+                                                             self.performance_data['turbine']['P_design'] *
+                                                             self.fitted_performance.coefficients['turbine_slots'] * self.size_max))
 
     def construct_tech_model(self, b_tec, energyhub):
         """
@@ -150,61 +156,31 @@ class OceanBattery(Technology):
         """
         super(OceanBattery, self).construct_tech_model(b_tec, energyhub)
 
-        self.save_specific_design = energyhub.configuration.reporting.save_path
-
         nr_timesteps_averaged = energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
-
-        # Global parameters
-        coeff = self.fitted_performance.coefficients
-        configuration = energyhub.configuration
-        economics = self.economics
-        discount_rate = set_discount_rate(configuration, economics)
-        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
-        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         # Method sections
         b_tec = self._define_vars(b_tec)
         b_tec = self._define_storage_level(b_tec, nr_timesteps_averaged)
-        b_tec = self._define_turbine_performance(b_tec, energyhub)
-        b_tec = self._define_pump_performance(b_tec, energyhub)
-        #
-        # # Aggregate Input/Output
-        # def init_total_input(const, t, car):
-        #     return b_tec.var_input[t, car] == \
-        #            sum(b_tec.var_input_pump[t, pump] for pump in b_tec.set_pump_slots)
-        # b_tec.const_total_input = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_total_input)
-        #
-        # def init_total_output(const, t, car):
-        #     return b_tec.var_output[t, car] == \
-        #            sum(b_tec.var_output_turbine[t, turbine] for turbine in b_tec.set_turbine_slots)
-        # b_tec.const_total_output = Constraint(self.set_t, b_tec.set_output_carriers, rule=init_total_output)
-        #
-        # # CAPEX Calculation
-        # b_tec.const_capex_aux = Constraint(expr=b_tec.para_unit_capex_reservoir_annual * b_tec.var_size +
-        #                                         sum(b_tec.var_capex_turbine[turbine] for
-        #                                                              turbine in b_tec.set_turbine_slots) +
-        #                                         sum(b_tec.var_capex_pump[pump] for pump in b_tec.set_pump_slots) ==
-        #                                         b_tec.var_capex_aux)
+        b_tec = self._define_turbine_performance(b_tec)
+        b_tec = self._define_pump_performance(b_tec)
 
         return b_tec
 
     def _define_vars(self, b_tec):
 
-        # Additional parameters
-        coeff = self.fitted_performance.coefficients
-
-        # TODO: DEFINE
-        max_size = 200
-        max_flow_pump = 8
-        max_flow_turbine = 8
+        max_flow_pump = self.performance_data['pump']['Q_design']
+        max_flow_turbine = self.performance_data['turbine']['Q_design']
+        reservoir_volume = self.performance_data['performance']['reservoir_volume']
+        pump_slots = self.performance_data['performance']['pump_slots']
+        turbine_slots = self.performance_data['performance']['turbine_slots']
 
         # Additional decision variables
         b_tec.var_storage_level = Var(self.set_t_full, domain=NonNegativeReals,
-                                      bounds=(self.size_min, self.size_max))
+                                      bounds=(self.size_min * reservoir_volume, self.size_max * reservoir_volume))
         b_tec.var_total_inflow = Var(self.set_t_full, domain=NonNegativeReals,
-                                     bounds=(0, max_flow_pump * max_size))
+                                     bounds=(0, pump_slots * max_flow_pump * self.size_max))
         b_tec.var_total_outflow = Var(self.set_t_full, domain=NonNegativeReals,
-                                      bounds=(0, max_flow_turbine * max_size))
+                                      bounds=(0, turbine_slots * max_flow_turbine * self.size_max))
 
         return b_tec
 
@@ -215,11 +191,11 @@ class OceanBattery(Technology):
 
         # Additional parameters
         eta_lambda = coeff['lambda']
-        reservoir_size = 250000
+        reservoir_volume = self.performance_data['performance']['reservoir_volume']
 
         # Fill constraints
         def init_fill_constraint_up(const, t):
-            return b_tec.var_storage_level[t] <= b_tec.var_size * reservoir_size
+            return b_tec.var_storage_level[t] <= b_tec.var_size * reservoir_volume
         b_tec.const_size_up = Constraint(self.set_t_full, rule=init_fill_constraint_up)
 
         # Storage level calculation
@@ -239,41 +215,40 @@ class OceanBattery(Technology):
 
         return b_tec
 
-    def _define_turbine_performance(self, b_tec, energyhub):
+    def _define_turbine_performance(self, b_tec):
         """
         Defines turbine performance
         """
-
-        # eta_turbine = coeff['eta_turbine']
-        eta_turbine = 0.8
-        head_correction = 1/3.6 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * 10 ** -6
-        q_up = 10
+        eta_turbine = self.performance_data['turbine']['Eta_design']
+        max_flow_turbine = self.performance_data['turbine']['Q_design']
+        turbine_slots = self.performance_data['performance']['turbine_slots']
+        head_correction = 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * (10 ** -6)
 
         def init_output(const, t, car):
-            return b_tec.var_output[t, car] == b_tec.var_total_outflow[t] * eta_turbine * head_correction
+            return b_tec.var_output[t, car] == b_tec.var_total_outflow[t] * head_correction * eta_turbine
         b_tec.const_output = Constraint(self.set_t_full, b_tec.set_output_carriers, rule=init_output)
 
         def init_outflow_up(const, t):
-            return b_tec.var_total_outflow[t] <= b_tec.var_size * q_up
+            return b_tec.var_total_outflow[t] <= b_tec.var_size * max_flow_turbine * turbine_slots
         b_tec.const_outflow_up = Constraint(self.set_t_full, rule=init_outflow_up)
 
         return b_tec
 
-    def _define_pump_performance(self, b_tec, energyhub):
+    def _define_pump_performance(self, b_tec):
         """
         Defines turbine performance
         """
-        # eta_turbine = coeff['eta_turbine']
-        eta_pump = 0.8
-        head_correction = 1/3.6 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * 10 ** -6
-        q_up = 10
+        eta_pump = self.performance_data['pump']['Eta_design']
+        max_flow_pump = self.performance_data['turbine']['Q_design']
+        pump_slots = self.performance_data['performance']['turbine_slots']
+        head_correction = 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * (10 ** -6)
 
         def init_input(const, t, car):
-            return b_tec.var_total_inflow[t] == b_tec.var_input[t, car] * eta_pump * head_correction
+            return b_tec.var_input[t, car] == b_tec.var_total_inflow[t] * head_correction / eta_pump
         b_tec.const_input = Constraint(self.set_t_full, b_tec.set_input_carriers, rule=init_input)
 
         def init_inflow_up(const, t):
-            return b_tec.var_total_outflow[t] <= b_tec.var_size * q_up
+            return b_tec.var_total_outflow[t] <= b_tec.var_size * max_flow_pump * pump_slots
         b_tec.const_inflow_up = Constraint(self.set_t_full, rule=init_inflow_up)
 
         return b_tec

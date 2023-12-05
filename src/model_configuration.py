@@ -182,8 +182,8 @@ class ModelConfiguration:
 
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
-        self.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/NewOceanBattery/'
-        self.reporting.case_name = 'SD1_test'
+        self.reporting.save_path = 'userData'
+        self.reporting.case_name = 'OB_general'
         self.reporting.write_solution_diagnostics = 0
 
         self.energybalance = SimpleNamespace()
