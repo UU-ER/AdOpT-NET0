@@ -222,7 +222,7 @@ class OceanBattery(Technology):
         eta_turbine = self.performance_data['turbine']['Eta_design']
         max_flow_turbine = self.performance_data['turbine']['Q_design']
         turbine_slots = self.performance_data['performance']['turbine_slots']
-        head_correction = 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * (10 ** -6)
+        head_correction = 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * (10 ** -6) / 3600
 
         def init_output(const, t, car):
             return b_tec.var_output[t, car] == b_tec.var_total_outflow[t] * head_correction * eta_turbine
@@ -241,7 +241,7 @@ class OceanBattery(Technology):
         eta_pump = self.performance_data['pump']['Eta_design']
         max_flow_pump = self.performance_data['turbine']['Q_design']
         pump_slots = self.performance_data['performance']['turbine_slots']
-        head_correction = 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * (10 ** -6)
+        head_correction = 1000 * 9.81 * self.fitted_performance.coefficients['nominal_head'] * (10 ** -6) / 3600
 
         def init_input(const, t, car):
             return b_tec.var_input[t, car] == b_tec.var_total_inflow[t] * head_correction / eta_pump
