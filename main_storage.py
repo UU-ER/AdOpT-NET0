@@ -7,7 +7,7 @@ from pathlib import Path
 
 # INPUT
 factors = {}
-factors['demand'] = 1
+factors['demand'] = 0.01
 factors['pv'] = 2000
 factors['wind_offshore'] = 1000
 
@@ -18,12 +18,13 @@ time_series = pd.read_csv(Path('./cases/storage/clean_data/time_series.csv'))
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
 topology.define_nodes(['offshore', 'onshore'])
 topology.define_existing_technologies('onshore', {'GasTurbine_simple': max(time_series['demand'] * factors['demand']) * 1.5})
 
-topology.define_new_technologies('offshore', ['Storage_OceanBattery_general'])
+# topology.define_new_technologies('offshore', ['Storage_OceanBattery_general'])
+topology.define_new_technologies('onshore', ['Storage_Battery'])
 
 distance = dm.create_empty_network_matrix(topology.nodes)
 distance.at['onshore', 'offshore'] = 100
@@ -40,7 +41,7 @@ data = dm.DataHandle(topology)
 # CLIMATE DATA
 from_file = 1
 if from_file == 1:
-    data.read_climate_data_from_file('offshore', './data/climate_data_offshore.txt')
+    data.read_climate_data_from_file('onshore', './data/climate_data_onshore.txt')
     data.read_climate_data_from_file('offshore', './data/climate_data_offshore.txt')
 # else:
 #     lat = 52
@@ -50,13 +51,19 @@ if from_file == 1:
 #     lon = 4.4
 #     data.read_climate_data_from_api('offshore', lon, lat,save_path='./data/climate_data_offshore.txt')
 
-
-# PRODUCTION
-data.read_production_profile('offshore', 'electricity', (time_series['wind'] * factors['wind_offshore']).to_list(), 1)
-data.read_production_profile('onshore', 'electricity', (time_series['PV'] * factors['pv']).to_list(), 1)
-
 # DEMAND
 data.read_demand_data('onshore', 'electricity', (time_series['demand'] * factors['demand']).to_list())
+annual_demand = sum(time_series['demand']) * factors['demand']
+
+# PRODUCTION
+res_to_demand_ratio = 0.5
+production_fraction_wind = 0.5
+production_fraction_pv = 1 - production_fraction_wind
+capacity_wind = res_to_demand_ratio * annual_demand * production_fraction_wind / sum(time_series['wind'])
+capacity_pv = res_to_demand_ratio * annual_demand * production_fraction_pv / sum(time_series['PV'])
+data.read_production_profile('offshore', 'electricity', (time_series['wind'] * capacity_wind).to_list(), 1)
+data.read_production_profile('onshore', 'electricity', (time_series['PV'] * capacity_pv).to_list(), 1)
+
 
 # GAS IMPORT
 data.read_import_limit_data('onshore', 'gas', np.ones(len(topology.timesteps)) * max(time_series['demand'] * factors['demand']) * 2)
@@ -79,5 +86,3 @@ results = energyhub.quick_solve()
 # for tec in data.technology_data['offshore']:
 #     size = data.technology_data['offshore'][tec].model_block.report_results()
 #     print(size)
-#
-#

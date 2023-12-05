@@ -16,7 +16,8 @@ from src.components.technologies.utilities import FittedPerformance
 from src.components.technologies.technology import Technology
 from src.components.utilities import perform_disjunct_relaxation
 from src.components.utilities import annualize, set_discount_rate
-from src.components.technologies.specificTechnologies.utilities import fit_turbomachinery, fit_turbomachinery_capex, fit_turbomachinery_general, fit_turbomachinery_capex_general
+from src.components.technologies.specificTechnologies.utilities import (fit_turbomachinery_general,
+                                                                        fit_turbomachinery_capex_general)
 
 
 class OceanBattery(Technology):
@@ -128,7 +129,7 @@ class OceanBattery(Technology):
         turbine_data['capex_constant_c'] = -0.4933
         self.economics.capex_data['turbine'] = fit_turbomachinery_capex_general(turbine_data)
 
-        self.economics.capex_data['unit_capex'] = self.economics.capex_data['unit_capex'] + \
+        self.economics.capex_data['unit_capex'] = self.economics.capex_data['unit_capex'] * self.fitted_performance.coefficients['reservoir_volume'] + \
                                                   self.economics.capex_data['turbine'] * self.fitted_performance.coefficients['turbine_slots']+ \
                                                   self.economics.capex_data['pump'] * self.fitted_performance.coefficients['pump_slots']
 
@@ -152,7 +153,7 @@ class OceanBattery(Technology):
 
     def construct_tech_model(self, b_tec, energyhub):
         """
-        Adds constraints to technology blocks for tec_type Ocean_Batteru, resembling a storage technology
+        Adds constraints to technology blocks for tec_type Ocean_Battery, resembling a storage technology
         """
         super(OceanBattery, self).construct_tech_model(b_tec, energyhub)
 
