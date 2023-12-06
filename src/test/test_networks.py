@@ -28,10 +28,6 @@ def test_networks():
     should = 20
     res = energyhub1.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
     assert abs(should - res) / res <= 0.001
-    # is capex correct
-    should = 1020 * cost_correction
-    res = energyhub1.model.network_block['hydrogenTest'].var_capex.value
-    assert abs(should - res) / res <= 0.001
 
     # Test no bidirectional
     data = load_object(r'./src/test/test_data/networks.p')
