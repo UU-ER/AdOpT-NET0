@@ -90,14 +90,17 @@ class Technology(ModelComponent):
         - Fixed OPEX
 
         **Constraint declarations**
-        - CAPEX, can be linear (for ``capex_model == 1``), piecewise linear (for ``capex_model == 2``) or linear with
+
+        - CAPEX, can be linear (for ``capex_model == 1``), piecewise linear (for ``capex_model == 2``) or linear with \
         a fixed cost when the technology is installed (for ``capex_model == 3``). Linear is defined as:
 
         .. math::
             CAPEX_{tec} = Size_{tec} * UnitCost_{tec}
 
         while linear with fixed installation costs is defined as:
-                .. math::
+
+
+        .. math::
             CAPEX_{tec} = Size_{tec} * UnitCost_{tec} + FixCost_{tec}
 
         - Variable OPEX: defined per unit of output for the main carrier:
