@@ -492,12 +492,12 @@ class Network(ModelComponent):
         if economics.capex_model == 1:
             b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
                                              initialize=economics.capex_data['gamma1'] * annualization_factor)
-            b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
+            b_netw.para_capex_gamma3 = Param(domain=Reals, mutable=True,
                                              initialize=economics.capex_data['gamma3'] * annualization_factor)
         elif economics.capex_model == 2:
-            b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
-                                             initialize=economics.capex_data['gamma2'] * annualization_factor)
             b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
+                                             initialize=economics.capex_data['gamma2'] * annualization_factor)
+            b_netw.para_capex_gamma3 = Param(domain=Reals, mutable=True,
                                              initialize=economics.capex_data['gamma3'] * annualization_factor)
         if economics.capex_model == 3:
             b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
@@ -507,7 +507,7 @@ class Network(ModelComponent):
             b_netw.para_capex_gamma3 = Param(domain=Reals, mutable=True,
                                              initialize=economics.capex_data['gamma3'] * annualization_factor)
         if economics.capex_model == 4:
-            b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
+            b_netw.para_capex_gamma4 = Param(domain=Reals, mutable=True,
                                              initialize=economics.capex_data['gamma4'] * annualization_factor)
 
         b_netw.var_capex = Var()
