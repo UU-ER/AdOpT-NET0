@@ -316,14 +316,6 @@ class Network(ModelComponent):
             toNode = arc_name[1]
             s = arc.var_size.value
             capex = arc.var_capex.value
-            # if energyhub.model_information.clustered_data:
-            #     sequence = energyhub.k_means_specs.full_resolution['sequence']
-            #     opex_var = sum(arc.var_opex_variable[sequence[t - 1]].value
-            #                    for t in self.set_t)
-            #     total_flow = sum(arc.var_flow[sequence[t - 1]].value
-            #                      for t in self.set_t)
-            #     total_emissions = ...
-            # else:
             opex_var = sum(arc.var_opex_variable[t].value
                            for t in self.set_t)
             total_flow = sum(arc.var_flow[t].value
@@ -344,17 +336,6 @@ class Network(ModelComponent):
 
             if arc.find_component('var_consumption_send'):
                 for car in b_netw.set_consumed_carriers:
-                    # if energyhub.model_information.clustered_data:
-                    #     index = pd.MultiIndex.from_tuples(zip(['consumption_send' + car], [fromNode], [toNode]),
-                    #                                       names=['variable', 'fromNode', 'toNode'])
-                    #     data = pd.DataFrame([arc.var_consumption_send[sequence[t-1], car].value for t in self.set_t], columns=index)
-                    #     self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
-                    #
-                    #     index = pd.MultiIndex.from_tuples(zip(['consumption_receive' + car], [fromNode], [toNode]),
-                    #                                       names=['variable', 'fromNode', 'toNode'])
-                    #     data = pd.DataFrame([arc.var_consumption_receive[sequence[t-1], car].value for t in self.set_t], columns=index)
-                    #     self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
-                    # else:
                     index = pd.MultiIndex.from_tuples(zip(['consumption_send' + car], [fromNode], [toNode]),
                                                       names=['variable', 'fromNode', 'toNode'])
                     data = pd.DataFrame([arc.var_consumption_send[t, car].value for t in self.set_t], columns=index)
