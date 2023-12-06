@@ -5,10 +5,10 @@ from mes_north_sea.preprocessing.utilities import Configuration, to_latex
 climate_years = [1995, 2008, 2009]
 c = Configuration()
 
-demand2021 = pd.read_excel(c.loadpath_demand2021, sheet_name='Aggregate')
-demand2021.set_index('Country Code', inplace=True)
-demand2021 = demand2021['Demand (2021)']
-demand2021.columns = ['\cite{Eurostat2023c}']
+demand2019 = pd.read_excel(c.loadpath_demand2021, sheet_name='Aggregate')
+demand2019.set_index('Country Code', inplace=True)
+demand2019 = demand2019['Demand (2019)']
+demand2019.columns = ['\cite{Eurostat2023c}']
 
 
 def preprocess_demand_data_eraa(config, region):
@@ -80,7 +80,7 @@ for climate_year in climate_years:
         total_demand_per_country_ERAA = national_demand.sum()
 
         total_demand_per_country = pd.merge(total_demand_per_country_ERAA.to_frame(), industry_share, left_index=True, right_on='Country_Code')
-        total_demand_per_country = total_demand_per_country[['Country_Code' ,0, 'share']]
+        total_demand_per_country = total_demand_per_country[['Country_Code', 0, 'share']]
         total_demand_per_country = total_demand_per_country.rename(columns={0: 'total_demand', 'share': 'industrial_share'})
         total_demand_per_country['industrial_demand'] = total_demand_per_country['total_demand'] * total_demand_per_country['industrial_share']
         total_demand_per_country['other_demand'] = total_demand_per_country['total_demand'] - total_demand_per_country['industrial_demand']
@@ -124,7 +124,7 @@ for climate_year in climate_years:
     total_demand_national_PyPSA.columns = ['\cite{Neumann2023}']
 
     total_demand_national = pd.merge(total_demand_national_ERAA, total_demand_national_PyPSA, left_index=True, right_index=True)
-    total_demand_national = pd.merge(total_demand_national, demand2021, left_index=True, right_index=True)
+    total_demand_national = pd.merge(total_demand_national, demand2019, left_index=True, right_index=True)
     total_demand_national.to_csv(c.savepath_demand_summary + 'NationalDemand_' + str(climate_year) + '.csv')
     to_latex(total_demand_national * 10**-6, 'National annual projected demand for 2030  GWh for the climate year ' + str(climate_year), c.savepath_demand_summary + 'LatexNationalDemand_' + str(climate_year) + '.tex')
 

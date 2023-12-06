@@ -6,7 +6,7 @@ class Configuration:
         self.year = 2030
         self.climate_year = 2009
         self.countries = {'DE': ['DE00'], 'BE': ['BE00'], 'DK': ['DKW1', 'DKE1'], 'UK': ['UK00'], 'NL': ['NL00'],
-                     'NO': ['NOS0', 'NOS0', 'NOM1']}
+                     'NO': ['NOM1', 'NON1', 'NOS0']}
 
         self.rootpath = 'C:/Users/6574114/Documents/Research/EHUB-Py_Productive/'
 
@@ -24,7 +24,7 @@ class Configuration:
         self.loadpath_demand_pypsa = self.rootpath + 'mes_north_sea/raw_data/demand/electricity_pypsa.csv'
 
         # Eurostat data
-        self.loadpath_industrialdemand_eurostat = self.rootpath + 'mes_north_sea/raw_data/demand/Industry_Demand.xlsx'
+        self.loadpath_industrialdemand_eurostat = self.rootpath + 'mes_north_sea/raw_data/demand/ten00129_page_spreadsheet.xlsx'
 
         # SBS data
         self.loadpath_emplopyment_sbs = self.rootpath + 'mes_north_sea/raw_data/demand/sbs_sectors_data.xlsx'

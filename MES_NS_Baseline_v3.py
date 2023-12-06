@@ -48,5 +48,7 @@ for stage in ['Baseline']:
     else:
         configuration.reporting.case_name = stage
 
+    configuration.reporting.case_name = 'NO-UK'
+
     energyhub = EnergyHub(data, configuration)
     results = energyhub.quick_solve()
