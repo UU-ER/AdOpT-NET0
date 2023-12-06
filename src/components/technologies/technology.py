@@ -303,15 +303,13 @@ class Technology(ModelComponent):
             b_tec.const_capex_aux = Constraint(
                 expr=b_tec.var_size * b_tec.para_unit_capex_annual == b_tec.var_capex_aux)
         elif capex_model == 2:
-            b_tec.para_bp_x = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_x'])
-            b_tec.para_bp_y = Param(domain=Reals, initialize=economics.capex_data['piecewise_capex']['bp_y'])
-            b_tec.para_bp_y_annual = Param(domain=Reals, initialize=annualization_factor *
-                                                                    economics.capex_data['piecewise_capex']['bp_y'])
+            bp_x = economics.capex_data['piecewise_capex']['bp_x']
+            bp_y_annual = [y * annualization_factor for y in economics.capex_data['piecewise_capex']['bp_y']]
             self.big_m_transformation_required = 1
             b_tec.const_capex_aux = Piecewise(b_tec.var_capex_aux, b_tec.var_size,
-                                              pw_pts=b_tec.para_bp_x,
+                                              pw_pts=bp_x,
                                               pw_constr_type='EQ',
-                                              f_rule=b_tec.para_bp_y_annual,
+                                              f_rule=bp_y_annual,
                                               pw_repn='SOS2')
         elif capex_model == 3:
             b_tec.para_unit_capex = Param(domain=Reals, initialize=economics.capex_data['unit_capex'], mutable=True)
