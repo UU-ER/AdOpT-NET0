@@ -245,7 +245,7 @@ def define_imports_exports(settings, nodes, data):
 
     # IMPORT/EXPORT PRICES
     import_carrier_price = {'gas': 40,
-                            'electricity':10000
+                            'electricity':100
                             }
     export_carrier_price = {'electricity':100,
                             'hydrogen': import_carrier_price['gas'] + carbontax * 0.18,
