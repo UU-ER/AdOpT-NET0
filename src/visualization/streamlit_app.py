@@ -8,6 +8,7 @@ from energybalance import energybalance
 from utilities import determine_graph_boundaries
 from technology_operation import tec_operation
 from technology_sizes import tec_sizes
+from networks import network_sizes
 
 # Read data from
 path = Path('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20231201/20231201133820_Baseline')
@@ -15,7 +16,7 @@ node_path = Path.joinpath(path, 'nodes')
 nodes = [f.name for f in os.scandir(node_path) if f.is_dir()]
 
 # Sidebar navigation
-page_options = ["Energy Balance at Node", "Technology Operation", "Technologies"]
+page_options = ["Energy Balance at Node", "Technology Operation", "Technologies", "Networks"]
 selected_page = st.sidebar.selectbox("Select graph", page_options)
 
 if selected_page in ["Energy Balance at Node", "Technology Operation"]:
@@ -42,3 +43,9 @@ elif selected_page == "Technologies":
     tec_size_data = pd.read_excel(Path.joinpath(path, 'Summary.xlsx'), sheet_name='TechnologySizes',
                                        index_col=0)
     tec_sizes(tec_size_data)
+
+
+elif selected_page == "Networks":
+    network_size_data = pd.read_excel(Path.joinpath(path, 'Summary.xlsx'), sheet_name='Networks',
+                                       index_col=0)
+    network_sizes(network_size_data)
