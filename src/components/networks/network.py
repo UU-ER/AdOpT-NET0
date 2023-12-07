@@ -186,10 +186,10 @@ class Network(ModelComponent):
               .. math::
                 CAPEX_{arc} = {\gamma}_1 * S + {\gamma}_2 * distance * S + {\gamma}_3
 
-              Model 3:
+              Model 4:
 
               .. math::
-                CAPEX_{arc} = {\gamma}_4 * distance
+                CAPEX_{arc} = {\gamma}_4 * distance + {\gamma}_3
 
             * Variable OPEX:
 
@@ -490,6 +490,8 @@ class Network(ModelComponent):
         if economics.capex_model == 4:
             b_netw.para_capex_gamma4 = Param(domain=Reals, mutable=True,
                                              initialize=economics.capex_data['gamma4'] * annualization_factor)
+            b_netw.para_capex_gamma3 = Param(domain=Reals, mutable=True,
+                                             initialize=economics.capex_data['gamma3'] * annualization_factor)
 
         b_netw.var_capex = Var()
 
@@ -659,7 +661,7 @@ class Network(ModelComponent):
                             b_arc.para_size_max * b_netw.para_capex_gamma1 + \
                             b_netw.para_capex_gamma3
             elif self.economics.capex_model == 4:
-                max_capex = b_arc.distance * b_netw.para_capex_gamma4
+                max_capex = b_arc.distance * b_netw.para_capex_gamma4 + b_netw.para_capex_gamma3
             return (0, max_capex)
 
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
@@ -680,7 +682,7 @@ class Network(ModelComponent):
                        b_arc.var_size * b_netw.para_capex_gamma1 + \
                        b_netw.para_capex_gamma3
             elif self.economics.capex_model == 4:
-                return b_arc.var_capex_aux == b_arc.distance * b_netw.para_capex_gamma4
+                return b_arc.var_capex_aux == b_arc.distance * b_netw.para_capex_gamma4 + b_netw.para_capex_gamma3
 
 
         # CAPEX Variable
