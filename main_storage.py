@@ -57,20 +57,30 @@ annual_demand = sum(time_series['demand']) * factors['demand']
 
 # PRODUCTION
 res_to_demand_ratio = 0.5
-production_fraction_wind = 0.5
-production_fraction_pv = 1 - production_fraction_wind
-capacity_wind = res_to_demand_ratio * annual_demand * production_fraction_wind / sum(time_series['wind'])
-capacity_pv = res_to_demand_ratio * annual_demand * production_fraction_pv / sum(time_series['PV'])
-data.read_production_profile('offshore', 'electricity', (time_series['wind'] * capacity_wind).to_list(), 1)
-data.read_production_profile('onshore', 'electricity', (time_series['PV'] * capacity_pv).to_list(), 1)
 
+production_fraction_offshore = 0.5
+production_fraction_onshore = 1 - production_fraction_offshore
+
+onshore_wind_to_onshore_RES_ratio = 100661 / (100661 + 194522)
+onshore_pv_to_onshore_RES_ratio = 1 - onshore_wind_to_onshore_RES_ratio
+
+production_fraction_wind_onshore = production_fraction_onshore * onshore_wind_to_onshore_RES_ratio
+production_fraction_pv_onshore = production_fraction_onshore * onshore_pv_to_onshore_RES_ratio
+
+capacity_wind_offshore = res_to_demand_ratio * annual_demand * production_fraction_offshore / sum(time_series['wind_offshore'])
+capacity_wind_onshore = res_to_demand_ratio * annual_demand * production_fraction_wind_onshore / sum(time_series['wind_onshore'])
+capacity_pv_onshore = res_to_demand_ratio * annual_demand * production_fraction_pv_onshore / sum(time_series['PV'])
+
+data.read_production_profile('offshore', 'electricity', (time_series['wind_offshore'] * capacity_wind_offshore).to_list(), 1)
+data.read_production_profile('onshore', 'electricity', (time_series['PV'] * capacity_pv_onshore).to_list(), 1)
+data.read_production_profile('onshore', 'electricity', (time_series['wind_onshore'] * capacity_wind_onshore).to_list(), 1)
 
 # GAS IMPORT
 data.read_import_limit_data('onshore', 'gas', np.ones(len(topology.timesteps)) * max(time_series['demand'] * factors['demand']) * 2)
 data.read_import_price_data('onshore', 'gas', np.ones(len(topology.timesteps)) * gas_price)
 
 # CO2 price
-data.read_carbon_price_data( np.ones(len(topology.timesteps)) * co2_price, 'tax')
+data.read_carbon_price_data(np.ones(len(topology.timesteps)) * co2_price, 'tax')
 
 # READ TECHNOLOGY AND NETWORK DATA
 data.read_technology_data()
