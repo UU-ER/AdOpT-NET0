@@ -3,9 +3,7 @@ import pandas as pd
 import streamlit as st
 
 
-def tec_operation(tec_data, x_min, x_max):
-    st.title("Technology Operation")
-    tec = st.selectbox('Select a technology:', tec_data.keys())
+def tec_operation(tec_data, x_min, x_max, tec):
     tec_data = tec_data[tec]
 
     # Filter the DataFrame based on selected x-limits

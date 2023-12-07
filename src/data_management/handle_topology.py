@@ -50,7 +50,7 @@ class SystemTopology:
         """
         self.carriers = carriers
 
-    def define_nodes(self, nodes:list):
+    def define_nodes(self, nodes:dict):
         """
         Defines nodes to use in the analysis
 

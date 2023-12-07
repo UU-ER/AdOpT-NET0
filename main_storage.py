@@ -9,7 +9,7 @@ from pathlib import Path
 factors = {}
 factors['demand'] = 0.01
 factors['offshore'] = 0.5
-factors['res_to_demand'] = 1
+factors['self_sufficiency'] = 2
 
 
 gas_price = 43.92 # ERAA
@@ -19,9 +19,9 @@ time_series = pd.read_csv(Path('./cases/storage/clean_data/time_series.csv'))
 
 # TOPOLOGY
 topology = dm.SystemTopology()
-topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 23:00', resolution=1)
+topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
-topology.define_nodes(['offshore', 'onshore'])
+topology.define_nodes({'offshore':[], 'onshore':[]})
 topology.define_existing_technologies('onshore', {'PowerPlant_Gas': max(time_series['demand'] * factors['demand']) * 1.5})
 
 # topology.define_new_technologies('offshore', ['Storage_OceanBattery_general'])
@@ -31,21 +31,28 @@ topology.define_existing_technologies('onshore', {'PowerPlant_Gas': max(time_ser
 factors['onshore'] = 1 - factors['offshore']
 
 annual_demand = sum(time_series['demand']) * factors['demand']
-onshore_wind_to_onshore_RES_ratio = 100661 / (100661 + 194522)
-onshore_pv_to_onshore_RES_ratio = 1 - onshore_wind_to_onshore_RES_ratio
-production_fraction_wind_onshore = factors['onshore'] * onshore_wind_to_onshore_RES_ratio
-production_fraction_pv_onshore = factors['onshore'] * onshore_pv_to_onshore_RES_ratio
-capacity_wind_offshore = factors['res_to_demand'] * annual_demand * factors['offshore'] / sum(time_series['wind_offshore'])
-capacity_wind_onshore = factors['res_to_demand'] * annual_demand * production_fraction_wind_onshore / sum(time_series['wind_onshore'])
-capacity_pv_onshore = factors['res_to_demand'] * annual_demand * production_fraction_pv_onshore / sum(time_series['PV'])
+
+s_pv = 194522/ (100661 + 194522)
+s_wind = 100661/ (100661 + 194522)
+
+e_offshore = sum(time_series['wind_offshore'])
+e_onshore = sum(time_series['wind_onshore']) * s_wind + sum(time_series['PV']) * s_pv
+
+# capacity required for 1MWh annual generation onshore/offshore
+c_offshore = 1/e_offshore * annual_demand * factors['offshore'] * factors['self_sufficiency']
+c_onshore = 1/e_onshore * annual_demand * (1-factors['offshore']) * factors['self_sufficiency']
+
+# generation profiles
+p_offshore = c_offshore * time_series['wind_offshore']
+p_onshore = c_onshore * (time_series['wind_onshore'] * s_wind + time_series['PV'] * s_pv)
 
 distance = dm.create_empty_network_matrix(topology.nodes)
 distance.at['onshore', 'offshore'] = 100
 distance.at['offshore', 'onshore'] = 100
 
 size = dm.create_empty_network_matrix(topology.nodes)
-size.at['onshore', 'offshore'] = capacity_wind_offshore
-size.at['offshore', 'onshore'] = capacity_wind_offshore
+size.at['onshore', 'offshore'] = max(p_offshore)
+size.at['offshore', 'onshore'] = max(p_offshore)
 topology.define_existing_network('electricityDC', distance=distance, size=size)
 
 # Initialize instance of DataHandle
@@ -68,9 +75,8 @@ if from_file == 1:
 data.read_demand_data('onshore', 'electricity', (time_series['demand'] * factors['demand']).to_list())
 
 # PRODUCTION
-data.read_production_profile('offshore', 'electricity', (time_series['wind_offshore'] * capacity_wind_offshore).to_list(), 1)
-data.read_production_profile('onshore', 'electricity', (time_series['PV'] * capacity_pv_onshore).to_list(), 1)
-data.read_production_profile('onshore', 'electricity', (time_series['wind_onshore'] * capacity_wind_onshore).to_list(), 1)
+data.read_production_profile('offshore', 'electricity', (p_offshore).to_list(), 1)
+data.read_production_profile('onshore', 'electricity', (p_onshore).to_list(), 1)
 
 # GAS IMPORT
 data.read_import_limit_data('onshore', 'gas', np.ones(len(topology.timesteps)) * max(time_series['demand'] * factors['demand']) * 2)
@@ -85,6 +91,11 @@ data.read_network_data('./cases/storage/network_data/')
 
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
+
+configuration.solveroptions.nodefiledir = '//ad.geo.uu.nl/Users/StaffUsers/6574114/gurobifiles/'
+
+configuration.reporting.save_path = 'userData'
+configuration.reporting.case_name = 'Baseline_SS' + str(factors['self_sufficiency'])
 
 # # Read data
 energyhub = EnergyHub(data, configuration)
