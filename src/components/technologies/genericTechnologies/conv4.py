@@ -9,6 +9,35 @@ from ..technology import Technology
 
 
 class Conv4(Technology):
+    """
+    This technology type resembles a technology with fixed output ratios and no inputs, i.e. :math:`output_{car} \leq S`
+    Two different performance function fits are possible.
+
+    **Constraint declarations:**
+
+    - Size constraints are formulated on the output.
+
+      .. math::
+         Output_{t, maincarrier} \leq S
+
+    - The ratios of outputs for all performance function types are fixed and given as:
+
+      .. math::
+        Output_{t, car} = {\\phi}_{car} * Output_{t, maincarrier}
+
+    - ``performance_function_type == 1``: No further constraints:
+
+    - ``performance_function_type == 2``: Minimal partload (makes big-m transformation required). If the
+      technology is in on, it holds:
+
+      .. math::
+        Output_{maincarrier} \geq Output_{min} * S
+
+      If the technology is off, output is set to 0:
+
+      .. math::
+         Output_{t, car} = 0
+    """
 
     def __init__(self,
                  tec_data):
@@ -38,35 +67,7 @@ class Conv4(Technology):
 
     def construct_tech_model(self, b_tec, energyhub):
         """
-        Adds constraints to technology blocks for tec_type CONV4, i.e. :math:`output_{car} \leq S>)`
-
-        This technology type resembles a technology with fixed output ratios and no inputs
-        Two different performance function fits are possible. 
-
-        **Constraint declarations:**
-
-        - Size constraints are formulated on the output.
-
-          .. math::
-             Output_{t, maincarrier} \leq S
-
-        - The ratios of outputs for all performance function types are fixed and given as:
-
-          .. math::
-            Output_{t, car} = {\\phi}_{car} * Output_{t, maincarrier}
-
-        - ``performance_function_type == 1``: No further constraints:
-
-        - ``performance_function_type == 2``: Minimal partload (makes big-m transformation required). If the
-          technology is in on, it holds:
-
-          .. math::
-            Output_{maincarrier} \geq Output_{min} * S
-
-          If the technology is off, output is set to 0:
-
-          .. math::
-             Output_{t, car} = 0
+        Adds constraints to technology blocks for tec_type CONV4
 
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance

@@ -1,13 +1,14 @@
 {
   "tec_type": "RES",
   "size_min": 0,
-  "size_max": 1500000.0,
+  "size_max": 1.5E+6,
   "size_is_int": 1,
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX in EUR/module, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 15104639.18,
+    "comment": "CAPEX in EUR/module, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "unit_CAPEX": 1.510463918E+7,
+    "fix_CAPEX": 0,
     "OPEX_variable": 2.6,
     "OPEX_fixed": 0.23,
     "discount_rate": 0.1,

@@ -23,3 +23,8 @@ If you want to create a new documentation website, you can use the PyCharm Termi
     - Find the documentation in docs\build\html\index.html and open it in your browser
 
 https://peps.python.org/pep-0008/
+
+Run one test only (with the coverage package):
+coverage run -m pytest -k "test_slow_dynamics" src/test/test_technologies.py
+Run all test in one test suit:
+coverage run -m pytest -k src/test/test_networks.py

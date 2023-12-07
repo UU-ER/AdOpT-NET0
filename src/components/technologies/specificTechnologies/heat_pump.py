@@ -13,6 +13,24 @@ from ..technology import Technology
 
 
 class HeatPump(Technology):
+    """
+    Resembles a heat pump
+    Three different types of heat pumps are possible: air sourced ('HeatPump_AirSourced'), ground sourced
+    ('HeatPump_GroundSourced') and water sourced ('HeatPump_WaterSourced'). Additionally, a heating curve is determined for
+    heating for buildings. Then, the application needs to be set to either 'floor_heating' or 'radiator_heating'
+    in the data file. Otherwise, the output temperature of the heat pump can also be set to a given temperature.
+    The coefficient of performance at full load is calculated in the respective fitting function with the equations
+    provided in Ruhnau, O., Hirth, L., & Praktiknjo, A. (2019). Time series of heat demand and
+    heat pump efficiency for energy system modeling. Scientific Data, 6(1). https://doi.org/10.1038/s41597-019-0199-y
+
+    The part load behavior is modelled after equation (3) in Xu, Z., Li, H., Xu, W., Shao, S., Wang, Z., Gou, X., Zhao,
+    M., & Li, J. (2022). Investigation on the efficiency degradation characterization of low ambient temperature
+    air source heat pump under partial load operation. International Journal of Refrigeration,
+    133, 99–110. https://doi.org/10.1016/J.IJREFRIG.2021.10.002
+
+    Essentially, the equations for the heat pump model are the same as for generic conversion technology type 1 (with
+    time-dependent performance parameter).
+    """
 
     def __init__(self,
                  tec_data):
@@ -142,22 +160,6 @@ class HeatPump(Technology):
     def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type HP (Heat Pump)
-
-        Three different types of heat pumps are possible: air sourced ('HeatPump_AirSourced'), ground sourced
-        ('HeatPump_GroundSourced') and water sourced ('HeatPump_WaterSourced'). Additionally, a heating curve is determined for
-        heating for buildings. Then, the application needs to be set to either 'floor_heating' or 'radiator_heating'
-        in the data file. Otherwise, the output temperature of the heat pump can also be set to a given temperature.
-        The coefficient of performance at full load is calculated in the respective fitting function with the equations
-        provided in Ruhnau, O., Hirth, L., & Praktiknjo, A. (2019). Time series of heat demand and
-        heat pump efficiency for energy system modeling. Scientific Data, 6(1). https://doi.org/10.1038/s41597-019-0199-y
-
-        The part load behavior is modelled after equation (3) in Xu, Z., Li, H., Xu, W., Shao, S., Wang, Z., Gou, X., Zhao,
-        M., & Li, J. (2022). Investigation on the efficiency degradation characterization of low ambient temperature
-        air source heat pump under partial load operation. International Journal of Refrigeration,
-        133, 99–110. https://doi.org/10.1016/J.IJREFRIG.2021.10.002
-
-        Essentially, the equations for the heat pump model are the same as for generic conversion technology type 1 (with
-        time-dependent performance parameter).
 
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance

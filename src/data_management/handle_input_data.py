@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import copy
 import numpy as np
@@ -17,6 +19,7 @@ class DataHandle:
     The constructor of the class takes an instance of the class
     :func:`~src.data_management.handle_topology.SystemTopology` as an input. The DataHandle class is structured
     as follows:
+
     - node_data contains (mainly time-dependent) data on all nodes, e.g. demand, prices, import/export limit,...
     - technology_data contains data on all technologies. The data is read for all technologies in the topology
       with the function :func:`~src.data_management.handle_input_data.read_technology_data()`
@@ -24,6 +27,7 @@ class DataHandle:
       :func:`~src.data_management.handle_input_data.read_network_data()`
     - topology: contains data on the systems topology (see class
       :func:`~src.data_management.handle_topology.SystemTopology`)
+
     """
     def __init__(self, topology):
         """
@@ -43,10 +47,9 @@ class DataHandle:
 
         self.global_data = GlobalData(topology)
 
-
         # Initialize Node data
         for node in self.topology.nodes:
-            self.node_data[node] = NodeData(topology)
+            self.node_data[node] = NodeData(self.topology.nodes[node], topology.timesteps, topology.carriers)
 
     def read_climate_data_from_api(self, node, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=None):
         """
@@ -627,8 +630,8 @@ class DataHandle_AveragedData(DataHandle):
         self.topology.timestep_length_h = nr_timesteps_averaged
         self.topology.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
 
-        for node in node_data:
-            self.node_data[node] = NodeData(self.topology)
+        for node in self.topology.nodes:
+            self.node_data[node] = NodeData(self.topology.nodes[node], self.topology.timesteps, self.topology.carriers)
             self.node_data[node].options = node_data[node].options
             self.node_data[node].location = node_data[node].location
             for series1 in node_data[node].data:
