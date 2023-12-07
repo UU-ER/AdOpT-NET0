@@ -19,14 +19,18 @@ def read_eraa_data(read_path, climate_year, bidding_zone):
     return capacity_factor
 
 climate_year = 2009
-bidding_zone = 'UK00'
-save_path = Path('./cases/storage/clean_data/time_series.csv')
+bidding_zone = 'DE00'
+save_path = Path('./clean_data/time_series.csv')
 
 data = pd.DataFrame()
 
 # Offshore wind capacity factors
 read_path = Path('E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Wind offshore/PECD_Wind_Offshore_2030_edition 2022.1.xlsx')
-data['wind'] = read_eraa_data(read_path, climate_year, bidding_zone)
+data['wind_offshore'] = read_eraa_data(read_path, climate_year, bidding_zone)
+
+# Onshore wind capacity factors
+read_path = Path('E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Wind onshore/PECD_Wind_Onshore_2030_edition 2022.1.xlsx')
+data['wind_onshore'] = read_eraa_data(read_path, climate_year, bidding_zone)
 
 # PV capacity factors
 read_path = Path('E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Solar/PECD_LFSolarPV_2030_edition 2022.1.xlsx')
