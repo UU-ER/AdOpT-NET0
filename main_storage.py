@@ -8,8 +8,7 @@ from pathlib import Path
 # INPUT
 factors = {}
 factors['demand'] = 0.01
-factors['pv'] = 2000
-factors['wind_offshore'] = 1000
+factors['offshore'] = 0.5
 
 gas_price = 40
 co2_price = 60
@@ -58,16 +57,15 @@ annual_demand = sum(time_series['demand']) * factors['demand']
 # PRODUCTION
 res_to_demand_ratio = 0.5
 
-production_fraction_offshore = 0.5
-production_fraction_onshore = 1 - production_fraction_offshore
+factors['onshore'] = 1 - factors['offshore']
 
 onshore_wind_to_onshore_RES_ratio = 100661 / (100661 + 194522)
 onshore_pv_to_onshore_RES_ratio = 1 - onshore_wind_to_onshore_RES_ratio
 
-production_fraction_wind_onshore = production_fraction_onshore * onshore_wind_to_onshore_RES_ratio
-production_fraction_pv_onshore = production_fraction_onshore * onshore_pv_to_onshore_RES_ratio
+production_fraction_wind_onshore = factors['onshore'] * onshore_wind_to_onshore_RES_ratio
+production_fraction_pv_onshore = factors['onshore'] * onshore_pv_to_onshore_RES_ratio
 
-capacity_wind_offshore = res_to_demand_ratio * annual_demand * production_fraction_offshore / sum(time_series['wind_offshore'])
+capacity_wind_offshore = res_to_demand_ratio * annual_demand * factors['wind_offshore'] / sum(time_series['wind_offshore'])
 capacity_wind_onshore = res_to_demand_ratio * annual_demand * production_fraction_wind_onshore / sum(time_series['wind_onshore'])
 capacity_pv_onshore = res_to_demand_ratio * annual_demand * production_fraction_pv_onshore / sum(time_series['PV'])
 
