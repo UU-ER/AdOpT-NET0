@@ -87,40 +87,23 @@ def test_CAPEX_networks():
     gamma3 = data.network_data['hydrogenTest'].economics.capex_data['gamma3']
     gamma4 = data.network_data['hydrogenTest'].economics.capex_data['gamma4']
 
-    CAPEX_models = [1, 2, 3, 4]
+    data.network_data['hydrogenTest'].energy_consumption = {}
+    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
 
-    for i in CAPEX_models:
-        data.network_data['hydrogenTest'].economics.capex_model = i
-        data.network_data['hydrogenTest'].energy_consumption = {}
-        data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
+    # Solve model
+    energyhub = ehub(data, configuration)
+    energyhub.model_information.testing = 1
+    energyhub.quick_solve()
 
-        # Solve model
-        energyhub = ehub(data, configuration)
-        energyhub.model_information.testing = 1
-        energyhub.quick_solve()
+    # test if optimal
+    assert energyhub.solution.solver.termination_condition == 'optimal'
 
-        # test if optimal
-        assert energyhub.solution.solver.termination_condition == 'optimal'
-
-        distance = data.topology.networks_new['hydrogenTest']['distance']['test_node1']['test_node2']
-        size = energyhub.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
-        # check if capex is correct
-        if i == 1:
-            should = (size * gamma1 + gamma3) * cost_correction
-            res = energyhub.model.network_block['hydrogenTest'].var_capex.value
-            assert abs(should - res) / res <= 0.001
-        if i == 2:
-            should = (size * distance * gamma2 + gamma3) * cost_correction
-            res = energyhub.model.network_block['hydrogenTest'].var_capex.value
-            assert abs(should - res) / res <= 0.001
-        if i == 3:
-            should = (size * gamma1 + size * distance * gamma2 + gamma3) * cost_correction
-            res = energyhub.model.network_block['hydrogenTest'].var_capex.value
-            assert abs(should - res) / res <= 0.001
-        if i == 4:
-            should = (distance * gamma4) * cost_correction
-            res = energyhub.model.network_block['hydrogenTest'].var_capex.value
-            assert abs(should - res) / res <= 0.001
+    distance = data.topology.networks_new['hydrogenTest']['distance']['test_node1']['test_node2']
+    size = energyhub.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
+    # check if capex is correct
+    should = (gamma1 + gamma2 * size + gamma3 * distance + gamma4 * size * distance) * cost_correction
+    res = energyhub.model.network_block['hydrogenTest'].var_capex.value
+    assert abs(should - res) / res <= 0.001
 
 
 def test_existing_networks():
