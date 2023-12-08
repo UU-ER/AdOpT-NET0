@@ -7,9 +7,6 @@ from pathlib import Path
 
 from pyomo.environ import *
 
-
-# Todo: Scaling
-# Todo: dont construct model (Network size, Production profiles, Demand)
 def determine_time_series(f_demand, f_offshore, f_self_sufficiency):
     time_series = pd.read_csv(Path('./cases/storage/clean_data/time_series.csv'))
     demand = time_series['demand'] * f_demand
