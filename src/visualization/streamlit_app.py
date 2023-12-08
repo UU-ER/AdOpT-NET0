@@ -58,7 +58,7 @@ if selected_page == "Energy Balance at Node":
 
 # Technology Operation
 elif selected_page == "Technology Operation":
-    selected_node, node_path = select_node(path, select_node)
+    selected_node, node_path = select_node(path, nr_pages)
     tec_operation_data = {}
     try:
 

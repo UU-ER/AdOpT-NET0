@@ -38,6 +38,7 @@ def determine_graph_boundaries(dict):
         "Ending time: ",
         min_value=datetime.fromtimestamp(min_date.timestamp()),
         max_value=datetime.fromtimestamp(max_date.timestamp()),
+        value=datetime.fromtimestamp(max_date.timestamp()),
         format="DD.MM, HH",
     )
     return x_min, x_max
