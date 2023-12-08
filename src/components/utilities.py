@@ -65,10 +65,8 @@ class Economics:
             self.capex_data['piecewise_capex'] = economics['piecewise_CAPEX']
         if 'gamma1' in economics:
             self.capex_data['gamma1'] = economics['gamma1']
-            self.capex_data['gamma3'] = economics['gamma3']
-        if 'gamma2' in economics:
             self.capex_data['gamma2'] = economics['gamma2']
-        if 'gamma4' in economics:
+            self.capex_data['gamma3'] = economics['gamma3']
             self.capex_data['gamma4'] = economics['gamma4']
         self.opex_variable = economics['OPEX_variable']
         self.opex_fixed = economics['OPEX_fixed']
