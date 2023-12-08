@@ -55,7 +55,8 @@ class Economics:
     Class to manage economic data of technologies and networks
     """
     def __init__(self, economics):
-        self.capex_model = economics['CAPEX_model']
+        if 'CAPEX_model' in economics:
+            self.capex_model = economics['CAPEX_model']
         self.capex_data = {}
         if 'unit_CAPEX' in economics:
             self.capex_data['unit_capex'] = economics['unit_CAPEX']
