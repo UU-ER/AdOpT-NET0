@@ -17,7 +17,7 @@ class Settings():
         self.climate_year = 2008
         if test:
             self.start_date = '05-01 00:00'
-            self.end_date = '05-05 23:00'
+            self.end_date = '06-01 23:00'
         else:
             self.start_date = '01-01 00:00'
             self.end_date = '12-31 23:00'
@@ -236,8 +236,8 @@ def define_imports_exports(settings, nodes, data):
     if settings.test:
         data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
     else:
-        # data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
-        data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
+        data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
+        # data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
 
     import_export = pd.read_excel(data_path, index_col=0)
 

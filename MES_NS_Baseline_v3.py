@@ -5,7 +5,7 @@ from src.energyhub import EnergyHub
 import pandas as pd
 
 # General Settings
-settings = pp.Settings(test=1)
+settings = pp.Settings(test=0)
 
 # for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on', 'ElectricityGrid']:
 for stage in ['Baseline']:
@@ -42,6 +42,7 @@ for stage in ['Baseline']:
         configuration.optimization.objective = 'costs'
 
     configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20231201/'
+    configuration.reporting.case_name = 'NO_UK'
 
     if len(topology.timesteps) < 8760:
         configuration.reporting.case_name = 'TEST' + stage
