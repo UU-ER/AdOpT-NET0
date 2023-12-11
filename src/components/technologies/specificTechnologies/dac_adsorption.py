@@ -148,16 +148,6 @@ class DacAdsorption(Technology):
         """
         Adds constraints to technology blocks for tec_type DAC_adsorption
 
-        The model resembles as Direct Air Capture technology with a modular setup. It has a heat and electricity input
-        and CO2 as an output. The performance is based on data for a generic solid sorbent, as described in the
-        article (see below). The performance data is fitted to the ambient temperature and humidity at the respective
-        node.
-
-        The model is based on Wiegner et al. (2022). Optimal Design and Operation of Solid Sorbent Direct Air Capture
-        Processes at Varying Ambient Conditions. Industrial and Engineering Chemistry Research, 2022,
-        12649–12667. https://doi.org/10.1021/acs.iecr.2c00681. It resembles operation configuration 1 without water
-        spraying.
-
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance
         :return: technology block
