@@ -236,8 +236,8 @@ def define_imports_exports(settings, nodes, data):
     if settings.test:
         data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
     else:
-        data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
-        # data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
+        # data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
+        data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
 
     import_export = pd.read_excel(data_path, index_col=0)
 
@@ -245,9 +245,9 @@ def define_imports_exports(settings, nodes, data):
 
     # IMPORT/EXPORT PRICES
     import_carrier_price = {'gas': 40,
-                            'electricity':100
+                            'electricity':1000
                             }
-    export_carrier_price = {'electricity':100,
+    export_carrier_price = {'electricity':0,
                             'hydrogen': import_carrier_price['gas'] + carbontax * 0.18,
                             }
 
@@ -290,9 +290,9 @@ def define_charging_efficiencies(settings, nodes, data):
                              index_col=0)
 
     for node in nodes.onshore_nodes:
-        tecs_at_node = {'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed (charge)'][node], 0),
-                        'Storage_PumpedHydro_Open': round(new_tecs['Hydro open (charge)'][node], 0),
-                        'Storage_PumpedHydro_Reservoir': round(new_tecs['Hydro reservoir (charge)'][node], 0)
+        tecs_at_node = {'Storage_PumpedHydro_Closed': new_tecs['Hydro closed (charge)'][node],
+                        'Storage_PumpedHydro_Open': new_tecs['Hydro open (charge)'][node],
+                        'Storage_PumpedHydro_Reservoir': new_tecs['Hydro reservoir (charge)'][node]
                         }
         for storage in tecs_at_node:
             if tecs_at_node[storage] > 0:
