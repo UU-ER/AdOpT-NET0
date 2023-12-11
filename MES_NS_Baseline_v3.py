@@ -41,9 +41,6 @@ for stage in ['Baseline']:
     if stage == 'Baseline':
         configuration.optimization.objective = 'costs'
 
-    configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20231201/'
-    configuration.reporting.case_name = 'NO_UK'
-
     if len(topology.timesteps) < 8760:
         configuration.reporting.case_name = 'TEST' + stage
     else:

@@ -236,8 +236,8 @@ def define_imports_exports(settings, nodes, data):
     if settings.test:
         data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
     else:
-        # data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
-        data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
+        data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
+        # data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
 
     import_export = pd.read_excel(data_path, index_col=0)
 
@@ -297,6 +297,7 @@ def define_charging_efficiencies(settings, nodes, data):
         for storage in tecs_at_node:
             if tecs_at_node[storage] > 0:
                 data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = tecs_at_node[storage]
+                data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = tecs_at_node[storage]
 
     return data
 

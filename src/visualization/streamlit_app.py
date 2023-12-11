@@ -36,22 +36,30 @@ if selected_page == "Energy Balance at Node":
     st.title("Energy Balance per Node")
 
     st.header("Supply")
+    # Multi-select box for filtering series
+    series_supply = ['Timestep',
+                'Generic_production',
+                'Technology_outputs',
+                'Network_inflow',
+                'Import']
+    selected_supply_series = st.multiselect('Select Series to Filter', series_supply,
+                                           default=series_supply)
     for i in nr_pages:
-        plot_data = energybalance_data[i][selected_carrier][['Timestep',
-                                                            'Generic_production',
-                                                            'Technology_outputs',
-                                                            'Network_inflow',
-                                                            'Import']]
+        plot_data = energybalance_data[i][selected_carrier][selected_supply_series]
         chart = plot_area_chart(plot_data, x_min, x_max)
         st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
     st.header("Demand")
+    # Multi-select box for filtering technologies
+    series_demand = ['Timestep',
+                        'Demand',
+                        'Technology_inputs',
+                        'Network_outflow',
+                        'Export']
+    selected_demand_series = st.multiselect('Select Series to Filter', series_demand,
+                                           default=series_demand)
     for i in nr_pages:
-        plot_data = energybalance_data[i][selected_carrier][['Timestep',
-                                                            'Demand',
-                                                            'Technology_inputs',
-                                                            'Network_outflow',
-                                                            'Export']]
+        plot_data = energybalance_data[i][selected_carrier][selected_demand_series]
         chart = plot_area_chart(plot_data, x_min, x_max)
         st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
