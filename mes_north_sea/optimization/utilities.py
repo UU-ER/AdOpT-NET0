@@ -17,7 +17,7 @@ class Settings():
         self.climate_year = 2008
         if test:
             self.start_date = '05-01 00:00'
-            self.end_date = '06-01 23:00'
+            self.end_date = '05-10 23:00'
         else:
             self.start_date = '01-01 00:00'
             self.end_date = '12-31 23:00'
@@ -84,12 +84,13 @@ def define_installed_capacities(settings, nodes, topology):
     data_path = settings.data_path
 
     new_tecs = pd.read_excel(data_path + 'installed_capacities/InstalledCapacities_nonRE.xlsx',
-                             sheet_name='Capacities at node',
+                             sheet_name='Capacities at node 2',
                              index_col=0)
 
     for node in nodes.onshore_nodes:
         tecs_at_node = {'PowerPlant_Gas': round(new_tecs['Gas'][node],0),
                         'PowerPlant_Nuclear': round(new_tecs['Nuclear'][node],0),
+                        'PowerPlant_Coal': round(new_tecs['Coal'][node],0),
                         'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed (cap)'][node],0),
                         'Storage_PumpedHydro_Open': round(new_tecs['Hydro open (cap)'][node], 0),
                         'Storage_PumpedHydro_Reservoir': round(new_tecs['Hydro reservoir (cap)'][node], 0)

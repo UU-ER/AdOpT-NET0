@@ -5,7 +5,7 @@ from src.energyhub import EnergyHub
 import pandas as pd
 
 # General Settings
-settings = pp.Settings(test=0)
+settings = pp.Settings(test=1)
 
 # for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on', 'ElectricityGrid']:
 for stage in ['Baseline']:

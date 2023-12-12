@@ -5,7 +5,7 @@ from mes_north_sea.preprocessing.utilities import Configuration, to_latex
 climate_years = [1995, 2008, 2009]
 c = Configuration()
 
-demand2019 = pd.read_excel(c.loadpath_demand2021, sheet_name='Aggregate')
+demand2019 = pd.read_excel(c.loadpath_demand2019, sheet_name='Aggregate')
 demand2019.set_index('Country Code', inplace=True)
 demand2019 = demand2019['Demand (2019)']
 demand2019.columns = ['\cite{Eurostat2023c}']
