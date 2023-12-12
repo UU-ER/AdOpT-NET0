@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import copy
 import numpy as np
@@ -48,7 +50,7 @@ class DataHandle:
 
         # Initialize Node data
         for node in self.topology.nodes:
-            self.node_data[node] = NodeData(topology)
+            self.node_data[node] = NodeData(self.topology.nodes[node], topology.timesteps, topology.carriers)
 
     def read_climate_data_from_api(self, node, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=None):
         """
@@ -328,6 +330,7 @@ class DataHandle:
             for technology in self.topology.technologies_existing[node].keys():
                 tec_data = open_json(technology, load_path)
                 tec_data['name'] = technology
+
                 self.technology_data[node][technology + '_existing'] = select_technology(tec_data)
                 self.technology_data[node][technology + '_existing'].existing = 1
                 self.technology_data[node][technology + '_existing'].size_initial = \
@@ -628,8 +631,8 @@ class DataHandle_AveragedData(DataHandle):
         self.topology.timestep_length_h = nr_timesteps_averaged
         self.topology.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
 
-        for node in node_data:
-            self.node_data[node] = NodeData(self.topology)
+        for node in self.topology.nodes:
+            self.node_data[node] = NodeData(self.topology.nodes[node], self.topology.timesteps, self.topology.carriers)
             self.node_data[node].options = node_data[node].options
             self.node_data[node].location = node_data[node].location
             for series1 in node_data[node].data:

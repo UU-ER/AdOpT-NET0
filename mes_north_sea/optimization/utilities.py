@@ -53,7 +53,12 @@ def read_nodes(settings):
     node_list = pd.read_excel(node_data, sheet_name='Nodes_used')
     nodes.onshore_nodes = node_list[node_list['Type'] == 'onshore']['Node'].values.tolist()
     nodes.offshore_nodes = node_list[node_list['Type'].apply(lambda x: x.startswith('offshore'))]['Node'].values.tolist()
-    nodes.all = node_list['Node'].values.tolist()
+    nodes.all = {}
+    for row in node_list.iterrows():
+        node_data = {}
+        node_data['lon'] = row[1]['x']
+        node_data['lat'] = row[1]['y']
+        nodes.all[row[1]['Node']] = node_data
 
     return nodes
 
@@ -88,7 +93,7 @@ def define_installed_capacities(settings, nodes, topology):
                              index_col=0)
 
     for node in nodes.onshore_nodes:
-        tecs_at_node = {'PowerPlant_Gas': round(new_tecs['Gas'][node],0),
+        tecs_at_node = {'PowerPlant_Gas': round(new_tecs['Gas'][node],0) * 10,
                         'PowerPlant_Nuclear': round(new_tecs['Nuclear'][node],0),
                         'PowerPlant_Coal': round(new_tecs['Coal'][node],0),
                         'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed (cap)'][node],0),
@@ -166,7 +171,7 @@ def define_networks(settings, topology):
 
 def define_data_handle(topology, nodes):
     data = dm.DataHandle(topology)
-    for node in nodes.all:
+    for node in nodes.all.keys():
         data.read_climate_data_from_file(node, r'.\data\climate_data_onshore.txt')
 
     return data
@@ -176,7 +181,7 @@ def define_generic_production(settings, nodes, data):
 
     data_path = settings.data_path
 
-    for node in nodes.all:
+    for node in nodes.all.keys():
         profile = pd.read_csv(data_path + 'production_profiles_re/' +
                               node + '_' +
                               str(settings.climate_year) + '.csv', index_col=0)
@@ -235,10 +240,10 @@ def define_demand(settings, nodes, data):
 def define_imports_exports(settings, nodes, data):
 
     if settings.test:
-        data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
+        data_path = settings.data_path + 'import_export/ImportExport_noimport.xlsx'
     else:
-        data_path = settings.data_path + 'import_export/ImportExport_partly_unlimited.xlsx'
-        # data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
+        # data_path = settings.data_path + 'import_export/ImportExport_noimport.xlsx'
+        data_path = settings.data_path + 'import_export/ImportExport_noimport.xlsx'
 
     import_export = pd.read_excel(data_path, index_col=0)
 
@@ -246,19 +251,18 @@ def define_imports_exports(settings, nodes, data):
 
     # IMPORT/EXPORT PRICES
     import_carrier_price = {'gas': 40,
-                            'electricity':1000
+                            'electricity': 1000
                             }
-    export_carrier_price = {'electricity':0,
-                            'hydrogen': import_carrier_price['gas'] + carbontax * 0.18,
+    export_carrier_price = {'hydrogen': import_carrier_price['gas'] + carbontax * 0.18,
                             }
 
-    for node in nodes.all:
+    for node in nodes.all.keys():
         for car in import_carrier_price:
             data.read_import_price_data(node, car, np.ones(len(data.topology.timesteps)) * import_carrier_price[car])
         for car in export_carrier_price:
             data.read_export_price_data(node, car, np.ones(len(data.topology.timesteps)) * export_carrier_price[car])
 
-    for node in nodes.all:
+    for node in nodes.all.keys():
         for car in import_carrier_price:
             data.read_import_limit_data(node, car,
                                         np.ones(len(data.topology.timesteps)) * import_export['Import_'+car][node])
@@ -311,7 +315,7 @@ def define_new_technologies(settings, nodes, topology):
     stage = settings.new_technologies_stage
 
     if not stage == None:
-        for node in nodes.all:
+        for node in nodes.all.keys():
             if not isinstance(new_tecs[stage][node], float):
                 new_technologies = new_tecs[stage][node].split(', ')
                 topology.define_new_technologies(node, new_technologies)

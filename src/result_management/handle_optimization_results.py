@@ -148,6 +148,9 @@ class OptimizationResults:
                                               'total_flow',
                                               'total_emissions'
                                               ])
+
+        self.nodes = []
+
         self.energybalance = {}
 
         self.detail = detail
@@ -203,6 +206,9 @@ class OptimizationResults:
             else:
                 violation_cost = 0
             netw_cost = model.var_netw_cost.value
+
+            # Nodes
+            self.nodes = pd.DataFrame(energyhub.topology.nodes)
 
             # Emissions
             net_emissions = model.var_emissions_net.value
@@ -327,6 +333,7 @@ class OptimizationResults:
             self.summary.to_excel(writer, sheet_name='Summary')
             self.technologies.to_excel(writer, sheet_name='TechnologySizes')
             self.networks.to_excel(writer, sheet_name='Networks')
+            self.nodes.to_excel(writer, sheet_name='Nodes')
 
         if self.detail:
             save_networks_path = Path.joinpath(save_path, 'Networks')
@@ -350,11 +357,11 @@ class OptimizationResults:
                 if self.energybalance[node]:
                     with pd.ExcelWriter(save_energybalance_path) as writer:
                         for car in self.energybalance[node]:
-                            self.energybalance[node][car].to_excel(writer, sheet_name=car[:30])
+                            self.energybalance[node][car].to_excel(writer, sheet_name=car)
 
                 # Technology operation
                 save_technologies_path = Path.joinpath(save_node_path, 'TechnologyOperation.xlsx')
                 if self.detailed_results.nodes[node]:
                     with pd.ExcelWriter(save_technologies_path) as writer:
                         for tec_name in self.detailed_results.nodes[node]:
-                            self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=tec_name[:30])
+                            self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=tec_name[0:30])

@@ -123,9 +123,9 @@ elif selected_page == "Technologies":
         tec_size_data[i]['total_cost'] = tec_size_data[i]['capex'] + \
                                          tec_size_data[i]['opex_variable'] + \
                                          tec_size_data[i]['opex_fixed']
-        technologies.append(list(tec_size_data[i]['technology'].unique())[0])
+        technologies.append(list(tec_size_data[i]['technology'].unique()))
 
-    technologies = list(set(technologies))
+    technologies = list(set([item for sublist in technologies for item in sublist]))
 
     # Multi-select box for filtering technologies
     selected_technologies = st.multiselect('Select Technologies to Filter', technologies,

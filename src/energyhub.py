@@ -149,7 +149,7 @@ class EnergyHub:
         # DEFINE SETS
         # Nodes, Carriers, Technologies, Networks
         topology = self.data.topology
-        self.model.set_nodes = Set(initialize=topology.nodes)
+        self.model.set_nodes = Set(initialize=topology.nodes.keys())
         self.model.set_carriers = Set(initialize=topology.carriers)
 
         def tec_node(set, node):

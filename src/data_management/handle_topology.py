@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import json
 
 class SystemTopology:
     """
@@ -14,6 +15,7 @@ class SystemTopology:
         """
         self.timesteps = []
         self.timestep_length_h = []
+        self.fraction_of_year_modelled = []
         self.timestep_clustered = []
         self.carriers = []
         self.nodes = []
@@ -52,12 +54,12 @@ class SystemTopology:
         """
         Defines nodes to use in the analysis
 
-        Can be for example ['onshore', 'offshore']. The node names need to be unique.
+        Can be for example {'onshore': {'lon': 51.0, 'lat': 5.2}, 'offshore': {'lon': 51.2, 'lat': 6}}. The node names need to be unique.
 
-        :param list nodes: List of nodes to use in the analysis
+        :param dict nodes: Dictionary of nodes to use in the analysis
         """
         self.nodes = nodes
-        for node in self.nodes:
+        for node in self.nodes.keys():
             self.technologies_new[node] = {}
             self.technologies_existing[node] = {}
 

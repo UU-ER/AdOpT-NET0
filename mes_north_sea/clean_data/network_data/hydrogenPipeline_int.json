@@ -5,6 +5,7 @@
     "gamma1": NaN,
     "gamma2": NaN,
     "gamma3": NaN,
+    "gamma4": NaN,
     "OPEX_variable": NaN,
     "OPEX_fixed": 0.012,
     "discount_rate": 0.1,
