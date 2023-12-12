@@ -7,6 +7,57 @@ from ..technology import Technology
 
 
 class HydroOpen(Technology):
+    """
+    Resembles a pumped hydro plant with additional natural inflows (defined in climate data)
+
+    Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
+
+    **Parameter declarations:**
+
+    - :math:`{\\eta}_{in}`: Charging efficiency
+
+    - :math:`{\\eta}_{out}`: Discharging efficiency
+
+    - :math:`{\\lambda}`: Self-Discharging coefficient
+
+    - :math:`Input_{max}`: Maximal charging capacity in one time-slice
+
+    - :math:`Output_{max}`: Maximal discharging capacity in one time-slice
+
+    - :math:`Natural_Inflow{t}`: Natural water inflow in time slice (can be negative, i.e. being an outflow)
+
+    **Variable declarations:**
+
+    - Storage level in :math:`t`: :math:`E_t`
+
+    - Charging in :math:`t`: :math:`Input_{t}`
+
+    - Discharging in :math:`t`: :math:`Output_{t}`
+
+    **Constraint declarations:**
+
+    - Maximal charging and discharging:
+
+      .. math::
+        Input_{t} \leq Input_{max}
+
+      .. math::
+        Output_{t} \leq Output_{max}
+
+    - Size constraint:
+
+      .. math::
+        E_{t} \leq S
+
+    - Storage level calculation:
+
+      .. math::
+        E_{t} = E_{t-1} * (1 - \\lambda) + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t} + Natural_Inflow_{t}
+
+    - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
+      step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
+
+    """
 
     def __init__(self,
                  tec_data):
@@ -62,57 +113,7 @@ class HydroOpen(Technology):
 
     def construct_tech_model(self, b_tec, energyhub):
         """
-        Adds constraints to technology blocks for tec_type Hydro_Open, resembling a pumped hydro plant with
-        additional natural inflows (defined in climate data)
-
-        
-        Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
-
-        **Parameter declarations:**
-
-        - :math:`{\\eta}_{in}`: Charging efficiency
-
-        - :math:`{\\eta}_{out}`: Discharging efficiency
-
-        - :math:`{\\lambda}`: Self-Discharging coefficient
-
-        - :math:`Input_{max}`: Maximal charging capacity in one time-slice
-
-        - :math:`Output_{max}`: Maximal discharging capacity in one time-slice
-
-        - :math:`Natural_Inflow{t}`: Natural water inflow in time slice (can be negative, i.e. being an outflow)
-
-        **Variable declarations:**
-
-        - Storage level in :math:`t`: :math:`E_t`
-
-        - Charging in :math:`t`: :math:`Input_{t}`
-
-        - Discharging in :math:`t`: :math:`Output_{t}`
-
-        **Constraint declarations:**
-
-        - Maximal charging and discharging:
-
-          .. math::
-            Input_{t} \leq Input_{max}
-
-          .. math::
-            Output_{t} \leq Output_{max}
-
-        - Size constraint:
-
-          .. math::
-            E_{t} \leq S
-
-        - Storage level calculation:
-
-          .. math::
-            E_{t} = E_{t-1} * (1 - \\lambda) + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t} + Natural_Inflow_{t}
-
-        - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
-          step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
-
+        Adds constraints to technology blocks for tec_type Hydro_Open
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance
         :return: technology block

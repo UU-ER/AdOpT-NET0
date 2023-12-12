@@ -11,6 +11,127 @@ from pyomo.gdp import *
 class Network(ModelComponent):
     """
     Class to read and manage data for networks
+
+    For each connection between nodes, an arc is created, with its respective cost, flows, losses and \
+    consumption at nodes.
+
+    Networks that can be used in two directions (e.g. electricity cables), are called bidirectional and are \
+    treated respectively with their size and costs. Other networks, e.g. pipelines, require two installations \
+    to be able to transport in two directions. As such their CAPEX is double.
+
+    **Set declarations:**
+
+    - Set of network carrier (i.e. only one carrier, that is transported in the network)
+    - Set of all arcs (from_node, to_node)
+    - In case the network is bidirectional: Set of unique arcs (i.e. for each pair of arcs, one unique entry)
+    - Furthermore for each node:
+
+        * A set of nodes it receives from
+        * A set of nodes it sends to
+
+    **Parameter declarations:**
+
+    - Min Size (for each arc)
+    - Max Size (for each arc)
+    - :math:`{\gamma}_1, {\gamma}_2, {\gamma}_3, {\gamma}_4` for CAPEX calculation  \
+      (annualized from given data on up-front CAPEX, lifetime and discount rate)
+    - Variable OPEX
+    - Fixed OPEX
+    - Network losses (in % per km and flow) :math:`{\mu}`
+    - Minimum transport (% of rated capacity)
+    - Parameters for energy consumption at receiving and sending node
+
+    **Variable declarations:**
+
+    - CAPEX: ``var_capex``
+    - Variable OPEX: ``var_opex_variable``
+    - Fixed OPEX: ``var_opex_fixed``
+    - Furthermore for each node:
+
+        * Inflow to node (as a sum of all inflows from other nodes): ``var_inflow``
+        * Outflow from node (as a sum of all outflows toother nodes): ``var_outflow``
+        * Consumption of other carriers (e.g. electricity required for compression of a gas): ``var_consumption``
+
+    **Arc Block declaration**
+
+    Each arc represents a connection between two nodes, and is thus indexed by (node_from, node_to). For each arc,
+    the following components are defined. Each variable is indexed by the timestep :math:`t` (here left out
+    for convinience).
+
+    - Decision Variables:
+
+        * Size :math:`S`
+        * Flow :math:`flow`
+        * Losses :math:`loss`
+        * CAPEX: :math:`CAPEX`
+        * Variable :math:`OPEXvariable`
+        * Fixed :math:`OPEXfixed`
+        * If consumption at nodes exists for network:
+
+          * Consumption at sending node :math:`Consumption_{nodeFrom}`
+          * Consumption at receiving node :math:`Consumption_{nodeTo}`
+
+    - Constraint definitions
+
+        * Flow losses:
+
+          .. math::
+            loss = flow * {\mu}
+
+        * Flow constraints:
+
+          .. math::
+            S * minTransport \leq flow \leq S
+
+        * Consumption at sending and receiving node:
+
+          .. math::
+            Consumption_{nodeFrom} = flow * k_{1, send} + flow * distance * k_{2, send}
+
+          .. math::
+            Consumption_{nodeTo} = flow * k_{1, receive} + flow * distance * k_{2, receive}
+
+        * CAPEX of respective arc. The CAPEX is calculated as follows:
+
+          .. math::
+            CAPEX_{arc} = {\gamma}_1 + {\gamma}_2 * S + {\gamma}_3 * distance + {\gamma}_4 * S * distance
+
+        * Variable OPEX:
+
+          .. math::
+            OPEXvariable_{arc} = CAPEX_{arc} * opex_{variable}
+
+    **Constraint declarations**
+    This part calculates variables for all respective nodes and enforces constraints for bi-directional networks.
+
+    - If network is bi-directional, the sizes in both directions are equal, and only one direction of flow is
+      possible in each time step:
+
+      .. math::
+        S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}\forall unique arcs
+
+      .. math::
+        flow_{nodeFrom, nodeTo} = 0 \lor flow_{nodeTo, nodeFrom} = 0
+
+    - CAPEX calculation of whole network as a sum of CAPEX of all arcs. For bi-directional networks, each arc
+      is only considered once, regardless of the direction of the arc.
+
+    - OPEX fix, as fraction of total CAPEX
+
+    - OPEX variable as a sum of variable OPEX for each arc
+
+    - Total network costs as the sum of OPEX and CAPEX
+
+    - Total inflow and outflow as a sum for each node:
+
+      .. math::
+        outflow_{node} = \sum_{nodeTo \in sendsto_{node}} flow_{node, nodeTo}
+
+      .. math::
+        inflow_{node} = \sum_{nodeFrom \in receivesFrom_{node}} flow_{nodeFrom, node} - losses_{nodeFrom, node}
+
+    - Energy consumption of other carriers at each node.
+
     """
     def __init__(self, netw_data):
         """
@@ -90,137 +211,6 @@ class Network(ModelComponent):
     def construct_general_constraints(self, b_netw, energyhub):
         r"""
         Adds a network as model block.
-
-        For each connection between nodes, an arc is created, with its respective cost, flows, losses and \
-        consumption at nodes.
-
-        Networks that can be used in two directions (e.g. electricity cables), are called bidirectional and are \
-        treated respectively with their size and costs. Other networks, e.g. pipelines, require two installations \
-        to be able to transport in two directions. As such their CAPEX is double.
-
-        **Set declarations:**
-
-        - Set of network carrier (i.e. only one carrier, that is transported in the network)
-        - Set of all arcs (from_node, to_node)
-        - In case the network is bidirectional: Set of unique arcs (i.e. for each pair of arcs, one unique entry)
-        - Furthermore for each node:
-
-            * A set of nodes it receives from
-            * A set of nodes it sends to
-
-        **Parameter declarations:**
-
-        - Min Size (for each arc)
-        - Max Size (for each arc)
-        - :math:`{\gamma}_1, {\gamma}_2, {\gamma}_3` for CAPEX calculation  \
-          (annualized from given data on up-front CAPEX, lifetime and discount rate)
-        - Variable OPEX
-        - Fixed OPEX
-        - Network losses (in % per km and flow) :math:`{\mu}`
-        - Minimum transport (% of rated capacity)
-        - Parameters for energy consumption at receiving and sending node
-
-        **Variable declarations:**
-
-        - CAPEX: ``var_capex``
-        - Variable OPEX: ``var_opex_variable``
-        - Fixed OPEX: ``var_opex_fixed``
-        - Furthermore for each node:
-
-            * Inflow to node (as a sum of all inflows from other nodes): ``var_inflow``
-            * Outflow from node (as a sum of all outflows toother nodes): ``var_outflow``
-            * Consumption of other carriers (e.g. electricity required for compression of a gas): ``var_consumption``
-
-        **Arc Block declaration**
-
-        Each arc represents a connection between two nodes, and is thus indexed by (node_from, node_to). For each arc,
-        the following components are defined. Each variable is indexed by the timestep :math:`t` (here left out
-        for convinience).
-
-        - Decision Variables:
-
-            * Size :math:`S`
-            * Flow :math:`flow`
-            * Losses :math:`loss`
-            * CAPEX: :math:`CAPEX`
-            * Variable :math:`OPEXvariable`
-            * Fixed :math:`OPEXfixed`
-            * If consumption at nodes exists for network:
-
-                * Consumption at sending node :math:`Consumption_{nodeFrom}`
-                * Consumptoin at receiving node :math:`Consumption_{nodeTo}`
-
-        - Constraint definitions
-
-            * Flow losses:
-
-              .. math::
-                loss = flow * {\mu}
-
-            * Flow constraints:
-
-              .. math::
-                S * minTransport \leq flow \leq S
-
-            * Consumption at sending and receiving node:
-
-              .. math::
-                Consumption_{nodeFrom} = flow * k_{1, send} + flow * distance * k_{2, send}
-
-              .. math::
-                Consumption_{nodeTo} = flow * k_{1, receive} + flow * distance * k_{2, receive}
-
-            * CAPEX of respective arc. Three different CAPEX models are implemented:
-              Model 1:
-
-              .. math::
-                CAPEX_{arc} = {\gamma}_1 * S + {\gamma}_2
-
-              Model 2:
-
-              .. math::
-                CAPEX_{arc} = {\gamma}_1 * distance * S + {\gamma}_2
-
-              Model 3:
-
-              .. math::
-                CAPEX_{arc} = {\gamma}_1 * distance * S + {\gamma}_2 * S + {\gamma}_3
-
-            * Variable OPEX:
-
-              .. math::
-                OPEXvariable_{arc} = CAPEX_{arc} * opex_{variable}
-
-        **Constraint declarations**
-        This part calculates variables for all respective nodes and enforces constraints for bi-directional networks.
-
-        - If network is bi-directional, the sizes in both directions are equal, and only one direction of flow is
-          possible in each time step:
-
-          .. math::
-            S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom} \forall unique arcs
-
-          .. math::
-            flow_{nodeFrom, nodeTo} = 0 \lor flow_{nodeTo, nodeFrom} = 0
-
-        - CAPEX calculation of whole network as a sum of CAPEX of all arcs. For bi-directional networks, each arc
-          is only considered once, regardless of the direction of the arc.
-
-        - OPEX fix, as fraction of total CAPEX
-
-        - OPEX variable as a sum of variable OPEX for each arc
-
-        - Total network costs as the sum of OPEX and CAPEX
-
-        - Total inflow and outflow as a sum for each node:
-
-          .. math::
-            outflow_{node} = \sum_{nodeTo \in sendsto_{node}} flow_{node, nodeTo}
-
-          .. math::
-            inflow_{node} = \sum_{nodeFrom \in receivesFrom_{node}} flow_{nodeFrom, node} - losses_{nodeFrom, node}
-
-        - Energy consumption of other carriers at each node.
 
         :param EnergyHub energyhub: instance of the energyhub
         :return: network model
@@ -311,14 +301,6 @@ class Network(ModelComponent):
             toNode = arc_name[1]
             s = arc.var_size.value
             capex = arc.var_capex.value
-            # if energyhub.model_information.clustered_data:
-            #     sequence = energyhub.k_means_specs.full_resolution['sequence']
-            #     opex_var = sum(arc.var_opex_variable[sequence[t - 1]].value
-            #                    for t in self.set_t)
-            #     total_flow = sum(arc.var_flow[sequence[t - 1]].value
-            #                      for t in self.set_t)
-            #     total_emissions = ...
-            # else:
             opex_var = sum(arc.var_opex_variable[t].value
                            for t in self.set_t)
             total_flow = sum(arc.var_flow[t].value
@@ -339,17 +321,6 @@ class Network(ModelComponent):
 
             if arc.find_component('var_consumption_send'):
                 for car in b_netw.set_consumed_carriers:
-                    # if energyhub.model_information.clustered_data:
-                    #     index = pd.MultiIndex.from_tuples(zip(['consumption_send' + car], [fromNode], [toNode]),
-                    #                                       names=['variable', 'fromNode', 'toNode'])
-                    #     data = pd.DataFrame([arc.var_consumption_send[sequence[t-1], car].value for t in self.set_t], columns=index)
-                    #     self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
-                    #
-                    #     index = pd.MultiIndex.from_tuples(zip(['consumption_receive' + car], [fromNode], [toNode]),
-                    #                                       names=['variable', 'fromNode', 'toNode'])
-                    #     data = pd.DataFrame([arc.var_consumption_receive[sequence[t-1], car].value for t in self.set_t], columns=index)
-                    #     self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
-                    # else:
                     index = pd.MultiIndex.from_tuples(zip(['consumption_send' + car], [fromNode], [toNode]),
                                                       names=['variable', 'fromNode', 'toNode'])
                     data = pd.DataFrame([arc.var_consumption_send[t, car].value for t in self.set_t], columns=index)
@@ -479,27 +450,19 @@ class Network(ModelComponent):
 
         # CHECK FOR GLOBAL ECONOMIC OPTIONS
         discount_rate = set_discount_rate(configuration, economics)
+        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
 
         # CAPEX
-        annualization_factor = annualize(discount_rate, economics.lifetime)
+        annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
-        if economics.capex_model == 1:
-            b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
-                                             initialize=economics.capex_data['gamma1'] * annualization_factor)
-            b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
-                                             initialize=economics.capex_data['gamma2'] * annualization_factor)
-        elif economics.capex_model == 2:
-            b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
-                                             initialize=economics.capex_data['gamma1'] * annualization_factor)
-            b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
-                                             initialize=economics.capex_data['gamma2'] * annualization_factor)
-        if economics.capex_model == 3:
-            b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
-                                             initialize=economics.capex_data['gamma1'] * annualization_factor)
-            b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
-                                             initialize=economics.capex_data['gamma2'] * annualization_factor)
-            b_netw.para_capex_gamma3 = Param(domain=Reals, mutable=True,
-                                             initialize=economics.capex_data['gamma3'] * annualization_factor)
+        b_netw.para_capex_gamma1 = Param(domain=Reals, mutable=True,
+                                         initialize=economics.capex_data['gamma1'] * annualization_factor)
+        b_netw.para_capex_gamma2 = Param(domain=Reals, mutable=True,
+                                         initialize=economics.capex_data['gamma2'] * annualization_factor)
+        b_netw.para_capex_gamma3 = Param(domain=Reals, mutable=True,
+                                         initialize=economics.capex_data['gamma3'] * annualization_factor)
+        b_netw.para_capex_gamma4 = Param(domain=Reals, mutable=True,
+                                         initialize=economics.capex_data['gamma4'] * annualization_factor)
 
         b_netw.var_capex = Var()
 
@@ -657,17 +620,10 @@ class Network(ModelComponent):
         - var_capex for each arc
         """
         def calculate_max_capex():
-            if self.economics.capex_model == 1:
-                max_capex = b_arc.para_size_max * \
-                            b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
-            elif self.economics.capex_model == 2:
-                max_capex = b_arc.para_size_max * \
-                            b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
-            elif self.economics.capex_model == 3:
-                max_capex = b_arc.para_size_max * \
-                            b_arc.distance * b_netw.para_capex_gamma1 + \
-                            b_arc.para_size_max * b_netw.para_capex_gamma2 + \
-                            b_netw.para_capex_gamma3
+            max_capex = b_netw.para_capex_gamma1 + \
+                    b_netw.para_capex_gamma2 * b_arc.para_size_max + \
+                    b_netw.para_capex_gamma3 * b_arc.distance + \
+                    b_netw.para_capex_gamma4 * b_arc.para_size_max * b_arc.distance
             return (0, max_capex)
 
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
@@ -676,17 +632,11 @@ class Network(ModelComponent):
         b_arc.var_capex_aux = Var(bounds=calculate_max_capex())
 
         def init_capex(const):
-            if self.economics.capex_model == 1:
-                return b_arc.var_capex_aux == b_arc.var_size * \
-                       b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
-            elif self.economics.capex_model == 2:
-                return b_arc.var_capex_aux == b_arc.var_size * \
-                       b_arc.distance * b_netw.para_capex_gamma1 + b_netw.para_capex_gamma2
-            elif self.economics.capex_model == 3:
-                return b_arc.var_capex_aux == b_arc.var_size * \
-                       b_arc.distance * b_netw.para_capex_gamma1 + \
-                       b_arc.var_size * b_netw.para_capex_gamma2 + \
-                       b_netw.para_capex_gamma3
+            return b_arc.var_capex_aux == b_netw.para_capex_gamma1 + \
+                   b_netw.para_capex_gamma2 * b_arc.var_size + \
+                   b_netw.para_capex_gamma3 * b_arc.distance + \
+                   b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
+
 
         # CAPEX Variable
         if self.existing and not self.decommission:

@@ -3,7 +3,7 @@ import time
 from pyomo.core import TransformationFactory
 from pyomo.environ import *
 
-def annualize(r, t):
+def annualize(r, t, year_fraction):
     """
     Calculates annualization factor
     :param r: interest rate
@@ -14,7 +14,7 @@ def annualize(r, t):
         annualization_factor = 1/t
     else:
         annualization_factor = r / (1 - (1 / (1 + r) ** t))
-    return annualization_factor
+    return annualization_factor * year_fraction
 
 
 def set_discount_rate(configuration, economics):
@@ -55,7 +55,8 @@ class Economics:
     Class to manage economic data of technologies and networks
     """
     def __init__(self, economics):
-        self.capex_model = economics['CAPEX_model']
+        if 'CAPEX_model' in economics:
+            self.capex_model = economics['CAPEX_model']
         self.capex_data = {}
         if 'unit_CAPEX' in economics:
             self.capex_data['unit_capex'] = economics['unit_CAPEX']
@@ -66,8 +67,8 @@ class Economics:
         if 'gamma1' in economics:
             self.capex_data['gamma1'] = economics['gamma1']
             self.capex_data['gamma2'] = economics['gamma2']
-        if 'gamma3' in economics:
             self.capex_data['gamma3'] = economics['gamma3']
+            self.capex_data['gamma4'] = economics['gamma4']
         self.opex_variable = economics['OPEX_variable']
         self.opex_fixed = economics['OPEX_fixed']
         self.discount_rate = economics['discount_rate']

@@ -546,7 +546,7 @@ def create_data_technology_dynamics():
                 data.read_export_limit_data('test_node1', 'heat', export_lim)
 
             # PRICE DATA
-            price = np.ones(len(topology.timesteps)) * 1
+            price = np.ones(len(topology.timesteps)) * 0.001
             data.read_import_price_data('test_node1', 'gas', price)
 
             # READ TECHNOLOGY AND NETWORK DATA
@@ -982,8 +982,6 @@ def create_data_carbon_subsidy():
     data_save_path = './src/test/test_data/carbon_subsidy.p'
 
     data.save(data_save_path)
-
-
 
 
 create_data_test_data_handle()

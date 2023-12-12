@@ -13,6 +13,7 @@ def test_networks():
     """
     # Test bidirectional
     data = load_object(r'./src/test/test_data/networks.p')
+    cost_correction = data.topology.fraction_of_year_modelled
     configuration = ModelConfiguration()
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
     data.network_data['hydrogenTest'].energy_consumption = {}
@@ -26,10 +27,6 @@ def test_networks():
     # is network size double the demand (because of losses)
     should = 20
     res = energyhub1.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
-    assert abs(should - res) / res <= 0.001
-    # is capex correct
-    should = 1020
-    res = energyhub1.model.network_block['hydrogenTest'].var_capex.value
     assert abs(should - res) / res <= 0.001
 
     # Test no bidirectional
@@ -50,6 +47,7 @@ def test_networks():
 
     # Test consumption at node
     data = load_object(r'./src/test/test_data/networks.p')
+    cost_correction = data.topology.fraction_of_year_modelled
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     energyhub3 = ehub(data, configuration)
     energyhub3.model_information.testing = 1
@@ -68,13 +66,45 @@ def test_networks():
     assert abs(should - res) / res <= 0.001
     res = energyhub3.model.node_blocks['test_node2'].var_import_flow[2, 'electricity'].value
     assert abs(should - res) / res <= 0.001
-    # Is objective correct
-    should = 2440
+    # Is objective correct (electricity import*price + invest in hydrogen pipeline)
+    should = 40*10 + 1000*cost_correction*2
     res = energyhub3.model.objective()
     assert abs(should - res) / res <= 0.001
 
     # does bidirectional produce double costs?
     assert abs(cost2 / cost1 - 2) <= 0.001
+
+
+def test_CAPEX_networks():
+    # Test bidirectional
+    data = load_object(r'./src/test/test_data/networks.p')
+    cost_correction = data.topology.fraction_of_year_modelled
+    configuration = ModelConfiguration()
+
+    # collect data
+    gamma1 = data.network_data['hydrogenTest'].economics.capex_data['gamma1']
+    gamma2 = data.network_data['hydrogenTest'].economics.capex_data['gamma2']
+    gamma3 = data.network_data['hydrogenTest'].economics.capex_data['gamma3']
+    gamma4 = data.network_data['hydrogenTest'].economics.capex_data['gamma4']
+
+    data.network_data['hydrogenTest'].energy_consumption = {}
+    data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
+
+    # Solve model
+    energyhub = ehub(data, configuration)
+    energyhub.model_information.testing = 1
+    energyhub.quick_solve()
+
+    # test if optimal
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+
+    distance = data.topology.networks_new['hydrogenTest']['distance']['test_node1']['test_node2']
+    size = energyhub.model.network_block['hydrogenTest'].arc_block['test_node1', 'test_node2'].var_size.value
+    # check if capex is correct
+    should = (gamma1 + gamma2 * size + gamma3 * distance + gamma4 * size * distance) * cost_correction
+    res = energyhub.model.network_block['hydrogenTest'].var_capex.value
+    assert abs(should - res) / res <= 0.001
+
 
 def test_existing_networks():
     def run_ehub(data, configuration):

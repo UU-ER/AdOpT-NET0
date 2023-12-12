@@ -19,7 +19,7 @@ import src.model_construction as mc
 from src.model_configuration import ModelConfiguration
 from src.diagnostics import get_infeasibile_constraints
 
-execute = 1
+execute = 0
 
 # MODEL SCALING/ Infeasibilities
 if execute == 1:
@@ -98,17 +98,17 @@ if execute == 1:
 execute = 1
 
 if execute == 1:
-    data = dm.load_object(r'./src/test/test_data/technology_dynamics_CONV1_2.p')
-    tecname = 'testCONV1_2'
+    data = dm.load_object(r'./src/test/test_data/technology_dynamics_CONV1_4.p')
+    tecname = 'testCONV1_4'
 
     # change test technology dynamic parameters
-    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.1
+    # data.technology_data['test_node1'][tecname].performance_data['standby_power'] = 0.2
     # data.technology_data['test_node1'][tecname].performance_data['ramping_rate'] = max(data.node_data['test_node1'].data['demand']['heat']) *.75
     # data.technology_data['test_node1'][tecname].performance_data['max_startups'] = 0
     data.technology_data['test_node1'][tecname].performance_data['min_part_load'] = 0.5
     data.technology_data['test_node1'][tecname].performance_data['SU_time'] = 2
-    # data.technology_data['test_node1'][tecname].performance_data['SD_time'] = 1
-    data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
+    data.technology_data['test_node1'][tecname].performance_data['SD_time'] = 1
+    # data.technology_data['test_node1'][tecname].performance_data['SU_load'] = 0.8
     # data.technology_data['test_node1'][tecname].size_max = 1.5
     main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
 
@@ -125,7 +125,7 @@ if execute == 1:
 
 
     for i in range(1, 10):
-        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_4'].var_x[i].value)
+        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_2'].var_x[i].value)
 
 
 execute = 0
@@ -196,6 +196,7 @@ if execute == 1:
 
     # Solve model
     energyhub.quick_solve()
+
 
 execute = 0
 
