@@ -89,7 +89,7 @@ def define_installed_capacities(settings, nodes, topology):
     data_path = settings.data_path
 
     new_tecs = pd.read_excel(data_path + 'installed_capacities/InstalledCapacities_nonRE.xlsx',
-                             sheet_name='Capacities at node 2',
+                             sheet_name='Capacities at node 3',
                              index_col=0)
 
     for node in nodes.onshore_nodes:
