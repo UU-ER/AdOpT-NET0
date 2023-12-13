@@ -142,8 +142,8 @@ class Technology(ModelComponent):
             self.modelled_with_full_res = 1
 
         # GENERAL TECHNOLOGY CONSTRAINTS
-        b_tec = self.__define_size(b_tec)
-        b_tec = self.__define_capex(b_tec, energyhub)
+        b_tec = self._define_size(b_tec)
+        b_tec = self._define_capex(b_tec, energyhub)
         b_tec = self.__define_input(b_tec, energyhub)
         b_tec = self.__define_output(b_tec, energyhub)
         b_tec = self.__define_opex(b_tec, energyhub)
@@ -220,7 +220,7 @@ class Technology(ModelComponent):
 
         return model
 
-    def __define_size(self, b_tec):
+    def _define_size(self, b_tec):
         """
         Defines variables and parameters related to technology size.
 
@@ -258,7 +258,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def __define_capex(self, b_tec, energyhub):
+    def _define_capex(self, b_tec, energyhub):
         """
         Defines variables and parameters related to technology capex.
 

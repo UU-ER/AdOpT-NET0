@@ -362,13 +362,13 @@ class OptimizationResults:
                 if self.detailed_results.nodes[node]:
                     with pd.ExcelWriter(save_technologies_path) as writer:
                         for tec_name in self.detailed_results.nodes[node]:
-                            self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=tec_name)
+                            self.detailed_results.nodes[node][tec_name].to_excel(writer, sheet_name=tec_name[0:30])
 
                 # Specific design
                 save_detailed_design_path = Path.joinpath(save_node_path, 'TechnologyDesign.xlsx')
                 if node in self.detailed_results.specific_design:
                     with pd.ExcelWriter(save_detailed_design_path) as writer:
                         for tec_name in self.detailed_results.specific_design[node]:
-                            self.detailed_results.specific_design[node][tec_name].to_excel(writer, sheet_name=tec_name)
+                            self.detailed_results.specific_design[node][tec_name].to_excel(writer, sheet_name=tec_name[0:30])
 
 

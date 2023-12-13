@@ -18,7 +18,7 @@ if selected_option == 'Compare two Results':
 else:
     nr_pages = [1]
     path[1] = Path(st.sidebar.text_input("Enter folder path to results:", key="folder_key1"))
-    pages = ["Energy Balance at Node", "Technology Operation", "Technologies", "Networks"]
+    pages = ["Summary", "Energy Balance at Node", "Technology Operation", "Technologies", "Networks"]
 
 # Select what to show
 selected_page = st.sidebar.selectbox("Select graph", pages)
@@ -36,22 +36,30 @@ if selected_page == "Energy Balance at Node":
     st.title("Energy Balance per Node")
 
     st.header("Supply")
+    # Multi-select box for filtering series
+    series_supply = ['Timestep',
+                'Generic_production',
+                'Technology_outputs',
+                'Network_inflow',
+                'Import']
+    selected_supply_series = st.multiselect('Select Series to Filter', series_supply,
+                                           default=series_supply)
     for i in nr_pages:
-        plot_data = energybalance_data[i][selected_carrier][['Timestep',
-                                                            'Generic_production',
-                                                            'Technology_outputs',
-                                                            'Network_inflow',
-                                                            'Import']]
+        plot_data = energybalance_data[i][selected_carrier][selected_supply_series]
         chart = plot_area_chart(plot_data, x_min, x_max)
         st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
     st.header("Demand")
+    # Multi-select box for filtering technologies
+    series_demand = ['Timestep',
+                        'Demand',
+                        'Technology_inputs',
+                        'Network_outflow',
+                        'Export']
+    selected_demand_series = st.multiselect('Select Series to Filter', series_demand,
+                                           default=series_demand)
     for i in nr_pages:
-        plot_data = energybalance_data[i][selected_carrier][['Timestep',
-                                                            'Demand',
-                                                            'Technology_inputs',
-                                                            'Network_outflow',
-                                                            'Export']]
+        plot_data = energybalance_data[i][selected_carrier][selected_demand_series]
         chart = plot_area_chart(plot_data, x_min, x_max)
         st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
@@ -115,9 +123,9 @@ elif selected_page == "Technologies":
         tec_size_data[i]['total_cost'] = tec_size_data[i]['capex'] + \
                                          tec_size_data[i]['opex_variable'] + \
                                          tec_size_data[i]['opex_fixed']
-        technologies.append(list(tec_size_data[i]['technology'].unique())[0])
+        technologies.append(list(tec_size_data[i]['technology'].unique()))
 
-    technologies = list(set(technologies))
+    technologies = list(set([item for sublist in technologies for item in sublist]))
 
     # Multi-select box for filtering technologies
     selected_technologies = st.multiselect('Select Technologies to Filter', technologies,
@@ -152,10 +160,15 @@ elif selected_page == "Technologies":
 # Networks
 elif selected_page == "Networks":
     network_size_data = {}
+    node_data = {}
     for i in nr_pages:
         network_size_data[i] = pd.read_excel(Path.joinpath(path[i], 'Summary.xlsx'), sheet_name='Networks',
                                           index_col=0)
-    network_sizes(network_size_data[1])
+        node_data[i] = pd.read_excel(Path.joinpath(path[i], 'Summary.xlsx'), sheet_name='Nodes',
+                                          index_col=0)
+        node_data[i] = node_data[i].T
+
+    network_sizes(network_size_data[1], node_data[1])
 
 # Summary Comparison
 elif selected_page == "Summary":

@@ -235,8 +235,8 @@ class Network(ModelComponent):
             b_netw = self.__define_unique_arcs(b_netw)
 
 
-        b_netw = self.__define_size(b_netw)
-        b_netw = self.__define_capex_parameters(b_netw, energyhub)
+        b_netw = self._define_size(b_netw)
+        b_netw = self._define_capex_parameters(b_netw, energyhub)
         b_netw = self.__define_opex_parameters(b_netw)
         b_netw = self.__define_emission_vars(b_netw)
         b_netw = self.__define_network_characteristics(b_netw)
@@ -259,8 +259,8 @@ class Network(ModelComponent):
             """
 
             b_arc.big_m_transformation_required = 0
-            b_arc = self.__define_size_arc(b_arc, b_netw, node_from, node_to)
-            b_arc = self.__define_capex_arc(b_arc, b_netw, node_from, node_to)
+            b_arc = self._define_size_arc(b_arc, b_netw, node_from, node_to)
+            b_arc = self._define_capex_arc(b_arc, b_netw, node_from, node_to)
             b_arc = self.__define_flow(b_arc, b_netw)
             b_arc = self.__define_opex_arc(b_arc, b_netw)
 
@@ -278,7 +278,7 @@ class Network(ModelComponent):
         if self.performance_data['bidirectional'] >= 1:
             b_netw = self.__define_bidirectional_constraints(b_netw)
 
-        b_netw = self.__define_capex_total(b_netw)
+        b_netw = self._define_capex_total(b_netw)
         b_netw = self.__define_opex_total(b_netw)
         b_netw = self.__define_inflow_constraints(b_netw)
         b_netw = self.__define_outflow_constraints(b_netw)
@@ -433,7 +433,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_size(self, b_netw):
+    def _define_size(self, b_netw):
         """
         Defines parameters related to network size.
 
@@ -464,7 +464,7 @@ class Network(ModelComponent):
                         assert self.size_initial.at[from_node, to_node] == self.size_initial.at[to_node, from_node]
         return b_netw
 
-    def __define_capex_parameters(self, b_netw, energyhub):
+    def _define_capex_parameters(self, b_netw, energyhub):
         """
         Defines variables and parameters related to technology capex.
 
@@ -618,7 +618,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_size_arc(self, b_arc, b_netw, node_from, node_to):
+    def _define_size_arc(self, b_arc, b_netw, node_from, node_to):
         """
         Defines the size of an arc
 
@@ -652,7 +652,7 @@ class Network(ModelComponent):
 
         return b_arc
 
-    def __define_capex_arc(self, b_arc, b_netw, node_from, node_to):
+    def _define_capex_arc(self, b_arc, b_netw, node_from, node_to):
         """
         Defines the capex of an arc and corresponding constraints
 
@@ -855,7 +855,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_capex_total(self, b_netw):
+    def _define_capex_total(self, b_netw):
         """
         Defines total CAPEX of network
         """

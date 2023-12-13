@@ -223,7 +223,6 @@ class Stor(Technology):
 
         def init_maximal_discharge(const, t):
             return self.output[t, self.main_car] <= discharge_max * b_tec.var_size
-
         b_tec.const_max_discharge = Constraint(self.set_t, rule=init_maximal_discharge)
 
         # Energy consumption charging/discharging

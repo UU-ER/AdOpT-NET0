@@ -232,7 +232,7 @@ class EnergyHub:
         elif objective == 'pareto':
             self.__optimize_pareto()
         else:
-            self.__optimize(objective)
+            self._optimize(objective)
 
         return self.detailed_results
 
@@ -283,7 +283,7 @@ class EnergyHub:
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_instance(self.model)
 
-    def __optimize(self, objective):
+    def _optimize(self, objective):
         """
         Solves the model with the given objective
         """
@@ -310,34 +310,34 @@ class EnergyHub:
         """
         Minimizes Costs
         """
-        self.__delete_objective()
+        self._delete_objective()
 
         def init_cost_objective(obj):
             return self.model.var_total_cost
         self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        self.__call_solver()
+        self._call_solver()
 
     def __optimize_emissions_pos(self):
         """
         Minimizes positive emission
         """
-        self.__delete_objective()
+        self._delete_objective()
 
         def init_emission_pos_objective(obj):
             return self.model.var_emissions_pos
         self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
-        self.__call_solver()
+        self._call_solver()
 
     def __optimize_emissions_net(self):
         """
         Minimize net emissions
         """
-        self.__delete_objective()
+        self._delete_objective()
 
         def init_emission_net_objective(obj):
             return self.model.var_emissions_net
         self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
-        self.__call_solver()
+        self._call_solver()
 
 
     def __optimize_costs_emissionslimit(self):
@@ -408,9 +408,9 @@ class EnergyHub:
             self.model_information.monte_carlo_run += 1
             self.__monte_carlo_set_cost_parameters()
             if run == 0:
-                self.__optimize(objective)
+                self._optimize(objective)
             else:
-                self.__call_solver()
+                self._call_solver()
 
     def scale_model(self):
         """
@@ -468,7 +468,7 @@ class EnergyHub:
         # self.scaled_model.pprint()
 
 
-    def __call_solver(self):
+    def _call_solver(self):
         """
         Calls the solver and solves the model
         """
@@ -768,7 +768,7 @@ class EnergyHub:
             model.const_node_cost = Constraint(rule=init_node_cost)
             self.solver.add_constraint(model.const_node_cost)
 
-    def __delete_objective(self):
+    def _delete_objective(self):
         """
         Delete the objective function
         """
