@@ -160,10 +160,15 @@ elif selected_page == "Technologies":
 # Networks
 elif selected_page == "Networks":
     network_size_data = {}
+    node_data = {}
     for i in nr_pages:
         network_size_data[i] = pd.read_excel(Path.joinpath(path[i], 'Summary.xlsx'), sheet_name='Networks',
                                           index_col=0)
-    network_sizes(network_size_data[1])
+        node_data[i] = pd.read_excel(Path.joinpath(path[i], 'Summary.xlsx'), sheet_name='Nodes',
+                                          index_col=0)
+        node_data[i] = node_data[i].T
+
+    network_sizes(network_size_data[1], node_data[1])
 
 # Summary Comparison
 elif selected_page == "Summary":
