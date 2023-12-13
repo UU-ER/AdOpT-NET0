@@ -37,6 +37,7 @@ for stage in ['Baseline']:
     data.read_network_data(load_path=settings.netw_data_path)
     data = pp.define_charging_efficiencies(settings, nodes, data)
 
+    configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20231201/'
     # Solve
     if stage == 'Baseline':
         configuration.optimization.objective = 'costs'
