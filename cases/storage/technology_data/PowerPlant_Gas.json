@@ -48,7 +48,7 @@
       ]
     },
     "max_input": {
-      "hydrogen": 0.05
+      "hydrogen": 0.1
     }
   }
 }

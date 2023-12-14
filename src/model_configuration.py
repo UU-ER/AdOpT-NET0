@@ -163,7 +163,7 @@ class ModelConfiguration:
         # self.optimization.tecstaging = 0
 
         self.solveroptions = SimpleNamespace()
-        self.solveroptions.solver = 'gurobi_persistent'
+        self.solveroptions.solver = 'gurobi'
         self.solveroptions.mipgap = 0.01
         self.solveroptions.timelim = 10
         self.solveroptions.threads = 0
@@ -183,7 +183,7 @@ class ModelConfiguration:
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
         self.reporting.save_path = 'userData'
-        self.reporting.case_name = None
+        self.reporting.case_name = ''
         self.reporting.write_solution_diagnostics = 0
 
         self.energybalance = SimpleNamespace()

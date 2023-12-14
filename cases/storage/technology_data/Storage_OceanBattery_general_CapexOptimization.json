@@ -1,0 +1,47 @@
+{
+  "capex_optimization": 1,
+  "tec_type": "OceanBattery",
+  "size": 1,
+  "size_min": 0,
+  "size_max": 150,
+  "size_is_int": 1,
+  "decommission": 0,
+  "Economics": {
+    "comment": "Unit Capex is in EUR/m³ of reservoir size. Pump and Turbine is added to this later.",
+    "CAPEX_model": 1,
+    "unit_CAPEX": 84,
+    "piecewise_CAPEX": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0.04,
+    "discount_rate": 0.1,
+    "lifetime": 25,
+    "decommission_cost": 0
+  },
+  "TechnologyPerf": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "electricity"
+    ],
+    "main_input_carrier": "electricity",
+    "output_carrier": [
+      "electricity"
+    ],
+    "emission_factor": 0,
+    "performance": {
+      "lambda": 0,
+      "theta": 0,
+      "min_fill": 0.02,
+      "pump_slots": 6,
+      "turbine_slots": 6,
+      "reservoir_volume": 250000,
+      "turbine_type": "francis",
+      "pump_type": "centrifugal",
+      "frequency": 50,
+      "pole_pairs": 3,
+      "nominal_head": 47.5
+    }
+  }
+}

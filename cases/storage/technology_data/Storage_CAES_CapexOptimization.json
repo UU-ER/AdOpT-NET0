@@ -1,5 +1,7 @@
 {
+  "capex_optimization": 1,
   "tec_type": "STOR",
+  "size": 1,
   "size_min": 0,
   "size_max": 1.0E+7,
   "size_is_int": 0,
@@ -16,7 +18,7 @@
     "OPEX_variable": 0,
     "OPEX_fixed": 0.04,
     "discount_rate": 0.1,
-    "lifetime": 25,
+    "lifetime": 40,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
@@ -31,12 +33,12 @@
     "emission_factor": 0,
     "allow_only_one_direction": 1,
     "performance": {
-      "eta_in": 0.985,
-      "eta_out": 0.975,
-      "lambda": 4.17e-05,
+      "eta_in": 0.84,
+      "eta_out": 0.84,
+      "lambda": 0,
       "theta": 0,
-      "charge_max": 0.5,
-      "discharge_max": 1
+      "charge_max": 0.02,
+      "discharge_max": 0.1
     }
   },
   "Units": {

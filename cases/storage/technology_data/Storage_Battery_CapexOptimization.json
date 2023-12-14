@@ -18,7 +18,7 @@
     "OPEX_variable": 0,
     "OPEX_fixed": 0.04,
     "discount_rate": 0.1,
-    "lifetime": 10,
+    "lifetime": 25,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
@@ -33,12 +33,12 @@
     "emission_factor": 0,
     "allow_only_one_direction": 1,
     "performance": {
-      "eta_in": 0.96,
-      "eta_out": 0.96,
-      "lambda": 0.001,
+      "eta_in": 0.985,
+      "eta_out": 0.975,
+      "lambda": 4.17e-05,
       "theta": 0,
-      "charge_max": 0.3,
-      "discharge_max": 0.3
+      "charge_max": 0.5,
+      "discharge_max": 1
     }
   },
   "Units": {

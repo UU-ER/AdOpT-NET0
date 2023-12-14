@@ -23,5 +23,8 @@
   "size_min": 0,
   "size_max": 20000,
   "size_is_int": 0,
-  "decommission": 0
+  "decommission": 0,
+  "ScalingFactors": {
+    "const_flowlosses": 1e2
+  }
 }
