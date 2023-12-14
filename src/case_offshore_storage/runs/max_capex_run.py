@@ -78,7 +78,6 @@ def construct_model(input_data_config, test, node, technology, cost_limit):
     energyhub = EnergyHub(data, configuration, (node, technology), cost_limit)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve()
 
     return energyhub
 

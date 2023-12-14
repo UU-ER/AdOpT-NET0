@@ -9,7 +9,7 @@ input_config = InputDataConfig()
 f_demand = input_config.f_demand_scaling
 
 # Baseline
-run = 1
+run = 0
 if run:
     results_baseline = []
 

@@ -47,7 +47,7 @@ class TechnologyCapexOptimization(Technology):
         annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
         b_tec.var_unit_capex_annual = Var(within=Reals, bounds=(0, 1e6))
-        b_tec.var_unit_capex = Var(within=Reals, bounds=(0, 1e6))
+        b_tec.var_unit_capex = Var(within=Reals, bounds=(0, 1e6), initialize=0)
         b_tec.var_capex = Var(within=Reals, bounds=(0, 1e6))
         b_tec.var_capex_aux = Var(within=Reals, bounds=(0, 1e6))
 

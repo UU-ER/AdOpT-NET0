@@ -14,8 +14,8 @@ class InputDataConfig:
         self.f_demand_scaling = 0.05
 
         # Self sufficiency range
-        self.f_self_sufficiency = [0.5,2]
-        self.f_offshore_share = [0.2, 0.9]
+        self.f_self_sufficiency = [0.2, 1, 2]
+        self.f_offshore_share = [0.2, 0.5, 0.9]
 
         # Reporting
         self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/'
