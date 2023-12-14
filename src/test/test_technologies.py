@@ -649,6 +649,57 @@ def test_technology_OpenHydro():
 
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
+
+def test_CAPEX_technologies():
+    data = load_object(r'./src/test/test_data/technology_CONV1_1.p')
+    cost_correction = data.topology.fraction_of_year_modelled
+    configuration = ModelConfiguration()
+
+
+    # collect data
+    unitCAPEX = data.technology_data['test_node1']['testCONV1_1'].economics.capex_data['unit_capex']
+    fixCAPEX = data.technology_data['test_node1']['testCONV1_1'].economics.capex_data['fix_capex']
+    bp_x = data.technology_data['test_node1']['testCONV1_1'].economics.capex_data['piecewise_capex']['bp_x']
+    bp_y = data.technology_data['test_node1']['testCONV1_1'].economics.capex_data['piecewise_capex']['bp_y']
+
+    def CAPEX_piecewise_function(x):
+        if x <= bp_x[0]:
+            return bp_y[0]
+        elif x >= bp_x[-1]:
+            return bp_y[-1]
+        else:
+            for i in range(len(bp_x) - 1):
+                if bp_x[i] <= x < bp_x[i + 1]:
+                    return bp_y[i] + ((x - bp_x[i]) / (bp_x[i + 1] - bp_x[i])) * (bp_y[i + 1] - bp_y[i])
+
+    CAPEX_models = [1, 2, 3]
+    for i in CAPEX_models:
+        data.technology_data['test_node1']['testCONV1_1'].economics.capex_model = i
+
+        # Solve model
+        energyhub = EnergyHub(data, configuration)
+        energyhub.model_information.testing = 1
+        energyhub.quick_solve()
+
+        # test if optimal
+        assert energyhub.solution.solver.termination_condition == 'optimal'
+
+        size = energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_1'].var_size.value
+        # check if capex is correct
+        if i == 1:
+            should = (size * unitCAPEX) * cost_correction
+            res = energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_1'].var_capex.value
+            assert abs(should - res) / res <= 0.001
+        if i == 2:
+            should = CAPEX_piecewise_function(size) * cost_correction
+            res = energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_1'].var_capex.value
+            assert abs(should - res) / res <= 0.001
+        if i == 3:
+            should = (size * unitCAPEX + fixCAPEX) * cost_correction
+            res = energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV1_1'].var_capex.value
+            assert abs(should - res) / res <= 0.001
+
+
 def test_fast_dynamics():
     """
     Test SU/SD load, maximum number of startups, ramping rate and standby power
