@@ -8,7 +8,7 @@ from ..energyhub import EnergyhubCapexOptimization as EnergyHub
 import numpy as np
 
 
-def construct_model(input_data_config, test, node, technology, cost_limit):
+def construct_model(input_data_config, node, technology, cost_limit):
 
     demand, p_onshore, p_offshore = determine_time_series(input_data_config.f_demand_scaling,
                                                           input_data_config.f_self_sufficiency[0],
@@ -16,10 +16,7 @@ def construct_model(input_data_config, test, node, technology, cost_limit):
 
     # TOPOLOGY
     topology = SystemTopology()
-    if test == 1:
-        topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 00:00', resolution=1)
-    else:
-        topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date=input_data_config.start_date, end_date=input_data_config.end_date, resolution=1)
     topology.define_carriers(['electricity', 'gas', 'hydrogen'])
     topology.define_nodes({'offshore': [], 'onshore': []})
     topology.define_existing_technologies('onshore',

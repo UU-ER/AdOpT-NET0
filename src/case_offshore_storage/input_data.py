@@ -2,13 +2,18 @@ import pandas as pd
 from pathlib import Path
 
 class InputDataConfig:
-    def __init__(self):
+    def __init__(self, test=0):
         # Prices
         self.price_ng = 43.92
         self.price_co2 = 110
 
-        # Climate year
-        self.climate_year = 2008
+        # timescale
+        if test == 1:
+            self.start_date = '01-01 00:00'
+            self.end_date = '01-02 00:00'
+        else:
+            self.start_date = '01-01 00:00'
+            self.end_date = '12-31 23:00'
 
         # Scaling of demand
         self.f_demand_scaling = 0.05

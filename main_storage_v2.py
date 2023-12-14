@@ -4,16 +4,15 @@ from src.case_offshore_storage.runs import max_capex_run as max_capex
 
 from src.case_offshore_storage.input_data import InputDataConfig
 
-test = 1
-input_config = InputDataConfig()
+input_config = InputDataConfig(test=1)
 f_demand = input_config.f_demand_scaling
 
 # Baseline
-run = 0
+run = 1
 if run:
     results_baseline = []
 
-    ehub = baseline.construct_model(input_config, test)
+    ehub = baseline.construct_model(input_config)
     for f_offshore in input_config.f_offshore_share:
         for f_self_sufficiency in input_config.f_self_sufficiency:
             result_single_run = baseline.solve_model(ehub, f_demand, f_offshore, f_self_sufficiency)
@@ -34,7 +33,7 @@ if run:
     for technology in technologies:
         for node in technologies[technology]:
             cost_limit = 0 # to be determined later
-            ehub = max_capex.construct_model(input_config, test, node, technology, cost_limit)
+            ehub = max_capex.construct_model(input_config, node, technology, cost_limit)
             for f_offshore in input_config.f_offshore_share:
                 for f_self_sufficiency in input_config.f_self_sufficiency:
                     cost_limit = results_baseline[(results_baseline['Self Sufficiency'] == f_self_sufficiency) &
@@ -44,6 +43,15 @@ if run:
 
     results_max_capex = pd.concat(results_max_capex)
     results_max_capex.to_csv(input_config.save_path + 'Overview_max_capex.csv')
+
+# Emission Reduction
+run = 1
+if run:
+    results_baseline = pd.read_csv(input_config.save_path + 'Overview_baseline.csv')
+    results_max_capex = []
+    technologies = {'Storage_Battery': ['onshore', 'offshore'],
+                    'Storage_CAES': ['onshore'],
+                    'Storage_OceanBattery': ['offshore']}
 
 
 
