@@ -22,8 +22,14 @@ class InputDataConfig:
         self.f_self_sufficiency = [0.2, 1, 2]
         self.f_offshore_share = [0.2, 0.5, 0.9]
 
+        # Emission reduction goals
+        self.f_emission_reduction = [0.95]
+
         # Reporting
-        self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/'
+        if test == 1:
+            self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshoreTest/'
+        else:
+            self.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/'
 
         # Solver settings
         self.mipgap = 0

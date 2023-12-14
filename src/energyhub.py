@@ -508,14 +508,15 @@ class EnergyHub:
                                           logfile=str(Path(result_folder_path / 'log.txt')),
                                           keepfiles=True)
 
-        if self.configuration.scaling == 1:
-            TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
+        if self.solution.solver.termination_condition == 'optimal':
+            if self.configuration.scaling == 1:
+                TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
 
-        if self.configuration.reporting.write_solution_diagnostics >= 1:
-            self.__write_solution_diagnostics(result_folder_path)
+            if self.configuration.reporting.write_solution_diagnostics >= 1:
+                self.__write_solution_diagnostics(result_folder_path)
 
-        self.solution.write()
-        self.detailed_results = self.results.report_optimization_result(self, time_stamp)
+            self.solution.write()
+            self.detailed_results = self.results.report_optimization_result(self, time_stamp)
 
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')

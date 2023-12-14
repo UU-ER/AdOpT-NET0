@@ -88,3 +88,22 @@ class EnergyhubCapexOptimization(EnergyHubAdapted):
             self.solver.set_objective(self.model.objective)
 
         self._call_solver()
+
+
+class EnergyhubEmissionOptimization(EnergyHubAdapted):
+    def __init__(self, data, configuration, technology_to_optimize:tuple, emission_limit:float):
+        super().__init__(data, configuration)
+        self.technology_to_optimize = technology_to_optimize
+        self.emission_limit = emission_limit
+
+    def _optimize(self, objective):
+        self._delete_objective()
+        self.model.del_component('const_cost_limit')
+
+        self.model.const_cost_limit = Constraint(expr=self.model.var_emissions_net <= self.emission_limit)
+
+        def init_max_capex(obj):
+            return self.model.node_blocks[self.technology_to_optimize[0]].tech_blocks_active[self.technology_to_optimize[1]].var_size
+        self.model.objective = Objective(rule=init_max_capex, sense=minimize)
+
+        self._call_solver()

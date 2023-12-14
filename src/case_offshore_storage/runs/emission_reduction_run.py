@@ -2,9 +2,8 @@ import pandas as pd
 
 from ..input_data import determine_time_series
 from ...model_configuration import ModelConfiguration
-from src.case_offshore_storage.handle_input_data import DataHandleCapexOptimization as DataHandle
-from ...data_management import SystemTopology, create_empty_network_matrix
-from ..energyhub import EnergyhubCapexOptimization as EnergyHub
+from ...data_management import DataHandle, SystemTopology, create_empty_network_matrix
+from ..energyhub import EnergyhubEmissionOptimization as EnergyHub
 import numpy as np
 import time
 
@@ -67,7 +66,7 @@ def construct_model(input_data_config, node, technology, cost_limit):
     configuration.scaling_factors.objective = 1e-3
 
     configuration.solveroptions.nodefiledir = '//ad.geo.uu.nl/Users/StaffUsers/6574114/gurobifiles/'
-    configuration.reporting.save_path = input_data_config.save_path + 'MaxCapex'
+    configuration.reporting.save_path = input_data_config.save_path + 'EmissionReduction'
     configuration.reporting.case_name = technology
     configuration.solveroptions.mipgap = input_data_config.mipgap
 
@@ -79,7 +78,7 @@ def construct_model(input_data_config, node, technology, cost_limit):
     return energyhub
 
 
-def solve_model(energyhub, f_demand, f_offshore, f_self_sufficiency, node, technology, cost_limit):
+def solve_model(energyhub, f_demand, f_offshore, f_self_sufficiency, node, technology, emission_limit):
     # Determine profiles
     demand, p_onshore, p_offshore = determine_time_series(f_demand, f_offshore, f_self_sufficiency)
 
@@ -89,24 +88,31 @@ def solve_model(energyhub, f_demand, f_offshore, f_self_sufficiency, node, techn
     energyhub.change_generic_production('onshore', 'electricity', (p_onshore).to_list())
 
     # Solve model
-    energyhub.total_cost_limit = cost_limit
+    energyhub.emission_limit = emission_limit
     results = energyhub.solve()
     time.sleep(1)
 
-    curtailment_on = sum(p_onshore) - sum(results.energybalance['onshore']['electricity']['Generic_production'])
-    curtailment_of = sum(p_offshore) - sum(results.energybalance['offshore']['electricity']['Generic_production'])
-    max_annual_capex = energyhub.model.node_blocks[node].tech_blocks_active[technology].var_unit_capex_annual.value
-    max_capex = energyhub.model.node_blocks[node].tech_blocks_active[technology].var_unit_capex.value
+    if energyhub.solution.solver.termination_condition == 'optimal':
+        curtailment_on = sum(p_onshore) - sum(results.energybalance['onshore']['electricity']['Generic_production'])
+        curtailment_of = sum(p_offshore) - sum(results.energybalance['offshore']['electricity']['Generic_production'])
+        size = energyhub.model.node_blocks[node].tech_blocks_active[technology].var_size.value
+        cost = results.summary.loc[0, 'Total_Cost']
+        emissions = results.summary.loc[0, 'Net_Emissions']
+    else:
+        curtailment_on = -1
+        curtailment_of = -1
+        size = -1
+        cost = -1
+        emissions = -1
     result_dict = {'Case': 'MaxCapex',
     'Technology': technology,
     'Node': node,
     'Self Sufficiency': f_self_sufficiency,
     'Offshore Share': f_offshore,
-    'Cost': results.summary.loc[0, 'Total_Cost'],
-    'Emissions': results.summary.loc[0, 'Net_Emissions'],
+    'Cost': cost,
+    'Emissions': emissions,
     'Curtailment Onshore': curtailment_on,
     'Curtailment Offshore': curtailment_of,
-    'Max Annualized Capex': max_annual_capex,
-    'Max Capex': max_capex,
+    'Size': size
     }
     return pd.DataFrame(result_dict, index=[0])
