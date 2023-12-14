@@ -74,7 +74,6 @@ def construct_model(input_data_config, test):
     energyhub = EnergyHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
-    energyhub.solve()
 
     return energyhub
 

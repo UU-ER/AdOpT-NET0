@@ -43,5 +43,9 @@
       "pole_pairs": 3,
       "nominal_head": 47.5
     }
+  },
+  "ScalingFactors": {
+    "const_output": 1e3,
+    "const_input": 1e3
   }
 }

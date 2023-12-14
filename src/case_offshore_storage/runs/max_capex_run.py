@@ -17,7 +17,7 @@ def construct_model(input_data_config, test, node, technology, cost_limit):
     # TOPOLOGY
     topology = SystemTopology()
     if test == 1:
-        topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='02-01 23:00', resolution=1)
+        topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 00:00', resolution=1)
     else:
         topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='12-31 23:00', resolution=1)
     topology.define_carriers(['electricity', 'gas', 'hydrogen'])
@@ -78,6 +78,7 @@ def construct_model(input_data_config, test, node, technology, cost_limit):
     energyhub = EnergyHub(data, configuration, (node, technology), cost_limit)
     energyhub.construct_model()
     energyhub.construct_balances()
+    energyhub.solve()
 
     return energyhub
 

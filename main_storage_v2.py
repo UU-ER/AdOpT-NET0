@@ -28,10 +28,9 @@ run = 1
 if run:
     results_baseline = pd.read_csv(input_config.save_path + 'Overview_baseline.csv')
     results_max_capex = []
-    technologies = {'Storage_Battery_CapexOptimization': ['onshore']}
-    # technologies = {'Storage_Battery_CapexOptimization': ['onshore', 'offshore'],
-    #                 'Storage_CAES_CapexOptimization': ['onshore'],
-    #                 'Storage_OceanBattery_general_CapexOptimization': ['offshore']}
+    technologies = {'Storage_Battery_CapexOptimization': ['onshore', 'offshore'],
+                    'Storage_CAES_CapexOptimization': ['onshore'],
+                    'Storage_OceanBattery_general_CapexOptimization': ['offshore']}
     for technology in technologies:
         for node in technologies[technology]:
             cost_limit = 0 # to be determined later

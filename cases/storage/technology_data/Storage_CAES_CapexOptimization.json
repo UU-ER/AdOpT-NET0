@@ -51,9 +51,8 @@
     }
   },
   "ScalingFactors": {
-    "const_opex_variable": 1e2,
-    "const_opex_fixed": 1e2,
-    "const_capex_aux": 1e-3,
-    "var_capex_aux": 1e-1
+    "const_unit_capex": 1e2,
+    "const_max_charge": 1e2,
+    "const_max_discharge": 1e2
   }
 }
