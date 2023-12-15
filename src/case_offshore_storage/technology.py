@@ -46,10 +46,10 @@ class TechnologyCapexOptimization(Technology):
         fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
         annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
-        b_tec.var_unit_capex_annual = Var(within=Reals, bounds=(0, 1e6))
-        b_tec.var_unit_capex = Var(within=Reals, bounds=(0, 1e6), initialize=0)
-        b_tec.var_capex = Var(within=Reals, bounds=(0, 1e6))
-        b_tec.var_capex_aux = Var(within=Reals, bounds=(0, 1e6))
+        b_tec.var_unit_capex_annual = Var(within=Reals, bounds=(0, 1e10))
+        b_tec.var_unit_capex = Var(within=Reals, bounds=(0, 1e10), initialize=0)
+        b_tec.var_capex = Var(within=Reals, bounds=(0, 1e10))
+        b_tec.var_capex_aux = Var(within=Reals, bounds=(0, 1e10))
 
         b_tec.const_capex_aux = Constraint(expr=b_tec.var_size * b_tec.var_unit_capex_annual == b_tec.var_capex_aux)
         b_tec.const_unit_capex = Constraint(

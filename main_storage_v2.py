@@ -9,7 +9,7 @@ input_config = InputDataConfig(test=1)
 f_demand = input_config.f_demand_scaling
 
 # Baseline
-run = 0
+run = 1
 if run:
     results_baseline = []
 
@@ -23,7 +23,7 @@ if run:
     results_baseline.to_csv(input_config.save_path + 'Overview_baseline.csv')
 
 # Max Capex optimization
-run = 0
+run = 1
 if run:
     results_baseline = pd.read_csv(input_config.save_path + 'Overview_baseline.csv')
     results_max_capex = []

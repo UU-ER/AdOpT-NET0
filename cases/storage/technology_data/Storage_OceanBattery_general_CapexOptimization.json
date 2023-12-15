@@ -41,7 +41,8 @@
       "pump_type": "centrifugal",
       "frequency": 50,
       "pole_pairs": 3,
-      "nominal_head": 47.5
+      "nominal_head": 47.5,
+      "capex_correction_factor": 1
     }
   },
   "ScalingFactors": {

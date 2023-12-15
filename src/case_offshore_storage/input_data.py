@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+import numpy as np
 
 class InputDataConfig:
     def __init__(self, test=0):
@@ -7,23 +8,27 @@ class InputDataConfig:
         self.price_ng = 43.92
         self.price_co2 = 110
 
-        # timescale
         if test == 1:
+            # timescale
             self.start_date = '01-01 00:00'
-            self.end_date = '01-02 00:00'
+            self.end_date = '02-01 00:00'
+            # Self sufficiency range
+            self.f_self_sufficiency = [2]
+            self.f_offshore_share = [0.5]
+            # Emission reduction goals
+            self.f_emission_reduction = [0.95]
         else:
+            # timescale
             self.start_date = '01-01 00:00'
             self.end_date = '12-31 23:00'
+            # Self sufficiency range
+            self.f_self_sufficiency = np.arange(0.5, 2.5, 0.25).tolist()
+            self.f_offshore_share = np.arange(0.2, 1.2, 0.2).tolist()
+            # Emission reduction goals
+            self.f_emission_reduction = np.arange(0, 1.1, 0.1).tolist()
 
         # Scaling of demand
         self.f_demand_scaling = 0.05
-
-        # Self sufficiency range
-        self.f_self_sufficiency = [0.2, 1, 2]
-        self.f_offshore_share = [0.2, 0.5, 0.9]
-
-        # Emission reduction goals
-        self.f_emission_reduction = [0.95]
 
         # Reporting
         if test == 1:

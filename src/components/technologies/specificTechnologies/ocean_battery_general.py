@@ -129,9 +129,10 @@ class OceanBattery(Technology):
         turbine_data['capex_constant_c'] = -0.4933
         self.economics.capex_data['turbine'] = fit_turbomachinery_capex_general(turbine_data)
 
-        self.economics.capex_data['unit_capex'] = self.economics.capex_data['unit_capex'] * self.fitted_performance.coefficients['reservoir_volume'] + \
+        self.economics.capex_data['unit_capex'] = (self.economics.capex_data['unit_capex'] * self.fitted_performance.coefficients['reservoir_volume'] + \
                                                   self.economics.capex_data['turbine'] * self.fitted_performance.coefficients['turbine_slots']+ \
-                                                  self.economics.capex_data['pump'] * self.fitted_performance.coefficients['pump_slots']
+                                                  self.economics.capex_data['pump'] * self.fitted_performance.coefficients['pump_slots']) * \
+                                                    self.fitted_performance.coefficients['capex_correction_factor']
 
         # Derive bounds
         climate_data = node_data.data['climate_data']
