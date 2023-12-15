@@ -8,7 +8,7 @@ c = Configuration()
 demand2019 = pd.read_excel(c.loadpath_demand2019, sheet_name='Aggregate')
 demand2019.set_index('Country Code', inplace=True)
 demand2019 = demand2019['Demand (2019)']
-demand2019.columns = ['\cite{Eurostat2023c}']
+demand2019.columns = ['Eurostat (2023), demand in 2019 \cite{Eurostat2023c}']
 
 
 def preprocess_demand_data_eraa(config, region):
@@ -119,14 +119,14 @@ for climate_year in climate_years:
     # local_demand.to_csv(c.savepath_demand_summary + '_' + str(climate_year) + '.csv')
 
     total_demand_national_ERAA = pd.DataFrame(total_demand_per_country_ERAA)
-    total_demand_national_ERAA.columns = ['ERAA']
+    total_demand_national_ERAA.columns = ['Our Work/TYNDP']
     total_demand_national_PyPSA = pd.DataFrame(total_demand_per_country_PyPSA['demand'] * 10**6)
-    total_demand_national_PyPSA.columns = ['\cite{Neumann2023}']
+    total_demand_national_PyPSA.columns = ['Neumann et al. (2023) \cite{Neumann2023}']
 
     total_demand_national = pd.merge(total_demand_national_ERAA, total_demand_national_PyPSA, left_index=True, right_index=True)
     total_demand_national = pd.merge(total_demand_national, demand2019, left_index=True, right_index=True)
     total_demand_national.to_csv(c.savepath_demand_summary + 'NationalDemand_' + str(climate_year) + '.csv')
-    to_latex(total_demand_national * 10**-6, 'National annual projected demand for 2030  GWh for the climate year ' + str(climate_year), c.savepath_demand_summary + 'LatexNationalDemand_' + str(climate_year) + '.tex')
+    to_latex(total_demand_national * 10**-6, 'National annual projected demand for 2030  TWh for the climate year ' + str(climate_year), c.savepath_demand_summary + 'LatexNationalDemand_' + str(climate_year) + '.tex')
 
     local_demand.set_index('Node', inplace=True)
     total_demand_nodal_PyPSA.columns = ['PyPsa_demand']

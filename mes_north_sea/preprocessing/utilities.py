@@ -38,15 +38,16 @@ class Configuration:
 
         # CAPACITIES
         self.raw_data_path_cap = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/00_raw_data/installed_capacities/'
+        self.savepath_cap_per_node_summary = self.clean_data_path + 'reporting/installed_capacities_non_re/non_re_installed_capacities_node.tex'
+        self.savepath_cap_per_country_summary = self.clean_data_path + 'reporting/installed_capacities_non_re/non_re_installed_capacities_country.tex'
+        self.savepath_cap_per_node = self.clean_data_path + 'clean_data/installed_capacities/non_re_installed_capacities.csv'
+        self.savepath_cap_per_country = self.clean_data_path + 'clean_data/installed_capacities/non_re_installed_capacities.csv'
 
         # tyndp data
         self.load_path_tyndp_cap = self.raw_data_path_cap + '220310_Updated_Electricity_Modelling_Results.xlsx'
 
         # PyPSA installed capacities
-        self.load_path_pypsa_cap = self.raw_data_path_cap + 'nonREinstalledNUTS2_v3.csv'
-
-        self.savepath_cap_per_node = self.clean_data_path + 'clean_data/installed_capacities/non_re_installed_capacities.csv'
-
+        self.load_path_pypsa_cap_all = self.raw_data_path_cap + 'powerplantspypsa.csv'
 
 
 def to_latex(df, caption, path, rounding=0, columns=None):
