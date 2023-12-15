@@ -86,15 +86,15 @@ tyndp_caps = pd.melt(tyndp_caps, id_vars=['Country'], var_name='ENTSOE Category'
 pypsa_installed = pypsa_installed.reset_index(level='Node')
 cap_node = pypsa_installed.merge(tyndp_caps, left_on=['Country', 'ENTSOE Category'], right_on=['Country', 'ENTSOE Category'])
 
-categories_to_filter = ['Coal & Lignite', 'Gas', 'Nuclear']
+categories_to_filter = ['Coal & Lignite', 'Gas', 'Nuclear', 'Oil']
 cap_node = cap_node[cap_node['ENTSOE Category'].isin(categories_to_filter)]
 cap_node['Capacity our work'] = cap_node['Share'] * cap_node['Capacity TYNDP']
 cap_node.sort_index(axis=0, inplace=True)
 
 cap_node.to_csv(c.savepath_cap_per_node)
 
+cap_node = cap_node.drop(columns=['Capacity TYNDP'])
 cap_node['Capacity our work'] = cap_node['Capacity our work']/1000
-cap_node['Capacity TYNDP'] = cap_node['Capacity TYNDP']/1000
 cap_node['Capacity PyPsa'] = cap_node['Capacity PyPsa']/1000
 to_latex(cap_node,
          'Installed Capacities per Node (GW) and per source',
