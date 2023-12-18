@@ -23,7 +23,7 @@ def convert_to_string(value):
         return str(value)
 
 # Define paths to results
-path = Path('C:/Users/6574114/OneDrive - Universiteit Utrecht/Offshore Storage_Full Paper/Results')
+path = Path('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore')
 selected_option = st.sidebar.selectbox("Select an option", ['Baseline Results', 'Emission Reduction', 'Storage Maximum Investment'])
 
 # Load Baseline:
@@ -39,7 +39,7 @@ if selected_option == 'Baseline Results':
     pages = ["Summary", "Energy Balance at Node", "Technology Operation"]
     selected_page = st.sidebar.selectbox("Select graph", pages)
 
-    search_pattern = 'Baseline_SS' + convert_to_string(self_sufficiency) + 'OS' + convert_to_string(offshore_share)
+    search_pattern = 'Baseline_SS' + str(self_sufficiency) + 'OS' + str(offshore_share)
     result_path = find_directory(path.joinpath(path, Path('Baseline')), search_pattern)
 
     # Energybalance at Node
@@ -203,6 +203,17 @@ elif selected_option == 'Storage Maximum Investment':
                                                  (max_capex_results['Offshore Share'] == offshore_share)]
     max_capex_results['Technology'] = pd.concat([max_capex_results['Technology'], max_capex_results['Node']], axis=1).apply(lambda x: ' '.join(x), axis=1)
 
+    head = 47.5
+    volume = 250000
+    capacity_correction_ob = 1000 * 9.81 * head * (10 ** -6) / 3600 * volume
+
+    max_capex_results.loc[
+        max_capex_results['Technology'].str.contains('OceanBattery'), 'Max Capex'] /= capacity_correction_ob
+
+    max_capex_results['Technology'] = max_capex_results['Technology'].str.replace('Storage_', '')
+    max_capex_results['Technology'] = max_capex_results['Technology'].str.replace('CapexOptimization ', '')
+    max_capex_results['Technology'] = max_capex_results['Technology'].str.replace('general_', '')
+    max_capex_results['Technology'] = max_capex_results['Technology'].str.replace('_', ' ')
 
     st.header("Maximal Allowable Investment Costs (annualized)")
     chart = alt.Chart(max_capex_results).mark_bar().encode(
