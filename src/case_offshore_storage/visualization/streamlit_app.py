@@ -149,10 +149,11 @@ elif selected_option == 'Emission Reduction':
     emission_results['Curtailment Total'] = emission_results['Curtailment Onshore'] + emission_results['Curtailment Offshore']
     emission_results_filtered = emission_results[(emission_results['Self Sufficiency'] == self_sufficiency) &
                                                  (emission_results['Offshore Share'] == offshore_share)]
-    emissions_baseline = baseline_results[(emission_results['Self Sufficiency'] == self_sufficiency) &
-                                                 (emission_results['Offshore Share'] == offshore_share)]['Emissions'].values.item()
+    emissions_baseline = baseline_results[(baseline_results['Self Sufficiency'] == self_sufficiency) &
+                                                 (baseline_results['Offshore Share'] == offshore_share)]['Emissions'].values.item()
     emission_results_filtered['Emission Reduction'] = emission_results_filtered['Emissions'] / emissions_baseline
     emission_results_filtered['Technology'] = pd.concat([emission_results_filtered['Technology'], emission_results_filtered['Node']], axis=1).apply(lambda x: ' '.join(x), axis=1)
+    emission_results_filtered = emission_results_filtered[emission_results_filtered['Size'] >= 0.1]
 
     # Emission Reduction
     st.header("Emission Reduction")
@@ -166,8 +167,8 @@ elif selected_option == 'Emission Reduction':
 
     # Curtailment
     st.header("Curtailment")
-    baseline_single_row = baseline_results[(emission_results['Self Sufficiency'] == self_sufficiency) &
-                                                 (emission_results['Offshore Share'] == offshore_share)]
+    baseline_single_row = baseline_results[(baseline_results['Self Sufficiency'] == self_sufficiency) &
+                                                 (baseline_results['Offshore Share'] == offshore_share)]
     baseline_single_row['Technology'] = 'Baseline'
     baseline_single_row['Emission Reduction'] = 1
     curtailment_baseline = (baseline_single_row['Curtailment Onshore'] + baseline_single_row['Curtailment Offshore']).values.item()
