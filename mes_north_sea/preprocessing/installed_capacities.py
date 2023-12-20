@@ -161,7 +161,6 @@ cap_national['Technology'] = cap_national['Technology'].apply(lambda x: replace_
 cap_national['Technology'] = cap_national['Technology'].apply(lambda x: replace_substrings(x, {' (Pumping)': ''}))
 
 
-
 cap_node = pypsa_installed.merge(cap_national, left_on=['Country', 'ENTSOE Category'], right_on=['Country', 'Technology'])
 
 cap_node['Capacity our work'] = cap_node['Share'] * cap_node['Capacity TYNDP']
@@ -176,7 +175,7 @@ to_latex(cap_node_export, 'Installed Capacities per Node (GW) and per source',
 cap_national_summary = cap_node.groupby(['Country', 'Technology', 'Type']).sum()
 cap_national_summary = cap_national_summary[['Capacity our work', 'Capacity PyPsa']]
 cap_national_summary = cap_national_summary.reset_index().merge(cap_national, left_on=['Country', 'Technology', 'Type'], right_on=['Country', 'Technology', 'Type'])
-cap_national_summary = cap_national_summary.drop(columns=['index', 'Source'])
+cap_national_summary = cap_national_summary.drop(columns=['Source'])
 
 cap_national_summary = cap_national_summary.set_index(['Country', 'Technology', 'Type'])
 cap_national_summary.rename(columns={'Capacity TYNDP': 'TYNDP/ERAA 2022'})
@@ -187,152 +186,90 @@ to_latex(cap_national_summary/1000,
          c.savepath_cap_per_country_summary, rounding=2, columns=None)
 
 
-#
-#
-#
-#
-# pypsa_installed_national = pypsa_installed[['Country', 'Capacity', 'ENTSOE Category']]
-# pypsa_installed_national = pypsa_installed_national.groupby(['Country', 'ENTSOE Category']).sum()
-# pypsa_installed_national = pypsa_installed_national.pivot_table(values='Capacity', columns='ENTSOE Category', index='Country', fill_value=0)
-#
-# multiindex = pd.MultiIndex.from_product([pypsa_installed_national.index, ['Gotzens et al. (2019)']], names=['Country', 'Source'])
-# pypsa_installed_national.index = multiindex
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# pypsa_installed_national_conventional = pypsa_installed_national.drop(columns=['Hydro - Pump Storage Closed Loop (Turbine)',
-#        'Hydro - Reservoir (Turbine)', 'Hydro - Run of River (Turbine)'])
-# for col in cap_national:
-#     if not col in pypsa_installed_national_conventional.columns:
-#         pypsa_installed_national_conventional[col] = float('nan')
-# multiindex = pd.MultiIndex.from_product([pypsa_installed_national_conventional.index, ['Gotzens et al. (2019)']], names=['Country', 'Source'])
-# pypsa_installed_national_conventional.index = multiindex
-#
-# cap_national = pd.concat([pypsa_installed_national_conventional, cap_national])
-# cap_national = cap_national.sort_index(axis=0)
-#
-# cap_national = cap_national.drop(columns=['Others renewable', 'Other RES', 'Solar', 'Wind Offshore', 'Wind Onshore'])
-#
-# cap_national.to_csv(c.savepath_cap_per_country)
-# to_latex(cap_national/1000,
-#          'Installed Capacities per Country (GW) and per source',
-#          c.savepath_cap_per_country_summary, rounding=2, columns=None)
-#
-#
-# # Determine Keys from PyPsa Data
-# pypsa_installed = pypsa_installed.groupby(['Country', 'ENTSOE Category', 'Node']).sum()
-# pypsa_installed = pypsa_installed.rename({'GB': 'UK'})
-# pypsa_installed['Share'] = pypsa_installed.groupby(['Country', 'ENTSOE Category'])['Capacity'].transform(lambda x: x / x.sum())
-# pypsa_installed = pypsa_installed.rename(columns={'Capacity': 'Capacity PyPsa'})
-#
-# tyndp_caps = cap_national[cap_national.index.get_level_values('Source') == 'TYNDP 2022']
-# tyndp_caps = tyndp_caps.pivot_table(index='Country', fill_value=0)
-# tyndp_caps = tyndp_caps.reset_index()
-#
-# tyndp_caps = pd.melt(tyndp_caps, id_vars=['Country'], var_name='ENTSOE Category', value_name='Capacity TYNDP')
-#
-# pypsa_installed = pypsa_installed.reset_index(level='Node')
-# cap_node = pypsa_installed.merge(tyndp_caps, left_on=['Country', 'ENTSOE Category'], right_on=['Country', 'ENTSOE Category'])
-#
-# categories_to_filter = ['Coal & Lignite', 'Gas', 'Nuclear', 'Oil']
-# cap_node = cap_node[cap_node['ENTSOE Category'].isin(categories_to_filter)]
-# cap_node['Capacity our work'] = cap_node['Share'] * cap_node['Capacity TYNDP']
-# cap_node.sort_index(axis=0, inplace=True)
-#
-# cap_node.to_csv(c.savepath_cap_per_node)
-#
-# cap_node = cap_node.drop(columns=['Capacity TYNDP'])
-# cap_node['Capacity our work'] = cap_node['Capacity our work']/1000
-# cap_node['Capacity PyPsa'] = cap_node['Capacity PyPsa']/1000
-# to_latex(cap_node, 'Installed Capacities per Node (GW) and per source',
-#          c.savepath_cap_per_node_summary, rounding=2, columns=None)
-#
-# # National Capacity ERAA - Hydro
-# eraa_caps = pd.read_excel(c.load_path_tyndp_cap_hydro, sheet_name = 'TY 2030', skiprows=3, index_col=0)
-#
-# names_energy = ['Hydro - Reservoir',
-#  'Hydro - Pump Storage Open Loop',
-#  'Hydro - Pump Storage Closed Loop'
-# ]
-# names_capacity = ['Hydro - Run of River (Turbine)',
-#  'Hydro - Reservoir (Turbine)',
-#  'Hydro - Pump Storage Open Loop (Turbine)',
-#  'Hydro - Pump Storage Closed Loop (Turbine)',
-#  'Hydro - Pump Storage Open Loop (Pumping)',
-#  'Hydro - Pump Storage Closed Loop (Pumping)'
-# ]
-#
-# eraa_caps_energy = eraa_caps.loc[names_energy]
-# eraa_caps_capacity = eraa_caps.loc[names_capacity]
-#
-# def calculate_national_caps(names, c, eraa_caps):
-#     cap = {}
-#     for type in names:
-#         cap[type] = 0
-#     caps_national = pd.DataFrame(columns=cap.keys())
-#     for country in c.countries:
-#         cap = {key: 0 for key in cap}  # Reset cap for each country
-#         for bidding_zone in c.countries[country]:
-#             for type in names:
-#                 cap[type] = cap[type] + eraa_caps.at[type, bidding_zone]
-#         caps_national = caps_national.append(pd.Series(cap, name=country))
-#
-#     multiindex = pd.MultiIndex.from_product([caps_national.index, ['ERAA 2022']], names=['Country', 'Source'])
-#     caps_national.index = multiindex
-#
-#     return caps_national
-#
-# # NATIONAL
-# eraa_caps_energy_national = calculate_national_caps(names_energy, c, eraa_caps_energy)
-# eraa_caps_capacity_national = calculate_national_caps(names_capacity, c, eraa_caps_capacity)
-#
-# pypsa_installed_national_hydro = pypsa_installed_national[['Hydro - Pump Storage Closed Loop (Turbine)',
-#        'Hydro - Reservoir (Turbine)', 'Hydro - Run of River (Turbine)']]
-# multiindex = pd.MultiIndex.from_product([pypsa_installed_national.index, ['Gotzens et al. (2019)']], names=['Country', 'Source'])
-# pypsa_installed_national_hydro.index = multiindex
-#
-# cap_national_hydro = pd.concat([pypsa_installed_national_hydro, eraa_caps_capacity_national])
-# cap_national_hydro = cap_national_hydro.sort_index(axis=0)
-#
-# cap_national_hydro = cap_national_hydro.rename(columns= {'Hydro - Pump Storage Closed Loop (Turbine)': 'Closed Loop',
-#        'Hydro - Reservoir (Turbine)': 'Reservoir', 'Hydro - Run of River (Turbine)': 'Run of River',
-#                                     'Hydro - Pump Storage Open Loop (Turbine)': 'Open Loop'})
-#
-# to_latex(cap_national_hydro[['Closed Loop', 'Reservoir', 'Open Loop', 'Run of River']]/1000,
-#          'Installed Hydro Turbine Capacities per Node (GW) and per source',
-#          c.savepath_cap_per_node_summary_hydro, rounding=2, columns=None)
-#
-# # PyPsa adaptions
-# pypsa_installed_node_hydro = pypsa_installed
-# pypsa_installed_node_hydro = pypsa_installed_node_hydro.reset_index()
-# pypsa_installed_node_hydro = pypsa_installed_node_hydro.replace({'Hydro - Pump Storage Closed Loop (Turbine)': 'Closed Loop',
-#        'Hydro - Reservoir (Turbine)': 'Reservoir', 'Hydro - Run of River (Turbine)': 'Run of River',
-#                                     'Hydro - Pump Storage Open Loop (Turbine)': 'Open Loop'})
-#
-# #Per Pump/Turbine per Node
-# eraa_caps_capacity_national = eraa_caps_capacity_national.rename(columns =
-#                      {'Hydro - Pump Storage Closed Loop (Turbine)': 'Closed Loop (Turbine)',
-#                       'Hydro - Pump Storage Closed Loop (Pumping)': 'Closed Loop (Pump)',
-#                       'Hydro - Reservoir (Turbine)': 'Reservoir (Turbine)',
-#                       'Hydro - Run of River (Turbine)': 'Run of River',
-#                       'Hydro - Pump Storage Open Loop (Pump)': 'Open Loop (Pump)',
-#                       'Hydro - Pump Storage Open Loop (Turbine)': 'Open Loop (Turbine)'})
-#
-# to_melt = eraa_caps_capacity_national.reset_index()
-# to_melt = to_melt.drop(columns=['Source'])
-#
-# to_merge = pd.melt(to_melt, id_vars=['Country'], var_name='ENTSOE Category', value_name='Capacity ERAA')
-# energy_node_hydro = pypsa_installed.merge(to_merge, left_on=['Country', 'ENTSOE Category'], right_on=['Country', 'ENTSOE Category'])
-#
-#
+# Solar, wind onshore
+# Installed capacity 2023
+cap_re_nuts_2023 = pd.read_csv(c.load_path_re_cap_2023)
+cap_re_nuts_2023 = cap_re_nuts_2023.set_index('NUTS_ID')
+cap_re_national_2023 = cap_re_nuts_2023.drop(columns=['LEVL_CODE']).groupby('CNTR_CODE').sum()
+cap_re_national_2023 = cap_re_national_2023.reset_index()
+cap_re_national_2023 = cap_re_national_2023.rename(columns={'CNTR_CODE': 'Country',
+                                                           'Capacity_Wind_on': 'Wind_on',
+                                                            'Capacity_PV': 'PV'})
+cap_re_national_2023 = cap_re_national_2023.set_index('Country')
+
+
+cap_re_national_2030 = cap_national[(cap_national['Technology']=='Solar') | (cap_national['Technology']=='Wind Onshore')]
+cap_re_national_2030 = cap_re_national_2030[['Country', 'Technology', 'Capacity TYNDP']].pivot(columns=['Technology'], index=['Country'])
+cap_re_national_2030 = cap_re_national_2030.rename(columns={'Capacity TYNDP': 'Capacity 2030 (TYNDP)'})
+cap_re_national_2030 = cap_re_national_2030.rename(columns={'Wind Onshore': 'Wind_on',
+                                    'Solar': 'PV'})
+
+print(cap_re_national_2023.merge(cap_re_national_2030, left_index=True, right_index=True)/1000)
+
+
+# Potential
+re_potential = pd.read_csv(c.load_path_re_potential, delimiter=';')
+re_potential = re_potential.set_index('nuts2_code')
+re_potential = re_potential * 1000
+
+potential_re_nuts = cap_re_nuts_2023.join(re_potential[['solar_capacity_gw_high_total', 'wind_onshore_capacity_gw_high']])
+potential_re_nuts = potential_re_nuts.rename(
+    columns={"solar_capacity_gw_high_total": "Potential_PV", "wind_onshore_capacity_gw_high": "Potential_Wind_on"})
+
+# Remaining Potential
+potential_re_nuts["RemainingPotential_PV"] = potential_re_nuts["Potential_PV"] - potential_re_nuts["Capacity_PV"]
+potential_re_nuts["RemainingPotential_Wind_on"] = potential_re_nuts["Potential_Wind_on"] - potential_re_nuts["Capacity_Wind_on"]
+potential_re_nuts.loc[potential_re_nuts["RemainingPotential_PV"] < 0, "RemainingPotential_PV"] = 0
+potential_re_nuts.loc[potential_re_nuts["RemainingPotential_Wind_on"] < 0, "RemainingPotential_Wind_on"] = 0
+potential_re_nuts = potential_re_nuts[['CNTR_CODE','NUTS_NAME',
+                                      'Capacity_Wind_on',
+                                      'Capacity_PV',
+                                      'Potential_Wind_on',
+                                      'Potential_PV',
+                                      'RemainingPotential_Wind_on',
+                                      'RemainingPotential_PV',]]
+potential_re_national = potential_re_nuts.groupby('CNTR_CODE').sum()
+potential_re_national = potential_re_national.rename(columns={'RemainingPotential_Wind_on': 'RemainingPotentialNational_Wind_on',
+                                                      'RemainingPotential_PV': 'RemainingPotentialNational_PV'})
+potential_re_national = potential_re_national.reset_index()
+
+# Calculate intalled capacity in 2030
+cap_national_solar = cap_national[cap_national['Technology']=='Solar']
+cap_national_solar = cap_national_solar.rename(columns={'Capacity TYNDP': 'CapacityNational_2030_PV'})
+cap_national_wind_on = cap_national[cap_national['Technology']=='Wind Onshore']
+cap_national_wind_on = cap_national_wind_on.rename(columns={'Capacity TYNDP': 'CapacityNational_2030_Wind_on'})
+cap_re_nuts_2030 = potential_re_nuts.reset_index().merge(cap_national_wind_on[['CapacityNational_2030_Wind_on', 'Country']], left_on=['CNTR_CODE'], right_on=['Country'])
+cap_re_nuts_2030 = cap_re_nuts_2030.drop(columns=['Country'])
+cap_re_nuts_2030 = cap_re_nuts_2030.merge(cap_national_solar[['CapacityNational_2030_PV', 'Country']], left_on=['CNTR_CODE'], right_on=['Country'])
+cap_re_nuts_2030 = cap_re_nuts_2030.drop(columns=['Country'])
+cap_re_nuts_2030 = cap_re_nuts_2030.merge(cap_re_national_2023.rename(columns = {'PV': 'CapacityNational_2023_PV',
+                                                                                 'Wind_on': 'CapacityNational_2023_Wind_on'}),
+                                          left_on=['CNTR_CODE'], right_on=['Country'])
+
+
+cap_re_nuts_2030 = cap_re_nuts_2030.merge(potential_re_national[['CNTR_CODE', 'RemainingPotentialNational_PV', 'RemainingPotentialNational_Wind_on']], left_on=['CNTR_CODE'], right_on=['CNTR_CODE'])
+
+
+cap_re_nuts_2030['Capacity_PV_2030'] = (cap_re_nuts_2030['RemainingPotential_PV'] / cap_re_nuts_2030['RemainingPotentialNational_PV']) * \
+                             (cap_re_nuts_2030['CapacityNational_2030_PV'] - cap_re_nuts_2030['CapacityNational_2023_PV']) + cap_re_nuts_2030['Capacity_PV']
+
+cap_re_nuts_2030['Capacity_Wind_on_2030'] = cap_re_nuts_2030['RemainingPotential_Wind_on'] / cap_re_nuts_2030['RemainingPotentialNational_Wind_on'] * \
+                                  (cap_re_nuts_2030['CapacityNational_2030_Wind_on'] - cap_re_nuts_2030['CapacityNational_2023_Wind_on']) + cap_re_nuts_2030[
+                                      'Capacity_Wind_on']
+
+cap_re_nuts_2030['problem_PV'] = cap_re_nuts_2030['Capacity_PV_2030'] >= cap_re_nuts_2030['Potential_PV']
+cap_re_nuts_2030['problem_Wind_on'] = cap_re_nuts_2030['Capacity_Wind_on_2030'] >= cap_re_nuts_2030['Potential_Wind_on']
+
+# Report National Capacities
+cap_re_national_2030_ours = cap_re_nuts_2030[['CNTR_CODE', 'Capacity_PV_2030', 'Capacity_Wind_on_2030']].groupby('CNTR_CODE').sum()
+cap_re_national_2030_ours = cap_re_national_2030_ours.merge(cap_national_wind_on[['CapacityNational_2030_Wind_on', 'Country']], left_index=True, right_on=['Country'])
+cap_re_national_2030_ours = cap_re_national_2030_ours.merge(cap_national_solar[['CapacityNational_2030_PV', 'Country']], left_on=['Country'], right_on=['Country'])
+cap_re_national_2030_ours = cap_re_national_2030_ours.set_index('Country')
+cap_re_national_2030_ours = cap_re_national_2030_ours.rename(columns={'Capacity_PV_2030': 'PV (Our work)', 'Capacity_Wind_on_2030': 'Wind, onshore (Our work)',
+       'CapacityNational_2030_Wind_on': 'Wind, onshore (TYNDP)', 'CapacityNational_2030_PV': 'PV (TYNDP)'})
+
+to_latex(cap_re_national_2030_ours[['PV (Our work)', 'PV (TYNDP)', 'Wind, onshore (Our work)', 'Wind, onshore (TYNDP)']]/1000,
+         'Installed PV and onshore wind capacities per country (GW)', c.savepath_cap_re_per_country_summary, rounding=2, columns=None)
+
+
+cap_re_nuts_2030[['NUTS_ID', 'Capacity_PV_2030', 'Capacity_Wind_on_2030']].to_csv(c.savepath_cap_re_per_nutsregion)

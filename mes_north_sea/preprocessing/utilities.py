@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from src.components.technologies.genericTechnologies.res import Res
+from src.components.technologies.utilities import FittedPerformance
 
 class Configuration:
     def __init__(self):
@@ -38,11 +40,11 @@ class Configuration:
 
         # CAPACITIES
         self.raw_data_path_cap = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/00_raw_data/installed_capacities/'
-        self.savepath_cap_per_node_summary = self.clean_data_path + 'reporting/installed_capacities_non_re/non_re_installed_capacities_node.tex'
-        self.savepath_cap_per_node_summary_hydro = self.clean_data_path + 'reporting/installed_capacities_non_re/hydro_installed_capacities_country.tex'
-        self.savepath_cap_per_country_summary = self.clean_data_path + 'reporting/installed_capacities_non_re/non_re_installed_capacities_country.tex'
+        self.savepath_cap_per_node_summary = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities_node.tex'
+        self.savepath_cap_per_node_summary_hydro = self.clean_data_path + 'reporting/installed_capacities/hydro_installed_capacities_country.tex'
+        self.savepath_cap_per_country_summary = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities_country.tex'
         self.savepath_cap_per_node = self.clean_data_path + 'clean_data/installed_capacities/non_re_installed_capacities.csv'
-        self.savepath_cap_per_country = self.clean_data_path + 'clean_data/installed_capacities/non_re_installed_capacities.csv'
+        self.savepath_cap_per_country = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities.csv'
 
         # tyndp data
         self.load_path_tyndp_cap = self.raw_data_path_cap + '220310_Updated_Electricity_Modelling_Results.xlsx'
@@ -50,6 +52,15 @@ class Configuration:
 
         # PyPSA installed capacities
         self.load_path_pypsa_cap_all = self.raw_data_path_cap + 'powerplantspypsa.csv'
+
+        # RE 2023
+        self.load_path_re_cap_2023 = self.raw_data_path_cap + 'REinstalled2023NUTS.csv'
+        self.load_path_re_potential = self.raw_data_path_cap + 'ENSPRESO_Integrated_NUTS2_Data.csv'
+
+        # Save RE caps
+        self.savepath_cap_re_per_country_summary = self.clean_data_path + 'reporting/installed_capacities/re_installed_capacities_country.tex'
+        self.savepath_cap_re_per_node_summary = self.clean_data_path + 'reporting/installed_capacities/re_installed_capacities_node.tex'
+        self.savepath_cap_re_per_nutsregion = self.clean_data_path + 'clean_data/installed_capacities/re_installed_capacities_nuts.csv'
 
 
 def to_latex(df, caption, path, rounding=0, columns=None):
@@ -66,3 +77,18 @@ def to_latex(df, caption, path, rounding=0, columns=None):
     with open(path, 'w') as f:
         for item in latex_table:
             f.write(item)
+
+class CalculateReGeneration(Res):
+    def __init__(self):
+        self.fitted_performance = FittedPerformance()
+        self.name = 'WindTurbine_Onshore_1500'
+
+    def fit_technology_performance(self, climate_data, technology, location):
+        if technology == 'PV':
+            self._perform_fitting_PV(climate_data, location)
+        elif technology == 'Wind':
+            hubheight = 110
+            self._perform_fitting_WT(climate_data, hubheight)
+
+
+
