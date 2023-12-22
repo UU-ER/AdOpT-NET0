@@ -40,11 +40,11 @@ class Configuration:
 
         # CAPACITIES
         self.raw_data_path_cap = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/00_raw_data/installed_capacities/'
-        self.savepath_cap_per_node_summary = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities_node.tex'
-        self.savepath_cap_per_node_summary_hydro = self.clean_data_path + 'reporting/installed_capacities/hydro_installed_capacities_country.tex'
-        self.savepath_cap_per_country_summary = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities_country.tex'
-        self.savepath_cap_per_node = self.clean_data_path + 'clean_data/installed_capacities/non_re_installed_capacities.csv'
-        self.savepath_cap_per_country = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities.csv'
+        # self.savepath_cap_per_node_summary = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities_node.tex'
+        # self.savepath_cap_per_node_summary_hydro = self.clean_data_path + 'reporting/installed_capacities/hydro_installed_capacities_country.tex'
+        # self.savepath_cap_per_country_summary = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities_country.tex'
+        # self.savepath_cap_per_node = self.clean_data_path + 'clean_data/installed_capacities/non_re_installed_capacities.csv'
+        # self.savepath_cap_per_country = self.clean_data_path + 'reporting/installed_capacities/non_re_installed_capacities.csv'
 
         # tyndp data
         self.load_path_tyndp_cap = self.raw_data_path_cap + '220310_Updated_Electricity_Modelling_Results.xlsx'
@@ -57,10 +57,21 @@ class Configuration:
         self.load_path_re_cap_2023 = self.raw_data_path_cap + 'REinstalled2023NUTS.csv'
         self.load_path_re_potential = self.raw_data_path_cap + 'ENSPRESO_Integrated_NUTS2_Data.csv'
 
+        # Offshore data
+        self.load_path_offshore_farms = self.raw_data_path_cap + 'WindFarms_v3.csv'
+
+        # Biomass data
+        self.load_path_biomass = self.raw_data_path_cap + 'Biomass_at_nodes.csv'
+
+
         # Save RE caps
-        self.savepath_cap_re_per_country_summary = self.clean_data_path + 'reporting/installed_capacities/re_installed_capacities_country.tex'
-        self.savepath_cap_re_per_node_summary = self.clean_data_path + 'reporting/installed_capacities/re_installed_capacities_node.tex'
-        self.savepath_cap_re_per_nutsregion = self.clean_data_path + 'clean_data/installed_capacities/re_installed_capacities_nuts.csv'
+        # self.savepath_cap_re_per_country_summary = self.clean_data_path + 'reporting/installed_capacities/re_installed_capacities_country.tex'
+        # self.savepath_cap_re_per_node_summary = self.clean_data_path + 'reporting/installed_capacities/re_installed_capacities_node.tex'
+        # self.savepath_cap_re_per_nutsregion = self.clean_data_path + 'clean_data/installed_capacities/re_installed_capacities_nuts.csv'
+
+        # Save production profiles
+        # self.savepath_production_profiles = self.clean_data_path + 'clean_data/production_profiles_re/production_profiles_re.csv'
+
 
 
 def to_latex(df, caption, path, rounding=0, columns=None):
