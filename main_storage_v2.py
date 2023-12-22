@@ -5,6 +5,9 @@ from src.case_offshore_storage.runs import emission_reduction_run as emission_re
 
 from src.case_offshore_storage.input_data import InputDataConfig
 
+# To run streamlit, call streamlit run src/case_offshore_storage/visualization/streamlit_app.py
+# You need to change the Path in the Streamlit app path = Path('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore')
+
 input_config = InputDataConfig(test=1)
 f_demand = input_config.f_demand_scaling
 
@@ -12,7 +15,6 @@ f_demand = input_config.f_demand_scaling
 run = 1
 if run:
     results_baseline = []
-
     ehub = baseline.construct_model(input_config)
     for f_offshore in input_config.f_offshore_share:
         for f_self_sufficiency in input_config.f_self_sufficiency:
