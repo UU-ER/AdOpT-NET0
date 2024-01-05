@@ -183,6 +183,7 @@ cap_entsoe_raw.to_csv(c.clean_data_path + 'reporting/installed_capacities/entsoe
 # OUR DATA - National
 use_eraa_for = ['Hydro - Pondage (Turbine)',
                 'Hydro - Reservoir (Turbine)',
+                'Hydro - Reservoir (Energy)',
                 'Hydro - Pump Storage Open Loop (Turbine)',
                 'Hydro - Pump Storage Closed Loop (Turbine)',
                 'Hydro - Pump Storage Open Loop (Pumping)',
@@ -250,6 +251,11 @@ cap_per_node_pv_wind = cap_per_nuts.groupby('Node').agg({'CNTR_CODE': 'first', '
 cap_per_node_pv_wind = cap_per_node_pv_wind.rename(columns = {'CNTR_CODE': 'Country',
                                                               'Capacity_PV_2030': 'Solar',
                                                               'Capacity_Wind_on_2030': 'Wind Onshore'})
+
+cap_per_node_pv_wind.loc['NO1', 'Country'] = 'NO'
+cap_per_node_pv_wind.loc['NO1', 'Solar'] = cap_national.loc[('NO', 'Solar'), 'Capacity ours']
+cap_per_node_pv_wind.loc['NO1', 'Wind Onshore'] = cap_national.loc[('NO', 'Wind Onshore'), 'Capacity ours']
+
 cap_per_node_pv_wind = cap_per_node_pv_wind.reset_index().melt(id_vars=['Node', 'Country'], var_name='Technology', value_name = 'Capacity our work')
 
 cap_node_ours = pd.concat([cap_node[cap_per_node_pv_wind.columns], cap_per_node_pv_wind])
@@ -275,6 +281,17 @@ cap_node_ours = pd.concat([cap_node_ours, cap_biomass[cap_node_ours.columns]])
 
 # Determine National Capacities
 cap_national_ours = cap_node_ours.groupby(['Country', 'Technology']).sum()
+
+cap_national_ours_tolatex = cap_national_ours.join(cap_national.rename(columns={'Capacity ours': 'Capacity ENTSO-E'}), how='outer')
+cap_national_ours_tolatex = cap_national_ours_tolatex.join(cap_pypsa_national, how='left')
+
+
+cap_national_ours_tolatex = cap_national_ours_tolatex[cap_national_ours_tolatex.index.get_level_values('Country').isin(c.countries.keys())].fillna(0)
+
+cap_national_ours_tolatex = cap_national_ours_tolatex[cap_national_ours_tolatex['Capacity our work']>=0.1]
+cap_national_ours_tolatex = cap_national_ours_tolatex.drop('Wind Offshore', axis='index', level=1)
+cap_national_ours_tolatex = cap_national_ours_tolatex.rename({'Solar': 'PV'})
+to_latex(cap_national_ours_tolatex/1000, 'Installed Capacities in GW (aggregated per Country and per source)', c.clean_data_path + 'reporting/installed_capacities/ours_national.tex', rounding=2, columns=None)
 cap_national_ours.reset_index().to_csv(c.clean_data_path + 'reporting/installed_capacities/ours_national.csv')
 cap_node_ours.reset_index().to_csv(c.clean_data_path + 'clean_data/installed_capacities/capacities_node.csv')
 cap_per_nuts.reset_index().to_csv(c.clean_data_path + 'clean_data/installed_capacities/capacities_nuts.csv')

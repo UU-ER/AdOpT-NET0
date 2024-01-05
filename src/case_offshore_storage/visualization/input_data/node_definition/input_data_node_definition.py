@@ -50,7 +50,7 @@ def show_node_definition():
     layers['wind_farms'] = layers['wind_farms'].rename(columns= {'NODE_2': 'NODE_NAME'})
     layers['wind_farms'] = layers['wind_farms'][layers['wind_farms']['NODE_NAME'].notna()]
 
-    layer = st.multiselect('Select a layers', ['Nodes this work', 'Wind Farms Offshore', 'NUTS2', 'PyPSA Nodes'])
+    layer = st.multiselect('Select layers', ['Nodes this work', 'Wind Farms Offshore', 'NUTS2', 'PyPSA Nodes'])
 
     unique_nodes = layers['nodes_ours_centroids']['NODE_NAME'].unique()
     colormap = cm.get_cmap('hsv', len(unique_nodes))

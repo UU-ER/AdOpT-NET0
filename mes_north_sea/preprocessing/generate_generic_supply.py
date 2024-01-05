@@ -4,7 +4,6 @@ import pandas as pd
 from types import SimpleNamespace
 
 from mes_north_sea.preprocessing.utilities import Configuration, to_latex, CalculateReGeneration
-from src.data_management.import_data import import_jrc_climate_data as read_climate_data
 
 def divide_dataframe(df, n):
     divided_df = df / n
@@ -38,13 +37,14 @@ for idx, nuts_region in cap_nuts.iterrows():
         location.lon = nuts_region['lon']
     location.altitude = 10
 
-    climate_data = read_climate_data(location.lon, location.lat, c.climate_year, location.altitude)
+    climate_data = pd.read_csv(c.load_path_climate_data + nuts_region['NUTS_ID'] + '_' + str(c.climate_year) + '.csv', index_col=0)
+    climate_data.index = pd.date_range(start=str(c.climate_year)+'-01-01 00:00', end=str(c.climate_year)+'-12-31 23:00', freq='1h')
 
-    ReCalc.fit_technology_performance(climate_data['dataframe'], 'PV', location)
+    ReCalc.fit_technology_performance(climate_data, 'PV', location)
     production_profiles_nuts[nuts_region['NUTS_ID'], 'PV'] = \
         ReCalc.fitted_performance.coefficients['capfactor'] * nuts_region['Capacity_PV_2030']
 
-    ReCalc.fit_technology_performance(climate_data['dataframe'], 'Wind', location)
+    ReCalc.fit_technology_performance(climate_data, 'Wind', location)
     production_profiles_nuts[nuts_region['NUTS_ID'], 'Wind onshore'] = \
         ReCalc.fitted_performance.coefficients['capfactor'] * nuts_region['Capacity_Wind_on_2030']
 
@@ -55,6 +55,48 @@ production_profiles_nodes = production_profiles_nuts.T.reset_index().merge(c.nod
 production_profiles_nodes = production_profiles_nodes.drop(columns=['NUTS_ID', 'Nuts'])
 production_profiles_nodes = production_profiles_nodes.groupby(['Node', 'Profile']).sum().T
 
+# Norway
+scenario = 'National Trends'
+climate_year = 'CY 1995'
+year = 2030
+parameter = 'Capacity (MW)'
+tyndp_caps = pd.read_excel(c.load_path_tyndp_cap, sheet_name='Capacity & Dispatch')
+tyndp_caps = tyndp_caps[tyndp_caps['Scenario'] == scenario]
+tyndp_caps = tyndp_caps[tyndp_caps['Year'] == year]
+tyndp_caps = tyndp_caps[tyndp_caps['Climate Year'] == climate_year]
+tyndp_caps = tyndp_caps[tyndp_caps['Parameter'] == parameter]
+tyndp_caps['Node'] = tyndp_caps['Node'].replace('DKKF', 'DK00')
+tyndp_caps['Node'] = tyndp_caps['Node'].replace('UKNI', 'UK00')
+tyndp_caps['Country'] = tyndp_caps['Node'].str[0:2]
+tyndp_caps = tyndp_caps.rename(columns={'Value': 'Capacity TYNDP', 'Fuel': 'Technology'})
+tyndp_caps = tyndp_caps[tyndp_caps['Country'] == 'NO']
+
+pv_gen = np.zeros(8760)
+wind_gen = np.zeros(8760)
+for bidding_zone in tyndp_caps['Node'].unique():
+    cap = tyndp_caps.loc[(tyndp_caps['Node'] == bidding_zone) & (tyndp_caps['Technology'] == 'Solar'), 'Capacity TYNDP']
+    cap_factor = pd.read_excel('C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/00_raw_data/capacity_factors_no/PECD_LFSolarPV_2030_edition 2022.1.xlsx',
+                               sheet_name=bidding_zone, skiprows=10, header=[0])
+    try:
+        prod = cap_factor[str(c.climate_year)] * float(cap)
+    except:
+        prod = cap_factor[c.climate_year] * float(cap)
+    pv_gen = pv_gen + np.array(prod.fillna(0)[0:8760])
+
+for bidding_zone in tyndp_caps['Node'].unique():
+    cap = tyndp_caps.loc[(tyndp_caps['Node'] == bidding_zone) & (tyndp_caps['Technology'] == 'Wind Onshore'), 'Capacity TYNDP']
+    cap_factor = pd.read_excel('C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/00_raw_data/capacity_factors_no/PECD_Wind_Onshore_2030_edition 2022.1.xlsx',
+                               sheet_name=bidding_zone, skiprows=10, header=[0])
+    try:
+        prod = cap_factor[str(c.climate_year)] * float(cap)
+    except:
+        prod = cap_factor[c.climate_year] * float(cap)
+    wind_gen = wind_gen + np.array(prod.fillna(0)[0:8760])
+
+
+production_profiles_nodes[('NO1', 'PV')] = pv_gen
+production_profiles_nodes[('NO1', 'Wind onshore')] = wind_gen
+
 # Run of River
 cap_nodes = pd.read_csv(c.clean_data_path + 'clean_data/installed_capacities/capacities_node.csv')
 cap_nodes = cap_nodes[['Country', 'Node', 'Technology', 'Capacity our work']]
@@ -64,13 +106,12 @@ cap_ror_national = cap_ror[['Country', 'Capacity our work']].groupby('Country').
 cap_ror = cap_ror.merge(cap_ror_national, right_on='Country', left_on='Country')
 cap_ror['Share'] =  cap_ror['Capacity our work'] / cap_ror['National Capacity']
 
-load_path_inflows = 'E:/00_Data/00_RenewableGeneration/ENTSOE_ERAA/Hydro Inflows/PEMMDB_'
 
 regions = {'DE': ['DE00'], 'BE': ['BE00'], 'UK': ['UK00'], 'NL': ['NL00'], 'NO': ['NOS0', 'NOM1', 'NON1']}
 for idx, row in cap_ror.iterrows():
     total_inflow = np.zeros(8760)
     for bidding_zone in regions[row['Country']]:
-        data_path = load_path_inflows + bidding_zone + '_Hydro Inflow_' + str(c.year) + '.xlsx'
+        data_path = c.load_path_hydro_inflow + bidding_zone + '_Hydro Inflow_' + str(c.year) + '.xlsx'
         temp = pd.read_excel(data_path, sheet_name='Run of River', skiprows=12,
                              usecols=[i for i in range(16, 16 + 37)], names=['Week', *range(1982, 2018)])
         ror_flow = divide_dataframe(temp[c.climate_year], 24) * 1000

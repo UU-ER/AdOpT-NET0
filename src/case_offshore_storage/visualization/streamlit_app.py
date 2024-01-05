@@ -8,7 +8,8 @@ main_pages = ['Show input data']
 sub_pages = {
     'Show input data': [
         'Installed Capacities',
-        'Node Definition',
+        'Annual renewable generation and demand',
+        'Node Definition and networks',
         'Renewable generation profiles and demand'
         ]
     }
