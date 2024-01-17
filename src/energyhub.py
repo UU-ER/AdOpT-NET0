@@ -84,7 +84,9 @@ class EnergyHub:
 
         # INITIALIZE RESULTS
         self.results = ResultsHandle(self.configuration)
-        self.detailed_results = []
+        # self.detailed_results = []
+        #TODO check if this can be removed: get rid of distinction detailed and regular results,
+        # rename to optimization_results
 
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
@@ -130,8 +132,9 @@ class EnergyHub:
         self.construct_balances()
 
         self.solve()
-        return self.detailed_results
-
+        return self.optimization_results
+        # If results saving as function of energyhub, possibly this is the place to
+        # summarize the results of multiple runs in excel here
 
     def construct_model(self):
         """
@@ -234,7 +237,7 @@ class EnergyHub:
         else:
             self.__optimize(objective)
 
-        return self.detailed_results
+        return self.optimization_results
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -499,14 +502,14 @@ class EnergyHub:
 
         if self.configuration.solveroptions.solver == 'glpk':
             self.solution = self.solver.solve(model,
-                                          tee=True,logfile=str(Path(result_folder_path / 'log.txt')),
-                                          keepfiles=True)
+                                              tee=True, logfile=str(Path(result_folder_path / 'log.txt')),
+                                              keepfiles=True)
         else:
             self.solution = self.solver.solve(model,
-                                          tee=True,
-                                          warmstart=True,
-                                          logfile=str(Path(result_folder_path / 'log.txt')),
-                                          keepfiles=True)
+                                              tee=True,
+                                              warmstart=True,
+                                              logfile=str(Path(result_folder_path / 'log.txt')),
+                                              keepfiles=True)
 
         if self.configuration.scaling == 1:
             TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
@@ -515,8 +518,7 @@ class EnergyHub:
             self.__write_solution_diagnostics(result_folder_path)
 
         self.solution.write()
-        self.detailed_results = self.results.report_optimization_result(self, time_stamp)
-
+        self.optimization_results = self.results.collect_optimization_result(self, time_stamp)
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
