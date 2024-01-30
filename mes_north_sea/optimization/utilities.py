@@ -88,17 +88,18 @@ def define_topology(settings, nodes):
 def define_installed_capacities(settings, nodes, topology):
     data_path = settings.data_path
 
-    new_tecs = pd.read_excel(data_path + 'installed_capacities/InstalledCapacities_nonRE.xlsx',
-                             sheet_name='Capacities at node 3',
+    new_tecs = pd.read_csv(data_path + 'installed_capacities/capacities_node.csv',
                              index_col=0)
 
     for node in nodes.onshore_nodes:
-        tecs_at_node = {'PowerPlant_Gas': round(new_tecs['Gas'][node],0) * 10,
-                        'PowerPlant_Nuclear': round(new_tecs['Nuclear'][node],0),
-                        'PowerPlant_Coal': round(new_tecs['Coal'][node],0),
-                        'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed (cap)'][node],0),
-                        'Storage_PumpedHydro_Open': round(new_tecs['Hydro open (cap)'][node], 0),
-                        'Storage_PumpedHydro_Reservoir': round(new_tecs['Hydro reservoir (cap)'][node], 0)
+        new_at_node = new_tecs[new_tecs['Node'] == node][['Technology', 'Capacity our work']].set_index('Technology').to_dict()['Capacity our work']
+        tecs_at_node = {'PowerPlant_Gas': round(new_at_node.get('Gas', 0),0),
+                        'PowerPlant_Nuclear': round(new_at_node.get('Nuclear', 0),0),
+                        'PowerPlant_Oil': round(new_at_node.get('Oil', 0),0),
+                        'PowerPlant_Coal': round(new_at_node.get('Coal & Lignite', 0),0),
+                        'Storage_PumpedHydro_Closed': round(new_at_node.get('Hydro - Pump Storage Closed Loop (Energy)', 0),0),
+                        'Storage_PumpedHydro_Open': round(new_at_node.get('Hydro - Pump Storage Open Loop (Energy)', 0),0),
+                        'Storage_PumpedHydro_Reservoir': round(new_at_node.get('Hydro - Reservoir (Energy)', 0),0),
                         }
 
         tecs_at_node = {k: v for k,v in tecs_at_node.items() if v > 0}
@@ -180,12 +181,10 @@ def define_data_handle(topology, nodes):
 def define_generic_production(settings, nodes, data):
 
     data_path = settings.data_path
+    profiles = pd.read_csv(data_path + 'production_profiles_re/production_profiles_re.csv', index_col=0, header=[0, 1])
 
     for node in nodes.all.keys():
-        profile = pd.read_csv(data_path + 'production_profiles_re/' +
-                              node + '_' +
-                              str(settings.climate_year) + '.csv', index_col=0)
-        profile = profile['total'].to_numpy().round(1)
+        profile = profiles.loc[:, (node, 'total')].to_numpy().round(1)
         data.read_production_profile(node, 'electricity', profile, 1)
 
     return data
@@ -195,42 +194,27 @@ def define_hydro_inflow(settings, nodes, data):
 
     data_path = settings.data_path
 
-    new_tecs = pd.read_excel(data_path + 'installed_capacities/InstalledCapacities_nonRE.xlsx',
-                             sheet_name='Capacities at node',
-                             index_col=0)
-    tecs_at_node = {}
-    for node in nodes.onshore_nodes:
-        tecs_at_node[node] = {'PowerPlant_Gas': round(new_tecs['Gas'][node],0),
-                        'PowerPlant_Nuclear': round(new_tecs['Nuclear'][node],0),
-                        'Storage_PumpedHydro_Closed': round(new_tecs['Hydro closed (cap)'][node],0),
-                        'Storage_PumpedHydro_Open': round(new_tecs['Hydro open (cap)'][node], 0),
-                        'Storage_PumpedHydro_Reservoir': round(new_tecs['Hydro reservoir (cap)'][node], 0)
-                        }
-
     # Hydro Inflow
-    reservoir_inflow = pd.read_csv(data_path + 'hydro_inflows\HydroInflowReservoir' + str(settings.climate_year) + '.csv', index_col=0)
+    inflows = pd.read_csv(data_path + 'hydro_inflows\hydro_inflows.csv', index_col=0, header=[0, 1])
 
-    opencycle_inflow = pd.read_csv(data_path + 'hydro_inflows\HydroInflowPump storage - Open Loop' + str(settings.climate_year) + '.csv', index_col=0)
-
-    for node in nodes.onshore_nodes:
-        if node in reservoir_inflow.columns:
-            # print(sum(tecs_at_node[node]['Storage_PumpedHydro_Reservoir'] < reservoir_inflow[node]))
+    for col in inflows.columns:
+        node = col[0]
+        tec = col[1]
+        if tec == 'Hydro - Reservoir (Energy)':
             data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Reservoir',
-                                               reservoir_inflow[node].tolist())
-        if node in opencycle_inflow.columns:
-            # print(sum(tecs_at_node[node]['Storage_PumpedHydro_Open'] < opencycle_inflow[node]))
-            data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Open', opencycle_inflow[node].tolist())
+                                           inflows[col].tolist())
+        elif tec == 'Hydro - Pump Storage Open Loop (Energy)':
+            data.read_hydro_natural_inflow(node, 'Storage_PumpedHydro_Open', inflows[col].tolist())
 
     return data
 
 
 def define_demand(settings, nodes, data):
 
-    scenario = settings.scenario
     climate_year = settings.climate_year
     data_path = settings.data_path + 'demand/'
 
-    demand_el = pd.read_csv(data_path + 'TotalDemand_'+scenario+'_' + str(climate_year) + '.csv')
+    demand_el = pd.read_csv(data_path + 'TotalDemand_NT_' + str(climate_year) + '.csv', index_col=0)
     for node in nodes.onshore_nodes:
         data.read_demand_data(node, 'electricity', demand_el[node].to_numpy())
 
@@ -239,7 +223,7 @@ def define_demand(settings, nodes, data):
 
 def define_imports_exports(settings, nodes, data):
 
-    data_path = settings.data_path + 'import_export/ImportExport_noimport.xlsx'
+    data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
 
     import_export = pd.read_excel(data_path, index_col=0)
 
@@ -335,7 +319,7 @@ def define_configuration():
     configuration.solveroptions.intfeastol = 1e-3
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
-    configuration.optimization.objective = 'pareto'
+    configuration.optimization.objective = 'cost'
     configuration.optimization.pareto_points = 2
 
     return configuration

@@ -2,15 +2,15 @@ import streamlit as st
 from input_data import *
 
 from utilities import determine_graph_boundaries, select_node, read_time_series, plot_area_chart
-from networks import network_sizes
 
 main_pages = ['Show input data']
 sub_pages = {
     'Show input data': [
         'Installed Capacities',
         'Annual renewable generation and demand',
-        'Node Definition and networks',
-        'Renewable generation profiles and demand'
+        'Node Definition',
+        'Renewable generation profiles and demand',
+        'Networks'
         ]
     }
 

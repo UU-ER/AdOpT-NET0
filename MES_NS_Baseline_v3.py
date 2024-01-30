@@ -32,10 +32,10 @@ for stage in ['Baseline']:
     data = pp.define_imports_exports(settings, nodes, data)
 
     # Read data
-    pp.write_to_technology_data(settings)
+    # pp.write_to_technology_data(settings)
     data.read_technology_data(load_path = settings.tec_data_path)
     data.read_network_data(load_path=settings.netw_data_path)
-    data = pp.define_charging_efficiencies(settings, nodes, data)
+    # data = pp.define_charging_efficiencies(settings, nodes, data)
 
     configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20231201/'
     # Solve

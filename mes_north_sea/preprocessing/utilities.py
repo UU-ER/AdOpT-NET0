@@ -20,6 +20,7 @@ class Configuration:
         self.savepath_demand_node_disaggregated = self.clean_data_path + 'reporting/demand/nodal/demand_electricity' #appended by year and climate year
         self.savepath_demand_node_aggregated = self.clean_data_path + 'clean_data/demand/'
         self.savepath_demand_summary = self.clean_data_path + 'reporting/demand/' #appended by year and climate year
+        self.savepath_network_summary = self.clean_data_path + 'reporting/networks/' #appended by year and climate year
 
         # NUTS to nodes
         self.nodekeys_nuts = pd.read_csv(self.clean_data_path + 'nodekeys/nuts2nodes.csv')
@@ -63,6 +64,8 @@ class Configuration:
         # Climate Data
         self.load_path_climate_data = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/00_raw_data/climate_data/'
 
+        # Networks
+        self.load_path_networks = 'C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/00_raw_data/networks/'
 
 
 def to_latex(df, caption, path, rounding=0, columns=None):

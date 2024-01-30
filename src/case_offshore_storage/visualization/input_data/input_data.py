@@ -3,6 +3,7 @@ from .installed_capacities import *
 from .node_definition import *
 from .profiles import *
 from .annual_figures import *
+from .networks import *
 
 def show_page_input_data(sub_page):
 
@@ -23,7 +24,7 @@ def show_page_input_data(sub_page):
             show_nodal_capacities()
 
     # Node definitions (map)
-    elif sub_page == 'Node Definition and networks':
+    elif sub_page == 'Node Definition':
         show_node_definition()
 
     # Renewable Profiles and Demand
@@ -31,8 +32,12 @@ def show_page_input_data(sub_page):
         category = st.selectbox("Select an option:", categories[sub_page])
         show_profiles(category)
 
+    # Annual RE generation
     elif sub_page == 'Annual renewable generation and demand':
         show_annual_figures()
+
+    elif sub_page == 'Networks':
+        show_networks()
 
 
 

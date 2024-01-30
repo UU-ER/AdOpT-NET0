@@ -158,7 +158,7 @@ class Res(Technology):
         WT_data = WT_data[WT_data['TurbineName'] == self.name]
 
         # Load wind speed and correct for height
-        ws = climate_data['ws10']
+        ws = climate_data['ws100']
 
         # TODO: make power exponent choice possible
         # TODO: Make different heights possible
@@ -172,7 +172,7 @@ class Res(Technology):
         #         alpha = 1 / 7;
 
         if hubheight > 0:
-            ws = ws * (hubheight / 10) ** alpha
+            ws = ws * (hubheight / 100) ** alpha
 
         # Make power curve
         rated_power = WT_data.iloc[0]['RatedPowerkW']
