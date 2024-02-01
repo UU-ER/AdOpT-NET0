@@ -32,7 +32,9 @@ if selected_page == "Energy Balance at Node":
 
     selected_carrier = st.selectbox('Select a carrier:', energybalance_data[1].keys())
 
-    x_min, x_max = determine_graph_boundaries(energybalance_data)
+    print(energybalance_data[i])
+
+    x_min, x_max = determine_graph_boundaries(energybalance_data[i][selected_carrier])
     st.title("Energy Balance per Node")
 
     st.header("Supply")
@@ -73,11 +75,11 @@ elif selected_page == "Technology Operation":
         for i in nr_pages:
                 tec_operation_data[i] = read_time_series(Path.joinpath(node_path[i], selected_node[i], 'TechnologyOperation.xlsx'))
 
-        x_min, x_max = determine_graph_boundaries(tec_operation_data)
 
         st.title("Technology Operation")
         tec = st.selectbox('Select a technology:', tec_operation_data[1].keys())
 
+        x_min, x_max = determine_graph_boundaries(tec_operation_data[i][tec])
 
         # Input
         st.header("Input")

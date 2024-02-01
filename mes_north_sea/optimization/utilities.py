@@ -368,6 +368,7 @@ def write_to_technology_data(settings):
         tec_data['Economics']['OPEX_variable'] = float(round(new_financial_data['OPEX Variable'].values[0],3))
         tec_data['Economics']['OPEX_fixed'] = float(round(new_financial_data['OPEX Fixed'].values[0],3))
         tec_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0],0))
+        tec_data['TechnologyPerf']['emission_factor'] = float(round(new_financial_data['Emission factor'].values[0],3))
 
         with open(os.path.join(tec_data_path, filename), 'w') as outfile:
             json.dump(tec_data, outfile, indent=2)
