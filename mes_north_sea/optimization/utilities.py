@@ -223,7 +223,10 @@ def define_demand(settings, nodes, data):
 
 def define_imports_exports(settings, nodes, data):
 
-    data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
+    if settings.test == 1:
+        data_path = settings.data_path + 'import_export/ImportExport_unlimited.xlsx'
+    else:
+        data_path = settings.data_path + 'import_export/ImportExport_realistic.xlsx'
 
     import_export = pd.read_excel(data_path, index_col=0)
 

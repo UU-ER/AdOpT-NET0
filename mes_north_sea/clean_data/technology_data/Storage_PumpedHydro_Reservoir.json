@@ -27,7 +27,7 @@
     "output_carrier": [
       "electricity"
     ],
-    "emission_factor": 0,
+    "emission_factor": 0.0,
     "allow_only_one_direction": 0,
     "can_pump": 0,
     "maximum_discharge_time_discrete": 0,

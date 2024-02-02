@@ -17,10 +17,10 @@
         "not defined"
       ]
     },
-    "OPEX_variable": 16.902,
+    "OPEX_variable": 130.226,
     "OPEX_fixed": 0.0,
     "discount_rate": 0.1,
-    "lifetime": 45.0,
+    "lifetime": 30.0,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
@@ -33,7 +33,7 @@
     "output_ratios": {
       "electricity": 1
     },
-    "emission_factor": 0.4,
+    "emission_factor": 0.631,
     "min_part_load": 0.4
   }
 }
