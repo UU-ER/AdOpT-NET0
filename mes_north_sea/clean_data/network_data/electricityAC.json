@@ -4,7 +4,7 @@
     "CAPEX_model": 3,
     "gamma1": 0.0,
     "gamma2": 43695.0,
-    "gamma3": 0,
+    "gamma3": 0.0,
     "gamma4": 372.0,
     "OPEX_variable": 0.0,
     "OPEX_fixed": 0.035,
@@ -15,11 +15,12 @@
   "NetworkPerf": {
     "carrier": "electricity",
     "bidirectional": 1,
-    "loss": 7e-05,
+    "loss": 0.0,
     "min_transport": 0,
     "loss2emissions": 0,
     "emissionfactor": 0,
-    "energyconsumption": []
+    "energyconsumption": [],
+    "rated_capacity": 1.0
   },
   "size_min": 0,
   "size_max": 20000,

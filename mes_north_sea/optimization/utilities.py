@@ -17,7 +17,7 @@ class Settings():
         self.climate_year = 2008
         if test:
             self.start_date = '05-01 00:00'
-            self.end_date = '06-01 23:00'
+            self.end_date = '06-01 00:00'
         else:
             self.start_date = '01-01 00:00'
             self.end_date = '12-31 23:00'
@@ -273,19 +273,38 @@ def define_imports_exports(settings, nodes, data):
 def define_charging_efficiencies(settings, nodes, data):
     data_path = settings.data_path
 
-    new_tecs = pd.read_excel(data_path + 'installed_capacities/InstalledCapacities_nonRE.xlsx',
-                             sheet_name='Capacities at node',
-                             index_col=0)
+    new_tecs = pd.read_csv(data_path + 'installed_capacities/capacities_node.csv',
+                           index_col=0)
 
     for node in nodes.onshore_nodes:
-        tecs_at_node = {'Storage_PumpedHydro_Closed': new_tecs['Hydro closed (charge)'][node],
-                        'Storage_PumpedHydro_Open': new_tecs['Hydro open (charge)'][node],
-                        'Storage_PumpedHydro_Reservoir': new_tecs['Hydro reservoir (charge)'][node]
-                        }
-        for storage in tecs_at_node:
-            if tecs_at_node[storage] > 0:
-                data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = tecs_at_node[storage]
-                data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = tecs_at_node[storage]
+        new_at_node = \
+        new_tecs[new_tecs['Node'] == node][['Technology', 'Capacity our work']].set_index('Technology').to_dict()[
+            'Capacity our work']
+
+        charging = {
+            'Storage_PumpedHydro_Closed': round(new_at_node.get('Hydro - Pump Storage Closed Loop (Pumping)', 0), 0),
+            'Storage_PumpedHydro_Open': round(new_at_node.get('Hydro - Pump Storage Open Loop (Pumping)', 0), 0),
+            'Storage_PumpedHydro_Reservoir': 0,
+        }
+
+        discharging = {
+            'Storage_PumpedHydro_Closed': round(new_at_node.get('Hydro - Pump Storage Closed Loop (Turbine)', 0), 0),
+            'Storage_PumpedHydro_Open': round(new_at_node.get('Hydro - Pump Storage Open Loop (Turbine)', 0), 0),
+            'Storage_PumpedHydro_Reservoir': round(new_at_node.get('Hydro - Reservoir (Turbine)', 0), 0),
+            }
+
+        capacity = {
+            'Storage_PumpedHydro_Closed': round(new_at_node.get('Hydro - Pump Storage Closed Loop (Energy)', 0), 0),
+            'Storage_PumpedHydro_Open': round(new_at_node.get('Hydro - Pump Storage Open Loop (Energy)', 0), 0),
+            'Storage_PumpedHydro_Reservoir': round(new_at_node.get('Hydro - Reservoir (Energy)', 0), 0),
+            }
+
+        storage_tecs_at_node = {k: v for k,v in capacity.items() if v > 0}
+        for storage in storage_tecs_at_node:
+            data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['charge_max'] = \
+            -charging[storage]/capacity[storage]
+            data.technology_data[node][storage + '_existing'].fitted_performance.coefficients['discharge_max'] = \
+            discharging[storage]/capacity[storage]
 
     return data
 
@@ -322,8 +341,8 @@ def define_configuration():
     configuration.solveroptions.intfeastol = 1e-3
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
-    configuration.optimization.objective = 'cost'
-    configuration.optimization.pareto_points = 2
+    configuration.optimization.objective = 'pareto'
+    configuration.optimization.pareto_points = 3
 
     return configuration
 
@@ -375,3 +394,32 @@ def write_to_technology_data(settings):
 
         with open(os.path.join(tec_data_path, filename), 'w') as outfile:
             json.dump(tec_data, outfile, indent=2)
+
+
+def write_to_network_data(settings):
+    data_path = settings.data_path
+    year = settings.year
+    netw_data_path = settings.netw_data_path
+
+    financial_data = pd.read_excel(data_path + 'cost_networks/NetworkCost.xlsx', sheet_name='ToModel', skiprows=1)
+    financial_data = financial_data[financial_data['Year'] == year]
+
+    for filename in os.listdir(netw_data_path):
+        if filename.replace('.json', '') in financial_data['Network'].to_list():
+            with open(os.path.join(netw_data_path, filename), 'r') as openfile:
+                # Reading from json file
+                netw_data = json.load(openfile)
+
+            new_financial_data = financial_data[financial_data['Network'] == filename.replace('.json', '')]
+            netw_data['Economics']['gamma1'] = float(round(new_financial_data['gamma1'].values[0],2))
+            netw_data['Economics']['gamma2'] = float(round(new_financial_data['gamma2'].values[0],2))
+            netw_data['Economics']['gamma3'] = float(round(new_financial_data['gamma3'].values[0],2))
+            netw_data['Economics']['gamma4'] = float(round(new_financial_data['gamma4'].values[0],2))
+            netw_data['Economics']['OPEX_variable'] = float(round(new_financial_data['OPEX Variable'].values[0],3))
+            netw_data['Economics']['OPEX_fixed'] = float(round(new_financial_data['OPEX Fixed'].values[0],3))
+            netw_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0],0))
+            netw_data['NetworkPerf']['loss'] = float(round(new_financial_data['loss'].values[0],0))
+            netw_data['NetworkPerf']['rated_capacity'] = float(round(new_financial_data['rated power'].values[0],0))
+
+            with open(os.path.join(netw_data_path, filename), 'w') as outfile:
+                json.dump(netw_data, outfile, indent=2)
