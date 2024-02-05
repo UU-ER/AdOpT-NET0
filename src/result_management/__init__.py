@@ -1,2 +1,2 @@
-from .handle_optimization_results import ResultsHandle
+from .handle_optimization_results import write_optimization_results_to_h5
 from .utilities import create_save_folder

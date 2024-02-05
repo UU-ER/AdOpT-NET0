@@ -275,18 +275,16 @@ class GasTurbine(Technology):
 
         return b_tec
 
-    def report_results(self, b_tec):
+    def write_tec_operation_results_to_group(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(GasTurbine, self).report_results(b_tec)
+        super(GasTurbine, self).write_tec_operation_results_to_group(h5_group, model_block)
 
-        self.results['time_dependent']['modules_on'] = [b_tec.var_units_on[t].value for t in self.set_t]
-
-        return self.results
+        h5_group.create_dataset("modules_on", data=[model_block.var_units_on[t].value for t in self.set_t])
 
     def __define_ramping_rates(self, b_tec):
         """

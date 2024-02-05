@@ -178,37 +178,38 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def report_results(self, b_tec):
+    def write_tec_design_results_to_group(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
-        :param b_tec: technology model block
+        :param model_block: technology model block
         :return: dict results: holds results
         """
-        self.results['time_independent']['technology'] = [self.name]
-        self.results['time_independent']['size'] = [b_tec.var_size.value]
-        self.results['time_independent']['existing'] = [self.existing]
-        self.results['time_independent']['capex'] = [b_tec.var_capex.value]
-        self.results['time_independent']['opex_variable'] = [sum(b_tec.var_opex_variable[t].value for t in self.set_t_full)]
-        self.results['time_independent']['opex_fixed'] = [b_tec.var_opex_fixed.value]
-        self.results['time_independent']['emissions_pos'] = [sum(b_tec.var_tec_emissions_pos[t].value for t in self.set_t_full)]
-        self.results['time_independent']['emissions_neg'] = [sum(b_tec.var_tec_emissions_neg[t].value for t in self.set_t_full)]
 
-        for car in b_tec.set_input_carriers:
-            if b_tec.find_component('var_input'):
-                self.results['time_dependent']['input_' + car] = [b_tec.var_input[t, car].value for t in self.set_t_full]
-        for car in b_tec.set_output_carriers:
-            self.results['time_dependent']['output_' + car] = [b_tec.var_output[t, car].value for t in self.set_t_full]
-        self.results['time_dependent']['emissions_pos'] = [b_tec.var_tec_emissions_pos[t].value for t in self.set_t_full]
-        self.results['time_dependent']['emissions_neg'] = [b_tec.var_tec_emissions_neg[t].value for t in self.set_t_full]
-        if b_tec.find_component('var_x'):
-            self.results['time_dependent']['var_x'] = [b_tec.var_x[t].value for t in self.set_t_full]
-        if b_tec.find_component('var_y'):
-            self.results['time_dependent']['var_y'] = [b_tec.var_y[t].value for t in self.set_t_full]
-        if b_tec.find_component('var_z'):
-            self.results['time_dependent']['var_z'] = [b_tec.var_z[t].value for t in self.set_t_full]
+        h5_group.create_dataset("technology", data=[self.name])
+        h5_group.create_dataset("size", data=[model_block.var_size.value])
+        h5_group.create_dataset("existing", data=[self.existing])
+        h5_group.create_dataset("capex", data=[model_block.var_capex.value])
+        h5_group.create_dataset("opex_variable", data=[sum(model_block.var_opex_variable[t].value for t in self.set_t_full)])
+        h5_group.create_dataset("opex_fixed", data=[model_block.var_opex_fixed.value])
+        h5_group.create_dataset("emissions_pos", data=[sum(model_block.var_tec_emissions_pos[t].value for t in self.set_t_full)])
+        h5_group.create_dataset("emissions_neg", data=[sum(model_block.var_tec_emissions_neg[t].value for t in self.set_t_full)])
 
-        return self.results
+    def write_tec_operation_results_to_group(self, h5_group, model_block):
+
+        for car in model_block.set_input_carriers:
+            if model_block.find_component('var_input'):
+                h5_group.create_dataset(f'{car}_input', data=[model_block.var_input[t, car].value for t in self.set_t_full])
+        for car in model_block.set_output_carriers:
+            h5_group.create_dataset(f'{car}_output', data=[model_block.var_output[t, car].value for t in self.set_t_full])
+        h5_group.create_dataset("emissions_pos", data=[model_block.var_tec_emissions_pos[t].value for t in self.set_t_full])
+        h5_group.create_dataset("emissions_neg", data=[model_block.var_tec_emissions_neg[t].value for t in self.set_t_full])
+        if model_block.find_component('var_x'):
+            h5_group.create_dataset("var_x", data=[model_block.var_x[t].value for t in self.set_t_full])
+        if model_block.find_component('var_y'):
+            h5_group.create_dataset("var_y", data=[model_block.var_y[t].value for t in self.set_t_full])
+        if model_block.find_component('var_z'):
+            h5_group.create_dataset("var_z", data=[model_block.var_z[t].value for t in self.set_t_full])
 
     def scale_model(self, b_tec, model, configuration):
         """

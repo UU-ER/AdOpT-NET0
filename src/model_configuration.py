@@ -182,6 +182,7 @@ class ModelConfiguration:
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
         self.reporting.save_path = './userData/'
+        self.reporting.save_summary_path = './userData/'
         self.reporting.case_name = -1
         self.reporting.write_solution_diagnostics = 0
 

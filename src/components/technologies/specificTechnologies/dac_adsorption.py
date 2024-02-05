@@ -295,16 +295,16 @@ class DacAdsorption(Technology):
 
         return b_tec
 
-    def report_results(self, b_tec):
+    def write_tec_operation_results_to_group(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(DacAdsorption, self).report_results(b_tec)
+        super(DacAdsorption, self).write_tec_operation_results_to_group(h5_group, model_block)
 
-        self.results['time_dependent']['modules_on'] = [b_tec.var_modules_on[self.sequence[t - 1]].value for t in self.set_t_full]
-        self.results['time_dependent']['ohmic_heating'] = [b_tec.var_input_ohmic[self.sequence[t - 1]].value for t in self.set_t_full]
-
-        return self.results
+        h5_group.create_dataset("modules_on",
+                                data=[model_block.var_modules_on[self.sequence[t - 1]].value for t in self.set_t_full])
+        h5_group.create_dataset("ohmic_heating",
+                                data=[model_block.var_input_ohmic[self.sequence[t - 1]].value for t in self.set_t_full])

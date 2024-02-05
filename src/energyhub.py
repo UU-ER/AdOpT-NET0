@@ -1,5 +1,6 @@
 from pyomo.environ import *
 import numpy as np
+import pandas as pd
 import dill as pickle
 import time
 import copy
@@ -11,10 +12,11 @@ import sys
 
 from .model_construction import *
 from .data_management import *
+from .result_management.utilities import create_unique_folder_name
 from .utilities import *
 from .components.utilities import annualize, set_discount_rate
 from .components.technologies.utilities import set_capex_model
-from .result_management import ResultsHandle, create_save_folder
+from .result_management import *
 
 class EnergyHub:
     r"""
@@ -82,12 +84,6 @@ class EnergyHub:
             # Write data to self
             self.data = self.data_storage[0]
 
-        # INITIALIZE RESULTS
-        self.results = ResultsHandle(self.configuration)
-        # self.detailed_results = []
-        #TODO check if this can be removed: get rid of distinction detailed and regular results,
-        # rename to optimization_results
-
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
 
@@ -132,9 +128,6 @@ class EnergyHub:
         self.construct_balances()
 
         self.solve()
-        return self.optimization_results
-        # If results saving as function of energyhub, possibly this is the place to
-        # summarize the results of multiple runs in excel here
 
     def construct_model(self):
         """
@@ -237,7 +230,6 @@ class EnergyHub:
         else:
             self.__optimize(objective)
 
-        return self.optimization_results
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -483,11 +475,13 @@ class EnergyHub:
         start = time.time()
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
         save_path = Path(self.configuration.reporting.save_path)
+
         if self.configuration.reporting.case_name == -1:
-            result_folder_path = Path.joinpath(save_path, time_stamp)
+            folder_name = str(time_stamp)
         else:
-            time_stamp = str(time_stamp) + '_' + self.configuration.reporting.case_name
-            result_folder_path = Path.joinpath(save_path, time_stamp)
+            folder_name = str(time_stamp) + '_' + self.configuration.reporting.case_name
+
+        result_folder_path = create_unique_folder_name(save_path, folder_name)
 
         create_save_folder(result_folder_path)
 
@@ -518,7 +512,24 @@ class EnergyHub:
             self.__write_solution_diagnostics(result_folder_path)
 
         self.solution.write()
-        self.optimization_results = self.results.collect_optimization_result(self, time_stamp)
+
+        # writing results to h5 file and returning a dictionary with a results summary
+        summary_dict = write_optimization_results_to_h5(self, time_stamp)
+
+        # saving summary to excel
+        save_summary_path = Path.joinpath(Path(self.configuration.reporting.save_summary_path), 'Summary.xlsx')
+
+        # for the first run: create the file
+        if not os.path.exists(save_summary_path):
+            summary_df = pd.DataFrame(data=summary_dict, index=[0])
+            summary_df.to_excel(save_summary_path, index=False, sheet_name="Summary")
+
+        # for all other runs: append a row to the file
+        else:
+            with pd.ExcelWriter(save_summary_path, mode="a", engine="openpyxl", if_sheet_exists="overlay") as writer:
+                summary_df = pd.DataFrame(data=summary_dict, index=[0])
+                summary_df.to_excel(writer, sheet_name='Summary', header=False,
+                                    startrow=writer.sheets["Summary"].max_row, index=False)
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)

@@ -277,62 +277,50 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def report_results(self, b_netw):
+    def write_netw_design_results_to_group(self, h5_group, model_block):
         """
         Function to report results of networks after optimization
 
-        :param b_netw: network model block
+        :param model_block: network model block
         :return: dict results: holds results
         """
-        self.results['time_independent'] = pd.DataFrame(columns=['Network',
-                                              'fromNode',
-                                              'toNode',
-                                              'Size',
-                                              'capex',
-                                              'opex_fixed',
-                                              'opex_variable',
-                                              'total_flow',
-                                              'total_emissions'
-                                              ])
 
-        for arc_name in b_netw.set_arcs:
-            arc = b_netw.arc_block[arc_name]
-            fromNode = arc_name[0]
-            toNode = arc_name[1]
-            s = arc.var_size.value
-            capex = arc.var_capex.value
-            opex_var = sum(arc.var_opex_variable[t].value
-                           for t in self.set_t)
-            total_flow = sum(arc.var_flow[t].value
-                             for t in self.set_t)
-            opex_fix = b_netw.para_opex_fixed.value * arc.var_capex_aux.value
-            total_emissions = sum(arc.var_flow[t].value for t in self.set_t) * b_netw.para_emissionfactor + \
-                   sum(arc.var_losses[t].value for t in self.set_t) * b_netw.para_loss2emissions
-            self.results['time_independent'].loc[len(self.results['time_independent'].index)] = \
-                [self.name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow, total_emissions]
+        for arc_name in model_block.set_arcs:
+            arc = model_block.arc_block[arc_name]
+            str = ''.join(arc_name)
+            arc_group = h5_group.create_group(str)
 
-            index = pd.MultiIndex.from_tuples(zip(['flow'], [fromNode], [toNode]), names=['variable', 'fromNode', 'toNode'])
-            data = pd.DataFrame([arc.var_flow[t].value for t in self.set_t], columns=index)
-            self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+            arc_group.create_dataset("network", data=self.name)
+            arc_group.create_dataset("fromNode", data=arc_name[0])
+            arc_group.create_dataset("toNode", data=arc_name[1])
+            arc_group.create_dataset("size", data=arc.var_size.value)
+            arc_group.create_dataset("capex", data=arc.var_capex.value)
+            arc_group.create_dataset("opex_fixed", data=[model_block.para_opex_fixed.value * arc.var_capex_aux.value])
+            arc_group.create_dataset("opex_variable", data=sum(arc.var_opex_variable[t].value
+                                                                         for t in self.set_t))
+            arc_group.create_dataset("total_flow", data=sum(arc.var_flow[t].value
+                                                                      for t in self.set_t))
+            total_emissions = (sum(arc.var_flow[t].value for t in self.set_t) * model_block.para_emissionfactor +
+                               sum(arc.var_losses[t].value for t in self.set_t) * model_block.para_loss2emissions)
+            arc_group.create_dataset("total_emissions", data=total_emissions)
 
-            index = pd.MultiIndex.from_tuples(zip(['losses'], [fromNode], [toNode]), names=['variable', 'fromNode', 'toNode'])
-            data = pd.DataFrame([arc.var_losses[t].value for t in self.set_t], columns=index)
-            self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+    def write_netw_operation_results_to_group(self, h5_group, model_block):
+
+        for arc_name in model_block.set_arcs:
+            arc = model_block.arc_block[arc_name]
+            str = ''.join(arc_name)
+            arc_group = h5_group.create_group(str)
+
+            arc_group.create_dataset("flow", data=[arc.var_flow[t].value for t in self.set_t])
+            arc_group.create_dataset("losses", data=[arc.var_losses[t].value for t in self.set_t])
 
             if arc.find_component('var_consumption_send'):
-                for car in b_netw.set_consumed_carriers:
-                    index = pd.MultiIndex.from_tuples(zip(['consumption_send' + car], [fromNode], [toNode]),
-                                                      names=['variable', 'fromNode', 'toNode'])
-                    data = pd.DataFrame([arc.var_consumption_send[t, car].value for t in self.set_t], columns=index)
-                    self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+                for car in model_block.set_consumed_carriers:
 
-                    index = pd.MultiIndex.from_tuples(zip(['consumption_receive' + car], [fromNode], [toNode]),
-                                                      names=['variable', 'fromNode', 'toNode'])
-                    data = pd.DataFrame([arc.var_consumption_receive[t, car].value for t in self.set_t], columns=index)
-                    self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
-
-        return self.results
-
+                    arc_group.create_dataset(["consumption_send" + car],
+                                             data=[arc.var_consumption_send[t, car].value for t in self.set_t])
+                    arc_group.create_dataset(["consumption_receive" + car],
+                                             data=[arc.var_consumption_receive[t, car].value for t in self.set_t])
 
     def scale_model(self, b_netw, model, configuration):
         """

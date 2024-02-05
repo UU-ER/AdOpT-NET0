@@ -242,20 +242,19 @@ class HydroOpen(Technology):
 
         return b_tec
 
-    def report_results(self, b_tec):
+    def write_tec_operation_results_to_group(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(HydroOpen, self).report_results(b_tec)
+        super(HydroOpen, self).write_tec_operation_results_to_group(h5_group, model_block)
 
-        self.results['time_dependent']['spilling'] = [b_tec.var_spilling[t].value for t in self.set_t]
-        for car in b_tec.set_input_carriers:
-            self.results['time_dependent']['storagelevel_' + car] = [b_tec.var_storage_level[t, car].value for t in self.set_t]
-
-        return self.results
+        h5_group.create_dataset("spilling", data=[model_block.var_spilling[t].value for t in self.set_t])
+        for car in model_block.set_input_carriers:
+            h5_group.create_dataset("storage_level_" + car,
+                                    data=[model_block.var_storage_level[t, car].value for t in self.set_t])
 
     def __define_ramping_rates(self, b_tec):
         """
