@@ -372,8 +372,13 @@ def write_to_technology_data(settings):
                     tec_data['TechnologyPerf']['performance'][para] = float(
                         round(new_financial_data[performance_parameters[para]].values[0], 3))
             if 'out' in tec_data['TechnologyPerf']['performance']:
-                tec_data['TechnologyPerf']['performance']['out'] = [0, float(
-                    round(new_financial_data['Conv. Efficiency'].values[0], 3))]
+                if tec_data['tec_type'] == 'CONV1':
+                    tec_data['TechnologyPerf']['performance']['out'] = [0, float(
+                            round(new_financial_data['Conv. Efficiency'].values[0], 3))]
+                else:
+                    for car in tec_data['TechnologyPerf']['performance']['out']:
+                        tec_data['TechnologyPerf']['performance']['out'][car] = [0, float(
+                            round(new_financial_data['Conv. Efficiency'].values[0], 3))]
 
 
 
