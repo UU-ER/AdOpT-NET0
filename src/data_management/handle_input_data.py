@@ -382,7 +382,7 @@ class DataHandle:
         # Existing Networks
         for netw in self.topology.networks_existing:
             netw_data = open_json(netw, load_path)
-            netw_data['name'] = netw
+            netw_data['name'] = netw + '_existing'
 
             self.network_data[netw + '_existing'] = Network(netw_data)
             self.network_data[netw + '_existing'].existing = 1

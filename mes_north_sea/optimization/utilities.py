@@ -129,8 +129,8 @@ def define_networks(settings, topology):
                 network_data['size_matrix'].at[row['node1'], row['node0']] = row['s_nom']*1000
                 network_data['distance_matrix'].at[row['node0'], row['node1']] = row['length']
                 network_data['distance_matrix'].at[row['node1'], row['node0']] = row['length']
-                network_data['max_size_matrix'].at[row['node1'], row['node0']] = row['s_nom_max']*1000
-                network_data['max_size_matrix'].at[row['node0'], row['node1']] = row['s_nom_max']*1000
+                network_data['max_size_matrix'].at[row['node1'], row['node0']] = row['s_nom_max']*1000 - row['s_nom']*1000
+                network_data['max_size_matrix'].at[row['node0'], row['node1']] = row['s_nom_max']*1000 - row['s_nom']*1000
                 if row['s_nom_max'] > 0:
                     network_data['connection_matrix'].at[row['node1'], row['node0']] = 1
                     network_data['connection_matrix'].at[row['node0'], row['node1']] = 1
