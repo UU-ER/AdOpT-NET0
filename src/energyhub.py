@@ -12,7 +12,6 @@ import sys
 
 from .model_construction import *
 from .data_management import *
-from .result_management.utilities import create_unique_folder_name
 from .utilities import *
 from .components.utilities import annualize, set_discount_rate
 from .components.technologies.utilities import set_capex_model
@@ -224,9 +223,9 @@ class EnergyHub:
         self.__define_solver_settings()
 
         if self.configuration.optimization.monte_carlo.on:
-            self.__optimize_monte_carlo(objective)
+            self.__solve_monte_carlo(objective)
         elif objective == 'pareto':
-            self.__optimize_pareto()
+            self.__solve_pareto()
         else:
             self.__optimize(objective)
 
@@ -365,7 +364,7 @@ class EnergyHub:
             self.solver.add_constraint(self.model.const_emission_limit)
         self.__optimize_cost()
 
-    def __optimize_pareto(self):
+    def __solve_pareto(self):
         """
         Optimize the pareto front
         """
@@ -395,7 +394,7 @@ class EnergyHub:
                 self.solver.add_constraint(self.model.const_emission_limit)
             self.__optimize_cost()
 
-    def __optimize_monte_carlo(self, objective):
+    def __solve_monte_carlo(self, objective):
         """
         Optimizes multiple runs with monte carlo
         """
@@ -467,12 +466,12 @@ class EnergyHub:
         """
         Calls the solver and solves the model
         """
-
-        # Solve model
         print('_' * 60)
         print('Solving Model...')
 
         start = time.time()
+
+        # Create save path and folder
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
         save_path = Path(self.configuration.reporting.save_path)
 
@@ -482,15 +481,17 @@ class EnergyHub:
             folder_name = str(time_stamp) + '_' + self.configuration.reporting.case_name
 
         result_folder_path = create_unique_folder_name(save_path, folder_name)
-
         create_save_folder(result_folder_path)
+        save_summary_path = Path.joinpath(Path(self.configuration.reporting.save_summary_path), 'Summary.xlsx')
 
+        # Scale model
         if self.configuration.scaling == 1:
             self.scale_model()
             model = self.scaled_model
         else:
             model = self.model
 
+        # Call solver
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(model.objective)
 
@@ -513,18 +514,13 @@ class EnergyHub:
 
         self.solution.write()
 
-        # writing results to h5 file and returning a dictionary with a results summary
+        # Write H5 File
         summary_dict = write_optimization_results_to_h5(self, time_stamp)
 
-        # saving summary to excel
-        save_summary_path = Path.joinpath(Path(self.configuration.reporting.save_summary_path), 'Summary.xlsx')
-
-        # for the first run: create the file
+        # Write Summary
         if not os.path.exists(save_summary_path):
             summary_df = pd.DataFrame(data=summary_dict, index=[0])
             summary_df.to_excel(save_summary_path, index=False, sheet_name="Summary")
-
-        # for all other runs: append a row to the file
         else:
             with pd.ExcelWriter(save_summary_path, mode="a", engine="openpyxl", if_sheet_exists="overlay") as writer:
                 summary_df = pd.DataFrame(data=summary_dict, index=[0])

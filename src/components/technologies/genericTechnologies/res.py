@@ -270,13 +270,10 @@ class Res(Technology):
         rated_power = self.fitted_performance.rated_power
         capfactor = self.fitted_performance.coefficients['capfactor']
 
-        self.results['time_dependent']['max_out'] = [capfactor[t - 1] * model_block.var_size.value * rated_power for t in self.set_t]
-        h5_group.create_dataset("max_out", data=self.results['time_dependent']['max_out'])
+        h5_group.create_dataset("max_out", data=[capfactor[t - 1] * model_block.var_size.value * rated_power for t in self.set_t])
 
         if self.performance_data['curtailment'] == 2:
             h5_group.create_dataset("units_on", data=[model_block.var_size_on[t].value for t in self.set_t])
 
         for car in model_block.set_output_carriers:
-            self.results['time_dependent']['curtailment_' + car] = \
-                self.results['time_dependent']['max_out'] - self.results['time_dependent']['output_' + car]
-            h5_group.create_dataset("curtailment" + car, data=self.results['time_dependent']['curtailment_' + car])
+            h5_group.create_dataset("curtailment" + car, data=[capfactor[t - 1] * model_block.var_size.value * rated_power - model_block.var_output[t, car].value for t in self.set_t])
