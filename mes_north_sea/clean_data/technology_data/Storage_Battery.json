@@ -30,9 +30,9 @@
     "emission_factor": 0.0,
     "allow_only_one_direction": 0,
     "performance": {
-      "eta_in": 0.96,
-      "eta_out": 0.96,
-      "lambda": 0.001,
+      "eta_in": 0.985,
+      "eta_out": 0.975,
+      "lambda": 0.0,
       "theta": 0,
       "charge_max": 0.3333333333333333,
       "discharge_max": 0.3333333333333333

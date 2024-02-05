@@ -17,7 +17,7 @@ class Settings():
         self.climate_year = 2008
         if test:
             self.start_date = '05-01 00:00'
-            self.end_date = '06-01 00:00'
+            self.end_date = '05-03 00:00'
         else:
             self.start_date = '01-01 00:00'
             self.end_date = '12-31 23:00'
@@ -342,35 +342,9 @@ def define_configuration():
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
     configuration.optimization.objective = 'pareto'
-    configuration.optimization.pareto_points = 3
+    configuration.optimization.pareto_points = 1
 
     return configuration
-
-
-def write_to_network_data(settings):
-    data_path = settings.data_path
-    netw_data_path = settings.netw_data_path
-
-    financial_data = pd.read_excel(data_path + 'cost_networks/NetworkCost.xlsx', sheet_name='ToModel',
-                                   skiprows=1)
-
-    for network in financial_data['Network']:
-        with open(netw_data_path + network + '.json', 'r') as openfile:
-            # Reading from json file
-            netw_data = json.load(openfile)
-
-        new_financial_data = financial_data[financial_data['Network'] == network.replace('.json', '')]
-        netw_data['Economics']['CAPEX_model'] = 3
-        netw_data['Economics']['gamma1'] = float(round(new_financial_data['gamma1'].values[0], 3))
-        netw_data['Economics']['gamma2'] = float(round(new_financial_data['gamma2'].values[0], 3))
-        netw_data['Economics']['gamma3'] = float(round(new_financial_data['gamma3'].values[0], 3))
-        netw_data['Economics']['OPEX_fixed'] = float(round(new_financial_data['OPEX Fixed'].values[0], 3))
-        netw_data['Economics']['OPEX_variable'] = float(round(new_financial_data['OPEX Variable'].values[0], 3))
-        netw_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0], 0))
-
-        with open(netw_data_path + network + '.json', 'w') as outfile:
-            json.dump(netw_data, outfile, indent=2)
-
 
 def write_to_technology_data(settings):
     data_path = settings.data_path
@@ -391,6 +365,18 @@ def write_to_technology_data(settings):
         tec_data['Economics']['OPEX_fixed'] = float(round(new_financial_data['OPEX Fixed'].values[0],3))
         tec_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0],0))
         tec_data['TechnologyPerf']['emission_factor'] = float(round(new_financial_data['Emission factor'].values[0],3))
+        if 'performance' in tec_data['TechnologyPerf']:
+            performance_parameters = {'eta_in': 'Charging Efficiency', 'eta_out': 'Discharging Efficiency', 'lambda': 'Lambda'}
+            for para in performance_parameters.keys():
+                if para in tec_data['TechnologyPerf']['performance']:
+                    tec_data['TechnologyPerf']['performance'][para] = float(
+                        round(new_financial_data[performance_parameters[para]].values[0], 3))
+            if 'out' in tec_data['TechnologyPerf']['performance']:
+                tec_data['TechnologyPerf']['performance']['out'] = [0, float(
+                    round(new_financial_data['Conv. Efficiency'].values[0], 3))]
+
+
+
 
         with open(os.path.join(tec_data_path, filename), 'w') as outfile:
             json.dump(tec_data, outfile, indent=2)

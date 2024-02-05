@@ -6,10 +6,12 @@ import pandas as pd
 
 # General Settings
 settings = pp.Settings(test=1)
-
-# for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on', 'ElectricityGrid']:
-for stage in ['Battery_off', 'Electrolysis_on', 'ElectricityGrid']:
-# for stage in ['Baseline']:
+pp.write_to_technology_data(settings)
+pp.write_to_network_data(settings)
+#
+# # for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on', 'ElectricityGrid']:
+# for stage in ['Battery_off', 'Electrolysis_on', 'ElectricityGrid']:
+for stage in ['Baseline', 'Electrolysis_on', 'ElectricityGrid', 'Battery_on', 'Battery_off']:
 
     settings.new_technologies_stage = stage
     if stage == 'ElectricityGrid':
@@ -33,13 +35,11 @@ for stage in ['Battery_off', 'Electrolysis_on', 'ElectricityGrid']:
     data = pp.define_imports_exports(settings, nodes, data)
 
     # Read data
-    pp.write_to_technology_data(settings)
-    pp.write_to_network_data(settings)
     data.read_technology_data(load_path = settings.tec_data_path)
     data.read_network_data(load_path=settings.netw_data_path)
     data = pp.define_charging_efficiencies(settings, nodes, data)
 
-    configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/20231201/'
+    configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/202302/'
     # Solve
     if stage == 'Baseline':
         configuration.optimization.objective = 'costs'
