@@ -1,18 +1,16 @@
 ..  _result_data_management:
 
-Result Data Management
+Result Management
 =====================================
 
-The result data management is done with the method ``write_optimization_results_to_h5``, called from the energyhub.
-This function is written in the python file ``handle_optimization_results.py`` and it serves two purposes. The first
-being: it creates a dictionary for the results summary (i.e., information about costs, emissions and the run
-specifications), which is returned by the method to the energyhub. There, the summary results are appended to a
-"Summary" Excel, the file path for which can be specified in ``configuration.reporting.save_summary_path``
-(see example below). The second purpose is to collect all results from the model to save into a single HDF5 file, using
-the h5py library. Documentation for this package can be found `here <https://docs.h5py.org/en/stable/index.html#>`_.
-For clear code, any pre-processing to obtain the resulting values for specific variables are moved to the
-``utilities.py`` file. Again, the path of the HDF5 file can be specified in the configuration, with:
-``configuration.reporting.save_path`` (see example below).
+Export to h5
+^^^^^^^^^^^^^^^^
+
+Results obtained from the model (in case it solved) are exported by default to an h5 file as specified in
+``Configuration.reporting.save_path``. Additionally, a summary is written to an excel file specified in
+``Configuration.reporting.save_summary_path``. In case this excel file exists already, the new summary is appended
+as a new row (see example below). Documentation on the h5py library and how to handle h5 files can be found
+`here <https://docs.h5py.org/en/stable/index.html#>`_
 
 The structure (object tree) of the resulting HDF5 file is as follows:
 
@@ -64,6 +62,7 @@ dataset contains a value for each timestep in your model run.
 
 Example Usage
 ^^^^^^^^^^^^^^^^
+
 Set a folder for saving the results (save_path) and the summary results (save_summary_path) in the Model Configuration.
 
 .. testcode::
@@ -76,3 +75,24 @@ In this example, the results folder (named with a timestamp of the model run), c
 HDF5 file, is saved in ``userData``. The Excel file with the summary of each run (one row per run), is saved to the
 ``userData`` folder as well, but not in a timestamp specified sub-folder.
 
+
+Export to Excel
+^^^^^^^^^^^^^^^^
+
+We do not provide a direct export to excel/csv files from the model interface, however, you can read results
+from the h5 file previously exported. Therefore, two functions are provided in ``src.result_management.read_results``.
+The two functions are documented below
+An examplary usage (can be used after the optimization was done):
+
+.. testcode::
+
+    file_path = './userData/20240206140357/optimization_results.h5'
+    save_path = 'whereveryouwanttosaveit'
+    print_h5_tree(file_path)
+    with h5py.File(file_path, 'r') as hdf_file:
+        data = extract_datasets_form_h5(hdf_file["operation/energy_balance/offshore"])
+        data.to_excel(save_path)
+        print(data)
+
+.. automodule:: src.result_management.read_results
+    :members:

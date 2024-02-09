@@ -173,11 +173,11 @@ class HeatPump(Technology):
         performance_function_type = performance_data['performance_function_type']
 
         if performance_function_type == 1:
-            b_tec = self.__performance_function_type_1(b_tec)
+            b_tec = self._performance_function_type_1(b_tec)
         elif performance_function_type == 2:
-            b_tec = self.__performance_function_type_2(b_tec)
+            b_tec = self._performance_function_type_2(b_tec)
         elif performance_function_type == 3:
-            b_tec = self.__performance_function_type_3(b_tec)
+            b_tec = self._performance_function_type_3(b_tec)
 
         # size constraint based on input
         def init_size_constraint(const, t):
@@ -187,11 +187,11 @@ class HeatPump(Technology):
         # RAMPING RATES
         if "ramping_rate" in self.performance_data:
             if not self.performance_data['ramping_rate']   == -1:
-                b_tec = self.__define_ramping_rates(b_tec)
+                b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
 
-    def __performance_function_type_1(self, b_tec):
+    def _performance_function_type_1(self, b_tec):
         """
         Linear, no minimal partload, through origin
         :param b_tec: technology block
@@ -206,7 +206,7 @@ class HeatPump(Technology):
 
         return b_tec
 
-    def __performance_function_type_2(self, b_tec):
+    def _performance_function_type_2(self, b_tec):
         """
         Linear, minimal partload
         :param b_tec: technology block
@@ -258,7 +258,7 @@ class HeatPump(Technology):
         return b_tec
 
 
-    def __performance_function_type_3(self, b_tec):
+    def _performance_function_type_3(self, b_tec):
         """
         Piece-wise linear, minimal partload
         :param b_tec: technology block
@@ -321,7 +321,7 @@ class HeatPump(Technology):
 
         return b_tec
 
-    def __define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate
 

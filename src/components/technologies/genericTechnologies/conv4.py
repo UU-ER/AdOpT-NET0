@@ -84,7 +84,7 @@ class Conv4(Technology):
             phi[car] = self.performance_data['output_ratios'][car]
 
         if performance_function_type == 2:
-            b_tec = self.__performance_function_type_2(b_tec)
+            b_tec = self._performance_function_type_2(b_tec)
 
 
         # Size constraints
@@ -103,7 +103,7 @@ class Conv4(Technology):
 
         return b_tec
 
-    def __performance_function_type_2(self, b_tec):
+   def _performance_function_type_2(self, b_tec):
         """
         Linear, minimal partload
         :param b_tec: technology block

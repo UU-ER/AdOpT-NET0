@@ -271,7 +271,7 @@ class GasTurbine(Technology):
         # RAMPING RATES
         if "ramping_rate" in self.performance_data:
             if not self.performance_data['ramping_rate']   == -1:
-                b_tec = self.__define_ramping_rates(b_tec)
+                b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
 
@@ -286,7 +286,7 @@ class GasTurbine(Technology):
 
         h5_group.create_dataset("modules_on", data=[model_block.var_units_on[t].value for t in self.set_t])
 
-    def __define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate
 
