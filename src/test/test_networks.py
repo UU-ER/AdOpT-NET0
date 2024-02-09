@@ -18,7 +18,8 @@ def test_networks():
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 1
     data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub1 = ehub(data, configuration)
-    energyhub1.model_information.testing = 1
+    energyhub1.configuration.reporting.save_path = './src/test/results'
+    energyhub1.configuration.reporting.save_summary_path = './src/test/results'
     energyhub1.construct_model()
     energyhub1.construct_balances()
     energyhub1.solve()
@@ -34,7 +35,8 @@ def test_networks():
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     data.network_data['hydrogenTest'].energy_consumption = {}
     energyhub2 = ehub(data, configuration)
-    energyhub2.model_information.testing = 1
+    energyhub2.configuration.reporting.save_path = './src/test/results'
+    energyhub2.configuration.reporting.save_summary_path = './src/test/results'
     energyhub2.construct_model()
     energyhub2.construct_balances()
     energyhub2.solve()
@@ -50,7 +52,8 @@ def test_networks():
     cost_correction = data.topology.fraction_of_year_modelled
     data.network_data['hydrogenTest'].performance_data['bidirectional'] = 0
     energyhub3 = ehub(data, configuration)
-    energyhub3.model_information.testing = 1
+    energyhub3.configuration.reporting.save_path = './src/test/results'
+    energyhub3.configuration.reporting.save_summary_path = './src/test/results'
     energyhub3.construct_model()
     energyhub3.construct_balances()
     energyhub3.solve()
@@ -92,7 +95,8 @@ def test_CAPEX_networks():
 
     # Solve model
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.quick_solve()
 
     # test if optimal
@@ -109,7 +113,8 @@ def test_CAPEX_networks():
 def test_existing_networks():
     def run_ehub(data, configuration):
         energyhub = ehub(data, configuration)
-        energyhub.model_information.testing = 1
+        energyhub.configuration.reporting.save_path = './src/test/results'
+        energyhub.configuration.reporting.save_summary_path = './src/test/results'
         energyhub.construct_model()
         energyhub.construct_balances()
         energyhub.solve()
@@ -155,7 +160,8 @@ def test_violation():
 
     #solving
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'optimal'
@@ -172,7 +178,8 @@ def test_copperplate():
 
     # solving
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.quick_solve()
 
     assert energyhub.solution.solver.termination_condition == 'optimal'

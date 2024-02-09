@@ -22,7 +22,8 @@ def test_add_nodes():
     data = load_object(r'./src/test/test_data/data_handle_test.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -40,7 +41,8 @@ def test_model1():
     data = load_object(r'./src/test/test_data/model1.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -60,7 +62,8 @@ def test_model2():
     data = load_object(r'./src/test/test_data/model2.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -112,7 +115,8 @@ def test_addtechnology():
     configuration = ModelConfiguration()
     data.technology_data['test_node1']['TestWindTurbine_Onshore_1500'].performance_data['curtailment'] = 0
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -156,7 +160,8 @@ def test_emission_balance1():
     data.network_data['electricityTest'].performance_data['emissionfactor'] = 0.2
     data.network_data['electricityTest'].performance_data['loss2emissions'] = 1
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -209,7 +214,8 @@ def test_emission_balance2():
     configuration = ModelConfiguration()
     data.technology_data['test_node1']['testCONV1_1'].performance_data['emission_factor'] = 1
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -234,7 +240,8 @@ def test_optimization_types():
     data = load_object(r'./src/test/test_data/optimization_types.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -320,7 +327,8 @@ def test_carbon_tax():
     data.technology_data['onshore']['Furnace_NG'].fitted_performance.coefficients['heat']['alpha1'] = 0.9
 
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -349,7 +357,8 @@ def test_carbon_subsidy():
 
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
@@ -381,7 +390,8 @@ def test_scaling():
     configuration.scaling_factors.energy_vars = 1e-3
     configuration.scaling_factors.cost_vars = 1e-3
     energyhub = ehub(data, configuration)
-    energyhub.model_information.testing = 1
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.quick_solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
 
