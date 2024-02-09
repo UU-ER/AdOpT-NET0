@@ -1,77 +1,123 @@
-import os
-from datetime import datetime, timedelta
-from pathlib import Path
-
 import altair as alt
 import pandas as pd
 import streamlit as st
-
-
-def get_boundaries_date(df):
-    min_value = None
-    max_value = None
-    for key, df in df.items():
-        # Update min_value and max_value based on the current DataFrame
-        current_min = df['Timestep'].min()
-        current_max = df['Timestep'].max()
-
-        if min_value is None or current_min < min_value:
-            min_value = current_min
-
-        if max_value is None or current_max > max_value:
-            max_value = current_max
-    return min_value, max_value
-
-
-def determine_graph_boundaries(df):
-    # Determine plotted daterange
-    time_steps = pd.to_datetime(df['Timestep'])
-    st.sidebar.text("Select x-axis range:")
+import h5py
+#
+# def get_boundaries_date(dict):
+#     min_value = None
+#     max_value = None
+#     for run in dict:
+#         for key, df in dict[run].items():
+#             # Update min_value and max_value based on the current DataFrame
+#             current_min = df['Timestep'].min()
+#             current_max = df['Timestep'].max()
+#
+#             if min_value is None or current_min < min_value:
+#                 min_value = current_min
+#
+#             if max_value is None or current_max > max_value:
+#                 max_value = current_max
+#     return min_value, max_value
+#
+#
+def determine_graph_boundaries(x_values):
+    """
+    Returns x_min and x_max for a graph that is determined by using a slider
+    :param x_values: x_values available
+    :return: x_min, x_max
+    """
     x_min = st.sidebar.slider(
         "Starting time: ",
-        min_value=datetime.fromtimestamp(time_steps.min().timestamp()),
-        max_value=datetime.fromtimestamp(time_steps.max().timestamp()),
-        format="DD.MM, HH",
+        min_value=min(x_values),
+        max_value=max(x_values),
     )
     x_max = st.sidebar.slider(
         "Ending time: ",
-        min_value=datetime.fromtimestamp(time_steps.min().timestamp()),
-        max_value=datetime.fromtimestamp(time_steps.max().timestamp()),
-        value=datetime.fromtimestamp(time_steps.max().timestamp()),
-        format="DD.MM, HH",
+        min_value=min(x_values),
+        max_value=max(x_values),
     )
     return x_min, x_max
 
-
-def select_node(path, nr_pages):
-    node_path = {}
-    nodes = {}
-    selected_node = {}
-
-    for i in [1, len(path)]:
-        node_path[i] = Path.joinpath(path[i], 'Nodes')
-        nodes[i] = [f.name for f in os.scandir(node_path[i]) if f.is_dir()]
-
-    selected_node[1] = st.sidebar.selectbox('Select a node:', nodes[1], key="node_key1")
-    if len(nr_pages) == 2:
-        selected_node[2] = st.sidebar.selectbox('Select a node for second result:', nodes[2], key="node_key2")
-
-    return selected_node, node_path
-
-
-def read_time_series(path):
-    data = pd.read_excel(path, sheet_name=None, index_col=0)
-    for carrier in data:
-        data[carrier]['Timestep'] = [datetime(2030, 1, 1, 0, 0, 0) + timedelta(hours=hour) for
-                                                   hour in data[carrier].index]
-    return data
-
-
+#
+#
+#
+# def read_time_series(path):
+#     data = pd.read_excel(path, sheet_name=None, index_col=0)
+#     for carrier in data:
+#         data[carrier]['Timestep'] = [datetime(2030, 1, 1, 0, 0, 0) + timedelta(hours=hour) for
+#                                                    hour in data[carrier].index]
+#     return data
+#
+#
 def plot_area_chart(df, x_min, x_max):
-    df = df[(df['Timestep'] >= x_min) & (df['Timestep'] <= x_max)]
-    df = pd.melt(df, value_vars=df.columns, id_vars=['Timestep'])
+    df = df[(df.index >= x_min) & (df.index <= x_max)]
+    df = df.reset_index()
+    df = pd.melt(df, value_vars=df.columns, id_vars=['index'])
+
     chart = alt.Chart(df).mark_area().encode(
-        x='Timestep:T',
+        x='index:Q',
         y='value:Q',
         color="variable:N").configure_legend(orient='bottom')
     return chart
+
+def plot_line_chart(df, x_min, x_max):
+    df = df[(df.index >= x_min) & (df.index <= x_max)]
+    df = df.reset_index()
+    df = pd.melt(df, value_vars=df.columns, id_vars=['index'])
+
+    chart = alt.Chart(df).mark_line().encode(
+        x='index:Q',
+        y='value:Q',
+        color="variable:N").configure_legend(orient='bottom')
+    return chart
+
+
+def extract_datasets_from_h5_group(group, prefix=()):
+    """
+    Gets all datasets from a group of an h5 file and writes it to a multi-index dataframe
+
+    :param group: group of h5 file
+    :return: dataframe containing all datasets in group
+    """
+    data = {}
+    for key, value in group.items():
+        if isinstance(value, h5py.Group):
+            data.update(extract_datasets_from_h5_group(value, prefix + (key,)))
+        elif isinstance(value, h5py.Dataset):
+            if value.shape == ():
+                data[prefix + (key,)] = [value[()]]
+            else:
+                data[prefix + (key,)] = value[:]
+
+    df = pd.DataFrame(data)
+
+    return df
+
+
+def extract_datasets_from_h5_dataset(dataset):
+    """
+    Gets dataset from an h5 file
+
+    :param group: group of h5 file
+    :return: dataframe containing all datasets in group
+    """
+    data = [item.decode('utf-8') for item in dataset]
+
+    return data
+
+
+def export_csv(df, label, filename):
+    """
+    Makes a button on the side bar that allows for csv export
+    :param df: dataframe to export
+    :param label: label of button
+    :param filename: filename to export
+    :return:
+    """
+    excel_buffer = df.to_csv(index=False)
+    st.sidebar.download_button(
+        label=label,
+        data=excel_buffer,
+        file_name=filename,
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )

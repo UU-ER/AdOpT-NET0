@@ -198,7 +198,6 @@ class Res(Technology):
         # Other Data
         self.fitted_performance.rated_power = rated_power / 1000
 
-
     def construct_tech_model(self, b_tec, energyhub):
         """
         Adds constraints to technology blocks for tec_type RES (renewable technology)
@@ -257,22 +256,24 @@ class Res(Technology):
 
         return b_tec
 
-    def report_results(self, b_tec):
-        """
-        Function to report results of technologies after optimization
+    def write_tec_design_results_to_group(self, h5_group, model_block):
 
-        :param b_tec: technology model block
-        :return: dict results: holds results
-        """
-        super(Res, self).report_results(b_tec)
+        super(Res, self).write_tec_design_results_to_group(h5_group, model_block)
+
+        h5_group.create_dataset("rated_power", data=self.fitted_performance.rated_power)
+        h5_group.create_dataset("cap_factor", data=self.fitted_performance.coefficients['capfactor'])
+
+    def write_tec_operation_results_to_group(self, h5_group, model_block):
+
+        super(Res, self).write_tec_operation_results_to_group(h5_group, model_block)
 
         rated_power = self.fitted_performance.rated_power
         capfactor = self.fitted_performance.coefficients['capfactor']
-        if self.performance_data['curtailment'] == 2:
-            self.results['time_dependent']['units_on'] = [b_tec.var_size_on[t].value for t in self.set_t]
-        self.results['time_dependent']['max_out'] = [capfactor[t - 1] * b_tec.var_size.value * rated_power for t in self.set_t]
-        for car in b_tec.set_output_carriers:
-            self.results['time_dependent']['curtailment_' + car] = \
-                self.results['time_dependent']['max_out'] - self.results['time_dependent']['output_' + car]
 
-        return self.results
+        h5_group.create_dataset("max_out", data=[capfactor[t - 1] * model_block.var_size.value * rated_power for t in self.set_t])
+
+        if self.performance_data['curtailment'] == 2:
+            h5_group.create_dataset("units_on", data=[model_block.var_size_on[t].value for t in self.set_t])
+
+        for car in model_block.set_output_carriers:
+            h5_group.create_dataset("curtailment_" + car, data=[capfactor[t - 1] * model_block.var_size.value * rated_power - model_block.var_output[t, car].value for t in self.set_t])

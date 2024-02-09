@@ -39,11 +39,13 @@ for stage in ['Baseline', 'Electrolysis_on', 'ElectricityGrid', 'Battery_on', 'B
     data.read_network_data(load_path=settings.netw_data_path)
     data = pp.define_charging_efficiencies(settings, nodes, data)
 
-    configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/202302/'
+    configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/'
+    configuration.reporting.save_summary_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/'
+    # configuration.reporting.save_path = './userData/'
+    # configuration.reporting.save_summary_path = './userData/'
     # Solve
     if stage == 'Baseline':
         configuration.optimization.objective = 'costs'
-
     if len(topology.timesteps) < 8760:
         configuration.reporting.case_name = 'TEST' + stage
     else:

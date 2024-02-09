@@ -479,9 +479,9 @@ class ClusteredDataHandle(DataHandle):
 
         # perform clustering
         nr_days_full_resolution = (max(data.topology.timesteps) - min(data.topology.timesteps)).days + 1
-        self.__cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
+        self._cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
 
-    def __cluster_data(self, nr_clusters:int, nr_days_full_resolution:int, nr_time_intervals_per_day:int):
+    def _cluster_data(self, nr_clusters:int, nr_days_full_resolution:int, nr_time_intervals_per_day:int):
         """
         Performs the clustering process
 
@@ -497,7 +497,7 @@ class ClusteredDataHandle(DataHandle):
         # adjust timesteps
         self.topology.timesteps_clustered = range(0, nr_clusters * nr_time_intervals_per_day)
         # compile full matrix to cluster
-        full_resolution = self.__compile_full_resolution_matrix(nr_time_intervals_per_day)
+        full_resolution = self._compile_full_resolution_matrix(nr_time_intervals_per_day)
         # Perform clustering
         clustered_data, day_labels = perform_k_means(full_resolution,
                                                         nr_clusters)
@@ -511,11 +511,11 @@ class ClusteredDataHandle(DataHandle):
         # Create factors, indicating how many times an hour occurs
         self.k_means_specs.reduced_resolution = get_day_factors(self.k_means_specs.full_resolution['sequence'])
         # Read data back in
-        self.__read_clustered_data(clustered_data)
+        self._read_clustered_data(clustered_data)
 
         self.read_technology_data(load_path = './src/test/TestTecs')
 
-    def __read_clustered_data(self, clustered_data:pd.DataFrame):
+    def _read_clustered_data(self, clustered_data:pd.DataFrame):
         """
         Reads clustered data back to self
 
@@ -535,7 +535,7 @@ class ClusteredDataHandle(DataHandle):
         for series3 in carbon_prices:
             self.global_data.data_clustered['carbon_prices'][series3] = reshape_df(clustered_data['global_data']['carbon_prices'][series3], None, 1)
 
-    def __compile_full_resolution_matrix(self, nr_time_intervals_per_day:int):
+    def _compile_full_resolution_matrix(self, nr_time_intervals_per_day:int):
         """
         Compiles full resolution matrix to be clustered
 
@@ -598,10 +598,10 @@ class DataHandle_AveragedData(DataHandle):
         self.averaged_specs = simplification_specs(data.topology.timesteps)
 
         # perform averaging for all nodal and global data
-        self.__average_data(data, nr_timesteps_averaged)
+        self._average_data(data, nr_timesteps_averaged)
 
         # read technology data
-        self.__read_technology_data(data, nr_timesteps_averaged)
+        self._read_technology_data(data, nr_timesteps_averaged)
 
         # Write averaged specs
         self.averaged_specs.reduced_resolution = pd.DataFrame(
@@ -611,7 +611,7 @@ class DataHandle_AveragedData(DataHandle):
 
         self.model_information.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
-    def __average_data(self, data_full_resolution:DataHandle, nr_timesteps_averaged:int):
+    def _average_data(self, data_full_resolution:DataHandle, nr_timesteps_averaged:int):
         """
         Averages all nodal and global data
 
@@ -671,7 +671,7 @@ class DataHandle_AveragedData(DataHandle):
                         average_series(global_data.data_clustered[series1][series2], nr_timesteps_averaged)
 
 
-    def __read_technology_data(self, data_full_resolution:DataHandle, nr_timesteps_averaged:int):
+    def _read_technology_data(self, data_full_resolution:DataHandle, nr_timesteps_averaged:int):
         """
         Reads technology data for time-averaging algorithm
 
