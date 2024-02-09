@@ -1001,9 +1001,9 @@ def test_slow_dynamics():
                 energyhub.model.node_blocks['test_node1'].tech_blocks_active[tecname].var_input[
                     6, 'hydrogen'].value, 3)
 
-            assert abs((gas_in_3 + hydrogen_in_3) / SD_trajectory[0] * tec_size) <= allowed_error
-            assert abs((gas_in_5 + hydrogen_in_5) / SU_trajectory[0] * tec_size) <= allowed_error
-            assert abs((gas_in_6 + hydrogen_in_6) /SU_trajectory[1] * tec_size) <= allowed_error
+            assert (gas_in_3 + hydrogen_in_3) == round(SD_trajectory[0] * tec_size, 3)
+            assert (gas_in_5 + hydrogen_in_5) == round(SU_trajectory[0] * tec_size, 3)
+            assert (gas_in_6 + hydrogen_in_6) == round(SU_trajectory[1] * tec_size, 3)
 
         else:
             main_car = data.technology_data['test_node1'][tecname].performance_data['main_input_carrier']
