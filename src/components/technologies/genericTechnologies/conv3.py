@@ -165,7 +165,7 @@ class Conv3(Technology):
 
         return b_tec
 
-   def _performance_function_type_1(self, b_tec):
+    def _performance_function_type_1(self, b_tec):
         """
         Linear, no minimal partload, through origin
         :param b_tec: technology block
@@ -192,7 +192,7 @@ class Conv3(Technology):
 
         return b_tec
 
-   def _performance_function_type_2(self, b_tec):
+    def _performance_function_type_2(self, b_tec):
         """
         Linear, minimal partload
         :param b_tec: technology block
@@ -272,7 +272,7 @@ class Conv3(Technology):
 
         return b_tec
 
-   def _performance_function_type_3(self, b_tec):
+    def _performance_function_type_3(self, b_tec):
         """
         Piece-wise linear, minimal partload
         :param b_tec: technology block
@@ -353,7 +353,7 @@ class Conv3(Technology):
         return b_tec
 
 
-   def _performance_function_type_4(self, b_tec):
+    def _performance_function_type_4(self, b_tec):
         """
         Piece-wise linear, minimal partload, includes constraints for slow (>1h) startup and shutdown trajectories.
 
@@ -525,7 +525,7 @@ class Conv3(Technology):
 
         return b_tec
 
-   def _define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate
 

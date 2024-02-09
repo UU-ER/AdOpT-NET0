@@ -263,7 +263,7 @@ class Stor(Technology):
 
         h5_group.create_dataset("storage_level", data=[model_block.var_storage_level[t].value for t in self.set_t_full])
 
-   def _define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate. Implemented for input and output
 

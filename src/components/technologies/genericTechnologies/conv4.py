@@ -103,7 +103,7 @@ class Conv4(Technology):
 
         return b_tec
 
-   def _performance_function_type_2(self, b_tec):
+    def _performance_function_type_2(self, b_tec):
         """
         Linear, minimal partload
         :param b_tec: technology block
