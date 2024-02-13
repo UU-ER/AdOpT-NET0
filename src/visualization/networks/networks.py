@@ -29,8 +29,8 @@ def plot_nodes(map, node_data):
 
 def plot_edges(map, node_data, network_size_data, edge_weight='size'):
     for _, edge_data in network_size_data.iterrows():
-        from_node_data = node_data.loc[edge_data['fromNode']]
-        to_node_data = node_data.loc[edge_data['toNode']]
+        from_node_data = node_data.loc[edge_data['FromNode']]
+        to_node_data = node_data.loc[edge_data['ToNode']]
 
         if edge_weight == 'size':
             e_weight = edge_data['Size'] / 1000
