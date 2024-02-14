@@ -19,7 +19,7 @@ topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-02 23:00', resolution=1)
 topology.define_carriers(['electricity'])
 topology.define_nodes(['offshore'])
-topology.define_new_technologies('offshore', ['Storage_OceanBattery_specific_3'])
+topology.define_new_technologies('offshore', ['Storage_Battery_flexible'])
 
 # Initialize instance of DataHandle
 data = dm.DataHandle(topology)
@@ -72,7 +72,7 @@ if use_el_profile ==0:
         else:
             el_import_price[i] = el_import_price_high
 else:
-    loadpath_electricityprice = 'C:/Users/6574114/Documents/Research/EHUB-Py/data/ob_input_data/day_ahead_2019.csv'
+    loadpath_electricityprice = 'C:/Users/6145795/Documents/GitHub/EHUB-Py/data/ob_input_data/day_ahead_2019.csv'
     el_import_price = pd.read_csv(loadpath_electricityprice)
     el_import_price = el_import_price['Day-ahead Price [EUR/MWh]'][0:8760]
     el_import_price = el_import_price.interpolate()

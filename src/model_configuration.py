@@ -182,7 +182,7 @@ class ModelConfiguration:
 
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
-        self.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/OceanBattery/'
+        self.reporting.save_path = 'C:/Users/6145795/Documents/GitHub/EHUB-Py/userData/'
         self.reporting.case_name = 'SD1_test'
         self.reporting.write_solution_diagnostics = 0
 

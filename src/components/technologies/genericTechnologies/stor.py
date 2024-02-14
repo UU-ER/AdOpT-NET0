@@ -16,6 +16,10 @@ class Stor(Technology):
 
         self.fitted_performance = FittedPerformance()
 
+        if 'Flexible_power_energy_ratio' in tec_data:
+            self.flexible_power_energy_ratio = []
+            self.flexible_power_energy_ratio = tec_data['Flexible_power_energy_ratio']
+
     def fit_technology_performance(self, node_data):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
@@ -34,16 +38,33 @@ class Stor(Technology):
         theta = self.performance_data['performance']['theta']
         ambient_loss_factor = (65 - climate_data['temp_air']) / (90 - 65) * theta
 
-        # Output Bounds
-        for car in self.performance_data['output_carrier']:
-            self.fitted_performance.bounds['output'][car] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                             np.ones(shape=(time_steps)) * self.performance_data['performance'][
-                                                                 'discharge_max']))
-        # Input Bounds
-        for car in self.performance_data['input_carrier']:
-            self.fitted_performance.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                            np.ones(shape=(time_steps)) * self.performance_data['performance'][
-                                                                'charge_max']))
+        if self.flexible_power_energy_ratio:
+            # Output Bounds
+            for car in self.performance_data['output_carrier']:
+                self.fitted_performance.bounds['output'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                                                 np.ones(shape=(time_steps)) *
+                                                                                 self.flexible_power_energy_ratio
+                                                                                 ['size_discharge_max']))
+            # Input Bounds
+            for car in self.performance_data['input_carrier']:
+                self.fitted_performance.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                                                np.ones(shape=(time_steps)) *
+                                                                                self.flexible_power_energy_ratio
+                                                                                ['size_charge_max']))
+        else:
+            # Output Bounds
+            for car in self.performance_data['output_carrier']:
+                self.fitted_performance.bounds['output'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                                                 np.ones(shape=(time_steps)) *
+                                                                                 self.performance_data['performance']
+                                                                                 ['discharge_max']))
+            # Input Bounds
+            for car in self.performance_data['input_carrier']:
+                self.fitted_performance.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                                                np.ones(shape=(time_steps)) *
+                                                                                self.performance_data['performance']
+                                                                                ['charge_max']))
+
         # Coefficients
         self.fitted_performance.coefficients['ambient_loss_factor'] = ambient_loss_factor.to_numpy()
         for par in self.performance_data['performance']:
@@ -114,6 +135,8 @@ class Stor(Technology):
 
         set_t_full = energyhub.model.set_t_full
 
+        b_tec = self.__define_size(b_tec)
+
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         coeff = self.fitted_performance.coefficients
@@ -131,7 +154,7 @@ class Stor(Technology):
                                       domain=NonNegativeReals,
                                       bounds=(b_tec.para_size_min, b_tec.para_size_max))
 
-        # Abdditional parameters
+        # Additional parameters
         eta_in = coeff['eta_in']
         eta_out = coeff['eta_out']
         eta_lambda = coeff['lambda']
@@ -210,18 +233,41 @@ class Stor(Technology):
             b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         # Maximal charging and discharging rates
-        def init_maximal_charge(const, t, car):
-            return self.input[t, car] <= charge_max * b_tec.var_size
-        b_tec.const_max_charge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
+        if 'power_energy_ratio_is_constant' in performance_data:
+            power_energy_ratio_is_constant = performance_data['power_energy_ratio_is_constant']
+        else:
+            power_energy_ratio_is_constant = 1
 
-        def init_maximal_discharge(const, t, car):
-            return self.output[t, car] <= discharge_max * b_tec.var_size
+        # if the charging / discharging rates are written as a percentage of the energy capacity:
+        if power_energy_ratio_is_constant == 1:
 
-        b_tec.const_max_discharge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
+            def init_maximal_charge(const, t, car):
+                return self.input[t, car] <= charge_max * b_tec.var_size
+            b_tec.const_max_charge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
+
+            def init_maximal_discharge(const, t, car):
+                return self.output[t, car] <= discharge_max * b_tec.var_size
+            b_tec.const_max_discharge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
+
+        # if the charging / discharging rates are independent of the energy capacity, and determined by the installed
+        # charging and discharging power capacity.
+        elif power_energy_ratio_is_constant == 0:
+
+            def init_maximal_charge(const, t, car):
+                return self.input[t, car] <= b_tec.var_size_charge
+            b_tec.const_max_charge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_charge)
+
+            def init_maximal_discharge(const, t, car):
+                return self.output[t, car] <= b_tec.var_size_discharge
+            b_tec.const_max_discharge = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge)
+
+        else:
+            return warn("the 'power_energy_ratio_is_constant' parameter should have a value of 0 (is not constant) "
+                        "or 1 (is constant)")
 
         # RAMPING RATES
         if "ramping_rate" in self.performance_data:
-            if not self.performance_data['ramping_rate']   == -1:
+            if not self.performance_data['ramping_rate'] == -1:
                 b_tec = self.__define_ramping_rates(b_tec)
 
         return b_tec
@@ -284,5 +330,35 @@ class Stor(Technology):
                 return Constraint.Skip
 
         b_tec.const_ramping_up_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
+
+        return b_tec
+
+    def __define_size(self, b_tec):
+
+        #TODO check if it needs to have the Super function.
+
+        # charging
+        b_tec.para_size_charge_min = Param(domain=NonNegativeReals, initialize=b_tec.size_charge_min, mutable=True)
+        b_tec.para_size_charge_max = Param(domain=NonNegativeReals, initialize=b_tec.size_charge_max, mutable=True)
+
+        if b_tec.size_charge_is_int:
+            size_charge_domain = NonNegativeIntegers
+        else:
+            size_charge_domain = NonNegativeReals
+
+        b_tec.var_charge_size = Var(within=size_charge_domain, bounds=(b_tec.para_size_charge_min,
+                                                                       b_tec.para_size_charge_max))
+
+        # discharging
+        b_tec.para_size_discharge_min = Param(domain=NonNegativeReals, initialize=b_tec.size_discharge_min, mutable=True)
+        b_tec.para_size_discharge_max = Param(domain=NonNegativeReals, initialize=b_tec.size_discharge_max, mutable=True)
+
+        if b_tec.size_discharge_is_int:
+            size_discharge_domain = NonNegativeIntegers
+        else:
+            size_discharge_domain = NonNegativeReals
+
+        b_tec.var_discharge_size = Var(within=size_discharge_domain, bounds=(b_tec.para_size_discharge_min,
+                                                                             b_tec.para_size_discharge_max))
 
         return b_tec
