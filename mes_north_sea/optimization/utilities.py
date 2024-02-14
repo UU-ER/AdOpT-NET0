@@ -409,7 +409,7 @@ def write_to_network_data(settings):
             netw_data['Economics']['OPEX_variable'] = float(round(new_financial_data['OPEX Variable'].values[0],3))
             netw_data['Economics']['OPEX_fixed'] = float(round(new_financial_data['OPEX Fixed'].values[0],3))
             netw_data['Economics']['lifetime'] = float(round(new_financial_data['Lifetime'].values[0],0))
-            netw_data['NetworkPerf']['loss'] = float(round(new_financial_data['loss'].values[0],0))
+            netw_data['NetworkPerf']['loss'] = float(round(new_financial_data['loss'].values[0],8))
             netw_data['NetworkPerf']['rated_capacity'] = float(round(new_financial_data['rated power'].values[0],0))
 
             with open(os.path.join(netw_data_path, filename), 'w') as outfile:
