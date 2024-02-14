@@ -16,7 +16,7 @@
     "carrier": "electricity",
     "rated_capacity": 1000.0,
     "bidirectional": 1,
-    "loss": 0.0,
+    "loss": 0.00003,
     "min_transport": 0,
     "loss2emissions": 0,
     "emissionfactor": 0,
