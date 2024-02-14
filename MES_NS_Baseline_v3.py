@@ -3,15 +3,17 @@ import numpy as np
 from src.model_configuration import ModelConfiguration
 from src.energyhub import EnergyHub
 import pandas as pd
+import random
 
 # General Settings
-settings = pp.Settings(test=1)
+settings = pp.Settings(test=0)
 pp.write_to_technology_data(settings)
 pp.write_to_network_data(settings)
-# #
-# # # for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on', 'ElectricityGrid']:
-# # for stage in ['Battery_off', 'Electrolysis_on', 'ElectricityGrid']:
-for stage in ['Baseline', 'Electrolysis_on', 'ElectricityGrid', 'Battery_on', 'Battery_off']:
+
+for stage in ['Electrolysis_on']:
+# for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on', 'ElectricityGrid']:
+# for stage in ['Battery_off', 'Electrolysis_on', 'ElectricityGrid']:
+# for stage in ['Baseline', 'Electrolysis_on', 'ElectricityGrid', 'Battery_on', 'Battery_off']:
 
     settings.new_technologies_stage = stage
     if stage == 'ElectricityGrid':
@@ -38,6 +40,11 @@ for stage in ['Baseline', 'Electrolysis_on', 'ElectricityGrid', 'Battery_on', 'B
     data.read_technology_data(load_path = settings.tec_data_path)
     data.read_network_data(load_path=settings.netw_data_path)
     data = pp.define_charging_efficiencies(settings, nodes, data)
+
+    # Alter capex of electrolysis to remove symmetry
+    for node in data.technology_data:
+        if 'Electrolyser_PEM' in data.technology_data[node]:
+            data.technology_data[node]['Electrolyser_PEM'].economics.capex_data['unit_capex'] = data.technology_data[node]['Electrolyser_PEM'].economics.capex_data['unit_capex'] * random.uniform(0.99, 1.01)
 
     configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/'
     configuration.reporting.save_summary_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/'

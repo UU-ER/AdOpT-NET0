@@ -342,7 +342,7 @@ def define_configuration():
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
     configuration.optimization.objective = 'pareto'
-    configuration.optimization.pareto_points = 1
+    configuration.optimization.pareto_points = 4
 
     return configuration
 
