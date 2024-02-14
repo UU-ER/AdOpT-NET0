@@ -96,3 +96,12 @@ An examplary usage (can be used after the optimization was done):
 
 .. automodule:: src.result_management.read_results
     :members:
+
+
+Visualization
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Provided an h5 file was saved, the data can be visualized on a visualization platform. Therefore, you need to run the
+following command in the terminal and a website with further instructions opens in the browser:
+``streamlit run src/visualization/streamlit_app.py``
+
+
