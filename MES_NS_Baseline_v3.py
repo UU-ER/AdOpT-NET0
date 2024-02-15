@@ -6,19 +6,28 @@ import pandas as pd
 import random
 
 # General Settings
-settings = pp.Settings(test=0)
+settings = pp.Settings(test=1)
 pp.write_to_technology_data(settings)
 pp.write_to_network_data(settings)
 
-for stage in ['Electrolysis_on']:
-# for stage in ['Baseline', 'Battery_on', 'Battery_off', 'Battery_all', 'Electrolysis_on', 'ElectricityGrid']:
-# for stage in ['Battery_off', 'Electrolysis_on', 'ElectricityGrid']:
-# for stage in ['Baseline', 'Electrolysis_on', 'ElectricityGrid', 'Battery_on', 'Battery_off']:
+
+# for stage in ['Baseline',
+#               'Battery_on',
+#               'Battery_off',
+#               'Battery_all',
+#               'Electrolysis_on',
+#               'ElectricityGrid_all',
+#               'ElectricityGrid_on',
+#               'ElectricityGrid_off',
+#               'ElectricityGrid_noBorder',
+#               ]:
+for stage in ['ElectricityGrid_all',
+              'ElectricityGrid_on',
+              'ElectricityGrid_off',
+              'ElectricityGrid_noBorder',
+              ]:
 
     settings.new_technologies_stage = stage
-    if stage == 'ElectricityGrid':
-        settings.networks.new_electricityAC = 1
-        settings.networks.new_electricityDC = 1
 
     # Configuration
     configuration = pp.define_configuration()

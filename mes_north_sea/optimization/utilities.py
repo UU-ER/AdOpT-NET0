@@ -114,7 +114,7 @@ def define_networks(settings, topology):
     Defines the networks
     """
     data_path = settings.data_path + 'networks/'
-
+    stage = settings.new_technologies_stage
 
     def get_network_data(file_path):
         network = pd.read_csv(file_path, sep=';')
@@ -137,24 +137,38 @@ def define_networks(settings, topology):
 
         return network_data
 
-    file_name = 'pyhub_el_ac.csv'
-    ac_data = get_network_data(data_path + file_name)
+    if stage == 'ElectricityGrid_all':
+        file_name_ac = 'pyhub_el_ac_all.csv'
+        file_name_dc = 'pyhub_el_dc_all.csv'
+    elif stage == 'ElectricityGrid_on':
+        file_name_ac = 'pyhub_el_ac_on.csv'
+        file_name_dc = 'pyhub_el_dc_on.csv'
+    elif stage == 'ElectricityGrid_off':
+        file_name_ac = 'pyhub_el_ac_off.csv'
+        file_name_dc = 'pyhub_el_dc_off.csv'
+    elif stage == 'ElectricityGrid_noBorder':
+        file_name_ac = 'pyhub_el_ac_noBorder.csv'
+        file_name_dc = 'pyhub_el_dc_noBorder.csv'
+    else:
+        file_name_ac = 'pyhub_el_ac_all.csv'
+        file_name_dc = 'pyhub_el_dc_all.csv'
 
-    file_name = 'pyhub_el_dc.csv'
-    dc_data = get_network_data(data_path + file_name)
+
+    ac_data = get_network_data(data_path + file_name_ac)
+    dc_data = get_network_data(data_path + file_name_dc)
 
     if settings.networks.existing_electricity:
         # Networks existing
         topology.define_existing_network('electricityAC', size=ac_data['size_matrix'], distance=ac_data['distance_matrix'])
         topology.define_existing_network('electricityDC', size=dc_data['size_matrix'], distance=dc_data['distance_matrix'])
 
-    if settings.networks.new_electricityAC:
+
+    if 'ElectricityGrid' in stage:
         # Networks - New Electricity AC
         topology.define_new_network('electricityAC', connections=ac_data['connection_matrix'],
                                     distance=ac_data['distance_matrix'],
                                     size_max_arcs=ac_data['max_size_matrix'])
 
-    if settings.networks.new_electricityDC:
         # Networks - New Electricity DC
         topology.define_new_network('electricityDC_int', connections=dc_data['connection_matrix'],
                                     distance=dc_data['distance_matrix'],

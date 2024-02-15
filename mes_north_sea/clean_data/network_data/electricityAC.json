@@ -15,7 +15,7 @@
   "NetworkPerf": {
     "carrier": "electricity",
     "bidirectional": 1,
-    "loss": 0.00005,
+    "loss": 7e-05,
     "min_transport": 0,
     "loss2emissions": 0,
     "emissionfactor": 0,
