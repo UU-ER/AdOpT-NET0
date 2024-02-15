@@ -3,6 +3,7 @@ from pathlib import Path
 import h5py
 import pandas as pd
 from utilities import *
+from networks import plot_nodes
 import folium
 from streamlit_folium import st_folium
 from branca.colormap import linear
