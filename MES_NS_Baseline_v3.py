@@ -21,10 +21,10 @@ pp.write_to_network_data(settings)
 #               'ElectricityGrid_off',
 #               'ElectricityGrid_noBorder',
 #               ]:
-for stage in ['ElectricityGrid_all',
-              'ElectricityGrid_on',
-              'ElectricityGrid_off',
-              'ElectricityGrid_noBorder',
+for stage in ['Baseline',
+              'Battery_on',
+              'Battery_off',
+              'Battery_all',
               ]:
 
     settings.new_technologies_stage = stage
@@ -52,8 +52,8 @@ for stage in ['ElectricityGrid_all',
 
     # Alter capex of electrolysis to remove symmetry
     for node in data.technology_data:
-        if 'Electrolyser_PEM' in data.technology_data[node]:
-            data.technology_data[node]['Electrolyser_PEM'].economics.capex_data['unit_capex'] = data.technology_data[node]['Electrolyser_PEM'].economics.capex_data['unit_capex'] * random.uniform(0.99, 1.01)
+        for tec in data.technology_data[node]:
+            data.technology_data[node][tec].economics.capex_data['unit_capex'] = data.technology_data[node][tec].economics.capex_data['unit_capex'] * random.uniform(0.99, 1.01)
 
     configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/'
     configuration.reporting.save_summary_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/'
