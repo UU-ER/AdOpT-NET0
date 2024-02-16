@@ -268,7 +268,7 @@ def define_imports_exports(settings, nodes, data):
                                         np.ones(len(data.topology.timesteps)) * import_export['Export_' + car][node])
 
     # Emission Factor
-    import_emissions = {'electricity': 0.3}
+    import_emissions = {'electricity': 0.8}
     for node in nodes.onshore_nodes:
         for car in import_emissions:
             data.read_import_emissionfactor_data(node, car, np.ones(len(data.topology.timesteps)) * import_emissions[car])
@@ -356,7 +356,7 @@ def define_configuration():
     configuration.solveroptions.feastol = 1e-3
     configuration.solveroptions.numericfocus = 3
     configuration.optimization.objective = 'pareto'
-    configuration.optimization.pareto_points = 4
+    configuration.optimization.pareto_points = 6
 
     return configuration
 

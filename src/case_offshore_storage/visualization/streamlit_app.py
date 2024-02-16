@@ -1,9 +1,10 @@
 import streamlit as st
 from input_data import *
+from main_results import *
 
 from utilities import determine_graph_boundaries, select_node, read_time_series, plot_area_chart
 
-main_pages = ['Show input data']
+main_pages = ['Show input data', 'Show main results']
 sub_pages = {
     'Show input data': [
         'Installed Capacities',
@@ -11,7 +12,10 @@ sub_pages = {
         'Node Definition',
         'Renewable generation profiles and demand',
         'Networks'
-        ]
+        ],
+    'Show main results':[
+        'Pareto Lines'
+    ]
     }
 
 
@@ -26,7 +30,10 @@ main_page = st.sidebar.selectbox("Select an option:", main_pages)
 sub_page = st.sidebar.selectbox("Select data to show:", sub_pages[main_page])
 
 if main_page == 'Show input data':
-        show_page_input_data(sub_page)
+    show_page_input_data(sub_page)
+elif main_page == 'Show main results':
+    show_main_results()
+
 
 
 #
