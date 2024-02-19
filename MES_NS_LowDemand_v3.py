@@ -10,7 +10,7 @@ settings = pp.Settings(test=1)
 pp.write_to_technology_data(settings)
 pp.write_to_network_data(settings)
 
-settings.demand_factor = 1
+settings.demand_factor = 0.9
 
 # for stage in ['Baseline',
 #               'Battery_on',

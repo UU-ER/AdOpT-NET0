@@ -21,7 +21,8 @@
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
-      "hydrogen"
+      "hydrogen",
+      "electricity"
     ],
     "main_input_carrier": "hydrogen",
     "output_carrier": [
@@ -35,7 +36,12 @@
       "lambda": 0.0,
       "theta": 0,
       "charge_max": 0.3333333333333333,
-      "discharge_max": 0.3333333333333333
+      "discharge_max": 0.3333333333333333,
+      "energy_consumption": {
+        "in": {
+          "electricity": 0.008
+        }
+      }
     }
   },
   "Units": {

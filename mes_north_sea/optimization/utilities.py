@@ -33,12 +33,8 @@ class Settings():
 
         self.new_technologies_stage = None
 
-        # Network Settings
-        self.networks = SimpleNamespace()
-        self.networks.existing_electricity = 1
-        self.networks.new_electricityAC = 0
-        self.networks.new_electricityDC = 0
-        self.networks.new_hydrogen = 0
+        # Demand
+        self.demand_factor = 1
 
 
 def read_nodes(settings):
@@ -157,10 +153,9 @@ def define_networks(settings, topology):
     ac_data = get_network_data(data_path + file_name_ac)
     dc_data = get_network_data(data_path + file_name_dc)
 
-    if settings.networks.existing_electricity:
-        # Networks existing
-        topology.define_existing_network('electricityAC', size=ac_data['size_matrix'], distance=ac_data['distance_matrix'])
-        topology.define_existing_network('electricityDC', size=dc_data['size_matrix'], distance=dc_data['distance_matrix'])
+
+    topology.define_existing_network('electricityAC', size=ac_data['size_matrix'], distance=ac_data['distance_matrix'])
+    topology.define_existing_network('electricityDC', size=dc_data['size_matrix'], distance=dc_data['distance_matrix'])
 
 
     if 'ElectricityGrid' in stage:
@@ -230,7 +225,7 @@ def define_demand(settings, nodes, data):
 
     demand_el = pd.read_csv(data_path + 'TotalDemand_NT_' + str(climate_year) + '.csv', index_col=0)
     for node in nodes.onshore_nodes:
-        data.read_demand_data(node, 'electricity', demand_el[node].to_numpy())
+        data.read_demand_data(node, 'electricity', demand_el[node].to_numpy() * settings.demand_factor)
 
     return data
 

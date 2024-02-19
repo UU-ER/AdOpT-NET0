@@ -16,7 +16,8 @@ def show_main_results():
         st.session_state['summary_results'] = None
 
     if st.session_state['summary_results'] is None:
-        summary_results = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/Summary_Plotting_appended.xlsx', index_col=0)
+        # summary_results = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/Summary_Plotting_appended.xlsx', index_col=0)
+        summary_results = pd.read_excel('C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/Summary.xlsx')
 
         # Normalization
         baseline_costs = summary_results.loc[summary_results['Case'] == 'Baseline', 'total_costs'].values[0]
@@ -27,9 +28,23 @@ def show_main_results():
 
     summary_results = st.session_state['summary_results']
 
+    st.header('Pareto Chart (full)')
+
     chart = alt.Chart(summary_results).mark_line(point=True).encode(
-        x='normalized_costs',
-        y='normalized_emissions',
+        x=alt.X('normalized_costs').scale(zero=False) ,
+        y=alt.Y('normalized_emissions').scale(zero=False) ,
+        color='Case'
+    ).properties(
+        width=600,
+        height=400
+    ).interactive()
+    st.altair_chart(chart, theme="streamlit")
+
+
+    st.header('Pareto Chart (zoomed to min cost point)')
+    chart = alt.Chart(summary_results[summary_results['pareto_point'] == 0]).mark_circle().encode(
+        x=alt.X('normalized_costs').scale(zero=False) ,
+        y=alt.Y('normalized_emissions').scale(zero=False) ,
         color='Case'
     ).properties(
         width=600,
