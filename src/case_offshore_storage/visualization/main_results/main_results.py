@@ -16,8 +16,8 @@ def show_main_results():
         st.session_state['summary_results'] = None
 
     if st.session_state['summary_results'] is None:
-        # summary_results = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/Summary_Plotting_appended.xlsx', index_col=0)
-        summary_results = pd.read_excel('C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/Summary.xlsx')
+        summary_results = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/Summary_Plotting_appended.xlsx', index_col=0)
+        # summary_results = pd.read_excel('C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/Summary.xlsx')
 
         # Normalization
         baseline_costs = summary_results.loc[summary_results['Case'] == 'Baseline', 'total_costs'].values[0]
@@ -87,14 +87,8 @@ def show_main_results():
     st.header('Electricity Generation by source')
     for case in [case1, case2]:
         st.subheader(case)
-        summary_results_case = summary_results[summary_results['Case'].isin([case])]
+        summary_results_case = summary_results[summary_results['Case'].isin([case])].drop_duplicates(subset=['normalized_costs'], keep='last')
 
-        # generation_by_source = summary_results_case[['normalized_costs',
-        #                                                  'import_total',
-        #                                                  'PowerPlant_Coal_existing',
-        #                                                  'PowerPlant_Gas_existing',
-        #                                                  'PowerPlant_Nuclear_existing',
-        #                                                  'PowerPlant_Oil_existing']]
         generation_by_source = summary_results_case[['normalized_costs',
                                                          'import_total',
                                                          'generic_production_total',
