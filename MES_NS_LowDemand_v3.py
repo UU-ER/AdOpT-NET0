@@ -16,14 +16,16 @@ settings.demand_factor = 0.9
 #               'Battery_on',
 #               'Battery_off',
 #               'Battery_all',
-#               'Electrolysis_on',
 #               'ElectricityGrid_all',
 #               'ElectricityGrid_on',
 #               'ElectricityGrid_off',
 #               'ElectricityGrid_noBorder',
 #               ]:
-for stage in ['Baseline']:
-# for stage in ['Hydrogen_Baseline']:
+for stage in ['Baseline',
+              'Battery_on',
+              'Battery_off',
+              'Battery_all',
+              ]:
 
     settings.new_technologies_stage = stage
 
@@ -48,10 +50,10 @@ for stage in ['Baseline']:
     data.read_network_data(load_path=settings.netw_data_path)
     data = pp.define_charging_efficiencies(settings, nodes, data)
 
-    # Alter capex of electrolysis to remove symmetry
+    # Alter capex of technologies to remove symmetry
     for node in data.technology_data:
-        if 'Electrolyser_PEM' in data.technology_data[node]:
-            data.technology_data[node]['Electrolyser_PEM'].economics.capex_data['unit_capex'] = data.technology_data[node]['Electrolyser_PEM'].economics.capex_data['unit_capex'] * random.uniform(0.99, 1.01)
+        for tec in data.technology_data[node]:
+            data.technology_data[node][tec].economics.capex_data['unit_capex'] = data.technology_data[node][tec].economics.capex_data['unit_capex'] * random.uniform(0.99, 1.01)
 
     configuration.reporting.save_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/'
     configuration.reporting.save_summary_path = '//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/'
