@@ -316,7 +316,6 @@ class Network(ModelComponent):
 
             if arc.find_component('var_consumption_send'):
                 for car in model_block.set_consumed_carriers:
-                    print(car)
 
                     arc_group.create_dataset("consumption_send" + car,
                                              data=[arc.var_consumption_send[t, car].value for t in self.set_t])

@@ -23,7 +23,7 @@
     "energyconsumption": {
       "electricity": {
         "cons_model": 2,
-        "p": 85,
+        "p": 140,
         "c": 0.00398,
         "T": 300,
         "eta": 0.65,

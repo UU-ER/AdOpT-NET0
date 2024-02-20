@@ -9,8 +9,10 @@ import numpy as np
 topology = dm.SystemTopology()
 topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-01 10:00', resolution=1)
 topology.define_carriers(['electricity', 'gas', 'hydrogen'])
-topology.define_nodes({'onshore': 0, 'offshore': 1})
+topology.define_nodes({'onshore': {'lon': 10, 'lat': 15}, 'offshore': {'lon': 20, 'lat': 15}})
 topology.define_existing_technologies('onshore', {'PowerPlant_Gas': 2000})
+topology.define_new_technologies('offshore', ['Electrolyser_PEM'])
+topology.define_new_technologies('onshore', ['FuelCell'])
 
 distance = dm.create_empty_network_matrix(topology.nodes)
 distance.at['onshore', 'offshore'] = 100
@@ -40,12 +42,16 @@ else:
 # DEMAND
 electricity_demand = np.ones(len(topology.timesteps)) * 1000
 data.read_demand_data('onshore', 'electricity', electricity_demand)
+
+# Generic production
+data.read_production_profile('offshore', 'electricity', np.ones(len(topology.timesteps)) * 1500, 1)
+
 # Import
 gas_import = np.ones(len(topology.timesteps)) * 2000
 data.read_import_limit_data('onshore', 'gas', gas_import)
 
-export_lim = np.ones(len(topology.timesteps)) * 10000
-data.read_export_limit_data('onshore', 'hydrogen', export_lim)
+# export_lim = np.ones(len(topology.timesteps)) * 10000
+# data.read_export_limit_data('onshore', 'hydrogen', export_lim)
 
 data.read_export_emissionfactor_data('onshore', 'hydrogen', np.ones(len(data.topology.timesteps)) * -0.18)
 data.read_import_emissionfactor_data('onshore', 'gas', np.ones(len(data.topology.timesteps)) * 0.18)

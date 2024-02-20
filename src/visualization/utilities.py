@@ -29,7 +29,7 @@ def plot_area_chart(df, x_min, x_max):
 
     chart = alt.Chart(df).mark_area().encode(
         x='index:Q',
-        y='value:Q',
+        y='sum(value):Q',
         color="variable:N").configure_legend(orient='bottom')
     return chart
 
