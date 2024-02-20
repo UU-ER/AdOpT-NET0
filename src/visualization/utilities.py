@@ -2,24 +2,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 import h5py
-#
-# def get_boundaries_date(dict):
-#     min_value = None
-#     max_value = None
-#     for run in dict:
-#         for key, df in dict[run].items():
-#             # Update min_value and max_value based on the current DataFrame
-#             current_min = df['Timestep'].min()
-#             current_max = df['Timestep'].max()
-#
-#             if min_value is None or current_min < min_value:
-#                 min_value = current_min
-#
-#             if max_value is None or current_max > max_value:
-#                 max_value = current_max
-#     return min_value, max_value
-#
-#
+
 def determine_graph_boundaries(x_values):
     """
     Returns x_min and x_max for a graph that is determined by using a slider
@@ -38,17 +21,7 @@ def determine_graph_boundaries(x_values):
     )
     return x_min, x_max
 
-#
-#
-#
-# def read_time_series(path):
-#     data = pd.read_excel(path, sheet_name=None, index_col=0)
-#     for carrier in data:
-#         data[carrier]['Timestep'] = [datetime(2030, 1, 1, 0, 0, 0) + timedelta(hours=hour) for
-#                                                    hour in data[carrier].index]
-#     return data
-#
-#
+
 def plot_area_chart(df, x_min, x_max):
     df = df[(df.index >= x_min) & (df.index <= x_max)]
     df = df.reset_index()
@@ -59,6 +32,7 @@ def plot_area_chart(df, x_min, x_max):
         y='value:Q',
         color="variable:N").configure_legend(orient='bottom')
     return chart
+
 
 def plot_line_chart(df, x_min, x_max):
     df = df[(df.index >= x_min) & (df.index <= x_max)]

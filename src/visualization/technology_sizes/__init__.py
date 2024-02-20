@@ -1,1 +1,0 @@
-from .technology_sizes import tec_sizes

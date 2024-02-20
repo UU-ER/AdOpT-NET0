@@ -1,1 +1,0 @@
-from .technology_operation import tec_operation
