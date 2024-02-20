@@ -169,12 +169,26 @@ def define_networks(settings, topology):
                                     distance=dc_data['distance_matrix'],
                                     size_max_arcs=round(dc_data['max_size_matrix']/2000,0))
 
-    #
-    # if settings.networks.new_hydrogen:
-    #     # Networks - Hydrogen
-    #     network_data = read_network_data(topology.nodes, settings.node_aggregation, data_path + '/Networks/NetworkDataHydrogen.xlsx', 0)
-    #     topology.define_new_network('hydrogenPipeline_int', connections=network_data['connection'],
-    #                                 distance=network_data['distance'])
+    # Hydrogen networks
+    if 'Hydrogen' in stage:
+        if stage != 'Hydrogen_H4':
+            file_name = 'pyhub_h2_offshore.csv'
+            data = get_network_data(data_path + file_name)
+            topology.define_new_network('hydrogenPipelineOffshore', connections=data['connection_matrix'],
+                                        distance=data['distance_matrix'],
+                                        size_max_arcs=data['max_size_matrix'])
+
+            file_name = 'pyhub_h2_onshore_new.csv'
+            data = get_network_data(data_path + file_name)
+            topology.define_new_network('hydrogenPipelineOnshore_new', connections=data['connection_matrix'],
+                                        distance=data['distance_matrix'],
+                                        size_max_arcs=data['max_size_matrix'])
+
+            file_name = 'pyhub_h2_onshore_re.csv'
+            data = get_network_data(data_path + file_name)
+            topology.define_new_network('hydrogenPipelineOnshore_re', connections=data['connection_matrix'],
+                                        distance=data['distance_matrix'],
+                                        size_max_arcs=data['max_size_matrix'])
 
     return topology
 

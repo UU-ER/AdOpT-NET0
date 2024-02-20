@@ -20,11 +20,17 @@ settings.demand_factor = 1
 #               'ElectricityGrid_on',
 #               'ElectricityGrid_off',
 #               'ElectricityGrid_noBorder',
+#               'Hydrogen_Baseline',
+#               'Hydrogen_H1',
+#               'Hydrogen_H2',
+#               'Hydrogen_H3',
+#               'Hydrogen_H4'
 #               ]:
-for stage in ['Baseline',
-              'Battery_on',
-              'Battery_off',
-              'Battery_all',
+for stage in ['Hydrogen_Baseline',
+              'Hydrogen_H1',
+              'Hydrogen_H2',
+              'Hydrogen_H3',
+              'Hydrogen_H4'
               ]:
 
     settings.new_technologies_stage = stage
