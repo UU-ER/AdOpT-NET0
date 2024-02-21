@@ -30,7 +30,7 @@ def plot_area_chart(df, x_min, x_max):
     chart = alt.Chart(df).mark_area().encode(
         x='index:Q',
         y='sum(value):Q',
-        color="variable:N").configure_legend(orient='bottom')
+        color="variable:N").configure_legend(orient='bottom').interactive()
     return chart
 
 
@@ -42,7 +42,7 @@ def plot_line_chart(df, x_min, x_max):
     chart = alt.Chart(df).mark_line().encode(
         x='index:Q',
         y='value:Q',
-        color="variable:N").configure_legend(orient='bottom')
+        color="variable:N").configure_legend(orient='bottom').interactive()
     return chart
 
 

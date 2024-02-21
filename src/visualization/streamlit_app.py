@@ -367,7 +367,7 @@ if st.session_state['path_loaded'] == 1:
                         folium.plugins.AntPath(
                             locations=[(from_node_data['lat'], from_node_data['lon']),
                                                 (to_node_data['lat'], to_node_data['lon'])],
-                            color=color, dash_array=[10, 20], weight= normalized_value * 10,
+                            color=color, dash_array=[10, 20], weight=5,
                         ).add_to(map)
 
 
