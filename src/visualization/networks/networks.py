@@ -1,5 +1,4 @@
 import pandas as pd
-import networkx as nx
 import matplotlib.pyplot as plt
 import streamlit as st
 import matplotlib.cm as cm
