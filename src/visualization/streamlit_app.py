@@ -10,7 +10,6 @@ from branca.colormap import linear
 from folium.plugins import PolyLineTextPath, PolyLineOffset
 import sys
 
-# \\ad.geo.uu.nl\Users\StaffUsers\6574114\EhubResults\MES NorthSea\baseline_demand\nolosses\20240210215437_Baseline
 
 # Initialize Session States
 if 'path' not in st.session_state:
@@ -237,10 +236,6 @@ if st.session_state['path_loaded'] == 1:
         # Select graph to show
         graphs = ['Network Size', 'Network Capex', 'Total Flow', 'Flow at time slice']
         selected_graph = st.sidebar.selectbox('Select a figure to show:', graphs)
-
-        # use_node_locations = st.sidebar.toggle('Use node locations')
-        # if use_node_locations:
-        network_key_path = Path('C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/Papers/DOSTA - HydrogenOffshore/Node_Locations.csv')
 
         # Load Nodes
         if st.session_state['network_keys'] is None:
