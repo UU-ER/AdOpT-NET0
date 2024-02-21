@@ -28,7 +28,6 @@ if 'pages' not in st.session_state:
 
 if st.sidebar.button('Reset Data'):
     st.session_state['path'] = {}
-    st.session_state['network_keys'] = None
     st.session_state['nodes'] = {}
     st.session_state['carriers'] = set()
     st.session_state['path_loaded'] = 0
@@ -128,6 +127,10 @@ if st.session_state['path_loaded'] == 1:
                          'technology_inputs',
                          'network_outflow',
                          'export']
+
+        if 'network_consumption' in energybalance[1].columns.get_level_values(2):
+            series_demand.append('network_consumption')
+
         selected_demand_series = st.multiselect('Select Series to Filter', series_demand,
                                                 default=series_demand)
         for i in st.session_state['path'].keys():
