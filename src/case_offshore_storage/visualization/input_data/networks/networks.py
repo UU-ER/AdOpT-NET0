@@ -24,8 +24,8 @@ def show_networks():
 
     # Create Edges
     root_load_path = Path('C:/Users/6574114/Documents/Research/EHUB-Py_Productive/mes_north_sea/clean_data/networks')
-    grid_ac = pd.read_csv(Path.joinpath(root_load_path, Path('pyhub_el_ac.csv')), delimiter=';')
-    grid_dc = pd.read_csv(Path.joinpath(root_load_path, Path('pyhub_el_dc.csv')), delimiter=';')
+    grid_ac = pd.read_csv(Path.joinpath(root_load_path, Path('pyhub_el_ac_all.csv')), delimiter=';')
+    grid_dc = pd.read_csv(Path.joinpath(root_load_path, Path('pyhub_el_dc_all.csv')), delimiter=';')
 
     grid_ac['type'] = 'ac'
     grid_dc['type'] = 'dc'

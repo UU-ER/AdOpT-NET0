@@ -9,7 +9,9 @@ def add_prefix_to_keys(dictionary, prefix):
         new_dict[new_key] = value
     return new_dict
 
-summary_results = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/Summary_Plotting.xlsx')
+folder_path = 'low_demand'
+
+summary_results = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/' + folder_path + '/Summary_Plotting.xlsx')
 
 # Normalization
 baseline_costs = summary_results.loc[summary_results['Case'] == 'Baseline', 'total_costs'].values[0]
@@ -86,6 +88,6 @@ summary_results_appended = pd.merge(summary_results_appended, imports_df_all, ri
 summary_results_appended = pd.merge(summary_results_appended, generic_production_all, right_index=True, left_index=True)
 summary_results_appended = pd.merge(summary_results_appended, tec_output_all, right_index=True, left_index=True)
 
-summary_results_appended.to_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand/Summary_Plotting_appended.xlsx')
+summary_results_appended.to_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/' + folder_path + '/Summary_Plotting_appended.xlsx')
 
 

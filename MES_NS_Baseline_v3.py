@@ -24,13 +24,10 @@ settings.demand_factor = 1
 #               'Hydrogen_H1',
 #               'Hydrogen_H2',
 #               'Hydrogen_H3',
-#               'Hydrogen_H4'
+#               'Hydrogen_H4',
+#               'All'
 #               ]:
-for stage in ['Hydrogen_Baseline',
-              'Hydrogen_H1',
-              'Hydrogen_H2',
-              'Hydrogen_H3',
-              'Hydrogen_H4'
+for stage in ['All'
               ]:
 
     settings.new_technologies_stage = stage
