@@ -356,7 +356,7 @@ def define_configuration():
     configuration.optimization.monte_carlo.on = 0
     configuration.optimization.monte_carlo.N = 5
     configuration.optimization.typicaldays.N = 0
-    configuration.solveroptions.timelim = 50
+    configuration.solveroptions.timelim = 5*24
 
     configuration.solveroptions.intfeastol = 1e-3
     configuration.solveroptions.feastol = 1e-3
