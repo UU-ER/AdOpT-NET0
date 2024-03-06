@@ -4,6 +4,10 @@ from main_results import *
 
 from utilities import determine_graph_boundaries, select_node, read_time_series, plot_area_chart
 
+
+
+
+
 main_pages = ['Show input data', 'Show main results']
 sub_pages = {
     'Show input data': [
@@ -14,7 +18,7 @@ sub_pages = {
         'Networks'
         ],
     'Show main results':[
-        'Pareto Lines'
+        'Pareto Lines',
     ]
     }
 
@@ -28,11 +32,11 @@ sub_pages = {
 #     ]
 main_page = st.sidebar.selectbox("Select an option:", main_pages)
 sub_page = st.sidebar.selectbox("Select data to show:", sub_pages[main_page])
-
+#
 if main_page == 'Show input data':
     show_page_input_data(sub_page)
 elif main_page == 'Show main results':
-    show_main_results()
+    show_main_results(sub_page)
 
 
 

@@ -23,7 +23,7 @@ def extract_datasets_from_h5_group(group, prefix=()):
     return df
 
 
-def extract_datasets_from_h5_dataset(dataset):
+def extract_data_from_h5_dataset(dataset):
     """
     Gets dataset from an h5 file
 

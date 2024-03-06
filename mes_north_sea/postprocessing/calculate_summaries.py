@@ -9,7 +9,7 @@ def add_prefix_to_keys(dictionary, prefix):
         new_dict[new_key] = value
     return new_dict
 
-folder_path = 'low_demand'
+folder_path = 'temp_plot_append'
 
 summary_results = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/' + folder_path + '/Summary_Plotting.xlsx')
 
@@ -31,6 +31,7 @@ with h5py.File(
     nodes = extract_dataset_from_h5(hdf_file["topology/nodes"])
     carriers = extract_dataset_from_h5(hdf_file["topology/carriers"])
 
+
 # Get paths to results
 paths = {}
 for case in summary_results['Case'].unique():
@@ -41,6 +42,7 @@ imports_dict = {}
 curtailment_dict = {}
 generic_production_dict = {}
 tec_output_dict = {}
+demand_dict = {}
 for case in paths:
     for point in paths[case]:
         print(point)
@@ -67,6 +69,12 @@ for case in paths:
         prefixed_dict['generic_production_total'] = generic_production_df.sum()
         generic_production_dict[point] = prefixed_dict
 
+        # Demand
+        demand_df = df.loc[:, 'electricity', 'demand']
+        prefixed_dict = add_prefix_to_keys(demand_df.to_dict(), 'demand_')
+        prefixed_dict['demand_total'] = demand_df.sum()
+        demand_dict[point] = prefixed_dict
+
         # Technology operation
         with h5py.File(point + '/optimization_results.h5', 'r') as hdf_file:
             df = extract_datasets_from_h5group(hdf_file["operation/technology_operation"])
@@ -81,12 +89,14 @@ imports_df_all = pd.DataFrame.from_dict(imports_dict, orient='index')
 curtailment_all = pd.DataFrame.from_dict(curtailment_dict, orient='index')
 generic_production_all = pd.DataFrame.from_dict(generic_production_dict, orient='index')
 tec_output_all = pd.DataFrame.from_dict(tec_output_dict, orient='index')
+demand_all = pd.DataFrame.from_dict(demand_dict, orient='index')
 
 summary_results = summary_results.set_index('time_stamp')
 summary_results_appended = pd.merge(summary_results, curtailment_all, right_index=True, left_index=True)
 summary_results_appended = pd.merge(summary_results_appended, imports_df_all, right_index=True, left_index=True)
 summary_results_appended = pd.merge(summary_results_appended, generic_production_all, right_index=True, left_index=True)
 summary_results_appended = pd.merge(summary_results_appended, tec_output_all, right_index=True, left_index=True)
+summary_results_appended = pd.merge(summary_results_appended, demand_all, right_index=True, left_index=True)
 
 summary_results_appended.to_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/' + folder_path + '/Summary_Plotting_appended.xlsx')
 

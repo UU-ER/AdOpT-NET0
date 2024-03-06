@@ -61,8 +61,8 @@ if st.session_state['path_loaded'] == 0:
         try:
             for i in st.session_state['path'].keys():
                 with h5py.File(st.session_state['path'][i], 'r') as hdf_file:
-                    st.session_state['nodes'][i] = extract_datasets_from_h5_dataset(hdf_file["topology/nodes"])
-                    st.session_state['carriers'].update(extract_datasets_from_h5_dataset(hdf_file["topology/carriers"]))
+                    st.session_state['nodes'][i] = extract_data_from_h5_dataset(hdf_file["topology/nodes"])
+                    st.session_state['carriers'].update(extract_data_from_h5_dataset(hdf_file["topology/carriers"]))
             st.session_state['path_loaded'] = 1
         except FileNotFoundError:
             st.text('File not found, the path you entered is invalid!')
@@ -325,6 +325,8 @@ if st.session_state['path_loaded'] == 1:
 
                 # Select a network
                 network_operation_filtered = network_operation[network_operation['Network'].isin(selected_netw)]
+                if selected_option == 'Show single result':
+                    export_csv(network_operation_filtered, 'Download Network Operation as CSV', 'energybalance.csv')
 
                 # Select type
                 select_plotting = st.sidebar.selectbox('Select plotting type:', ['Energy Flow', 'Line Utilization'])
