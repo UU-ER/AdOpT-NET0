@@ -248,24 +248,22 @@ class Stor(Technology):
         # RAMPING RATES
         if "ramping_rate" in self.performance_data:
             if not self.performance_data['ramping_rate']   == -1:
-                b_tec = self.__define_ramping_rates(b_tec)
+                b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
 
-    def report_results(self, b_tec):
+    def write_tec_operation_results_to_group(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(Stor, self).report_results(b_tec)
+        super(Stor, self).write_tec_operation_results_to_group(h5_group, model_block)
 
-        self.results['time_dependent']['storagelevel'] = [b_tec.var_storage_level[t].value for t in self.set_t_full]
+        h5_group.create_dataset("storage_level", data=[model_block.var_storage_level[t].value for t in self.set_t_full])
 
-        return self.results
-
-    def __define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate. Implemented for input and output
 

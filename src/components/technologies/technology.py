@@ -145,16 +145,16 @@ class Technology(ModelComponent):
             self.modelled_with_full_res = 1
 
         # GENERAL TECHNOLOGY CONSTRAINTS
-        b_tec = self.__define_size(b_tec)
-        b_tec = self.__define_capex(b_tec, energyhub)
-        b_tec = self.__define_input(b_tec, energyhub)
-        b_tec = self.__define_output(b_tec, energyhub)
-        b_tec = self.__define_opex(b_tec, energyhub)
-        b_tec = self.__define_emissions(b_tec, energyhub)
+        b_tec = self._define_size(b_tec)
+        b_tec = self._define_capex(b_tec, energyhub)
+        b_tec = self._define_input(b_tec, energyhub)
+        b_tec = self._define_output(b_tec, energyhub)
+        b_tec = self._define_opex(b_tec, energyhub)
+        b_tec = self._define_emissions(b_tec, energyhub)
 
         # CLUSTERED DATA
         if energyhub.model_information.clustered_data and not self.modelled_with_full_res:
-            b_tec = self.__define_auxiliary_vars(b_tec, energyhub)
+            b_tec = self._define_auxiliary_vars(b_tec, energyhub)
         else:
             if not (self.technology_model == 'RES') and not (self.technology_model == 'CONV4'):
                 self.input = b_tec.var_input
@@ -167,7 +167,7 @@ class Technology(ModelComponent):
         if energyhub.configuration.performance.dynamics:
             technologies_modelled_with_dynamics = ['CONV1', 'CONV2', 'CONV3']
             if self.technology_model in technologies_modelled_with_dynamics:
-                b_tec = self.__define_dynamics(b_tec)
+                b_tec = self._define_dynamics(b_tec)
             else:
                 warn('Modeling dynamic constraints not enabled for technology type' + self.name)
         else:
@@ -178,37 +178,39 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def report_results(self, b_tec):
+    def write_tec_design_results_to_group(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
-        :param b_tec: technology model block
+        :param model_block: technology model block
         :return: dict results: holds results
         """
-        self.results['time_independent']['technology'] = [self.name]
-        self.results['time_independent']['size'] = [b_tec.var_size.value]
-        self.results['time_independent']['existing'] = [self.existing]
-        self.results['time_independent']['capex'] = [b_tec.var_capex.value]
-        self.results['time_independent']['opex_variable'] = [sum(b_tec.var_opex_variable[t].value for t in self.set_t_full)]
-        self.results['time_independent']['opex_fixed'] = [b_tec.var_opex_fixed.value]
-        self.results['time_independent']['emissions_pos'] = [sum(b_tec.var_tec_emissions_pos[t].value for t in self.set_t_full)]
-        self.results['time_independent']['emissions_neg'] = [sum(b_tec.var_tec_emissions_neg[t].value for t in self.set_t_full)]
 
-        for car in b_tec.set_input_carriers:
-            if b_tec.find_component('var_input'):
-                self.results['time_dependent']['input_' + car] = [b_tec.var_input[t, car].value for t in self.set_t_full]
-        for car in b_tec.set_output_carriers:
-            self.results['time_dependent']['output_' + car] = [b_tec.var_output[t, car].value for t in self.set_t_full]
-        self.results['time_dependent']['emissions_pos'] = [b_tec.var_tec_emissions_pos[t].value for t in self.set_t_full]
-        self.results['time_dependent']['emissions_neg'] = [b_tec.var_tec_emissions_neg[t].value for t in self.set_t_full]
-        if b_tec.find_component('var_x'):
-            self.results['time_dependent']['var_x'] = [b_tec.var_x[t].value for t in self.set_t_full]
-        if b_tec.find_component('var_y'):
-            self.results['time_dependent']['var_y'] = [b_tec.var_y[t].value for t in self.set_t_full]
-        if b_tec.find_component('var_z'):
-            self.results['time_dependent']['var_z'] = [b_tec.var_z[t].value for t in self.set_t_full]
+        h5_group.create_dataset("technology", data=[self.name])
+        h5_group.create_dataset("size", data=[model_block.var_size.value])
+        h5_group.create_dataset("existing", data=[self.existing])
+        h5_group.create_dataset("capex", data=[model_block.var_capex.value])
+        h5_group.create_dataset("opex_variable", data=[sum(model_block.var_opex_variable[t].value for t in self.set_t_full)])
+        h5_group.create_dataset("opex_fixed", data=[model_block.var_opex_fixed.value])
+        h5_group.create_dataset("emissions_pos", data=[sum(model_block.var_tec_emissions_pos[t].value for t in self.set_t_full)])
+        h5_group.create_dataset("emissions_neg", data=[sum(model_block.var_tec_emissions_neg[t].value for t in self.set_t_full)])
 
-        return self.results
+    def write_tec_operation_results_to_group(self, h5_group, model_block):
+
+        for car in model_block.set_input_carriers:
+            if model_block.find_component('var_input'):
+                h5_group.create_dataset(f'{car}_input', data=[model_block.var_input[t, car].value for t in self.set_t_full])
+        for car in model_block.set_output_carriers:
+            h5_group.create_dataset(f'{car}_output', data=[model_block.var_output[t, car].value for t in self.set_t_full])
+        h5_group.create_dataset("emissions_pos", data=[model_block.var_tec_emissions_pos[t].value for t in self.set_t_full])
+        h5_group.create_dataset("emissions_neg", data=[model_block.var_tec_emissions_neg[t].value for t in self.set_t_full])
+        if model_block.find_component('var_x'):
+            model_block.var_x.pprint()
+            h5_group.create_dataset("var_x", data=[0 if x is None else x for x in [model_block.var_x[t].value for t in self.set_t_full]])
+        if model_block.find_component('var_y'):
+            h5_group.create_dataset("var_y", data=[0 if x is None else x for x in [model_block.var_y[t].value for t in self.set_t_full]])
+        if model_block.find_component('var_z'):
+            h5_group.create_dataset("var_z", data=[0 if x is None else x for x in [model_block.var_z[t].value for t in self.set_t_full]])
 
     def scale_model(self, b_tec, model, configuration):
         """
@@ -223,7 +225,7 @@ class Technology(ModelComponent):
 
         return model
 
-    def __define_size(self, b_tec):
+    def _define_size(self, b_tec):
         """
         Defines variables and parameters related to technology size.
 
@@ -261,7 +263,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def __define_capex(self, b_tec, energyhub):
+    def _define_capex(self, b_tec, energyhub):
         """
         Defines variables and parameters related to technology capex.
 
@@ -362,7 +364,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def __define_input(self, b_tec, energyhub):
+    def _define_input(self, b_tec, energyhub):
         """
         Defines input to a technology
 
@@ -405,7 +407,7 @@ class Technology(ModelComponent):
                                   bounds=init_input_bounds)
         return b_tec
 
-    def __define_output(self, b_tec, energyhub):
+    def _define_output(self, b_tec, energyhub):
         """
         Defines output to a technology
 
@@ -442,7 +444,7 @@ class Technology(ModelComponent):
                                bounds=init_output_bounds)
         return b_tec
 
-    def __define_opex(self, b_tec, energyhub):
+    def _define_opex(self, b_tec, energyhub):
         """
         Defines variable and fixed OPEX
         """
@@ -465,7 +467,7 @@ class Technology(ModelComponent):
         b_tec.const_opex_fixed = Constraint(expr=b_tec.var_capex_aux * b_tec.para_opex_fixed == b_tec.var_opex_fixed)
         return b_tec
 
-    def __define_emissions(self, b_tec, energyhub):
+    def _define_emissions(self, b_tec, energyhub):
         """
         Defines Emissions
         """
@@ -537,7 +539,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def __define_auxiliary_vars(self, b_tec, energyhub):
+    def _define_auxiliary_vars(self, b_tec, energyhub):
         """
         Defines auxiliary variables, that are required for the modelling of clustered data
         """
@@ -586,7 +588,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def __define_dynamics(self, b_tec):
+    def _define_dynamics(self, b_tec):
         """
         Selects the dynamic constraints that are required based on the technology dynamic performance parameters or the
         performance function type.
@@ -602,13 +604,13 @@ class Technology(ModelComponent):
                                      (self.performance_data['performance_function_type'] == 4)
         if (min_uptime + min_downtime > -2) or (max_startups > -1) or (SU_load + SD_load > -2) or \
                 performance_function_type4:
-            b_tec = self.__dynamics_SUSD_logic(b_tec)
+            b_tec = self._dynamics_SUSD_logic(b_tec)
         if not performance_function_type4 and (SU_load + SD_load > -2):
-            b_tec = self.__dynamics_fast_SUSD(b_tec)
+            b_tec = self._dynamics_fast_SUSD(b_tec)
 
         return b_tec
 
-    def __dynamics_SUSD_logic(self, b_tec):
+    def _dynamics_SUSD_logic(self, b_tec):
         """
         Adds the startup and shutdown logic to the technology model and constrains the maximum number of startups.
 
@@ -675,7 +677,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def __dynamics_fast_SUSD(self, b_tec):
+    def _dynamics_fast_SUSD(self, b_tec):
         """
         Adds startup and shutdown load constraints to the model.
 
