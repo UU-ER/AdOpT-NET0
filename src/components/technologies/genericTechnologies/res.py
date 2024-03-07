@@ -39,13 +39,13 @@ class Res(Technology):
         location = node_data.location
         climate_data = node_data.data['climate_data']
 
-        if self.name == 'Photovoltaic':
+        if 'Photovoltaic' in self.name:
             if 'system_type' in self.performance_data:
                 self._perform_fitting_PV(climate_data, location, system_data=self.performance_data['system_type'])
             else:
                 self._perform_fitting_PV(climate_data, location)
 
-        elif self.name == 'SolarThermal':
+        elif 'SolarThermal' in self.name:
             self._perform_fitting_ST(climate_data)
 
         elif 'WindTurbine' in self.name:
