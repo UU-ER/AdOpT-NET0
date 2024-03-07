@@ -62,11 +62,6 @@ def plot_node_supply(ax, supply, show_text, radius_scale, fs):
         ax.text(0, 0, f"{value/1000000:.0f} TWh", ha='center', va='center', fontsize=fs)
     return ax
 
-def aggregate_time(df, level):
-    df = df.groupby(level=level).sum()
-    df.index.names = ['Timeslice']
-    return df
-
 st.set_page_config(layout="wide")
 
 # LOAD DATA
@@ -106,21 +101,30 @@ balance = aggregate_time(tec_operation, time_agg_options[time_agg])
 networks = aggregate_time(network_operation, time_agg_options[time_agg])
 
 # Filter dfs for spatial aggregation
-balance = balance.T.reset_index()
-balance = balance.groupby([spatial_agg, 'Technology', 'Carrier', 'Variable']).sum()
-if spatial_agg == 'Country':
-    balance = balance.rename_axis(index={'Country': 'Node'})
-balance = balance.reset_index()
-
-networks = networks.T
-if spatial_agg == 'Country':
-    networks = networks.reset_index()
-    networks = networks[networks['FromCountry'] != networks['ToCountry']]
-    networks = networks.groupby(['Network', 'FromCountry', 'ToCountry']).sum()
-    networks = networks.rename_axis(index={'FromCountry': 'FromNode', 'ToCountry': 'ToNode'})
+balance = aggregate_spatial_balance(balance, spatial_agg)
+networks = aggregate_spatial_networks(networks, spatial_agg)
 
 # Preprocessing - Supply
 supply = balance[(balance['Variable'].isin(['generic_production', 'import', 'output', 'input'])) & (balance['Carrier'] == 'electricity')]
+
+def subtract_rows(group):
+    input_value = group[group['Variable'] == 'input'].iloc[:, 4:].values
+    output_value = group[group['Variable'] == 'output'].iloc[:, 4:].values
+    diff = pd.DataFrame(output_value - input_value)
+
+    def replace_negative_with_zero(x):
+        return max(0, x)
+    diff = diff.applymap(replace_negative_with_zero)
+
+    return diff
+
+# Apply the subtraction operation and create a new DataFrame with the result
+result = supply[supply['Technology'].isin(['Storage_PumpedHydro_Open_existing', 'Storage_PumpedHydro_Reservoir_existing'])].groupby(['Node','Technology', 'Carrier']).apply(subtract_rows).reset_index()
+result = result.rename(columns= {'level_3': 'Variable'})
+result['Variable'] = 'output'
+result.columns = supply.columns
+supply = pd.concat([supply[~supply['Technology'].isin(['Storage_PumpedHydro_Open_existing', 'Storage_PumpedHydro_Reservoir_existing'])], result], axis=0)
+
 supply['Generation'] = np.where(supply['Variable'] == 'output', supply['Technology'], supply['Variable'])
 
 keep_generation = ['generic_production',
@@ -133,6 +137,8 @@ keep_generation = ['generic_production',
                     'Storage_PumpedHydro_Reservoir_existing']
 
 supply = supply[(supply['Generation'].isin(keep_generation))].drop(columns=['Technology', 'Carrier', 'Variable']).set_index(['Node', 'Generation']).T
+
+
 preprocessed_data['supply'] = supply
 
 # Preprocessing - Demand
@@ -313,6 +319,11 @@ with col1:
     ax_back = fig.add_subplot(frameon=True)
     frame_around_fig(ax_back, show_frame=True)
     plot_positions = {}
+
+    export_csv(filtered_data['supply'].reset_index(), 'Download total supply data as CSV', 'supply.csv')
+    export_csv(filtered_data['demand'].reset_index(), 'Download total demand data as CSV', 'demand.csv')
+    export_csv(filtered_data['emissions'].reset_index(), 'Download total emissions data as CSV', 'emissions.csv')
+    export_csv(filtered_data['curtailment'].reset_index(), 'Download total curtailment data as CSV', 'curtailment.csv')
 
     # Onshore Nodes
     for node in plot_onshore_nodes:

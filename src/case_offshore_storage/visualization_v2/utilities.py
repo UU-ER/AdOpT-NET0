@@ -3,6 +3,31 @@ import pandas as pd
 import streamlit as st
 
 @st.cache_data
+def aggregate_time(df, level):
+    df = df.groupby(level=level).sum()
+    df.index.names = ['Timeslice']
+    return df
+
+@st.cache_data
+def aggregate_spatial_networks(network_operation, level):
+    network_operation = network_operation.T
+    if level == 'Country':
+        network_operation = network_operation.reset_index()
+        network_operation = network_operation[network_operation['FromCountry'] != network_operation['ToCountry']]
+        network_operation = network_operation.groupby(['Network', 'FromCountry', 'ToCountry']).sum()
+        network_operation = network_operation.rename_axis(index={'FromCountry': 'FromNode', 'ToCountry': 'ToNode'})
+    return network_operation
+
+@st.cache_data
+def aggregate_spatial_balance(balance, level):
+    balance = balance.T.reset_index()
+    balance = balance.groupby([level, 'Technology', 'Carrier', 'Variable']).sum()
+    if level == 'Country':
+        balance = balance.rename_axis(index={'Country': 'Node'})
+    balance = balance.reset_index()
+    return balance
+
+@st.cache_data
 def load_nodes_from_h5_results(path):
     """
     Loads all nodes contained in a results file as a list
@@ -56,3 +81,19 @@ def extract_data_from_h5_dataset(dataset):
     data = [item.decode('utf-8') for item in dataset]
 
     return data
+
+def export_csv(df, label, filename):
+    """
+    Makes a button on the side bar that allows for csv export
+    :param df: dataframe to export
+    :param label: label of button
+    :param filename: filename to export
+    :return:
+    """
+    excel_buffer = df.to_csv(index=False, sep=';')
+    st.sidebar.download_button(
+        label=label,
+        data=excel_buffer,
+        file_name=filename,
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
