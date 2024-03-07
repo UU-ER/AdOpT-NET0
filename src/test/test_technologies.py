@@ -576,6 +576,8 @@ def test_dac():
     configuration.optimization.typicaldays.N = 4
     # # Read data
     energyhub = EnergyHub(data, configuration)
+    energyhub.configuration.reporting.save_path = './src/test/results'
+    energyhub.configuration.reporting.save_summary_path = './src/test/results'
     energyhub.quick_solve()
     cost2 = energyhub.model.var_total_cost.value
 
@@ -737,6 +739,8 @@ def test_fast_dynamics():
     # turn dynamics on
     configuration = ModelConfiguration()
     configuration.performance.dynamics = 1
+    configuration.reporting.save_path = './src/test/results'
+    configuration.reporting.save_summary_path = './src/test/results'
 
     perf_function_type = [2, 3]
     CONV_Type = [1, 2, 3]

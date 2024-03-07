@@ -120,14 +120,10 @@ class HydroOpen(Technology):
         """
         super(HydroOpen, self).construct_tech_model(b_tec, energyhub)
 
-        # Transformation required
-        self.big_m_transformation_required = 1
-
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         coeff = self.fitted_performance.coefficients
         bounds = self.fitted_performance.bounds
-
 
         if 'allow_only_one_direction' in performance_data:
             allow_only_one_direction = performance_data['allow_only_one_direction']

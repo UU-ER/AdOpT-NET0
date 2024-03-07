@@ -15,7 +15,7 @@ def print_h5_tree(file_path):
         hdf_file.visititems(print_attrs)
 
 
-def extract_datasets_form_h5(group, prefix=()):
+def extract_datasets_from_h5group(group, prefix=()):
     """
     Gets all datasets from a group of an h5 file and writes it to a multi-index dataframe
 
@@ -25,7 +25,7 @@ def extract_datasets_form_h5(group, prefix=()):
     data = {}
     for key, value in group.items():
         if isinstance(value, h5py.Group):
-            data.update(extract_datasets_form_h5(value, prefix + (key,)))
+            data.update(extract_datasets_from_h5group(value, prefix + (key,)))
         elif isinstance(value, h5py.Dataset):
             if value.shape == ():
                 data[prefix + (key,)] = [value[()]]
@@ -36,3 +36,13 @@ def extract_datasets_form_h5(group, prefix=()):
 
     return df
 
+def extract_dataset_from_h5(dataset):
+    """
+    Gets dataset from an h5 file
+
+    :param group: group of h5 file
+    :return: dataframe containing all datasets in group
+    """
+    data = [item.decode('utf-8') for item in dataset]
+
+    return data

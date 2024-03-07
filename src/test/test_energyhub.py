@@ -282,6 +282,8 @@ def test_simplification_algorithms():
     configuration = ModelConfiguration()
     energyhub1 = ehub(data, configuration)
     energyhub1.model_information.testing = 1
+    energyhub1.configuration.reporting.save_path = './src/test/results'
+    energyhub1.configuration.reporting.save_summary_path = './src/test/results'
     energyhub1.quick_solve()
     cost1 = energyhub1.model.var_total_cost.value
     assert energyhub1.solution.solver.termination_condition == 'optimal'
@@ -291,6 +293,8 @@ def test_simplification_algorithms():
     configuration.optimization.typicaldays.N = 40
     energyhub2 = ehub(data, configuration)
     energyhub2.model_information.testing = 1
+    energyhub2.configuration.reporting.save_path = './src/test/results'
+    energyhub2.configuration.reporting.save_summary_path = './src/test/results'
     energyhub2.quick_solve()
     cost2 = energyhub2.model.var_total_cost.value
     assert energyhub2.solution.solver.termination_condition == 'optimal'
@@ -301,6 +305,8 @@ def test_simplification_algorithms():
     configuration.optimization.timestaging = 4
     energyhub4 = ehub(data, configuration)
     energyhub4.model_information.testing = 1
+    energyhub4.configuration.reporting.save_path = './src/test/results'
+    energyhub4.configuration.reporting.save_summary_path = './src/test/results'
     energyhub4.quick_solve()
     cost4 = energyhub4.model.var_total_cost.value
     assert energyhub4.solution.solver.termination_condition == 'optimal'
@@ -314,6 +320,8 @@ def test_simplification_algorithms():
     configuration.optimization.monte_carlo.on_what = ['Technologies']
     energyhub5 = ehub(data, configuration)
     energyhub5.model_information.testing = 1
+    energyhub5.configuration.reporting.save_path = './src/test/results'
+    energyhub5.configuration.reporting.save_summary_path = './src/test/results'
     energyhub5.quick_solve()
 
 @pytest.mark.quicktest

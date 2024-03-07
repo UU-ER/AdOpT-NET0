@@ -9,8 +9,6 @@ def setup_before_tests():
     """
     Fixture to create the test data before running all tests
     """
-
-
     # Create Folder
     data_folder_path = Path("./src/test/test_data")
     result_folder_path = Path("./src/test/results")

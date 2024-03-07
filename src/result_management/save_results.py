@@ -3,12 +3,12 @@ import h5py
 from .utilities import *
 
 
-def get_summary(energyhub, time_stamp):
+def get_summary(energyhub, folder_path):
     """
     Retrieves all variable values relevant for the summary of an optimization run.
 
     :param energyhub: EnergyHub
-    :param time_stamp: timestamp of optimization run
+    :param folder_path: folder path of optimization run
     :return:
     """
     model = energyhub.model
@@ -55,12 +55,12 @@ def get_summary(energyhub, time_stamp):
 
     time_stage = get_time_stage(energyhub)
     summary_dict["time_stage"] = time_stage
-    summary_dict["time_stamp"] = time_stamp
+    summary_dict["time_stamp"] = str(folder_path)
 
     return summary_dict
 
 
-def write_optimization_results_to_h5(energyhub, time_stamp):
+def write_optimization_results_to_h5(energyhub, folder_path):
     """
     Collects the results from the model blocks and writes them to an HDF5 file using the h5py library.
     The summary results are returned in a dictionary format for further processing into an excel in the energyhub.
@@ -69,18 +69,14 @@ def write_optimization_results_to_h5(energyhub, time_stamp):
     :param energyhub:
     :return: summary_dict
     """
-
-    # Save path
-    result_folder_path = Path.joinpath(Path(energyhub.configuration.reporting.save_path), time_stamp)
-
     model = energyhub.model
     set_t = model.set_t_full
 
     # create the results h5 file in the results folder
-    h5_file_path = os.path.join(result_folder_path, "optimization_results.h5")
+    h5_file_path = os.path.join(folder_path, "optimization_results.h5")
     with h5py.File(h5_file_path, mode='w') as f:
 
-        summary_dict = get_summary(energyhub, time_stamp)
+        summary_dict = get_summary(energyhub, folder_path)
 
         # SUMMARY [g]: convert dictionary to h5 datasets
         summary = f.create_group("summary")
@@ -169,4 +165,3 @@ def write_optimization_results_to_h5(energyhub, time_stamp):
                 car_group.create_dataset("demand", data=[node_data.para_demand[t, car].value for t in set_t])
 
     return summary_dict
-

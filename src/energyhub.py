@@ -517,7 +517,7 @@ class EnergyHub:
         # Write H5 File
         if self.solution.solver.termination_condition == 'optimal':
 
-            summary_dict = write_optimization_results_to_h5(self, time_stamp)
+            summary_dict = write_optimization_results_to_h5(self, result_folder_path)
 
             # Write Summary
             if not os.path.exists(save_summary_path):
