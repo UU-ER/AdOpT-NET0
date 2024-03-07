@@ -272,8 +272,9 @@ class EnergyHub:
         # Set solver
         if self.configuration.solveroptions.solver in ['gurobi', 'gurobi_persistent']:
             # Gurobi
-            if objective in ['emissions_minC', 'pareto'] or self.configuration.optimization.monte_carlo.on:
-                self.configuration.solveroptions.solver = 'gurobi_persistent'
+            if not self.configuration.scaling:
+                if objective in ['emissions_minC', 'pareto'] or self.configuration.optimization.monte_carlo.on:
+                    self.configuration.solveroptions.solver = 'gurobi_persistent'
             self.solver = get_gurobi_parameters(self.configuration.solveroptions)
 
         elif self.configuration.solveroptions.solver == 'glpk':
