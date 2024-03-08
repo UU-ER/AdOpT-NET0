@@ -6,31 +6,39 @@ import pandas as pd
 import random
 
 # General Settings
-settings = pp.Settings(test=1)
+settings = pp.Settings(test=0)
 pp.write_to_technology_data(settings)
 pp.write_to_network_data(settings)
 
 emission_targets = [0.99, 0.98, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0]
 emission_targets.reverse()
 
+baseline_emissions = 56314060.91
+
 # prev_results = pd.read_excel('//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/MES NorthSea/baseline_demand_v4/Summary_Plotting.xlsx')
 
 settings.demand_factor = 1
 
-scenarios = {'Baseline': 'Baseline',
+# scenarios = {'Baseline': 'Baseline',
+#               'Battery_on': 'Battery (onshore only)',
+#               'Battery_off': 'Battery (offshore only)',
+#               'Battery_all': 'Battery (all)',
+#               'ElectricityGrid_all': 'Grid Expansion (all)',
+#               'ElectricityGrid_on': 'Grid Expansion (onshore only)',
+#               'ElectricityGrid_off': 'Grid Expansion (offshore only)',
+#               'ElectricityGrid_noBorder': 'Grid Expansion (no Border)',
+#               'Hydrogen_Baseline': 'Hydrogen (all)',
+#               'Hydrogen_H1': 'Hydrogen (no storage)',
+#               'Hydrogen_H2': 'Hydrogen (no hydrogen offshore)',
+#               'Hydrogen_H3': 'Hydrogen (no hydrogen onshore)',
+#               'Hydrogen_H4': 'Hydrogen (local use only)',
+#               'All': 'All Pathways'
+#              }
+
+scenarios = {
               'Battery_on': 'Battery (onshore only)',
               'Battery_off': 'Battery (offshore only)',
               'Battery_all': 'Battery (all)',
-              'ElectricityGrid_all': 'Grid Expansion (all)',
-              'ElectricityGrid_on': 'Grid Expansion (onshore only)',
-              'ElectricityGrid_off': 'Grid Expansion (offshore only)',
-              'ElectricityGrid_noBorder': 'Grid Expansion (no Border)',
-              'Hydrogen_Baseline': 'Hydrogen (all)',
-              'Hydrogen_H1': 'Hydrogen (no storage)',
-              'Hydrogen_H2': 'Hydrogen (no hydrogen offshore)',
-              'Hydrogen_H3': 'Hydrogen (no hydrogen onshore)',
-              'Hydrogen_H4': 'Hydrogen (local use only)',
-              'All': 'All Pathways'
              }
 
 for stage in scenarios.keys():
@@ -100,8 +108,6 @@ for stage in scenarios.keys():
 
     energyhub.solve()
     min_cost = energyhub.model.var_total_cost.value
-    if stage == 'Baseline':
-        baseline_emissions = energyhub.model.var_emissions_net.value
 
     if stage != 'Baseline':
 
