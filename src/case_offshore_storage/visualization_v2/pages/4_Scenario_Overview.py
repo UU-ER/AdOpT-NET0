@@ -12,8 +12,8 @@ all_case_pos = all_cases[all_cases['abatemente_cost'] > 0]
 all_case_neg = all_cases[all_cases['abatemente_cost'] < 0]
 all_case_neg['abatemente_cost'] = all_case_neg['abatemente_cost'] * -1
 
-chart_pos = alt.Chart(all_cases).mark_bar().encode(
-    x=alt.X('abatemente_cost', scale=alt.Scale(type='linear', zero=False)),
+chart_pos = alt.Chart(all_case_pos).mark_bar().encode(
+    x=alt.X('abatemente_cost', scale=alt.Scale(type='log', zero=False)),
     y='Case',
     color = 'Case',
     row='Emission_reduction_case'
