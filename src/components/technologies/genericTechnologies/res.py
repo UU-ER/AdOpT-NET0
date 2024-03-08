@@ -41,21 +41,21 @@ class Res(Technology):
 
         if 'Photovoltaic' in self.name:
             if 'system_type' in self.performance_data:
-                self.__perform_fitting_PV(climate_data, location, system_data=self.performance_data['system_type'])
+                self._perform_fitting_PV(climate_data, location, system_data=self.performance_data['system_type'])
             else:
-                self.__perform_fitting_PV(climate_data, location)
+                self._perform_fitting_PV(climate_data, location)
 
         elif 'SolarThermal' in self.name:
-            self.__perform_fitting_ST(climate_data)
+            self._perform_fitting_ST(climate_data)
 
         elif 'WindTurbine' in self.name:
             if 'hubheight' in self.performance_data:
                 hubheight = self.performance_data['hubheight']
             else:
                 hubheight = 120
-            self.__perform_fitting_WT(climate_data, hubheight)
+            self._perform_fitting_WT(climate_data, hubheight)
 
-    def __perform_fitting_PV(self, climate_data, location, **kwargs):
+    def _perform_fitting_PV(self, climate_data, location, **kwargs):
         """
         Calculates capacity factors and specific area requirements for a PV system using pvlib
 
@@ -136,7 +136,7 @@ class Res(Technology):
         self.fitted_performance.other['specific_area'] = specific_area
 
 
-    def __perform_fitting_ST(self, climate_data):
+    def _perform_fitting_ST(self, climate_data):
         """
         Calculates capacity factors and specific area requirements for a solar thermal system
 
@@ -146,7 +146,7 @@ class Res(Technology):
         # Todo: code this
         print('Not coded yet')
 
-    def __perform_fitting_WT(self, climate_data, hubheight):
+    def _perform_fitting_WT(self, climate_data, hubheight):
         """
         Calculates capacity factors for a wint turbine
 
@@ -197,7 +197,6 @@ class Res(Technology):
         self.fitted_performance.time_dependent_coefficients = 1
         # Other Data
         self.fitted_performance.rated_power = rated_power / 1000
-
 
     def construct_tech_model(self, b_tec, energyhub):
         """
@@ -257,22 +256,24 @@ class Res(Technology):
 
         return b_tec
 
-    def report_results(self, b_tec):
-        """
-        Function to report results of technologies after optimization
+    def write_tec_design_results_to_group(self, h5_group, model_block):
 
-        :param b_tec: technology model block
-        :return: dict results: holds results
-        """
-        super(Res, self).report_results(b_tec)
+        super(Res, self).write_tec_design_results_to_group(h5_group, model_block)
+
+        h5_group.create_dataset("rated_power", data=self.fitted_performance.rated_power)
+        h5_group.create_dataset("cap_factor", data=self.fitted_performance.coefficients['capfactor'])
+
+    def write_tec_operation_results_to_group(self, h5_group, model_block):
+
+        super(Res, self).write_tec_operation_results_to_group(h5_group, model_block)
 
         rated_power = self.fitted_performance.rated_power
         capfactor = self.fitted_performance.coefficients['capfactor']
-        if self.performance_data['curtailment'] == 2:
-            self.results['time_dependent']['units_on'] = [b_tec.var_size_on[t].value for t in self.set_t]
-        self.results['time_dependent']['max_out'] = [capfactor[t - 1] * b_tec.var_size.value * rated_power for t in self.set_t]
-        for car in b_tec.set_output_carriers:
-            self.results['time_dependent']['curtailment_' + car] = \
-                self.results['time_dependent']['max_out'] - self.results['time_dependent']['output_' + car]
 
-        return self.results
+        h5_group.create_dataset("max_out", data=[capfactor[t - 1] * model_block.var_size.value * rated_power for t in self.set_t])
+
+        if self.performance_data['curtailment'] == 2:
+            h5_group.create_dataset("units_on", data=[model_block.var_size_on[t].value for t in self.set_t])
+
+        for car in model_block.set_output_carriers:
+            h5_group.create_dataset("curtailment_" + car, data=[capfactor[t - 1] * model_block.var_size.value * rated_power - model_block.var_output[t, car].value for t in self.set_t])

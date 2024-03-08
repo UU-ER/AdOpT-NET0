@@ -219,22 +219,22 @@ class Network(ModelComponent):
         self.set_nodes = energyhub.model.set_nodes
         self.set_t = energyhub.model.set_t_full
 
-        b_netw = self.__define_possible_arcs(b_netw, energyhub)
+        b_netw = self._define_possible_arcs(b_netw, energyhub)
 
         if self.performance_data['bidirectional'] == 1:
-            b_netw = self.__define_unique_arcs(b_netw)
+            b_netw = self._define_unique_arcs(b_netw)
 
 
-        b_netw = self.__define_size(b_netw)
-        b_netw = self.__define_capex_parameters(b_netw, energyhub)
-        b_netw = self.__define_opex_parameters(b_netw)
-        b_netw = self.__define_emission_vars(b_netw)
-        b_netw = self.__define_network_characteristics(b_netw)
-        b_netw = self.__define_inflow_vars(b_netw)
-        b_netw = self.__define_outflow_vars(b_netw)
+        b_netw = self._define_size(b_netw)
+        b_netw = self._define_capex_parameters(b_netw, energyhub)
+        b_netw = self._define_opex_parameters(b_netw)
+        b_netw = self._define_emission_vars(b_netw)
+        b_netw = self._define_network_characteristics(b_netw)
+        b_netw = self._define_inflow_vars(b_netw)
+        b_netw = self._define_outflow_vars(b_netw)
 
         if self.energy_consumption:
-            b_netw = self.__define_energyconsumption_parameters(b_netw)
+            b_netw = self._define_energyconsumption_parameters(b_netw)
 
         def arc_block_init(b_arc, node_from, node_to):
             """
@@ -249,13 +249,13 @@ class Network(ModelComponent):
             """
 
             b_arc.big_m_transformation_required = 0
-            b_arc = self.__define_size_arc(b_arc, b_netw, node_from, node_to)
-            b_arc = self.__define_capex_arc(b_arc, b_netw, node_from, node_to)
-            b_arc = self.__define_flow(b_arc, b_netw)
-            b_arc = self.__define_opex_arc(b_arc, b_netw)
+            b_arc = self._define_size_arc(b_arc, b_netw, node_from, node_to)
+            b_arc = self._define_capex_arc(b_arc, b_netw, node_from, node_to)
+            b_arc = self._define_flow(b_arc, b_netw)
+            b_arc = self._define_opex_arc(b_arc, b_netw)
 
             if self.energy_consumption:
-                b_arc = self.__define_energyconsumption_arc(b_arc, b_netw)
+                b_arc = self._define_energyconsumption_arc(b_arc, b_netw)
 
             if b_arc.big_m_transformation_required:
                 b_arc = perform_disjunct_relaxation(b_arc)
@@ -264,75 +264,63 @@ class Network(ModelComponent):
 
         # CONSTRAINTS FOR BIDIRECTIONAL NETWORKS
         if self.performance_data['bidirectional']:
-            b_netw = self.__define_bidirectional_constraints(b_netw)
+            b_netw = self._define_bidirectional_constraints(b_netw)
 
-        b_netw = self.__define_capex_total(b_netw)
-        b_netw = self.__define_opex_total(b_netw)
-        b_netw = self.__define_inflow_constraints(b_netw)
-        b_netw = self.__define_outflow_constraints(b_netw)
-        b_netw = self.__define_emission_constraints(b_netw)
+        b_netw = self._define_capex_total(b_netw)
+        b_netw = self._define_opex_total(b_netw)
+        b_netw = self._define_inflow_constraints(b_netw)
+        b_netw = self._define_outflow_constraints(b_netw)
+        b_netw = self._define_emission_constraints(b_netw)
 
         if self.energy_consumption:
-            b_netw = self.__define_energyconsumption_total(b_netw)
+            b_netw = self._define_energyconsumption_total(b_netw)
 
         return b_netw
 
-    def report_results(self, b_netw):
+    def write_netw_design_results_to_group(self, h5_group, model_block):
         """
         Function to report results of networks after optimization
 
-        :param b_netw: network model block
+        :param model_block: network model block
         :return: dict results: holds results
         """
-        self.results['time_independent'] = pd.DataFrame(columns=['Network',
-                                              'fromNode',
-                                              'toNode',
-                                              'Size',
-                                              'capex',
-                                              'opex_fixed',
-                                              'opex_variable',
-                                              'total_flow',
-                                              'total_emissions'
-                                              ])
 
-        for arc_name in b_netw.set_arcs:
-            arc = b_netw.arc_block[arc_name]
-            fromNode = arc_name[0]
-            toNode = arc_name[1]
-            s = arc.var_size.value
-            capex = arc.var_capex.value
-            opex_var = sum(arc.var_opex_variable[t].value
-                           for t in self.set_t)
-            total_flow = sum(arc.var_flow[t].value
-                             for t in self.set_t)
-            opex_fix = b_netw.para_opex_fixed.value * arc.var_capex_aux.value
-            total_emissions = sum(arc.var_flow[t].value for t in self.set_t) * b_netw.para_emissionfactor + \
-                   sum(arc.var_losses[t].value for t in self.set_t) * b_netw.para_loss2emissions
-            self.results['time_independent'].loc[len(self.results['time_independent'].index)] = \
-                [self.name, fromNode, toNode, s, capex, opex_fix, opex_var, total_flow, total_emissions]
+        for arc_name in model_block.set_arcs:
+            arc = model_block.arc_block[arc_name]
+            str = ''.join(arc_name)
+            arc_group = h5_group.create_group(str)
 
-            index = pd.MultiIndex.from_tuples(zip(['flow'], [fromNode], [toNode]), names=['variable', 'fromNode', 'toNode'])
-            data = pd.DataFrame([arc.var_flow[t].value for t in self.set_t], columns=index)
-            self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+            arc_group.create_dataset("network", data=self.name)
+            arc_group.create_dataset("fromNode", data=arc_name[0])
+            arc_group.create_dataset("toNode", data=arc_name[1])
+            arc_group.create_dataset("size", data=arc.var_size.value)
+            arc_group.create_dataset("capex", data=arc.var_capex.value)
+            arc_group.create_dataset("opex_fixed", data=[model_block.para_opex_fixed.value * arc.var_capex_aux.value])
+            arc_group.create_dataset("opex_variable", data=sum(arc.var_opex_variable[t].value
+                                                                         for t in self.set_t))
+            arc_group.create_dataset("total_flow", data=sum(arc.var_flow[t].value
+                                                                      for t in self.set_t))
+            total_emissions = (sum(arc.var_flow[t].value for t in self.set_t) * model_block.para_emissionfactor +
+                               sum(arc.var_losses[t].value for t in self.set_t) * model_block.para_loss2emissions)
+            arc_group.create_dataset("total_emissions", data=total_emissions)
 
-            index = pd.MultiIndex.from_tuples(zip(['losses'], [fromNode], [toNode]), names=['variable', 'fromNode', 'toNode'])
-            data = pd.DataFrame([arc.var_losses[t].value for t in self.set_t], columns=index)
-            self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+    def write_netw_operation_results_to_group(self, h5_group, model_block):
+
+        for arc_name in model_block.set_arcs:
+            arc = model_block.arc_block[arc_name]
+            str = ''.join(arc_name)
+            arc_group = h5_group.create_group(str)
+
+            arc_group.create_dataset("flow", data=[arc.var_flow[t].value for t in self.set_t])
+            arc_group.create_dataset("losses", data=[arc.var_losses[t].value for t in self.set_t])
 
             if arc.find_component('var_consumption_send'):
-                for car in b_netw.set_consumed_carriers:
-                    index = pd.MultiIndex.from_tuples(zip(['consumption_send' + car], [fromNode], [toNode]),
-                                                      names=['variable', 'fromNode', 'toNode'])
-                    data = pd.DataFrame([arc.var_consumption_send[t, car].value for t in self.set_t], columns=index)
-                    self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
+                for car in model_block.set_consumed_carriers:
 
-                    index = pd.MultiIndex.from_tuples(zip(['consumption_receive' + car], [fromNode], [toNode]),
-                                                      names=['variable', 'fromNode', 'toNode'])
-                    data = pd.DataFrame([arc.var_consumption_receive[t, car].value for t in self.set_t], columns=index)
-                    self.results['time_dependent'] = pd.concat([self.results['time_dependent'], data], axis=1)
-
-        return self.results
-
+                    arc_group.create_dataset("consumption_send" + car,
+                                             data=[arc.var_consumption_send[t, car].value for t in self.set_t])
+                    arc_group.create_dataset("consumption_receive" + car,
+                                             data=[arc.var_consumption_receive[t, car].value for t in self.set_t])
 
     def scale_model(self, b_netw, model, configuration):
         """
@@ -353,7 +341,7 @@ class Network(ModelComponent):
 
         return model
 
-    def __define_possible_arcs(self, b_netw, energyhub):
+    def _define_possible_arcs(self, b_netw, energyhub):
         """
         Define all possible arcs that have a connection
 
@@ -386,7 +374,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_unique_arcs(self, b_netw):
+    def _define_unique_arcs(self, b_netw):
         """
         Define arcs that are unique (one arc per direction)
         """
@@ -402,7 +390,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_size(self, b_netw):
+    def _define_size(self, b_netw):
         """
         Defines parameters related to network size.
 
@@ -433,7 +421,7 @@ class Network(ModelComponent):
                         assert self.size_initial.at[from_node, to_node] == self.size_initial.at[to_node, from_node]
         return b_netw
 
-    def __define_capex_parameters(self, b_netw, energyhub):
+    def _define_capex_parameters(self, b_netw, energyhub):
         """
         Defines variables and parameters related to technology capex.
 
@@ -468,7 +456,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_opex_parameters(self, b_netw):
+    def _define_opex_parameters(self, b_netw):
         """
         Defines OPEX parameters (fixed and variable)
 
@@ -492,7 +480,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_emission_vars(self, b_netw):
+    def _define_emission_vars(self, b_netw):
         """
         Defines network emissions
 
@@ -507,7 +495,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_network_characteristics(self, b_netw):
+    def _define_network_characteristics(self, b_netw):
         """
         Defines transported carrier, losses and minimum transport requirements
 
@@ -529,21 +517,21 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_inflow_vars(self, b_netw):
+    def _define_inflow_vars(self, b_netw):
         """
         Defines network inflow (i.e. sum of inflow to one node)
         """
         b_netw.var_inflow = Var(self.set_t, b_netw.set_netw_carrier, self.set_nodes, domain=NonNegativeReals)
         return b_netw
 
-    def __define_outflow_vars(self, b_netw):
+    def _define_outflow_vars(self, b_netw):
         """
         Defines network outflow (i.e. sum of outflow to one node)
         """
         b_netw.var_outflow = Var(self.set_t, b_netw.set_netw_carrier, self.set_nodes, domain=NonNegativeReals)
         return b_netw
 
-    def __define_energyconsumption_parameters(self, b_netw):
+    def _define_energyconsumption_parameters(self, b_netw):
         """
         Constructs constraints for network energy consumption
         """
@@ -578,7 +566,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_size_arc(self, b_arc, b_netw, node_from, node_to):
+    def _define_size_arc(self, b_arc, b_netw, node_from, node_to):
         """
         Defines the size of an arc
 
@@ -612,7 +600,7 @@ class Network(ModelComponent):
 
         return b_arc
 
-    def __define_capex_arc(self, b_arc, b_netw, node_from, node_to):
+    def _define_capex_arc(self, b_arc, b_netw, node_from, node_to):
         """
         Defines the capex of an arc and corresponding constraints
 
@@ -675,7 +663,7 @@ class Network(ModelComponent):
 
         return b_arc
 
-    def __define_flow(self, b_arc, b_netw):
+    def _define_flow(self, b_arc, b_netw):
         """
         Defines the flow through one arc and respective losses
         """
@@ -706,7 +694,7 @@ class Network(ModelComponent):
         b_arc.const_flow_size_low = Constraint(self.set_t, rule=init_size_const_low)
         return b_arc
 
-    def __define_energyconsumption_arc(self, b_arc, b_netw):
+    def _define_energyconsumption_arc(self, b_arc, b_netw):
         """
         Defines the energyconsumption for an arc
         """
@@ -739,7 +727,7 @@ class Network(ModelComponent):
 
         return b_arc
 
-    def __define_opex_arc(self, b_arc, b_netw):
+    def _define_opex_arc(self, b_arc, b_netw):
         """
         Defines OPEX per Arc
         """
@@ -752,7 +740,7 @@ class Network(ModelComponent):
         b_arc.const_opex_variable = Constraint(self.set_t, rule=init_opex_variable)
         return b_arc
 
-    def __define_bidirectional_constraints(self, b_netw):
+    def _define_bidirectional_constraints(self, b_netw):
         """
         Defines constraints necessary, in case one arc can transport in two directions.
 
@@ -760,9 +748,6 @@ class Network(ModelComponent):
         - size is equal in both directions
         - One directional flow possible only
         """
-
-        self.big_m_transformation_required = 1
-
         # Size in both direction is the same
         if self.decommission or not self.existing:
             def init_size_bidirectional(const, node_from, node_to):
@@ -779,31 +764,37 @@ class Network(ModelComponent):
                    <= b_netw.arc_block[node_from, node_to].var_size
         b_netw.const_cut_bidirectional = Constraint(self.set_t, b_netw.set_arcs_unique, rule=init_cut_bidirectional)
 
-        # Flow only possible in one direction
-        def init_bidirectional(dis, t, node_from, node_to, ind):
-            if ind == 0:
-                def init_bidirectional1(const):
-                    return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
-                dis.const_flow_zero = Constraint(rule=init_bidirectional1)
+        # Disjunction
+        if 'bidirectional_precise' in self.performance_data:
+            if self.performance_data['bidirectional_precise'] == 1:
+                self.big_m_transformation_required = 1
 
-            else:
-                def init_bidirectional2(const):
-                    return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
-                dis.const_flow_zero = Constraint(rule=init_bidirectional2)
+                def init_bidirectional(dis, t, node_from, node_to, ind):
+                    if ind == 0:
+                        def init_bidirectional1(const):
+                            return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
 
-        b_netw.dis_one_direction_only = Disjunct(self.set_t, b_netw.set_arcs_unique, s_indicators,
-                                                 rule=init_bidirectional)
+                        dis.const_flow_zero = Constraint(rule=init_bidirectional1)
 
-        # Bind disjuncts
-        def bind_disjunctions(dis, t, node_from, node_to):
-            return [b_netw.dis_one_direction_only[t, node_from, node_to, i] for i in s_indicators]
+                    else:
+                        def init_bidirectional2(const):
+                            return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
 
-        b_netw.disjunction_one_direction_only = Disjunction(self.set_t, b_netw.set_arcs_unique,
-                                                            rule=bind_disjunctions)
+                        dis.const_flow_zero = Constraint(rule=init_bidirectional2)
+
+                b_netw.dis_one_direction_only = Disjunct(self.set_t, b_netw.set_arcs_unique, s_indicators,
+                                                         rule=init_bidirectional)
+
+                # Bind disjuncts
+                def bind_disjunctions(dis, t, node_from, node_to):
+                    return [b_netw.dis_one_direction_only[t, node_from, node_to, i] for i in s_indicators]
+
+                b_netw.disjunction_one_direction_only = Disjunction(self.set_t, b_netw.set_arcs_unique,
+                                                                    rule=bind_disjunctions)
 
         return b_netw
 
-    def __define_capex_total(self, b_netw):
+    def _define_capex_total(self, b_netw):
         """
         Defines total CAPEX of network
         """
@@ -820,7 +811,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def __define_opex_total(self, b_netw):
+    def _define_opex_total(self, b_netw):
         """
         Defines total OPEX of network
         """
@@ -842,7 +833,7 @@ class Network(ModelComponent):
         b_netw.const_opex_var = Constraint(self.set_t, rule=init_opex_variable)
         return b_netw
 
-    def __define_inflow_constraints(self, b_netw):
+    def _define_inflow_constraints(self, b_netw):
         """
         Connects the arc flows to inflow at each node
         inflow = sum(arc_block(from,node).flow - arc_block(from,node).losses for from in set_node_receives_from)
@@ -856,7 +847,7 @@ class Network(ModelComponent):
         b_netw.const_inflow = Constraint(self.set_t, b_netw.set_netw_carrier, self.set_nodes, rule=init_inflow)
         return b_netw
 
-    def __define_outflow_constraints(self, b_netw):
+    def _define_outflow_constraints(self, b_netw):
         """
         Connects the arc flows to outflow at each node
         outflow = sum(arc_block(node,to).flow for from in set_node_sends_to)
@@ -869,7 +860,7 @@ class Network(ModelComponent):
         b_netw.const_outflow = Constraint(self.set_t, b_netw.set_netw_carrier, self.set_nodes, rule=init_outflow)
         return b_netw
 
-    def __define_emission_constraints(self, b_netw):
+    def _define_emission_constraints(self, b_netw):
         """
         Defines Emissions from network
         """
@@ -884,7 +875,7 @@ class Network(ModelComponent):
         b_netw.const_netw_emissions = Constraint(self.set_t, rule=init_netw_emissions)
         return b_netw
 
-    def __define_energyconsumption_total(self, b_netw):
+    def _define_energyconsumption_total(self, b_netw):
         """
         Defines network consumption at each node
         """

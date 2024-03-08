@@ -246,7 +246,7 @@ if execute == 1:
     # Solve model
     energyhub_clustered.solve_model()
     results1 = energyhub_clustered.write_results()
-    results1.write_excel(Path('./userData'), 'results_clustered')
+    results1.save_summary_to_excel(Path('./userData'), 'results_clustered')
 
 
     # SOLVE WITH FULL RESOLUTION
@@ -257,7 +257,7 @@ if execute == 1:
     # Solve model
     energyhub.solve_model()
     results2 = energyhub.write_results()
-    results2.write_excel(Path('./userData'), 'results_full')
+    results2.save_summary_to_excel(Path('./userData'), 'results_full')
 
 execute = 0
 #region How to formulate hierarchical models with blocks

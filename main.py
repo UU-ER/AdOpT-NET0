@@ -1,5 +1,3 @@
-# TODO: Implement option for complete linearization
-# TODO: Implement length of time step
 from src.model_configuration import ModelConfiguration
 import src.data_management as dm
 from src.energyhub import EnergyHub
