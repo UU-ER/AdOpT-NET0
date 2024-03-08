@@ -72,6 +72,8 @@ configuration.scaling = 1
 configuration.scaling_factors.energy_vars = 1e-2
 configuration.scaling_factors.cost_vars = 1
 
+configuration.optimization.objective = 'pareto'
+
 # # Read data
 energyhub = EnergyHub(data, configuration)
 energyhub.quick_solve()
