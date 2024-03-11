@@ -24,7 +24,7 @@ def fit_performance_generic_tecs(tec_data, time_steps):
     elif performance_function_type == 3 or performance_function_type == 4:
         fitting = FitGenericTecTypeType34(tec_data)
     else:
-        raise Exception("performance_function_type must be an integer between 1 and 3")
+        raise Exception("performance_function_type must be an integer between 1 and 4")
     fitting.fit_performance_function(performance_data)
     fitting.calculate_input_bounds(size_based_on, time_steps)
     fitting.calculate_output_bounds(size_based_on, time_steps)

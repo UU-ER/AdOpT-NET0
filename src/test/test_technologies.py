@@ -994,3 +994,24 @@ def test_slow_dynamics():
             assert main_in_3 == round(SD_trajectory[0] * tec_size)
             assert main_in_5 == round(SU_trajectory[0] * tec_size)
             assert main_in_6 == round(SU_trajectory[1] * tec_size)
+
+def test_technology_CARBONCAPTURE():
+    data = load_object(r'./src/test/test_data/technologyCARBONCAPTURE.p')
+    configuration = ModelConfiguration()
+    sizes = ['small', 'medium', 'large']
+    energyhub = {}
+    for s in sizes:
+        data.technology_data['test_node1']['CarbonCapture_MEA'].performance_data['plant_size'] = s
+        energyhub[s] = EnergyHub(data, configuration)
+        energyhub[s].model_information.testing = 1
+        energyhub[s].quick_solve()
+
+    assert energyhub.solution.solver.termination_condition == 'optimal'
+    el_out_1 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active['testSTOR'].var_output[1, 'electricity'].value,
+        3)
+    el_out_2 = round(
+        energyhub.model.node_blocks['test_node1'].tech_blocks_active['testSTOR'].var_output[2, 'electricity'].value,
+        3)
+    assert 0 == el_out_1
+    assert 0.1 == el_out_2

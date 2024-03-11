@@ -395,6 +395,56 @@ def create_data_technologySTOR():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
+def create_data_technologyCARBONCAPTURE():
+    """
+    Creates dataset for a model with two nodes.
+    WT, battery @ node 1
+    electricity demand @ node 1
+    two periods, rated wind speed at first, no wind at second. battery to balance
+    """
+    data_save_path = './src/test/test_data/technologyCARBONCAPTURE.p'
+
+    topology = SystemTopology()
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 02:00', resolution=1)
+    topology.define_carriers(['electricity', 'gas', 'hydrogen', 'CO2fluegas', 'CO2captured', 'heat', 'ethylene'])
+    topology.define_nodes(['test_node1'])
+    topology.define_new_technologies('test_node1', ['GasTurbine_simple_test', 'CarbonCapture_MEA'])
+
+    # Initialize instance of DataHandle
+    data = DataHandle(topology)
+
+    # CLIMATE DATA
+    climate_data_path = './src/test/climate_data_test.p'
+    data.read_climate_data_from_file('test_node1', climate_data_path)
+
+    # DEMAND
+    ethylene_demand = np.ones(len(topology.timesteps)) * 1
+    data.read_demand_data('test_node1', 'ethylene', ethylene_demand)
+
+    # IMPORT
+    gas_import = np.ones(len(topology.timesteps)) * 3
+    data.read_import_limit_data('test_node1', 'gas', gas_import)
+    heat_import = np.ones(len(topology.timesteps)) * 5
+    data.read_import_limit_data('test_node1', 'heat', heat_import)
+    electricity_import = np.ones(len(topology.timesteps)) * 1
+    data.read_import_limit_data('test_node1', 'electricity', electricity_import)
+
+    # EXPORT
+    emission_CO2captured_export = np.ones(len(topology.timesteps)) * (-1)
+    data.read_export_emissionfactor_data('test_node1', 'CO2captured', emission_CO2captured_export)
+    CO2captured_export = np.ones(len(topology.timesteps)) * 500
+    data.read_export_limit_data('test_node1', 'CO2captured', CO2captured_export)
+
+    CO2fluegas_export = np.ones(len(topology.timesteps)) * 500
+    data.read_export_limit_data('test_node1', 'CO2fluegas', CO2fluegas_export)
+
+    # READ TECHNOLOGY AND NETWORK DATA
+    data.read_technology_data(load_path = './src/test/TestTecs')
+    data.read_network_data(load_path = './src/test/TestNetworks')
+
+    # SAVING/LOADING DATA FILE
+    data.save(data_save_path)
+
 def create_data_network():
     """
     Creates dataset for test_network().

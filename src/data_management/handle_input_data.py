@@ -323,6 +323,7 @@ class DataHandle:
 
                 self.technology_data[node][technology] = select_technology(tec_data)
                 self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
+                # TODO check if structure of .fit_technology_performance is the same or not for e.g. HP and a generic tech
 
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
