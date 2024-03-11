@@ -46,6 +46,3 @@ def extract_dataset_from_h5(dataset):
     data = [item.decode('utf-8') for item in dataset]
 
     return data
-
-
-

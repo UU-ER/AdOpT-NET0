@@ -165,4 +165,3 @@ def write_optimization_results_to_h5(energyhub, folder_path):
                 car_group.create_dataset("demand", data=[node_data.para_demand[t, car].value for t in set_t])
 
     return summary_dict
-
