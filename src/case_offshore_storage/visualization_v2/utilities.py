@@ -16,6 +16,17 @@ def aggregate_spatial_networks(network_operation, level):
         network_operation = network_operation[network_operation['FromCountry'] != network_operation['ToCountry']]
         network_operation = network_operation.groupby(['Network', 'FromCountry', 'ToCountry']).sum()
         network_operation = network_operation.rename_axis(index={'FromCountry': 'FromNode', 'ToCountry': 'ToNode'})
+        network_operation = network_operation.drop(columns=['FromNode', 'ToNode'])
+        network_operation = network_operation.reset_index()
+        network_operation = network_operation.set_index(['Network', 'Arc_ID', 'Country_ID', 'Variable', 'FromNode', 'ToNode'])
+        network_operation.columns = ['Value']
+        network_operation = network_operation.reset_index()
+
+    else:
+        network_operation.columns = ['Value']
+        network_operation = network_operation.reset_index()
+        network_operation = network_operation.drop(columns=['FromCountry', 'ToCountry'])
+
     return network_operation
 
 @st.cache_data
@@ -23,8 +34,13 @@ def aggregate_spatial_balance(balance, level):
     balance = balance.T.reset_index()
     balance = balance.groupby([level, 'Technology', 'Carrier', 'Variable']).sum()
     if level == 'Country':
+        balance = balance.drop(columns=['Node'])
         balance = balance.rename_axis(index={'Country': 'Node'})
-    balance = balance.reset_index()
+    else:
+        balance = balance.drop(columns=['Country'])
+
+    balance.columns = ['Value']
+
     return balance
 
 @st.cache_data

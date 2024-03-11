@@ -138,8 +138,6 @@ def read_network(path_h5):
     network_operation['Country_ID'] = network_operation['FromNode'].str[0:2] + network_operation['ToNode'].str[0:2]
     network_operation = network_operation.set_index(['Network', 'Arc_ID', 'Country_ID', 'Variable', 'FromNode', 'ToNode', 'FromCountry', 'ToCountry']).T
 
-    network_operation = network_operation.drop(columns=[col for col in network_operation.columns if 'losses' in col])
-
     hour = network_operation.index.to_list()
     num_rows = len(hour)
     day = np.repeat(np.arange(1, num_rows + 1), 24)[0:num_rows]
@@ -150,6 +148,7 @@ def read_network(path_h5):
                                             names=['Hour', 'Day', 'Week', 'Month', 'Year'])
 
     return network_operation
+
 
 # def create_folium_marker(fig, location):
 #     buffer = BytesIO()

@@ -26,6 +26,9 @@ def plot_node_curtailment(ax, curtailment, show_text, fs):
     ax.barh(1, curtailment['generic_production'] / curtailment.sum(), color='orange')
     ax.barh(1, curtailment['Curtailment'] / curtailment.sum(),
             left=curtailment['generic_production'] / curtailment.sum(), color='moccasin')
+    if 'network_losses' in curtailment:
+        ax.barh(1, curtailment['network_losses'] / curtailment.sum(),
+                left=curtailment['generic_production'] / curtailment.sum() + curtailment['Curtailment'] / curtailment.sum(), color='tan')
 
     if show_text:
         ax.text(0.05, 1,
@@ -82,6 +85,10 @@ with st.spinner('Wait for loading data...'):
     tec_operation = read_technology_operation(h5_path, re_gen_path)
     network_operation = read_network(h5_path)
 
+network_losses = network_operation.drop(columns=[col for col in network_operation.columns if 'flow' in col])
+network_flow = network_operation.drop(columns=[col for col in network_operation.columns if 'losses' in col])
+
+
 # Determine Aggregation
 time_agg_options = {'Annual Totals': 'Year',
                     'Monthly Totals': 'Month',
@@ -98,19 +105,27 @@ preprocessed_data = {}
 
 # Filter dfs for time aggregation
 balance = aggregate_time(tec_operation, time_agg_options[time_agg])
-networks = aggregate_time(network_operation, time_agg_options[time_agg])
+networks = aggregate_time(network_flow, time_agg_options[time_agg])
+losses = aggregate_time(network_losses, time_agg_options[time_agg])
+
+total_losses = losses.sum().sum()
 
 # Filter dfs for spatial aggregation
 balance = aggregate_spatial_balance(balance, spatial_agg)
 networks = aggregate_spatial_networks(networks, spatial_agg)
 
-# Preprocessing - Supply
-supply = balance[(balance['Variable'].isin(['generic_production', 'import', 'output', 'input'])) & (balance['Carrier'] == 'electricity')]
+# Preprocessing - All
+supply = balance.loc[(slice(None), slice(None), ['electricity'], ['generic_production', 'import', 'output', 'input'])].reset_index()
+demand = balance.loc[(slice(None), slice(None), ['electricity'], ['demand'])].reset_index()
+curtailment = balance.loc[(slice(None), slice(None), ['electricity'], ['generic_production', 'Curtailment'])].reset_index()
+emissions = balance.loc[(slice(None), slice(None), slice(None), ['Emissions'])].reset_index()
+
 
 def subtract_rows(group):
     input_value = group[group['Variable'] == 'input'].iloc[:, 4:].values
     output_value = group[group['Variable'] == 'output'].iloc[:, 4:].values
     diff = pd.DataFrame(output_value - input_value)
+    diff.columns = ['Value']
 
     def replace_negative_with_zero(x):
         return max(0, x)
@@ -123,6 +138,7 @@ result = supply[supply['Technology'].isin(['Storage_PumpedHydro_Open_existing', 
 result = result.rename(columns= {'level_3': 'Variable'})
 result['Variable'] = 'output'
 result.columns = supply.columns
+
 supply = pd.concat([supply[~supply['Technology'].isin(['Storage_PumpedHydro_Open_existing', 'Storage_PumpedHydro_Reservoir_existing'])], result], axis=0)
 
 supply['Generation'] = np.where(supply['Variable'] == 'output', supply['Technology'], supply['Variable'])
@@ -142,18 +158,15 @@ supply = supply[(supply['Generation'].isin(keep_generation))].drop(columns=['Tec
 preprocessed_data['supply'] = supply
 
 # Preprocessing - Demand
-demand = balance[(balance['Variable'].isin(['demand'])) & (balance['Carrier'] == 'electricity')].drop(columns=['Technology', 'Carrier', 'Variable'])
 demand['Variable'] = 'Demand'
 demand = demand.set_index(['Node', 'Variable']).T
 preprocessed_data['demand'] = demand
 
 # Preprocessing - Curtailment
-curtailment = balance[(balance['Variable'].isin(['generic_production', 'Curtailment'])) & (balance['Carrier'] == 'electricity')]
 curtailment = curtailment.drop(columns=['Technology', 'Carrier']).set_index(['Node', 'Variable']).T
 preprocessed_data['curtailment'] = curtailment
 
 # Preprocessing - Emissions
-emissions = balance[(balance['Variable'].isin(['Emissions']))]
 emissions = emissions.drop(columns=['Technology', 'Carrier', 'Variable']).set_index(['Node']).T
 preprocessed_data['emissions'] = emissions
 
@@ -172,7 +185,7 @@ show_values = st.checkbox('Show values in figure')
 
 item_options = ['Curtailment', 'Generation', 'Emissions', 'Network Flows', 'Demand']
 plot_items = st.multiselect('Plot the following items:', item_options, default= item_options)
-network_options = networks.index.get_level_values('Network').unique().tolist()
+network_options = networks['Network'].unique().tolist()
 plot_networks = st.multiselect('Select networks to plot', network_options, default=network_options)
 plot_onshore_nodes = st.multiselect('Select onshore nodes to plot', onshore_nodes, default=onshore_nodes)
 if spatial_agg == 'Node':
@@ -199,9 +212,6 @@ else:
     for data in preprocessed_data.keys():
         filtered_data[data] = preprocessed_data[data].filter(items=[int(plot_timestep)], axis=0).T
     filtered_data['networks'] = networks.T.filter(items=[int(plot_timestep)], axis=0).T
-
-for data in filtered_data.keys():
-    filtered_data[data].columns = ['Value']
 
 # Preprocess data
 filtered_data['supply'] = filtered_data['supply'].reset_index().pivot(index='Generation', columns='Node')['Value']
@@ -230,7 +240,8 @@ with col2:
     # Preprocess total data
     totals = {}
     for data in filtered_data.keys():
-        totals[data] = filtered_data[data].sum(axis=1)
+        if data != 'networks':
+            totals[data] = filtered_data[data].sum(axis=1)
 
     # Calculate max
     max_supply = totals['supply'].sum()
@@ -285,6 +296,7 @@ with col2:
         ax['demand'].set_title('Demand', pad=-15, fontsize=12)
 
     if 'Curtailment' in plot_items:
+        totals['curtailment'].loc['network_losses'] = total_losses
         plot_node_curtailment(ax['curtailment'], totals['curtailment'], show_values, 12)
         ax['curtailment'].set_title('Fraction of used RE generation (remainder is curtailed)', pad=-15, fontsize=12)
 
