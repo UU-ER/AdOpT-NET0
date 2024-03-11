@@ -2,19 +2,21 @@ import pytest
 import os
 from create_test_data import *
 from pathlib import Path
+import shutil
 
 @pytest.fixture(autouse=True)
 def setup_before_tests():
     """
     Fixture to create the test data before running all tests
     """
-
-
     # Create Folder
-    folder_path = Path("test/test_data")
+    data_folder_path = Path("./src/test/test_data")
+    result_folder_path = Path("./src/test/results")
 
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
+    if not os.path.exists(data_folder_path):
+        os.makedirs(data_folder_path)
+    if not os.path.exists(result_folder_path):
+        os.makedirs(result_folder_path)
 
     # Create Test Data
     create_data_test_data_handle()
@@ -41,15 +43,8 @@ def setup_before_tests():
     # Yield control back to the test functions
     yield
 
-    # Place your teardown code here
-    if os.path.exists(folder_path) and os.path.isdir(folder_path):
-        file_list = os.listdir(folder_path)
-        for file_name in file_list:
-            file_path = os.path.join(folder_path, file_name)
-            try:
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-            except Exception as e:
-                print(f"Error deleting {file_name}: {e}")
-    else:
-        print(f"The folder '{folder_path}' does not exist or is not a directory.")
+    # Clean up after testing
+    if os.path.exists(data_folder_path) and os.path.isdir(data_folder_path):
+        shutil.rmtree(data_folder_path)
+    if os.path.exists(result_folder_path) and os.path.isdir(result_folder_path):
+        shutil.rmtree(result_folder_path)

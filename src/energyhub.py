@@ -1,5 +1,6 @@
 from pyomo.environ import *
 import numpy as np
+import pandas as pd
 import dill as pickle
 import time
 import copy
@@ -14,7 +15,7 @@ from .data_management import *
 from .utilities import *
 from .components.utilities import annualize, set_discount_rate
 from .components.technologies.utilities import set_capex_model
-from .result_management import ResultsHandle, create_save_folder
+from .result_management import *
 
 class EnergyHub:
     r"""
@@ -82,17 +83,13 @@ class EnergyHub:
             # Write data to self
             self.data = self.data_storage[0]
 
-        # INITIALIZE RESULTS
-        self.results = ResultsHandle(self.configuration)
-        self.detailed_results = []
-
         print('Reading in data completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
 
-        self.__perform_preprocessing_checks()
+        self._perform_preprocessing_checks()
 
 
-    def __perform_preprocessing_checks(self):
+    def _perform_preprocessing_checks(self):
         """
         Checks some things, before constructing or solving the model
         :return:
@@ -130,8 +127,6 @@ class EnergyHub:
         self.construct_balances()
 
         self.solve()
-        return self.detailed_results
-
 
     def construct_model(self):
         """
@@ -225,16 +220,15 @@ class EnergyHub:
         """
         objective = self.configuration.optimization.objective
 
-        self.__define_solver_settings()
+        self._define_solver_settings()
 
         if self.configuration.optimization.monte_carlo.on:
-            self.__optimize_monte_carlo(objective)
+            self._solve_monte_carlo(objective)
         elif objective == 'pareto':
-            self.__optimize_pareto()
+            self._solve_pareto()
         else:
-            self.__optimize(objective)
+            self._optimize(objective)
 
-        return self.detailed_results
 
     def add_technology_to_node(self, nodename, technologies):
         """
@@ -263,7 +257,7 @@ class EnergyHub:
         with open(Path(save_path) / file_name, mode='wb') as file:
             pickle.dump(self, file)
 
-    def __define_solver_settings(self):
+    def _define_solver_settings(self):
         """
         Defines solver and its settings depending on objective and solver
         """
@@ -272,8 +266,9 @@ class EnergyHub:
         # Set solver
         if self.configuration.solveroptions.solver in ['gurobi', 'gurobi_persistent']:
             # Gurobi
-            if objective in ['emissions_minC', 'pareto'] or self.configuration.optimization.monte_carlo.on:
-                self.configuration.solveroptions.solver = 'gurobi_persistent'
+            if not self.configuration.scaling:
+                if objective in ['emissions_minC', 'pareto'] or self.configuration.optimization.monte_carlo.on:
+                    self.configuration.solveroptions.solver = 'gurobi_persistent'
             self.solver = get_gurobi_parameters(self.configuration.solveroptions)
 
         elif self.configuration.solveroptions.solver == 'glpk':
@@ -283,64 +278,64 @@ class EnergyHub:
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_instance(self.model)
 
-    def __optimize(self, objective):
+    def _optimize(self, objective):
         """
         Solves the model with the given objective
         """
         # Define Objective Function
         if objective == 'costs':
-            self.__optimize_cost()
+            self._optimize_cost()
         elif objective == 'emissions_pos':
-            self.__optimize_emissions_pos()
+            self._optimize_emissions_pos()
         elif objective == 'emissions_net':
-            self.__optimize_emissions_net()
+            self._optimize_emissions_net()
         elif objective == 'emissions_minC':
-            self.__optimize_costs_minE()
+            self._optimize_costs_minE()
         elif objective == 'costs_emissionlimit':
-            self.__optimize_costs_emissionslimit()
+            self._optimize_costs_emissionslimit()
         else:
             raise Exception("objective in Configurations is incorrect")
 
         # Second stage of time averaging algorithm
         if self.model_information.averaged_data and self.model_information.averaged_data_specs.stage == 0:
-            self.__optimize_time_averaging_second_stage()
+            self._optimize_time_averaging_second_stage()
 
 
-    def __optimize_cost(self):
+    def _optimize_cost(self):
         """
         Minimizes Costs
         """
-        self.__delete_objective()
+        self._delete_objective()
 
         def init_cost_objective(obj):
             return self.model.var_total_cost
         self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
-        self.__call_solver()
+        self._call_solver()
 
-    def __optimize_emissions_pos(self):
+    def _optimize_emissions_pos(self):
         """
         Minimizes positive emission
         """
-        self.__delete_objective()
+        self._delete_objective()
 
         def init_emission_pos_objective(obj):
             return self.model.var_emissions_pos
         self.model.objective = Objective(rule=init_emission_pos_objective, sense=minimize)
-        self.__call_solver()
+        self._call_solver()
 
-    def __optimize_emissions_net(self):
+    def _optimize_emissions_net(self):
         """
         Minimize net emissions
         """
-        self.__delete_objective()
+        self._delete_objective()
 
         def init_emission_net_objective(obj):
             return self.model.var_emissions_net
         self.model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
-        self.__call_solver()
+        self._call_solver()
 
 
-    def __optimize_costs_emissionslimit(self):
+    def _optimize_costs_emissionslimit(self):
         """
         Minimize costs at emission limit
         """
@@ -352,14 +347,14 @@ class EnergyHub:
         self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.001)
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.add_constraint(self.model.const_emission_limit)
-        self.__optimize_cost()
+        self._optimize_cost()
 
 
-    def __optimize_costs_minE(self):
+    def _optimize_costs_minE(self):
         """
         Minimize costs at minimum emissions
         """
-        self.__optimize_emissions_net()
+        self._optimize_emissions_net()
         emission_limit = self.model.var_emissions_net.value
         if self.model.find_component('const_emission_limit'):
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
@@ -368,9 +363,9 @@ class EnergyHub:
         self.model.const_emission_limit = Constraint(expr=self.model.var_emissions_net <= emission_limit*1.001)
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.add_constraint(self.model.const_emission_limit)
-        self.__optimize_cost()
+        self._optimize_cost()
 
-    def __optimize_pareto(self):
+    def _solve_pareto(self):
         """
         Optimize the pareto front
         """
@@ -378,12 +373,12 @@ class EnergyHub:
 
         # Min Cost
         self.model_information.pareto_point = 0
-        self.__optimize_cost()
+        self._optimize_cost()
         emissions_max = self.model.var_emissions_net.value
 
         # Min Emissions
         self.model_information.pareto_point = pareto_points + 1
-        self.__optimize_costs_minE()
+        self._optimize_costs_minE()
         emissions_min = self.model.var_emissions_net.value
 
         # Emission limit
@@ -398,19 +393,19 @@ class EnergyHub:
                 expr=self.model.var_emissions_net <= emission_limits[pareto_point]*1.005)
             if self.configuration.solveroptions.solver == 'gurobi_persistent':
                 self.solver.add_constraint(self.model.const_emission_limit)
-            self.__optimize_cost()
+            self._optimize_cost()
 
-    def __optimize_monte_carlo(self, objective):
+    def _solve_monte_carlo(self, objective):
         """
         Optimizes multiple runs with monte carlo
         """
         for run in range(0, self.configuration.optimization.monte_carlo.N):
             self.model_information.monte_carlo_run += 1
-            self.__monte_carlo_set_cost_parameters()
+            self._monte_carlo_set_cost_parameters()
             if run == 0:
-                self.__optimize(objective)
+                self._optimize(objective)
             else:
-                self.__call_solver()
+                self._call_solver()
 
     def scale_model(self):
         """
@@ -468,60 +463,76 @@ class EnergyHub:
         # self.scaled_model.pprint()
 
 
-    def __call_solver(self):
+    def _call_solver(self):
         """
         Calls the solver and solves the model
         """
-
-        # Solve model
         print('_' * 60)
         print('Solving Model...')
 
         start = time.time()
+
+        # Create save path and folder
         time_stamp = datetime.datetime.fromtimestamp(start).strftime('%Y%m%d%H%M%S')
         save_path = Path(self.configuration.reporting.save_path)
+
         if self.configuration.reporting.case_name == -1:
-            result_folder_path = Path.joinpath(save_path, time_stamp)
+            folder_name = str(time_stamp)
         else:
-            time_stamp = str(time_stamp) + '_' + self.configuration.reporting.case_name
-            result_folder_path = Path.joinpath(save_path, time_stamp)
+            folder_name = str(time_stamp) + '_' + self.configuration.reporting.case_name
 
+        result_folder_path = create_unique_folder_name(save_path, folder_name)
         create_save_folder(result_folder_path)
+        save_summary_path = Path.joinpath(Path(self.configuration.reporting.save_summary_path), 'Summary.xlsx')
 
+        # Scale model
         if self.configuration.scaling == 1:
             self.scale_model()
             model = self.scaled_model
         else:
             model = self.model
 
+        # Call solver
         if self.configuration.solveroptions.solver == 'gurobi_persistent':
             self.solver.set_objective(model.objective)
 
         if self.configuration.solveroptions.solver == 'glpk':
             self.solution = self.solver.solve(model,
-                                          tee=True,logfile=str(Path(result_folder_path / 'log.txt')),
-                                          keepfiles=True)
+                                              tee=True, logfile=str(Path(result_folder_path / 'log.txt')),
+                                              keepfiles=True)
         else:
             self.solution = self.solver.solve(model,
-                                          tee=True,
-                                          warmstart=True,
-                                          logfile=str(Path(result_folder_path / 'log.txt')),
-                                          keepfiles=True)
+                                              tee=True,
+                                              warmstart=True,
+                                              logfile=str(Path(result_folder_path / 'log.txt')),
+                                              keepfiles=True)
 
         if self.configuration.scaling == 1:
             TransformationFactory('core.scale_model').propagate_solution(self.scaled_model, self.model)
 
         if self.configuration.reporting.write_solution_diagnostics >= 1:
-            self.__write_solution_diagnostics(result_folder_path)
+            self._write_solution_diagnostics(result_folder_path)
 
         self.solution.write()
-        self.detailed_results = self.results.report_optimization_result(self, time_stamp)
+
+        # Write H5 File
+        if self.solution.solver.termination_condition == 'optimal':
+
+            summary_dict = write_optimization_results_to_h5(self, result_folder_path)
+
+            # Write Summary
+            if not os.path.exists(save_summary_path):
+                summary_df = pd.DataFrame(data=summary_dict, index=[0])
+                summary_df.to_excel(save_summary_path, index=False, sheet_name="Summary")
+            else:
+                summary_existing = pd.read_excel(save_summary_path)
+                pd.concat([summary_existing, pd.DataFrame(data=summary_dict, index=[0])]).to_excel(save_summary_path, index=False, sheet_name="Summary")
 
 
         print('Solving model completed in ' + str(round(time.time() - start)) + ' s')
         print('_' * 60)
 
-    def __write_solution_diagnostics(self, save_path):
+    def _write_solution_diagnostics(self, save_path):
 
         model = self.solver._solver_model
         constraint_map = self.solver._pyomo_con_to_solver_con_map
@@ -544,7 +555,7 @@ class EnergyHub:
                 for key, value in variable_map._dict.items():
                     file.write(f'{value[0].name}: {value[1]}\n')
 
-    def __monte_carlo_set_cost_parameters(self):
+    def _monte_carlo_set_cost_parameters(self):
         """
         Performs monte carlo analysis
         """
@@ -552,24 +563,24 @@ class EnergyHub:
         if 'Technologies' in self.configuration.optimization.monte_carlo.on_what:
             for node in self.model.node_blocks:
                 for tec in self.model.node_blocks[node].tech_blocks_active:
-                    self.__monte_carlo_technologies(node, tec)
+                    self._monte_carlo_technologies(node, tec)
 
         if 'Networks' in self.configuration.optimization.monte_carlo.on_what:
             for netw in self.model.network_block:
-                self.__monte_carlo_networks(netw)
+                self._monte_carlo_networks(netw)
 
         if 'ImportPrices' in self.configuration.optimization.monte_carlo.on_what:
             for node in self.model.node_blocks:
                 for car in self.model.node_blocks[node].set_carriers:
-                    self.__monte_carlo_import_prices(node, car)
+                    self._monte_carlo_import_prices(node, car)
 
         if 'ExportPrices' in self.configuration.optimization.monte_carlo.on_what:
             for node in self.model.node_blocks:
                 for car in self.model.node_blocks[node].set_carriers:
-                    self.__monte_carlo_export_prices(node, car)
+                    self._monte_carlo_export_prices(node, car)
 
 
-    def __monte_carlo_technologies(self, node, tec):
+    def _monte_carlo_technologies(self, node, tec):
         """
         Changes the capex of technologies
         """
@@ -606,7 +617,7 @@ class EnergyHub:
             warnings.warn("monte carlo on piecewise defined investment costs is not implemented")
 
 
-    def __monte_carlo_networks(self, netw):
+    def _monte_carlo_networks(self, netw):
         """
         Changes the capex of networks
         """
@@ -661,7 +672,7 @@ class EnergyHub:
             b_arc.const_capex_aux = Constraint(rule=init_capex)
             self.solver.add_constraint(b_arc.const_capex_aux)
 
-    def __monte_carlo_import_prices(self, node, car):
+    def _monte_carlo_import_prices(self, node, car):
         """
         Changes the import prices
         """
@@ -715,7 +726,7 @@ class EnergyHub:
             self.solver.add_constraint(model.const_node_cost)
 
 
-    def __monte_carlo_export_prices(self, node, car):
+    def _monte_carlo_export_prices(self, node, car):
         """
         Changes the export prices
         """
@@ -768,7 +779,7 @@ class EnergyHub:
             model.const_node_cost = Constraint(rule=init_node_cost)
             self.solver.add_constraint(model.const_node_cost)
 
-    def __delete_objective(self):
+    def _delete_objective(self):
         """
         Delete the objective function
         """
@@ -778,7 +789,7 @@ class EnergyHub:
             except:
                 pass
 
-    def __optimize_time_averaging_second_stage(self):
+    def _optimize_time_averaging_second_stage(self):
         """
         Optimizes the second stage of the time_averaging algorithm
         """
@@ -792,10 +803,10 @@ class EnergyHub:
         self.data = self.data_storage[0]
         self.construct_model()
         self.construct_balances()
-        self.__impose_size_constraints(bounds_on)
+        self._impose_size_constraints(bounds_on)
         self.solve()
 
-    def __impose_size_constraints(self, bounds_on):
+    def _impose_size_constraints(self, bounds_on):
         """
         Formulates lower bound on technology and network sizes.
 
