@@ -30,18 +30,16 @@
     ],
     "emission_factor": 0,
     "allow_only_one_direction": 0,
-    "power_energy_ratio_is_constant": 0,
     "performance": {
       "eta_in": 0.96,
       "eta_out": 0.96,
       "lambda": 0.001,
-      "theta": 0,
-      "charge_max": 0.3,
-      "discharge_max": 0.3
+      "theta": 0
     }
   },
-  "Flexible_power_energy_ratio": {
-    "comment": "contains the parameters needed to optimize for the energy and power capacity at the same time",
+  "Flexibility": {
+    "comment": "determines the flexibility of the power capacity compared to the energy capacity",
+    "power_energy_ratio": "flex",
     "size_charge_min": 0,
     "size_charge_max": 1000,
     "size_charge_is_int": 0,

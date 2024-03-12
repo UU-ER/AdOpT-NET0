@@ -36,8 +36,8 @@
       "eta_in": 1,
       "eta_out": 1,
       "lambda": 0,
-      "charge_max": 1,
-      "discharge_max": 1,
+      "charge_rate": 1,
+      "discharge_rate": 1,
       "spilling_max": 1
     }
   },

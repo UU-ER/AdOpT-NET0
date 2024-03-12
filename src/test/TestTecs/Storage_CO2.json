@@ -35,8 +35,8 @@
       "eta_out": 1,
       "lambda": 0,
       "theta": 0,
-      "charge_max": 1,
-      "discharge_max": 1
+      "charge_rate": 1,
+      "discharge_rate": 1
     }
   },
   "Units": {
