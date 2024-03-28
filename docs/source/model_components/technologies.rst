@@ -57,3 +57,8 @@ Hydro Open
 ----------------------------------------------
 .. automodule:: src.components.technologies.specificTechnologies.hydro_open
     :members: HydroOpen
+
+Carbon Capture
+----------------------------------------------
+.. automodule:: src.components.technologies.specificTechnologies.carbon_capture
+    :members: CarbonCapture

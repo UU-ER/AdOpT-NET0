@@ -39,6 +39,7 @@ def setup_before_tests():
     create_data_technologyOpen_Hydro()
     create_data_carbon_tax()
     create_data_carbon_subsidy()
+    create_data_technology_CARBONCAPTURE()
 
     # Yield control back to the test functions
     yield

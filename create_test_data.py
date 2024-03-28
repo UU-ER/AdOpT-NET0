@@ -395,20 +395,19 @@ def create_data_technologySTOR():
     # SAVING/LOADING DATA FILE
     data.save(data_save_path)
 
-def create_data_technologyCARBONCAPTURE():
+def create_data_technology_CARBONCAPTURE():
     """
-    Creates dataset for a model with two nodes.
-    WT, battery @ node 1
-    electricity demand @ node 1
-    two periods, rated wind speed at first, no wind at second. battery to balance
+    Creates dataset for a model with one node and an ethylene demand.
+    Ethylene is supplied by a fake tech (testEthylene_CCS) that converts gas (or H2) into ethylene and CO2fluegas.
+    The ethylene demand is such that the solver installs all the sizes of CCS
     """
     data_save_path = './src/test/test_data/technologyCARBONCAPTURE.p'
 
     topology = SystemTopology()
-    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 02:00', resolution=1)
+    topology.define_time_horizon(year=2001, start_date='01-01 00:00', end_date='01-01 01:00', resolution=1)
     topology.define_carriers(['electricity', 'gas', 'hydrogen', 'CO2fluegas', 'CO2captured', 'heat', 'ethylene'])
     topology.define_nodes(['test_node1'])
-    topology.define_new_technologies('test_node1', ['GasTurbine_simple_test', 'CarbonCapture_MEA'])
+    topology.define_new_technologies('test_node1', ['testEthylene_CCS', 'testCarbonCapture_MEA_small', 'testCarbonCapture_MEA_medium', 'testCarbonCapture_MEA_large'])
 
     # Initialize instance of DataHandle
     data = DataHandle(topology)
@@ -418,15 +417,15 @@ def create_data_technologyCARBONCAPTURE():
     data.read_climate_data_from_file('test_node1', climate_data_path)
 
     # DEMAND
-    ethylene_demand = np.ones(len(topology.timesteps)) * 1
+    ethylene_demand = np.ones(len(topology.timesteps)) * 210
     data.read_demand_data('test_node1', 'ethylene', ethylene_demand)
 
     # IMPORT
-    gas_import = np.ones(len(topology.timesteps)) * 3
+    gas_import = np.ones(len(topology.timesteps)) * 500
     data.read_import_limit_data('test_node1', 'gas', gas_import)
-    heat_import = np.ones(len(topology.timesteps)) * 5
+    heat_import = np.ones(len(topology.timesteps)) * 1000
     data.read_import_limit_data('test_node1', 'heat', heat_import)
-    electricity_import = np.ones(len(topology.timesteps)) * 1
+    electricity_import = np.ones(len(topology.timesteps)) * 1000
     data.read_import_limit_data('test_node1', 'electricity', electricity_import)
 
     # EXPORT
@@ -435,8 +434,6 @@ def create_data_technologyCARBONCAPTURE():
     CO2captured_export = np.ones(len(topology.timesteps)) * 500
     data.read_export_limit_data('test_node1', 'CO2captured', CO2captured_export)
 
-    CO2fluegas_export = np.ones(len(topology.timesteps)) * 500
-    data.read_export_limit_data('test_node1', 'CO2fluegas', CO2fluegas_export)
 
     # READ TECHNOLOGY AND NETWORK DATA
     data.read_technology_data(load_path = './src/test/TestTecs')
@@ -1054,3 +1051,4 @@ def create_data_carbon_subsidy():
 # create_data_technologyOpen_Hydro()
 # create_data_carbon_tax()
 # create_data_carbon_subsidy()
+# create_data_technology_CARBONCAPTURE()

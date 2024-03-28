@@ -9,8 +9,7 @@ import os
 import json
 
 from ..components.technologies import *
-# TODO make sure that the carbon capture class is actually recognized with import from components.technologies
-from ..components.technologies.genericTechnologies.carboncapture import CarbonCapture
+
 
 
 
@@ -235,8 +234,6 @@ def select_technology(tec_data):
         return Conv4(tec_data)
     elif tec_data['tec_type'] == 'STOR':
         return Stor(tec_data)
-    elif tec_data['tec_type'] == 'CARBONCAPTURE':
-        return CarbonCapture(tec_data)
     # Specific tecs
     elif tec_data['tec_type'] == 'DAC_Adsorption':
         return DacAdsorption(tec_data)
@@ -246,7 +243,8 @@ def select_technology(tec_data):
         return HeatPump(tec_data)
     elif tec_data['tec_type'] == 'HydroOpen':
         return HydroOpen(tec_data)
-
+    elif tec_data['tec_type'] == 'CARBONCAPTURE':
+        return CarbonCapture(tec_data)
 
 def open_json(tec, load_path):
     # Read in JSON files

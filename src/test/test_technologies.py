@@ -1034,19 +1034,22 @@ def test_technology_CARBONCAPTURE():
     data = load_object(r'./src/test/test_data/technologyCARBONCAPTURE.p')
     configuration = ModelConfiguration()
     sizes = ['small', 'medium', 'large']
-    energyhub = {}
-    for s in sizes:
-        data.technology_data['test_node1']['CarbonCapture_MEA'].performance_data['plant_size'] = s
-        energyhub[s] = EnergyHub(data, configuration)
-        energyhub[s].model_information.testing = 1
-        energyhub[s].quick_solve()
+    el = {}
+    heat = {}
 
+    energyhub = EnergyHub(data, configuration)
+    energyhub.model_information.testing = 1
+    energyhub.quick_solve()
     assert energyhub.solution.solver.termination_condition == 'optimal'
-    el_out_1 = round(
-        energyhub.model.node_blocks['test_node1'].tech_blocks_active['testSTOR'].var_output[1, 'electricity'].value,
-        3)
-    el_out_2 = round(
-        energyhub.model.node_blocks['test_node1'].tech_blocks_active['testSTOR'].var_output[2, 'electricity'].value,
-        3)
-    assert 0 == el_out_1
-    assert 0.1 == el_out_2
+
+
+    for s in sizes:
+        el[s] = energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCarbonCapture_MEA_' + s].var_input[1, 'electricity'].value
+        heat[s] = energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCarbonCapture_MEA_' + s].var_input[1, 'heat'].value
+        CO2_fluegas_in = energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCarbonCapture_MEA_' + s].var_input[1, 'CO2fluegas'].value
+
+        input_ratio_el = data.technology_data['test_node1']['testCarbonCapture_MEA_' + s].input_ratios['electricity']
+        input_ratio_heat = data.technology_data['test_node1']['testCarbonCapture_MEA_' + s].input_ratios['heat']
+
+        assert input_ratio_el * CO2_fluegas_in == el[s]
+        assert input_ratio_heat * CO2_fluegas_in == heat[s]

@@ -6,8 +6,8 @@
   "decommission": 0,
   "Economics": {
     "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/unit total output, OPEX_fixed in % of CAPEX_annual",
-    "CAPEX_model": 3,
-    "unit_CAPEX": 1,
+    "CAPEX_model": 1,
+    "unit_CAPEX": 787730,
     "fix_CAPEX": 2.06E+08,
     "piecewise_CAPEX": {
       "bp_x": [
