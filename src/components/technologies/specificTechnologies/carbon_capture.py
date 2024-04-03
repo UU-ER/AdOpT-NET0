@@ -233,11 +233,11 @@ class CarbonCapture(Technology):
         # RAMPING RATES
         if "ramping_rate" in self.performance_data:
             if not self.performance_data['ramping_rate'] == -1:
-                b_tec = self.__define_ramping_rates(b_tec)
+                b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
 
-    def __define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec):
         """
         Constraints the inputs for a ramping rate
 

@@ -26,7 +26,7 @@
     "output_carrier": [
       "electricity"
     ],
-    "emission_factor": 1,
+    "emission_factor": 0.185,
     "min_part_load": 0,
     "performance": {
       "in": [
