@@ -15,7 +15,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: List Repository Contents
-      run: dir /s /b $env:GITHUB_WORKSPACE
+      run: dir /s /b ${{ github.workspace }}
 
     - name: Set up Python
       uses: actions/setup-python@v2
