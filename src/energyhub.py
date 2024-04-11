@@ -853,5 +853,5 @@ def load_energyhub_instance(load_path):
     :return: energyhub instance
     """
     with open(Path(load_path), mode='rb') as file:
-        energyhub = pickle.load(file)
+        energyhub = pd.read_pickle(file)
     return energyhub

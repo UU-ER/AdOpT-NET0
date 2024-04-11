@@ -30,7 +30,7 @@ def load_object(load_path):
     :return object: object loaded
     """
     with open(load_path, 'rb') as handle:
-        data = pickle.load(handle)
+        data = pd.read_pickle(handle)
     return data
 
 
