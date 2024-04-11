@@ -91,8 +91,8 @@ class Technology(ModelComponent):
 
         **Constraint declarations**
 
-        - CAPEX, can be linear (for ``capex_model == 1``), piecewise linear (for ``capex_model == 2``) or linear with \
-        a fixed cost when the technology is installed (for ``capex_model == 3``). Linear is defined as:
+        - CAPEX, can be linear (for ``capex_model == 1``), piecewise linear (for ``capex_model == 2``) or linear with
+            a fixed cost when the technology is installed (for ``capex_model == 3``). Linear is defined as:
 
         .. math::
             CAPEX_{tec} = Size_{tec} * UnitCost_{tec}

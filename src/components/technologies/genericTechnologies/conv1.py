@@ -32,10 +32,14 @@ class Conv1(Technology):
       .. math::
         Input_{t, car} <= max_in_{car} * \sum(Input_{t, car})
 
-    - ``performance_function_type == 1``: Linear through origin, i.e.:
+    - ``performance_function_type == 1``: Linear, with minimal partload. In case minimal partload is greater than 0 the
+      technology can not shut down during the full time horizon (when installed), i.e.:
 
       .. math::
         \sum(Output_{t, car}) == {\\alpha}_1 \sum(Input_{t, car})
+
+      .. math::
+        \sum(Input_{car}) \geq Input_{min} * S
 
     - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
       technology is in on, it holds:
@@ -54,9 +58,27 @@ class Conv1(Technology):
       .. math::
          \sum(Input_{t, car}) = 0
 
+      Or in case a standby power is defined:
+
+      .. math::
+         Input_{t, maincarrier} \geq Input_{standby} * S
+
     - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
       The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
       is defined piecewise for the respective number of pieces
+
+    - Ramping rate of a technology is defined by the ramping time (RT) required to ramp from 0 to the installed capacity:
+
+      .. math::
+         -\\frac{S}{RT} \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq \\frac{S}{RT}
+
+      or the predefined reference size, which makes the ramping rate fixed parameter:
+
+      .. math::
+         -\\frac{S^{ref}}{RT} \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq \\frac{S^{ref}}{RT}
+
+      In case of performance function type 2 or 3 the user can decide whether the ramping rate is always constrained or
+      only when the technology is on. In the latter case the formulation requires integers.
     """
 
     def __init__(self,
