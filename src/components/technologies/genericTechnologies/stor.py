@@ -281,8 +281,7 @@ class Stor(Technology):
             ramping_rate = b_tec.var_size / ramping_time
 
         #Constraints ramping rates
-        if not self.performance_data['performance_function_type'] == 1 and \
-                "ramping_const_int" in self.performance_data and self.performance_data['ramping_const_int'] == 1:
+        if "ramping_const_int" in self.performance_data and self.performance_data['ramping_const_int'] == 1:
 
             s_indicators = range(0, 3)
 
