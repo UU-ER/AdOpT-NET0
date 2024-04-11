@@ -114,6 +114,17 @@ class EnergyHub:
                                     f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
                                     f"json files or switch off the dynamics.")
 
+        # check if time horizon is not longer than 1 year (in case of single year analysis)
+        if self.configuration.optimization.multiyear == 0:
+            nr_timesteps_data = len(self.data.topology.timesteps)
+            nr_timesteps_year = 8760 / self.configuration.optimization.timestep_length
+            if nr_timesteps_data > nr_timesteps_year:
+                raise ValueError(
+                    f"Time horizon is longer than one year. Enable multiyear analysis if you want to optimize for"
+                    f"a longer time horizon.")
+
+
+
     def quick_solve(self):
         """
         Quick-solves the model (constructs model and balances and solves model).
