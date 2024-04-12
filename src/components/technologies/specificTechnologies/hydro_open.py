@@ -244,8 +244,8 @@ class HydroOpen(Technology):
         b_tec.const_max_spilling = Constraint(self.set_t, rule=init_maximal_spilling)
 
         # RAMPING RATES
-        if "ramping_rate" in self.performance_data:
-            if not self.performance_data['ramping_rate']   == -1:
+        if "ramping_time" in self.performance_data:
+            if not self.performance_data['ramping_time'] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -266,44 +266,104 @@ class HydroOpen(Technology):
 
     def _define_ramping_rates(self, b_tec):
         """
-        Constraints the inputs for a ramping rate. Implemented for input and output
+        Constraints the inputs for a ramping rate. The ramping rate can either be defined by the installed capacity or a
+        predefined reference size, and is divided by the ramping time. In case of performance type 2 or 3 the user can
+        decide whether the ramping rate is always constrained or only when the technology is on (x_t = 1 and x_t-1 = 1).
 
         :param b_tec: technology model block
         :return:
         """
-        ramping_rate = self.performance_data['ramping_rate']
+        ramping_time = self.performance_data['ramping_time']
 
-        def init_ramping_down_rate_input(const, t):
-            if t > 1:
-                return -ramping_rate <= sum(self.input[t, car_input] - self.input[t-1, car_input]
+        # Calculate ramping rates
+        if "ref_size" in self.performance_data and not self.performance_data['ref_size'] == -1:
+            ramping_rate = self.performance_data['ref_size'] / ramping_time
+        else:
+            ramping_rate = b_tec.var_size / ramping_time
+
+        # Constraints ramping rates
+        if "ramping_const_int" in self.performance_data and self.performance_data['ramping_const_int'] == 1:
+
+            s_indicators = range(0, 3)
+
+            def init_ramping_operation_on(dis, t, ind):
+                if t > 1:
+                    if ind == 0:  # ramping constrained
+                        dis.const_ramping_on = Constraint(expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 0)
+
+                        def init_ramping_down_rate_operation_in(const):
+                            return -ramping_rate <= sum(self.input[t, car_input] - self.input[t - 1, car_input]
+                                                        for car_input in b_tec.set_input_carriers)
+
+                        dis.const_ramping_down_rate_in = Constraint(rule=init_ramping_down_rate_operation_in)
+
+                        def init_ramping_up_rate_operation_in(const):
+                            return sum(self.input[t, car_input] - self.input[t - 1, car_input]
+                                       for car_input in b_tec.set_input_carriers) <= ramping_rate
+
+                        dis.const_ramping_up_rate_in = Constraint(rule=init_ramping_up_rate_operation_in)
+
+                        def init_ramping_down_rate_operation_out(const):
+                            return -ramping_rate <= sum(self.output[t, car_output] - self.output[t - 1, car_output]
+                                                        for car_output in b_tec.set_output_carriers)
+
+                        dis.const_ramping_down_rate_out = Constraint(rule=init_ramping_down_rate_operation_out)
+
+                        def init_ramping_up_rate_operation_out(const):
+                            return sum(self.output[t, car_output] - self.output[t - 1, car_output]
+                                       for car_output in b_tec.set_output_carriers) <= ramping_rate
+
+                        dis.const_ramping_up_rate_out = Constraint(rule=init_ramping_up_rate_operation_out)
+
+                    elif ind == 1:  # startup, no ramping constraint
+                        dis.const_ramping_on = Constraint(expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 1)
+
+                    else:  # shutdown, no ramping constraint
+                        dis.const_ramping_on = Constraint(expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == -1)
+
+            b_tec.dis_ramping_operation_on = Disjunct(self.set_t, s_indicators, rule=init_ramping_operation_on)
+
+            # Bind disjuncts
+            def bind_disjunctions(dis, t):
+                return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
+
+            b_tec.disjunction_ramping_operation_on = Disjunction(self.set_t, rule=bind_disjunctions)
+
+        else:
+            def init_ramping_down_rate_input(const, t):
+                if t > 1:
+                    return -ramping_rate <= sum(self.input[t, car_input] - self.input[t - 1, car_input]
                                                 for car_input in b_tec.set_input_carriers)
-            else:
-                return Constraint.Skip
-        b_tec.const_ramping_down_rate_input = Constraint(self.set_t, rule=init_ramping_down_rate_input)
+                else:
+                    return Constraint.Skip
 
-        def init_ramping_up_rate_input(const, t):
-            if t > 1:
-                return sum(self.input[t, car_input] - self.input[t-1, car_input]
+            b_tec.const_ramping_down_rate_input = Constraint(self.set_t, rule=init_ramping_down_rate_input)
+
+            def init_ramping_up_rate_input(const, t):
+                if t > 1:
+                    return sum(self.input[t, car_input] - self.input[t - 1, car_input]
                                for car_input in b_tec.set_input_carriers) <= ramping_rate
-            else:
-                return Constraint.Skip
-        b_tec.const_ramping_up_rate_input = Constraint(self.set_t, rule=init_ramping_up_rate_input)
+                else:
+                    return Constraint.Skip
 
+            b_tec.const_ramping_up_rate_input = Constraint(self.set_t, rule=init_ramping_up_rate_input)
 
-        def init_ramping_down_rate_output(const, t):
-            if t > 1:
-                return -ramping_rate <= sum(self.output[t, car_output] - self.output[t-1, car_output]
+            def init_ramping_down_rate_output(const, t):
+                if t > 1:
+                    return -ramping_rate <= sum(self.output[t, car_output] - self.output[t - 1, car_output]
                                                 for car_output in b_tec.set_ouput_carriers)
-            else:
-                return Constraint.Skip
-        b_tec.const_ramping_down_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
+                else:
+                    return Constraint.Skip
 
-        def init_ramping_down_rate_output(const, t):
-            if t > 1:
-                return sum(self.output[t, car_output] - self.output[t-1, car_output]
+            b_tec.const_ramping_down_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
+
+            def init_ramping_down_rate_output(const, t):
+                if t > 1:
+                    return sum(self.output[t, car_output] - self.output[t - 1, car_output]
                                for car_output in b_tec.set_ouput_carriers) <= ramping_rate
-            else:
-                return Constraint.Skip
-        b_tec.const_ramping_up_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
+                else:
+                    return Constraint.Skip
+
+            b_tec.const_ramping_up_rate_output = Constraint(self.set_t, rule=init_ramping_down_rate_output)
 
         return b_tec
