@@ -157,8 +157,6 @@ def shorten_input_data(time_series, nr_time_steps):
     :param int nr_time_steps: nr of time steps to shorten to
     """
     if len(time_series) != nr_time_steps:
-        warnings.warn('Time series is longer than chosen time horizon - taking only the first ' + \
-                      'couple of time slices')
         time_series = time_series[0:nr_time_steps]
 
     return time_series

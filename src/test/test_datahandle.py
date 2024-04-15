@@ -7,7 +7,7 @@ from src.data_management import *
 from src.model_configuration import ModelConfiguration
 from src.energyhub import EnergyHub
 
-@pytest.mark.quicktest
+
 def create_topology_sample():
     """
     Create a topology sample for the test_load_technology function
@@ -19,7 +19,7 @@ def create_topology_sample():
 
     return topology
 
-@pytest.mark.quicktest
+
 def test_initializer():
     """
     tests the datahandle initilization
@@ -42,7 +42,7 @@ def test_initializer():
 
     data = DataHandle(topology)
 
-@pytest.mark.quicktest
+
 def test_load_technologies():
     """
     Tests the loading of all technologies contained in the technology folder

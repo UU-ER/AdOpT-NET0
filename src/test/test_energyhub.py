@@ -8,13 +8,13 @@ from src.components.utilities import annualize
 from src.data_management import *
 from src.energyhub import EnergyHub as ehub
 
-@pytest.mark.quicktest
+
 def test_initializer():
     data = load_object(r'./src/test/test_data/data_handle_test.p')
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
 
-@pytest.mark.quicktest
+
 def test_add_nodes():
     """
     Add a node with no technology, establishes energybalance
@@ -29,7 +29,7 @@ def test_add_nodes():
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
-@pytest.mark.quicktest
+
 def test_model1():
     """
     Run a model with two nodes.
@@ -48,7 +48,7 @@ def test_model1():
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
 
-@pytest.mark.quicktest
+
 def test_model2():
     """
     Run a model with one node.
@@ -102,7 +102,7 @@ def test_model2():
                        data.technology_data['test_node1']['Furnace_NG'].performance_data['emission_factor']
     assert abs(emissions_should - net_emissions) / net_emissions <= 0.01
 
-@pytest.mark.quicktest
+
 def test_addtechnology():
     """
     electricity demand @ node 2
@@ -145,7 +145,7 @@ def test_addtechnology():
     assert (obj2 - obj1) / obj1 <= 0.8
     assert energyhub.model.var_emissions_net.value == 0
 
-@pytest.mark.quicktest
+
 def test_emission_balance1():
     """
     PV & furnace @ node 1
@@ -202,7 +202,7 @@ def test_emission_balance1():
     # total emissions
     assert abs(tec_emissions + import_emissions + emissionsNETW - emissionsTOT)/ emissionsTOT <= 0.01
 
-@pytest.mark.quicktest
+
 def test_emission_balance2():
     """
     PV & Tec1 @ node 1
@@ -234,7 +234,7 @@ def test_emission_balance2():
     assert cost1 < cost2
     assert emissions1 > emissions2
 
-@pytest.mark.quicktest
+
 def test_optimization_types():
     # Cost optimization
     data = load_object(r'./src/test/test_data/optimization_types.p')
@@ -274,7 +274,7 @@ def test_optimization_types():
     energyhub.configuration.optimization.objective = 'pareto'
     energyhub.solve()
 
-@pytest.mark.quicktest
+
 def test_simplification_algorithms():
     data = load_object(r'./src/test/test_data/time_algorithms.p')
 
@@ -324,7 +324,7 @@ def test_simplification_algorithms():
     energyhub5.configuration.reporting.save_summary_path = './src/test/results'
     energyhub5.quick_solve()
 
-@pytest.mark.quicktest
+
 def test_carbon_tax():
     """
     Model with a furnace and a heat demand
@@ -351,7 +351,7 @@ def test_carbon_tax():
     carbon_cost2 = emissionsTOT * 10
     assert abs((carbon_cost1 - carbon_cost2) / carbon_cost1)<= 0.01
 
-@pytest.mark.quicktest
+
 def test_carbon_subsidy():
     """
     Model with DAC, import of electricity and heat
@@ -381,7 +381,7 @@ def test_carbon_subsidy():
     carbon_revenues2 = negative_emissions * 10
     assert abs((carbon_revenues1 - carbon_revenues2) / carbon_revenues1)<= 0.01
 
-@pytest.mark.quicktest
+
 def test_scaling():
     """
     Run a model with one node.
