@@ -9,7 +9,7 @@ from ..technology import Technology
 
 
 class Stor(Technology):
-    """
+    r"""
     This model resembles a storage technology.
     Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
 

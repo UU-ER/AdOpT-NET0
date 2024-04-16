@@ -177,12 +177,12 @@ class EnergyHub:
 
         # Parameters
         def init_carbon_subsidy(para, t):
-            return self.data.global_data.data['carbon_prices']['subsidy'][t - 1]
+            return self.data.global_data.data['carbon_prices']['subsidy'].iloc[t - 1]
 
         self.model.para_carbon_subsidy = Param(self.model.set_t_full, rule=init_carbon_subsidy, mutable=True)
 
         def init_carbon_tax(para, t):
-            return self.data.global_data.data['carbon_prices']['tax'][t - 1]
+            return self.data.global_data.data['carbon_prices']['tax'].iloc[t - 1]
 
         self.model.para_carbon_tax = Param(self.model.set_t_full, rule=init_carbon_tax, mutable=True)
 
@@ -687,7 +687,7 @@ class EnergyHub:
 
         for t in set_t:
             # Update parameter
-            b_node.para_import_price[t, car] = import_prices[t-1] * sd_random
+            b_node.para_import_price[t, car] = import_prices.iloc[t-1] * sd_random
 
             # Remove constraint (from persistent solver and from model)
             self.solver.remove_constraint(model.const_node_cost)
@@ -741,7 +741,7 @@ class EnergyHub:
 
         for t in set_t:
             # Update parameter
-            b_node.para_export_price[t, car] = export_prices[t - 1] * sd_random
+            b_node.para_export_price[t, car] = export_prices.iloc[t - 1] * sd_random
 
             # Remove constraint (from persistent solver and from model)
             self.solver.remove_constraint(model.const_node_cost)
