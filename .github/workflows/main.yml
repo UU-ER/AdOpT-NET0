@@ -6,8 +6,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     steps:
-      - run: choco install glpk
-      - run: glpk version
+
 
   test:
     runs-on: ${{ matrix.os }}
@@ -17,6 +16,11 @@ jobs:
         os: [windows-latest]
 
     steps:
+    - name: Install GLPK Solver
+      run: | 
+        choco install glpk
+        glpk version
+
     - name: Checkout Code
       uses: actions/checkout@v4
 
