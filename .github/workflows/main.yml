@@ -3,11 +3,6 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    steps:
-
-
   test:
     runs-on: ${{ matrix.os }}
 
