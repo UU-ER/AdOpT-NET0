@@ -67,12 +67,13 @@ data.read_network_data()
 
 # SAVING/LOADING DATA FILE
 configuration = ModelConfiguration()
+configuration.solveroptions.solver = 'glpk'
 configuration.reporting.save_path = './userData/'
 configuration.scaling = 1
 configuration.scaling_factors.energy_vars = 1e-2
 configuration.scaling_factors.cost_vars = 1
 
-configuration.optimization.objective = 'pareto'
+configuration.optimization.objective = 'costs'
 
 # # Read data
 energyhub = EnergyHub(data, configuration)

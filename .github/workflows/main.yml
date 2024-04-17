@@ -14,7 +14,6 @@ jobs:
     - name: Install GLPK Solver
       run: | 
         choco install glpk
-        glpk version
 
     - name: Checkout Code
       uses: actions/checkout@v4
