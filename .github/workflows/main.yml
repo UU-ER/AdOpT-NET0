@@ -3,6 +3,12 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: choco install glpk
+      - run: glpk version
+
   test:
     runs-on: ${{ matrix.os }}
 
