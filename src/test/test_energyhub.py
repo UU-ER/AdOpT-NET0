@@ -25,6 +25,7 @@ def test_add_nodes():
     configuration = ModelConfiguration()
     configuration.reporting.save_path = '.'
     configuration.reporting.save_summary_path = '.'
+    configuration.solveroptions.solver = 'glpk'
     energyhub = ehub(data, configuration)
     energyhub.configuration.reporting.save_path = './src/test/results'
     energyhub.configuration.reporting.save_summary_path = './src/test/results'
