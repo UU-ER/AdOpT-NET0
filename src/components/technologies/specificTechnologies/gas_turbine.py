@@ -79,8 +79,7 @@ class GasTurbine(Technology):
          \sum(Input_{t, car}) = 0
     """
 
-    def __init__(self,
-                 tec_data):
+    def __init__(self, tec_data):
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
@@ -98,60 +97,92 @@ class GasTurbine(Technology):
         :return:
         """
         # Climate data & Number of timesteps
-        climate_data = node_data.data['climate_data']
+        climate_data = node_data.data["climate_data"]
         time_steps = len(climate_data)
 
         # Ambient air temperature
-        T = copy.deepcopy(climate_data['temp_air'])
+        T = copy.deepcopy(climate_data["temp_air"])
 
         # Temperature correction factors
         f = np.empty(shape=(time_steps))
-        f[T <= 6] = self.performance_data['gamma'][0] * (T[T <= 6] / self.performance_data['T_iso']) + self.performance_data['delta'][0]
-        f[T > 6] = self.performance_data['gamma'][1] * (T[T > 6] / self.performance_data['T_iso']) + self.performance_data['delta'][1]
+        f[T <= 6] = (
+            self.performance_data["gamma"][0]
+            * (T[T <= 6] / self.performance_data["T_iso"])
+            + self.performance_data["delta"][0]
+        )
+        f[T > 6] = (
+            self.performance_data["gamma"][1]
+            * (T[T > 6] / self.performance_data["T_iso"])
+            + self.performance_data["delta"][1]
+        )
 
         # Derive return
         fit = {}
-        fit['coeff'] = {}
-        fit['coeff']['f'] = f.round(5)
-        fit['coeff']['alpha'] = round(self.performance_data['alpha'], 5)
-        fit['coeff']['beta'] = round(self.performance_data['beta'], 5)
-        fit['coeff']['epsilon'] = round(self.performance_data['epsilon'], 5)
-        fit['coeff']['in_min'] = round(self.performance_data['in_min'], 5)
-        fit['coeff']['in_max'] = round(self.performance_data['in_max'], 5)
-        if len(self.performance_data['input_carrier']) == 2:
-            fit['coeff']['max_H2_admixture'] = self.performance_data['max_H2_admixture']
+        fit["coeff"] = {}
+        fit["coeff"]["f"] = f.round(5)
+        fit["coeff"]["alpha"] = round(self.performance_data["alpha"], 5)
+        fit["coeff"]["beta"] = round(self.performance_data["beta"], 5)
+        fit["coeff"]["epsilon"] = round(self.performance_data["epsilon"], 5)
+        fit["coeff"]["in_min"] = round(self.performance_data["in_min"], 5)
+        fit["coeff"]["in_max"] = round(self.performance_data["in_max"], 5)
+        if len(self.performance_data["input_carrier"]) == 2:
+            fit["coeff"]["max_H2_admixture"] = self.performance_data["max_H2_admixture"]
         else:
-            fit['coeff']['max_H2_admixture'] = 1
+            fit["coeff"]["max_H2_admixture"] = 1
 
         # Input bounds
-        fit['input_bounds'] = {}
-        for c in self.performance_data['input_carrier']:
-            if c == 'hydrogen':
-                fit['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                          np.ones(shape=(time_steps)) * self.performance_data['in_max'] *
-                                                          fit['coeff']['max_H2_admixture']))
+        fit["input_bounds"] = {}
+        for c in self.performance_data["input_carrier"]:
+            if c == "hydrogen":
+                fit["input_bounds"][c] = np.column_stack(
+                    (
+                        np.zeros(shape=(time_steps)),
+                        np.ones(shape=(time_steps))
+                        * self.performance_data["in_max"]
+                        * fit["coeff"]["max_H2_admixture"],
+                    )
+                )
             else:
-                fit['input_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                          np.ones(shape=(time_steps)) * self.performance_data['in_max']))
+                fit["input_bounds"][c] = np.column_stack(
+                    (
+                        np.zeros(shape=(time_steps)),
+                        np.ones(shape=(time_steps)) * self.performance_data["in_max"],
+                    )
+                )
 
         # Output bounds
-        fit['output_bounds'] = {}
-        fit['output_bounds']['electricity'] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                               f * (self.performance_data['in_max'] * fit['coeff']['alpha'] +
-                                                                    fit['coeff']['beta'])))
-        fit['output_bounds']['heat'] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                        fit['coeff']['epsilon'] * fit['coeff']['in_max'] -
-                                                        f * (self.performance_data['in_max'] * fit['coeff']['alpha'] + fit['coeff'][
-                                                            'beta'])))
+        fit["output_bounds"] = {}
+        fit["output_bounds"]["electricity"] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                f
+                * (
+                    self.performance_data["in_max"] * fit["coeff"]["alpha"]
+                    + fit["coeff"]["beta"]
+                ),
+            )
+        )
+        fit["output_bounds"]["heat"] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                fit["coeff"]["epsilon"] * fit["coeff"]["in_max"]
+                - f
+                * (
+                    self.performance_data["in_max"] * fit["coeff"]["alpha"]
+                    + fit["coeff"]["beta"]
+                ),
+            )
+        )
 
         # Output Bounds
-        self.fitted_performance.bounds['output'] = fit['output_bounds']
+        self.fitted_performance.bounds["output"] = fit["output_bounds"]
         # Input Bounds
-        for car in self.performance_data['input_carrier']:
-            self.fitted_performance.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                            np.ones(shape=(time_steps))))
+        for car in self.performance_data["input_carrier"]:
+            self.fitted_performance.bounds["input"][car] = np.column_stack(
+                (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
+            )
         # Coefficients
-        self.fitted_performance.coefficients = fit['coeff']
+        self.fitted_performance.coefficients = fit["coeff"]
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
@@ -174,41 +205,48 @@ class GasTurbine(Technology):
         bounds = self.fitted_performance.bounds
 
         # Parameter declaration
-        in_min = coeff['in_min']
-        in_max = coeff['in_max']
-        max_H2_admixture = coeff['max_H2_admixture']
-        alpha = coeff['alpha']
-        beta = coeff['beta']
-        epsilon = coeff['epsilon']
-        f = coeff['f']
+        in_min = coeff["in_min"]
+        in_max = coeff["in_max"]
+        max_H2_admixture = coeff["max_H2_admixture"]
+        alpha = coeff["alpha"]
+        beta = coeff["beta"]
+        epsilon = coeff["epsilon"]
+        f = coeff["f"]
 
         # Additional decision variables
         size_max = self.size_max
 
         def init_input_bounds(bd, t):
-            if len(performance_data['input_carrier']) == 2:
-                car = 'gas'
+            if len(performance_data["input_carrier"]) == 2:
+                car = "gas"
             else:
-                car = 'hydrogen'
-            return tuple(bounds['input'][car][t - 1, :] * size_max)
+                car = "hydrogen"
+            return tuple(bounds["input"][car][t - 1, :] * size_max)
 
-        b_tec.var_total_input = Var(self.set_t, within=NonNegativeReals,
-                                    bounds=init_input_bounds)
+        b_tec.var_total_input = Var(
+            self.set_t, within=NonNegativeReals, bounds=init_input_bounds
+        )
 
-        b_tec.var_units_on = Var(self.set_t, within=NonNegativeIntegers,
-                                 bounds=(0, size_max))
+        b_tec.var_units_on = Var(
+            self.set_t, within=NonNegativeIntegers, bounds=(0, size_max)
+        )
 
         # Calculate total input
         def init_total_input(const, t):
-            return b_tec.var_total_input[t] == sum(self.input[t, car_input]
-                                                   for car_input in b_tec.set_input_carriers)
+            return b_tec.var_total_input[t] == sum(
+                self.input[t, car_input] for car_input in b_tec.set_input_carriers
+            )
 
         b_tec.const_total_input = Constraint(self.set_t, rule=init_total_input)
 
         # Constrain hydrogen input
-        if len(performance_data['input_carrier']) == 2:
+        if len(performance_data["input_carrier"]) == 2:
+
             def init_h2_input(const, t):
-                return self.input[t, 'hydrogen'] <= b_tec.var_total_input[t] * max_H2_admixture
+                return (
+                    self.input[t, "hydrogen"]
+                    <= b_tec.var_total_input[t] * max_H2_admixture
+                )
 
             b_tec.const_h2_input = Constraint(self.set_t, rule=init_h2_input)
 
@@ -217,44 +255,58 @@ class GasTurbine(Technology):
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
+
                 def init_input_off(const, car):
                     return self.input[t, car] == 0
 
-                dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+                dis.const_input = Constraint(
+                    b_tec.set_input_carriers, rule=init_input_off
+                )
 
                 def init_output_off(const, car):
                     return self.output[t, car] == 0
 
-                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+                dis.const_output_off = Constraint(
+                    b_tec.set_output_carriers, rule=init_output_off
+                )
 
             else:  # technology on
                 # input-output relation
                 def init_input_output_on_el(const):
-                    return self.output[t, 'electricity'] == (alpha * b_tec.var_total_input[t] + \
-                                                        beta * b_tec.var_units_on[t]) * f[t - 1]
+                    return (
+                        self.output[t, "electricity"]
+                        == (
+                            alpha * b_tec.var_total_input[t]
+                            + beta * b_tec.var_units_on[t]
+                        )
+                        * f[t - 1]
+                    )
 
                 dis.const_input_output_on_el = Constraint(rule=init_input_output_on_el)
 
                 def init_input_output_on_th(const):
-                    return self.output[t, 'heat'] == epsilon * b_tec.var_total_input[t] - \
-                           self.output[t, 'electricity']
+                    return (
+                        self.output[t, "heat"]
+                        == epsilon * b_tec.var_total_input[t]
+                        - self.output[t, "electricity"]
+                    )
 
                 dis.const_input_output_on_th = Constraint(rule=init_input_output_on_th)
 
                 # min part load relation
                 def init_min_input(const):
-                    return b_tec.var_total_input[t] >= \
-                           in_min * b_tec.var_units_on[t]
+                    return b_tec.var_total_input[t] >= in_min * b_tec.var_units_on[t]
 
                 dis.const_min_input = Constraint(rule=init_min_input)
 
                 def init_max_input(const):
-                    return b_tec.var_total_input[t] <= \
-                           in_max * b_tec.var_units_on[t]
+                    return b_tec.var_total_input[t] <= in_max * b_tec.var_units_on[t]
 
                 dis.const_max_input = Constraint(rule=init_max_input)
 
-        b_tec.dis_input_output = Disjunct(self.set_t, s_indicators, rule=init_input_output)
+        b_tec.dis_input_output = Disjunct(
+            self.set_t, s_indicators, rule=init_input_output
+        )
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
@@ -270,7 +322,7 @@ class GasTurbine(Technology):
 
         # RAMPING RATES
         if "ramping_rate" in self.performance_data:
-            if not self.performance_data['ramping_rate']   == -1:
+            if not self.performance_data["ramping_rate"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -282,9 +334,13 @@ class GasTurbine(Technology):
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(GasTurbine, self).write_tec_operation_results_to_group(h5_group, model_block)
+        super(GasTurbine, self).write_tec_operation_results_to_group(
+            h5_group, model_block
+        )
 
-        h5_group.create_dataset("modules_on", data=[model_block.var_units_on[t].value for t in self.set_t])
+        h5_group.create_dataset(
+            "modules_on", data=[model_block.var_units_on[t].value for t in self.set_t]
+        )
 
     def _define_ramping_rates(self, b_tec):
         """
@@ -293,22 +349,33 @@ class GasTurbine(Technology):
         :param b_tec: technology model block
         :return:
         """
-        ramping_rate = self.performance_data['ramping_rate']
+        ramping_rate = self.performance_data["ramping_rate"]
 
         def init_ramping_down_rate(const, t):
             if t > 1:
-                return -ramping_rate <= sum(self.input[t, car_input] - self.input[t-1, car_input]
-                                                for car_input in b_tec.set_input_carriers)
+                return -ramping_rate <= sum(
+                    self.input[t, car_input] - self.input[t - 1, car_input]
+                    for car_input in b_tec.set_input_carriers
+                )
             else:
                 return Constraint.Skip
-        b_tec.const_ramping_down_rate = Constraint(self.set_t, rule=init_ramping_down_rate)
+
+        b_tec.const_ramping_down_rate = Constraint(
+            self.set_t, rule=init_ramping_down_rate
+        )
 
         def init_ramping_up_rate(const, t):
             if t > 1:
-                return sum(self.input[t, car_input] - self.input[t-1, car_input]
-                               for car_input in b_tec.set_input_carriers) <= ramping_rate
+                return (
+                    sum(
+                        self.input[t, car_input] - self.input[t - 1, car_input]
+                        for car_input in b_tec.set_input_carriers
+                    )
+                    <= ramping_rate
+                )
             else:
                 return Constraint.Skip
+
         b_tec.const_ramping_up_rate = Constraint(self.set_t, rule=init_ramping_up_rate)
 
         return b_tec

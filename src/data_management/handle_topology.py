@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 class SystemTopology:
     """
     Class to define the energy system topology.
@@ -8,6 +9,7 @@ class SystemTopology:
     Class to define the energy system topology including time indices, networks, technologies and nodes as an \
     an input.
     """
+
     def __init__(self):
         """
         Initializer of SystemTopology Class
@@ -31,12 +33,16 @@ class SystemTopology:
         :param str end_date: end date of analysis in format DD-MM HH-MM
         :param float resolution: resolution in hours
         """
-        start_interval = str(year) + '-' + start_date
-        end_interval = str(year) + '-' + end_date
-        time_resolution = str(resolution) + 'h'
+        start_interval = str(year) + "-" + start_date
+        end_interval = str(year) + "-" + end_date
+        time_resolution = str(resolution) + "h"
         self.timestep_length_h = resolution
-        self.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
-        self.fraction_of_year_modelled = (self.timesteps[-1] - self.timesteps[0]) / pd.Timedelta(days=365)
+        self.timesteps = pd.date_range(
+            start=start_interval, end=end_interval, freq=time_resolution
+        )
+        self.fraction_of_year_modelled = (
+            self.timesteps[-1] - self.timesteps[0]
+        ) / pd.Timedelta(days=365)
 
     def define_carriers(self, carriers):
         """
@@ -76,7 +82,9 @@ class SystemTopology:
         if node in self.nodes:
             self.technologies_new[node] = technologies
         else:
-            raise KeyError('The node you are trying to add technologies to does not exist.')
+            raise KeyError(
+                "The node you are trying to add technologies to does not exist."
+            )
 
     def define_existing_technologies(self, node, technologies):
         """
@@ -93,9 +101,11 @@ class SystemTopology:
         if node in self.nodes:
             self.technologies_existing[node] = technologies
         else:
-            raise KeyError('The node you are trying to add technologies to does not exist.')
+            raise KeyError(
+                "The node you are trying to add technologies to does not exist."
+            )
 
-    def define_new_network(self, network, connections, distance, size_max_arcs = None):
+    def define_new_network(self, network, connections, distance, size_max_arcs=None):
         """
         Defines network that can be constructed in the analysis
 
@@ -108,11 +118,11 @@ class SystemTopology:
         :param pd distance: distance matrix between nodes (in km)
         """
         self.networks_new[network] = {}
-        self.networks_new[network]['name'] = network
-        self.networks_new[network]['existing'] = 0
-        self.networks_new[network]['connection'] = connections
-        self.networks_new[network]['distance'] = distance
-        self.networks_new[network]['size_max_arcs'] = size_max_arcs
+        self.networks_new[network]["name"] = network
+        self.networks_new[network]["existing"] = 0
+        self.networks_new[network]["connection"] = connections
+        self.networks_new[network]["distance"] = distance
+        self.networks_new[network]["size_max_arcs"] = size_max_arcs
 
     def define_existing_network(self, network, size, distance):
         """
@@ -127,15 +137,16 @@ class SystemTopology:
         :param pd distance: distance matrix between nodes (in km)
         """
         self.networks_existing[network] = {}
-        self.networks_existing[network]['name'] = network
-        self.networks_existing[network]['existing'] = 1
-        self.networks_existing[network]['size'] = size
-        self.networks_existing[network]['size_max_arcs'] = size
-        self.networks_existing[network]['distance'] = distance
+        self.networks_existing[network]["name"] = network
+        self.networks_existing[network]["existing"] = 1
+        self.networks_existing[network]["size"] = size
+        self.networks_existing[network]["size_max_arcs"] = size
+        self.networks_existing[network]["distance"] = distance
         connection = size.copy(deep=True)
         connection[connection > 0] = 1
-        self.networks_existing[network]['connection'] = connection
-        self.networks_existing[network]['size_max_arcs'] = size
+        self.networks_existing[network]["connection"] = connection
+        self.networks_existing[network]["size_max_arcs"] = size
+
 
 def create_empty_network_matrix(nodes):
     """
@@ -145,6 +156,7 @@ def create_empty_network_matrix(nodes):
     :return: pandas data frame with nodes
     """
     # construct matrix
-    matrix = pd.DataFrame(data=np.full((len(nodes), len(nodes)), 0),
-                          index=nodes, columns=nodes)
+    matrix = pd.DataFrame(
+        data=np.full((len(nodes), len(nodes)), 0), index=nodes, columns=nodes
+    )
     return matrix
