@@ -1,6 +1,10 @@
 name: Autoformatting
 
-on: [push, pull_request]
+on:
+  pull_request:
+    branches:
+      - 'develop**'
+      - main
 
 jobs:
   lint:
