@@ -12,21 +12,21 @@ def open_json(tec, load_path):
     """
     # Read in JSON files
     for path, subdirs, files in os.walk(load_path):
-        if 'technology_data' in locals():
+        if "technology_data" in locals():
             break
         else:
             for name in files:
-                if (tec + '.json') == name:
+                if (tec + ".json") == name:
                     filepath = os.path.join(path, name)
                     with open(filepath) as json_file:
                         technology_data = json.load(json_file)
                     break
 
     # Assign name
-    if 'technology_data' in locals():
-        technology_data['Name'] = tec
+    if "technology_data" in locals():
+        technology_data["Name"] = tec
     else:
-        raise Exception('There is no json data file for technology ' + tec)
+        raise Exception("There is no json data file for technology " + tec)
 
     return technology_data
 
@@ -45,18 +45,18 @@ class FittedPerformance:
     """
 
     def __init__(self, tec_data=None):
-        self.bounds = {'input': {}, 'output': {}}
+        self.bounds = {"input": {}, "output": {}}
         self.coefficients = {}
         self.time_dependent_coefficients = 0
         self.other = {}
         self.rated_power = 1
         if tec_data:
-            if 'rated_power' in tec_data:
-                self.rated_power = tec_data['rated_power']
-            if 'input_carrier' in tec_data:
-                self.input_carrier = tec_data['input_carrier']
-            if 'output_carrier' in tec_data:
-                self.output_carrier = tec_data['output_carrier']
+            if "rated_power" in tec_data:
+                self.rated_power = tec_data["rated_power"]
+            if "input_carrier" in tec_data:
+                self.input_carrier = tec_data["input_carrier"]
+            if "output_carrier" in tec_data:
+                self.output_carrier = tec_data["output_carrier"]
 
 
 def fit_linear_function(x, y):
@@ -101,7 +101,10 @@ def fit_piecewise_function(X, Y, nr_segments):
         alpha2 = []
         for seg in range(0, nr_segments):
             al1 = (bp_y[seg + 1] - bp_y[seg]) / (bp_x[seg + 1] - bp_x[seg])  # Slope
-            al2 = bp_y[seg] - (bp_y[seg + 1] - bp_y[seg]) / (bp_x[seg + 1] - bp_x[seg]) * bp_x[seg]  # Intercept
+            al2 = (
+                bp_y[seg]
+                - (bp_y[seg + 1] - bp_y[seg]) / (bp_x[seg + 1] - bp_x[seg]) * bp_x[seg]
+            )  # Intercept
             alpha1.append(al1)
             alpha2.append(al2)
 
@@ -118,10 +121,10 @@ def fit_piecewise_function(X, Y, nr_segments):
         else:
             bp_x, bp_y, alpha1, alpha2 = regress_piecewise(X, y, nr_segments, bp_x0)
 
-        fit[car]['alpha1'] = [sig_figs(float(num), 4) for num in alpha1]
-        fit[car]['alpha2'] = [sig_figs(float(num), 4) for num in alpha2]
-        fit[car]['bp_y'] = [sig_figs(float(num), 4) for num in bp_y]
-        fit[car]['bp_x'] = [sig_figs(float(num), 4) for num in bp_x]
+        fit[car]["alpha1"] = [sig_figs(float(num), 4) for num in alpha1]
+        fit[car]["alpha2"] = [sig_figs(float(num), 4) for num in alpha2]
+        fit[car]["bp_y"] = [sig_figs(float(num), 4) for num in bp_y]
+        fit[car]["bp_x"] = [sig_figs(float(num), 4) for num in bp_x]
 
     return fit
 

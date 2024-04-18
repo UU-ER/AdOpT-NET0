@@ -1,6 +1,7 @@
 from pyomo.environ import *
 from ..components.utilities import perform_disjunct_relaxation
 
+
 def add_networks(energyhub):
     r"""
     Adds all networks as model blocks.
@@ -10,8 +11,8 @@ def add_networks(energyhub):
     """
     # COLLECT OBJECTS FROM ENERGYHUB
     model = energyhub.model
-    print('_' * 60)
-    print('--- Adding Networks... ---')
+    print("_" * 60)
+    print("--- Adding Networks... ---")
 
     def init_network(b_netw, netw):
         """
@@ -21,7 +22,7 @@ def add_networks(energyhub):
         :param netw: network name
         :return: b_netw: network block
         """
-        print('\t - Adding Network ' + netw)
+        print("\t - Adding Network " + netw)
 
         network = energyhub.data.network_data[netw]
         b_netw = network.construct_general_constraints(b_netw, energyhub)

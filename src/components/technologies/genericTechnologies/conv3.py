@@ -8,7 +8,7 @@ from ..technology import Technology
 
 
 class Conv3(Technology):
-    """
+    r"""
     This technology type resembles a technology with different performance functions for the respective output
     carriers. The performance function is based on the input of the main carrier , i.e.
     :math:`output_{car} = f_{car}(input_{maincarrier})`.
@@ -27,10 +27,14 @@ class Conv3(Technology):
       .. math::
         Input_{t, car} = {\\phi}_{car} * Input_{t, maincarrier}
 
-    - ``performance_function_type == 1``: Linear through origin, i.e.:
+    - ``performance_function_type == 1``: Linear, with minimal partload. In case minimal partload is greater than 0 the
+      technology can not shut down during the full time horizon (when installed), i.e.:
 
       .. math::
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
+
+      .. math::
+        Input_{maincarrier} \geq Input_{min} * S
 
     - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
       technology is in on, it holds:
@@ -49,9 +53,27 @@ class Conv3(Technology):
       .. math::
          Input_{t, maincarrier} = 0
 
+      Or in case a standby power is defined:
+
+      .. math::
+         Input_{t, maincarrier} \geq Input_{standby} * S
+
     - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
       The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
       is defined piecewise for the respective number of pieces
+
+    - Ramping rate of a technology is defined by the ramping time (RT) required to ramp from 0 to the installed capacity:
+
+      .. math::
+         -\\frac{S}{RT} \leq Input_{t, maincarrier}) - Input_{t-1, maincarrier} \leq \\frac{S}{RT}
+
+      or the predefined reference size, which makes the ramping rate fixed parameter:
+
+      .. math::
+         -\\frac{S^{ref}}{RT} \leq Input_{t, maincarrier}) - Input_{t-1, maincarrier} \leq \\frac{S^{ref}}{RT}
+
+      In case of performance function type 2 or 3 the user can decide whether the ramping rate is always constrained or
+      only when the technology is on. In the latter case the formulation requires integers.
 
     """
 
@@ -59,7 +81,7 @@ class Conv3(Technology):
         super().__init__(tec_data)
 
         self.fitted_performance = None
-        self.main_car = self.performance_data['main_input_carrier']
+        self.main_car = self.performance_data["main_input_carrier"]
 
     def fit_technology_performance(self, node_data):
         """
@@ -70,17 +92,23 @@ class Conv3(Technology):
         :param nr_seg: number of segments on piecewise defined function
         """
 
-        climate_data = node_data.data['climate_data']
+        climate_data = node_data.data["climate_data"]
 
-        if self.performance_data['size_based_on'] == 'output':
-            raise Exception('size_based_on == output for CONV3 not possible.')
-        self.fitted_performance = fit_performance_generic_tecs(self.performance_data, time_steps=len(climate_data))
+        if self.performance_data["size_based_on"] == "output":
+            raise Exception("size_based_on == output for CONV3 not possible.")
+        self.fitted_performance = fit_performance_generic_tecs(
+            self.performance_data, time_steps=len(climate_data)
+        )
 
         # Input bounds recalculation
         for car in self.fitted_performance.input_carrier:
-            if not car == self.performance_data['main_input_carrier']:
-                self.fitted_performance.bounds['input'][car] = self.fitted_performance.bounds['input'][self.performance_data['main_input_carrier']] \
-                                               * self.performance_data['input_ratios'][car]
+            if not car == self.performance_data["main_input_carrier"]:
+                self.fitted_performance.bounds["input"][car] = (
+                    self.fitted_performance.bounds["input"][
+                        self.performance_data["main_input_carrier"]
+                    ]
+                    * self.performance_data["input_ratios"][car]
+                )
 
     def construct_tech_model(self, b_tec, energyhub):
         """
@@ -95,11 +123,11 @@ class Conv3(Technology):
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         rated_power = self.fitted_performance.rated_power
-        performance_function_type = performance_data['performance_function_type']
-        standby_power = self.performance_data['standby_power']
+        performance_function_type = performance_data["performance_function_type"]
+        standby_power = self.performance_data["standby_power"]
         phi = {}
-        for car in self.performance_data['input_ratios']:
-            phi[car] = self.performance_data['input_ratios'][car]
+        for car in self.performance_data["input_ratios"]:
+            phi[car] = self.performance_data["input_ratios"][car]
 
         if performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
@@ -113,12 +141,19 @@ class Conv3(Technology):
         # Size constraints
         # constraint on input ratios
         if standby_power == -1:
+
             def init_input_input(const, t, car_input):
                 if car_input == self.main_car:
                     return Constraint.Skip
                 else:
-                    return self.input[t, car_input] == phi[car_input] * self.input[t, self.main_car]
-            b_tec.const_input_input = Constraint(self.set_t_full, b_tec.set_input_carriers, rule=init_input_input)
+                    return (
+                        self.input[t, car_input]
+                        == phi[car_input] * self.input[t, self.main_car]
+                    )
+
+            b_tec.const_input_input = Constraint(
+                self.set_t_full, b_tec.set_input_carriers, rule=init_input_input
+            )
         else:
             s_indicators = range(0, 2)
 
@@ -131,7 +166,10 @@ class Conv3(Technology):
                             return Constraint.Skip
                         else:
                             return self.input[t, car_input] == 0
-                    dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                    dis.const_input_off = Constraint(
+                        b_tec.set_input_carriers, rule=init_input_off
+                    )
 
                 else:  # technology on
                     dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
@@ -140,17 +178,26 @@ class Conv3(Technology):
                         if car_input == self.main_car:
                             return Constraint.Skip
                         else:
-                            return self.input[t, car_input] == phi[car_input] * self.input[t, self.main_car]
+                            return (
+                                self.input[t, car_input]
+                                == phi[car_input] * self.input[t, self.main_car]
+                            )
 
-                    dis.const_input_on = Constraint(b_tec.set_input_carriers, rule=init_input_on)
+                    dis.const_input_on = Constraint(
+                        b_tec.set_input_carriers, rule=init_input_on
+                    )
 
-            b_tec.dis_input_input = Disjunct(self.set_t, s_indicators, rule=init_input_input)
+            b_tec.dis_input_input = Disjunct(
+                self.set_t, s_indicators, rule=init_input_input
+            )
 
             # Bind disjuncts
             def bind_disjunctions(dis, t):
                 return [b_tec.dis_input_input[t, i] for i in s_indicators]
 
-            b_tec.disjunction_input_input = Disjunction(self.set_t, rule=bind_disjunctions)
+            b_tec.disjunction_input_input = Disjunction(
+                self.set_t, rule=bind_disjunctions
+            )
 
         # size constraint based main carrier input
         def init_size_constraint(const, t):
@@ -159,8 +206,8 @@ class Conv3(Technology):
         b_tec.const_size = Constraint(self.set_t, rule=init_size_constraint)
 
         # RAMPING RATES
-        if "ramping_rate" in self.performance_data:
-            if not self.performance_data['ramping_rate']   == -1:
+        if "ramping_time" in self.performance_data:
+            if not self.performance_data["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -173,21 +220,30 @@ class Conv3(Technology):
         """
         # Performance parameter:
         alpha1 = {}
-        for car in self.performance_data['performance']['out']:
-            alpha1[car] = self.fitted_performance.coefficients[car]['alpha1']
+        for car in self.performance_data["performance"]["out"]:
+            alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
         rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data['min_part_load']
+        min_part_load = self.performance_data["min_part_load"]
 
         # Input-output correlation
         def init_input_output(const, t, car_output):
-            return self.output[t, car_output] == \
-                   alpha1[car_output] * self.input[t, self.main_car]
-        b_tec.const_input_output = Constraint(self.set_t, b_tec.set_output_carriers,
-                                              rule=init_input_output)
+            return (
+                self.output[t, car_output]
+                == alpha1[car_output] * self.input[t, self.main_car]
+            )
+
+        b_tec.const_input_output = Constraint(
+            self.set_t, b_tec.set_output_carriers, rule=init_input_output
+        )
 
         if min_part_load > 0:
+
             def init_min_part_load(const, t):
-                return min_part_load * b_tec.var_size * rated_power <= self.input[t, self.main_car]
+                return (
+                    min_part_load * b_tec.var_size * rated_power
+                    <= self.input[t, self.main_car]
+                )
+
             b_tec.const_min_part_load = Constraint(self.set_t, rule=init_min_part_load)
 
         return b_tec
@@ -204,18 +260,29 @@ class Conv3(Technology):
         # Performance Parameters
         alpha1 = {}
         alpha2 = {}
-        for car in self.performance_data['performance']['out']:
-            alpha1[car] = self.fitted_performance.coefficients[car]['alpha1']
-            alpha2[car] = self.fitted_performance.coefficients[car]['alpha2']
+        for car in self.performance_data["performance"]["out"]:
+            alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
+            alpha2[car] = self.fitted_performance.coefficients[car]["alpha2"]
         rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data['min_part_load']
-        standby_power = self.performance_data['standby_power']
+        min_part_load = self.performance_data["min_part_load"]
+        standby_power = self.performance_data["standby_power"]
 
-        if not b_tec.find_component('var_x'):
+        if standby_power != -1:
+            if (
+                "standby_power_carrier" not in self.performance_data
+            ) or self.performance_data["standby_power_carrier"] == -1:
+                car_standby_power = self.main_car
+            else:
+                car_standby_power = self.performance_data["standby_power_carrier"]
+
+        if not b_tec.find_component("var_x"):
             b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
 
         if min_part_load == 0:
-            warn('Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for ' + self.name)
+            warn(
+                "Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for "
+                + self.name
+            )
 
         # define disjuncts
         s_indicators = range(0, 2)
@@ -229,40 +296,61 @@ class Conv3(Technology):
 
                     def init_input_off(const, car_input):
                         return self.input[t, car_input] == 0
-                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                    dis.const_input = Constraint(
+                        b_tec.set_input_carriers, rule=init_input_off
+                    )
 
                 else:
+
                     def init_standby_power(const, car_input):
                         if car_input == self.main_car:
-                            return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
+                            return (
+                                self.input[t, car_standby_power]
+                                == standby_power * b_tec.var_size * rated_power
+                            )
                         else:
                             return self.input[t, car_input] == 0
-                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_standby_power)
+
+                    dis.const_input = Constraint(
+                        b_tec.set_input_carriers, rule=init_standby_power
+                    )
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
 
-                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+                dis.const_output_off = Constraint(
+                    b_tec.set_output_carriers, rule=init_output_off
+                )
 
             else:  # technology on
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 # input-output relation
                 def init_input_output_on(const, car_output):
-                    return self.output[t, car_output] == \
-                           alpha1[car_output] * self.input[t, self.main_car] + \
-                           alpha2[car_output] * b_tec.var_size * rated_power
+                    return (
+                        self.output[t, car_output]
+                        == alpha1[car_output] * self.input[t, self.main_car]
+                        + alpha2[car_output] * b_tec.var_size * rated_power
+                    )
 
-                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_input_output_on)
+                dis.const_input_output_on = Constraint(
+                    b_tec.set_output_carriers, rule=init_input_output_on
+                )
 
                 # min part load relation
                 def init_min_partload(const):
-                    return self.input[t, self.main_car] >= min_part_load * b_tec.var_size * rated_power
+                    return (
+                        self.input[t, self.main_car]
+                        >= min_part_load * b_tec.var_size * rated_power
+                    )
 
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(self.set_t, s_indicators, rule=init_input_output)
+        b_tec.dis_input_output = Disjunct(
+            self.set_t, s_indicators, rule=init_input_output
+        )
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
@@ -284,15 +372,23 @@ class Conv3(Technology):
         # Performance Parameters
         alpha1 = {}
         alpha2 = {}
-        for car in self.performance_data['performance']['out']:
-            bp_x = self.fitted_performance.coefficients[car]['bp_x']
-            alpha1[car] = self.fitted_performance.coefficients[car]['alpha1']
-            alpha2[car] = self.fitted_performance.coefficients[car]['alpha2']
+        for car in self.performance_data["performance"]["out"]:
+            bp_x = self.fitted_performance.coefficients[car]["bp_x"]
+            alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
+            alpha2[car] = self.fitted_performance.coefficients[car]["alpha2"]
         rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data['min_part_load']
-        standby_power = self.performance_data['standby_power']
+        min_part_load = self.performance_data["min_part_load"]
+        standby_power = self.performance_data["standby_power"]
 
-        if not b_tec.find_component('var_x'):
+        if standby_power != -1:
+            if (
+                "standby_power_carrier" not in self.performance_data
+            ) or self.performance_data["standby_power_carrier"] == -1:
+                car_standby_power = self.main_car
+            else:
+                car_standby_power = self.performance_data["standby_power_carrier"]
+
+        if not b_tec.find_component("var_x"):
             b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
 
         s_indicators = range(0, len(bp_x))
@@ -301,48 +397,77 @@ class Conv3(Technology):
             if ind == 0:  # technology off
 
                 if standby_power == -1:
+
                     def init_input_off(const, car_input):
                         return self.input[t, car_input] == 0
-                    dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+
+                    dis.const_input_off = Constraint(
+                        b_tec.set_input_carriers, rule=init_input_off
+                    )
 
                 else:
+
                     def init_standby_power(const, car_input):
                         if car_input == self.main_car:
-                            return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
+                            return (
+                                self.input[t, car_standby_power]
+                                == standby_power * b_tec.var_size * rated_power
+                            )
                         else:
                             return self.input[t, car_input] == 0
-                    dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_standby_power)
+
+                    dis.const_input = Constraint(
+                        b_tec.set_input_carriers, rule=init_standby_power
+                    )
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
 
-                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+                dis.const_output_off = Constraint(
+                    b_tec.set_output_carriers, rule=init_output_off
+                )
 
             else:  # piecewise definition
+
                 def init_input_on1(const):
-                    return self.input[t, self.main_car] >= bp_x[ind - 1] * b_tec.var_size * rated_power
+                    return (
+                        self.input[t, self.main_car]
+                        >= bp_x[ind - 1] * b_tec.var_size * rated_power
+                    )
 
                 dis.const_input_on1 = Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
-                    return self.input[t, self.main_car] <= bp_x[ind] * b_tec.var_size * rated_power
+                    return (
+                        self.input[t, self.main_car]
+                        <= bp_x[ind] * b_tec.var_size * rated_power
+                    )
 
                 dis.const_input_on2 = Constraint(rule=init_input_on2)
 
                 def init_output_on(const, car_output):
-                    return self.output[t, car_output] == \
-                           alpha1[car_output][ind - 1] * self.input[t, self.main_car] + \
-                           alpha2[car_output][ind - 1] * b_tec.var_size * rated_power
+                    return (
+                        self.output[t, car_output]
+                        == alpha1[car_output][ind - 1] * self.input[t, self.main_car]
+                        + alpha2[car_output][ind - 1] * b_tec.var_size * rated_power
+                    )
 
-                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
+                dis.const_input_output_on = Constraint(
+                    b_tec.set_output_carriers, rule=init_output_on
+                )
 
                 # min part load relation
                 def init_min_partload(const):
-                    return self.input[t, self.main_car] >= min_part_load * b_tec.var_size * rated_power
+                    return (
+                        self.input[t, self.main_car]
+                        >= min_part_load * b_tec.var_size * rated_power
+                    )
 
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(self.set_t, s_indicators, rule=init_input_output)
+        b_tec.dis_input_output = Disjunct(
+            self.set_t, s_indicators, rule=init_input_output
+        )
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
@@ -351,7 +476,6 @@ class Conv3(Technology):
         b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec
-
 
     def _performance_function_type_4(self, b_tec):
         """
@@ -368,19 +492,21 @@ class Conv3(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        SU_time = self.performance_data['SU_time']
-        SD_time = self.performance_data['SD_time']
+        SU_time = self.performance_data["SU_time"]
+        SD_time = self.performance_data["SD_time"]
         alpha1 = {}
         alpha2 = {}
-        for car in self.performance_data['performance']['out']:
-            bp_x = self.fitted_performance.coefficients[car]['bp_x']
-            alpha1[car] = self.fitted_performance.coefficients[car]['alpha1']
-            alpha2[car] = self.fitted_performance.coefficients[car]['alpha2']
+        for car in self.performance_data["performance"]["out"]:
+            bp_x = self.fitted_performance.coefficients[car]["bp_x"]
+            alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
+            alpha2[car] = self.fitted_performance.coefficients[car]["alpha2"]
         rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data['min_part_load']
+        min_part_load = self.performance_data["min_part_load"]
 
         if SU_time <= 0 and SD_time <= 0:
-            warn('Having performance_function_type = 4 with no slow SU/SDs usually makes no sense.')
+            warn(
+                "Having performance_function_type = 4 with no slow SU/SDs usually makes no sense."
+            )
         elif SU_time < 0:
             SU_time = 0
         elif SD_time < 0:
@@ -406,10 +532,15 @@ class Conv3(Technology):
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
                 def init_y_off(const, i):
-                    if t < len(self.set_t_full) - SU_time or i > SU_time - (len(self.set_t_full) - t):
+                    if t < len(self.set_t_full) - SU_time or i > SU_time - (
+                        len(self.set_t_full) - t
+                    ):
                         return b_tec.var_y[t - i + SU_time + 1] == 0
                     else:
-                        return b_tec.var_y[(t - i + SU_time + 1) - len(self.set_t_full)] == 0
+                        return (
+                            b_tec.var_y[(t - i + SU_time + 1) - len(self.set_t_full)]
+                            == 0
+                        )
 
                 dis.const_y_off = Constraint(range(1, SU_time + 1), rule=init_y_off)
 
@@ -424,44 +555,68 @@ class Conv3(Technology):
                 def init_input_off(const, car_input):
                     return self.input[t, car_input] == 0
 
-                dis.const_input_off = Constraint(b_tec.set_input_carriers, rule=init_input_off)
+                dis.const_input_off = Constraint(
+                    b_tec.set_input_carriers, rule=init_input_off
+                )
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
 
-                dis.const_output_off = Constraint(b_tec.set_output_carriers, rule=init_output_off)
+                dis.const_output_off = Constraint(
+                    b_tec.set_output_carriers, rule=init_output_off
+                )
 
             elif ind in range(1, SU_time + 1):  # technology in startup
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
                 def init_y_on(const):
-                    if t < len(self.set_t_full) - SU_time or ind > SU_time - (len(self.set_t_full) - t):
+                    if t < len(self.set_t_full) - SU_time or ind > SU_time - (
+                        len(self.set_t_full) - t
+                    ):
                         return b_tec.var_y[t - ind + SU_time + 1] == 1
                     else:
-                        return b_tec.var_y[(t - ind + SU_time + 1) - len(self.set_t_full)] == 1
+                        return (
+                            b_tec.var_y[(t - ind + SU_time + 1) - len(self.set_t_full)]
+                            == 1
+                        )
 
                 dis.const_y_on = Constraint(rule=init_y_on)
 
                 def init_z_off(const):
-                    if t < len(self.set_t_full) - SU_time or ind > SU_time - (len(self.set_t_full) - t):
+                    if t < len(self.set_t_full) - SU_time or ind > SU_time - (
+                        len(self.set_t_full) - t
+                    ):
                         return b_tec.var_z[t - ind + SU_time + 1] == 0
                     else:
-                        return b_tec.var_z[(t - ind + SU_time + 1) - len(self.set_t_full)] == 0
+                        return (
+                            b_tec.var_z[(t - ind + SU_time + 1) - len(self.set_t_full)]
+                            == 0
+                        )
 
                 dis.const_z_off = Constraint(rule=init_z_off)
 
                 def init_input_SU(cons):
-                    return self.input[t, self.main_car] == b_tec.var_size * SU_trajectory[ind - 1]
+                    return (
+                        self.input[t, self.main_car]
+                        == b_tec.var_size * SU_trajectory[ind - 1]
+                    )
 
                 dis.const_input_SU = Constraint(rule=init_input_SU)
 
                 def init_output_SU(const, car_output):
-                    return self.output[t, car_output] == alpha1[car_output][0] * self.input[t, self.main_car] + \
-                           alpha2[car_output][0] * b_tec.var_size * rated_power
+                    return (
+                        self.output[t, car_output]
+                        == alpha1[car_output][0] * self.input[t, self.main_car]
+                        + alpha2[car_output][0] * b_tec.var_size * rated_power
+                    )
 
-                dis.const_output_SU = Constraint(b_tec.set_output_carriers, rule=init_output_SU)
+                dis.const_output_SU = Constraint(
+                    b_tec.set_output_carriers, rule=init_output_SU
+                )
 
-            elif ind in range(SU_time + 1, SU_time + SD_time + 1):  # technology in shutdown
+            elif ind in range(
+                SU_time + 1, SU_time + SD_time + 1
+            ):  # technology in shutdown
                 ind_SD = ind - SU_time
                 dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
 
@@ -482,70 +637,185 @@ class Conv3(Technology):
                 dis.const_y_off = Constraint(rule=init_y_off)
 
                 def init_input_SD(cons):
-                    return self.input[t, self.main_car] == b_tec.var_size * SD_trajectory[ind_SD - 1]
+                    return (
+                        self.input[t, self.main_car]
+                        == b_tec.var_size * SD_trajectory[ind_SD - 1]
+                    )
 
                 dis.const_input_SD = Constraint(rule=init_input_SD)
 
                 def init_output_SD(const, car_output):
-                    return self.output[t, car_output] == alpha1[car_output][0] * self.input[t, self.main_car] + \
-                           alpha2[car_output][0] * b_tec.var_size * rated_power
+                    return (
+                        self.output[t, car_output]
+                        == alpha1[car_output][0] * self.input[t, self.main_car]
+                        + alpha2[car_output][0] * b_tec.var_size * rated_power
+                    )
 
-                dis.const_output_SD = Constraint(b_tec.set_output_carriers, rule=init_output_SD)
+                dis.const_output_SD = Constraint(
+                    b_tec.set_output_carriers, rule=init_output_SD
+                )
 
             elif ind > SU_time + SD_time:
                 ind_bpx = ind - (SU_time + SD_time)
                 dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 def init_input_on1(const):
-                    return self.input[t, self.main_car] >= bp_x[ind_bpx - 1] * b_tec.var_size * rated_power
+                    return (
+                        self.input[t, self.main_car]
+                        >= bp_x[ind_bpx - 1] * b_tec.var_size * rated_power
+                    )
+
                 dis.const_input_on1 = Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
-                    return self.input[t, self.main_car] <= bp_x[ind_bpx] * b_tec.var_size * rated_power
+                    return (
+                        self.input[t, self.main_car]
+                        <= bp_x[ind_bpx] * b_tec.var_size * rated_power
+                    )
+
                 dis.const_input_on2 = Constraint(rule=init_input_on2)
 
                 def init_output_on(const, car_output):
-                    return self.output[t, car_output] == \
-                           alpha1[car_output][ind_bpx - 1] * self.input[t, self.main_car] + \
-                           alpha2[car_output][ind_bpx - 1] * b_tec.var_size * rated_power
-                dis.const_input_output_on = Constraint(b_tec.set_output_carriers, rule=init_output_on)
+                    return (
+                        self.output[t, car_output]
+                        == alpha1[car_output][ind_bpx - 1]
+                        * self.input[t, self.main_car]
+                        + alpha2[car_output][ind_bpx - 1] * b_tec.var_size * rated_power
+                    )
+
+                dis.const_input_output_on = Constraint(
+                    b_tec.set_output_carriers, rule=init_output_on
+                )
 
                 # min part load relation
                 def init_min_partload(const):
-                    return self.input[t, self.main_car] >= min_part_load * b_tec.var_size * rated_power
+                    return (
+                        self.input[t, self.main_car]
+                        >= min_part_load * b_tec.var_size * rated_power
+                    )
 
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_SUSD_trajectory = Disjunct(self.set_t_full, s_indicators, rule=init_SUSD_trajectories)
+        b_tec.dis_SUSD_trajectory = Disjunct(
+            self.set_t_full, s_indicators, rule=init_SUSD_trajectories
+        )
 
         def bind_disjunctions_SUSD(dis, t):
             return [b_tec.dis_SUSD_trajectory[t, k] for k in s_indicators]
 
-        b_tec.disjunction_SUSD_traject = Disjunction(self.set_t_full, rule=bind_disjunctions_SUSD)
+        b_tec.disjunction_SUSD_traject = Disjunction(
+            self.set_t_full, rule=bind_disjunctions_SUSD
+        )
 
         return b_tec
 
     def _define_ramping_rates(self, b_tec):
         """
-        Constraints the inputs for a ramping rate
+        Constraints the inputs for a ramping rate. The ramping rate can either be defined by the installed capacity or a
+        predefined reference size, and is divided by the ramping time. In case of performance type 2 or 3 the user can
+        decide whether the ramping rate is always constrained or only when the technology is on (x_t = 1 and x_t-1 = 1).
 
         :param b_tec: technology model block
         :return:
         """
-        ramping_rate = self.performance_data['ramping_rate']
+        ramping_time = self.performance_data["ramping_time"]
 
-        def init_ramping_down_rate(const, t):
-            if t > 1:
-                return -ramping_rate <= self.input[t, self.main_car] - self.input[t - 1, self.main_car]
-            else:
-                return Constraint.Skip
-        b_tec.const_ramping_down_rate = Constraint(self.set_t, rule=init_ramping_down_rate)
+        # Calculate ramping rates
+        if (
+            "ref_size" in self.performance_data
+            and not self.performance_data["ref_size"] == -1
+        ):
+            ramping_rate = self.performance_data["ref_size"] / ramping_time
+        else:
+            ramping_rate = b_tec.var_size / ramping_time
 
-        def init_ramping_up_rate(const, t):
-            if t > 1:
-                return self.input[t, self.main_car] - self.input[t - 1, self.main_car] <= ramping_rate
-            else:
-                return Constraint.Skip
-        b_tec.const_ramping_up_rate = Constraint(self.set_t, rule=init_ramping_up_rate)
+        # Constraints ramping rates
+        if (
+            not self.performance_data["performance_function_type"] == 1
+            and "ramping_const_int" in self.performance_data
+            and self.performance_data["ramping_const_int"] == 1
+        ):
+
+            s_indicators = range(0, 3)
+
+            def init_ramping_operation_on(dis, t, ind):
+                if t > 1:
+                    if ind == 0:  # ramping constrained
+                        dis.const_ramping_on = Constraint(
+                            expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 0
+                        )
+
+                        def init_ramping_down_rate_operation(const):
+                            return (
+                                -ramping_rate
+                                <= self.input[t, self.main_car]
+                                - self.input[t - 1, self.main_car]
+                            )
+
+                        dis.const_ramping_down_rate = Constraint(
+                            rule=init_ramping_down_rate_operation
+                        )
+
+                        def init_ramping_up_rate_operation(const):
+                            return (
+                                self.input[t, self.main_car]
+                                - self.input[t - 1, self.main_car]
+                                <= ramping_rate
+                            )
+
+                        dis.const_ramping_up_rate = Constraint(
+                            rule=init_ramping_up_rate_operation
+                        )
+
+                    elif ind == 1:  # startup, no ramping constraint
+                        dis.const_ramping_on = Constraint(
+                            expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 1
+                        )
+
+                    else:  # shutdown, no ramping constraint
+                        dis.const_ramping_on = Constraint(
+                            expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == -1
+                        )
+
+            b_tec.dis_ramping_operation_on = Disjunct(
+                self.set_t, s_indicators, rule=init_ramping_operation_on
+            )
+
+            # Bind disjuncts
+            def bind_disjunctions(dis, t):
+                return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
+
+            b_tec.disjunction_ramping_operation_on = Disjunction(
+                self.set_t, rule=bind_disjunctions
+            )
+
+        else:
+
+            def init_ramping_down_rate(const, t):
+                if t > 1:
+                    return (
+                        -ramping_rate
+                        <= self.input[t, self.main_car]
+                        - self.input[t - 1, self.main_car]
+                    )
+                else:
+                    return Constraint.Skip
+
+            b_tec.const_ramping_down_rate = Constraint(
+                self.set_t, rule=init_ramping_down_rate
+            )
+
+            def init_ramping_up_rate(const, t):
+                if t > 1:
+                    return (
+                        self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+                        <= ramping_rate
+                    )
+                else:
+                    return Constraint.Skip
+
+            b_tec.const_ramping_up_rate = Constraint(
+                self.set_t, rule=init_ramping_up_rate
+            )
 
         return b_tec
