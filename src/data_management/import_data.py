@@ -3,7 +3,6 @@ from timezonefinder import TimezoneFinder
 import pandas as pd
 import numpy as np
 
-
 def import_jrc_climate_data(lon, lat, year, alt):
     """
     Reads in climate data for a full year from `JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_.
@@ -25,53 +24,66 @@ def import_jrc_climate_data(lon, lat, year, alt):
     tz = tf.timezone_at(lng=lon, lat=lat)
 
     # Specify year import, lon, lat
-    if year == "typical_year":
-        parameters = {"lon": lon, "lat": lat, "outputformat": "json"}
-        time_index = pd.date_range(start="2001-01-01 00:00", freq="1h", periods=8760)
+    if year == 'typical_year':
+        parameters = {
+            'lon': lon,
+            'lat': lat,
+            'outputformat': 'json'
+        }
+        time_index = pd.date_range(start='2001-01-01 00:00', freq='1h', periods=8760)
     else:
-        parameters = {"lon": lon, "lat": lat, "year": year, "outputformat": "json"}
-        time_index = pd.date_range(
-            start=str(year) + "-01-01 00:00", end=str(year) + "-12-31 23:00", freq="1h"
-        )
+        parameters = {
+            'lon': lon,
+            'lat': lat,
+            'year': year,
+            'outputformat': 'json'
+        }
+        time_index = pd.date_range(start=str(year)+'-01-01 00:00', end=str(year)+'-12-31 23:00', freq='1h')
 
     # Get data from JRC dataset
     answer = dict()
-    print("Importing Climate Data...")
-    response = requests.get("https://re.jrc.ec.europa.eu/api/tmy?", params=parameters)
+    print('Importing Climate Data...')
+    response = requests.get('https://re.jrc.ec.europa.eu/api/tmy?', params=parameters)
     if response.status_code == 200:
-        print("Importing Climate Data successful")
+        print('Importing Climate Data successful')
     else:
         print(response)
     data = response.json()
-    climate_data = data["outputs"]["tmy_hourly"]
+    climate_data = data['outputs']['tmy_hourly']
+
 
     # Compile return dict
-    answer["longitude"] = lon
-    answer["latitude"] = lat
-    answer["altitude"] = alt
+    answer['longitude'] = lon
+    answer['latitude'] = lat
+    answer['altitude'] = alt
 
-    ghi = []
-    dni = []
-    dhi = []
-    rh = []
-    temp_air = []
-    wind_speed = dict()
-    wind_speed["10"] = []
+    ghi=[]
+    dni=[]
+    dhi=[]
+    rh=[]
+    temp_air=[]
+    wind_speed=dict()
+    wind_speed['10'] = []
 
     for t_interval in climate_data:
-        ghi.append(t_interval["G(h)"])
-        dni.append(t_interval["Gb(n)"])
-        dhi.append(t_interval["Gd(h)"])
-        rh.append(t_interval["RH"])
-        temp_air.append(t_interval["T2m"])
-        wind_speed["10"].append(t_interval["WS10m"])
+        ghi.append(t_interval['G(h)'])
+        dni.append(t_interval['Gb(n)'])
+        dhi.append(t_interval['Gd(h)'])
+        rh.append(t_interval['RH'])
+        temp_air.append(t_interval['T2m'])
+        wind_speed['10'].append(t_interval['WS10m'])
 
-    answer["dataframe"] = pd.DataFrame(
-        np.array([ghi, dni, dhi, temp_air, rh]).T,
-        columns=["ghi", "dni", "dhi", "temp_air", "rh"],
-        index=time_index,
-    )
+    answer['dataframe'] = pd.DataFrame(
+        np.array([
+            ghi,
+            dni,
+            dhi,
+            temp_air,
+            rh
+        ]).T,
+        columns=['ghi', 'dni', 'dhi', 'temp_air', 'rh'],
+        index=time_index)
     for ws in wind_speed:
-        answer["dataframe"]["ws" + str(ws)] = wind_speed[ws]
+        answer['dataframe']['ws'+str(ws)] = wind_speed[ws]
 
     return answer

@@ -27,7 +27,6 @@ class DataHandle:
       :func:`~src.data_management.handle_topology.SystemTopology`)
 
     """
-
     def __init__(self, topology):
         """
         Constructor
@@ -46,13 +45,12 @@ class DataHandle:
 
         self.global_data = GlobalData(topology)
 
+
         # Initialize Node data
         for node in self.topology.nodes:
             self.node_data[node] = NodeData(topology)
 
-    def read_climate_data_from_api(
-        self, node, lon, lat, alt=10, dataset="JRC", year="typical_year", save_path=None
-    ):
+    def read_climate_data_from_api(self, node, lon, lat, alt=10, dataset='JRC', year='typical_year', save_path=None):
         """
         Reads in climate data for a full year
 
@@ -68,23 +66,23 @@ class DataHandle:
         :param str save_path: Can save climate data for later use to the specified path
         :return: self at ``self.node_data[node]['climate_data']``
         """
-        if dataset == "JRC":
+        if dataset == 'JRC':
             data = import_jrc_climate_data(lon, lat, year, alt)
         else:
-            raise Exception("Other APIs are not available")
+            raise Exception('Other APIs are not available')
 
         # Save
         if save_path is not None:
             save_object(data, Path(save_path))
 
         # Match with timesteps
-        data["dataframe"] = data["dataframe"].loc[self.topology.timesteps]
+        data['dataframe'] = data['dataframe'].loc[self.topology.timesteps]
 
         # Write to DataHandle
-        self.node_data[node].data["climate_data"] = data["dataframe"]
-        self.node_data[node].location.lon = data["longitude"]
-        self.node_data[node].location.lat = data["latitude"]
-        self.node_data[node].location.altitude = data["altitude"]
+        self.node_data[node].data['climate_data'] = data['dataframe']
+        self.node_data[node].location.lon = data['longitude']
+        self.node_data[node].location.lat = data['latitude']
+        self.node_data[node].location.altitude = data['altitude']
 
     def read_climate_data_from_file(self, node, load_path):
         """
@@ -99,12 +97,10 @@ class DataHandle:
         """
         data = load_object(Path(load_path))
 
-        self.node_data[node].data["climate_data"] = shorten_input_data(
-            data["dataframe"], len(self.topology.timesteps)
-        )
-        self.node_data[node].location.lon = data["longitude"]
-        self.node_data[node].location.lat = data["latitude"]
-        self.node_data[node].location.altitude = data["altitude"]
+        self.node_data[node].data['climate_data'] = shorten_input_data(data['dataframe'], len(self.topology.timesteps))
+        self.node_data[node].location.lon = data['longitude']
+        self.node_data[node].location.lat = data['latitude']
+        self.node_data[node].location.altitude = data['altitude']
 
     def read_climate_data_from_csv(self, node, load_path, lon, lat, alt=10):
         """
@@ -127,19 +123,16 @@ class DataHandle:
         data.index = pd.to_datetime(data.index)
 
         # Calculate dni from ghi and dhi if not there
-        if "dni" not in data:
-            data["dni"] = calculate_dni(data, lon, lat)
+        if 'dni' not in data:
+            data['dni'] = calculate_dni(data, lon, lat)
 
-        self.node_data[node].data["climate_data"] = shorten_input_data(
-            data, len(self.topology.timesteps)
-        )
+        self.node_data[node].data['climate_data'] = shorten_input_data(data,
+                                                                          len(self.topology.timesteps))
         self.node_data[node].location.lon = lon
         self.node_data[node].location.lat = lat
         self.node_data[node].location.altitude = alt
 
-    def read_hydro_natural_inflow(
-        self, node: str, technology_name: str, hydro_natural_inflow: list
-    ):
+    def read_hydro_natural_inflow(self, node:str, technology_name:str, hydro_natural_inflow:list):
         """
         Reads natural inflow for pumped hydro open cycle
 
@@ -148,13 +141,10 @@ class DataHandle:
         :param list hydro_natural_inflow: hydro inflows in MWh
         :return: self at ``self.node_data[node]['climate_data'][technology_name + '_inflow']``
         """
-        self.node_data[node].data["climate_data"][technology_name + "_inflow"] = (
-            shorten_input_data(hydro_natural_inflow, len(self.topology.timesteps))
-        )
+        self.node_data[node].data['climate_data'][technology_name + '_inflow'] = shorten_input_data(hydro_natural_inflow,
+                                                                                             len(self.topology.timesteps))
 
-    def read_hydro_maximum_discharge(
-        self, node: str, technology_name: str, maximum_discharge: list
-    ):
+    def read_hydro_maximum_discharge(self, node:str, technology_name:str, maximum_discharge:list):
         """
         Reads maximum discharge of pumped hydro open cycles
 
@@ -163,11 +153,10 @@ class DataHandle:
         :param list maximum_discharge: max discharge in MWh for each timestep
         :return: self at ``self.node_data[node]['climate_data']['maximum_discharge']``
         """
-        self.node_data[node].data["climate_data"][
-            technology_name + "_maximum_discharge"
-        ] = shorten_input_data(maximum_discharge, len(self.topology.timesteps))
+        self.node_data[node].data['climate_data'][technology_name + '_maximum_discharge'] = shorten_input_data(maximum_discharge,
+                                                                                             len(self.topology.timesteps))
 
-    def read_demand_data(self, node: str, carrier: str, demand_data: list):
+    def read_demand_data(self, node:str, carrier:str, demand_data:list):
         """
         Reads demand data for one carrier to node.
 
@@ -179,13 +168,10 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
-        self.node_data[node].data["demand"][carrier] = shorten_input_data(
-            demand_data, len(self.topology.timesteps)
-        )
+        self.node_data[node].data['demand'][carrier] = shorten_input_data(demand_data,
+                                                                             len(self.topology.timesteps))
 
-    def read_production_profile(
-        self, node: str, carrier: str, production_data: list, curtailment: int
-    ):
+    def read_production_profile(self, node:str, carrier:str, production_data:list, curtailment:int):
         """
         Reads a production profile for one carrier to a node.
 
@@ -198,14 +184,11 @@ class DataHandle:
         :param int curtailment: 1 or 0, if 1 curtailment of production profile is allowed
         :return: self at ``self.node_data[node]['demand'][carrier]``
         """
-        self.node_data[node].data["production_profile"][carrier] = shorten_input_data(
-            production_data, len(self.topology.timesteps)
-        )
-        self.node_data[node].options.production_profile_curtailment[
-            carrier
-        ] = curtailment
+        self.node_data[node].data['production_profile'][carrier] = shorten_input_data(production_data,
+                                                                                         len(self.topology.timesteps))
+        self.node_data[node].options.production_profile_curtailment[carrier] = curtailment
 
-    def read_import_price_data(self, node: str, carrier: str, price_data: list):
+    def read_import_price_data(self, node:str, carrier:str, price_data:list):
         """
         Reads import price data of carrier to node
 
@@ -217,11 +200,10 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['import_prices'][carrier]``
         """
-        self.node_data[node].data["import_prices"][carrier] = shorten_input_data(
-            price_data, len(self.topology.timesteps)
-        )
+        self.node_data[node].data['import_prices'][carrier] = shorten_input_data(price_data,
+                                                                                    len(self.topology.timesteps))
 
-    def read_export_price_data(self, node: str, carrier: str, price_data: list):
+    def read_export_price_data(self, node:str, carrier:str, price_data:list):
         """
         Reads export price data of carrier to node
 
@@ -233,11 +215,10 @@ class DataHandle:
         time steps.
         :return: self at ``self.node_data[node]['export_prices'][carrier]``
         """
-        self.node_data[node].data["export_prices"][carrier] = shorten_input_data(
-            price_data, len(self.topology.timesteps)
-        )
+        self.node_data[node].data['export_prices'][carrier] = shorten_input_data(price_data,
+                                                                                    len(self.topology.timesteps))
 
-    def read_export_limit_data(self, node: str, carrier: str, export_limit_data: list):
+    def read_export_limit_data(self, node:str, carrier:str, export_limit_data:list):
         """
         Reads export limit data of carrier to node
 
@@ -250,9 +231,9 @@ class DataHandle:
         :return: self at ``self.node_data[node]['export_limit'][carrier]``
         """
 
-        self.node_data[node].data["export_limit"][carrier] = export_limit_data
+        self.node_data[node].data['export_limit'][carrier] = export_limit_data
 
-    def read_import_limit_data(self, node: str, carrier: str, import_limit_data: list):
+    def read_import_limit_data(self, node:str, carrier:str, import_limit_data:list):
         """
         Reads import limit data of carrier to node
 
@@ -265,11 +246,10 @@ class DataHandle:
         :return: self at ``self.node_data[node]['import_limit'][carrier]``
         """
 
-        self.node_data[node].data["import_limit"][carrier] = shorten_input_data(
-            import_limit_data, len(self.topology.timesteps)
-        )
+        self.node_data[node].data['import_limit'][carrier] = shorten_input_data(import_limit_data,
+                                                                                   len(self.topology.timesteps))
 
-    def read_carbon_price_data(self, carbon_price_data: list, type: str):
+    def read_carbon_price_data(self, carbon_price_data:list, type:str):
         """
         Reads carbon price data. The price is the same for all nodes. Depending on the type, it can represent a carbon
         tax or a subsidy for negative emissions
@@ -281,15 +261,14 @@ class DataHandle:
         :param str type: 'tax' or 'subsidy' depending on what the carbon cost represents in the model
         :return: self at ``node_data[node]['carbon_tax'/'carbon_subsidy']``
         """
-        if type == "tax":
-            self.global_data.data["carbon_prices"]["tax"] = carbon_price_data
+        if type == 'tax':
+            self.global_data.data['carbon_prices']['tax'] = carbon_price_data
 
-        elif type == "subsidy":
-            self.global_data.data["carbon_prices"]["subsidy"] = carbon_price_data
+        elif type == 'subsidy':
+            self.global_data.data['carbon_prices']['subsidy'] = carbon_price_data
 
-    def read_export_emissionfactor_data(
-        self, node: str, carrier: str, export_emissionfactor_data: list
-    ):
+
+    def read_export_emissionfactor_data(self, node:str, carrier:str, export_emissionfactor_data:list):
         """
         Reads export emission factor data of carrier to node
 
@@ -302,13 +281,10 @@ class DataHandle:
         :return: self at ``self.node_data[node]['export_emissionfactors'][carrier]``
         """
 
-        self.node_data[node].data["export_emissionfactors"][carrier] = (
-            shorten_input_data(export_emissionfactor_data, len(self.topology.timesteps))
-        )
+        self.node_data[node].data['export_emissionfactors'][carrier] = shorten_input_data(export_emissionfactor_data,
+                                                                                             len(self.topology.timesteps))
 
-    def read_import_emissionfactor_data(
-        self, node: str, carrier: str, import_emissionfactor_data: list
-    ):
+    def read_import_emissionfactor_data(self, node:str, carrier:str, import_emissionfactor_data:list):
         """
         Reads import emission factor data of carrier to node
 
@@ -321,11 +297,10 @@ class DataHandle:
         :return: self at ``self.node_data[node]['import_emissionfactors'][carrier]``
         """
 
-        self.node_data[node].data["import_emissionfactors"][carrier] = (
-            shorten_input_data(import_emissionfactor_data, len(self.topology.timesteps))
-        )
+        self.node_data[node].data['import_emissionfactors'][carrier] = shorten_input_data(import_emissionfactor_data,
+                                                                                             len(self.topology.timesteps))
 
-    def read_technology_data(self, load_path="./data/Technology_Data/"):
+    def read_technology_data(self, load_path='./data/Technology_Data/'):
         """
         Writes new and existing technologies to self and fits performance functions
 
@@ -344,28 +319,21 @@ class DataHandle:
             # New technologies
             for technology in self.topology.technologies_new[node]:
                 tec_data = open_json(technology, load_path)
-                tec_data["name"] = technology
+                tec_data['name'] = technology
 
                 self.technology_data[node][technology] = select_technology(tec_data)
-                self.technology_data[node][technology].fit_technology_performance(
-                    self.node_data[node]
-                )
+                self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
 
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
                 tec_data = open_json(technology, load_path)
-                tec_data["name"] = technology
+                tec_data['name'] = technology
 
-                self.technology_data[node][technology + "_existing"] = (
-                    select_technology(tec_data)
-                )
-                self.technology_data[node][technology + "_existing"].existing = 1
-                self.technology_data[node][technology + "_existing"].size_initial = (
+                self.technology_data[node][technology + '_existing'] = select_technology(tec_data)
+                self.technology_data[node][technology + '_existing'].existing = 1
+                self.technology_data[node][technology + '_existing'].size_initial = \
                     self.topology.technologies_existing[node][technology]
-                )
-                self.technology_data[node][
-                    technology + "_existing"
-                ].fit_technology_performance(self.node_data[node])
+                self.technology_data[node][technology + '_existing'].fit_technology_performance(self.node_data[node])
 
     def read_single_technology_data(self, node, technologies):
         """
@@ -380,14 +348,12 @@ class DataHandle:
 
         for technology in technologies:
             tec_data = open_json(technology, load_path)
-            tec_data["name"] = technology
+            tec_data['name'] = technology
 
             self.technology_data[node][technology] = select_technology(tec_data)
-            self.technology_data[node][technology].fit_technology_performance(
-                self.node_data[node]
-            )
+            self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
 
-    def read_network_data(self, load_path: str = "./data/network_data/"):
+    def read_network_data(self, load_path:str='./data/network_data/'):
         """
         Writes new and existing network to self and calculates energy consumption
 
@@ -403,37 +369,25 @@ class DataHandle:
         # New Networks
         for netw in self.topology.networks_new:
             netw_data = open_json(netw, load_path)
-            netw_data["name"] = netw
+            netw_data['name'] = netw
 
             self.network_data[netw] = Network(netw_data)
-            self.network_data[netw].connection = self.topology.networks_new[netw][
-                "connection"
-            ]
-            self.network_data[netw].distance = self.topology.networks_new[netw][
-                "distance"
-            ]
-            self.network_data[netw].size_max_arcs = self.topology.networks_new[netw][
-                "size_max_arcs"
-            ]
+            self.network_data[netw].connection = self.topology.networks_new[netw]['connection']
+            self.network_data[netw].distance = self.topology.networks_new[netw]['distance']
+            self.network_data[netw].size_max_arcs = self.topology.networks_new[netw]['size_max_arcs']
             self.network_data[netw].calculate_max_size_arc()
 
         # Existing Networks
         for netw in self.topology.networks_existing:
             netw_data = open_json(netw, load_path)
-            netw_data["name"] = netw + "_existing"
+            netw_data['name'] = netw + '_existing'
 
-            self.network_data[netw + "_existing"] = Network(netw_data)
-            self.network_data[netw + "_existing"].existing = 1
-            self.network_data[netw + "_existing"].connection = (
-                self.topology.networks_existing[netw]["connection"]
-            )
-            self.network_data[netw + "_existing"].distance = (
-                self.topology.networks_existing[netw]["distance"]
-            )
-            self.network_data[netw + "_existing"].size_initial = (
-                self.topology.networks_existing[netw]["size"]
-            )
-            self.network_data[netw + "_existing"].calculate_max_size_arc()
+            self.network_data[netw + '_existing'] = Network(netw_data)
+            self.network_data[netw + '_existing'].existing = 1
+            self.network_data[netw + '_existing'].connection = self.topology.networks_existing[netw]['connection']
+            self.network_data[netw + '_existing'].distance = self.topology.networks_existing[netw]['distance']
+            self.network_data[netw + '_existing'].size_initial = self.topology.networks_existing[netw]['size']
+            self.network_data[netw + '_existing'].calculate_max_size_arc()
 
     def pprint(self):
         """
@@ -442,42 +396,42 @@ class DataHandle:
         :return: None
         """
 
-        print("----- SET OF CARRIERS -----")
+        print('----- SET OF CARRIERS -----')
         for car in self.topology.carriers:
-            print("- " + car)
-        print("----- NODE DATA -----")
+            print('- ' + car)
+        print('----- NODE DATA -----')
         for node in self.node_data:
-            print("\t -----------------------------------------------------")
-            print("\t Nodename: " + node)
-            print("\t\tNew technologies:")
+            print('\t -----------------------------------------------------')
+            print('\t Nodename: ' + node)
+            print('\t\tNew technologies:')
             for tec in self.topology.technologies_new[node]:
-                print("\t\t - " + tec)
-            print("\t\tExisting technologies:")
+                print('\t\t - ' + tec)
+            print('\t\tExisting technologies:')
             for tec in self.topology.technologies_existing[node]:
-                print("\t\t - " + tec)
-            print("\t\tOther Node data:")
+                print('\t\t - ' + tec)
+            print('\t\tOther Node data:')
             for var in self.node_data[node].data:
-                print("\t\t\tAverage of " + var + ":")
+                print('\t\t\tAverage of ' + var + ':')
                 for ser in self.node_data[node].data[var]:
                     avg = round(self.node_data[node].data[var][ser].mean(), 2)
-                    print("\t\t\t - " + ser + ": " + str(avg))
-        print("----- NETWORK DATA -----")
+                    print('\t\t\t - ' + ser + ': ' + str(avg))
+        print('----- NETWORK DATA -----')
         for netw in self.topology.networks_new:
-            print("\t -----------------------------------------------------")
-            print("\t" + netw)
-            connection = self.topology.networks_new[netw]["connection"]
+            print('\t -----------------------------------------------------')
+            print('\t' + netw)
+            connection = self.topology.networks_new[netw]['connection']
             for from_node in connection:
                 for to_node in connection[from_node].index:
                     if connection.at[from_node, to_node] == 1:
-                        print("\t\t\t" + from_node + " - " + to_node)
+                        print('\t\t\t' + from_node + ' - ' + to_node)
         for netw in self.topology.networks_existing:
-            print("\t -----------------------------------------------------")
-            print("\t" + netw)
-            connection = self.topology.networks_existing[netw]["connection"]
+            print('\t -----------------------------------------------------')
+            print('\t' + netw)
+            connection = self.topology.networks_existing[netw]['connection']
             for from_node in connection:
                 for to_node in connection[from_node].index:
                     if connection.at[from_node, to_node] == 1:
-                        print("\t\t\t" + from_node + " - " + to_node)
+                        print('\t\t\t' + from_node + ' - ' + to_node)
 
     def save(self, save_path):
         """
@@ -502,9 +456,7 @@ class ClusteredDataHandle(DataHandle):
     :param int nr_time_intervals_per_day: nr of time intervals per day in data (full resolution)
     """
 
-    def __init__(
-        self, data: DataHandle, nr_clusters: int, nr_time_intervals_per_day: int = 24
-    ):
+    def __init__(self, data:DataHandle, nr_clusters:int, nr_time_intervals_per_day:int=24):
         """
         Constructor
 
@@ -524,19 +476,10 @@ class ClusteredDataHandle(DataHandle):
         self.k_means_specs = simplification_specs(data.topology.timesteps)
 
         # perform clustering
-        nr_days_full_resolution = (
-            max(data.topology.timesteps) - min(data.topology.timesteps)
-        ).days + 1
-        self._cluster_data(
-            nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day
-        )
+        nr_days_full_resolution = (max(data.topology.timesteps) - min(data.topology.timesteps)).days + 1
+        self._cluster_data(nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day)
 
-    def _cluster_data(
-        self,
-        nr_clusters: int,
-        nr_days_full_resolution: int,
-        nr_time_intervals_per_day: int,
-    ):
+    def _cluster_data(self, nr_clusters:int, nr_days_full_resolution:int, nr_time_intervals_per_day:int):
         """
         Performs the clustering process
 
@@ -550,33 +493,27 @@ class ClusteredDataHandle(DataHandle):
         :return: instance of :class:`~ClusteredDataHandle`
         """
         # adjust timesteps
-        self.topology.timesteps_clustered = range(
-            0, nr_clusters * nr_time_intervals_per_day
-        )
+        self.topology.timesteps_clustered = range(0, nr_clusters * nr_time_intervals_per_day)
         # compile full matrix to cluster
-        full_resolution = self._compile_full_resolution_matrix(
-            nr_time_intervals_per_day
-        )
+        full_resolution = self._compile_full_resolution_matrix(nr_time_intervals_per_day)
         # Perform clustering
-        clustered_data, day_labels = perform_k_means(full_resolution, nr_clusters)
+        clustered_data, day_labels = perform_k_means(full_resolution,
+                                                        nr_clusters)
         # Get order of typical days
-        self.k_means_specs.full_resolution["sequence"] = compile_sequence(
-            day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day
-        )
+        self.k_means_specs.full_resolution['sequence'] = compile_sequence(day_labels,
+                                                                             nr_clusters,
+                                                                             nr_days_full_resolution,
+                                                                             nr_time_intervals_per_day)
         # Match typical day to actual day
-        self.k_means_specs.full_resolution["typical_day"] = np.repeat(
-            day_labels, nr_time_intervals_per_day
-        )
+        self.k_means_specs.full_resolution['typical_day'] = np.repeat(day_labels, nr_time_intervals_per_day)
         # Create factors, indicating how many times an hour occurs
-        self.k_means_specs.reduced_resolution = get_day_factors(
-            self.k_means_specs.full_resolution["sequence"]
-        )
+        self.k_means_specs.reduced_resolution = get_day_factors(self.k_means_specs.full_resolution['sequence'])
         # Read data back in
         self._read_clustered_data(clustered_data)
 
-        self.read_technology_data(load_path="./src/test/TestTecs")
+        self.read_technology_data(load_path = './src/test/TestTecs')
 
-    def _read_clustered_data(self, clustered_data: pd.DataFrame):
+    def _read_clustered_data(self, clustered_data:pd.DataFrame):
         """
         Reads clustered data back to self
 
@@ -585,24 +522,18 @@ class ClusteredDataHandle(DataHandle):
         node_data = self.node_data
         for node in node_data:
             for series1 in node_data[node].data:
-                self.node_data[node].data_clustered[series1] = pd.DataFrame(
-                    index=self.topology.timesteps_clustered
-                )
+                self.node_data[node].data_clustered[series1] = pd.DataFrame(index=self.topology.timesteps_clustered)
                 for series2 in node_data[node].data[series1]:
-                    self.node_data[node].data_clustered[series1][series2] = reshape_df(
-                        clustered_data[node][series1][series2], None, 1
-                    )
+                    self.node_data[node].data_clustered[series1][series2] = \
+                        reshape_df(clustered_data[node][series1][series2], None, 1)
 
-        carbon_prices = self.global_data.data["carbon_prices"]
-        self.global_data.data_clustered["carbon_prices"] = pd.DataFrame(
-            index=self.topology.timesteps_clustered
-        )
+        carbon_prices = self.global_data.data['carbon_prices']
+        self.global_data.data_clustered['carbon_prices'] = pd.DataFrame(
+            index=self.topology.timesteps_clustered)
         for series3 in carbon_prices:
-            self.global_data.data_clustered["carbon_prices"][series3] = reshape_df(
-                clustered_data["global_data"]["carbon_prices"][series3], None, 1
-            )
+            self.global_data.data_clustered['carbon_prices'][series3] = reshape_df(clustered_data['global_data']['carbon_prices'][series3], None, 1)
 
-    def _compile_full_resolution_matrix(self, nr_time_intervals_per_day: int):
+    def _compile_full_resolution_matrix(self, nr_time_intervals_per_day:int):
         """
         Compiles full resolution matrix to be clustered
 
@@ -613,34 +544,26 @@ class ClusteredDataHandle(DataHandle):
         for node in node_data:
             for series1 in node_data[node].data:
                 for series2 in node_data[node].data[series1]:
-                    series_names = define_multiindex(
-                        [
-                            [node] * nr_time_intervals_per_day,
-                            [series1] * nr_time_intervals_per_day,
-                            [series2] * nr_time_intervals_per_day,
-                            list(range(1, nr_time_intervals_per_day + 1)),
-                        ]
-                    )
-                    to_add = reshape_df(
-                        node_data[node].data[series1][series2],
-                        series_names,
-                        nr_time_intervals_per_day,
-                    )
+                    series_names = define_multiindex([
+                        [node] * nr_time_intervals_per_day,
+                        [series1] * nr_time_intervals_per_day,
+                        [series2] * nr_time_intervals_per_day,
+                        list(range(1, nr_time_intervals_per_day + 1))
+                    ])
+                    to_add = reshape_df(node_data[node].data[series1][series2],
+                                           series_names, nr_time_intervals_per_day)
                     full_resolution = pd.concat([full_resolution, to_add], axis=1)
 
-        carbon_prices = self.global_data.data["carbon_prices"]
+        carbon_prices = self.global_data.data['carbon_prices']
         for series3 in carbon_prices:
-            series_names = define_multiindex(
-                [
-                    ["global_data"] * nr_time_intervals_per_day,
-                    ["carbon_prices"] * nr_time_intervals_per_day,
-                    [series3] * nr_time_intervals_per_day,
-                    list(range(1, nr_time_intervals_per_day + 1)),
-                ]
-            )
-            to_add = reshape_df(
-                carbon_prices[series3], series_names, nr_time_intervals_per_day
-            )
+            series_names = define_multiindex([
+                ['global_data'] * nr_time_intervals_per_day,
+                ['carbon_prices'] * nr_time_intervals_per_day,
+                [series3] * nr_time_intervals_per_day,
+                list(range(1, nr_time_intervals_per_day + 1))
+            ])
+            to_add = reshape_df(carbon_prices[series3],
+                                   series_names, nr_time_intervals_per_day)
             full_resolution = pd.concat([full_resolution, to_add], axis=1)
         return full_resolution
 
@@ -653,7 +576,7 @@ class DataHandle_AveragedData(DataHandle):
     or clustered input data.
     """
 
-    def __init__(self, data: DataHandle, nr_timesteps_averaged: int):
+    def __init__(self, data:DataHandle, nr_timesteps_averaged:int):
         """
         Constructor
         """
@@ -665,7 +588,8 @@ class DataHandle_AveragedData(DataHandle):
         self.global_data = data.global_data
         self.model_information = data.model_information
 
-        if hasattr(data, "k_means_specs"):
+
+        if hasattr(data, 'k_means_specs'):
             self.k_means_specs = data.k_means_specs
 
         # averaging specs
@@ -681,16 +605,11 @@ class DataHandle_AveragedData(DataHandle):
         self.averaged_specs.reduced_resolution = pd.DataFrame(
             data=np.ones(len(self.topology.timesteps)) * nr_timesteps_averaged,
             index=self.topology.timesteps,
-            columns=["factor"],
-        )
+            columns=['factor'])
 
-        self.model_information.averaged_data_specs.nr_timesteps_averaged = (
-            nr_timesteps_averaged
-        )
+        self.model_information.averaged_data_specs.nr_timesteps_averaged = nr_timesteps_averaged
 
-    def _average_data(
-        self, data_full_resolution: DataHandle, nr_timesteps_averaged: int
-    ):
+    def _average_data(self, data_full_resolution:DataHandle, nr_timesteps_averaged:int):
         """
         Averages all nodal and global data
 
@@ -701,72 +620,56 @@ class DataHandle_AveragedData(DataHandle):
         node_data = data_full_resolution.node_data
         global_data = data_full_resolution.global_data
 
+
         # Average data for full resolution
         # adjust timesteps
         end_interval = max(self.topology.timesteps)
         start_interval = min(self.topology.timesteps)
-        time_resolution = str(nr_timesteps_averaged) + "h"
+        time_resolution = str(nr_timesteps_averaged) + 'h'
         self.topology.timestep_length_h = nr_timesteps_averaged
-        self.topology.timesteps = pd.date_range(
-            start=start_interval, end=end_interval, freq=time_resolution
-        )
+        self.topology.timesteps = pd.date_range(start=start_interval, end=end_interval, freq=time_resolution)
 
         for node in node_data:
             self.node_data[node] = NodeData(self.topology)
             self.node_data[node].options = node_data[node].options
             self.node_data[node].location = node_data[node].location
             for series1 in node_data[node].data:
-                self.node_data[node].data[series1] = pd.DataFrame(
-                    index=self.topology.timesteps
-                )
+                self.node_data[node].data[series1] = pd.DataFrame(index=self.topology.timesteps)
                 for series2 in node_data[node].data[series1]:
-                    self.node_data[node].data[series1][series2] = average_series(
-                        node_data[node].data[series1][series2], nr_timesteps_averaged
-                    )
+                    self.node_data[node].data[series1][series2] = \
+                        average_series(node_data[node].data[series1][series2], nr_timesteps_averaged)
 
         self.global_data = GlobalData(self.topology)
         for series1 in global_data.data:
             self.global_data.data[series1] = pd.DataFrame(index=self.topology.timesteps)
             for series2 in global_data.data[series1]:
-                self.global_data.data[series1][series2] = average_series(
-                    global_data.data[series1][series2], nr_timesteps_averaged
-                )
+                self.global_data.data[series1][series2] = \
+                    average_series(global_data.data[series1][series2], nr_timesteps_averaged)
 
         # Average data for clustered resolution
         if self.model_information.clustered_data == 1:
             # adjust timesteps
             end_interval = max(self.topology.timesteps_clustered)
             start_interval = min(self.topology.timesteps_clustered)
-            self.topology.timesteps_clustered = range(
-                start_interval, int((end_interval + 1) / nr_timesteps_averaged)
-            )
+            self.topology.timesteps_clustered = range(start_interval, int((end_interval + 1) / nr_timesteps_averaged))
+
 
             for node in node_data:
                 for series1 in node_data[node].data:
-                    self.node_data[node].data_clustered[series1] = pd.DataFrame(
-                        self.topology.timesteps_clustered
-                    )
+                    self.node_data[node].data_clustered[series1] = pd.DataFrame(self.topology.timesteps_clustered)
                     for series2 in node_data[node].data[series1]:
-                        self.node_data[node].data_clustered[series1][series2] = (
-                            average_series(
-                                node_data[node].data_clustered[series1][series2],
-                                nr_timesteps_averaged,
-                            )
-                        )
+                        self.node_data[node].data_clustered[series1][series2] = \
+                            average_series(node_data[node].data_clustered[series1][series2], nr_timesteps_averaged)
+
 
             for series1 in global_data.data:
-                self.global_data.data_clustered[series1] = pd.DataFrame(
-                    self.topology.timesteps_clustered
-                )
+                self.global_data.data_clustered[series1] = pd.DataFrame(self.topology.timesteps_clustered)
                 for series2 in global_data.data[series1]:
-                    self.global_data.data_clustered[series1][series2] = average_series(
-                        global_data.data_clustered[series1][series2],
-                        nr_timesteps_averaged,
-                    )
+                    self.global_data.data_clustered[series1][series2] = \
+                        average_series(global_data.data_clustered[series1][series2], nr_timesteps_averaged)
 
-    def _read_technology_data(
-        self, data_full_resolution: DataHandle, nr_timesteps_averaged: int
-    ):
+
+    def _read_technology_data(self, data_full_resolution:DataHandle, nr_timesteps_averaged:int):
         """
         Reads technology data for time-averaging algorithm
 
@@ -779,79 +682,56 @@ class DataHandle_AveragedData(DataHandle):
             # New technologies
             for technology in self.topology.technologies_new[node]:
                 tec_data = open_json(technology, load_path)
-                tec_data["name"] = technology
+                tec_data['name'] = technology
                 self.technology_data[node][technology] = select_technology(tec_data)
 
-                if self.technology_data[node][technology].technology_model == "RES":
+                if self.technology_data[node][technology].technology_model == 'RES':
                     # Fit performance based on full resolution and average capacity factor
                     self.technology_data[node][technology].fit_technology_performance(
-                        data_full_resolution.node_data[node]
-                    )
-                    cap_factor = self.technology_data[node][
-                        technology
-                    ].fitted_performance.coefficients["capfactor"]
+                        data_full_resolution.node_data[node])
+                    cap_factor = self.technology_data[node][technology].fitted_performance.coefficients['capfactor']
                     new_cap_factor = average_series(cap_factor, nr_timesteps_averaged)
-                    self.technology_data[node][
-                        technology
-                    ].fitted_performance.coefficients["capfactor"] = new_cap_factor
+                    self.technology_data[node][technology].fitted_performance.coefficients['capfactor'] = \
+                        new_cap_factor
 
                     lower_output_bound = np.zeros(shape=(len(new_cap_factor)))
                     upper_output_bound = new_cap_factor
-                    output_bounds = np.column_stack(
-                        (lower_output_bound, upper_output_bound)
-                    )
+                    output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
 
-                    self.technology_data[node][technology].fitted_performance.bounds[
-                        "output"
-                    ]["electricity"] = output_bounds
+                    self.technology_data[node][technology].fitted_performance.bounds['output']['electricity'] = \
+                        output_bounds
                 else:
                     # Fit performance based on averaged data
-                    self.technology_data[node][technology].fit_technology_performance(
-                        self.node_data[node]
-                    )
+                    self.technology_data[node][technology].fit_technology_performance(self.node_data[node])
 
             # Existing technologies
             for technology in self.topology.technologies_existing[node].keys():
                 tec_data = open_json(technology, load_path)
-                tec_data["name"] = technology
+                tec_data['name'] = technology
 
-                self.technology_data[node][technology + "_existing"] = (
-                    select_technology(tec_data)
-                )
-                self.technology_data[node][technology + "_existing"].existing = 1
-                self.technology_data[node][technology + "_existing"].size_initial = (
+                self.technology_data[node][technology + '_existing'] = select_technology(tec_data)
+                self.technology_data[node][technology + '_existing'].existing = 1
+                self.technology_data[node][technology + '_existing'].size_initial = \
                     self.topology.technologies_existing[node][technology]
-                )
-                if (
-                    self.technology_data[node][
-                        technology + "_existing"
-                    ].technology_model
-                    == "RES"
-                ):
+                if self.technology_data[node][technology + '_existing'].technology_model == 'RES':
                     # Fit performance based on full resolution and average capacity factor
-                    self.technology_data[node][
-                        technology + "_existing"
-                    ].fit_technology_performance(data_full_resolution.node_data[node])
-                    cap_factor = self.technology_data[node][
-                        technology + "_existing"
-                    ].fitted_performance.coefficients["capfactor"]
+                    self.technology_data[node][technology + '_existing'].fit_technology_performance(
+                        data_full_resolution.node_data[node])
+                    cap_factor = self.technology_data[node][technology + '_existing'].fitted_performance.coefficients[
+                        'capfactor']
                     new_cap_factor = average_series(cap_factor, nr_timesteps_averaged)
 
-                    self.technology_data[node][
-                        technology + "_existing"
-                    ].fitted_performance.coefficients["capfactor"] = new_cap_factor
+                    self.technology_data[node][technology + '_existing'].fitted_performance.coefficients['capfactor'] = \
+                        new_cap_factor
 
                     lower_output_bound = np.zeros(shape=(len(new_cap_factor)))
                     upper_output_bound = new_cap_factor
-                    output_bounds = np.column_stack(
-                        (lower_output_bound, upper_output_bound)
-                    )
+                    output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
 
-                    self.technology_data[node][
-                        technology + "_existing"
-                    ].fitted_performance.bounds["output"]["electricity"] = output_bounds
+                    self.technology_data[node][technology + '_existing'].fitted_performance.bounds['output'][
+                        'electricity'] = \
+                        output_bounds
                 else:
                     # Fit performance based on averaged data
-                    self.technology_data[node][
-                        technology + "_existing"
-                    ].fit_technology_performance(self.node_data[node])
+                    self.technology_data[node][technology + '_existing'].fit_technology_performance(
+                        self.node_data[node])

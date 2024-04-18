@@ -11,7 +11,6 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
     :param set set_tecsToAdd: list of technologies to add
     :return: b_node
     """
-
     def init_technology_block(b_tec, tec):
         """
         Rule to construct technology
@@ -31,19 +30,17 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
     # Create a new block containing all new technologies.
     b_node = energyhub.model.node_blocks[nodename]
 
-    if b_node.find_component("tech_blocks_new"):
+    if b_node.find_component('tech_blocks_new'):
         b_node.del_component(b_node.tech_blocks_new)
     b_node.tech_blocks_new = Block(set_tecsToAdd, rule=init_technology_block)
 
     # If it exists, carry over active tech blocks to temporary block
-    if b_node.find_component("tech_blocks_active"):
+    if b_node.find_component('tech_blocks_active'):
         b_node.tech_blocks_existing = Block(b_node.set_tecsAtNode)
         for tec in b_node.set_tecsAtNode:
-            b_node.tech_blocks_existing[tec].transfer_attributes_from(
-                b_node.tech_blocks_active[tec]
-            )
+            b_node.tech_blocks_existing[tec].transfer_attributes_from(b_node.tech_blocks_active[tec])
         b_node.del_component(b_node.tech_blocks_active)
-    if b_node.find_component("tech_blocks_active_index"):
+    if b_node.find_component('tech_blocks_active_index'):
         b_node.del_component(b_node.tech_blocks_active_index)
 
     # Create a block containing all active technologies at node
@@ -56,16 +53,15 @@ def add_technology(energyhub, nodename, set_tecsToAdd):
         else:
             bl.transfer_attributes_from(b_node.tech_blocks_existing[tec])
 
-    b_node.tech_blocks_active = Block(
-        b_node.set_tecsAtNode, rule=init_active_technology_blocks
-    )
+    b_node.tech_blocks_active = Block(b_node.set_tecsAtNode, rule=init_active_technology_blocks)
 
-    if b_node.find_component("tech_blocks_new"):
+    if b_node.find_component('tech_blocks_new'):
         b_node.del_component(b_node.tech_blocks_new)
-    if b_node.find_component("tech_blocks_new_index"):
+    if b_node.find_component('tech_blocks_new_index'):
         b_node.del_component(b_node.tech_blocks_new_index)
-    if b_node.find_component("tech_blocks_existing"):
+    if b_node.find_component('tech_blocks_existing'):
         b_node.del_component(b_node.tech_blocks_existing)
-    if b_node.find_component("tech_blocks_existing_index"):
+    if b_node.find_component('tech_blocks_existing_index'):
         b_node.del_component(b_node.tech_blocks_existing_index)
     return b_node
+

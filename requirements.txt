@@ -23,5 +23,3 @@ scandir
 tables>=3.6.1
 streamlit
 streamlit_folium
-pre-commit
-black

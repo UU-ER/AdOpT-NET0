@@ -32,7 +32,8 @@ class HeatPump(Technology):
     time-dependent performance parameter).
     """
 
-    def __init__(self, tec_data):
+    def __init__(self,
+                 tec_data):
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance(tec_data)
@@ -50,47 +51,42 @@ class HeatPump(Technology):
         :return:
         """
         # Climate data & Number of timesteps
-        climate_data = node_data.data["climate_data"]
+        climate_data = node_data.data['climate_data']
         time_steps = len(climate_data)
 
         # Ambient air temperature
-        T = copy.deepcopy(climate_data["temp_air"])
+        T = copy.deepcopy(climate_data['temp_air'])
 
         # Determine T_out
-        if self.performance_data["application"] == "radiator_heating":
+        if self.performance_data['application'] == 'radiator_heating':
             t_out = 40 - T
-        elif self.performance_data["application"] == "floor_heating":
+        elif self.performance_data['application'] == 'floor_heating':
             t_out = 30 - 0.5 * T
         else:
-            t_out = self.performance_data["T_out"]
+            t_out = self.performance_data['T_out']
 
         # Determine delta T
         delta_T = t_out - T
 
         # Determine COP
-        if self.name == "HeatPump_AirSourced":
-            cop = 6.08 - 0.09 * delta_T + 0.0005 * delta_T**2
-        elif self.name == "HeatPump_GroundSourced":
-            cop = 10.29 - 0.21 * delta_T + 0.0012 * delta_T**2
-        elif self.name == "HeatPump_WaterSourced":
-            cop = 9.97 - 0.20 * delta_T + 0.0012 * delta_T**2
+        if self.name == 'HeatPump_AirSourced':
+            cop = 6.08 - 0.09 * delta_T + 0.0005 * delta_T ** 2
+        elif self.name == 'HeatPump_GroundSourced':
+            cop = 10.29 - 0.21 * delta_T + 0.0012 * delta_T ** 2
+        elif self.name == 'HeatPump_WaterSourced':
+            cop = 9.97 - 0.20 * delta_T + 0.0012 * delta_T ** 2
 
-        print("Deriving performance data for Heat Pump...")
+        print('Deriving performance data for Heat Pump...')
 
-        if (
-            self.performance_data["performance_function_type"] == 1
-            or self.performance_data["performance_function_type"] == 2
-        ):  # Linear performance function
+        if self.performance_data['performance_function_type'] == 1 or self.performance_data['performance_function_type'] == 2:  # Linear performance function
             size_alpha = 1
-        elif self.performance_data["performance_function_type"] == 3:
+        elif self.performance_data['performance_function_type'] == 3:
             size_alpha = 2
         else:
-            raise Exception(
-                "performance_function_type must be an integer between 1 and 3"
-            )
+            raise Exception("performance_function_type must be an integer between 1 and 3")
 
         fit = {}
-        fit["out"] = {}
+        fit['out'] = {}
         alpha1 = np.empty(shape=(time_steps, size_alpha))
         alpha2 = np.empty(shape=(time_steps, size_alpha))
         bp_x = np.empty(shape=(time_steps, size_alpha + 1))
@@ -99,82 +95,64 @@ class HeatPump(Technology):
             if idx % 100 == 1:
                 print("\rComplete: ", round(idx / time_steps, 2) * 100, "%", end="")
 
-            if self.performance_data["performance_function_type"] == 1:
-                x = np.linspace(self.performance_data["min_part_load"], 1, 9)
+            if self.performance_data['performance_function_type'] == 1:
+                x = np.linspace(self.performance_data['min_part_load'], 1, 9)
                 y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 coeff = fit_linear_function(x, y)
                 alpha1[idx, :] = coeff[0]
 
-            elif self.performance_data["performance_function_type"] == 2:
-                x = np.linspace(self.performance_data["min_part_load"], 1, 9)
+            elif self.performance_data['performance_function_type'] == 2:
+                x = np.linspace(self.performance_data['min_part_load'], 1, 9)
                 y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 x = sm.add_constant(x)
                 coeff = fit_linear_function(x, y)
                 alpha1[idx, :] = coeff[1]
                 alpha2[idx, :] = coeff[0]
 
-            elif (
-                self.performance_data["performance_function_type"] == 3
-            ):  # piecewise performance function
+            elif self.performance_data['performance_function_type'] == 3:  # piecewise performance function
                 y = {}
-                x = np.linspace(self.performance_data["min_part_load"], 1, 9)
-                y["out"] = (x / (1 - 0.9 * (1 - x))) * cop_t * x
+                x = np.linspace(self.performance_data['min_part_load'], 1, 9)
+                y['out'] = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 time_step_fit = fit_piecewise_function(x, y, 2)
-                alpha1[idx, :] = time_step_fit["out"]["alpha1"]
-                alpha2[idx, :] = time_step_fit["out"]["alpha2"]
-                bp_x[idx, :] = time_step_fit["out"]["bp_x"]
+                alpha1[idx, :] = time_step_fit['out']['alpha1']
+                alpha2[idx, :] = time_step_fit['out']['alpha2']
+                bp_x[idx, :] = time_step_fit['out']['bp_x']
         print("Complete: ", 100, "%")
 
         # Calculate input bounds
-        fit["output_bounds"] = {}
-        fit["coeff"] = {}
-        if self.performance_data["performance_function_type"] == 1:
-            fit["coeff"]["alpha1"] = alpha1.round(5)
-            for c in self.performance_data["output_carrier"]:
-                fit["output_bounds"][c] = np.column_stack(
-                    (
-                        np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps)) * fit["coeff"]["alpha1"],
-                    )
-                )
+        fit['output_bounds'] = {}
+        fit['coeff'] = {}
+        if self.performance_data['performance_function_type'] == 1:
+            fit['coeff']['alpha1'] = alpha1.round(5)
+            for c in self.performance_data['output_carrier']:
+                fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           np.ones(shape=(time_steps)) * fit['coeff']['alpha1']))
 
-        elif (
-            self.performance_data["performance_function_type"] == 2
-        ):  # Linear performance function
-            fit["coeff"]["alpha1"] = alpha1.round(5)
-            fit["coeff"]["alpha2"] = alpha2.round(5)
-            for c in self.performance_data["output_carrier"]:
-                fit["output_bounds"][c] = np.column_stack(
-                    (
-                        np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps)) * fit["coeff"]["alpha1"]
-                        + fit["coeff"]["alpha2"],
-                    )
-                )
+        elif self.performance_data['performance_function_type'] == 2:  # Linear performance function
+            fit['coeff']['alpha1'] = alpha1.round(5)
+            fit['coeff']['alpha2'] = alpha2.round(5)
+            for c in self.performance_data['output_carrier']:
+                fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           np.ones(shape=(time_steps)) * fit['coeff']['alpha1'] + \
+                                                           fit['coeff']['alpha2']))
 
-        elif (
-            self.performance_data["performance_function_type"] == 3
-        ):  # Piecewise performance function
-            fit["coeff"]["alpha1"] = alpha1.round(5)
-            fit["coeff"]["alpha2"] = alpha2.round(5)
-            fit["coeff"]["bp_x"] = bp_x.round(5)
-            for c in self.performance_data["output_carrier"]:
-                fit["output_bounds"][c] = np.column_stack(
-                    (
-                        np.zeros(shape=(time_steps)),
-                        fit["coeff"]["alpha1"][:, -1] + fit["coeff"]["alpha2"][:, -1],
-                    )
-                )
+        elif self.performance_data['performance_function_type'] == 3:  # Piecewise performance function
+            fit['coeff']['alpha1'] = alpha1.round(5)
+            fit['coeff']['alpha2'] = alpha2.round(5)
+            fit['coeff']['bp_x'] = bp_x.round(5)
+            for c in self.performance_data['output_carrier']:
+                fit['output_bounds'][c] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                           fit['coeff']['alpha1'][:, -1] + \
+                                                           fit['coeff']['alpha2'][:, -1]))
 
         # Output Bounds
-        self.fitted_performance.bounds["output"] = fit["output_bounds"]
+        self.fitted_performance.bounds['output'] = fit['output_bounds']
         # Input Bounds
-        for car in self.performance_data["input_carrier"]:
-            self.fitted_performance.bounds["input"][car] = np.column_stack(
-                (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
-            )
+        for car in self.performance_data['input_carrier']:
+            self.fitted_performance.bounds['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
+                                                            np.ones(shape=(time_steps))))
         # Coefficients
-        self.fitted_performance.coefficients = fit["coeff"]
+        self.fitted_performance.coefficients = fit['coeff']
 
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
@@ -192,7 +170,7 @@ class HeatPump(Technology):
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         rated_power = self.fitted_performance.rated_power
-        performance_function_type = performance_data["performance_function_type"]
+        performance_function_type = performance_data['performance_function_type']
 
         if performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
@@ -203,13 +181,12 @@ class HeatPump(Technology):
 
         # size constraint based on input
         def init_size_constraint(const, t):
-            return self.input[t, "electricity"] <= b_tec.var_size * rated_power
-
+            return self.input[t, 'electricity'] <= b_tec.var_size * rated_power
         b_tec.const_size = Constraint(self.set_t, rule=init_size_constraint)
 
         # RAMPING RATES
-        if "ramping_time" in self.performance_data:
-            if not self.performance_data["ramping_time"] == -1:
+        if "ramping_rate" in self.performance_data:
+            if not self.performance_data['ramping_rate']   == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -221,14 +198,10 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        alpha1 = self.fitted_performance.coefficients["alpha1"]
+        alpha1 = self.fitted_performance.coefficients['alpha1']
 
         def init_input_output(const, t):
-            return (
-                self.output[t, "heat"]
-                == alpha1.iloc[t - 1] * self.input[t, "electricity"]
-            )
-
+            return self.output[t, 'heat'] == alpha1[t - 1] * self.input[t, 'electricity']
         b_tec.const_input_output = Constraint(self.set_t, rule=init_input_output)
 
         return b_tec
@@ -240,9 +213,9 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        alpha1 = self.fitted_performance.coefficients["alpha1"]
-        alpha2 = self.fitted_performance.coefficients["alpha2"]
-        min_part_load = self.performance_data["min_part_load"]
+        alpha1 = self.fitted_performance.coefficients['alpha1']
+        alpha2 = self.fitted_performance.coefficients['alpha2']
+        min_part_load = self.performance_data['min_part_load']
         rated_power = self.fitted_performance.rated_power
 
         # define disjuncts for on/off
@@ -250,39 +223,31 @@ class HeatPump(Technology):
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
-
                 def init_input_off(const):
-                    return self.input[t, "electricity"] == 0
+                    return self.input[t, 'electricity'] == 0
 
                 dis.const_input = Constraint(rule=init_input_off)
 
                 def init_output_off(const):
-                    return self.output[t, "heat"] == 0
+                    return self.output[t, 'heat'] == 0
 
                 dis.const_output_off = Constraint(rule=init_output_off)
             else:  # technology on
                 # input-output relation
                 def init_input_output_on(const):
-                    return (
-                        self.output[t, "heat"]
-                        == alpha1.iloc[t - 1] * self.input[t, "electricity"]
-                        + alpha2.iloc[t - 1] * b_tec.var_size * rated_power
-                    )
+                    return self.output[t, 'heat'] == alpha1[t - 1] * self.input[t, 'electricity'] + \
+                           alpha2[t - 1] * b_tec.var_size * rated_power
 
                 dis.const_input_output_on = Constraint(rule=init_input_output_on)
 
                 # min part load relation
                 def init_min_partload(const):
-                    return (
-                        self.input[t, "electricity"]
-                        >= min_part_load * b_tec.var_size * rated_power
-                    )
+                    return self.input[t, 'electricity'] >= \
+                           min_part_load * b_tec.var_size * rated_power
 
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
-        )
+        b_tec.dis_input_output = Disjunct(self.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
@@ -291,6 +256,7 @@ class HeatPump(Technology):
         b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec
+
 
     def _performance_function_type_3(self, b_tec):
         """
@@ -299,185 +265,85 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        alpha1 = self.fitted_performance.coefficients["alpha1"]
-        alpha2 = self.fitted_performance.coefficients["alpha2"]
-        bp_x = self.fitted_performance.coefficients["bp_x"]
-        min_part_load = self.performance_data["min_part_load"]
+        alpha1 = self.fitted_performance.coefficients['alpha1']
+        alpha2 = self.fitted_performance.coefficients['alpha2']
+        bp_x = self.fitted_performance.coefficients['bp_x']
+        min_part_load = self.performance_data['min_part_load']
         rated_power = self.fitted_performance.rated_power
 
         s_indicators = range(0, 2)
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
-
                 def init_input_off(const):
-                    return self.input[t, "electricity"] == 0
+                    return self.input[t, 'electricity'] == 0
 
                 dis.const_input_off = Constraint(rule=init_input_off)
 
                 def init_output_off(const):
-                    return self.output[t, "heat"] == 0
+                    return self.output[t, 'heat'] == 0
 
                 dis.const_output_off = Constraint(rule=init_output_off)
 
             else:  # piecewise definition
-
                 def init_input_on1(const):
-                    return (
-                        self.input[t, "electricity"]
-                        >= bp_x[t - 1, ind] * b_tec.var_size * rated_power
-                    )
+                    return self.input[t, 'electricity'] >= \
+                           bp_x[t - 1, ind] * b_tec.var_size * rated_power
 
                 dis.const_input_on1 = Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
-                    return (
-                        self.input[t, "electricity"]
-                        <= bp_x[t - 1, ind + 1] * b_tec.var_size * rated_power
-                    )
+                    return self.input[t, 'electricity'] <= \
+                           bp_x[t - 1, ind + 1] * b_tec.var_size * rated_power
 
                 dis.const_input_on2 = Constraint(rule=init_input_on2)
 
                 def init_output_on(const):
-                    return (
-                        self.output[t, "heat"]
-                        == alpha1[t - 1, ind - 1] * self.input[t, "electricity"]
-                        + alpha2[t - 1, ind - 1] * b_tec.var_size * rated_power
-                    )
+                    return self.output[t, 'heat'] == \
+                           alpha1[t - 1, ind - 1] * self.input[t, 'electricity'] + \
+                           alpha2[t - 1, ind - 1] * b_tec.var_size * rated_power
 
                 dis.const_input_output_on = Constraint(rule=init_output_on)
 
                 # min part load relation
                 def init_min_partload(const):
-                    return (
-                        self.input[t, "electricity"]
-                        >= min_part_load * b_tec.var_size * rated_power
-                    )
+                    return self.input[t, 'electricity'] >= \
+                           min_part_load * b_tec.var_size * rated_power
 
                 dis.const_min_partload = Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
-        )
+        b_tec.dis_input_output = Disjunct(self.set_t, s_indicators, rule=init_input_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
-
         b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec
 
     def _define_ramping_rates(self, b_tec):
         """
-        Constraints the inputs for a ramping rate. The ramping rate can either be defined by the installed capacity or a
-        predefined reference size, and is divided by the ramping time. In case of performance type 2 or 3 the user can
-        decide whether the ramping rate is always constrained or only when the technology is on (x_t = 1 and x_t-1 = 1).
+        Constraints the inputs for a ramping rate
 
         :param b_tec: technology model block
         :return:
         """
-        ramping_time = self.performance_data["ramping_time"]
+        ramping_rate = self.performance_data['ramping_rate']
 
-        # Calculate ramping rates
-        if (
-            "ref_size" in self.performance_data
-            and not self.performance_data["ref_size"] == -1
-        ):
-            ramping_rate = self.performance_data["ref_size"] / ramping_time
-        else:
-            ramping_rate = b_tec.var_size / ramping_time
+        def init_ramping_down_rate(const, t):
+            if t > 1:
+                return -ramping_rate <= sum(self.input[t, car_input] - self.input[t-1, car_input]
+                                                for car_input in b_tec.set_input_carriers)
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_down_rate = Constraint(self.set_t, rule=init_ramping_down_rate)
 
-        # Constraints ramping rates
-        if (
-            "ramping_const_int" in self.performance_data
-            and self.performance_data["ramping_const_int"] == 1
-        ):
-
-            s_indicators = range(0, 3)
-
-            def init_ramping_operation_on(dis, t, ind):
-                if t > 1:
-                    if ind == 0:  # ramping constrained
-                        dis.const_ramping_on = Constraint(
-                            expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 0
-                        )
-
-                        def init_ramping_down_rate_operation(const):
-                            return -ramping_rate <= sum(
-                                self.input[t, car_input] - self.input[t - 1, car_input]
-                                for car_input in b_tec.set_input_carriers
-                            )
-
-                        dis.const_ramping_down_rate = Constraint(
-                            rule=init_ramping_down_rate_operation
-                        )
-
-                        def init_ramping_up_rate_operation(const):
-                            return (
-                                sum(
-                                    self.input[t, car_input]
-                                    - self.input[t - 1, car_input]
-                                    for car_input in b_tec.set_input_carriers
-                                )
-                                <= ramping_rate
-                            )
-
-                        dis.const_ramping_up_rate = Constraint(
-                            rule=init_ramping_up_rate_operation
-                        )
-
-                    elif ind == 1:  # startup, no ramping constraint
-                        dis.const_ramping_on = Constraint(
-                            expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 1
-                        )
-
-                    else:  # shutdown, no ramping constraint
-                        dis.const_ramping_on = Constraint(
-                            expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == -1
-                        )
-
-            b_tec.dis_ramping_operation_on = Disjunct(
-                self.set_t, s_indicators, rule=init_ramping_operation_on
-            )
-
-            # Bind disjuncts
-            def bind_disjunctions(dis, t):
-                return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
-
-            b_tec.disjunction_ramping_operation_on = Disjunction(
-                self.set_t, rule=bind_disjunctions
-            )
-
-        else:
-
-            def init_ramping_down_rate(const, t):
-                if t > 1:
-                    return -ramping_rate <= sum(
-                        self.input[t, car_input] - self.input[t - 1, car_input]
-                        for car_input in b_tec.set_input_carriers
-                    )
-                else:
-                    return Constraint.Skip
-
-            b_tec.const_ramping_down_rate = Constraint(
-                self.set_t, rule=init_ramping_down_rate
-            )
-
-            def init_ramping_up_rate(const, t):
-                if t > 1:
-                    return (
-                        sum(
-                            self.input[t, car_input] - self.input[t - 1, car_input]
-                            for car_input in b_tec.set_input_carriers
-                        )
-                        <= ramping_rate
-                    )
-                else:
-                    return Constraint.Skip
-
-            b_tec.const_ramping_up_rate = Constraint(
-                self.set_t, rule=init_ramping_up_rate
-            )
+        def init_ramping_up_rate(const, t):
+            if t > 1:
+                return sum(self.input[t, car_input] - self.input[t-1, car_input]
+                               for car_input in b_tec.set_input_carriers) <= ramping_rate
+            else:
+                return Constraint.Skip
+        b_tec.const_ramping_up_rate = Constraint(self.set_t, rule=init_ramping_up_rate)
 
         return b_tec
