@@ -27,10 +27,14 @@ class Conv3(Technology):
       .. math::
         Input_{t, car} = {\\phi}_{car} * Input_{t, maincarrier}
 
-    - ``performance_function_type == 1``: Linear through origin, i.e.:
+    - ``performance_function_type == 1``: Linear, with minimal partload. In case minimal partload is greater than 0 the
+      technology can not shut down during the full time horizon (when installed), i.e.:
 
       .. math::
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
+
+      .. math::
+        Input_{maincarrier} \geq Input_{min} * S
 
     - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
       technology is in on, it holds:
@@ -49,9 +53,27 @@ class Conv3(Technology):
       .. math::
          Input_{t, maincarrier} = 0
 
+      Or in case a standby power is defined:
+
+      .. math::
+         Input_{t, maincarrier} \geq Input_{standby} * S
+
     - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
       The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
       is defined piecewise for the respective number of pieces
+
+    - Ramping rate of a technology is defined by the ramping time (RT) required to ramp from 0 to the installed capacity:
+
+      .. math::
+         -\\frac{S}{RT} \leq Input_{t, maincarrier}) - Input_{t-1, maincarrier} \leq \\frac{S}{RT}
+
+      or the predefined reference size, which makes the ramping rate fixed parameter:
+
+      .. math::
+         -\\frac{S^{ref}}{RT} \leq Input_{t, maincarrier}) - Input_{t-1, maincarrier} \leq \\frac{S^{ref}}{RT}
+
+      In case of performance function type 2 or 3 the user can decide whether the ramping rate is always constrained or
+      only when the technology is on. In the latter case the formulation requires integers.
 
     """
 
@@ -159,8 +181,8 @@ class Conv3(Technology):
         b_tec.const_size = Constraint(self.set_t, rule=init_size_constraint)
 
         # RAMPING RATES
-        if "ramping_rate" in self.performance_data:
-            if not self.performance_data['ramping_rate']   == -1:
+        if "ramping_time" in self.performance_data:
+            if not self.performance_data['ramping_time'] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -246,7 +268,7 @@ class Conv3(Technology):
 
             else:  # technology on
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 # input-output relation
                 def init_input_output_on(const, car_output):
@@ -527,25 +549,71 @@ class Conv3(Technology):
 
     def _define_ramping_rates(self, b_tec):
         """
-        Constraints the inputs for a ramping rate
+        Constraints the inputs for a ramping rate. The ramping rate can either be defined by the installed capacity or a
+        predefined reference size, and is divided by the ramping time. In case of performance type 2 or 3 the user can
+        decide whether the ramping rate is always constrained or only when the technology is on (x_t = 1 and x_t-1 = 1).
 
         :param b_tec: technology model block
         :return:
         """
-        ramping_rate = self.performance_data['ramping_rate']
+        ramping_time = self.performance_data['ramping_time']
 
-        def init_ramping_down_rate(const, t):
-            if t > 1:
-                return -ramping_rate <= self.input[t, self.main_car] - self.input[t - 1, self.main_car]
-            else:
-                return Constraint.Skip
-        b_tec.const_ramping_down_rate = Constraint(self.set_t, rule=init_ramping_down_rate)
+        # Calculate ramping rates
+        if "ref_size" in self.performance_data and not self.performance_data['ref_size'] == -1:
+            ramping_rate = self.performance_data['ref_size'] / ramping_time
+        else:
+            ramping_rate = b_tec.var_size / ramping_time
 
-        def init_ramping_up_rate(const, t):
-            if t > 1:
-                return self.input[t, self.main_car] - self.input[t - 1, self.main_car] <= ramping_rate
-            else:
-                return Constraint.Skip
-        b_tec.const_ramping_up_rate = Constraint(self.set_t, rule=init_ramping_up_rate)
+        # Constraints ramping rates
+        if not self.performance_data['performance_function_type'] == 1 and \
+                "ramping_const_int" in self.performance_data and self.performance_data['ramping_const_int'] == 1:
+
+            s_indicators = range(0, 3)
+
+            def init_ramping_operation_on(dis, t, ind):
+                if t > 1:
+                    if ind == 0:  # ramping constrained
+                        dis.const_ramping_on = Constraint(expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 0)
+
+                        def init_ramping_down_rate_operation(const):
+                            return -ramping_rate <= self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+
+                        dis.const_ramping_down_rate = Constraint(rule=init_ramping_down_rate_operation)
+
+                        def init_ramping_up_rate_operation(const):
+                            return self.input[t, self.main_car] - self.input[t - 1, self.main_car] <= ramping_rate
+
+                        dis.const_ramping_up_rate = Constraint(rule=init_ramping_up_rate_operation)
+
+                    elif ind == 1:  # startup, no ramping constraint
+                        dis.const_ramping_on = Constraint(expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 1)
+
+                    else:  # shutdown, no ramping constraint
+                        dis.const_ramping_on = Constraint(expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == -1)
+
+            b_tec.dis_ramping_operation_on = Disjunct(self.set_t, s_indicators, rule=init_ramping_operation_on)
+
+            # Bind disjuncts
+            def bind_disjunctions(dis, t):
+                return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
+
+            b_tec.disjunction_ramping_operation_on = Disjunction(self.set_t, rule=bind_disjunctions)
+
+        else:
+            def init_ramping_down_rate(const, t):
+                if t > 1:
+                    return -ramping_rate <= self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+                else:
+                    return Constraint.Skip
+
+            b_tec.const_ramping_down_rate = Constraint(self.set_t, rule=init_ramping_down_rate)
+
+            def init_ramping_up_rate(const, t):
+                if t > 1:
+                    return self.input[t, self.main_car] - self.input[t - 1, self.main_car] <= ramping_rate
+                else:
+                    return Constraint.Skip
+
+            b_tec.const_ramping_up_rate = Constraint(self.set_t, rule=init_ramping_up_rate)
 
         return b_tec
