@@ -40,9 +40,6 @@ class ModelConfiguration:
     | typicaldays.method | Determine method used for modeling           | {2}                                         | 2       |
     |                    | technologies with typical days               |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | timestep_length    | Specify the timestep length of the           |                                             | 1       |
-    |                    | input data in hours                          |                                             |         |
-    +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | multiyear          | Enable multiyear analysis, if turned off     | {0,1}                                       | 0       |
     |                    | max time horizon is 1 year                   |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
@@ -165,7 +162,6 @@ class ModelConfiguration:
         self.optimization.typicaldays = SimpleNamespace()
         self.optimization.typicaldays.N = 0
         self.optimization.typicaldays.method = 2
-        self.optimization.timestep_length = 1
         self.optimization.multiyear = 0
 
         # self.optimization.tecstaging = 0
