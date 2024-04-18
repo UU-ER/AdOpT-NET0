@@ -7,6 +7,7 @@ from src.model_configuration import ModelConfiguration
 from src.components.utilities import annualize
 from src.data_management import *
 from src.energyhub import EnergyHub as ehub
+
 #
 # @pytest.mark.quicktest
 # def test_initializer():
@@ -16,23 +17,26 @@ from src.energyhub import EnergyHub as ehub
 #     configuration.reporting.save_summary_path = '.'
 #     energyhub = ehub(data, configuration)
 
+
 @pytest.mark.quicktest
 def test_add_nodes():
     """
     Add a node with no technology, establishes energybalance
     """
-    data = load_object(r'./src/test/test_data/data_handle_test.p')
+    data = load_object(r"./src/test/test_data/data_handle_test.p")
     configuration = ModelConfiguration()
-    configuration.reporting.save_path = '.'
-    configuration.reporting.save_summary_path = '.'
-    configuration.solveroptions.solver = 'glpk'
+    configuration.reporting.save_path = "."
+    configuration.reporting.save_summary_path = "."
+    configuration.solveroptions.solver = "glpk"
     energyhub = ehub(data, configuration)
-    energyhub.configuration.reporting.save_path = './src/test/results'
-    energyhub.configuration.reporting.save_summary_path = './src/test/results'
+    energyhub.configuration.reporting.save_path = "./src/test/results"
+    energyhub.configuration.reporting.save_summary_path = "./src/test/results"
     energyhub.construct_model()
     energyhub.construct_balances()
     energyhub.solve()
-    assert energyhub.solution.solver.termination_condition == 'infeasibleOrUnbounded'
+    assert energyhub.solution.solver.termination_condition == "infeasibleOrUnbounded"
+
+
 #
 # @pytest.mark.quicktest
 # def test_model1():

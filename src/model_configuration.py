@@ -147,13 +147,13 @@ class ModelConfiguration:
         """
 
         self.optimization = SimpleNamespace()
-        self.optimization.objective = 'costs'
+        self.optimization.objective = "costs"
         self.optimization.emission_limit = 0
         self.optimization.monte_carlo = SimpleNamespace()
         self.optimization.monte_carlo.on = 0
         self.optimization.monte_carlo.sd = 0.2
         self.optimization.monte_carlo.N = 4
-        self.optimization.monte_carlo.on_what = ['Technologies']
+        self.optimization.monte_carlo.on_what = ["Technologies"]
         self.optimization.pareto_points = 5
         self.optimization.timestaging = 0
         self.optimization.typicaldays = SimpleNamespace()
@@ -163,7 +163,7 @@ class ModelConfiguration:
         # self.optimization.tecstaging = 0
 
         self.solveroptions = SimpleNamespace()
-        self.solveroptions.solver = 'gurobi'
+        self.solveroptions.solver = "gurobi"
         self.solveroptions.mipgap = 0.02
         self.solveroptions.timelim = 10
         self.solveroptions.threads = 0
@@ -181,8 +181,8 @@ class ModelConfiguration:
 
         self.reporting = SimpleNamespace()
         self.reporting.save_detailed = 1
-        self.reporting.save_path = './userData/'
-        self.reporting.save_summary_path = './userData/'
+        self.reporting.save_path = "./userData/"
+        self.reporting.save_summary_path = "./userData/"
         self.reporting.case_name = -1
         self.reporting.write_solution_diagnostics = 0
 

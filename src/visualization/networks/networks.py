@@ -12,54 +12,60 @@ from folium import plugins
 def plot_nodes(map, node_data):
     for node_name, data in node_data.iterrows():
         folium.CircleMarker(
-            location=[data['lat'], data['lon']],
+            location=[data["lat"], data["lon"]],
             radius=5,  # Adjust the radius as needed
-            color='black',  # Marker color
+            color="black",  # Marker color
             fill=True,
-            fill_color='black',  # Fill color
+            fill_color="black",  # Fill color
             fill_opacity=0.7,
         ).add_to(map)
         folium.map.Marker(
-            [data['lat'], data['lon']],
-            icon=DivIcon(icon_size=(150, 36),
-                         icon_anchor=(-5, 20),
-                         html='<div style="font-size: 9pt">' + node_name + '</div>')
+            [data["lat"], data["lon"]],
+            icon=DivIcon(
+                icon_size=(150, 36),
+                icon_anchor=(-5, 20),
+                html='<div style="font-size: 9pt">' + node_name + "</div>",
+            ),
         ).add_to(map)
 
-def plot_edges(map, node_data, network_size_data, edge_weight='size'):
-    for _, edge_data in network_size_data.iterrows():
-        from_node_data = node_data.loc[edge_data['FromNode']]
-        to_node_data = node_data.loc[edge_data['ToNode']]
 
-        if edge_weight == 'size':
-            e_weight = edge_data['Size'] / 1000
+def plot_edges(map, node_data, network_size_data, edge_weight="size"):
+    for _, edge_data in network_size_data.iterrows():
+        from_node_data = node_data.loc[edge_data["FromNode"]]
+        to_node_data = node_data.loc[edge_data["ToNode"]]
+
+        if edge_weight == "size":
+            e_weight = edge_data["Size"] / 1000
         else:
             e_weight = edge_weight
 
-        folium.PolyLine([(from_node_data['lat'], from_node_data['lon']),
-                         (to_node_data['lat'], to_node_data['lon'])],
-                        color='black',  # Set a default color
-                        weight=e_weight,  # Set edge size based on 'Size' column
-                        opacity=0.5).add_to(map)
-
+        folium.PolyLine(
+            [
+                (from_node_data["lat"], from_node_data["lon"]),
+                (to_node_data["lat"], to_node_data["lon"]),
+            ],
+            color="black",  # Set a default color
+            weight=e_weight,  # Set edge size based on 'Size' column
+            opacity=0.5,
+        ).add_to(map)
 
 
 def network_sizes(network_size_data, node_data):
-    networks_available = ['All']
-    networks_available.extend(list(network_size_data['Network'].unique()))
-    selected_netw = st.sidebar.selectbox('Select a network:', networks_available)
+    networks_available = ["All"]
+    networks_available.extend(list(network_size_data["Network"].unique()))
+    selected_netw = st.sidebar.selectbox("Select a network:", networks_available)
 
-    map_center = [node_data['lat'].mean(), node_data['lon'].mean()]
+    map_center = [node_data["lat"].mean(), node_data["lon"].mean()]
     map = folium.Map(location=map_center, zoom_start=5)
 
     plot_nodes(map, node_data)
 
-    if selected_netw == 'All':
-        for netw in network_size_data['Network'].unique():
-            size_data = network_size_data[network_size_data['Network'] == netw]
+    if selected_netw == "All":
+        for netw in network_size_data["Network"].unique():
+            size_data = network_size_data[network_size_data["Network"] == netw]
             plot_edges(map, node_data, size_data, edge_weight=2)
     else:
-        size_data = network_size_data[network_size_data['Network'] == selected_netw]
+        size_data = network_size_data[network_size_data["Network"] == selected_netw]
         plot_edges(map, node_data, size_data)
 
     # Plot edges on the map with color and size
@@ -90,4 +96,3 @@ def network_sizes(network_size_data, node_data):
     #
     # # Display the graph in the Streamlit app
     # st.pyplot(fig)
-
