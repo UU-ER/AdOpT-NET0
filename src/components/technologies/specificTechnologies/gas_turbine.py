@@ -12,7 +12,7 @@ from ..technology import Technology
 
 
 class GasTurbine(Technology):
-    """
+    r"""
     Resembles gas turbines of different sizes.
     Hydrogen and Natural Gas Turbines are possible at four different sizes, as indicated by the file names
     of the data. Performance data and the model is taken from Weimann, L., Ellerker, M., Kramer, G. J., &
@@ -231,7 +231,7 @@ class GasTurbine(Technology):
                 # input-output relation
                 def init_input_output_on_el(const):
                     return self.output[t, 'electricity'] == (alpha * b_tec.var_total_input[t] + \
-                                                        beta * b_tec.var_units_on[t]) * f[t - 1]
+                                                        beta * b_tec.var_units_on[t]) * f.iloc[t - 1]
 
                 dis.const_input_output_on_el = Constraint(rule=init_input_output_on_el)
 

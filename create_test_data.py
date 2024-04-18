@@ -381,8 +381,8 @@ def create_data_technologySTOR():
     # CLIMATE DATA
     climate_data_path = './src/test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
-    data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
-    data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
+    data.node_data['test_node1'].data['climate_data']['ws10'].iloc[0] = 15
+    data.node_data['test_node1'].data['climate_data']['ws10'].iloc[1] = 0
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 0.1
@@ -855,8 +855,8 @@ def create_data_technologyOpen_Hydro():
     climate_data_path = './src/test/climate_data_test.p'
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_hydro_natural_inflow('test_node1', 'TestPumpedHydro_Open', inflow)
-    data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
-    data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
+    data.node_data['test_node1'].data['climate_data']['ws10'].iloc[0] = 15
+    data.node_data['test_node1'].data['climate_data']['ws10'].iloc[1] = 0
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 1
@@ -886,8 +886,8 @@ def create_data_technologyOpen_Hydro():
     data.read_climate_data_from_file('test_node1', climate_data_path)
     data.read_hydro_maximum_discharge('test_node1', 'TestPumpedHydro_Open_max_discharge', np.ones(len(data.topology.timesteps)) * 0)
     data.read_hydro_natural_inflow('test_node1', 'TestPumpedHydro_Open_max_discharge', inflow)
-    data.node_data['test_node1'].data['climate_data']['ws10'][0] = 15
-    data.node_data['test_node1'].data['climate_data']['ws10'][1] = 0
+    data.node_data['test_node1'].data['climate_data']['ws10'].iloc[0] = 15
+    data.node_data['test_node1'].data['climate_data']['ws10'].iloc[1] = 0
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 1

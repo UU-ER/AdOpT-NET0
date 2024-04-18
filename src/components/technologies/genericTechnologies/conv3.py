@@ -8,7 +8,7 @@ from ..technology import Technology
 
 
 class Conv3(Technology):
-    """
+    r"""
     This technology type resembles a technology with different performance functions for the respective output
     carriers. The performance function is based on the input of the main carrier , i.e.
     :math:`output_{car} = f_{car}(input_{maincarrier})`.

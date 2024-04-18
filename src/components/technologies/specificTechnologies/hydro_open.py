@@ -7,7 +7,7 @@ from ..technology import Technology
 
 
 class HydroOpen(Technology):
-    """
+    r"""
     Resembles a pumped hydro plant with additional natural inflows (defined in climate data)
 
     Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
@@ -166,13 +166,13 @@ class HydroOpen(Technology):
                        b_tec.var_storage_level[max(self.set_t), car] * (1 - eta_lambda) ** nr_timesteps_averaged + \
                        (eta_in * self.input[t, car] - 1 / eta_out * self.output[t, car] - b_tec.var_spilling[t]) * \
                        sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)) + \
-                       hydro_natural_inflow[t - 1]
+                       hydro_natural_inflow.iloc[t - 1]
             else:  # all other time intervals
                 return b_tec.var_storage_level[t, car] == \
                        b_tec.var_storage_level[t - 1, car] * (1 - eta_lambda) ** nr_timesteps_averaged + \
                        (eta_in * self.input[t, car] - 1 / eta_out * self.output[t, car] - b_tec.var_spilling[t]) * \
                        sum((1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)) + \
-                       hydro_natural_inflow[t - 1]
+                       hydro_natural_inflow.iloc[t - 1]
 
         b_tec.const_storage_level = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_storage_level)
 
@@ -233,7 +233,7 @@ class HydroOpen(Technology):
 
         if performance_data['maximum_discharge_time_discrete']:
             def init_maximal_discharge2(const, t, car):
-                return self.output[t, car] <= hydro_maximum_discharge[t - 1]
+                return self.output[t, car] <= hydro_maximum_discharge.iloc[t - 1]
 
             b_tec.const_max_discharge2 = Constraint(self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge2)
 

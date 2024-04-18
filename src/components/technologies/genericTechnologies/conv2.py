@@ -8,7 +8,7 @@ from ..technology import Technology
 
 
 class Conv2(Technology):
-    """
+    r"""
     This technology type resembles a technology with full input substitution, but different performance functions
     for the respective output carriers, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
     Three different performance function fits are possible.

@@ -201,7 +201,7 @@ class HeatPump(Technology):
         alpha1 = self.fitted_performance.coefficients['alpha1']
 
         def init_input_output(const, t):
-            return self.output[t, 'heat'] == alpha1[t - 1] * self.input[t, 'electricity']
+            return self.output[t, 'heat'] == alpha1.iloc[t - 1] * self.input[t, 'electricity']
         b_tec.const_input_output = Constraint(self.set_t, rule=init_input_output)
 
         return b_tec
@@ -235,8 +235,8 @@ class HeatPump(Technology):
             else:  # technology on
                 # input-output relation
                 def init_input_output_on(const):
-                    return self.output[t, 'heat'] == alpha1[t - 1] * self.input[t, 'electricity'] + \
-                           alpha2[t - 1] * b_tec.var_size * rated_power
+                    return self.output[t, 'heat'] == alpha1.iloc[t - 1] * self.input[t, 'electricity'] + \
+                           alpha2.iloc[t - 1] * b_tec.var_size * rated_power
 
                 dis.const_input_output_on = Constraint(rule=init_input_output_on)
 
