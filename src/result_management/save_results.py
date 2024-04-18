@@ -45,16 +45,11 @@ def get_summary(energyhub, folder_path):
     summary_dict["time_total"] = energyhub.solution.solver(0).wallclock_time
     summary_dict["lb"] = energyhub.solution.problem(0).lower_bound
     summary_dict["ub"] = energyhub.solution.problem(0).upper_bound
-    summary_dict["absolute gap"] = (
-        energyhub.solution.problem(0).upper_bound
-        - energyhub.solution.problem(0).lower_bound
-    )
+    summary_dict["absolute gap"] = energyhub.solution.problem(0).upper_bound - energyhub.solution.problem(0).lower_bound
 
     # summary: retrieve / calculate run specs
     summary_dict["objective"] = energyhub.configuration.optimization.objective
-    summary_dict["solver_status"] = (
-        energyhub.solution.solver.termination_condition.value
-    )
+    summary_dict["solver_status"] = energyhub.solution.solver.termination_condition.value
     summary_dict["pareto_point"] = energyhub.model_information.pareto_point
     summary_dict["monte_carlo_run"] = energyhub.model_information.monte_carlo_run
 
@@ -79,7 +74,7 @@ def write_optimization_results_to_h5(energyhub, folder_path):
 
     # create the results h5 file in the results folder
     h5_file_path = os.path.join(folder_path, "optimization_results.h5")
-    with h5py.File(h5_file_path, mode="w") as f:
+    with h5py.File(h5_file_path, mode='w') as f:
 
         summary_dict = get_summary(energyhub, folder_path)
 
@@ -103,9 +98,7 @@ def write_optimization_results_to_h5(energyhub, folder_path):
             for netw_name in model.set_networks:
                 netw_specific_group = networks_design.create_group(netw_name)
                 b_netw = model.network_block[netw_name]
-                energyhub.data.network_data[
-                    netw_name
-                ].write_netw_design_results_to_group(netw_specific_group, b_netw)
+                energyhub.data.network_data[netw_name].write_netw_design_results_to_group(netw_specific_group, b_netw)
 
         # TIME-INDEPENDENT RESULTS: NODES [g]
         nodes_design = design.create_group("nodes")
@@ -117,9 +110,7 @@ def write_optimization_results_to_h5(energyhub, folder_path):
             for tec_name in model.node_blocks[node_name].set_tecsAtNode:
                 tec_group = node_specific_group.create_group(tec_name)
                 b_tec = model.node_blocks[node_name].tech_blocks_active[tec_name]
-                energyhub.data.technology_data[node_name][
-                    tec_name
-                ].write_tec_design_results_to_group(tec_group, b_tec)
+                energyhub.data.technology_data[node_name][tec_name].write_tec_design_results_to_group(tec_group, b_tec)
 
         # TIME-DEPENDENT RESULTS (operation) [g]
         operation = f.create_group("operation")
@@ -131,9 +122,7 @@ def write_optimization_results_to_h5(energyhub, folder_path):
             for netw_name in model.set_networks:
                 netw_specific_group = networks_operation.create_group(netw_name)
                 b_netw = model.network_block[netw_name]
-                energyhub.data.network_data[
-                    netw_name
-                ].write_netw_operation_results_to_group(netw_specific_group, b_netw)
+                energyhub.data.network_data[netw_name].write_netw_operation_results_to_group(netw_specific_group, b_netw)
 
         # TECHNOLOGY OPERATION [g] > within: node > specific technology [g]
         tec_operation_group = operation.create_group("technology_operation")
@@ -142,9 +131,8 @@ def write_optimization_results_to_h5(energyhub, folder_path):
             for tec_name in model.node_blocks[node_name].set_tecsAtNode:
                 tec_group = node_specific_group.create_group(tec_name)
                 b_tec = model.node_blocks[node_name].tech_blocks_active[tec_name]
-                energyhub.data.technology_data[node_name][
-                    tec_name
-                ].write_tec_operation_results_to_group(tec_group, b_tec)
+                energyhub.data.technology_data[node_name][tec_name].write_tec_operation_results_to_group(tec_group, b_tec)
+
 
         # ENERGY BALANCE [g] > within: node > specific carrier [g]
         ebalance_group = operation.create_group("energy_balance")
@@ -153,65 +141,27 @@ def write_optimization_results_to_h5(energyhub, folder_path):
             for car in model.node_blocks[node_name].set_carriers:
                 car_group = node_specific_group.create_group(car)
                 node_data = model.node_blocks[node_name]
-                technology_inputs = [
-                    sum(
-                        node_data.tech_blocks_active[tec].var_input[t, car].value
-                        for tec in node_data.set_tecsAtNode
-                        if car in node_data.tech_blocks_active[tec].set_input_carriers
-                    )
-                    for t in set_t
-                ]
+                technology_inputs = [sum(node_data.tech_blocks_active[tec].var_input[t, car].value
+                                         for tec in node_data.set_tecsAtNode
+                                         if car in node_data.tech_blocks_active[tec].set_input_carriers)
+                                     for t in set_t]
                 car_group.create_dataset("technology_inputs", data=technology_inputs)
-                technology_outputs = [
-                    sum(
-                        node_data.tech_blocks_active[tec].var_output[t, car].value
-                        for tec in node_data.set_tecsAtNode
-                        if car in node_data.tech_blocks_active[tec].set_output_carriers
-                    )
-                    for t in set_t
-                ]
+                technology_outputs = [sum(node_data.tech_blocks_active[tec].var_output[t, car].value
+                                          for tec in node_data.set_tecsAtNode
+                                          if car in node_data.tech_blocks_active[tec].set_output_carriers)
+                                      for t in set_t]
                 car_group.create_dataset("technology_outputs", data=technology_outputs)
-                car_group.create_dataset(
-                    "generic_production",
-                    data=[
-                        node_data.var_generic_production[t, car].value for t in set_t
-                    ],
-                )
-                car_group.create_dataset(
-                    "network_inflow",
-                    data=[
-                        0 if x is None else x
-                        for x in [
-                            node_data.var_netw_inflow[t, car].value for t in set_t
-                        ]
-                    ],
-                )
-                car_group.create_dataset(
-                    "network_outflow",
-                    data=[
-                        0 if x is None else x
-                        for x in [
-                            node_data.var_netw_outflow[t, car].value for t in set_t
-                        ]
-                    ],
-                )
-                if hasattr(node_data, "var_netw_consumption"):
-                    network_consumption = [
-                        node_data.var_netw_consumption[t, car].value for t in set_t
-                    ]
-                    car_group.create_dataset(
-                        "network_consumption", data=network_consumption
-                    )
-                car_group.create_dataset(
-                    "import",
-                    data=[node_data.var_import_flow[t, car].value for t in set_t],
-                )
-                car_group.create_dataset(
-                    "export",
-                    data=[node_data.var_export_flow[t, car].value for t in set_t],
-                )
-                car_group.create_dataset(
-                    "demand", data=[node_data.para_demand[t, car].value for t in set_t]
-                )
+                car_group.create_dataset("generic_production",
+                                         data=[node_data.var_generic_production[t, car].value for t in set_t])
+                car_group.create_dataset("network_inflow",
+                                         data=[0 if x is None else x for x in [node_data.var_netw_inflow[t, car].value for t in set_t]])
+                car_group.create_dataset("network_outflow",
+                                         data=[0 if x is None else x for x in [node_data.var_netw_outflow[t, car].value for t in set_t]])
+                if hasattr(node_data, 'var_netw_consumption'):
+                    network_consumption = [node_data.var_netw_consumption[t, car].value for t in set_t]
+                    car_group.create_dataset("network_consumption", data=network_consumption)
+                car_group.create_dataset("import", data=[node_data.var_import_flow[t, car].value for t in set_t])
+                car_group.create_dataset("export", data=[node_data.var_export_flow[t, car].value for t in set_t])
+                car_group.create_dataset("demand", data=[node_data.para_demand[t, car].value for t in set_t])
 
     return summary_dict
