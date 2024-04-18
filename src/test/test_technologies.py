@@ -494,8 +494,8 @@ def test_technology_CONV3():
 
     # Piecewise
     data = load_object(r'./src/test/test_data/technology_CONV3_3.p')
-    data.node_data['test_node1'].data['demand']['heat'][1] = 0.001
-    data.node_data['test_node1'].data['export_limit']['electricity'][1] = 0
+    data.node_data['test_node1'].data['demand']['heat'].iloc[1] = 0.001
+    data.node_data['test_node1'].data['export_limit']['electricity'].iloc[1] = 0
     energyhub = EnergyHub(data, configuration)
     energyhub.configuration.reporting.save_path = './src/test/results'
     energyhub.configuration.reporting.save_summary_path = './src/test/results'
@@ -633,8 +633,8 @@ def test_technology_OpenHydro():
     assert 0 == size_WT
 
     # electricity WT, stored in open hydro
-    data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'][0] = 0
-    data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'][1] = 0
+    data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'].iloc[0] = 0
+    data.node_data['test_node1'].data['climate_data']['TestPumpedHydro_Open_inflow'].iloc[1] = 0
     data.read_technology_data(load_path = './src/test/TestTecs')
     configuration = ModelConfiguration()
     energyhub = EnergyHub(data, configuration)
