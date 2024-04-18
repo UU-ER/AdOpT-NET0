@@ -193,6 +193,12 @@ class Conv2(Technology):
         min_part_load = self.performance_data['min_part_load']
         standby_power = self.performance_data['standby_power']
 
+        if standby_power != -1:
+            if ('standby_power_carrier' not in self.performance_data) or self.performance_data['standby_power_carrier'] == -1:
+                car_standby_power = self.main_car
+            else:
+                car_standby_power = self.performance_data['standby_power_carrier']
+
         if not b_tec.find_component('var_x'):
             b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
 
@@ -214,7 +220,7 @@ class Conv2(Technology):
                 else:
                     def init_standby_power(const, car_input):
                         if car_input == self.main_car:
-                            return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
+                            return self.input[t, car_standby_power] == standby_power * b_tec.var_size * rated_power
                         else:
                             return self.input[t, car_input] == 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_standby_power)
@@ -274,6 +280,12 @@ class Conv2(Technology):
         min_part_load = self.performance_data['min_part_load']
         standby_power = self.performance_data['standby_power']
 
+        if standby_power != -1:
+            if ('standby_power_carrier' not in self.performance_data) or self.performance_data['standby_power_carrier'] == -1:
+                car_standby_power = self.main_car
+            else:
+                car_standby_power = self.performance_data['standby_power_carrier']
+
         if not b_tec.find_component('var_x'):
             b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
 
@@ -292,7 +304,7 @@ class Conv2(Technology):
                 else:
                     def init_standby_power(const, car_input):
                         if car_input == self.main_car:
-                            return self.input[t, self.main_car] == standby_power * b_tec.var_size * rated_power
+                            return self.input[t, car_standby_power] == standby_power * b_tec.var_size * rated_power
                         else:
                             return self.input[t, car_input] == 0
                     dis.const_input = Constraint(b_tec.set_input_carriers, rule=init_standby_power)
