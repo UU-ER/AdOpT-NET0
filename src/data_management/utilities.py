@@ -204,21 +204,6 @@ class NodeData:
         self.location.altitude = None
 
 
-class GlobalData:
-    """
-    Class to handle global data. All global time-dependent input data goes here
-    """
-
-    def __init__(self, topology):
-        self.data = {}
-        self.data_clustered = {}
-
-        variables = ["subsidy", "tax"]
-        self.data["carbon_prices"] = pd.DataFrame(index=topology.timesteps)
-        for var in variables:
-            self.data["carbon_prices"][var] = np.zeros(len(topology.timesteps))
-
-
 def select_technology(tec_data):
     """
     Returns the correct subclass for a technology
@@ -273,6 +258,20 @@ def open_json(tec, load_path):
     return data
 
 
+def create_empty_network_matrix(nodes):
+    """
+    Function creates matrix for defined nodes.
+
+    :param list nodes: list of nodes to create matrices from
+    :return: pandas data frame with nodes
+    """
+    # construct matrix
+    matrix = pd.DataFrame(
+        data=np.full((len(nodes), len(nodes)), 0), index=nodes, columns=nodes
+    )
+    return matrix
+
+
 def create_input_data_folder_template(base_path: Path | str) -> None:
     """
     This function creates the input data folder structure required to organize the input data to the model.
@@ -297,9 +296,14 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
         freq=topology["resolution"],
     )
 
-    # template_jsons:
+    # Template jsons:
     networks = {"existing": [], "new": []}
     technologies = {"existing": [], "new": []}
+    energy_balance_options = {
+        carrier: {"curtailment_possible": 0} for carrier in topology["carriers"]
+    }
+
+    # Template csvs
     carrier_data = pd.DataFrame(
         index=timesteps,
         columns=[
@@ -319,9 +323,9 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
     )
     carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
     node_locations = pd.DataFrame(index=topology["nodes"], columns=["lon", "lat"])
-    node_locations.to_csv(base_path / "NodeLocations.csv", sep=";")
 
     # Make folder structure
+    node_locations.to_csv(base_path / "NodeLocations.csv", sep=";")
     for investment_period in topology["investment_periods"]:
         (base_path / investment_period).mkdir(parents=True, exist_ok=True)
 
@@ -330,6 +334,68 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
             json.dump(networks, f, indent=4)
         (base_path / investment_period / "network_data").mkdir(
             parents=True, exist_ok=True
+        )
+        (base_path / investment_period / "network_topology").mkdir(
+            parents=True, exist_ok=True
+        )
+        (base_path / investment_period / "network_topology" / "new").mkdir(
+            parents=True, exist_ok=True
+        )
+        (base_path / investment_period / "network_topology" / "existing").mkdir(
+            parents=True, exist_ok=True
+        )
+        empty_network_matrix = create_empty_network_matrix(topology["nodes"])
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "new"
+            / "connection.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path / investment_period / "network_topology" / "new" / "distance.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "new"
+            / "size_max_arcs.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "existing"
+            / "size.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "existing"
+            / "distance.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "existing"
+            / "connection.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "existing"
+            / "size_max_arcs.csv",
+            sep=";",
         )
 
         # Node data
@@ -347,6 +413,16 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
                 "w",
             ) as f:
                 json.dump(technologies, f, indent=4)
+            with open(
+                base_path
+                / investment_period
+                / "node_data"
+                / node
+                / "carrier_data"
+                / "EnergybalanceOptions.json",
+                "w",
+            ) as f:
+                json.dump(energy_balance_options, f, indent=4)
             for carrier in topology["carriers"]:
                 carrier_data.to_csv(
                     base_path
@@ -617,19 +693,45 @@ def check_input_data_consistency(path: Path | str) -> None:
             f"The investment period {investment_period} is missing in {check_path}",
         )
 
-        # Check if all networks have a json file
+        # Check networks
         check_path_existance(
             check_path / "Networks.json",
             f"A Network.json file is missing in {check_path}",
         )
         with open(check_path / "Networks.json") as json_file:
-            networks = json.load(json_file)
-        networks = set(networks["existing"] + networks["new"])
-        for network in networks:
-            check_path_existance(
-                check_path / "network_data" / (network + ".json"),
-                f"A json file for {network} is missing in {check_path / 'network_data'}",
-            )
+            all_networks = json.load(json_file)
+        for type in all_networks.keys():
+            networks = all_networks[type]
+            for network in networks:
+                check_path_existance(
+                    check_path / "network_data" / (network + ".json"),
+                    f"A json file for {network} is missing in {check_path / 'network_data'}",
+                )
+                check_path_existance(
+                    check_path / "network_topology" / type,
+                    f"A directory for {network} is missing in {check_path / 'network_topology'}",
+                )
+                check_path_existance(
+                    check_path / "network_topology" / type / network / "connection.csv",
+                    f"A connection.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
+                )
+                check_path_existance(
+                    check_path / "network_topology" / type / network / "distance.csv",
+                    f"A distance.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
+                )
+                check_path_existance(
+                    check_path
+                    / "network_topology"
+                    / type
+                    / network
+                    / "size_max_arcs.csv",
+                    f"A size_max_arcs.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
+                )
+                if type == "existing":
+                    check_path_existance(
+                        check_path / "network_topology" / type / network / "size.csv",
+                        f"A size.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
+                    )
 
         for node in topology["nodes"]:
 
