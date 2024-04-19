@@ -318,7 +318,7 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
         columns=["ghi", "dni", "dhi", "temp_air", "rh", "TECHNOLOGYNAME_hydro_inflow"],
     )
     carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
-    node_locations = pd.DataFrame(index=topology["nodes"], columns=["lon", "lat"])
+    node_locations = pd.DataFrame(index=topology["nodes"], columns=["lon", "lat", "alt"])
     node_locations.to_csv(base_path / "NodeLocations.csv", sep=";")
 
     # Make folder structure
@@ -384,7 +384,7 @@ def create_optimization_templates(path: Path | str) -> None:
         "carriers": ["electricity", "hydrogen"],
         "investment_periods": ["period1", "period2"],
         "start_date": "2022-01-01 00:00",
-        "end_date": "2022-12-31 00:00",
+        "end_date": "2022-12-31 23:00",
         "resolution": "1h",
         "investment_period_length": 1,
     }
