@@ -1,17 +1,20 @@
 import h5py
 import pandas as pd
 
+
 def print_h5_tree(file_path):
     """
     Function to print all groups and datasets of a h5 file
 
     :param file_path: Path to H5 File
     """
-    with h5py.File(file_path, 'r') as hdf_file:
+    with h5py.File(file_path, "r") as hdf_file:
+
         def print_attrs(name, obj):
             print(name)
             for key, val in obj.attrs.items():
                 print(f"    {key}: {val}")
+
         hdf_file.visititems(print_attrs)
 
 
@@ -36,6 +39,7 @@ def extract_datasets_from_h5group(group, prefix=()):
 
     return df
 
+
 def extract_dataset_from_h5(dataset):
     """
     Gets dataset from an h5 file
@@ -43,6 +47,6 @@ def extract_dataset_from_h5(dataset):
     :param group: group of h5 file
     :return: dataframe containing all datasets in group
     """
-    data = [item.decode('utf-8') for item in dataset]
+    data = [item.decode("utf-8") for item in dataset]
 
     return data

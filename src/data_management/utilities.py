@@ -18,7 +18,7 @@ def save_object(data, save_path):
     :param data: object to save
     :param Path save_path: path to save object to
     """
-    with open(save_path, 'wb') as handle:
+    with open(save_path, "wb") as handle:
         pickle.dump(data, handle)
 
 
@@ -29,7 +29,7 @@ def load_object(load_path):
     :param Path load_path: Path to load object from
     :return object: object loaded
     """
-    with open(load_path, 'rb') as handle:
+    with open(load_path, "rb") as handle:
         data = pd.read_pickle(handle)
     return data
 
@@ -44,6 +44,7 @@ class simplification_specs:
     Dataframe with reduced resolution
     - factors (how many times does each day occur)
     """
+
     def __init__(self, full_resolution_index):
         self.full_resolution = pd.DataFrame(index=full_resolution_index)
         self.reduced_resolution = []
@@ -61,11 +62,7 @@ def perform_k_means(full_resolution, nr_clusters):
     :return labels: labels for each clustered day
     """
     kmeans = KMeans(
-        init="random",
-        n_clusters=nr_clusters,
-        n_init=10,
-        max_iter=300,
-        random_state=42
+        init="random", n_clusters=nr_clusters, n_init=10, max_iter=300, random_state=42
     )
     kmeans.fit(full_resolution.to_numpy())
     series_names = pd.MultiIndex.from_tuples(full_resolution.columns.to_list())
@@ -73,7 +70,9 @@ def perform_k_means(full_resolution, nr_clusters):
     return clustered_data, kmeans.labels_
 
 
-def compile_sequence(day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
+def compile_sequence(
+    day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day
+):
     """
 
     :param day_labels: labels for each typical day
@@ -84,11 +83,14 @@ def compile_sequence(day_labels, nr_clusters, nr_days_full_resolution, nr_time_i
     """
     time_slices_cluster = np.arange(1, nr_time_intervals_per_day * nr_clusters + 1)
     time_slices_cluster = time_slices_cluster.reshape((-1, nr_time_intervals_per_day))
-    sequence = np.zeros((nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16)
+    sequence = np.zeros(
+        (nr_days_full_resolution, nr_time_intervals_per_day), dtype=np.int16
+    )
     for day in range(0, nr_days_full_resolution):
         sequence[day] = time_slices_cluster[day_labels[day]]
     sequence = sequence.reshape((-1, 1))
     return sequence
+
 
 def get_day_factors(keys):
     """
@@ -99,7 +101,7 @@ def get_day_factors(keys):
     """
     factors = pd.DataFrame(np.unique(keys, return_counts=True))
     factors = factors.transpose()
-    factors.columns = ['timestep', 'factor']
+    factors.columns = ["timestep", "factor"]
     return factors
 
 
@@ -130,7 +132,7 @@ def average_series(series, nr_timesteps_averaged):
     Averages a number of timesteps
     """
     to_average = reshape_df(series, None, nr_timesteps_averaged)
-    average =  np.array(to_average.mean(axis=1))
+    average = np.array(to_average.mean(axis=1))
 
     return average
 
@@ -142,11 +144,13 @@ def calculate_dni(data, lon, lat):
     :return: data: climate data including dni
     """
     zenith = pvlib.solarposition.get_solarposition(data.index, lat, lon)
-    data['dni'] = pvlib.irradiance.dni(data['ghi'].to_numpy(), data['dhi'].to_numpy(), zenith['zenith'].to_numpy())
-    data['dni'] = data['dni'].fillna(0)
-    data['dni'] = data['dni'].where(data['dni'] > 0, 0)
+    data["dni"] = pvlib.irradiance.dni(
+        data["ghi"].to_numpy(), data["dhi"].to_numpy(), zenith["zenith"].to_numpy()
+    )
+    data["dni"] = data["dni"].fillna(0)
+    data["dni"] = data["dni"].where(data["dni"] > 0, 0)
 
-    return data['dni']
+    return data["dni"]
 
 
 def shorten_input_data(time_series, nr_time_steps):
@@ -162,33 +166,36 @@ def shorten_input_data(time_series, nr_time_steps):
     return time_series
 
 
-class NodeData():
+class NodeData:
     """
     Class to handle node data
     """
+
     def __init__(self, topology):
         # Initialize Node Data (all time-dependent input data goes here)
         self.data = {}
         self.data_clustered = {}
-        variables = ['demand',
-                     'production_profile',
-                     'import_prices',
-                     'import_limit',
-                     'import_emissionfactors',
-                     'export_prices',
-                     'export_limit',
-                     'export_emissionfactors']
+        variables = [
+            "demand",
+            "production_profile",
+            "import_prices",
+            "import_limit",
+            "import_emissionfactors",
+            "export_prices",
+            "export_limit",
+            "export_emissionfactors",
+        ]
 
         for var in variables:
             self.data[var] = pd.DataFrame(index=topology.timesteps)
             for carrier in topology.carriers:
                 self.data[var][carrier] = 0
-        self.data['climate_data'] = pd.DataFrame(index=topology.timesteps)
+        self.data["climate_data"] = pd.DataFrame(index=topology.timesteps)
 
         self.options = SimpleNamespace()
         self.options.production_profile_curtailment = {}
         for carrier in topology.carriers:
-            self.options.production_profile_curtailment[carrier]= 0
+            self.options.production_profile_curtailment[carrier] = 0
 
         self.location = SimpleNamespace()
         self.location.lon = None
@@ -196,74 +203,70 @@ class NodeData():
         self.location.altitude = None
 
 
-class GlobalData():
+class GlobalData:
     """
     Class to handle global data. All global time-dependent input data goes here
     """
+
     def __init__(self, topology):
         self.data = {}
         self.data_clustered = {}
 
-        variables = ['subsidy', 'tax']
-        self.data['carbon_prices'] = pd.DataFrame(index=topology.timesteps)
+        variables = ["subsidy", "tax"]
+        self.data["carbon_prices"] = pd.DataFrame(index=topology.timesteps)
         for var in variables:
-            self.data['carbon_prices'][var] = np.zeros(len(topology.timesteps))
-            
+            self.data["carbon_prices"][var] = np.zeros(len(topology.timesteps))
+
+
 def select_technology(tec_data):
     """
     Returns the correct subclass for a technology
-    
-    :param str tec_name: Technology Name 
-    :param int existing: if technology is existing 
+
+    :param str tec_name: Technology Name
+    :param int existing: if technology is existing
     :return: Technology Class
     """
     # Generic tecs
-    if tec_data['tec_type'] == 'RES':
+    if tec_data["tec_type"] == "RES":
         return Res(tec_data)
-    elif tec_data['tec_type'] == 'CONV1':
+    elif tec_data["tec_type"] == "CONV1":
         return Conv1(tec_data)
-    elif tec_data['tec_type'] == 'CONV2':
+    elif tec_data["tec_type"] == "CONV2":
         return Conv2(tec_data)
-    elif tec_data['tec_type'] == 'CONV3':
+    elif tec_data["tec_type"] == "CONV3":
         return Conv3(tec_data)
-    elif tec_data['tec_type'] == 'CONV4':
+    elif tec_data["tec_type"] == "CONV4":
         return Conv4(tec_data)
-    elif tec_data['tec_type'] == 'STOR':
+    elif tec_data["tec_type"] == "STOR":
         return Stor(tec_data)
     # Specific tecs
-    elif tec_data['tec_type'] == 'DAC_Adsorption':
+    elif tec_data["tec_type"] == "DAC_Adsorption":
         return DacAdsorption(tec_data)
-    elif tec_data['tec_type'].startswith('GasTurbine'):
+    elif tec_data["tec_type"].startswith("GasTurbine"):
         return GasTurbine(tec_data)
-    elif tec_data['tec_type'].startswith('HeatPump'):
+    elif tec_data["tec_type"].startswith("HeatPump"):
         return HeatPump(tec_data)
-    elif tec_data['tec_type'] == 'HydroOpen':
+    elif tec_data["tec_type"] == "HydroOpen":
         return HydroOpen(tec_data)
 
 
 def open_json(tec, load_path):
     # Read in JSON files
     for path, subdirs, files in os.walk(load_path):
-        if 'data' in locals():
+        if "data" in locals():
             break
         else:
             for name in files:
-                if (tec + '.json') == name:
+                if (tec + ".json") == name:
                     filepath = os.path.join(path, name)
                     with open(filepath) as json_file:
                         data = json.load(json_file)
                     break
 
     # Assign name
-    if 'data' in locals():
-        data['Name'] = tec
+    if "data" in locals():
+        data["Name"] = tec
     else:
-        raise Exception('There is no json data file for technology ' + tec)
+        raise Exception("There is no json data file for technology " + tec)
 
     return data
-    
-
-
-
-
-
