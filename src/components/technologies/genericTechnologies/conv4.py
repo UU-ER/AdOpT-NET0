@@ -46,7 +46,7 @@ class Conv4(Technology):
 
         self.main_car = self.performance_data["main_output_carrier"]
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 4 and returns fitted parameters as a dict
 
@@ -54,8 +54,6 @@ class Conv4(Technology):
         :param performance_data: contains X and y data of technology performance
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
         """
-
-        climate_data = node_data.data["climate_data"]
 
         self.fitted_performance.bounds["output"][
             self.performance_data["main_output_carrier"]

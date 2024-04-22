@@ -1,4 +1,4 @@
-from .handle_input_data import DataHandle, DataHandle_AveragedData
+from .handle_input_data import DataHandle
 from .utilities import (
     load_object,
     save_object,

@@ -65,7 +65,7 @@ def determine_network_energy_consumption(energyhub):
         return network_energy_consumption
 
 
-def add_nodes(energyhub):
+def add_nodes(model_block, energyhub):
     r"""
     Adds all nodes with respective data to the model
 
@@ -119,19 +119,24 @@ def add_nodes(energyhub):
 
     # COLLECT OBJECTS FROM ENERGYHUB
     data = energyhub.data
-    model = energyhub.model
+
+    set_nodes = energyhub.model["full"].set_nodes
+    set_carriers = energyhub.model["full"].set_carriers
+    investment_period = model_block.index()
+    technology_data = data.technology_data["full"][investment_period]
+    time_series = data.time_series["full"].loc[:, investment_period]
 
     def init_node_block(b_node, nodename):
         print("_" * 60)
         print("--- Adding Node " + nodename + "... ---")
 
         # SETS: Get technologies for each node and make it a set for the block
+        b_node.set_technologies = Set(initialize=list(technology_data[nodename].keys()))
         carriers = determine_carriers_at_node(energyhub, nodename)
         network_energy_consumption = determine_network_energy_consumption(energyhub)
         b_node.set_carriers = Set(initialize=list(set(carriers)))
-        b_node.set_tecsAtNode = Set(initialize=model.set_technologies[nodename])
 
-        set_t = model.set_t_full
+        set_t = model_block.set_t_full
         node_data = data.node_data[nodename]
 
         # PARAMETERS
@@ -343,9 +348,9 @@ def add_nodes(energyhub):
 
             def init_netw_inflow(const, t, car):
                 return b_node.var_netw_inflow[t, car] == sum(
-                    model.network_block[netw].var_inflow[t, car, nodename]
-                    for netw in model.set_networks
-                    if car in model.network_block[netw].set_netw_carrier
+                    model_block.network_block[netw].var_inflow[t, car, nodename]
+                    for netw in model_block.set_networks
+                    if car in model_block.network_block[netw].set_netw_carrier
                 )
 
             b_node.const_netw_inflow = Constraint(
@@ -354,9 +359,9 @@ def add_nodes(energyhub):
 
             def init_netw_outflow(const, t, car):
                 return b_node.var_netw_outflow[t, car] == sum(
-                    model.network_block[netw].var_outflow[t, car, nodename]
-                    for netw in model.set_networks
-                    if car in model.network_block[netw].set_netw_carrier
+                    model_block.network_block[netw].var_outflow[t, car, nodename]
+                    for netw in model_block.set_networks
+                    if car in model_block.network_block[netw].set_netw_carrier
                 )
 
             b_node.const_netw_outflow = Constraint(
@@ -367,10 +372,12 @@ def add_nodes(energyhub):
 
                 def init_netw_consumption(const, t, car):
                     return b_node.var_netw_consumption[t, car] == sum(
-                        model.network_block[netw].var_consumption[t, car, nodename]
-                        for netw in model.set_networks
+                        model_block.network_block[netw].var_consumption[
+                            t, car, nodename
+                        ]
+                        for netw in model_block.set_networks
                         if data.network_data[netw].energy_consumption
-                        and car in model.network_block[netw].set_consumed_carriers
+                        and car in model_block.network_block[netw].set_consumed_carriers
                     )
 
                 b_node.const_netw_consumption = Constraint(
@@ -383,6 +390,6 @@ def add_nodes(energyhub):
 
         return b_node
 
-    model.node_blocks = Block(model.set_nodes, rule=init_node_block)
+    model_block.node_blocks = Block(set_nodes, rule=init_node_block)
 
-    return model
+    return model_block

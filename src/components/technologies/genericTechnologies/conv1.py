@@ -87,7 +87,7 @@ class Conv1(Technology):
         self.fitted_performance = None
         self.main_car = self.performance_data["main_input_carrier"]
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
 
@@ -95,8 +95,6 @@ class Conv1(Technology):
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
         :param nr_seg: number of segments on piecewise defined function
         """
-
-        climate_data = node_data.data["climate_data"]
 
         # reshape performance_data for CONV1
         temp = copy.deepcopy(self.performance_data["performance"]["out"])

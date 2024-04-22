@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pvlib
 import os
 import json
+from ..logger import logger
 
 from ..components.technologies import *
 
@@ -117,15 +118,6 @@ def reshape_df(series_to_add, column_names, nr_cols):
     transformed_series = transformed_series.reshape((-1, nr_cols))
     transformed_series = pd.DataFrame(transformed_series, columns=column_names)
     return transformed_series
-
-
-def define_multiindex(ls):
-    """
-    Create a multi index from a list
-    """
-    multi_index = list(zip(*ls))
-    multi_index = pd.MultiIndex.from_tuples(multi_index)
-    return multi_index
 
 
 def average_series(series, nr_timesteps_averaged):
@@ -275,19 +267,20 @@ def create_empty_network_matrix(nodes):
 def create_input_data_folder_template(base_path: Path | str) -> None:
     """
     This function creates the input data folder structure required to organize the input data to the model.
-    Note that the folder needs to already exist with a topology.json file in it that specifies the nodes, carriers,
+    Note that the folder needs to already exist with a Topology.json file in it that specifies the nodes, carriers,
     timesteps, investement periods and the length of the investment period.
 
     You can create an examplary json template with the function `create_topology_template`
 
     :param str/Path base_path: path to folder
     """
+    # TODO: Folder structure is not correct
     # Convert to Path
     if isinstance(base_path, str):
         base_path = Path(base_path)
 
-    # Read topology.json
-    with open(base_path / "topology.json") as json_file:
+    # Read Topology.json
+    with open(base_path / "Topology.json") as json_file:
         topology = json.load(json_file)
 
     timesteps = pd.date_range(
@@ -322,7 +315,9 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
         columns=["ghi", "dni", "dhi", "temp_air", "rh", "TECHNOLOGYNAME_hydro_inflow"],
     )
     carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
-    node_locations = pd.DataFrame(index=topology["nodes"], columns=["lon", "lat"])
+    node_locations = pd.DataFrame(
+        index=topology["nodes"], columns=["lon", "lat", "alt"]
+    )
 
     # Make folder structure
     node_locations.to_csv(base_path / "NodeLocations.csv", sep=";")
@@ -450,7 +445,7 @@ def create_optimization_templates(path: Path | str) -> None:
     """
     Creates an examplary topology json file in the specified path.
 
-    :param str/Path path: path to folder to create topology.json
+    :param str/Path path: path to folder to create Topology.json
     """
     if isinstance(path, str):
         path = Path(path)
@@ -477,191 +472,191 @@ def create_optimization_templates(path: Path | str) -> None:
                     "costs_emissionlimit",
                     "pareto",
                 ],
-                "default": "costs",
+                "value": "costs",
             },
             "monte_carlo": {
                 "on": {
                     "description": "Turn Monte Carlo simulation on.",
                     "options": [0, 1],
-                    "default": 0,
+                    "value": 0,
                 },
                 "sd": {
                     "description": "Value defining the range in which variables are varied in Monte Carlo simulations (defined as the standard deviation of the original value).",
-                    "default": 0.2,
+                    "value": 0.2,
                 },
                 "N": {
                     "description": "Number of Monte Carlo simulations.",
-                    "default": 100,
+                    "value": 100,
                 },
                 "on_what": {
                     "description": "List: Defines component to vary.",
                     "options": ["Technologies", "ImportPrices", "ExportPrices"],
-                    "default": "Technologies",
+                    "value": "Technologies",
                 },
             },
-            "pareto_points": {"description": "Number of Pareto points.", "default": 5},
+            "pareto_points": {"description": "Number of Pareto points.", "value": 5},
             "timestaging": {
                 "description": "Defines number of timesteps that are averaged (0 = off).",
-                "default": 0,
+                "value": 0,
             },
             "typicaldays": {
                 "N": {
                     "description": "Determines number of typical days (0 = off).",
-                    "default": 0,
+                    "value": 0,
                 },
                 "method": {
                     "description": "Determine method used for modeling technologies with typical days.",
                     "options": [2],
-                    "default": 2,
+                    "value": 2,
                 },
             },
             "multiyear": {
                 "description": "Enable multiyear analysis, if turned off max time horizon is 1 year.",
                 "options": [0, 1],
-                "default": 0,
+                "value": 0,
             },
         },
         "solveroptions": {
             "solver": {
                 "description": "String specifying the solver used.",
-                "default": "gurobi",
+                "value": "gurobi",
             },
-            "mipgap": {"description": "Value to define MIP gap.", "default": 0.001},
+            "mipgap": {"description": "Value to define MIP gap.", "value": 0.001},
             "timelim": {
                 "description": "Value to define time limit in hours.",
                 "default": 10,
             },
             "threads": {
                 "description": "Value to define number of threads (default is maximum available).",
-                "default": 0,
+                "value": 0,
             },
             "mipfocus": {
                 "description": "Modifies high level solution strategy.",
                 "options": [0, 1, 2, 3],
-                "default": 0,
+                "value": 0,
             },
             "nodefilestart": {
                 "description": "Parameter to decide when nodes are compressed and written to disk.",
-                "default": 60,
+                "value": 60,
             },
             "method": {
                 "description": "Defines algorithm used to solve continuous models.",
                 "options": [-1, 0, 1, 2, 3, 4, 5],
-                "default": -1,
+                "value": -1,
             },
             "heuristics": {
                 "description": "Parameter to determine amount of time spent in MIP heuristics.",
-                "default": 0.05,
+                "value": 0.05,
             },
             "presolve": {
                 "description": "Controls the presolve level.",
                 "options": [-1, 0, 1, 2],
-                "default": -1,
+                "value": -1,
             },
             "branchdir": {
                 "description": "Determines which child node is explored first in the branch-and-cut.",
                 "options": [-1, 0, 1],
-                "default": 0,
+                "value": 0,
             },
             "lpwarmstart": {
                 "description": "Controls whether and how warm start information is used for LP.",
                 "options": [0, 1, 2],
-                "default": 0,
+                "value": 0,
             },
             "intfeastol": {
                 "description": "Value that determines the integer feasibility tolerance.",
-                "default": 1e-05,
+                "value": 1e-05,
             },
             "feastol": {
                 "description": "Value that determines feasibility for all constraints.",
-                "default": 1e-06,
+                "value": 1e-06,
             },
             "numericfocus": {
                 "description": "Degree of which Gurobi tries to detect and manage numeric issues.",
                 "options": [0, 1, 2, 3],
-                "default": 0,
+                "value": 0,
             },
             "cuts": {
                 "description": "Setting defining the aggressiveness of the global cut.",
                 "options": [-1, 0, 1, 2, 3],
-                "default": -1,
+                "value": -1,
             },
         },
         "reporting": {
             "save_detailed": {
                 "description": "Setting to select how the results are saved. When turned off only the summary is saved.",
                 "options": [0, 1],
-                "default": 1,
+                "value": 1,
             },
             "save_path": {
                 "description": "Option to define the save path.",
-                "default": "./userData/",
+                "value": "./userData/",
             },
             "case_name": {
                 "description": "Option to define a case study name that is added to the results folder name.",
-                "default": -1,
+                "value": -1,
             },
             "write_solution_diagnostics": {
                 "description": "If 1, writes solution quality, if 2 also writes pyomo to Gurobi variable map and constraint map to file.",
                 "options": [0, 1, 2],
-                "default": 0,
+                "value": 0,
             },
         },
         "energybalance": {
             "violation": {
                 "description": "Determines the energy balance violation price (-1 is no violation allowed).",
-                "default": -1,
+                "value": -1,
             },
             "copperplate": {
                 "description": "Determines if a copperplate approach is used.",
                 "options": [0, 1],
-                "default": 0,
+                "value": 0,
             },
         },
         "economic": {
             "global_discountrate": {
                 "description": "Determines if and which global discount rate is used. This holds for the CAPEX of all technologies and networks.",
-                "default": -1,
+                "value": -1,
             },
             "global_simple_capex_model": {
                 "description": "Determines if the CAPEX model of technologies is set to 1 for all technologies.",
                 "options": [0, 1],
-                "default": 0,
+                "value": 0,
             },
         },
         "performance": {
             "dynamics": {
                 "description": "Determines if dynamics are used.",
                 "options": [0, 1],
-                "default": 0,
+                "value": 0,
             }
         },
         "scaling": {
             "scaling": {
                 "description": "Determines if the model is scaled. If 1, it uses global and component specific scaling factors.",
                 "options": [0, 1],
-                "default": 0,
+                "value": 0,
             },
             "scaling_factors": {
                 "energy_vars": {
                     "description": "Scaling factor used for all energy variables.",
-                    "default": 0.001,
+                    "value": 0.001,
                 },
                 "cost_vars": {
                     "description": "Scaling factor used for all cost variables.",
-                    "default": 0.001,
+                    "value": 0.001,
                 },
                 "objective": {
                     "description": "Scaling factor used for the objective function.",
-                    "default": 1,
+                    "value": 1,
                 },
             },
         },
     }
 
-    with open(path / "topology.json", "w") as f:
+    with open(path / "Topology.json", "w") as f:
         json.dump(topology_template, f, indent=4)
-    with open(path / "config_optimization.json", "w") as f:
+    with open(path / "ConfigModel.json", "w") as f:
         json.dump(configuration_template, f, indent=4)
 
 
@@ -681,7 +676,7 @@ def check_input_data_consistency(path: Path | str) -> None:
         path = Path(path)
 
     # Read topology
-    with open(path / "topology.json") as json_file:
+    with open(path / "Topology.json") as json_file:
         topology = json.load(json_file)
 
     for investment_period in topology["investment_periods"]:
@@ -775,4 +770,4 @@ def check_input_data_consistency(path: Path | str) -> None:
                     f"Data for carrier {carrier} is missing in {check_node_path}",
                 )
 
-    print("Input data folder has been checked successfully - no errors occurred.")
+    logger.info("Input data folder has been checked successfully - no errors occurred.")

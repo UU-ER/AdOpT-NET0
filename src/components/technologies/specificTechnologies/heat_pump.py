@@ -37,7 +37,7 @@ class HeatPump(Technology):
 
         self.fitted_performance = FittedPerformance(tec_data)
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Performs fitting for technology type HeatPump
 
@@ -50,7 +50,6 @@ class HeatPump(Technology):
         :return:
         """
         # Climate data & Number of timesteps
-        climate_data = node_data.data["climate_data"]
         time_steps = len(climate_data)
 
         # Ambient air temperature

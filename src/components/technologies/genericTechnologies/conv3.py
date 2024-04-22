@@ -83,7 +83,7 @@ class Conv3(Technology):
         self.fitted_performance = None
         self.main_car = self.performance_data["main_input_carrier"]
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 3 and returns fitted parameters as a dict
 
@@ -91,8 +91,6 @@ class Conv3(Technology):
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
         :param nr_seg: number of segments on piecewise defined function
         """
-
-        climate_data = node_data.data["climate_data"]
 
         if self.performance_data["size_based_on"] == "output":
             raise Exception("size_based_on == output for CONV3 not possible.")

@@ -29,7 +29,7 @@ class DacAdsorption(Technology):
 
         self.fitted_performance = FittedPerformance()
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
 
@@ -39,7 +39,6 @@ class DacAdsorption(Technology):
         """
 
         # Climate data & Number of timesteps
-        climate_data = node_data.data["climate_data"]
         time_steps = len(climate_data)
 
         # Number of segments

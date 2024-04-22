@@ -2,7 +2,7 @@ from pyomo.environ import *
 from ..components.utilities import perform_disjunct_relaxation
 
 
-def add_networks(energyhub):
+def add_networks(model_block, energyhub):
     r"""
     Adds all networks as model blocks.
 
@@ -10,7 +10,6 @@ def add_networks(energyhub):
     :return: model
     """
     # COLLECT OBJECTS FROM ENERGYHUB
-    model = energyhub.model
     print("_" * 60)
     print("--- Adding Networks... ---")
 
@@ -31,5 +30,5 @@ def add_networks(energyhub):
 
         return b_netw
 
-    model.network_block = Block(model.set_networks, rule=init_network)
-    return model
+    model_block.network_block = Block(model_block.set_networks, rule=init_network)
+    return model_block

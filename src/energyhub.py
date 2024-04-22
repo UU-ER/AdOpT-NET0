@@ -1,21 +1,31 @@
-from pyomo.environ import *
-import numpy as np
-import pandas as pd
-import dill as pickle
-import time
-import copy
-import warnings
-import datetime
 from pathlib import Path
+from pyomo.environ import ConcreteModel, Set, RangeSet, Block, Var
 import os
-import sys
+import time
 
+from .logger import logger
+from .data_management import DataHandle
+
+# import numpy as np
+# import pandas as pd
+# import dill as pickle
+# import time
+# import copy
+# import warnings
+# import datetime
+# from pathlib import Path
+# import os
+# import sys
+#
 from .model_construction import *
-from .data_management import *
-from .utilities import *
-from .components.utilities import annualize, set_discount_rate
-from .components.technologies.utilities import set_capex_model
-from .result_management import *
+
+# from .data_management import *
+# from .utilities import *
+# from .components.utilities import annualize, set_discount_rate
+# from .components.technologies.utilities import set_capex_model
+# from .result_management import *
+
+import logging
 
 
 class EnergyHub:
@@ -38,71 +48,130 @@ class EnergyHub:
 
     """
 
-    def __init__(self, data, configuration):
+    def __init__(self):
         """
         Constructor of the energyhub class.
         """
-        print("_" * 60)
-        print("Reading in data...")
-        start = time.time()
+        self.logger = logger
 
-        # READ IN MODEL CONFIGURATION
-        self.configuration = configuration
-
-        # INITIALIZE MODEL
-        self.model = ConcreteModel()
-        self.scaled_model = []
-
-        # INITIALIZE GLOBAL OPTIONS
-        self.topology = data.topology
-        self.model_information = data.model_information
-        self.model_information.clustered_data = 0
-        self.model_information.averaged_data = 0
-
-        # INITIALIZE SOLUTION
-        self.solution = None
-
-        # INITIALIZE SOLVER
+        self.data = None
+        self.model = {}
+        self.solution = {}
         self.solver = None
 
-        # INITIALIZE DATA
-        self.data_storage = []
-        if not self.configuration.optimization.typicaldays.N == 0:
-            # If clustered
-            self.model_information.clustered_data = 1
-            self.data_storage.append(
-                ClusteredDataHandle(data, self.configuration.optimization.typicaldays.N)
-            )
-        else:
-            self.data_storage.append(data)
-
-        if self.configuration.optimization.timestaging:
-            # Average data
-            self.model_information.averaged_data = 1
-            self.model_first_stage = None
-            self.solution_first_stage = None
-            self.data_storage.append(
-                DataHandle_AveragedData(
-                    self.data_storage[0], self.configuration.optimization.timestaging
-                )
-            )
-            self.data = self.data_storage[1]
-        else:
-            # Write data to self
-            self.data = self.data_storage[0]
-
-        print("Reading in data completed in " + str(round(time.time() - start)) + " s")
+    def read_data(self, data_path: Path | str) -> None:
+        """
+        Reads in data from the specified path
+        """
+        self.logger.info("--- Reading in data ---")
         print("_" * 60)
+        print("--- Reading in data ---")
 
+        self.data = DataHandle(data_path)
         self._perform_preprocessing_checks()
+
+        self.logger.info("--- Reading in data complete ---")
+        print("--- Reading in data complete ---")
+
+    def construct_model(self):
+
+        self.logger.info("--- Constructing Model ---")
+        print("_" * 60)
+        print("--- Constructing Model ---")
+        start = time.time()
+
+        # INITIALIZE MODEL
+        # TODO: Add clustered, averaged here
+        self.model["full"] = ConcreteModel()
+
+        # Get data
+        model = self.model["full"]
+        topology = self.data.topology
+        config = self.data.model_config
+
+        # DEFINE SETS
+        # Nodes, Carriers, Technologies, Networks
+        model.set_periods = Set(initialize=topology["investment_periods"])
+        model.set_nodes = Set(initialize=topology["nodes"])
+        model.set_carriers = Set(initialize=topology["carriers"])
+
+        def init_period_block(b_period, period):
+
+            # Networks for investment period
+            b_period.set_networks = Set(initialize=self.data.network_data[period])
+
+            # Time Frame
+            b_period.set_t_full = RangeSet(1, len(topology["time_index"]["full"]))
+            if config["optimization"]["typicaldays"]["N"]["value"] != 0:
+                b_period.set_t_clustered = RangeSet(
+                    1, len(topology["time_index"]["clustered"])
+                )
+
+            # Global cost variables
+            b_period.var_node_cost = Var()
+            b_period.var_netw_cost = Var()
+            b_period.var_total_cost = Var()
+            b_period.var_carbon_revenue = Var()
+            b_period.var_carbon_cost = Var()
+
+            # Global Emission variables
+            b_period.var_emissions_pos = Var()
+            b_period.var_emissions_neg = Var()
+            b_period.var_emissions_net = Var()
+
+            # Add networks
+            if not config["energybalance"]["copperplate"]["value"]:
+                b_period = add_networks(b_period, self)
+
+            b_period = add_nodes(b_period, self)
+
+            return b_period
+
+        model.periods = Block(model.set_periods, rule=init_period_block)
+
+        # TODO: This needs to be moved to the node construction
+        def tec_node(set, node):
+            if self.data.technology_data:
+                return self.data.technology_data[node].keys()
+            else:
+                return Set.Skip
+
+        self.model.set_technologies = Set(
+            model.set_periods, model.set_nodes, initialize=tec_node
+        )
+
+        # Parameters
+        # TODO: Needs to be moved to node construction
+        def init_carbon_subsidy(para, t):
+            return self.data.global_data.data["carbon_prices"]["subsidy"].iloc[t - 1]
+
+        self.model.para_carbon_subsidy = Param(
+            self.model.set_t_full, rule=init_carbon_subsidy, mutable=True
+        )
+
+        def init_carbon_tax(para, t):
+            return self.data.global_data.data["carbon_prices"]["tax"].iloc[t - 1]
+
+        self.model.para_carbon_tax = Param(
+            self.model.set_t_full, rule=init_carbon_tax, mutable=True
+        )
+
+        # Model construction
+        self.model = add_nodes(self)
+
+        print(
+            "Constructing model completed in " + str(round(time.time() - start)) + " s"
+        )
 
     def _perform_preprocessing_checks(self):
         """
         Checks some things, before constructing or solving the model
         :return:
         """
+        config = self.data.model_config
+
         # Check if save-path exists
-        save_path = Path(self.configuration.reporting.save_path)
+        save_path = Path(config["reporting"]["save_path"]["value"])
         if not os.path.exists(save_path) or not os.path.isdir(save_path):
             raise FileNotFoundError(
                 f"The folder '{save_path}' does not exist. Create the folder or change the folder "
@@ -110,7 +179,7 @@ class EnergyHub:
             )
 
         # check if technologies have dynamic parameters
-        if self.configuration.performance.dynamics:
+        if config["performance"]["dynamics"]["value"]:
             for node in self.data.topology.nodes:
                 for tec in self.data.technology_data[node]:
                     if self.data.technology_data[node][tec].technology_model in [
@@ -141,14 +210,15 @@ class EnergyHub:
                                 )
 
         # check if time horizon is not longer than 1 year (in case of single year analysis)
-        if self.configuration.optimization.multiyear == 0:
-            nr_timesteps_data = len(self.data.topology.timesteps)
-            nr_timesteps_year = 8760
-            if nr_timesteps_data > nr_timesteps_year:
-                raise ValueError(
-                    f"Time horizon is longer than one year. Enable multiyear analysis if you want to optimize for"
-                    f"a longer time horizon."
-                )
+        # TODO: Do we need multiyear analysis still?
+        # if config["optimization"]["multiyear"]["value"] == 0:
+        #     nr_timesteps_data = len(self.data.topology.timesteps)
+        #     nr_timesteps_year = 8760
+        #     if nr_timesteps_data > nr_timesteps_year:
+        #         raise ValueError(
+        #             f"Time horizon is longer than one year. Enable multiyear analysis if you want to optimize for"
+        #             f"a longer time horizon."
+        #         )
 
     def quick_solve(self):
         """
@@ -164,78 +234,79 @@ class EnergyHub:
 
         self.solve()
 
-    def construct_model(self):
-        """
-        Constructs model equations, defines objective functions and calculates emissions.
-
-        This function constructs the initial model with all its components as specified in the
-        topology. It adds (1) networks (:func:`~add_networks`), and (2) nodes and technologies
-        (:func:`~src.model_construction.construct_nodes.add_nodes` including \
-        :func:`~add_technologies`)
-        """
-        print("_" * 60)
-        print("Constructing Model...")
-        start = time.time()
-
-        # DEFINE SETS
-        # Nodes, Carriers, Technologies, Networks
-        topology = self.data.topology
-        self.model.set_nodes = Set(initialize=topology.nodes)
-        self.model.set_carriers = Set(initialize=topology.carriers)
-
-        def tec_node(set, node):
-            if self.data.technology_data:
-                return self.data.technology_data[node].keys()
-            else:
-                return Set.Skip
-
-        self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-        self.model.set_networks = Set(initialize=list(self.data.network_data.keys()))
-
-        # Time Frame
-        self.model.set_t_full = RangeSet(1, len(self.data.topology.timesteps))
-
-        if self.model_information.clustered_data == 1:
-            self.model.set_t_clustered = RangeSet(
-                1, len(self.data.topology.timesteps_clustered)
-            )
-
-        # DEFINE VARIABLES
-        # Global cost variables
-        self.model.var_node_cost = Var()
-        self.model.var_netw_cost = Var()
-        self.model.var_total_cost = Var()
-        self.model.var_carbon_revenue = Var()
-        self.model.var_carbon_cost = Var()
-
-        # Global Emission variables
-        self.model.var_emissions_pos = Var()
-        self.model.var_emissions_neg = Var()
-        self.model.var_emissions_net = Var()
-
-        # Parameters
-        def init_carbon_subsidy(para, t):
-            return self.data.global_data.data["carbon_prices"]["subsidy"].iloc[t - 1]
-
-        self.model.para_carbon_subsidy = Param(
-            self.model.set_t_full, rule=init_carbon_subsidy, mutable=True
-        )
-
-        def init_carbon_tax(para, t):
-            return self.data.global_data.data["carbon_prices"]["tax"].iloc[t - 1]
-
-        self.model.para_carbon_tax = Param(
-            self.model.set_t_full, rule=init_carbon_tax, mutable=True
-        )
-
-        # Model construction
-        if not self.configuration.energybalance.copperplate:
-            self.model = add_networks(self)
-        self.model = add_nodes(self)
-
-        print(
-            "Constructing model completed in " + str(round(time.time() - start)) + " s"
-        )
+    #
+    # def construct_model(self):
+    #     """
+    #     Constructs model equations, defines objective functions and calculates emissions.
+    #
+    #     This function constructs the initial model with all its components as specified in the
+    #     topology. It adds (1) networks (:func:`~add_networks`), and (2) nodes and technologies
+    #     (:func:`~src.model_construction.construct_nodes.add_nodes` including \
+    #     :func:`~add_technologies`)
+    #     """
+    #     print("_" * 60)
+    #     print("Constructing Model...")
+    #     start = time.time()
+    #
+    #     # DEFINE SETS
+    #     # Nodes, Carriers, Technologies, Networks
+    #     topology = self.data.topology
+    #     self.model.set_nodes = Set(initialize=topology.nodes)
+    #     self.model.set_carriers = Set(initialize=topology.carriers)
+    #
+    #     def tec_node(set, node):
+    #         if self.data.technology_data:
+    #             return self.data.technology_data[node].keys()
+    #         else:
+    #             return Set.Skip
+    #
+    #     self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
+    #     self.model.set_networks = Set(initialize=list(self.data.network_data.keys()))
+    #
+    #     # Time Frame
+    #     self.model.set_t_full = RangeSet(1, len(self.data.topology.timesteps))
+    #
+    #     if self.model_information.clustered_data == 1:
+    #         self.model.set_t_clustered = RangeSet(
+    #             1, len(self.data.topology.timesteps_clustered)
+    #         )
+    #
+    #     # DEFINE VARIABLES
+    #     # Global cost variables
+    #     self.model.var_node_cost = Var()
+    #     self.model.var_netw_cost = Var()
+    #     self.model.var_total_cost = Var()
+    #     self.model.var_carbon_revenue = Var()
+    #     self.model.var_carbon_cost = Var()
+    #
+    #     # Global Emission variables
+    #     self.model.var_emissions_pos = Var()
+    #     self.model.var_emissions_neg = Var()
+    #     self.model.var_emissions_net = Var()
+    #
+    #     # Parameters
+    #     def init_carbon_subsidy(para, t):
+    #         return self.data.global_data.data["carbon_prices"]["subsidy"].iloc[t - 1]
+    #
+    #     self.model.para_carbon_subsidy = Param(
+    #         self.model.set_t_full, rule=init_carbon_subsidy, mutable=True
+    #     )
+    #
+    #     def init_carbon_tax(para, t):
+    #         return self.data.global_data.data["carbon_prices"]["tax"].iloc[t - 1]
+    #
+    #     self.model.para_carbon_tax = Param(
+    #         self.model.set_t_full, rule=init_carbon_tax, mutable=True
+    #     )
+    #
+    #     # Model construction
+    #     if not config["energybalance"]["copperplate"]["value"]:
+    #         self.model = add_networks(self)
+    #     self.model = add_nodes(self)
+    #
+    #     print(
+    #         "Constructing model completed in " + str(round(time.time() - start)) + " s"
+    #     )
 
     def construct_balances(self):
         """
@@ -266,11 +337,11 @@ class EnergyHub:
         ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
         ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
-        objective = self.configuration.optimization.objective
+        objective = config["optimization"]["objective"]["value"]
 
         self._define_solver_settings()
 
-        if self.configuration.optimization.monte_carlo.on:
+        if config["optimization"]["monte_carlo"]["on"]["value"]:
             self._solve_monte_carlo(objective)
         elif objective == "pareto":
             self._solve_pareto()
@@ -308,24 +379,27 @@ class EnergyHub:
         """
         Defines solver and its settings depending on objective and solver
         """
-        objective = self.configuration.optimization.objective
+        objective = config["optimization"]["objective"]["value"]
 
         # Set solver
-        if self.configuration.solveroptions.solver in ["gurobi", "gurobi_persistent"]:
+        if config["solveroptions"]["solver"]["value"] in [
+            "gurobi",
+            "gurobi_persistent",
+        ]:
             # Gurobi
             if not self.configuration.scaling:
                 if (
                     objective in ["emissions_minC", "pareto"]
-                    or self.configuration.optimization.monte_carlo.on
+                    or config["optimization"]["monte_carlo"]["on"]["value"]
                 ):
-                    self.configuration.solveroptions.solver = "gurobi_persistent"
+                    config["solveroptions"]["solver"]["value"] = "gurobi_persistent"
             self.solver = get_gurobi_parameters(self.configuration.solveroptions)
 
-        elif self.configuration.solveroptions.solver == "glpk":
+        elif config["solveroptions"]["solver"]["value"] == "glpk":
             self.solver = get_glpk_parameters(self.configuration.solveroptions)
 
         # For persistent solver, set model instance
-        if self.configuration.solveroptions.solver == "gurobi_persistent":
+        if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
             self.solver.set_instance(self.model)
 
     def _optimize(self, objective):
@@ -397,15 +471,15 @@ class EnergyHub:
         """
         Minimize costs at emission limit
         """
-        emission_limit = self.configuration.optimization.emission_limit
+        emission_limit = config["optimization"]["emission_limit"]["value"]
         if self.model.find_component("const_emission_limit"):
-            if self.configuration.solveroptions.solver == "gurobi_persistent":
+            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
         self.model.const_emission_limit = Constraint(
             expr=self.model.var_emissions_net <= emission_limit * 1.001
         )
-        if self.configuration.solveroptions.solver == "gurobi_persistent":
+        if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
             self.solver.add_constraint(self.model.const_emission_limit)
         self._optimize_cost()
 
@@ -416,13 +490,13 @@ class EnergyHub:
         self._optimize_emissions_net()
         emission_limit = self.model.var_emissions_net.value
         if self.model.find_component("const_emission_limit"):
-            if self.configuration.solveroptions.solver == "gurobi_persistent":
+            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
         self.model.const_emission_limit = Constraint(
             expr=self.model.var_emissions_net <= emission_limit * 1.001
         )
-        if self.configuration.solveroptions.solver == "gurobi_persistent":
+        if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
             self.solver.add_constraint(self.model.const_emission_limit)
         self._optimize_cost()
 
@@ -430,7 +504,7 @@ class EnergyHub:
         """
         Optimize the pareto front
         """
-        pareto_points = self.configuration.optimization.pareto_points
+        pareto_points = config["optimization"]["pareto_points"]["value"]
 
         # Min Cost
         self.model_information.pareto_point = 0
@@ -447,14 +521,14 @@ class EnergyHub:
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
         for pareto_point in range(0, pareto_points):
             self.model_information.pareto_point += 1
-            if self.configuration.solveroptions.solver == "gurobi_persistent":
+            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.remove_constraint(self.model.const_emission_limit)
             self.model.del_component(self.model.const_emission_limit)
             self.model.const_emission_limit = Constraint(
                 expr=self.model.var_emissions_net
                 <= emission_limits[pareto_point] * 1.005
             )
-            if self.configuration.solveroptions.solver == "gurobi_persistent":
+            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.add_constraint(self.model.const_emission_limit)
             self._optimize_cost()
 
@@ -462,7 +536,7 @@ class EnergyHub:
         """
         Optimizes multiple runs with monte carlo
         """
-        for run in range(0, self.configuration.optimization.monte_carlo.N):
+        for run in range(0, config["optimization"]["monte_carlo"]["value"].N):
             self.model_information.monte_carlo_run += 1
             self._monte_carlo_set_cost_parameters()
             if run == 0:
@@ -581,17 +655,19 @@ class EnergyHub:
 
         # Create save path and folder
         time_stamp = datetime.datetime.fromtimestamp(start).strftime("%Y%m%d%H%M%S")
-        save_path = Path(self.configuration.reporting.save_path)
+        save_path = Path(config["reporting"]["save_path"]["value"])
 
-        if self.configuration.reporting.case_name == -1:
+        if config["reporting"]["case_name"]["value"] == -1:
             folder_name = str(time_stamp)
         else:
-            folder_name = str(time_stamp) + "_" + self.configuration.reporting.case_name
+            folder_name = (
+                str(time_stamp) + "_" + config["reporting"]["case_name"]["value"]
+            )
 
         result_folder_path = create_unique_folder_name(save_path, folder_name)
         create_save_folder(result_folder_path)
         save_summary_path = Path.joinpath(
-            Path(self.configuration.reporting.save_summary_path), "Summary.xlsx"
+            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
         )
 
         # Scale model
@@ -602,10 +678,10 @@ class EnergyHub:
             model = self.model
 
         # Call solver
-        if self.configuration.solveroptions.solver == "gurobi_persistent":
+        if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
             self.solver.set_objective(model.objective)
 
-        if self.configuration.solveroptions.solver == "glpk":
+        if config["solveroptions"]["solver"]["value"] == "glpk":
             self.solution = self.solver.solve(
                 model,
                 tee=True,
@@ -626,7 +702,7 @@ class EnergyHub:
                 self.scaled_model, self.model
             )
 
-        if self.configuration.reporting.write_solution_diagnostics >= 1:
+        if config["reporting"]["write_solution_diagnostics"]["value"] >= 1:
             self._write_solution_diagnostics(result_folder_path)
 
         self.solution.write()
@@ -663,7 +739,7 @@ class EnergyHub:
             model.printQuality()  # Call the function that prints something
             sys.stdout = sys.__stdout__  # Reset stdout to the console
 
-        if self.configuration.reporting.write_solution_diagnostics >= 2:
+        if config["reporting"]["write_solution_diagnostics"]["value"] >= 2:
             # Write constraint map to txt
             with open(f"{save_path}/diag_constraint_map.txt", "w") as file:
                 for key, value in constraint_map.items():
@@ -679,21 +755,21 @@ class EnergyHub:
         Performs monte carlo analysis
         """
 
-        if "Technologies" in self.configuration.optimization.monte_carlo.on_what:
+        if "Technologies" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
             for node in self.model.node_blocks:
                 for tec in self.model.node_blocks[node].tech_blocks_active:
                     self._monte_carlo_technologies(node, tec)
 
-        if "Networks" in self.configuration.optimization.monte_carlo.on_what:
+        if "Networks" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
             for netw in self.model.network_block:
                 self._monte_carlo_networks(netw)
 
-        if "ImportPrices" in self.configuration.optimization.monte_carlo.on_what:
+        if "ImportPrices" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
             for node in self.model.node_blocks:
                 for car in self.model.node_blocks[node].set_carriers:
                     self._monte_carlo_import_prices(node, car)
 
-        if "ExportPrices" in self.configuration.optimization.monte_carlo.on_what:
+        if "ExportPrices" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
             for node in self.model.node_blocks:
                 for car in self.model.node_blocks[node].set_carriers:
                     self._monte_carlo_export_prices(node, car)
@@ -702,7 +778,7 @@ class EnergyHub:
         """
         Changes the capex of technologies
         """
-        sd = self.configuration.optimization.monte_carlo.sd
+        sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
         tec_data = self.data.technology_data[node][tec]
@@ -750,7 +826,7 @@ class EnergyHub:
         """
         # TODO: This does not work!
 
-        sd = self.configuration.optimization.monte_carlo.sd
+        sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
         netw_data = self.data.network_data[netw]
@@ -828,7 +904,7 @@ class EnergyHub:
         """
         Changes the import prices
         """
-        sd = self.configuration.optimization.monte_carlo.sd
+        sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
         model = self.model
@@ -918,7 +994,7 @@ class EnergyHub:
         """
         Changes the export prices
         """
-        sd = self.configuration.optimization.monte_carlo.sd
+        sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
         model = self.model
@@ -1008,7 +1084,7 @@ class EnergyHub:
         """
         Delete the objective function
         """
-        if not self.configuration.optimization.monte_carlo.on:
+        if not config["optimization"]["monte_carlo"]["on"]["value"]:
             try:
                 self.model.del_component(self.model.objective)
             except:

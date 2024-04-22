@@ -72,14 +72,12 @@ class Stor(Technology):
 
         self.fitted_performance = FittedPerformance()
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type STOR and returns fitted parameters as a dict
 
         :param node_data: contains data on demand, climate data, etc.
         """
-
-        climate_data = node_data.data["climate_data"]
 
         time_steps = len(climate_data)
 

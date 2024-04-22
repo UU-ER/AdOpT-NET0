@@ -35,10 +35,7 @@ class Res(Technology):
 
         self.fitted_performance = FittedPerformance(self.performance_data)
 
-    def fit_technology_performance(self, node_data):
-
-        location = node_data.location
-        climate_data = node_data.data["climate_data"]
+    def fit_technology_performance(self, climate_data, location):
 
         if "Photovoltaic" in self.name:
             if "system_type" in self.performance_data:
@@ -117,9 +114,9 @@ class Res(Technology):
             return pv_model, peakpower, specific_area
 
         # Define parameters for convinience
-        lon = location.lon
-        lat = location.lat
-        alt = location.altitude
+        lon = location["lon"]
+        lat = location["lat"]
+        alt = location["alt"]
 
         # Get location
         tf = TimezoneFinder()
