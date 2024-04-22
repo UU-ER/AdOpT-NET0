@@ -7,6 +7,5 @@ from .utilities import (
     create_optimization_templates,
     check_input_data_consistency,
 )
-from .fill_functions import (fill_climate_data_from_api,
-                             fill_carrier_data)
+
 
