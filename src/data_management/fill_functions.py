@@ -58,7 +58,45 @@ def fill_climate_data_from_api(folder_path, dataset="JRC"):
             # Save the updated data back to ClimateData.csv
             existing_data.to_csv(output_file, index=False, sep=';')
 
-        # End of node loop, proceed to next investment period
-        print(f"Finished processing investment period: {key}")
 
-    print("All investment periods processed.")
+def fill_carrier_data(folder_path, value, columns=None, carriers=None, nodes=None, investment_periods=None):
+    """
+    Allows you to easily specify a constant value of Demand, Import limit, Export limit, Import price,
+    Export price, Import emission factor, Export emission factor and/or Generic production.
+
+    :param str folder_path: Path to the folder containing the data
+    :param int value: The new value of the carrier data to be changed
+    :param list columns: Name of the columns that need to be changed
+    :param list investment_periods: Name of investment periods to be changed
+    :param list nodes: Name of the nodes that need to be changed
+    :param list carriers: Name of the carriers that need to be changed
+
+
+    :return: None
+    """
+    # Reads the topology json file
+    json_file_path = os.path.join(folder_path, "topology.json")
+    with open(json_file_path, 'r') as json_file:
+        topology = json.load(json_file)
+
+    #define options
+    column_options = ["Demand", "Import limit", "Export limit", "Import price",
+               "Export price", "Import emission factor",
+               "Export emission factor", "Generic production"]
+
+    for key in investment_periods if investment_periods else topology["investment_periods"]:
+        for node_name in nodes if nodes else topology["nodes"]:
+            for car in carriers if carriers else topology["carriers"]:
+
+                # Write data to CSV file
+                output_folder = os.path.join(folder_path, key, "node_data", node_name, "carrier_data")
+                filename = car + ".csv"
+                output_file = os.path.join(output_folder, filename)
+                existing_data = pd.read_csv(output_file, sep=';')
+
+                # Fill in existing data with data from the fetched DataFrame based on column names
+                for column in columns if columns else column_options:
+                    existing_data[column] = value * np.ones(len(existing_data))
+
+                # Save the updated data back to ClimateData.csv
+                existing_data.to_csv(output_file, index=False, sep=';')
