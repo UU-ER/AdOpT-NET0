@@ -157,7 +157,7 @@ def copy_technology_data(folder_path, tec_data_path):
         tec_data_path = Path(tec_data_path)
 
     # Default tec_data_path if not provided
-    tec_data_path = tec_data_path / "data" / "technology_data"
+    tec_data_path = tec_data_path / "technology_data"
 
     # Reads the topology JSON file
     json_file_path = folder_path / "topology.json"
@@ -203,7 +203,7 @@ def copy_network_data(folder_path, ntw_data_path):
         ntw_data_path = Path(ntw_data_path)
 
     # Default tec_data_path if not provided
-    ntw_data_path = ntw_data_path / "data" / "network_data"
+    ntw_data_path = ntw_data_path / "network_data"
 
     # Reads the topology JSON file
     json_file_path = folder_path / "topology.json"

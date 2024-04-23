@@ -12,8 +12,8 @@ path = "C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/ExamplaryCaseSt
 # dp.create_optimization_templates(path)
 # dp.create_input_data_folder_template(path)
 
-dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
+dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py/data")
+dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py/data")
 dp.load_climate_data_from_api(path)
 
 
