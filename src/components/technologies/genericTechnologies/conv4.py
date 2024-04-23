@@ -69,7 +69,7 @@ class Conv4(Technology):
                     * self.performance_data["output_ratios"][car]
                 )
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV4
 
@@ -77,7 +77,7 @@ class Conv4(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(Conv4, self).construct_tech_model(b_tec, energyhub)
+        super(Conv4, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

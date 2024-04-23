@@ -96,7 +96,7 @@ class Conv2(Technology):
             self.performance_data, time_steps=len(climate_data)
         )
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV2
 
@@ -104,7 +104,7 @@ class Conv2(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(Conv2, self).construct_tech_model(b_tec, energyhub)
+        super(Conv2, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

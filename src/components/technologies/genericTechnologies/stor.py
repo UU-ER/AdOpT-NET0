@@ -119,7 +119,7 @@ class Stor(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
@@ -128,7 +128,7 @@ class Stor(Technology):
         :return: b_tec
         """
 
-        super(Stor, self).construct_tech_model(b_tec, energyhub)
+        super(Stor, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         set_t_full = energyhub.model.set_t_full
 

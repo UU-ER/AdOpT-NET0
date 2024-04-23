@@ -51,7 +51,7 @@ def get_summary(energyhub, folder_path):
     )
 
     # summary: retrieve / calculate run specs
-    summary_dict["objective"] = energyhub.configuration.optimization.objective
+    summary_dict["objective"] = config["optimization"]["objective"]["value"]
     summary_dict["solver_status"] = (
         energyhub.solution.solver.termination_condition.value
     )
@@ -99,7 +99,7 @@ def write_optimization_results_to_h5(energyhub, folder_path):
         # TIME-INDEPENDENT RESULTS: NETWORKS [g] > within: specific network [g] > within: specific arc of network[g]
         networks_design = design.create_group("networks")
 
-        if not energyhub.configuration.energybalance.copperplate:
+        if not config["energybalance"]["copperplate"]["value"]:
             for netw_name in model.set_networks:
                 netw_specific_group = networks_design.create_group(netw_name)
                 b_netw = model.network_block[netw_name]
@@ -127,7 +127,7 @@ def write_optimization_results_to_h5(energyhub, folder_path):
         # TIME-DEPENDENT RESULTS: NETWORKS [g] > within: specific network [g] > within: specific arc of network [g]
         networks_operation = operation.create_group("networks")
 
-        if not energyhub.configuration.energybalance.copperplate:
+        if not config["energybalance"]["copperplate"]["value"]:
             for netw_name in model.set_networks:
                 netw_specific_group = networks_operation.create_group(netw_name)
                 b_netw = model.network_block[netw_name]

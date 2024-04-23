@@ -31,8 +31,8 @@ def open_json(tec, load_path):
     return technology_data
 
 
-def set_capex_model(configuration, economics):
-    if configuration.economic.global_simple_capex_model:
+def set_capex_model(config, economics):
+    if config["economic"]["global_simple_capex_model"]["value"]:
         capex_model = 1
     else:
         capex_model = economics.capex_model

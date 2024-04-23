@@ -178,7 +178,7 @@ class HeatPump(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type HP (Heat Pump)
 
@@ -186,7 +186,7 @@ class HeatPump(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(HeatPump, self).construct_tech_model(b_tec, energyhub)
+        super(HeatPump, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

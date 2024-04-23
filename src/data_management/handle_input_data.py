@@ -22,7 +22,9 @@ class DataHandle:
        data = DataHandle(path)
     """
 
-    def __init__(self, data_path: Path | str) -> None:
+    def __init__(
+        self, data_path: Path | str, start_period: int, end_period: int
+    ) -> None:
         """
         Constructor
 
@@ -45,6 +47,8 @@ class DataHandle:
         self.model_config = {}
         self.k_means_specs = {}
         self.averaged_specs = {}
+        self.start_period = start_period
+        self.end_period = end_period
 
         # Check consistency
         check_input_data_consistency(data_path)
@@ -72,10 +76,18 @@ class DataHandle:
             self.topology = json.load(json_file)
 
         self.topology["time_index"] = {}
-        self.topology["time_index"]["full"] = pd.date_range(
+        time_index = pd.date_range(
             start=self.topology["start_date"],
             end=self.topology["end_date"],
             freq=self.topology["resolution"],
+        )
+        original_number_timesteps = len(time_index)
+        self.topology["time_index"]["full"] = time_index[
+            self.start_period : self.end_period
+        ]
+        new_number_timesteps = len(self.topology["time_index"]["full"])
+        self.topology["fraction_of_year_modelled"] = (
+            new_number_timesteps / original_number_timesteps
         )
 
         self.logger.info("Topology read successfully")
@@ -164,7 +176,9 @@ class DataHandle:
                             replace_nan_in_list(carrier_data[key])
                         )
 
-        data = pd.DataFrame(data, index=self.topology["time_index"]["full"])
+        data = pd.DataFrame(data)
+        data = data[self.start_period : self.end_period]
+        data.index = self.topology["time_index"]["full"]
         data.columns.set_names(
             ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2"], inplace=True
         )
@@ -264,12 +278,13 @@ class DataHandle:
 
         self.technology_data[aggregation_type] = technology_data
 
-    def _read_network_data(self) -> None:
+    def _read_network_data(self, aggregation_type: str = "full") -> None:
         """
         Reads all network data
         """
+        self.network_data[aggregation_type] = {}
         for investment_period in self.topology["investment_periods"]:
-            self.network_data[investment_period] = {}
+            self.network_data[aggregation_type][investment_period] = {}
             with open(
                 self.data_path / investment_period / "Networks.json"
             ) as json_file:
@@ -311,7 +326,9 @@ class DataHandle:
                     sep=";",
                 )
                 netw_data.calculate_max_size_arc()
-                self.network_data[investment_period][network] = netw_data
+                self.network_data[aggregation_type][investment_period][
+                    network
+                ] = netw_data
 
             # Existing networks
             for network in networks["existing"]:
@@ -359,7 +376,9 @@ class DataHandle:
                     sep=";",
                 )
                 netw_data.calculate_max_size_arc()
-                self.network_data[investment_period][network + "_existing"] = netw_data
+                self.network_data[aggregation_type][investment_period][
+                    network + "_existing"
+                ] = netw_data
 
     def _cluster_data(self):
         nr_clusters = 20

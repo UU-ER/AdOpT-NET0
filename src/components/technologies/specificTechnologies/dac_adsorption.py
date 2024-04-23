@@ -174,7 +174,7 @@ class DacAdsorption(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type DAC_adsorption
 
@@ -182,7 +182,9 @@ class DacAdsorption(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(DacAdsorption, self).construct_tech_model(b_tec, energyhub)
+        super(DacAdsorption, self).construct_tech_model(
+            b_tec, data, set_t, set_t_clustered
+        )
 
         # Comments on the equations refer to the equation numbers in the paper. All equations can be looked up there.
 

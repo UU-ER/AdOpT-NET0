@@ -1,4 +1,5 @@
-from .construct_technology import add_technology
-from .construct_networks import add_networks
+from .construct_technology import construct_technology_block
+from .construct_networks import construct_network_block
 from .construct_balances import add_energybalance, add_emissionbalance, add_system_costs
-from .construct_nodes import add_nodes
+from .construct_nodes import construct_node_block
+from .construct_investment_period import construct_investment_period_block

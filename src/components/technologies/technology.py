@@ -68,7 +68,7 @@ class Technology(ModelComponent):
         if "ScalingFactors" in tec_data:
             self.scaling_factors = tec_data["ScalingFactors"]
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         r"""
         This function adds Sets, Parameters, Variables and Constraints that are common for all technologies.
         For each technology type, individual parts are added.
@@ -138,11 +138,11 @@ class Technology(ModelComponent):
         print("\t - Adding Technology " + self.name)
 
         # TECHNOLOGY DATA
-        configuration = energyhub.configuration
+        config = data["config"]
 
         # MODELING TYPICAL DAYS
-        if energyhub.model_information.clustered_data:
-            if configuration.optimization.typicaldays.method == 2:
+        if config["optimization"]["typicaldays"]["N"]["value"] != 0:
+            if config["optimization"]["typicaldays"]["method"]["value"] == 2:
                 technologies_modelled_with_full_res = ["RES", "STOR", "Hydro_Open"]
                 if self.technology_model in technologies_modelled_with_full_res:
                     self.modelled_with_full_res = 1
@@ -157,30 +157,30 @@ class Technology(ModelComponent):
 
         # GENERAL TECHNOLOGY CONSTRAINTS
         b_tec = self._define_size(b_tec)
-        b_tec = self._define_capex(b_tec, energyhub)
-        b_tec = self._define_input(b_tec, energyhub)
-        b_tec = self._define_output(b_tec, energyhub)
-        b_tec = self._define_opex(b_tec, energyhub)
-        b_tec = self._define_emissions(b_tec, energyhub)
+        b_tec = self._define_capex(b_tec, data)
+        b_tec = self._define_input(b_tec, data)
+        b_tec = self._define_output(b_tec, data)
+        b_tec = self._define_opex(b_tec, data)
+        b_tec = self._define_emissions(b_tec, data)
 
         # CLUSTERED DATA
         if (
-            energyhub.model_information.clustered_data
+            config["optimization"]["typicaldays"]["N"]["value"] != 0
             and not self.modelled_with_full_res
         ):
-            b_tec = self._define_auxiliary_vars(b_tec, energyhub)
+            b_tec = self._define_auxiliary_vars(b_tec, data)
         else:
             if not (self.technology_model == "RES") and not (
                 self.technology_model == "CONV4"
             ):
                 self.input = b_tec.var_input
             self.output = b_tec.var_output
-            self.set_t = energyhub.model.set_t_full
+            self.set_t = set_t
             self.sequence = list(self.set_t)
-        self.set_t_full = energyhub.model.set_t_full
+        self.set_t_full = set_t
 
         # DYNAMICS
-        if energyhub.configuration.performance.dynamics:
+        if config["performance"]["dynamics"]:
             technologies_modelled_with_dynamics = ["CONV1", "CONV2", "CONV3"]
             if self.technology_model in technologies_modelled_with_dynamics:
                 b_tec = self._define_dynamics(b_tec)
@@ -277,13 +277,13 @@ class Technology(ModelComponent):
                 ],
             )
 
-    def scale_model(self, b_tec, model, configuration):
+    def scale_model(self, b_tec, model, config):
         """
         Scales technology model
         """
 
         f = self.scaling_factors
-        f_global = configuration.scaling_factors
+        f_global = config.scaling_factors
 
         model = determine_variable_scaling(model, b_tec, f, f_global)
         model = determine_constraint_scaling(model, b_tec, f, f_global)
@@ -337,7 +337,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def _define_capex(self, b_tec, energyhub):
+    def _define_capex(self, b_tec, data):
         """
         Defines variables and parameters related to technology capex.
 
@@ -349,16 +349,16 @@ class Technology(ModelComponent):
         - CAPEX (actual CAPEX)
         - Decommissioning Costs (for existing technologies)
         """
-        configuration = energyhub.configuration
+        config = data["config"]
 
         economics = self.economics
-        discount_rate = set_discount_rate(configuration, economics)
-        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
         annualization_factor = annualize(
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
 
-        capex_model = set_capex_model(configuration, economics)
+        capex_model = set_capex_model(config, economics)
 
         def calculate_max_capex():
             if self.economics.capex_model == 1:
@@ -481,7 +481,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def _define_input(self, b_tec, energyhub):
+    def _define_input(self, b_tec, data):
         """
         Defines input to a technology
 
@@ -496,9 +496,9 @@ class Technology(ModelComponent):
         modelled_with_full_res = self.modelled_with_full_res
 
         # set_t and sequence
-        set_t = energyhub.model.set_t_full
-        if energyhub.model_information.clustered_data and not modelled_with_full_res:
-            sequence = energyhub.data.k_means_specs.full_resolution["sequence"]
+        set_t = data.model.set_t_full
+        if data.model_information.clustered_data and not modelled_with_full_res:
+            sequence = data.data.k_means_specs.full_resolution["sequence"]
 
         if existing:
             size_initial = self.size_initial
@@ -514,10 +514,7 @@ class Technology(ModelComponent):
             b_tec.set_input_carriers = Set(initialize=performance_data["input_carrier"])
 
             def init_input_bounds(bounds, t, car):
-                if (
-                    energyhub.model_information.clustered_data
-                    and not modelled_with_full_res
-                ):
+                if data.model_information.clustered_data and not modelled_with_full_res:
                     return tuple(
                         fitted_performance.bounds["input"][car][sequence[t - 1] - 1, :]
                         * size_max
@@ -538,7 +535,7 @@ class Technology(ModelComponent):
             )
         return b_tec
 
-    def _define_output(self, b_tec, energyhub):
+    def _define_output(self, b_tec, data):
         """
         Defines output to a technology
 
@@ -553,9 +550,9 @@ class Technology(ModelComponent):
         rated_power = fitted_performance.rated_power
 
         # set_t
-        set_t = energyhub.model.set_t_full
-        if energyhub.model_information.clustered_data and not modelled_with_full_res:
-            sequence = energyhub.data.k_means_specs.full_resolution["sequence"]
+        set_t = data.model.set_t_full
+        if data.model_information.clustered_data and not modelled_with_full_res:
+            sequence = data.data.k_means_specs.full_resolution["sequence"]
 
         if existing:
             size_initial = self.size_initial
@@ -566,10 +563,7 @@ class Technology(ModelComponent):
         b_tec.set_output_carriers = Set(initialize=performance_data["output_carrier"])
 
         def init_output_bounds(bounds, t, car):
-            if (
-                energyhub.model_information.clustered_data
-                and not modelled_with_full_res
-            ):
+            if data.model_information.clustered_data and not modelled_with_full_res:
                 return tuple(
                     fitted_performance.bounds["output"][car][sequence[t - 1] - 1, :]
                     * size_max
@@ -590,12 +584,12 @@ class Technology(ModelComponent):
         )
         return b_tec
 
-    def _define_opex(self, b_tec, energyhub):
+    def _define_opex(self, b_tec, data):
         """
         Defines variable and fixed OPEX
         """
         economics = self.economics
-        set_t = energyhub.model.set_t_full
+        set_t = data.model.set_t_full
 
         # VARIABLE OPEX
         b_tec.para_opex_variable = Param(
@@ -622,12 +616,12 @@ class Technology(ModelComponent):
         )
         return b_tec
 
-    def _define_emissions(self, b_tec, energyhub):
+    def _define_emissions(self, b_tec, data):
         """
         Defines Emissions
         """
 
-        set_t = energyhub.model.set_t_full
+        set_t = data.model.set_t_full
         performance_data = self.performance_data
         technology_model = self.technology_model
         emissions_based_on = self.emissions_based_on
@@ -719,14 +713,14 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def _define_auxiliary_vars(self, b_tec, energyhub):
+    def _define_auxiliary_vars(self, b_tec, data):
         """
         Defines auxiliary variables, that are required for the modelling of clustered data
         """
-        set_t_clustered = energyhub.model.set_t_clustered
-        set_t_full = energyhub.model.set_t_full
+        set_t_clustered = data.model.set_t_clustered
+        set_t_full = data.model.set_t_full
         self.set_t = set_t_clustered
-        self.sequence = energyhub.data.k_means_specs.full_resolution["sequence"]
+        self.sequence = data.data.k_means_specs.full_resolution["sequence"]
 
         if self.existing:
             size_initial = self.size_initial
@@ -736,7 +730,7 @@ class Technology(ModelComponent):
 
         rated_power = self.fitted_performance.rated_power
 
-        sequence = energyhub.data.k_means_specs.full_resolution["sequence"]
+        sequence = data.data.k_means_specs.full_resolution["sequence"]
 
         if not (self.technology_model == "RES") and not (
             self.technology_model == "CONV4"

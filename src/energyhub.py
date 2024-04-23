@@ -1,5 +1,5 @@
 from pathlib import Path
-from pyomo.environ import ConcreteModel, Set, RangeSet, Block, Var
+from pyomo.environ import ConcreteModel, Set, Block
 import os
 import time
 
@@ -59,7 +59,9 @@ class EnergyHub:
         self.solution = {}
         self.solver = None
 
-    def read_data(self, data_path: Path | str) -> None:
+    def read_data(
+        self, data_path: Path | str, start_period: int = 0, end_period: int = -1
+    ) -> None:
         """
         Reads in data from the specified path
         """
@@ -67,7 +69,7 @@ class EnergyHub:
         print("_" * 60)
         print("--- Reading in data ---")
 
-        self.data = DataHandle(data_path)
+        self.data = DataHandle(data_path, start_period, end_period)
         self._perform_preprocessing_checks()
 
         self.logger.info("--- Reading in data complete ---")
@@ -88,6 +90,7 @@ class EnergyHub:
         model = self.model["full"]
         topology = self.data.topology
         config = self.data.model_config
+        aggregation_type = "full"
 
         # DEFINE SETS
         # Nodes, Carriers, Technologies, Networks
@@ -95,69 +98,83 @@ class EnergyHub:
         model.set_nodes = Set(initialize=topology["nodes"])
         model.set_carriers = Set(initialize=topology["carriers"])
 
-        def init_period_block(b_period, period):
+        # Investment Period Block
+        def init_period_block(b_period):
+            """Pyomo rule to initialize a block holding all investment periods"""
 
-            # Networks for investment period
-            b_period.set_networks = Set(initialize=self.data.network_data[period])
+            # Get data for investment period
+            investment_period = b_period.index()
+            data_period = {}
+            data_period["topology"] = self.data.topology
+            data_period["technology_data"] = self.data.technology_data[
+                aggregation_type
+            ][investment_period]
+            data_period["time_series"] = self.data.time_series[aggregation_type].loc[
+                :, investment_period
+            ]
+            data_period["network_data"] = self.data.network_data[aggregation_type][
+                investment_period
+            ]
+            data_period["energybalance_options"] = self.data.energybalance_options[
+                investment_period
+            ]
+            data_period["config"] = self.data.model_config
 
-            # Time Frame
-            b_period.set_t_full = RangeSet(1, len(topology["time_index"]["full"]))
-            if config["optimization"]["typicaldays"]["N"]["value"] != 0:
-                b_period.set_t_clustered = RangeSet(
-                    1, len(topology["time_index"]["clustered"])
+            # Add sets, parameters, variables, constraints to block
+            b_period = construct_investment_period_block(b_period, data_period)
+
+            # Network Block
+            if not config["energybalance"]["copperplate"]["value"]:
+
+                def init_network_block(b_netw, netw):
+                    """Pyomo rule to initialize a block holding all networks"""
+
+                    # Add sets, parameters, variables, constraints to block
+                    b_netw = construct_network_block(b_netw, netw, data_period)
+
+                    return b_netw
+
+                b_period.network_block = Block(
+                    b_period.set_networks, rule=init_network_block
                 )
 
-            # Global cost variables
-            b_period.var_node_cost = Var()
-            b_period.var_netw_cost = Var()
-            b_period.var_total_cost = Var()
-            b_period.var_carbon_revenue = Var()
-            b_period.var_carbon_cost = Var()
+            # Node Block
+            def init_node_block(b_node, node):
+                """Pyomo rule to initialize a block holding all nodes"""
 
-            # Global Emission variables
-            b_period.var_emissions_pos = Var()
-            b_period.var_emissions_neg = Var()
-            b_period.var_emissions_net = Var()
+                # Get data for node
+                data_node = {}
+                data_node["topology"] = data_period["topology"]
+                data_node["technology_data"] = data_period["technology_data"][node]
+                data_node["time_series"] = data_period["time_series"][node]
+                data_node["network_data"] = data_period["network_data"]
+                data_node["energybalance_options"] = data_period[
+                    "energybalance_options"
+                ][node]
+                data_node["config"] = self.data.model_config
 
-            # Add networks
-            if not config["energybalance"]["copperplate"]["value"]:
-                b_period = add_networks(b_period, self)
+                # Add sets, parameters, variables, constraints to block
+                b_node = construct_node_block(b_node, data_node, b_period.set_t_full)
 
-            b_period = add_nodes(b_period, self)
+                # Technology Block
+                def init_technology_block(b_tec, tec):
+                    b_tec = construct_technology_block(
+                        b_tec, data_node, b_period.set_t_full, b_period.set_t_clustered
+                    )
+
+                    return b_tec
+
+                b_node.tech_blocks_new = Block(
+                    b_node.set_technologies, rule=init_technology_block
+                )
+
+                return b_node
+
+            b_period.node_blocks = Block(model.set_nodes, rule=init_node_block)
 
             return b_period
 
         model.periods = Block(model.set_periods, rule=init_period_block)
-
-        # TODO: This needs to be moved to the node construction
-        def tec_node(set, node):
-            if self.data.technology_data:
-                return self.data.technology_data[node].keys()
-            else:
-                return Set.Skip
-
-        self.model.set_technologies = Set(
-            model.set_periods, model.set_nodes, initialize=tec_node
-        )
-
-        # Parameters
-        # TODO: Needs to be moved to node construction
-        def init_carbon_subsidy(para, t):
-            return self.data.global_data.data["carbon_prices"]["subsidy"].iloc[t - 1]
-
-        self.model.para_carbon_subsidy = Param(
-            self.model.set_t_full, rule=init_carbon_subsidy, mutable=True
-        )
-
-        def init_carbon_tax(para, t):
-            return self.data.global_data.data["carbon_prices"]["tax"].iloc[t - 1]
-
-        self.model.para_carbon_tax = Param(
-            self.model.set_t_full, rule=init_carbon_tax, mutable=True
-        )
-
-        # Model construction
-        self.model = add_nodes(self)
 
         print(
             "Constructing model completed in " + str(round(time.time() - start)) + " s"

@@ -3,9 +3,10 @@ import src.data_management as dm
 from src.energyhub import EnergyHub
 import numpy as np
 
-# Todo: make it possible to run only part of the model (less timesteps)
 # Todo: save logging to a different place
 # Todo: make sure create template functions dont overwrite stuff
+# Todo: make it possible to add technology blocks retrospectively
+# Todo: logging
 
 path = "C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/ExamplaryCaseStudy"
 # dm.create_optimization_templates(path)
@@ -13,7 +14,7 @@ path = "C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/ExamplaryCaseSt
 
 
 pyhub = EnergyHub()
-pyhub.read_data(path)
+pyhub.read_data(path, start_period=0, end_period=3)
 pyhub.construct_model()
 
 

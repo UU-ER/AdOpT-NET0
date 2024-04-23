@@ -23,7 +23,7 @@ def add_energybalance(energyhub):
     # Delete previously initialized constraints
     if model.find_component("const_energybalance"):
         model.del_component(model.const_energybalance)
-        if configuration.energybalance.violation >= 0:
+        if config["energybalance"]["violation"]["value"] >= 0:
             model.del_component(model.const_violation)
             model.del_component(model.var_violation)
             model.del_component(model.var_violation_cost)
@@ -32,7 +32,7 @@ def add_energybalance(energyhub):
     set_t = model.set_t_full
 
     # Energy balance violation
-    if configuration.energybalance.violation >= 0:
+    if config["energybalance"]["violation"]["value"] >= 0:
         model.var_violation = Var(
             model.set_t_full,
             model.set_carriers,
@@ -41,7 +41,47 @@ def add_energybalance(energyhub):
         )
         model.var_violation_cost = Var()
 
-    if configuration.energybalance.copperplate:
+    # Define network constraints
+    # TODO: This needs to be coded correctly
+    if not config["energybalance"]["copperplate"]["value"]:
+
+        def init_netw_inflow(const, t, car):
+            return b_node.var_netw_inflow[t, car] == sum(
+                model_block.network_block[netw].var_inflow[t, car, node]
+                for netw in model_block.set_networks
+                if car in model_block.network_block[netw].set_netw_carrier
+            )
+
+        b_node.const_netw_inflow = Constraint(
+            set_t, b_node.set_carriers, rule=init_netw_inflow
+        )
+
+        def init_netw_outflow(const, t, car):
+            return b_node.var_netw_outflow[t, car] == sum(
+                model_block.network_block[netw].var_outflow[t, car, node]
+                for netw in model_block.set_networks
+                if car in model_block.network_block[netw].set_netw_carrier
+            )
+
+        b_node.const_netw_outflow = Constraint(
+            set_t, b_node.set_carriers, rule=init_netw_outflow
+        )
+
+        if network_energy_consumption:
+
+            def init_netw_consumption(const, t, car):
+                return b_node.var_netw_consumption[t, car] == sum(
+                    model_block.network_block[netw].var_consumption[t, car, node]
+                    for netw in model_block.set_networks
+                    if data["network_data"][netw].energy_consumption
+                    and car in model_block.network_block[netw].set_consumed_carriers
+                )
+
+            b_node.const_netw_consumption = Constraint(
+                set_t, b_node.set_carriers, rule=init_netw_consumption
+            )
+
+    if config["energybalance"]["copperplate"]["value"]:
 
         def init_energybalance_global(const, t, car):
             tec_output = sum(
@@ -92,7 +132,7 @@ def add_energybalance(energyhub):
                 if car in model.node_blocks[node].set_carriers
             )
 
-            if configuration.energybalance.violation >= 0:
+            if config["energybalance"]["violation"]["value"] >= 0:
                 violation = sum(
                     model.var_violation[t, car, node]
                     for node in model.node_blocks
@@ -140,7 +180,7 @@ def add_energybalance(energyhub):
 
                 export_flow = node_block.var_export_flow[t, car]
 
-                if configuration.energybalance.violation >= 0:
+                if config["energybalance"]["violation"]["value"] >= 0:
                     violation = model.var_violation[t, car, node]
                 else:
                     violation = 0
@@ -211,7 +251,7 @@ def add_emissionbalance(energyhub):
             )
             for node in model.set_nodes
         )
-        if not energyhub.configuration.energybalance.copperplate:
+        if not config["energybalance"]["copperplate"]["value"]:
             from_networks = sum(
                 sum(
                     model.network_block[netw].var_netw_emissions_pos[t]
@@ -281,7 +321,7 @@ def add_system_costs(energyhub):
     # Delete previously initialized constraints
     if model.find_component("const_node_cost"):
         model.del_component(model.const_node_cost)
-        if not energyhub.configuration.energybalance.copperplate:
+        if not config["energybalance"]["copperplate"]["value"]:
             model.del_component(model.const_netw_cost)
         model.del_component(model.const_revenue_carbon)
         model.del_component(model.const_cost_carbon)
@@ -362,7 +402,7 @@ def add_system_costs(energyhub):
 
     # Calculates network costs
     def init_netw_cost(const):
-        if not energyhub.configuration.energybalance.copperplate:
+        if not config["energybalance"]["copperplate"]["value"]:
             netw_capex = sum(
                 model.network_block[netw].var_capex for netw in model.set_networks
             )
@@ -385,7 +425,7 @@ def add_system_costs(energyhub):
 
     model.const_netw_cost = Constraint(rule=init_netw_cost)
 
-    if configuration.energybalance.violation >= 0:
+    if config["energybalance"]["violation"]["value"] >= 0:
 
         def init_violation_cost(const):
             return (
@@ -397,7 +437,7 @@ def add_system_costs(energyhub):
                     )
                     for node in model.set_nodes
                 )
-                * configuration.energybalance.violation
+                * config["energybalance"]["violation"]["value"]
             )
 
         model.const_violation_cost = Constraint(rule=init_violation_cost)
@@ -447,7 +487,7 @@ def add_system_costs(energyhub):
             )
             for node in model.set_nodes
         )
-        if not configuration.energybalance.copperplate:
+        if not config["energybalance"]["copperplate"]["value"]:
             cost_carbon_from_networks = sum(
                 sum(
                     model.network_block[netw].var_netw_emissions_pos[t]
@@ -469,7 +509,7 @@ def add_system_costs(energyhub):
     model.const_cost_carbon = Constraint(rule=init_carbon_cost)
 
     def init_total_cost(const):
-        if configuration.energybalance.violation >= 0:
+        if config["energybalance"]["violation"]["value"] >= 0:
             violation_cost = model.var_violation_cost
         else:
             violation_cost = 0
