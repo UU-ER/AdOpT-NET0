@@ -40,12 +40,8 @@
   "Flexibility": {
     "comment": "determines the flexibility of the power capacity compared to the energy capacity",
     "power_energy_ratio": "flex",
-    "size_charge_min": 0,
-    "size_charge_max": 1000,
-    "size_charge_is_int": 0,
-    "size_discharge_min": 0,
-    "size_discharge_max": 1000,
-    "size_discharge_is_int": 0,
+    "charge_rate": 5,
+    "discharge_rate": 5,
     "capex_charging_power": 10,
     "capex_discharging_power": 10
   },
