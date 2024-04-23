@@ -209,7 +209,7 @@ def create_optimization_templates(path: Path | str) -> None:
         "carriers": ["electricity", "hydrogen"],
         "investment_periods": ["period1", "period2"],
         "start_date": "2022-01-01 00:00",
-        "end_date": "2022-12-31 00:00",
+        "end_date": "2022-12-31 23:00",
         "resolution": "1h",
         "investment_period_length": 1,
     }

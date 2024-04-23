@@ -341,7 +341,7 @@ class DataHandle:
                     self.data_path
                     / investment_period
                     / "network_topology"
-                    / "new"
+                    / "existing"
                     / network
                     / "connection.csv",
                     sep=";",
@@ -350,7 +350,7 @@ class DataHandle:
                     self.data_path
                     / investment_period
                     / "network_topology"
-                    / "new"
+                    / "existing"
                     / network
                     / "distance.csv",
                     sep=";",
@@ -359,7 +359,7 @@ class DataHandle:
                     self.data_path
                     / investment_period
                     / "network_topology"
-                    / "new"
+                    / "existing"
                     / network
                     / "size.csv",
                     sep=";",
@@ -368,7 +368,7 @@ class DataHandle:
                     self.data_path
                     / investment_period
                     / "network_topology"
-                    / "new"
+                    / "existing"
                     / network
                     / "size_max_arcs.csv",
                     sep=";",
