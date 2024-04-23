@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 
 from .utilities import *
-from .import_data import import_jrc_climate_data
+from ..data_preprocessing.data_loading import import_jrc_climate_data
 from ..components.networks import *
 from ..logger import logger
 

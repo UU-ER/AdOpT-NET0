@@ -1,5 +1,5 @@
 from src.model_configuration import ModelConfiguration
-import src.data_management as dm
+import src.data_preprocessing as dp
 from src.energyhub import EnergyHub
 import numpy as np
 
@@ -8,14 +8,19 @@ import numpy as np
 # Todo: make it possible to add technology blocks retrospectively
 # Todo: logging
 
-path = "C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/ExamplaryCaseStudy"
-# dm.create_optimization_templates(path)
-# dm.create_input_data_folder_template(path)
+path = "C:/Users/6574114/OneDrive - Universiteit Utrecht/PhD Jan/ExamplaryCaseStudy1"
+# dp.create_optimization_templates(path)
+# dp.create_input_data_folder_template(path)
+
+dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
+dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
+dp.load_climate_data_from_api(path)
 
 
-pyhub = EnergyHub()
-pyhub.read_data(path, start_period=0, end_period=3)
-pyhub.construct_model()
+#
+# pyhub = EnergyHub()
+# pyhub.read_data(path, start_period=0, end_period=3)
+# pyhub.construct_model()
 
 
 # dm.create_optimization_templates(path)
