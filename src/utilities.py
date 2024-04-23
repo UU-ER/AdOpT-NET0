@@ -26,21 +26,3 @@ def get_glpk_parameters(solveroptions):
     solver = SolverFactory("glpk")
 
     return solver
-
-
-class ModelInformation:
-    def __init__(self):
-        self.clustered_data = 0
-
-        self.averaged_data = 0
-        self.averaged_data_specs = SimpleNamespace()
-        self.averaged_data_specs.stage = 0
-        self.averaged_data_specs.nr_timesteps_averaged = 1
-
-        self.pareto_point = 0
-        self.monte_carlo_run = 0
-
-        self.tec_data_path = None
-        self.netw_data_path = None
-
-        self.testing = 0

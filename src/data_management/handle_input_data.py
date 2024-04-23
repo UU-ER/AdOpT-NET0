@@ -5,7 +5,6 @@ from pathlib import Path
 
 from .utilities import *
 from .import_data import import_jrc_climate_data
-from ..utilities import ModelInformation
 from ..components.networks import *
 from ..logger import logger
 

@@ -149,9 +149,11 @@ class HydroOpen(Technology):
         if performance_data["maximum_discharge_time_discrete"]:
             hydro_maximum_discharge = coeff["hydro_maximum_discharge"]
 
-        nr_timesteps_averaged = (
-            energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
-        )
+        # Todo: needs to be fixed with averaging algorithm
+        # nr_timesteps_averaged = (
+        #     energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
+        # )
+        nr_timesteps_averaged = 1
 
         # Additional decision variables
         b_tec.var_storage_level = Var(

@@ -141,6 +141,7 @@ class Technology(ModelComponent):
         config = data["config"]
 
         # MODELING TYPICAL DAYS
+        self.set_t_full = set_t
         if config["optimization"]["typicaldays"]["N"]["value"] != 0:
             if config["optimization"]["typicaldays"]["method"]["value"] == 2:
                 technologies_modelled_with_full_res = ["RES", "STOR", "Hydro_Open"]
@@ -177,10 +178,9 @@ class Technology(ModelComponent):
             self.output = b_tec.var_output
             self.set_t = set_t
             self.sequence = list(self.set_t)
-        self.set_t_full = set_t
 
         # DYNAMICS
-        if config["performance"]["dynamics"]:
+        if config["performance"]["dynamics"]["value"]:
             technologies_modelled_with_dynamics = ["CONV1", "CONV2", "CONV3"]
             if self.technology_model in technologies_modelled_with_dynamics:
                 b_tec = self._define_dynamics(b_tec)
@@ -494,10 +494,14 @@ class Technology(ModelComponent):
         fitted_performance = self.fitted_performance
         technology_model = self.technology_model
         modelled_with_full_res = self.modelled_with_full_res
+        config = data["config"]
 
         # set_t and sequence
-        set_t = data.model.set_t_full
-        if data.model_information.clustered_data and not modelled_with_full_res:
+        set_t = self.set_t_full
+        if (
+            config["optimization"]["typicaldays"]["N"]["value"] != 0
+            and not self.modelled_with_full_res
+        ):
             sequence = data.data.k_means_specs.full_resolution["sequence"]
 
         if existing:
@@ -514,7 +518,10 @@ class Technology(ModelComponent):
             b_tec.set_input_carriers = Set(initialize=performance_data["input_carrier"])
 
             def init_input_bounds(bounds, t, car):
-                if data.model_information.clustered_data and not modelled_with_full_res:
+                if (
+                    config["optimization"]["typicaldays"]["N"]["value"] != 0
+                    and not self.modelled_with_full_res
+                ):
                     return tuple(
                         fitted_performance.bounds["input"][car][sequence[t - 1] - 1, :]
                         * size_max
@@ -546,12 +553,16 @@ class Technology(ModelComponent):
         performance_data = self.performance_data
         fitted_performance = self.fitted_performance
         modelled_with_full_res = self.modelled_with_full_res
+        config = data["config"]
 
         rated_power = fitted_performance.rated_power
 
         # set_t
-        set_t = data.model.set_t_full
-        if data.model_information.clustered_data and not modelled_with_full_res:
+        set_t = self.set_t_full
+        if (
+            config["optimization"]["typicaldays"]["N"]["value"] != 0
+            and not self.modelled_with_full_res
+        ):
             sequence = data.data.k_means_specs.full_resolution["sequence"]
 
         if existing:
@@ -563,7 +574,10 @@ class Technology(ModelComponent):
         b_tec.set_output_carriers = Set(initialize=performance_data["output_carrier"])
 
         def init_output_bounds(bounds, t, car):
-            if data.model_information.clustered_data and not modelled_with_full_res:
+            if (
+                config["optimization"]["typicaldays"]["N"]["value"] != 0
+                and not self.modelled_with_full_res
+            ):
                 return tuple(
                     fitted_performance.bounds["output"][car][sequence[t - 1] - 1, :]
                     * size_max
@@ -589,7 +603,7 @@ class Technology(ModelComponent):
         Defines variable and fixed OPEX
         """
         economics = self.economics
-        set_t = data.model.set_t_full
+        set_t = self.set_t_full
 
         # VARIABLE OPEX
         b_tec.para_opex_variable = Param(
@@ -621,7 +635,7 @@ class Technology(ModelComponent):
         Defines Emissions
         """
 
-        set_t = data.model.set_t_full
+        set_t = self.set_t_full
         performance_data = self.performance_data
         technology_model = self.technology_model
         emissions_based_on = self.emissions_based_on
@@ -718,7 +732,7 @@ class Technology(ModelComponent):
         Defines auxiliary variables, that are required for the modelling of clustered data
         """
         set_t_clustered = data.model.set_t_clustered
-        set_t_full = data.model.set_t_full
+        set_t_full = self.set_t_full
         self.set_t = set_t_clustered
         self.sequence = data.data.k_means_specs.full_resolution["sequence"]
 
