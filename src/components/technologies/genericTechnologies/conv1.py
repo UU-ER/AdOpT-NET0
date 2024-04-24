@@ -91,6 +91,7 @@ class Conv1(Technology):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
 
+        :param pd.Dataframe climate_data: dataframe containing climate data
         :param performance_data: contains X and y data of technology performance
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
         :param nr_seg: number of segments on piecewise defined function

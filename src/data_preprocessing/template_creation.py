@@ -23,7 +23,7 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
     """
     This function creates the input data folder structure required to organize the input data to the model.
     Note that the folder needs to already exist with a Topology.json file in it that specifies the nodes, carriers,
-    timesteps, investement periods and the length of the investment period.
+    timesteps, investment periods and the length of the investment period.
 
     You can create an examplary json template with the function `create_topology_template`
 
