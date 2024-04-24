@@ -9,6 +9,8 @@ from pyomo.environ import (
     TransformationFactory,
     minimize,
     Suffix,
+    SolverStatus,
+    TerminationCondition,
 )
 import os
 import time
@@ -252,7 +254,6 @@ class EnergyHub:
         """
         self.construct_model()
         self.construct_balances()
-
         self.solve()
 
     def construct_balances(self):
@@ -685,12 +686,21 @@ class EnergyHub:
         self.solution.write()
 
         # Write H5 File
-        # Todo: termination conditions for different solvers. best implemented in the solver parameters
-        if self.solution.solver.termination_condition == "optimal":
+        if (self.solution.solver.status == SolverStatus.ok) or (
+            self.solution.solver.status == SolverStatus.warning
+        ):
 
             model = self.model["full"]
 
-            summary_dict = write_optimization_results_to_h5(model, result_folder_path)
+            objective = config["optimization"]["objective"]["value"]
+            # Fixme: change this for pareto points and averaging
+            model_info = {}
+            model_info["pareto_point"] = 0
+            model_info["monte_carlo_run"] = 0
+            model_info["config"] = config
+            summary_dict = write_optimization_results_to_h5(
+                model, self.solution, result_folder_path, model_info, self.data
+            )
 
             # Write Summary
             if not os.path.exists(save_summary_path):
