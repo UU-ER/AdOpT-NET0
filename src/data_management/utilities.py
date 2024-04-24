@@ -73,8 +73,7 @@ def perform_k_means(full_resolution, nr_clusters):
 
 
 def compile_sequence(
-    day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day
-):
+    day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
     """
 
     :param day_labels: labels for each typical day
@@ -115,31 +114,27 @@ def compile_full_resolution_matrix(data_full_res, nr_time_intervals_per_day):
     time_intervals = range(1, nr_time_intervals_per_day + 1)
     nr_of_days_full_res = len(data_full_res) // nr_time_intervals_per_day
 
-    iterables = [data_full_res.columns.levels, ["one", "two"]]
-
-    # Create MultiIndex with levels for original columns and repeated columns
-    columns = pd.MultiIndex.from_product(iterables)
-
-    # Create an empty DataFrame with the MultiIndex columns
-    full_res_matrix = pd.DataFrame(columns=columns, index=data_full_res.index)
-
-    # Fill the new DataFrame with the repeated data
+    # Reshape each column into a DataFrame with nr_of_days_full_res rows and nr_time_intervals_per_day columns
+    reshaped_data = pd.DataFrame()
     for col in data_full_res.columns:
-        # Repeat each column nr_time_intervals times
-        repeated_col = pd.concat([data_full_res[col]] * nr_time_intervals_per_day, axis=1)
-        # Assign repeated column to appropriate level in MultiIndex
-        full_res_matrix[col] = repeated_col.values.flatten()
+        col_data = data_full_res[col].values.reshape(nr_of_days_full_res, nr_time_intervals_per_day)
+        col_df = pd.DataFrame(col_data, columns=time_intervals)
+        reshaped_data = pd.concat([reshaped_data, col_df], axis=1)
 
+    # Repeat each row of the index frame separately and add time_intervals as the last column
+    index_frame = data_full_res.columns.to_frame()
+    repeated_frames = []
+    for _, row in index_frame.iterrows():
+        repeated_index = pd.concat([pd.DataFrame(row).T] * nr_time_intervals_per_day, ignore_index=True)
+        repeated_index['Time Interval'] = sorted(list(time_intervals))
+        repeated_frames.append(repeated_index)
+    repeated_index = pd.concat(repeated_frames)
 
+    # Set index with the modified frame
+    reshaped_data.columns = pd.MultiIndex.from_frame(repeated_index)
 
+    return reshaped_data
 
-def define_multiindex(ls):
-    """
-    Create a multi index from a list
-    """
-    multi_index = list(zip(*ls))
-    multi_index = pd.MultiIndex.from_tuples(multi_index)
-    return multi_index
 
 def reshape_df(series_to_add, column_names, nr_cols):
     """

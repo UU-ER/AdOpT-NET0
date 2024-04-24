@@ -412,13 +412,13 @@ class DataHandle:
             )
             # Create factors, indicating how many times an hour occurs
             self.k_means_specs["factors"] = get_day_factors(
-                self.k_means_specs["sequence"]
+                self.k_means_specs["sequence"][investment_period]
             )
         clustered_data = pd.concat(
             clustered_data.values(), axis=1, keys=clustered_data.keys()
         )
         clustered_data.columns.set_names(
-            ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2"], inplace=True
+            ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2", "Timestep"], inplace=True
         )
         self.time_series["clustered"] = clustered_data
 
