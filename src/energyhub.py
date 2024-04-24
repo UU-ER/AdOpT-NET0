@@ -993,7 +993,7 @@ class EnergyHub:
 
         for t in set_t:
             # Update parameter
-            b_node.para_export_price[t, car] = export_prices.iloc[t - 1] * sd_random
+            b_node.para_export_price[t, car] = export_prices[t - 1] * sd_random
 
             # Remove constraint (from persistent solver and from model)
             self.solver.remove_constraint(model.const_node_cost)
