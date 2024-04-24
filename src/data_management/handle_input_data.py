@@ -119,7 +119,7 @@ class DataHandle:
             for node in self.topology["nodes"]:
                 # Carbon Costs
                 var = "CarbonCost"
-                carrier = ""
+                carrier = "global"
                 carbon_cost = pd.read_csv(
                     self.data_path
                     / investment_period
@@ -136,7 +136,7 @@ class DataHandle:
 
                 # Climate Data
                 var = "ClimateData"
-                carrier = ""
+                carrier = "global"
                 climate_data = pd.read_csv(
                     self.data_path
                     / investment_period
@@ -153,7 +153,7 @@ class DataHandle:
 
                 # Carrier Data
                 var = "CarrierData"
-                carrier = ""
+                carrier = "global"
                 for carrier in self.topology["carriers"]:
                     carrier_data = pd.read_csv(
                         self.data_path
