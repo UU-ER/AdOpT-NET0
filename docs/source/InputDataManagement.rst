@@ -1,22 +1,25 @@
-Input Data Management
+Data Preprocessing
 =====================================
-The input data definition follows a two step approach. First the system topology is defined (i.e.
-carriers used, nodes, technologies at each node, networks, and time-horizon. Second, input data
-is defined. For the topology, the class SystemTopology is used (see :ref:`here <data-management-system_topology>`).
-The topology is passed to the class DataHandle, where you need to define further input data (see
-:ref:`here <data-management-data-handle>`). An example of how to define the system technology and the
-input data can be found :ref:`below <data-management-example-usage>`. Weather data for onshore location
-in Europe can imported from a JRC database using the import functions provided.
+In order to prepare the model for your application, you will have to set up a working directory for all data
+preprocessing and take the following steps:
+
+- Create the templates for the system topology and the model configuration.
+- Define your system topology.
+- Create the templates for the input data files.
+- Load and define input data.
+
+An example of how to set up the model accordingly can be found :ref:`below <data-preprocessing_example-usage>`. For a more
+detailed description of each of the aforementioned steps, see the following pages:
 
 .. toctree::
     :maxdepth: 1
 
-    data_management/SystemTopology
-    data_management/DataHandle
-    data_management/ImportFunctions
+    data_preprocessing/CreateModelTemplates
+    data_preprocessing/DefineTopology
+    data_preprocessing/CreateDataTemplates
+    data_preprocessing/LoadData
 
-
-..  _data-management-example-usage:
+..  _data-preprocessing_example-usage:
 
 Example Usage
 ^^^^^^^^^^^^^^^^
