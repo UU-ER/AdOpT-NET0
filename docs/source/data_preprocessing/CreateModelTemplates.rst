@@ -1,4 +1,4 @@
-..  _data-preprocessing_create-model-templates:
+.. _data-preprocessing_create-model-templates:
 
 Creating Model Templates
 =====================================

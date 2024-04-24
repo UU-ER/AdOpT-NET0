@@ -1,6 +1,6 @@
-..  _data-management-data-handle:
+..  _data-preprocessing_data-handle:
 
-Define Input Data
+The DataHandle Class
 =====================================
 ``src.data_management.handle_input_data.DataHandle`` provides a class for data storage and methods to import
 and manipulate data consistent with the model.

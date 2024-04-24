@@ -11,8 +11,8 @@ model conversion technologies and networks for any carrier.
 To define an energy system to optimize, you need to:
 
 #. Define a topology, i.e. which carriers, nodes, technologies and networks are part of the system (see
-   documentation :ref:`here <data-management-system_topology>`) and the input data, e.g. weather data,
-   technology performance, etc. (see documentation :ref:`here <data-management-data-handle>`).
+   documentation :ref:`here <data-preprocessing_define-topology>`) and the input data, e.g. weather data,
+   technology performance, etc. (see documentation :ref:`here <data-preprocessing_data-handle>`).
 
 #. Define the modeling configuration, i.e. objective, global optimization settings, solver options, etc. (see documentation :ref:`here <model_configuration>`).
 
@@ -28,7 +28,7 @@ Table of Content
 .. toctree::
    :maxdepth: 2
 
-   InputDataManagement
+   DataPreprocessing
    ModelComponents
    ModelConfiguration
    ModelConstruction

@@ -1,3 +1,5 @@
+.. _data-preprocessing:
+
 Data Preprocessing
 =====================================
 In order to prepare the model for your application, you will have to set up a working directory for all data
@@ -9,7 +11,8 @@ preprocessing and take the following steps:
 - Load and define input data.
 
 An example of how to set up the model accordingly can be found :ref:`below <data-preprocessing_example-usage>`. For a more
-detailed description of each of the aforementioned steps, see the following pages:
+detailed description of each of the aforementioned steps, and for the class that handles this data behind the scenes,
+see the following pages:
 
 .. toctree::
     :maxdepth: 1
@@ -18,6 +21,7 @@ detailed description of each of the aforementioned steps, see the following page
     data_preprocessing/DefineTopology
     data_preprocessing/CreateDataTemplates
     data_preprocessing/LoadData
+    data_preprocessing/DataHandle
 
 ..  _data-preprocessing_example-usage:
 
