@@ -12,7 +12,7 @@ from ..technology import Technology
 
 
 class GasTurbine(Technology):
-    r"""
+    """
     Resembles gas turbines of different sizes.
     Hydrogen and Natural Gas Turbines are possible at four different sizes, as indicated by the file names
     of the data. Performance data and the model is taken from Weimann, L., Ellerker, M., Kramer, G. J., &
@@ -344,9 +344,7 @@ class GasTurbine(Technology):
 
     def _define_ramping_rates(self, b_tec):
         """
-        Constraints the inputs for a ramping rate. The ramping rate can either be defined by the installed capacity or a
-        predefined reference size, and is divided by the ramping time. In case of performance type 2 or 3 the user can
-        decide whether the ramping rate is always constrained or only when the technology is on (x_t = 1 and x_t-1 = 1).
+        Constraints the inputs for a ramping rate
 
         :param b_tec: technology model block
         :return:

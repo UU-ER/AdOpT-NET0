@@ -134,6 +134,11 @@ if execute == 1:
             .var_x[i]
             .value
         )
+    print('finish')
+
+
+    for i in range(1, 10):
+        print(energyhub.model.node_blocks['test_node1'].tech_blocks_active['testCONV3_2'].var_x[i].value)
 
 
 execute = 0

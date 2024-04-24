@@ -268,7 +268,6 @@ class HeatPump(Technology):
                         == alpha1.iloc[t - 1] * self.input[t, "electricity"]
                         + alpha2.iloc[t - 1] * b_tec.var_size * rated_power
                     )
-
                 dis.const_input_output_on = Constraint(rule=init_input_output_on)
 
                 # min part load relation
@@ -370,9 +369,7 @@ class HeatPump(Technology):
 
     def _define_ramping_rates(self, b_tec):
         """
-        Constraints the inputs for a ramping rate. The ramping rate can either be defined by the installed capacity or a
-        predefined reference size, and is divided by the ramping time. In case of performance type 2 or 3 the user can
-        decide whether the ramping rate is always constrained or only when the technology is on (x_t = 1 and x_t-1 = 1).
+        Constraints the inputs for a ramping rate
 
         :param b_tec: technology model block
         :return:

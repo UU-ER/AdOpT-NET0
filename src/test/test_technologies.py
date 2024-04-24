@@ -1024,6 +1024,7 @@ def test_technology_CONV3():
     data = load_object(r"./src/test/test_data/technology_CONV3_3.p")
     data.node_data["test_node1"].data["demand"]["heat"].iloc[1] = 0.001
     data.node_data["test_node1"].data["export_limit"]["electricity"].iloc[1] = 0
+
     energyhub = EnergyHub(data, configuration)
     energyhub.configuration.reporting.save_path = "./src/test/results"
     energyhub.configuration.reporting.save_summary_path = "./src/test/results"
@@ -1828,7 +1829,7 @@ def test_fast_dynamics():
                     3,
                 )
 
-                assert abs(main_in_1 - main_in_2) <= refsize / RT
+                assert abs(main_in_1 - main_in_2) <= RR
 
                 main_in_5 = round(
                     energyhub2.model.node_blocks["test_node1"]
@@ -1845,7 +1846,7 @@ def test_fast_dynamics():
                     3,
                 )
 
-                assert abs(main_in_5 - main_in_6) <= refsize / RT
+                assert abs(main_in_5 - main_in_6) <= RR
 
                 main_in_7 = round(
                     energyhub2.model.node_blocks["test_node1"]
@@ -1862,7 +1863,7 @@ def test_fast_dynamics():
                     3,
                 )
 
-                assert abs(main_in_7 - main_in_8) <= refsize / RT
+                assert abs(main_in_7 - main_in_8) <= RR
 
                 # Test technology dynamic parameters: SU_load and SD_load
                 data.technology_data["test_node1"][tecname].performance_data[

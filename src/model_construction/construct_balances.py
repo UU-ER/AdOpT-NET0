@@ -23,9 +23,12 @@ def add_energybalance(energyhub):
     # Delete previously initialized constraints
     if model.find_component("const_energybalance"):
         model.del_component(model.const_energybalance)
+        model.del_component(model.const_energybalance_index)
         if configuration.energybalance.violation >= 0:
             model.del_component(model.const_violation)
+            model.del_component(model.const_violation_index)
             model.del_component(model.var_violation)
+            model.del_component(model.var_violation_index)
             model.del_component(model.var_violation_cost)
 
     # energybalance at each node (always at full resolution)

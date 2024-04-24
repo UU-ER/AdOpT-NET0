@@ -55,9 +55,7 @@
       "electricity": 0.083,
       "steam": 0.492
     },
-    "ramping_time": -1,
-    "ref_size": -1,
-    "ramping_const_int": -1,
+    "ramping_rate": -1,
     "standby_power": -1,
     "min_uptime": -1,
     "min_downtime": -1,
