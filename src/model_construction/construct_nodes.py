@@ -1,7 +1,7 @@
-import time
-
 import numpy as np
 from pyomo.environ import *
+
+from src.model_construction.utilities import determine_network_energy_consumption
 
 
 def determine_carriers_from_time_series(time_series):
@@ -46,19 +46,6 @@ def determine_carriers_from_networks(network_data):
             carriers.append(car)
 
     return list(set(carriers))
-
-
-def determine_network_energy_consumption(network_data):
-    """
-    Determines if there is network consumption for a network
-    """
-    # Todo: This can be further extended to check if node is connected to network
-    network_energy_consumption = 0
-    for netw in network_data:
-        if not network_data[netw].energyconsumption["carrier"]:
-            network_energy_consumption = 1
-
-    return network_energy_consumption
 
 
 def construct_node_block(b_node, data, set_t):

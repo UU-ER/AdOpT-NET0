@@ -65,7 +65,7 @@ def get_summary(energyhub, folder_path):
     return summary_dict
 
 
-def write_optimization_results_to_h5(energyhub, folder_path):
+def write_optimization_results_to_h5(model, folder_path):
     """
     Collects the results from the model blocks and writes them to an HDF5 file using the h5py library.
     The summary results are returned in a dictionary format for further processing into an excel in the energyhub.
@@ -74,7 +74,6 @@ def write_optimization_results_to_h5(energyhub, folder_path):
     :param energyhub:
     :return: summary_dict
     """
-    model = energyhub.model
     set_t = model.set_t_full
 
     # create the results h5 file in the results folder

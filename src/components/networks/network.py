@@ -359,13 +359,13 @@ class Network(ModelComponent):
                         ],
                     )
 
-    def scale_model(self, b_netw, model, configuration):
+    def scale_model(self, b_netw, model, config):
         """
         Scales technology model
         """
 
         f = self.scaling_factors
-        f_global = configuration.scaling_factors
+        f_global = config["scaling_factors"]
 
         model = determine_variable_scaling(model, b_netw, f, f_global)
         model = determine_constraint_scaling(model, b_netw, f, f_global)
@@ -485,7 +485,7 @@ class Network(ModelComponent):
         economics = self.economics
 
         # CHECK FOR GLOBAL ECONOMIC OPTIONS
-        discount_rate = set_discount_rate(configuration, economics)
+        discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
 
         # CAPEX

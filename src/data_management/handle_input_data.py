@@ -13,11 +13,7 @@ class DataHandle:
     Data Handle for loading and performing operations on input data.
 
     The Data Handle class reads in the data previously specified in the respective input data folder. Pass the
-    folder path when initializing the class:
-
-    .. code-block:: python
-
-       data = DataHandle(path)
+    folder path when initializing the class.
     """
 
     def __init__(

@@ -1,31 +1,27 @@
 from pathlib import Path
-from pyomo.environ import ConcreteModel, Set, Block
+from pyomo.environ import (
+    ConcreteModel,
+    Set,
+    Block,
+    Objective,
+    Var,
+    Constraint,
+    TransformationFactory,
+    minimize,
+    Suffix,
+)
 import os
 import time
+import numpy as np
+import pandas as pd
+import sys
+import datetime
 
 from .logger import logger
 from .data_management import DataHandle
-
-# import numpy as np
-# import pandas as pd
-# import dill as pickle
-# import time
-# import copy
-# import warnings
-# import datetime
-# from pathlib import Path
-# import os
-# import sys
-#
 from .model_construction import *
-
-# from .data_management import *
-# from .utilities import *
-# from .components.utilities import annualize, set_discount_rate
-# from .components.technologies.utilities import set_capex_model
-# from .result_management import *
-
-import logging
+from .utilities import get_glpk_parameters, get_gurobi_parameters
+from .result_management import *
 
 
 class EnergyHub:
@@ -34,23 +30,16 @@ class EnergyHub:
 
     When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
     class:
-    - self.configuration: Contains options for the optimization and is passed to the constructor
-    - self.model: A concrete Pyomo model
-    -
-
-    **Set declarations:**
-
-    - Set of nodes :math:`N`
-    - Set of carriers :math:`M`
-    - Set of time steps :math:`T`
-    - Set of weather variables :math:`W`
-    - Set of technologies at each node :math:`S_n, n \in N`
-
+    - self.logger: Logger
+    - self.data: Data container
+    - self.model: Model container
+    - self.solution: Solution container
+    - self.solver: Solver container
     """
 
     def __init__(self):
         """
-        Constructor of the energyhub class.
+        Constructor
         """
         self.logger = logger
 
@@ -63,7 +52,13 @@ class EnergyHub:
         self, data_path: Path | str, start_period: int = 0, end_period: int = -1
     ) -> None:
         """
-        Reads in data from the specified path
+        Reads in data from the specified path. The data is specified as the DataHandle class
+        Specifying the start_period and end_period parameter allows to run a shorter time horizon than as specified
+        in the topology (e.g. for testing)
+
+        :param Path, str data_path: Path of folder structure to read data from
+        :param int start_period: starting period of the model
+        :param int end_period: end period of the model
         """
         self.logger.info("--- Reading in data ---")
         print("_" * 60)
@@ -76,7 +71,12 @@ class EnergyHub:
         print("--- Reading in data complete ---")
 
     def construct_model(self):
+        """
+        Construct the model.
 
+        :return:
+        :rtype:
+        """
         self.logger.info("--- Constructing Model ---")
         print("_" * 60)
         print("--- Constructing Model ---")
@@ -97,6 +97,10 @@ class EnergyHub:
         model.set_periods = Set(initialize=topology["investment_periods"])
         model.set_nodes = Set(initialize=topology["nodes"])
         model.set_carriers = Set(initialize=topology["carriers"])
+
+        # DEFINE GLOBAL VARIABLES
+        model.var_npv = Var()
+        model.var_emissions_net = Var()
 
         # Investment Period Block
         def init_period_block(b_period):
@@ -164,7 +168,7 @@ class EnergyHub:
 
                     return b_tec
 
-                b_node.tech_blocks_new = Block(
+                b_node.tech_blocks_active = Block(
                     b_node.set_technologies, rule=init_technology_block
                 )
 
@@ -251,80 +255,6 @@ class EnergyHub:
 
         self.solve()
 
-    #
-    # def construct_model(self):
-    #     """
-    #     Constructs model equations, defines objective functions and calculates emissions.
-    #
-    #     This function constructs the initial model with all its components as specified in the
-    #     topology. It adds (1) networks (:func:`~add_networks`), and (2) nodes and technologies
-    #     (:func:`~src.model_construction.construct_nodes.add_nodes` including \
-    #     :func:`~add_technologies`)
-    #     """
-    #     print("_" * 60)
-    #     print("Constructing Model...")
-    #     start = time.time()
-    #
-    #     # DEFINE SETS
-    #     # Nodes, Carriers, Technologies, Networks
-    #     topology = self.data.topology
-    #     self.model.set_nodes = Set(initialize=topology.nodes)
-    #     self.model.set_carriers = Set(initialize=topology.carriers)
-    #
-    #     def tec_node(set, node):
-    #         if self.data.technology_data:
-    #             return self.data.technology_data[node].keys()
-    #         else:
-    #             return Set.Skip
-    #
-    #     self.model.set_technologies = Set(self.model.set_nodes, initialize=tec_node)
-    #     self.model.set_networks = Set(initialize=list(self.data.network_data.keys()))
-    #
-    #     # Time Frame
-    #     self.model.set_t_full = RangeSet(1, len(self.data.topology.timesteps))
-    #
-    #     if self.model_information.clustered_data == 1:
-    #         self.model.set_t_clustered = RangeSet(
-    #             1, len(self.data.topology.timesteps_clustered)
-    #         )
-    #
-    #     # DEFINE VARIABLES
-    #     # Global cost variables
-    #     self.model.var_node_cost = Var()
-    #     self.model.var_netw_cost = Var()
-    #     self.model.var_total_cost = Var()
-    #     self.model.var_carbon_revenue = Var()
-    #     self.model.var_carbon_cost = Var()
-    #
-    #     # Global Emission variables
-    #     self.model.var_emissions_pos = Var()
-    #     self.model.var_emissions_neg = Var()
-    #     self.model.var_emissions_net = Var()
-    #
-    #     # Parameters
-    #     def init_carbon_subsidy(para, t):
-    #         return self.data.global_data.data["carbon_prices"]["subsidy"].iloc[t - 1]
-    #
-    #     self.model.para_carbon_subsidy = Param(
-    #         self.model.set_t_full, rule=init_carbon_subsidy, mutable=True
-    #     )
-    #
-    #     def init_carbon_tax(para, t):
-    #         return self.data.global_data.data["carbon_prices"]["tax"].iloc[t - 1]
-    #
-    #     self.model.para_carbon_tax = Param(
-    #         self.model.set_t_full, rule=init_carbon_tax, mutable=True
-    #     )
-    #
-    #     # Model construction
-    #     if not config["energybalance"]["copperplate"]["value"]:
-    #         self.model = add_networks(self)
-    #     self.model = add_nodes(self)
-    #
-    #     print(
-    #         "Constructing model completed in " + str(round(time.time() - start)) + " s"
-    #     )
-
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
@@ -336,9 +266,20 @@ class EnergyHub:
         print("Constructing balances...")
         start = time.time()
 
-        self.model = add_energybalance(self)
-        self.model = add_emissionbalance(self)
-        self.model = add_system_costs(self)
+        config = self.data.model_config
+        model = self.model["full"]
+
+        model = delete_all_balances(model)
+
+        if not config["energybalance"]["copperplate"]["value"]:
+            model = construct_network_constraints(model)
+            model = construct_nodal_energybalance(model, config)
+        else:
+            model = construct_global_energybalance(model, config)
+
+        model = construct_emission_balance(model, config)
+        model = construct_system_cost(model, config)
+        model = construct_global_balance(model)
 
         print(
             "Constructing balances completed in "
@@ -354,6 +295,8 @@ class EnergyHub:
         ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
         ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
+        config = self.data.model_config
+
         objective = config["optimization"]["objective"]["value"]
 
         self._define_solver_settings()
@@ -396,6 +339,9 @@ class EnergyHub:
         """
         Defines solver and its settings depending on objective and solver
         """
+        config = self.data.model_config
+        model = self.model["full"]
+
         objective = config["optimization"]["objective"]["value"]
 
         # Set solver
@@ -404,20 +350,20 @@ class EnergyHub:
             "gurobi_persistent",
         ]:
             # Gurobi
-            if not self.configuration.scaling:
+            if not config["scaling"]["scaling_on"]["value"]:
                 if (
                     objective in ["emissions_minC", "pareto"]
                     or config["optimization"]["monte_carlo"]["on"]["value"]
                 ):
                     config["solveroptions"]["solver"]["value"] = "gurobi_persistent"
-            self.solver = get_gurobi_parameters(self.configuration.solveroptions)
+            self.solver = get_gurobi_parameters(config["solveroptions"])
 
         elif config["solveroptions"]["solver"]["value"] == "glpk":
-            self.solver = get_glpk_parameters(self.configuration.solveroptions)
+            self.solver = get_glpk_parameters(config["solveroptions"])
 
         # For persistent solver, set model instance
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-            self.solver.set_instance(self.model)
+            self.solver.set_instance(model)
 
     def _optimize(self, objective):
         """
@@ -438,22 +384,25 @@ class EnergyHub:
             raise Exception("objective in Configurations is incorrect")
 
         # Second stage of time averaging algorithm
-        if (
-            self.model_information.averaged_data
-            and self.model_information.averaged_data_specs.stage == 0
-        ):
-            self._optimize_time_averaging_second_stage()
+        # Fixme: averaging fix
+        # if (
+        #     self.model_information.averaged_data
+        #     and self.model_information.averaged_data_specs.stage == 0
+        # ):
+        #     self._optimize_time_averaging_second_stage()
 
     def _optimize_cost(self):
         """
         Minimizes Costs
         """
+        model = self.model["full"]
+
         self._delete_objective()
 
         def init_cost_objective(obj):
-            return self.model.var_total_cost
+            return model.var_npv
 
-        self.model.objective = Objective(rule=init_cost_objective, sense=minimize)
+        model.objective = Objective(rule=init_cost_objective, sense=minimize)
         self._call_solver()
 
     def _optimize_emissions_pos(self):
@@ -488,6 +437,8 @@ class EnergyHub:
         """
         Minimize costs at emission limit
         """
+        config = self.data.model_config
+
         emission_limit = config["optimization"]["emission_limit"]["value"]
         if self.model.find_component("const_emission_limit"):
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
@@ -504,6 +455,8 @@ class EnergyHub:
         """
         Minimize costs at minimum emissions
         """
+        config = self.data.model_config
+
         self._optimize_emissions_net()
         emission_limit = self.model.var_emissions_net.value
         if self.model.find_component("const_emission_limit"):
@@ -521,6 +474,7 @@ class EnergyHub:
         """
         Optimize the pareto front
         """
+        config = self.data.model_config
         pareto_points = config["optimization"]["pareto_points"]["value"]
 
         # Min Cost
@@ -553,6 +507,8 @@ class EnergyHub:
         """
         Optimizes multiple runs with monte carlo
         """
+        config = self.data.model_config
+
         for run in range(0, config["optimization"]["monte_carlo"]["value"].N):
             self.model_information.monte_carlo_run += 1
             self._monte_carlo_set_cost_parameters()
@@ -566,98 +522,101 @@ class EnergyHub:
         Creates a scaled model in self.scaled_model using the scale factors specified in the json files for technologies
         and networks as well as the global scaling factors specified. See also the documentation on model scaling.
         """
+        config = self.data.model_config
 
-        f_global = self.configuration.scaling_factors
-        self.model.scaling_factor = Suffix(direction=Suffix.EXPORT)
+        f_global = config["scaling_factors"]["value"]
+        model_full = self.model["full"]
+
+        model_full.scaling_factor = Suffix(direction=Suffix.EXPORT)
 
         # Scale technologies
-        for node in self.model.node_blocks:
-            for tec in self.model.node_blocks[node].tech_blocks_active:
-                b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
-                self.model = self.data.technology_data[node][tec].scale_model(
-                    b_tec, self.model, self.configuration
+        for node in model_full.node_blocks:
+            for tec in model_full.node_blocks[node].tech_blocks_active:
+                b_tec = model_full.node_blocks[node].tech_blocks_active[tec]
+                model_full = self.data.technology_data[node][tec].scale_model(
+                    b_tec, model_full, config
                 )
 
         # Scale networks
-        for netw in self.model.network_block:
-            b_netw = self.model.network_block[netw]
-            self.model = self.data.network_data[netw].scale_model(
-                b_netw, self.model, self.configuration
+        for netw in model_full.network_block:
+            b_netw = model_full.network_block[netw]
+            model_full = self.data.network_data[netw].scale_model(
+                b_netw, model_full, config
             )
 
         # Scale objective
-        self.model.scaling_factor[self.model.objective] = (
+        model_full.scaling_factor[model_full.objective] = (
             f_global.objective * f_global.cost_vars
         )
 
         # Scale globals
         if f_global.energy_vars >= 0:
-            self.model.scaling_factor[self.model.const_energybalance] = (
+            model_full.scaling_factor[model_full.const_energybalance] = (
                 f_global.energy_vars
             )
-            self.model.scaling_factor[self.model.const_cost] = (
+            model_full.scaling_factor[model_full.const_cost] = (
                 f_global.cost_vars * f_global.energy_vars
             )
-            self.model.scaling_factor[self.model.const_node_cost] = (
+            model_full.scaling_factor[model_full.const_node_cost] = (
                 f_global.cost_vars * f_global.energy_vars
             )
-            self.model.scaling_factor[self.model.const_netw_cost] = (
+            model_full.scaling_factor[model_full.const_netw_cost] = (
                 f_global.cost_vars * f_global.energy_vars
             )
-            self.model.scaling_factor[self.model.const_revenue_carbon] = (
+            model_full.scaling_factor[model_full.const_revenue_carbon] = (
                 f_global.cost_vars * f_global.energy_vars
             )
-            self.model.scaling_factor[self.model.const_cost_carbon] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-
-            self.model.scaling_factor[self.model.var_node_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            self.model.scaling_factor[self.model.var_netw_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            self.model.scaling_factor[self.model.var_total_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            self.model.scaling_factor[self.model.var_carbon_revenue] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            self.model.scaling_factor[self.model.var_carbon_cost] = (
+            model_full.scaling_factor[model_full.const_cost_carbon] = (
                 f_global.cost_vars * f_global.energy_vars
             )
 
-            for node in self.model.node_blocks:
-                self.model.scaling_factor[
-                    self.model.node_blocks[node].var_import_flow
+            model_full.scaling_factor[model_full.var_node_cost] = (
+                f_global.cost_vars * f_global.energy_vars
+            )
+            model_full.scaling_factor[model_full.var_netw_cost] = (
+                f_global.cost_vars * f_global.energy_vars
+            )
+            model_full.scaling_factor[model_full.var_total_cost] = (
+                f_global.cost_vars * f_global.energy_vars
+            )
+            model_full.scaling_factor[model_full.var_carbon_revenue] = (
+                f_global.cost_vars * f_global.energy_vars
+            )
+            model_full.scaling_factor[model_full.var_carbon_cost] = (
+                f_global.cost_vars * f_global.energy_vars
+            )
+
+            for node in model_full.node_blocks:
+                model_full.scaling_factor[
+                    model_full.node_blocks[node].var_import_flow
                 ] = f_global.energy_vars
-                self.model.scaling_factor[
-                    self.model.node_blocks[node].var_export_flow
+                model_full.scaling_factor[
+                    model_full.node_blocks[node].var_export_flow
                 ] = f_global.energy_vars
 
-                self.model.scaling_factor[
-                    self.model.node_blocks[node].var_netw_inflow
+                model_full.scaling_factor[
+                    model_full.node_blocks[node].var_netw_inflow
                 ] = f_global.energy_vars
-                self.model.scaling_factor[
-                    self.model.node_blocks[node].const_netw_inflow
-                ] = f_global.energy_vars
-
-                self.model.scaling_factor[
-                    self.model.node_blocks[node].var_netw_outflow
-                ] = f_global.energy_vars
-                self.model.scaling_factor[
-                    self.model.node_blocks[node].const_netw_outflow
+                model_full.scaling_factor[
+                    model_full.node_blocks[node].const_netw_inflow
                 ] = f_global.energy_vars
 
-                self.model.scaling_factor[
-                    self.model.node_blocks[node].var_generic_production
+                model_full.scaling_factor[
+                    model_full.node_blocks[node].var_netw_outflow
                 ] = f_global.energy_vars
-                self.model.scaling_factor[
-                    self.model.node_blocks[node].const_generic_production
+                model_full.scaling_factor[
+                    model_full.node_blocks[node].const_netw_outflow
                 ] = f_global.energy_vars
 
-        self.scaled_model = TransformationFactory("core.scale_model").create_using(
-            self.model
+                model_full.scaling_factor[
+                    model_full.node_blocks[node].var_generic_production
+                ] = f_global.energy_vars
+                model_full.scaling_factor[
+                    model_full.node_blocks[node].const_generic_production
+                ] = f_global.energy_vars
+
+        self.model["scaled"] = TransformationFactory("core.scale_model").create_using(
+            model_full
         )
         # self.scaled_model.pprint()
 
@@ -669,6 +628,7 @@ class EnergyHub:
         print("Solving Model...")
 
         start = time.time()
+        config = self.data.model_config
 
         # Create save path and folder
         time_stamp = datetime.datetime.fromtimestamp(start).strftime("%Y%m%d%H%M%S")
@@ -688,11 +648,11 @@ class EnergyHub:
         )
 
         # Scale model
-        if self.configuration.scaling == 1:
+        if config["scaling"]["scaling_on"]["value"] == 1:
             self.scale_model()
-            model = self.scaled_model
+            model = self.model["scaled"]
         else:
-            model = self.model
+            model = self.model["full"]
 
         # Call solver
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
@@ -714,9 +674,9 @@ class EnergyHub:
                 keepfiles=True,
             )
 
-        if self.configuration.scaling == 1:
+        if config["scaling"]["scaling_on"]["value"] == 1:
             TransformationFactory("core.scale_model").propagate_solution(
-                self.scaled_model, self.model
+                model, self.model["full"]
             )
 
         if config["reporting"]["write_solution_diagnostics"]["value"] >= 1:
@@ -725,9 +685,12 @@ class EnergyHub:
         self.solution.write()
 
         # Write H5 File
+        # Todo: termination conditions for different solvers. best implemented in the solver parameters
         if self.solution.solver.termination_condition == "optimal":
 
-            summary_dict = write_optimization_results_to_h5(self, result_folder_path)
+            model = self.model["full"]
+
+            summary_dict = write_optimization_results_to_h5(model, result_folder_path)
 
             # Write Summary
             if not os.path.exists(save_summary_path):
@@ -745,7 +708,7 @@ class EnergyHub:
         print("_" * 60)
 
     def _write_solution_diagnostics(self, save_path):
-
+        config = self.data.model_config
         model = self.solver._solver_model
         constraint_map = self.solver._pyomo_con_to_solver_con_map
         variable_map = self.solver._pyomo_var_to_solver_var_map
@@ -771,6 +734,7 @@ class EnergyHub:
         """
         Performs monte carlo analysis
         """
+        config = self.data.model_config
 
         if "Technologies" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
             for node in self.model.node_blocks:
@@ -795,15 +759,17 @@ class EnergyHub:
         """
         Changes the capex of technologies
         """
+        config = self.data.model_config
+
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
         tec_data = self.data.technology_data[node][tec]
         economics = tec_data.economics
-        discount_rate = set_discount_rate(self.configuration, economics)
+        discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = self.topology.fraction_of_year_modelled
 
-        capex_model = set_capex_model(self.configuration, economics)
+        capex_model = set_capex_model(config, economics)
         annualization_factor = annualize(
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
@@ -842,13 +808,14 @@ class EnergyHub:
         Changes the capex of networks
         """
         # TODO: This does not work!
+        config = self.data.model_config
 
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
         netw_data = self.data.network_data[netw]
         economics = netw_data.economics
-        discount_rate = set_discount_rate(self.configuration, economics)
+        discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = self.topology.fraction_of_year_modelled
 
         capex_model = economics.capex_model
@@ -921,6 +888,8 @@ class EnergyHub:
         """
         Changes the import prices
         """
+        config = self.data.model_config
+
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
@@ -1011,6 +980,8 @@ class EnergyHub:
         """
         Changes the export prices
         """
+        config = self.data.model_config
+
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
@@ -1101,9 +1072,12 @@ class EnergyHub:
         """
         Delete the objective function
         """
+        config = self.data.model_config
+        model = self.model["full"]
+
         if not config["optimization"]["monte_carlo"]["on"]["value"]:
             try:
-                self.model.del_component(self.model.objective)
+                model.del_component(model.objective)
             except:
                 pass
 
@@ -1134,8 +1108,8 @@ class EnergyHub:
         :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
         """
 
-        m_full = self.model
-        m_avg = self.model_first_stage
+        m_full = self.model["full"]
+        m_avg = self.model["avg_first_stage"]
 
         # Technologies
         if (
@@ -1193,15 +1167,3 @@ class EnergyHub:
             m_full.size_constraints_netw = Block(
                 m_full.set_networks, rule=size_constraint_block_netw_init
             )
-
-
-def load_energyhub_instance(load_path):
-    """
-    Loads an energyhub instance from file.
-
-    :param str file_path: path to previously saved energyhub instance
-    :return: energyhub instance
-    """
-    with open(Path(load_path), mode="rb") as file:
-        energyhub = pd.read_pickle(file)
-    return energyhub

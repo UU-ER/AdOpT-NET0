@@ -278,7 +278,7 @@ def create_optimization_templates(path: Path | str) -> None:
             "mipgap": {"description": "Value to define MIP gap.", "value": 0.001},
             "timelim": {
                 "description": "Value to define time limit in hours.",
-                "default": 10,
+                "value": 10,
             },
             "threads": {
                 "description": "Value to define number of threads (default is maximum available).",
@@ -342,6 +342,10 @@ def create_optimization_templates(path: Path | str) -> None:
                 "options": [0, 1],
                 "value": 1,
             },
+            "save_summary_path": {
+                "description": "Path to save the summary file path to.",
+                "value": "./userData/",
+            },
             "save_path": {
                 "description": "Option to define the save path.",
                 "value": "./userData/",
@@ -386,7 +390,7 @@ def create_optimization_templates(path: Path | str) -> None:
             }
         },
         "scaling": {
-            "scaling": {
+            "scaling_on": {
                 "description": "Determines if the model is scaled. If 1, it uses global and component specific scaling factors.",
                 "options": [0, 1],
                 "value": 0,
