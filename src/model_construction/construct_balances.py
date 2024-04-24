@@ -12,8 +12,8 @@ def delete_all_balances(model):
         model.del_component(model.const_violation)
     if model.find_component("var_violation"):
         model.del_component(model.var_violation)
-    if model.find_component("var_violation_cost"):
-        model.del_component(model.var_violation_cost)
+    if model.find_component("var_cost_violation"):
+        model.del_component(model.var_cost_violation)
     if model.find_component("const_emissions_tot"):
         model.del_component(model.const_emissions_tot)
         model.del_component(model.const_emissions_neg)
@@ -117,7 +117,7 @@ def construct_nodal_energybalance(model, config):
                 model.set_nodes,
                 domain=NonNegativeReals,
             )
-            b_ebalance.var_violation_cost = Var()
+            b_ebalance.var_cost_violation = Var()
 
         def init_energybalance(const, t, car, node):
             if car in b_period.node_blocks[node].set_carriers:
@@ -204,7 +204,7 @@ def construct_global_energybalance(model, config):
                 model.set_nodes,
                 domain=NonNegativeReals,
             )
-            b_ebalance.var_violation_cost = Var()
+            b_ebalance.var_cost_violation = Var()
 
         def init_energybalance_global(const, t, car):
             tec_output = sum(
@@ -524,7 +524,7 @@ def construct_system_cost(model, config):
         def init_violation_cost(const):
             if config["energybalance"]["violation"]["value"] >= 0:
                 return (
-                    b_period.var_violation_cost
+                    b_period.var_cost_violation
                     == sum(
                         sum(
                             sum(b_period.var_violation[t, car, node] for t in set_t)
@@ -535,7 +535,7 @@ def construct_system_cost(model, config):
                     * config["energybalance"]["violation"]["value"]
                 )
             else:
-                return b_period.var_violation_cost == 0
+                return b_period.var_cost_violation == 0
 
         b_period_cost.const_violation_cost = Constraint(rule=init_violation_cost)
 
@@ -610,10 +610,10 @@ def construct_system_cost(model, config):
                 + b_period.var_cost_netws
                 + b_period.var_cost_imports
                 + b_period.var_cost_exports
-                + b_period.var_violation_cost
+                + b_period.var_cost_violation
                 + b_period.var_carbon_cost
                 - b_period.var_carbon_revenue
-                == b_period.var_total_cost
+                == b_period.var_cost_total
             )
 
         b_period_cost.const_cost = Constraint(rule=init_total_cost)
@@ -630,7 +630,7 @@ def construct_global_balance(model):
     # TODO: Account for discount rate
     def init_npv(const):
         return (
-            sum(model.periods[period].var_total_cost for period in model.set_periods)
+            sum(model.periods[period].var_cost_total for period in model.set_periods)
             == model.var_npv
         )
 
@@ -761,7 +761,7 @@ def construct_global_balance(model):
     #
     #     def init_violation_cost(const):
     #         return (
-    #             model.var_violation_cost
+    #             model.var_cost_violation
     #             == sum(
     #                 sum(
     #                     sum(model.var_violation[t, car, node] for t in model.set_t_full)
@@ -842,7 +842,7 @@ def construct_global_balance(model):
     #
     # def init_total_cost(const):
     #     if config["energybalance"]["violation"]["value"] >= 0:
-    #         violation_cost = model.var_violation_cost
+    #         violation_cost = model.var_cost_violation
     #     else:
     #         violation_cost = 0
     #     return (
@@ -851,7 +851,7 @@ def construct_global_balance(model):
     #         + model.var_carbon_cost
     #         - model.var_carbon_revenue
     #         + violation_cost
-    #         == model.var_total_cost
+    #         == model.var_cost_total
     #     )
     #
     # model.const_cost = Constraint(rule=init_total_cost)

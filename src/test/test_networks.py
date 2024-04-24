@@ -157,22 +157,22 @@ def test_existing_networks():
 
     data1 = load_object(data_save_path1)
     ehub1 = run_ehub(data1, configuration)
-    cost1 = ehub1.model.var_total_cost.value
+    cost1 = ehub1.model.var_cost_total.value
     assert ehub1.solution.solver.termination_condition == "infeasibleOrUnbounded"
 
     data2 = load_object(data_save_path2)
     ehub2 = run_ehub(data2, configuration)
-    cost2 = ehub2.model.var_total_cost.value
+    cost2 = ehub2.model.var_cost_total.value
     assert ehub2.solution.solver.termination_condition == "optimal"
 
     data3 = load_object(data_save_path3)
     ehub3 = run_ehub(data3, configuration)
-    cost3 = ehub3.model.var_total_cost.value
+    cost3 = ehub3.model.var_cost_total.value
     assert ehub3.solution.solver.termination_condition == "optimal"
 
     data4 = load_object(data_save_path4)
     ehub4 = run_ehub(data4, configuration)
-    cost4 = ehub4.model.var_total_cost.value
+    cost4 = ehub4.model.var_cost_total.value
     assert ehub4.solution.solver.termination_condition == "optimal"
 
     assert cost2 > cost3
@@ -196,7 +196,7 @@ def test_violation():
     assert energyhub.solution.solver.termination_condition == "optimal"
 
     assert energyhub.model.var_violation[2, "hydrogen", "test_node1"].value == 10
-    assert energyhub.model.var_violation_cost.value == 200
+    assert energyhub.model.var_cost_violation.value == 200
 
 
 def test_copperplate():

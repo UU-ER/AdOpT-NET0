@@ -42,7 +42,7 @@ def get_summary(model, solution, folder_path, model_info):
         model.periods[period].var_cost_exports.value for period in model.set_periods
     )
     summary_dict["violation_cost"] = sum(
-        model.periods[period].var_violation_cost.value for period in model.set_periods
+        model.periods[period].var_cost_violation.value for period in model.set_periods
     )
     summary_dict["carbon_revenue"] = sum(
         model.periods[period].var_carbon_revenue.value for period in model.set_periods
@@ -51,7 +51,7 @@ def get_summary(model, solution, folder_path, model_info):
         model.periods[period].var_carbon_cost.value for period in model.set_periods
     )
     summary_dict["total_cost"] = sum(
-        model.periods[period].var_total_cost.value for period in model.set_periods
+        model.periods[period].var_cost_total.value for period in model.set_periods
     )
 
     summary_dict["emissions_pos"] = sum(
