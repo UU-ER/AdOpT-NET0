@@ -65,7 +65,7 @@ class Conv1(Technology):
         self.fitted_performance = None
         self.main_car = self.performance_data["main_input_carrier"]
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
 
@@ -73,8 +73,6 @@ class Conv1(Technology):
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
         :param nr_seg: number of segments on piecewise defined function
         """
-
-        climate_data = node_data.data["climate_data"]
 
         # reshape performance_data for CONV1
         temp = copy.deepcopy(self.performance_data["performance"]["out"])
@@ -84,7 +82,7 @@ class Conv1(Technology):
             self.performance_data, time_steps=len(climate_data)
         )
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV1
 
@@ -92,7 +90,7 @@ class Conv1(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(Conv1, self).construct_tech_model(b_tec, energyhub)
+        super(Conv1, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

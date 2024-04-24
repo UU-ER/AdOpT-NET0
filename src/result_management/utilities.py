@@ -206,7 +206,7 @@ def calculate_net_emissions_from_netw(energyhub):
     )
     model = energyhub.model
     set_t = model.set_t_full
-    if not energyhub.configuration.energybalance.copperplate:
+    if not config["energybalance"]["copperplate"]["value"]:
         net_emissions_from_netw = sum(
             sum(
                 model.network_block[netw].var_netw_emissions_pos[t].value
@@ -224,7 +224,7 @@ def get_time_stage(energyhub):
     """
     Gets time stage
     """
-    if energyhub.configuration.optimization.timestaging:
+    if config["optimization"]["timestaging"]["value"]:
         time_stage = energyhub.model_information.averaged_data_specs.stage + 1
     else:
         time_stage = 0

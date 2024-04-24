@@ -1,4 +1,4 @@
-import warnings
+from pathlib import Path
 import dill as pickle
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pvlib
 import os
 import json
+from ..logger import logger
 
 from ..components.technologies import *
 
@@ -119,15 +120,6 @@ def reshape_df(series_to_add, column_names, nr_cols):
     return transformed_series
 
 
-def define_multiindex(ls):
-    """
-    Create a multi index from a list
-    """
-    multi_index = list(zip(*ls))
-    multi_index = pd.MultiIndex.from_tuples(multi_index)
-    return multi_index
-
-
 def average_series(series, nr_timesteps_averaged):
     """
     Averages a number of timesteps
@@ -206,21 +198,6 @@ class NodeData:
         self.location.altitude = None
 
 
-class GlobalData:
-    """
-    Class to handle global data. All global time-dependent input data goes here
-    """
-
-    def __init__(self, topology):
-        self.data = {}
-        self.data_clustered = {}
-
-        variables = ["subsidy", "tax"]
-        self.data["carbon_prices"] = pd.DataFrame(index=topology.timesteps)
-        for var in variables:
-            self.data["carbon_prices"][var] = np.zeros(len(topology.timesteps))
-
-
 def select_technology(tec_data):
     """
     Returns the correct subclass for a technology
@@ -273,3 +250,116 @@ def open_json(tec, load_path):
         raise Exception("There is no json data file for technology " + tec)
 
     return data
+
+
+def check_input_data_consistency(path: Path | str) -> None:
+    """
+    Checks if the topology is consistent with the input data.
+
+    :param str/Path node: node as specified in the topology
+    """
+
+    def check_path_existance(path: Path, error_message: str) -> None:
+        if not os.path.exists(path):
+            raise Exception(error_message)
+
+    # Convert to Path
+    if isinstance(path, str):
+        path = Path(path)
+
+    # Read topology
+    with open(path / "Topology.json") as json_file:
+        topology = json.load(json_file)
+
+    for investment_period in topology["investment_periods"]:
+
+        # Check investment periods
+        check_path = path / investment_period
+        check_path_existance(
+            check_path,
+            f"The investment period {investment_period} is missing in {check_path}",
+        )
+
+        # Check networks
+        check_path_existance(
+            check_path / "Networks.json",
+            f"A Network.json file is missing in {check_path}",
+        )
+        with open(check_path / "Networks.json") as json_file:
+            all_networks = json.load(json_file)
+        for type in all_networks.keys():
+            networks = all_networks[type]
+            for network in networks:
+                check_path_existance(
+                    check_path / "network_data" / (network + ".json"),
+                    f"A json file for {network} is missing in {check_path / 'network_data'}",
+                )
+                check_path_existance(
+                    check_path / "network_topology" / type,
+                    f"A directory for {network} is missing in {check_path / 'network_topology'}",
+                )
+                check_path_existance(
+                    check_path / "network_topology" / type / network / "connection.csv",
+                    f"A connection.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
+                )
+                check_path_existance(
+                    check_path / "network_topology" / type / network / "distance.csv",
+                    f"A distance.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
+                )
+                check_path_existance(
+                    check_path
+                    / "network_topology"
+                    / type
+                    / network
+                    / "size_max_arcs.csv",
+                    f"A size_max_arcs.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
+                )
+                if type == "existing":
+                    check_path_existance(
+                        check_path / "network_topology" / type / network / "size.csv",
+                        f"A size.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
+                    )
+
+        for node in topology["nodes"]:
+
+            # Check nodes
+            check_node_path = path / investment_period / "node_data" / node
+            check_path_existance(
+                check_node_path, f"The node {node} is missing in {check_node_path}"
+            )
+
+            # Check if all files are there
+            check_path_existance(
+                check_node_path / "ClimateData.csv",
+                f"ClimateData.csv is missing in {check_node_path}",
+            )
+            check_path_existance(
+                check_node_path / "CarbonCost.csv",
+                f"CarbonCost.csv is missing in {check_node_path}",
+            )
+            check_path_existance(
+                check_node_path / "Technologies.json",
+                f"Technologies.json is missing in {check_node_path}",
+            )
+
+            # Check if all technologies have a json file
+            with open(check_node_path / "Technologies.json") as json_file:
+                technologies_at_node = json.load(json_file)
+            technologies_at_node = set(
+                technologies_at_node["existing"] + technologies_at_node["new"]
+            )
+            for technology in technologies_at_node:
+                check_path_existance(
+                    check_node_path / "technology_data" / (technology + ".json"),
+                    f"A json file for {technology} is missing in {check_node_path / 'technology_data'}",
+                )
+                # TODO: Check if carriers are in carrier set
+
+            # Check if all carriers are there
+            for carrier in topology["carriers"]:
+                check_path_existance(
+                    check_node_path / "carrier_data" / (carrier + ".csv"),
+                    f"Data for carrier {carrier} is missing in {check_node_path}",
+                )
+
+    logger.info("Input data folder has been checked successfully - no errors occurred.")

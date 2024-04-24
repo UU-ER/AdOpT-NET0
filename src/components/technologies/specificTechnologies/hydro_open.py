@@ -64,7 +64,7 @@ class HydroOpen(Technology):
 
         self.fitted_performance = FittedPerformance()
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
 
@@ -74,7 +74,6 @@ class HydroOpen(Technology):
         """
 
         # Climate data & Number of timesteps
-        climate_data = node_data.data["climate_data"]
         time_steps = len(climate_data)
 
         # Output Bounds
@@ -127,14 +126,14 @@ class HydroOpen(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type Hydro_Open
         :param obj b_tec: technology block
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(HydroOpen, self).construct_tech_model(b_tec, energyhub)
+        super(HydroOpen, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
@@ -150,9 +149,11 @@ class HydroOpen(Technology):
         if performance_data["maximum_discharge_time_discrete"]:
             hydro_maximum_discharge = coeff["hydro_maximum_discharge"]
 
-        nr_timesteps_averaged = (
-            energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
-        )
+        # Todo: needs to be fixed with averaging algorithm
+        # nr_timesteps_averaged = (
+        #     energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
+        # )
+        nr_timesteps_averaged = 1
 
         # Additional decision variables
         b_tec.var_storage_level = Var(

@@ -51,7 +51,7 @@ def get_summary(energyhub, folder_path):
     )
 
     # summary: retrieve / calculate run specs
-    summary_dict["objective"] = energyhub.configuration.optimization.objective
+    summary_dict["objective"] = config["optimization"]["objective"]["value"]
     summary_dict["solver_status"] = (
         energyhub.solution.solver.termination_condition.value
     )
@@ -65,7 +65,7 @@ def get_summary(energyhub, folder_path):
     return summary_dict
 
 
-def write_optimization_results_to_h5(energyhub, folder_path):
+def write_optimization_results_to_h5(model, folder_path):
     """
     Collects the results from the model blocks and writes them to an HDF5 file using the h5py library.
     The summary results are returned in a dictionary format for further processing into an excel in the energyhub.
@@ -74,7 +74,6 @@ def write_optimization_results_to_h5(energyhub, folder_path):
     :param energyhub:
     :return: summary_dict
     """
-    model = energyhub.model
     set_t = model.set_t_full
 
     # create the results h5 file in the results folder
@@ -99,7 +98,7 @@ def write_optimization_results_to_h5(energyhub, folder_path):
         # TIME-INDEPENDENT RESULTS: NETWORKS [g] > within: specific network [g] > within: specific arc of network[g]
         networks_design = design.create_group("networks")
 
-        if not energyhub.configuration.energybalance.copperplate:
+        if not config["energybalance"]["copperplate"]["value"]:
             for netw_name in model.set_networks:
                 netw_specific_group = networks_design.create_group(netw_name)
                 b_netw = model.network_block[netw_name]
@@ -127,7 +126,7 @@ def write_optimization_results_to_h5(energyhub, folder_path):
         # TIME-DEPENDENT RESULTS: NETWORKS [g] > within: specific network [g] > within: specific arc of network [g]
         networks_operation = operation.create_group("networks")
 
-        if not energyhub.configuration.energybalance.copperplate:
+        if not config["energybalance"]["copperplate"]["value"]:
             for netw_name in model.set_networks:
                 netw_specific_group = networks_operation.create_group(netw_name)
                 b_netw = model.network_block[netw_name]

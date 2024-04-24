@@ -84,7 +84,7 @@ class GasTurbine(Technology):
 
         self.fitted_performance = FittedPerformance()
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Performs fitting for technology type GasTurbine
 
@@ -97,7 +97,6 @@ class GasTurbine(Technology):
         :return:
         """
         # Climate data & Number of timesteps
-        climate_data = node_data.data["climate_data"]
         time_steps = len(climate_data)
 
         # Ambient air temperature
@@ -186,7 +185,7 @@ class GasTurbine(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for gas turbines
 
@@ -194,7 +193,9 @@ class GasTurbine(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(GasTurbine, self).construct_tech_model(b_tec, energyhub)
+        super(GasTurbine, self).construct_tech_model(
+            b_tec, data, set_t, set_t_clustered
+        )
 
         # Transformation required
         self.big_m_transformation_required = 1

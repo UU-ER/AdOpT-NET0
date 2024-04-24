@@ -35,10 +35,7 @@ class Res(Technology):
 
         self.fitted_performance = FittedPerformance(self.performance_data)
 
-    def fit_technology_performance(self, node_data):
-
-        location = node_data.location
-        climate_data = node_data.data["climate_data"]
+    def fit_technology_performance(self, climate_data, location):
 
         if "Photovoltaic" in self.name:
             if "system_type" in self.performance_data:
@@ -117,9 +114,9 @@ class Res(Technology):
             return pv_model, peakpower, specific_area
 
         # Define parameters for convinience
-        lon = location.lon
-        lat = location.lat
-        alt = location.altitude
+        lon = location["lon"]
+        lat = location["lat"]
+        alt = location["alt"]
 
         # Get location
         tf = TimezoneFinder()
@@ -214,7 +211,7 @@ class Res(Technology):
         # Other Data
         self.fitted_performance.rated_power = rated_power / 1000
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type RES (renewable technology)
 
@@ -222,7 +219,7 @@ class Res(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(Res, self).construct_tech_model(b_tec, energyhub)
+        super(Res, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

@@ -72,14 +72,12 @@ class Stor(Technology):
 
         self.fitted_performance = FittedPerformance()
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type STOR and returns fitted parameters as a dict
 
         :param node_data: contains data on demand, climate data, etc.
         """
-
-        climate_data = node_data.data["climate_data"]
 
         time_steps = len(climate_data)
 
@@ -121,7 +119,7 @@ class Stor(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
@@ -130,9 +128,10 @@ class Stor(Technology):
         :return: b_tec
         """
 
-        super(Stor, self).construct_tech_model(b_tec, energyhub)
+        super(Stor, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
-        set_t_full = energyhub.model.set_t_full
+        set_t_full = self.set_t_full
+        config = data["config"]
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
@@ -143,9 +142,11 @@ class Stor(Technology):
         else:
             allow_only_one_direction = 0
 
-        nr_timesteps_averaged = (
-            energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
-        )
+        # Todo: needs to be fixed with averaging algorithm
+        # nr_timesteps_averaged = (
+        #     energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
+        # )
+        nr_timesteps_averaged = 1
 
         # Additional decision variables
         b_tec.var_storage_level = Var(
@@ -170,7 +171,7 @@ class Stor(Technology):
 
         # Storage level calculation
         if (
-            energyhub.model_information.clustered_data
+            config["optimization"]["typicaldays"]["N"]["value"] != 0
             and not self.modelled_with_full_res
         ):
 

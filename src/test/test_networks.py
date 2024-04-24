@@ -13,7 +13,7 @@ def test_networks():
     """
     # Test bidirectional
     data = load_object(r"./src/test/test_data/networks.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data["topology"]["fraction_of_year_modelled"]
     configuration = ModelConfiguration()
     data.network_data["hydrogenTest"].performance_data["bidirectional"] = 1
     data.network_data["hydrogenTest"].energy_consumption = {}
@@ -57,7 +57,7 @@ def test_networks():
 
     # Test consumption at node
     data = load_object(r"./src/test/test_data/networks.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data["topology"]["fraction_of_year_modelled"]
     data.network_data["hydrogenTest"].performance_data["bidirectional"] = 0
     energyhub3 = ehub(data, configuration)
     energyhub3.configuration.reporting.save_path = "./src/test/results"
@@ -101,7 +101,7 @@ def test_networks():
 def test_CAPEX_networks():
     # Test bidirectional
     data = load_object(r"./src/test/test_data/networks.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data["topology"]["fraction_of_year_modelled"]
     configuration = ModelConfiguration()
 
     # collect data

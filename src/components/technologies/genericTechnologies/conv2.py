@@ -59,7 +59,7 @@ class Conv2(Technology):
         self.fitted_performance = None
         self.main_car = self.performance_data["main_input_carrier"]
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 2 and returns fitted parameters as a dict
 
@@ -68,15 +68,13 @@ class Conv2(Technology):
         :param nr_seg: number of segments on piecewise defined function
         """
 
-        climate_data = node_data.data["climate_data"]
-
         if self.performance_data["size_based_on"] == "output":
             raise Exception("size_based_on == output for CONV2 not possible.")
         self.fitted_performance = fit_performance_generic_tecs(
             self.performance_data, time_steps=len(climate_data)
         )
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV2
 
@@ -84,7 +82,7 @@ class Conv2(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(Conv2, self).construct_tech_model(b_tec, energyhub)
+        super(Conv2, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

@@ -29,7 +29,7 @@ class DacAdsorption(Technology):
 
         self.fitted_performance = FittedPerformance()
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
 
@@ -39,7 +39,6 @@ class DacAdsorption(Technology):
         """
 
         # Climate data & Number of timesteps
-        climate_data = node_data.data["climate_data"]
         time_steps = len(climate_data)
 
         # Number of segments
@@ -175,7 +174,7 @@ class DacAdsorption(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type DAC_adsorption
 
@@ -183,7 +182,9 @@ class DacAdsorption(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(DacAdsorption, self).construct_tech_model(b_tec, energyhub)
+        super(DacAdsorption, self).construct_tech_model(
+            b_tec, data, set_t, set_t_clustered
+        )
 
         # Comments on the equations refer to the equation numbers in the paper. All equations can be looked up there.
 

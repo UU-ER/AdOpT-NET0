@@ -46,7 +46,7 @@ class Conv4(Technology):
 
         self.main_car = self.performance_data["main_output_carrier"]
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type 4 and returns fitted parameters as a dict
 
@@ -54,8 +54,6 @@ class Conv4(Technology):
         :param performance_data: contains X and y data of technology performance
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
         """
-
-        climate_data = node_data.data["climate_data"]
 
         self.fitted_performance.bounds["output"][
             self.performance_data["main_output_carrier"]
@@ -71,7 +69,7 @@ class Conv4(Technology):
                     * self.performance_data["output_ratios"][car]
                 )
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV4
 
@@ -79,7 +77,7 @@ class Conv4(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(Conv4, self).construct_tech_model(b_tec, energyhub)
+        super(Conv4, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data

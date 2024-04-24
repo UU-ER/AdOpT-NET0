@@ -18,9 +18,9 @@ def annualize(r, t, year_fraction):
     return annualization_factor * year_fraction
 
 
-def set_discount_rate(configuration, economics):
-    if not configuration.economic.global_discountrate == -1:
-        discount_rate = configuration.economic.global_discountrate
+def set_discount_rate(config, economics):
+    if not config["economic"]["global_discountrate"]["value"] == -1:
+        discount_rate = config["economic"]["global_discountrate"]["value"]
     else:
         discount_rate = economics.discount_rate
     return discount_rate

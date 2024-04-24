@@ -124,7 +124,7 @@ def test_technology_CONV1():
     """
     # performance through origin
     data = load_object(r"./src/test/test_data/technology_CONV1_1.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data["topology"]["fraction_of_year_modelled"]
     configuration = ModelConfiguration()
     tecname = "testCONV1_1"
     energyhub = EnergyHub(data, configuration)
@@ -219,7 +219,7 @@ def test_technology_CONV1():
     # performance not through origin
     allowed_fitting_error = 0.1
     data = load_object(r"./src/test/test_data/technology_CONV1_2.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
     configuration = ModelConfiguration()
     tecname = "testCONV1_2"
     energyhub = EnergyHub(data, configuration)
@@ -316,7 +316,7 @@ def test_technology_CONV1():
     # piecewise
     allowed_fitting_error = 0.1
     data = load_object(r"./src/test/test_data/technology_CONV1_3.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
     tecname = "testCONV1_3"
     energyhub = EnergyHub(data, configuration)
     energyhub.configuration.reporting.save_path = "./src/test/results"
@@ -437,7 +437,7 @@ def test_technology_CONV2():
     # performance through origin
     allowed_fitting_error = 0.05
     data = load_object(r"./src/test/test_data/technology_CONV2_1.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
 
     configuration = ModelConfiguration()
     tecname = "testCONV2_1"
@@ -531,7 +531,7 @@ def test_technology_CONV2():
     # performance not through origin
     allowed_fitting_error = 0.05
     data = load_object(r"./src/test/test_data/technology_CONV2_2.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
 
     tecname = "testCONV2_2"
     energyhub = EnergyHub(data, configuration)
@@ -625,7 +625,7 @@ def test_technology_CONV2():
 
     # piecewise
     data = load_object(r"./src/test/test_data/technology_CONV2_3.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
 
     tecname = "testCONV2_3"
     energyhub = EnergyHub(data, configuration)
@@ -745,7 +745,7 @@ def test_technology_CONV3():
     """
     # Piecewise definition
     data = load_object(r"./src/test/test_data/technology_CONV3_3.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
 
     configuration = ModelConfiguration()
     allowed_fitting_error = 0.25
@@ -834,7 +834,7 @@ def test_technology_CONV3():
     # performance through origin
     allowed_fitting_error = 0.25
     data = load_object(r"./src/test/test_data/technology_CONV3_1.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
 
     tecname = "testCONV3_1"
     energyhub = EnergyHub(data, configuration)
@@ -920,7 +920,7 @@ def test_technology_CONV3():
 
     # performance not through origin
     data = load_object(r"./src/test/test_data/technology_CONV3_2.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
 
     tecname = "testCONV3_2"
     energyhub = EnergyHub(data, configuration)
@@ -1260,7 +1260,7 @@ def test_technology_OpenHydro():
 
 def test_CAPEX_technologies():
     data = load_object(r"./src/test/test_data/technology_CONV1_1.p")
-    cost_correction = data.topology.fraction_of_year_modelled
+    cost_correction = data.topology["fraction_of_year_modelled"]
     configuration = ModelConfiguration()
 
     # collect data
