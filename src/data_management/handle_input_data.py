@@ -379,7 +379,7 @@ class DataHandle:
                 ] = netw_data
 
     def _cluster_data(self):
-        nr_clusters = 20
+        nr_clusters = self.model_config["optimization"]["typicaldays"]["N"]["value"]
         nr_time_intervals_per_day = 24
         nr_days_full_resolution = (
             max(self.topology["time_index"]["full"])
@@ -397,10 +397,11 @@ class DataHandle:
         self.k_means_specs["factors"] = {}
         clustered_data = {}
         for investment_period in self.topology["investment_periods"]:
-            data = full_resolution.loc[:, investment_period]
+            full_res_data_matrix = compile_full_resolution_matrix(full_resolution.loc[:, investment_period], nr_time_intervals_per_day)
+
             # Perform clustering
             clustered_data[investment_period], day_labels = perform_k_means(
-                data, nr_clusters
+                full_res_data_matrix, nr_clusters
             )
             # Get order of typical days
             self.k_means_specs["sequence"][investment_period] = compile_sequence(

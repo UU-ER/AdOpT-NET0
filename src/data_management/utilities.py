@@ -106,6 +106,40 @@ def get_day_factors(keys):
     return factors
 
 
+def compile_full_resolution_matrix(data_full_res, nr_time_intervals_per_day):
+    """
+    Compiles full resolution matrix to be clustered
+
+    """
+    time_intervals = range(1, nr_time_intervals_per_day + 1)
+    nr_of_days_full_res = len(data_full_res) // nr_time_intervals_per_day
+
+    iterables = [data_full_res.columns.levels, ["one", "two"]]
+
+    # Create MultiIndex with levels for original columns and repeated columns
+    columns = pd.MultiIndex.from_product(iterables)
+
+    # Create an empty DataFrame with the MultiIndex columns
+    full_res_matrix = pd.DataFrame(columns=columns, index=data_full_res.index)
+
+    # Fill the new DataFrame with the repeated data
+    for col in data_full_res.columns:
+        # Repeat each column nr_time_intervals times
+        repeated_col = pd.concat([data_full_res[col]] * nr_time_intervals_per_day, axis=1)
+        # Assign repeated column to appropriate level in MultiIndex
+        full_res_matrix[col] = repeated_col.values.flatten()
+
+
+
+
+def define_multiindex(ls):
+    """
+    Create a multi index from a list
+    """
+    multi_index = list(zip(*ls))
+    multi_index = pd.MultiIndex.from_tuples(multi_index)
+    return multi_index
+
 def reshape_df(series_to_add, column_names, nr_cols):
     """
     Transform all data to large dataframe with each row being one day
