@@ -16,7 +16,7 @@ class ModelConfiguration:
     |                    | of optimization                              | 'emissions_minC', 'costs_emissionlimit'     |         |
     |                    |                                              | 'pareto',                                   |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.on     | Turn monte carlo simulation on               | {0,1}                                       | 0       |
+    | monte_carlo.on     | Turn monte carlo simulation on               | 1,0                                         | 0       |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.sd     | Value defining the range in which variables  |                                             | 0.2     |
     |                    | are varied in Monte Carlo simulations        |                                             |         |
@@ -39,9 +39,6 @@ class ModelConfiguration:
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | typicaldays.method | Determine method used for modeling           | {2}                                         | 2       |
     |                    | technologies with typical days               |                                             |         |
-    +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | multiyear          | Enable multiyear analysis, if turned off     | {0,1}                                       | 0       |
-    |                    | max time horizon is 1 year                   |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
 
     List of solver settings that can be specified (see also https://www.gurobi.com/documentation/9.5/refman/parameter_descriptions.html):
@@ -162,7 +159,6 @@ class ModelConfiguration:
         self.optimization.typicaldays = SimpleNamespace()
         self.optimization.typicaldays.N = 0
         self.optimization.typicaldays.method = 2
-        self.optimization.multiyear = 0
 
         # self.optimization.tecstaging = 0
 

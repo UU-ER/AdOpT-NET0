@@ -7,7 +7,7 @@ from ..technology import Technology
 
 
 class HydroOpen(Technology):
-    r"""
+    """
     Resembles a pumped hydro plant with additional natural inflows (defined in climate data)
 
     Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
@@ -301,7 +301,7 @@ class HydroOpen(Technology):
         if performance_data["maximum_discharge_time_discrete"]:
 
             def init_maximal_discharge2(const, t, car):
-                return self.output[t, car] <= hydro_maximum_discharge.iloc[t - 1]
+                return self.output[t, car] <= hydro_maximum_discharge[t - 1]
 
             b_tec.const_max_discharge2 = Constraint(
                 self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge2
@@ -342,9 +342,7 @@ class HydroOpen(Technology):
 
     def _define_ramping_rates(self, b_tec):
         """
-        Constraints the inputs for a ramping rate. The ramping rate can either be defined by the installed capacity or a
-        predefined reference size, and is divided by the ramping time. In case of performance type 2 or 3 the user can
-        decide whether the ramping rate is always constrained or only when the technology is on (x_t = 1 and x_t-1 = 1).
+        Constraints the inputs for a ramping rate. Implemented for input and output
 
         :param b_tec: technology model block
         :return:
