@@ -241,7 +241,7 @@ class DataHandle:
                     tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
-                        ][""],
+                        ]["global"],
                         self.node_locations.loc[node, :],
                     )
                     technology_data[investment_period][node][technology] = tec_data
@@ -263,7 +263,7 @@ class DataHandle:
                     tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
-                        ][""],
+                        ]["global"],
                         self.node_locations.loc[node, :],
                     )
                     technology_data[investment_period][node][
