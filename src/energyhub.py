@@ -244,7 +244,7 @@ class EnergyHub:
         This method lumbs together the following functions for convenience:
         - :func:`~src.energyhub.construct_model`
         - :func:`~src.energyhub.construct_balances`
-        - :func:`~src.energyhub.solv`
+        - :func:`~src.energyhub.solve`
         """
         self.construct_model()
         self.construct_balances()
@@ -481,7 +481,7 @@ class EnergyHub:
         """
         config = self.data.model_config
 
-        for run in range(0, config["optimization"]["monte_carlo"]["value"].N):
+        for run in range(0, config["optimization"]["monte_carlo"]["on"]["value"]):
             self.model_information.monte_carlo_run += 1
             self._monte_carlo_set_cost_parameters()
             if run == 0:
