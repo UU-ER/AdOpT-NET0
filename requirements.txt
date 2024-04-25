@@ -14,7 +14,6 @@ sphinx==7.2.6
 sphinx_rtd_theme==2.0.0
 pytest==8.1.1
 scikit-learn==1.4.2
-# piecewise_regression
 pwlf==2.2.1
 gurobipy==11.0.1
 scandir==1.10.0
