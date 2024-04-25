@@ -45,3 +45,11 @@ def get_topology_data(folder_path: Path) -> (list, list, list):
     nodes = topology["nodes"]
     carriers = topology["carriers"]
     return investment_periods, nodes, carriers
+
+
+def create_basic_case_study(folder_path: Path) -> None:
+    """
+    Creates a basix case study with one two investment periods, two nodes, no technologies
+    :param Path folder_path: folder path containing topology
+    """
+    pass
