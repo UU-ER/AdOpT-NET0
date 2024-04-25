@@ -17,7 +17,7 @@ class DataHandle:
     """
 
     def __init__(
-        self, data_path: Path | str, start_period: int, end_period: int
+        self, data_path: Path | str, start_period: int = None, end_period: int = None
     ) -> None:
         """
         Constructor
