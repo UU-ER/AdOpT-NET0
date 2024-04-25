@@ -2,6 +2,8 @@ import json
 import random
 from pathlib import Path
 
+from src.data_preprocessing import *
+
 
 def select_random_list_from_list(ls: list) -> list:
     """
@@ -49,7 +51,18 @@ def get_topology_data(folder_path: Path) -> (list, list, list):
 
 def create_basic_case_study(folder_path: Path) -> None:
     """
-    Creates a basix case study with one two investment periods, two nodes, no technologies
+    Creates a basix case study with
+    - two investment periods
+    - two nodes
+    - one carrier
+    - no technologies
+    - no networks
     :param Path folder_path: folder path containing topology
     """
-    pass
+    topology = initialize_topology_templates()
+    configuration = initialize_configuration_templates()
+
+    topology["carriers"] = ["electricity"]
+
+    save_json(topology, folder_path / "Topology.json")
+    save_json(configuration, folder_path / "ConfigModel.json")
