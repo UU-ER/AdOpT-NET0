@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
 
@@ -229,23 +228,35 @@ def create_optimization_templates(path: Path | str) -> None:
                 "value": "costs",
             },
             "monte_carlo": {
-                "on": {
-                    "description": "Turn Monte Carlo simulation on.",
-                    "options": [0, 1],
+                "N": {
+                    "description": "Number of Monte Carlo simulations (0 = off).",
                     "value": 0,
                 },
-                "sd": {
-                    "description": "Value defining the range in which variables are varied in Monte Carlo simulations (defined as the standard deviation of the original value).",
-                    "value": 0.2,
+                "type": {
+                    "description": "Type of Monte Carlo simulation. For type 1 the user defines the standard "
+                    "deviation and the components to vary. For type 2 the user provides a csv file "
+                    "with the parameters and their min, max and reference values. ",
+                    "options": [1, 2],
+                    "value": 1,
                 },
-                "N": {
-                    "description": "Number of Monte Carlo simulations.",
-                    "value": 100,
+                "sd": {
+                    "description": "Value defining the range in which variables are varied in Monte Carlo simulations "
+                    "(defined as the standard deviation of the original value).",
+                    "value": 0.2,
                 },
                 "on_what": {
                     "description": "List: Defines component to vary.",
-                    "options": ["Technologies", "ImportPrices", "ExportPrices"],
+                    "options": [
+                        "Technologies",
+                        "Networks",
+                        "ImportPrices",
+                        "ExportPrices",
+                    ],
                     "value": "Technologies",
+                },
+                "csv_path": {
+                    "description": "Path to the CSV file containing the optimization parameters.",
+                    "value": None,
                 },
             },
             "pareto_points": {"description": "Number of Pareto points.", "value": 5},
@@ -416,3 +427,22 @@ def create_optimization_templates(path: Path | str) -> None:
         json.dump(topology_template, f, indent=4)
     with open(path / "ConfigModel.json", "w") as f:
         json.dump(configuration_template, f, indent=4)
+
+
+def create_montecarlo_template_csv(base_path):
+    """
+    Creates a template CSV file for the monte carlo parameters and saves it to the given path.
+
+    Args:
+        path (): The file path where the CSV file will be saved.
+
+    Returns:
+        None
+    """
+    if isinstance(base_path, str):
+        base_path = Path(base_path)
+
+    data = {"parameter": [None], "min": [None], "ref": [None], "max": [None]}
+    df = pd.DataFrame(data)
+
+    df.to_csv(base_path / "MonteCarlo.csv", sep=";", index=False)
