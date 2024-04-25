@@ -149,14 +149,47 @@ def reshape_df(series_to_add, column_names, nr_cols):
     return transformed_series
 
 
-def average_series(series, nr_timesteps_averaged):
+def average_timeseries_data(data_matrix, nr_timesteps_averaged, time_index):
     """
-    Averages a number of timesteps
-    """
-    to_average = reshape_df(series, None, nr_timesteps_averaged)
-    average = np.array(to_average.mean(axis=1))
+    Averages the nr_timesteps_averaged in the DataFrame.
 
-    return average
+    Parameters:
+        series (pd.DataFrame): Input DataFrame.
+        nr_timesteps_averaged (int): Number of consecutive rows to average.
+
+    Returns:
+        pd.DataFrame: New DataFrame with averaged rows.
+    """
+    averaged_df = pd.DataFrame(index=time_index, columns=data_matrix.columns)
+    for col in data_matrix.columns:
+        reshaped_data = data_matrix[col].values.reshape(-1, nr_timesteps_averaged)
+        averages = np.mean(reshaped_data, axis=1)
+        averaged_df[col] = averages
+
+    return averaged_df
+
+
+def average_timeseries_data_clustered(data_matrix, nr_timesteps_averaged, clustered_days):
+    """
+    Averages the nr_timesteps_averaged in the DataFrame.
+
+    Parameters:
+        data_matrix (pd.DataFrame): Input DataFrame.
+        nr_timesteps_averaged (int): Number of consecutive rows to average.
+        clustered_days (int): Number of days for which the data is clustered.
+
+    Returns:
+        pd.DataFrame: New DataFrame with averaged rows.
+    """
+    averaged_dfs = []
+    for i in range(0, data_matrix.shape[1], nr_timesteps_averaged):
+        start_idx = i
+        end_idx = min(i + nr_timesteps_averaged, data_matrix.shape[1])
+        col_name = data_matrix.columns[start_idx]
+        averaged_values = data_matrix.iloc[:, start_idx:end_idx].mean(axis=1)
+        averaged_dfs.append(pd.DataFrame({col_name: averaged_values}))
+
+    return pd.concat(averaged_dfs, axis=1)
 
 
 def calculate_dni(data, lon, lat):
