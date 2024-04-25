@@ -1,4 +1,4 @@
-..  _result_data_management:
+..  _result_management:
 
 Result Management
 =====================================
@@ -97,6 +97,7 @@ An examplary usage (can be used after the optimization was done):
 .. automodule:: src.result_management.read_results
     :members:
 
+..  _results_visualization:
 
 Visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^
