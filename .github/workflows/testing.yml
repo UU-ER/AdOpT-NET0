@@ -39,18 +39,12 @@ jobs:
       run: |
         python -c "import os; print(os.listdir()); print(os.getcwd())"
 
-    - name: Run Tests
+    - name: Test and build coverage file
       run: |
-        coverage run -m pytest
+        pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=app tests/ | tee pytest-coverage.txt
 
-    - name: Generate Coverage Report
-      run: |
-        coverage xml -o coverage.xml 
-
-    - name: Upload Coverage Report
-      uses: actions/upload-artifact@v2
+    - name: Pytest coverage comment
+      uses: MishaKav/pytest-coverage-comment@main
       with:
-        name: coverage-report
-        path: coverage.xml
-
-
+        pytest-coverage-path: ./pytest-coverage.txt
+        junitxml-path: ./pytest.xml
