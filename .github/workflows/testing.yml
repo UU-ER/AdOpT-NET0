@@ -5,9 +5,6 @@ on:
     branches:
       - 'develop**'
       - main
-  push:
-    branches:
-      - 'input_data**'
 
 jobs:
   test:
@@ -43,4 +40,9 @@ jobs:
     - name: Test and build coverage file
       run: |
         pytest --cov-report xml:coverage.xml
-        coverage coverage.xml
+
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage.xml
