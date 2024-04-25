@@ -5,7 +5,9 @@ on:
     branches:
       - 'develop**'
       - main
-      - 'test_**'
+  push:
+    branches:
+      - 'input_data**'
 
 jobs:
   test:
