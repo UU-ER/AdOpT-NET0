@@ -5,7 +5,7 @@
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/unit total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/tonne/hr or as a piecewise function, OPEX_variable in EUR/tonne total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 3,
     "unit_CAPEX": 265160,
     "fix_CAPEX": 6.92E+07,
@@ -61,11 +61,11 @@
   "Units": {
     "size": "tonne/hr",
     "input_carrier": {
-      "crackedgas": "tonne",
+      "crackedgas": "tonne/hr",
       "electricity": "MW"
     },
     "output_carrier": {
-      "crackedgas": "tonne"
+      "crackedgas": "tonne/hr"
     }
   }
 }

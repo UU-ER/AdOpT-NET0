@@ -43,7 +43,7 @@
       "heat": "MW"
     },
     "output_carrier": {
-      "CO2": "tonne/hr"
+      "CO2captured": "tonne/hr"
     }
   }
 }

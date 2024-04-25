@@ -8,11 +8,13 @@ from src.components.utilities import annualize
 from src.data_management import *
 from src.energyhub import EnergyHub as ehub
 
+
 @pytest.mark.quicktest
 def test_initializer():
     data = load_object(r"./src/test/test_data/data_handle_test.p")
     configuration = ModelConfiguration()
     energyhub = ehub(data, configuration)
+
 
 @pytest.mark.quicktest
 def test_add_nodes():
@@ -28,6 +30,7 @@ def test_add_nodes():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == "infeasibleOrUnbounded"
+
 
 @pytest.mark.quicktest
 def test_model1():
@@ -47,6 +50,7 @@ def test_model1():
     energyhub.construct_balances()
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == "infeasibleOrUnbounded"
+
 
 @pytest.mark.quicktest
 def test_model2():
@@ -133,6 +137,7 @@ def test_model2():
     )
     assert abs(emissions_should - net_emissions) / net_emissions <= 0.01
 
+
 @pytest.mark.quicktest
 def test_addtechnology():
     """
@@ -202,6 +207,7 @@ def test_addtechnology():
     assert sizeWT2 <= sizeWT1
     assert (obj2 - obj1) / obj1 <= 0.8
     assert energyhub.model.var_emissions_net.value == 0
+
 
 @pytest.mark.quicktest
 def test_emission_balance1():
@@ -313,6 +319,7 @@ def test_emission_balance1():
         <= 0.01
     )
 
+
 @pytest.mark.quicktest
 def test_emission_balance2():
     """
@@ -346,6 +353,7 @@ def test_emission_balance2():
 
     assert cost1 < cost2
     assert emissions1 > emissions2
+
 
 @pytest.mark.quicktest
 def test_optimization_types():
@@ -386,6 +394,7 @@ def test_optimization_types():
     # Pareto Optimization
     energyhub.configuration.optimization.objective = "pareto"
     energyhub.solve()
+
 
 @pytest.mark.quicktest
 def test_simplification_algorithms():
@@ -437,6 +446,7 @@ def test_simplification_algorithms():
     energyhub5.configuration.reporting.save_summary_path = "./src/test/results"
     energyhub5.quick_solve()
 
+
 @pytest.mark.quicktest
 def test_carbon_tax():
     """
@@ -468,6 +478,7 @@ def test_carbon_tax():
     carbon_cost2 = emissionsTOT * 10
     assert abs((carbon_cost1 - carbon_cost2) / carbon_cost1) <= 0.01
 
+
 @pytest.mark.quicktest
 def test_carbon_subsidy():
     """
@@ -496,6 +507,7 @@ def test_carbon_subsidy():
     carbon_revenues1 = energyhub.model.var_carbon_revenue.value
     carbon_revenues2 = negative_emissions * 10
     assert abs((carbon_revenues1 - carbon_revenues2) / carbon_revenues1) <= 0.01
+
 
 @pytest.mark.quicktest
 def test_scaling():

@@ -5,14 +5,10 @@
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/tonneCO2 (value to be added, now it is 0), OPEX_variable in EUR/tonneCO2 total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
     "unit_CAPEX": 1E-5,
     "fix_CAPEX": 0,
-    "piecewise_CAPEX": {
-      "bp_x": "not defined",
-      "bp_y": "not defined"
-    },
     "OPEX_variable": 0,
     "OPEX_fixed": 0,
     "discount_rate": 0.1,
@@ -22,11 +18,11 @@
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
-      "CO2"
+      "CO2captured"
     ],
-    "main_input_carrier": "CO2",
+    "main_input_carrier": "CO2captured",
     "output_carrier": [
-      "CO2"
+      "CO2captured"
     ],
     "emission_factor": 0,
     "allow_only_one_direction": 1,

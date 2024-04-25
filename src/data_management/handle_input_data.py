@@ -171,7 +171,7 @@ class DataHandle:
                         )
 
         data = pd.DataFrame(data)
-        data = data[self.start_period : self.end_period]
+        data = data.iloc[self.start_period : self.end_period]
         data.index = self.topology["time_index"]["full"]
         data.columns.set_names(
             ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2"], inplace=True
@@ -241,7 +241,7 @@ class DataHandle:
                     tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
-                        ][""],
+                        ]["global"],
                         self.node_locations.loc[node, :],
                     )
                     technology_data[investment_period][node][technology] = tec_data
@@ -263,7 +263,7 @@ class DataHandle:
                     tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
-                        ][""],
+                        ]["global"],
                         self.node_locations.loc[node, :],
                     )
                     technology_data[investment_period][node][
@@ -375,7 +375,7 @@ class DataHandle:
                 ] = netw_data
 
     def _cluster_data(self):
-        nr_clusters = 20
+        nr_clusters = self.model_config["optimization"]["typicaldays"]["N"]["value"]
         nr_time_intervals_per_day = 24
         nr_days_full_resolution = (
             max(self.topology["time_index"]["full"])
@@ -393,10 +393,13 @@ class DataHandle:
         self.k_means_specs["factors"] = {}
         clustered_data = {}
         for investment_period in self.topology["investment_periods"]:
-            data = full_resolution.loc[:, investment_period]
+            full_res_data_matrix = compile_full_resolution_matrix(
+                full_resolution.loc[:, investment_period], nr_time_intervals_per_day
+            )
+
             # Perform clustering
             clustered_data[investment_period], day_labels = perform_k_means(
-                data, nr_clusters
+                full_res_data_matrix, nr_clusters
             )
             # Get order of typical days
             self.k_means_specs["sequence"][investment_period] = compile_sequence(
@@ -411,197 +414,58 @@ class DataHandle:
             )
             # Create factors, indicating how many times an hour occurs
             self.k_means_specs["factors"] = get_day_factors(
-                self.k_means_specs["sequence"]
+                self.k_means_specs["sequence"][investment_period]
             )
         clustered_data = pd.concat(
             clustered_data.values(), axis=1, keys=clustered_data.keys()
         )
         clustered_data.columns.set_names(
-            ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2"], inplace=True
+            ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2", "Timestep"],
+            inplace=True,
         )
         self.time_series["clustered"] = clustered_data
 
         self._read_technology_data(aggregation_type="clustered")
 
     def _average_data(self):
-        print("This needs to be recoded still")
-        #
-        # # Average data for full resolution
-        # # adjust timesteps
-        # end_interval = max(self.topology.timesteps)
-        # start_interval = min(self.topology.timesteps)
-        # time_resolution = str(nr_timesteps_averaged) + "h"
-        # self.topology.timestep_length_h = nr_timesteps_averaged
-        # self.topology.timesteps = pd.date_range(
-        #     start=start_interval, end=end_interval, freq=time_resolution
-        # )
-        #
-        # for node in node_data:
-        #     self.node_data[node] = NodeData(self.topology)
-        #     self.node_data[node].options = node_data[node].options
-        #     self.node_data[node].location = node_data[node].location
-        #     for series1 in node_data[node].data:
-        #         self.node_data[node].data[series1] = pd.DataFrame(
-        #             index=self.topology.timesteps
-        #         )
-        #         for series2 in node_data[node].data[series1]:
-        #             self.node_data[node].data[series1][series2] = average_series(
-        #                 node_data[node].data[series1][series2], nr_timesteps_averaged
-        #             )
-        #
-        # self.global_data = GlobalData(self.topology)
-        # for series1 in global_data.data:
-        #     self.global_data.data[series1] = pd.DataFrame(index=self.topology.timesteps)
-        #     for series2 in global_data.data[series1]:
-        #         self.global_data.data[series1][series2] = average_series(
-        #             global_data.data[series1][series2], nr_timesteps_averaged
-        #         )
-        #
-        # # Average data for clustered resolution
-        # if self.model_information.clustered_data == 1:
-        #     # adjust timesteps
-        #     end_interval = max(self.topology.timesteps_clustered)
-        #     start_interval = min(self.topology.timesteps_clustered)
-        #     self.topology.timesteps_clustered = range(
-        #         start_interval, int((end_interval + 1) / nr_timesteps_averaged)
-        #     )
-        #
-        #     for node in node_data:
-        #         for series1 in node_data[node].data:
-        #             self.node_data[node].data_clustered[series1] = pd.DataFrame(
-        #                 self.topology.timesteps_clustered
-        #             )
-        #             for series2 in node_data[node].data[series1]:
-        #                 self.node_data[node].data_clustered[series1][series2] = (
-        #                     average_series(
-        #                         node_data[node].data_clustered[series1][series2],
-        #                         nr_timesteps_averaged,
-        #                     )
-        #                 )
-        #
-        #     for series1 in global_data.data:
-        #         self.global_data.data_clustered[series1] = pd.DataFrame(
-        #             self.topology.timesteps_clustered
-        #         )
-        #         for series2 in global_data.data[series1]:
-        #             self.global_data.data_clustered[series1][series2] = average_series(
-        #                 global_data.data_clustered[series1][series2],
-        #                 nr_timesteps_averaged,
-        #             )
-        #
-        # # read technology data
-        # self._read_technology_data(data, nr_timesteps_averaged)
-        #
-        # # Write averaged specs
-        # self.averaged_specs.reduced_resolution = pd.DataFrame(
-        #     data=np.ones(len(self.topology.timesteps)) * nr_timesteps_averaged,
-        #     index=self.topology.timesteps,
-        #     columns=["factor"],
-        # )
-        #
-        # self.model_information.averaged_data_specs.nr_timesteps_averaged = (
-        #     nr_timesteps_averaged
-        # )
+        """
+        Averages all nodal and global data
 
-    # def _average_data(
-    #     self, data_full_resolution: DataHandle, nr_timesteps_averaged: int
-    # ):
-    #     """
-    #     Averages all nodal and global data
-    #
-    #     :param data_full_resolution: Data full resolution
-    #     :param nr_timesteps_averaged: How many time-steps should be averaged?
-    #     """
+        :param data_full_resolution: Data full resolution
+        :param nr_timesteps_averaged: How many time-steps should be averaged?
+        """
 
-    #
-    # def _read_technology_data(
-    #     self, data_full_resolution: DataHandle, nr_timesteps_averaged: int
-    # ):
-    #     """
-    #     Reads technology data for time-averaging algorithm
-    #
-    #     :param data_full_resolution: Data full resolution
-    #     :param nr_timesteps_averaged: How many time-steps should be averaged?
-    #     """
-    #     load_path = self.model_information.tec_data_path
-    #     for node in self.topology.nodes:
-    #         self.technology_data[node] = {}
-    #         # New technologies
-    #         for technology in self.topology.technologies_new[node]:
-    #             tec_data = open_json(technology, load_path)
-    #             tec_data["name"] = technology
-    #             self.technology_data[node][technology] = select_technology(tec_data)
-    #
-    #             if self.technology_data[node][technology].technology_model == "RES":
-    #                 # Fit performance based on full resolution and average capacity factor
-    #                 self.technology_data[node][technology].fit_technology_performance(
-    #                     data_full_resolution.node_data[node]
-    #                 )
-    #                 cap_factor = self.technology_data[node][
-    #                     technology
-    #                 ].fitted_performance.coefficients["capfactor"]
-    #                 new_cap_factor = average_series(cap_factor, nr_timesteps_averaged)
-    #                 self.technology_data[node][
-    #                     technology
-    #                 ].fitted_performance.coefficients["capfactor"] = new_cap_factor
-    #
-    #                 lower_output_bound = np.zeros(shape=(len(new_cap_factor)))
-    #                 upper_output_bound = new_cap_factor
-    #                 output_bounds = np.column_stack(
-    #                     (lower_output_bound, upper_output_bound)
-    #                 )
-    #
-    #                 self.technology_data[node][technology].fitted_performance.bounds[
-    #                     "output"
-    #                 ]["electricity"] = output_bounds
-    #             else:
-    #                 # Fit performance based on averaged data
-    #                 self.technology_data[node][technology].fit_technology_performance(
-    #                     self.node_data[node]
-    #                 )
-    #
-    #         # Existing technologies
-    #         for technology in self.topology.technologies_existing[node].keys():
-    #             tec_data = open_json(technology, load_path)
-    #             tec_data["name"] = technology
-    #
-    #             self.technology_data[node][technology + "_existing"] = (
-    #                 select_technology(tec_data)
-    #             )
-    #             self.technology_data[node][technology + "_existing"].existing = 1
-    #             self.technology_data[node][technology + "_existing"].size_initial = (
-    #                 self.topology.technologies_existing[node][technology]
-    #             )
-    #             if (
-    #                 self.technology_data[node][
-    #                     technology + "_existing"
-    #                 ].technology_model
-    #                 == "RES"
-    #             ):
-    #                 # Fit performance based on full resolution and average capacity factor
-    #                 self.technology_data[node][
-    #                     technology + "_existing"
-    #                 ].fit_technology_performance(data_full_resolution.node_data[node])
-    #                 cap_factor = self.technology_data[node][
-    #                     technology + "_existing"
-    #                 ].fitted_performance.coefficients["capfactor"]
-    #                 new_cap_factor = average_series(cap_factor, nr_timesteps_averaged)
-    #
-    #                 self.technology_data[node][
-    #                     technology + "_existing"
-    #                 ].fitted_performance.coefficients["capfactor"] = new_cap_factor
-    #
-    #                 lower_output_bound = np.zeros(shape=(len(new_cap_factor)))
-    #                 upper_output_bound = new_cap_factor
-    #                 output_bounds = np.column_stack(
-    #                     (lower_output_bound, upper_output_bound)
-    #                 )
-    #
-    #                 self.technology_data[node][
-    #                     technology + "_existing"
-    #                 ].fitted_performance.bounds["output"]["electricity"] = output_bounds
-    #             else:
-    #                 # Fit performance based on averaged data
-    #                 self.technology_data[node][
-    #                     technology + "_existing"
-    #                 ].fit_technology_performance(self.node_data[node])
+        # Adjust time index
+        nr_timesteps_averaged = self.model_config["optimization"]["timestaging"][
+            "value"
+        ]
+        time_resolution_averaged = str(nr_timesteps_averaged) + "h"
+        self.topology["time_index"]["averaged"] = pd.date_range(
+            start=self.topology["start_date"],
+            end=self.topology["end_date"],
+            freq=time_resolution_averaged,
+        )
+
+        # Averaging data
+        if self.model_config["optimization"]["typicaldays"]["N"]["value"] == 0:
+            full_res_data_matrix = self.time_series["full"]
+            self.time_series["averaged"] = average_timeseries_data(
+                full_res_data_matrix,
+                nr_timesteps_averaged,
+                self.topology["time_index"]["averaged"],
+            )
+
+            # read technology data
+            self._read_technology_data(aggregation_type="averaged")
+
+        else:
+            clustered_data_matrix = self.time_series["clustered"]
+            clustered_days = self.model_config["optimization"]["typicaldays"]["N"][
+                "value"
+            ]
+            self.time_series["clustered_averaged"] = average_timeseries_data_clustered(
+                clustered_data_matrix, nr_timesteps_averaged, clustered_days
+            )
+
+            # read technology data
+            self._read_technology_data(aggregation_type="clustered_averaged")

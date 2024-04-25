@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import h5py
 
+
 def determine_graph_boundaries(x_values):
     """
     Returns x_min and x_max for a graph that is determined by using a slider
@@ -25,24 +26,28 @@ def determine_graph_boundaries(x_values):
 def plot_area_chart(df, x_min, x_max):
     df = df[(df.index >= x_min) & (df.index <= x_max)]
     df = df.reset_index()
-    df = pd.melt(df, value_vars=df.columns, id_vars=['index'])
+    df = pd.melt(df, value_vars=df.columns, id_vars=["index"])
 
-    chart = alt.Chart(df).mark_area().encode(
-        x='index:Q',
-        y='value:Q',
-        color="variable:N").configure_legend(orient='bottom')
+    chart = (
+        alt.Chart(df)
+        .mark_area()
+        .encode(x="index:Q", y="value:Q", color="variable:N")
+        .configure_legend(orient="bottom")
+    )
     return chart
 
 
 def plot_line_chart(df, x_min, x_max):
     df = df[(df.index >= x_min) & (df.index <= x_max)]
     df = df.reset_index()
-    df = pd.melt(df, value_vars=df.columns, id_vars=['index'])
+    df = pd.melt(df, value_vars=df.columns, id_vars=["index"])
 
-    chart = alt.Chart(df).mark_line().encode(
-        x='index:Q',
-        y='value:Q',
-        color="variable:N").configure_legend(orient='bottom')
+    chart = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(x="index:Q", y="value:Q", color="variable:N")
+        .configure_legend(orient="bottom")
+    )
     return chart
 
 
@@ -75,7 +80,7 @@ def extract_datasets_from_h5_dataset(dataset):
     :param group: group of h5 file
     :return: dataframe containing all datasets in group
     """
-    data = [item.decode('utf-8') for item in dataset]
+    data = [item.decode("utf-8") for item in dataset]
 
     return data
 
@@ -93,5 +98,5 @@ def export_csv(df, label, filename):
         label=label,
         data=excel_buffer,
         file_name=filename,
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
