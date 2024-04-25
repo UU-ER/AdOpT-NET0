@@ -63,6 +63,7 @@ def create_basic_case_study(folder_path: Path) -> None:
     configuration = initialize_configuration_templates()
 
     topology["carriers"] = ["electricity"]
+    configuration["solveroptions"]["solver"]["value"] = "glpk"
 
     save_json(topology, folder_path / "Topology.json")
     save_json(configuration, folder_path / "ConfigModel.json")
