@@ -61,11 +61,11 @@
   "Units": {
     "size": "tonne/hr",
     "input_carrier": {
-      "crackedgas": "tonne",
+      "crackedgas": "tonne/hr",
       "electricity": "MW"
     },
     "output_carrier": {
-      "crackedgas": "tonne"
+      "crackedgas": "tonne/hr"
     }
   }
 }

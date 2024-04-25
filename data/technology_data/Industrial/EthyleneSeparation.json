@@ -68,12 +68,12 @@
   "Units": {
     "size": "tonne/hr",
     "input_carrier": {
-      "crackedgas": "tonne",
+      "crackedgas": "tonne/hr",
       "electricity": "MW",
       "steam": "MW"
     },
     "output_carrier": {
-      "ethylene": "tonne",
+      "ethylene": "tonne/hr",
       "gas": "MW"
     }
   }

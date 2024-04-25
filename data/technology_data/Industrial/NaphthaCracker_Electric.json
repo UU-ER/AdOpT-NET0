@@ -66,12 +66,12 @@
   "Units": {
     "size": "tonne/hr",
     "input_carrier": {
-      "naphtha": "",
-      "electricity": ""
+      "naphtha": "tonne/hr",
+      "electricity": "MW"
     },
     "output_carrier": {
-      "crackedgas": "",
-      "steam": ""
+      "crackedgas": "tonne/hr",
+      "steam": "MW"
     }
   }
 }
