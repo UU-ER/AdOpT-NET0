@@ -171,7 +171,7 @@ class DataHandle:
                         )
 
         data = pd.DataFrame(data)
-        data = data[self.start_period : self.end_period]
+        data = data.iloc[self.start_period : self.end_period]
         data.index = self.topology["time_index"]["full"]
         data.columns.set_names(
             ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2"], inplace=True
