@@ -44,18 +44,3 @@ jobs:
       run: |
         pytest --cov-report xml:coverage.xml
         coverage coverage.xml
-
-    - name: Pytest coverage comment
-      uses: MishaKav/pytest-coverage-comment@main
-      with:
-        pytest-coverage-path: ./pytest-coverage.txt
-        junitxml-path: ./pytest.xml
-
-  coverage:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Get Coverage
-          uses: orgoro/coverage@v3.1
-          with:
-              coverageFile: coverage.xml
-              token: ${{ secrets.GITHUB_TOKEN }}

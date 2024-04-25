@@ -1,62 +1,14 @@
 import pytest
-import json
 import pandas as pd
-from pathlib import Path
-import random
 
 from src.data_preprocessing import *
 from src.data_management.utilities import check_input_data_consistency
-
-"""
-- Test data_loading
-- fill carrier_data
-- copy technology data
-- copy network data
-"""
-
-
-def select_random_list_from_list(ls: list) -> list:
-    """
-    Create a random list form an existing list
-
-    :param list ls: list to use
-    :return list: list with random items
-    """
-    num_items = random.randint(1, len(ls))
-    return random.sample(ls, num_items)
-
-
-def load_json(folder_path: Path) -> dict:
-    """
-    Loads json to a dict
-    :param Path folder_path: folder path to save to
-    :return dict:
-    """
-    with open(folder_path, "r") as json_file:
-        return json.load(json_file)
-
-
-def save_json(dict: dict, folder_path: Path) -> None:
-    """
-    Save dict to folder path as json
-    :param dict dict: dict to save
-    :param Path folder_path: folder path to save to
-    """
-    with open(folder_path, "w") as f:
-        json.dump(dict, f, indent=4)
-
-
-def get_topology_data(folder_path: Path) -> (list, list, list):
-    """
-    Gets investment periods, nodes and carriers from path
-    :param Path folder_path: folder path containing topology
-    :return: tuple of lists with investment_period, nodes and carriers
-    """
-    topology = load_json(folder_path / "Topology.json")
-    investment_periods = topology["investment_periods"]
-    nodes = topology["nodes"]
-    carriers = topology["carriers"]
-    return investment_periods, nodes, carriers
+from src.test.utilities import (
+    select_random_list_from_list,
+    load_json,
+    save_json,
+    get_topology_data,
+)
 
 
 @pytest.mark.data_preprocessing
