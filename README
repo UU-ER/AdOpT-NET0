@@ -1,20 +1,20 @@
 To get started you need to follow the subsequent steps:
-- Make sure you have Python 3.10 installed on your computer (it needs to be 3.10!)
+- Make sure you have Python installed on your computer (it needs to be version 3.12!)
 - Clone the repository to you drive
 - Create a virtual environment for this project. You can do this using PyCharm:
     - Open the project in PyCharm
     - Go to File -> Settings -> <project_name> -> Python Interpreter
     - Select Add Local Inerpreter from the Add Interpreter
     - In the left-hand pane of the Add Python Interpreter dialog, select Virtualenv Environment
-    - Add a Base Interpreter (select Python 3.10)
+    - Add a Base Interpreter (select Python 3.12)
 - Install all required packages to your virtual environment by using pip. In PyCharm you can do this with:
     - Move to the terminal in PyCharm, it is located on the bottom. If the virtual environment was correctly installed, you should see a (venv) in front of the path
     - Execute the command pip install -r requirements.txt to install all requirements in your virtual environment
-- Now, you can run main.py with python 3.10. In PyCharm, you can do this:
+- Now, you can run main.py with python 3.12. In PyCharm, you can do this:
     - Click on Edit configuration, in the upper right corner of the screen
     - Click Add new...
     - Name your configuration as you like (e.g. Run main)
-    - Select a Python 3.10 as an interpreter and click ok
+    - Select a Python 3.12 as an interpreter and click ok
     - You can run the model.
 
 If you want to create a new documentation website, you can use the PyCharm Terminal:

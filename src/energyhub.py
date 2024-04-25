@@ -301,7 +301,7 @@ class EnergyHub:
 
         self._define_solver_settings()
 
-        if config["optimization"]["monte_carlo"]["on"]["value"]:
+        if config["optimization"]["monte_carlo"]["N"]["value"]:
             self._solve_monte_carlo(objective)
         elif objective == "pareto":
             self._solve_pareto()
@@ -353,7 +353,7 @@ class EnergyHub:
             if not config["scaling"]["scaling_on"]["value"]:
                 if (
                     objective in ["emissions_minC", "pareto"]
-                    or config["optimization"]["monte_carlo"]["on"]["value"]
+                    or config["optimization"]["monte_carlo"]["N"]["value"]
                 ):
                     config["solveroptions"]["solver"]["value"] = "gurobi_persistent"
             self.solver = get_gurobi_parameters(config["solveroptions"])
@@ -509,7 +509,7 @@ class EnergyHub:
         """
         config = self.data.model_config
 
-        for run in range(0, config["optimization"]["monte_carlo"]["value"].N):
+        for run in range(0, config["optimization"]["monte_carlo"]["N"]["value"]):
             self.model_information.monte_carlo_run += 1
             self._monte_carlo_set_cost_parameters()
             if run == 0:
