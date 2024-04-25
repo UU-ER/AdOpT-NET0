@@ -5,6 +5,7 @@ from pathlib import Path
 import random
 
 from src.data_preprocessing import *
+from src.data_management.utilities import check_input_data_consistency
 
 """
 - Test data_loading
@@ -14,16 +15,44 @@ from src.data_preprocessing import *
 """
 
 
+def select_random_list_from_list(ls: list) -> list:
+    """
+    Create a random list form an existing list
+
+    :param list ls: list to use
+    :return list: list with random items
+    """
+    num_items = random.randint(1, len(ls))
+    return random.sample(ls, num_items)
+
+
+def load_json(folder_path: Path) -> dict:
+    """
+    Loads json to a dict
+    :param Path folder_path: folder path to save to
+    :return dict:
+    """
+    with open(folder_path, "r") as json_file:
+        return json.load(json_file)
+
+
+def save_json(dict: dict, folder_path: Path) -> None:
+    """
+    Save dict to folder path as json
+    :param dict dict: dict to save
+    :param Path folder_path: folder path to save to
+    """
+    with open(folder_path, "w") as f:
+        json.dump(dict, f, indent=4)
+
+
 def get_topology_data(folder_path: Path) -> (list, list, list):
     """
     Gets investment periods, nodes and carriers from path
     :param Path folder_path: folder path containing topology
     :return: tuple of lists with investment_period, nodes and carriers
     """
-    json_file_path = folder_path / "Topology.json"
-    with open(json_file_path, "r") as json_file:
-        topology = json.load(json_file)
-
+    topology = load_json(folder_path / "Topology.json")
     investment_periods = topology["investment_periods"]
     nodes = topology["nodes"]
     carriers = topology["carriers"]
@@ -46,6 +75,7 @@ def test_create_input_data_folder(request):
 
 
 @pytest.mark.data_preprocessing
+@pytest.mark.slow
 def test_data_climate_data_loading(request):
     """
     Tests standard behavior of load_climate_data_from_api
@@ -102,8 +132,7 @@ def test_data_fill_carrier_data(request):
         "Export emission factor",
         "Generic production",
     ]
-    num_items = random.randint(1, len(fill_options))
-    series_to_fill = random.sample(fill_options, num_items)
+    series_to_fill = select_random_list_from_list(fill_options)
 
     fill_carrier_data(
         case_study_folder_path, 1, columns=series_to_fill, carriers=carriers_to_fill
@@ -132,9 +161,35 @@ def test_data_fill_carrier_data(request):
 
 
 @pytest.mark.data_preprocessing
-def test_data_fill_carrier_data(request):
+def test_copy_technology_data(request):
     """
     Tests standard behavior of fill_carrier_data
     - Tests if df is indeed filled
     """
-    pass
+    case_study_folder_path = request.config.case_study_folder_path
+    technology_data_folder_path = request.config.technology_data_folder_path
+
+    investment_periods, nodes, carriers = get_topology_data(case_study_folder_path)
+    nodes_to_add_to = select_random_list_from_list(nodes)
+    periods_to_add_to = select_random_list_from_list(investment_periods)
+
+    # Create technologies
+    for period in periods_to_add_to:
+        for node in nodes_to_add_to:
+            path = (
+                case_study_folder_path
+                / period
+                / "node_data"
+                / node
+                / "Technologies.json"
+            )
+            technologies = load_json(path)
+            technologies["existing"] = ["TestTec_Conv1"]
+            technologies["new"] = ["TestTec_Conv2"]
+            save_json(technologies, path)
+
+    # Copy to folder
+    copy_technology_data(case_study_folder_path, technology_data_folder_path)
+
+    # Check it jsons are there
+    check_input_data_consistency(case_study_folder_path)

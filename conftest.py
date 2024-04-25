@@ -3,11 +3,15 @@ import os
 from pathlib import Path
 import shutil
 
+from src.data_preprocessing import *
+
 
 def pytest_configure(config):
     config.data_folder_path = Path("./src/test/test_data")
     config.result_folder_path = Path("./src/test/test_results")
     config.case_study_folder_path = Path("./src/test/test_case")
+    config.technology_data_folder_path = Path("./src/test/technology_data")
+    config.network_data_folder_path = Path("./src/test/network_data")
 
 
 @pytest.fixture(autouse=True)
@@ -18,11 +22,19 @@ def setup_before_tests(request):
     # Create Folder
     data_folder_path = request.config.data_folder_path
     result_folder_path = request.config.data_folder_path
+    case_study_folder_path = request.config.case_study_folder_path
 
     if not os.path.exists(data_folder_path):
         os.makedirs(data_folder_path)
     if not os.path.exists(result_folder_path):
         os.makedirs(result_folder_path)
+    if not os.path.exists(case_study_folder_path):
+        os.makedirs(case_study_folder_path)
+
+    # Create case study folders for preprocessing
+    create_optimization_templates(case_study_folder_path)
+    create_input_data_folder_template(case_study_folder_path)
+
     #
     # # Create Test Data
     # create_data_test_data_handle()
@@ -54,3 +66,5 @@ def setup_before_tests(request):
         shutil.rmtree(data_folder_path)
     if os.path.exists(result_folder_path) and os.path.isdir(result_folder_path):
         shutil.rmtree(result_folder_path)
+    if os.path.exists(case_study_folder_path) and os.path.isdir(case_study_folder_path):
+        shutil.rmtree(case_study_folder_path)
