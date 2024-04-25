@@ -52,7 +52,7 @@ class EnergyHub:
         self.info_monte_carlo = {}
 
     def read_data(
-        self, data_path: Path | str, start_period: int = 0, end_period: int = -1
+        self, data_path: Path | str, start_period: int = None, end_period: int = None
     ) -> None:
         """
         Reads in data from the specified path. The data is specified as the DataHandle class
