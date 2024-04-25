@@ -1,9 +1,9 @@
-.. _data-preprocessing_load-data:
+.. _workflow_load-data:
 
 Load Input Data
 =====================================
 
-Now that you have the :ref:`correct folder structure and templates for the data <data-preprocessing_create-data-templates>`,
+Now that you have the :ref:`correct folder structure and templates for the data <workflow_create-data-templates>`,
 you can start to actually fill the templates and folders with data. There are four options for loading data:
 
 #. :ref:`From API<load-data_from-api>`: for climate data.
@@ -19,7 +19,7 @@ loading in data can be found in the ``data_loading.py`` module in the ``data_pre
 From API
 ^^^^^^^^^^^^^^^^
 For importing climate data from the JRC PVGIS database, the method ``load_climate_data_from_api`` can be used, passing
-your :ref:`input data folder path<data-preprocessing_create-data-templates>`. This imports the climate data for each node,
+your :ref:`input data folder path<workflow_create-data-templates>`. This imports the climate data for each node,
 accounting for the location of the nodes as specified in ``NodeLocations.csv``. If no location is specified, it takes the
 default coordinates (52.5, 5.5) with an altitude of 10m.
 

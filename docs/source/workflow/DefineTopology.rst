@@ -1,4 +1,4 @@
-.. _data-preprocessing_define-topology:
+.. _workflow_define-topology:
 
 Defining System Topology
 =====================================
@@ -15,7 +15,7 @@ In the ``Topology.JSON`` file, the system topology can be defined. The system to
    model. (elaborate)
 #. The duration of your run: Here you can enter the start and end date of your model run and the resolution. By default,
    the length is one year with a resolution of one hour. NB: the dates you fill in here determine how many time
-   steps are generated in the :ref:`templates for input data<data-preprocessing_create-data-templates>` (i.e., in the
+   steps are generated in the :ref:`templates for input data<workflow_create-data-templates>` (i.e., in the
    default case, 8760 time steps are accounted for, so you would need to define hourly input data for 1 year). You can
    later decide to run the model using only part of your data.
 #. The investment period length: Here you can specify the length of one investment period as a ratio of the run duration.

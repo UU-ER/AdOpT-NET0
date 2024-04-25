@@ -1,4 +1,4 @@
-.. _model_components:
+.. _backbone_model_components:
 
 Model Components
 ====================

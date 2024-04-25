@@ -1,4 +1,4 @@
-.. _data-preprocessing_create-model-templates:
+.. _workflow_create-model-templates:
 
 Creating Model Templates
 =====================================
@@ -10,8 +10,8 @@ In order to set up your model, you start by creating a new folder for all input 
     :exclude-members:
 
 This creates two templates in the form of json files: one for the model configuration and one for the topology. Before
-you can continue with :ref:`retrieving the templates for the input data<data-preprocessing_create-data-templates>`,
-you will first have to :ref:`define the system topology<data-preprocessing_define-topology>`.
+you can continue with :ref:`retrieving the templates for the input data<workflow_create-data-templates>`,
+you will first have to :ref:`define the system topology<workflow_define-topology>`.
 
 Note: all methods related to template creation can be found in the ``template_creation.py`` module in the
 ``data_preprocessing`` directory.

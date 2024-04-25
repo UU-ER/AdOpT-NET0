@@ -138,6 +138,7 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
             / "connection.csv",
             sep=";",
         )
+        #FIXME: This can be removed, because existing networks do not need a max size, only a size. (they can reduce, not expand)
         empty_network_matrix.to_csv(
             base_path
             / investment_period

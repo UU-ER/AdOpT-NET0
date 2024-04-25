@@ -1,7 +1,24 @@
-.. _data-preprocessing:
+.. _workflow:
 
-Data Preprocessing
+Users Workflow
 =====================================
+[old welcome text, check which one is better]
+To define an energy system to optimize, you need to:
+
+#. Define a topology, i.e. which carriers, nodes, technologies and networks are part of the system (see
+   documentation :ref:`here <workflow_define-topology>`) and the input data, e.g. weather data,
+   technology performance, etc. (see documentation :ref:`here <workflow_load-data>`).
+
+#. Define the modeling configuration, i.e. objective, global optimization settings, solver options, etc. (see documentation :ref:`here <workflow_model-configuration>`).
+
+#. construct the model (see documentation :ref:`here <backbone_model-constructing>`).
+
+#. solve the model (see documentation :ref:`here <workflow_model-solving>`).
+
+#. look at the optimization results (see documentation :ref:`here <workflow_get-results>`).
+
+[until here]
+
 In order to prepare the model for your application, you will have to set up a working directory for all data
 preprocessing and take the following steps:
 
@@ -10,38 +27,73 @@ preprocessing and take the following steps:
 - Create the templates for the input data files.
 - Load and define input data.
 
-An example of how to set up the model accordingly can be found :ref:`below <data-preprocessing_example-usage>`. For a more
+An example of how to set up the model accordingly can be found :ref:`below <workflow_example-usage>`. For a more
 detailed description of each of the aforementioned steps, and for the class that handles this data behind the scenes,
 see the following pages:
 
 .. toctree::
     :maxdepth: 1
 
-    data_preprocessing/CreateModelTemplates
-    data_preprocessing/DefineTopology
-    data_preprocessing/CreateDataTemplates
-    data_preprocessing/LoadData
-    data_preprocessing/DataHandle
+    workflow/CreateModelTemplates
+    workflow/DefineTopology
+    workflow/CreateDataTemplates
+    workflow/LoadData
 
-..  _data-preprocessing_example-usage:
+
+..  _workflow_example-usage:
 
 Example Usage
 ^^^^^^^^^^^^^^^^
-Fist, we create an empty topology and fill it with a system design. Hereby note:
 
-- Node names can be chosen freely
-- Carrier names need to follow the same naming convention as in the technology files
-- Technology names need to be the same as the JSON file names in ``.\data\technology_data``. You can also use a
-  different directory to read in the technology data.
+To get started with your optimization, you first need to obtain the templates in which you can define the system
+topology and the model configuration, as explained :ref:`here<workflow_create-model-templates>`.
+
 
 .. testcode::
 
-    import src.data_management as dm
+    import src.data_preprocessing as dp
 
-    topology = dm.SystemTopology()
-    topology.define_time_horizon(year=2001,start_date='01-01 00:00', end_date='01-04 23:00', resolution=1)
-    topology.define_carriers(['electricity', 'heat'])
-    topology.define_nodes(['onshore', 'offshore'])
+    path = "path_to_your_input_data_folder"
+
+    dp.create_optimization_templates(path)
+
+Now, you can define your system topology in the topology.JSON file. Hereby note:
+
+- Node names can be chosen freely;
+- Carrier names need to follow the same naming convention as in the technology files (in ``.\data\technology_data``).
+- The resolution options are: ....
+- Investment period length is in years.
+
+For this example, the topology is as follows:
+
+
+    "nodes": "onshore", "offshore"
+
+    "carriers": "electricity", "heat"
+
+    "investment_periods": "year1", "year2"
+
+    "start_date": "2022-01-01 00:00",
+
+    "end_date": "2022-12-31 23:00",
+
+    "resolution": "1h",
+
+    "investment_period_length": 1
+
+
+Now, you can run the following command (the path is the same as before).
+
+.. testcode::
+
+    dp.create_input_data_folder_template(path)
+
+
+
+
+- Technology names need to be the same as the JSON file names in ``.\data\technology_data``. You can also use a
+  different directory to read in the technology data.
+
     topology.define_new_technologies('onshore', ['Storage_Battery', 'Photovoltaic', 'Furnace_NG'])
 
 It is also possible to add a technology that exists already at a certain size to a node. Note, that you need to
@@ -51,7 +103,7 @@ Similarly, it is possible to add an existing network to the model. See the
 :ref:`System Topology Documentation <data-management-system_topology>` for more details.
 
 
-.. testcode::
+
 
     topology.define_existing_technologies('onshore', {'WindTurbine_Onshore_1500': 2, 'Photovoltaic': 2.4})
 
