@@ -6,16 +6,18 @@ import shutil
 
 def pytest_configure(config):
     config.data_folder_path = Path("./src/test/test_data")
+    config.result_folder_path = Path("./src/test/test_results")
+    config.case_study_folder_path = Path("./src/test/test_case")
 
 
 @pytest.fixture(autouse=True)
-def setup_before_tests():
+def setup_before_tests(request):
     """
     Fixture to create the test data before running all tests
     """
     # Create Folder
-    data_folder_path = Path("./src/test/test_data")
-    result_folder_path = Path("./src/test/results")
+    data_folder_path = request.config.data_folder_path
+    result_folder_path = request.config.data_folder_path
 
     if not os.path.exists(data_folder_path):
         os.makedirs(data_folder_path)

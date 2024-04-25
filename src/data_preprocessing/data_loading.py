@@ -8,7 +8,7 @@ from timezonefinder import TimezoneFinder
 from pathlib import Path
 
 
-def load_climate_data_from_api(folder_path, dataset="JRC"):
+def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC") -> None:
     """
     Reads in climate data for a full year from a folder containing node data,
     where each node data is stored in a subfolder and node locations are provided in a CSV file named NodeLocations.csv
@@ -25,11 +25,11 @@ def load_climate_data_from_api(folder_path, dataset="JRC"):
     # Read NodeLocations.csv with node column as index
     node_locations_path = os.path.join(folder_path, "NodeLocations.csv")
     node_locations_df = pd.read_csv(
-        node_locations_path, sep=";", names=["node", "lon", "lat", "alt"]
+        node_locations_path, sep=";", names=["node", "lon", "lat", "alt"], header=0
     )
 
     # Read nodes and investment_periods from the JSON file
-    json_file_path = os.path.join(folder_path, "topology.json")
+    json_file_path = os.path.join(folder_path, "Topology.json")
     with open(json_file_path, "r") as json_file:
         topology = json.load(json_file)
 
@@ -79,20 +79,23 @@ def load_climate_data_from_api(folder_path, dataset="JRC"):
 
 
 def fill_carrier_data(
-    folder_path, value, columns=None, carriers=None, nodes=None, investment_periods=None
-):
+    folder_path: str | Path,
+    value: float,
+    columns: list = None,
+    carriers: list = None,
+    nodes: list = None,
+    investment_periods: list = None,
+) -> None:
     """
     Allows you to easily specify a constant value of Demand, Import limit, Export limit, Import price,
     Export price, Import emission factor, Export emission factor and/or Generic production.
 
     :param str folder_path: Path to the folder containing the case study data
-    :param int value: The new value of the carrier data to be changed
+    :param float value: The new value of the carrier data to be changed
     :param list columns: Name of the columns that need to be changed
     :param list investment_periods: Name of investment periods to be changed
     :param list nodes: Name of the nodes that need to be changed
     :param list carriers: Name of the carriers that need to be changed
-
-
     :return: None
     """
     # Convert to Path
@@ -100,7 +103,7 @@ def fill_carrier_data(
         folder_path = Path(folder_path)
 
     # Reads the topology json file
-    json_file_path = folder_path / "topology.json"
+    json_file_path = folder_path / "Topology.json"
     with open(json_file_path, "r") as json_file:
         topology = json.load(json_file)
 
@@ -134,7 +137,7 @@ def fill_carrier_data(
                 for column in columns if columns else column_options:
                     existing_data[column] = value * np.ones(len(existing_data))
 
-                # Save the updated data back to ClimateData.csv
+                # Save the updated data back to CarrierData.csv
                 existing_data.to_csv(output_file, index=False, sep=";")
 
 
