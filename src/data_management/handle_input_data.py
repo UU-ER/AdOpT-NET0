@@ -393,7 +393,9 @@ class DataHandle:
         self.k_means_specs["factors"] = {}
         clustered_data = {}
         for investment_period in self.topology["investment_periods"]:
-            full_res_data_matrix = compile_full_resolution_matrix(full_resolution.loc[:, investment_period], nr_time_intervals_per_day)
+            full_res_data_matrix = compile_full_resolution_matrix(
+                full_resolution.loc[:, investment_period], nr_time_intervals_per_day
+            )
 
             # Perform clustering
             clustered_data[investment_period], day_labels = perform_k_means(
@@ -418,7 +420,8 @@ class DataHandle:
             clustered_data.values(), axis=1, keys=clustered_data.keys()
         )
         clustered_data.columns.set_names(
-            ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2", "Timestep"], inplace=True
+            ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2", "Timestep"],
+            inplace=True,
         )
         self.time_series["clustered"] = clustered_data
 
@@ -433,7 +436,9 @@ class DataHandle:
         """
 
         # Adjust time index
-        nr_timesteps_averaged = self.model_config['optimization']["timestaging"]["value"]
+        nr_timesteps_averaged = self.model_config["optimization"]["timestaging"][
+            "value"
+        ]
         time_resolution_averaged = str(nr_timesteps_averaged) + "h"
         self.topology["time_index"]["averaged"] = pd.date_range(
             start=self.topology["start_date"],
@@ -444,18 +449,23 @@ class DataHandle:
         # Averaging data
         if self.model_config["optimization"]["typicaldays"]["N"]["value"] == 0:
             full_res_data_matrix = self.time_series["full"]
-            self.time_series["averaged"] = average_timeseries_data(full_res_data_matrix, nr_timesteps_averaged,
-                                                                   self.topology["time_index"]["averaged"])
+            self.time_series["averaged"] = average_timeseries_data(
+                full_res_data_matrix,
+                nr_timesteps_averaged,
+                self.topology["time_index"]["averaged"],
+            )
 
             # read technology data
             self._read_technology_data(aggregation_type="averaged")
 
         else:
             clustered_data_matrix = self.time_series["clustered"]
-            clustered_days = self.model_config["optimization"]["typicaldays"]["N"]["value"]
-            self.time_series["clustered_averaged"] = average_timeseries_data_clustered(clustered_data_matrix,
-                                                                             nr_timesteps_averaged,
-                                                                             clustered_days)
+            clustered_days = self.model_config["optimization"]["typicaldays"]["N"][
+                "value"
+            ]
+            self.time_series["clustered_averaged"] = average_timeseries_data_clustered(
+                clustered_data_matrix, nr_timesteps_averaged, clustered_days
+            )
 
             # read technology data
             self._read_technology_data(aggregation_type="clustered_averaged")

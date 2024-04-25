@@ -73,7 +73,8 @@ def perform_k_means(full_resolution, nr_clusters):
 
 
 def compile_sequence(
-    day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day):
+    day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day
+):
     """
 
     :param day_labels: labels for each typical day
@@ -117,7 +118,9 @@ def compile_full_resolution_matrix(data_full_res, nr_time_intervals_per_day):
     # Reshape each column into a DataFrame with nr_of_days_full_res rows and nr_time_intervals_per_day columns
     reshaped_data = pd.DataFrame()
     for col in data_full_res.columns:
-        col_data = data_full_res[col].values.reshape(nr_of_days_full_res, nr_time_intervals_per_day)
+        col_data = data_full_res[col].values.reshape(
+            nr_of_days_full_res, nr_time_intervals_per_day
+        )
         col_df = pd.DataFrame(col_data, columns=time_intervals)
         reshaped_data = pd.concat([reshaped_data, col_df], axis=1)
 
@@ -125,8 +128,10 @@ def compile_full_resolution_matrix(data_full_res, nr_time_intervals_per_day):
     index_frame = data_full_res.columns.to_frame()
     repeated_frames = []
     for _, row in index_frame.iterrows():
-        repeated_index = pd.concat([pd.DataFrame(row).T] * nr_time_intervals_per_day, ignore_index=True)
-        repeated_index['Time Interval'] = sorted(list(time_intervals))
+        repeated_index = pd.concat(
+            [pd.DataFrame(row).T] * nr_time_intervals_per_day, ignore_index=True
+        )
+        repeated_index["Time Interval"] = sorted(list(time_intervals))
         repeated_frames.append(repeated_index)
     repeated_index = pd.concat(repeated_frames)
 
@@ -169,7 +174,9 @@ def average_timeseries_data(data_matrix, nr_timesteps_averaged, time_index):
     return averaged_df
 
 
-def average_timeseries_data_clustered(data_matrix, nr_timesteps_averaged, clustered_days):
+def average_timeseries_data_clustered(
+    data_matrix, nr_timesteps_averaged, clustered_days
+):
     """
     Averages the nr_timesteps_averaged in the DataFrame.
 
@@ -216,8 +223,10 @@ def shorten_input_data(time_series, nr_time_steps):
     :param int nr_time_steps: nr of time steps to shorten to
     """
     if len(time_series) != nr_time_steps:
-        warnings.warn('Time series is longer than chosen time horizon - taking only the first ' + \
-                      'couple of time slices')
+        warnings.warn(
+            "Time series is longer than chosen time horizon - taking only the first "
+            + "couple of time slices"
+        )
         time_series = time_series[0:nr_time_steps]
 
     return time_series

@@ -267,6 +267,7 @@ class HeatPump(Technology):
                         == alpha1.iloc[t - 1] * self.input[t, "electricity"]
                         + alpha2.iloc[t - 1] * b_tec.var_size * rated_power
                     )
+
                 dis.const_input_output_on = Constraint(rule=init_input_output_on)
 
                 # min part load relation
