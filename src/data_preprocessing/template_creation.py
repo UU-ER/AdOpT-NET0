@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 
-def create_empty_network_matrix(nodes):
+def create_empty_network_matrix(nodes: list) -> pd.DataFrame:
     """
     Function creates matrix for defined nodes.
 
