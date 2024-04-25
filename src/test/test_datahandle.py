@@ -7,6 +7,7 @@ from src.data_management import *
 from src.model_configuration import ModelConfiguration
 from src.energyhub import EnergyHub
 
+
 @pytest.mark.quicktest
 def create_topology_sample():
     """
@@ -20,6 +21,7 @@ def create_topology_sample():
     topology.define_nodes(["testnode"])
 
     return topology
+
 
 @pytest.mark.quicktest
 def test_initializer():
@@ -49,6 +51,7 @@ def test_initializer():
     )
 
     data = DataHandle(topology)
+
 
 @pytest.mark.quicktest
 def test_load_technologies():

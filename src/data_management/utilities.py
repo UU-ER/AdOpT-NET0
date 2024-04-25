@@ -107,6 +107,40 @@ def get_day_factors(keys):
     return factors
 
 
+def compile_full_resolution_matrix(data_full_res, nr_time_intervals_per_day):
+    """
+    Compiles full resolution matrix to be clustered
+
+    """
+    time_intervals = range(1, nr_time_intervals_per_day + 1)
+    nr_of_days_full_res = len(data_full_res) // nr_time_intervals_per_day
+
+    # Reshape each column into a DataFrame with nr_of_days_full_res rows and nr_time_intervals_per_day columns
+    reshaped_data = pd.DataFrame()
+    for col in data_full_res.columns:
+        col_data = data_full_res[col].values.reshape(
+            nr_of_days_full_res, nr_time_intervals_per_day
+        )
+        col_df = pd.DataFrame(col_data, columns=time_intervals)
+        reshaped_data = pd.concat([reshaped_data, col_df], axis=1)
+
+    # Repeat each row of the index frame separately and add time_intervals as the last column
+    index_frame = data_full_res.columns.to_frame()
+    repeated_frames = []
+    for _, row in index_frame.iterrows():
+        repeated_index = pd.concat(
+            [pd.DataFrame(row).T] * nr_time_intervals_per_day, ignore_index=True
+        )
+        repeated_index["Time Interval"] = sorted(list(time_intervals))
+        repeated_frames.append(repeated_index)
+    repeated_index = pd.concat(repeated_frames)
+
+    # Set index with the modified frame
+    reshaped_data.columns = pd.MultiIndex.from_frame(repeated_index)
+
+    return reshaped_data
+
+
 def reshape_df(series_to_add, column_names, nr_cols):
     """
     Transform all data to large dataframe with each row being one day
@@ -120,14 +154,49 @@ def reshape_df(series_to_add, column_names, nr_cols):
     return transformed_series
 
 
-def average_series(series, nr_timesteps_averaged):
+def average_timeseries_data(data_matrix, nr_timesteps_averaged, time_index):
     """
-    Averages a number of timesteps
-    """
-    to_average = reshape_df(series, None, nr_timesteps_averaged)
-    average = np.array(to_average.mean(axis=1))
+    Averages the nr_timesteps_averaged in the DataFrame.
 
-    return average
+    Parameters:
+        series (pd.DataFrame): Input DataFrame.
+        nr_timesteps_averaged (int): Number of consecutive rows to average.
+
+    Returns:
+        pd.DataFrame: New DataFrame with averaged rows.
+    """
+    averaged_df = pd.DataFrame(index=time_index, columns=data_matrix.columns)
+    for col in data_matrix.columns:
+        reshaped_data = data_matrix[col].values.reshape(-1, nr_timesteps_averaged)
+        averages = np.mean(reshaped_data, axis=1)
+        averaged_df[col] = averages
+
+    return averaged_df
+
+
+def average_timeseries_data_clustered(
+    data_matrix, nr_timesteps_averaged, clustered_days
+):
+    """
+    Averages the nr_timesteps_averaged in the DataFrame.
+
+    Parameters:
+        data_matrix (pd.DataFrame): Input DataFrame.
+        nr_timesteps_averaged (int): Number of consecutive rows to average.
+        clustered_days (int): Number of days for which the data is clustered.
+
+    Returns:
+        pd.DataFrame: New DataFrame with averaged rows.
+    """
+    averaged_dfs = []
+    for i in range(0, data_matrix.shape[1], nr_timesteps_averaged):
+        start_idx = i
+        end_idx = min(i + nr_timesteps_averaged, data_matrix.shape[1])
+        col_name = data_matrix.columns[start_idx]
+        averaged_values = data_matrix.iloc[:, start_idx:end_idx].mean(axis=1)
+        averaged_dfs.append(pd.DataFrame({col_name: averaged_values}))
+
+    return pd.concat(averaged_dfs, axis=1)
 
 
 def calculate_dni(data, lon, lat):
@@ -154,8 +223,10 @@ def shorten_input_data(time_series, nr_time_steps):
     :param int nr_time_steps: nr of time steps to shorten to
     """
     if len(time_series) != nr_time_steps:
-        warnings.warn('Time series is longer than chosen time horizon - taking only the first ' + \
-                      'couple of time slices')
+        warnings.warn(
+            "Time series is longer than chosen time horizon - taking only the first "
+            + "couple of time slices"
+        )
         time_series = time_series[0:nr_time_steps]
 
     return time_series
