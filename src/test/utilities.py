@@ -4,8 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.data_preprocessing import *
-from src.data_management.utilities import open_json, select_technology
-from src.components.technologies.technology import Technology
+from src.data_management import DataHandle
 
 
 def select_random_list_from_list(ls: list) -> list:
@@ -72,25 +71,10 @@ def create_basic_case_study(folder_path: Path) -> None:
     save_json(configuration, folder_path / "ConfigModel.json")
 
 
-def get_technology_data(technology: str, load_path: Path) -> Technology:
-    """
-    Reads in technology data.
-
-    :param str technology: name of the technology.
-    :param Path load_path: path input data folder.
-    :return dict: dictionary containing the technology data.
-    """
-    tec_data = open_json(technology, load_path)
-    tec_data["name"] = technology
-    tec_data = select_technology(tec_data)
-
-    return tec_data
-
-
-def make_climate_data(start_date, end_date):
+def make_climate_data(start_date: str, nr_periods: int):
     timesteps = pd.date_range(
         start=start_date,
-        end=end_date,
+        periods=nr_periods,
         freq="1h",
     )
     climate_data = pd.DataFrame(
@@ -107,5 +91,39 @@ def make_climate_data(start_date, end_date):
     return climate_data
 
 
-def make_data():
-    pass
+def read_topology_patch(self):
+    """
+    Reads topology from template
+    """
+    self.topology = initialize_topology_templates()
+
+    self.topology["time_index"] = {}
+    time_index = pd.date_range(
+        start=self.topology["start_date"],
+        end=self.topology["end_date"],
+        freq=self.topology["resolution"],
+    )
+    original_number_timesteps = len(time_index)
+    self.topology["time_index"]["full"] = time_index[
+        self.start_period : self.end_period
+    ]
+    new_number_timesteps = len(self.topology["time_index"]["full"])
+    self.topology["fraction_of_year_modelled"] = (
+        new_number_timesteps / original_number_timesteps
+    )
+
+
+def make_data_for_technology_testing(nr_timesteps):
+
+    # Create DataHandle and monkey patch it
+    dh = DataHandle()
+    dh.start_period = 0
+    dh.end_period = dh.start_period + nr_timesteps
+    dh._read_topology = read_topology_patch.__get__(dh, DataHandle)
+    dh._read_topology()
+
+    data = {}
+    data["topology"] = dh.topology
+    data["config"] = initialize_configuration_templates()
+
+    return data

@@ -304,6 +304,8 @@ def select_technology(tec_data):
 def open_json(tec, load_path):
     # Read in JSON files
     for path, subdirs, files in os.walk(load_path):
+        print(path)
+
         if "data" in locals():
             break
         else:
