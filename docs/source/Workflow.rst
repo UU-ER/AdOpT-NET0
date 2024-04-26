@@ -15,7 +15,7 @@ application. In short, these steps are as follows:
 - Obtain and interpret the optimization results.
 
 An elaborate example of how to set up the model accordingly can be found :ref:`below <workflow_example-usage>`. To
-understand what happens behind the scenes, please take a look :ref:`here<backbone>`. For a more detailed description of
+understand what happens behind the scenes, please take a look :ref:`here<src-code>`. For a more detailed description of
 each of the aforementioned steps, see the following pages:
 
 .. toctree::

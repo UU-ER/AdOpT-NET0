@@ -1,7 +1,11 @@
-.. _backbone_model_components:
+.. _src-code_structure:
 
-Model Components
+Model Structure
 ====================
+
+
+
+
 Technologies and Networks are modelled as subclasses from the ModelComponent class:
 
 .. automodule:: src.components.component

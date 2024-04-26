@@ -11,8 +11,9 @@ networks for any carrier and optimize the design and operation of your energy sy
 The documentation is split up in three parts:
 
 #. A :ref:`workflow for (first-time) users<workflow>`;
-#. The :ref:`documentation of the model backbone<backbone>` for users and developers.
+#. The :ref:`documentation of the source code<src-code>` for users and developers.
 #. A :ref:`guide for developers<developers-guide>`.
+#. Some example :ref:`case studies<case-studies>` for usage.
 
 
 Table of Content
@@ -22,8 +23,9 @@ Table of Content
    :maxdepth: 2
 
    Workflow
-   ModelBackbone
+   SourceCode
    ForDevelopers
+   CaseStudies
 
 
 Indices and tables
