@@ -2,6 +2,7 @@ from ....utilities import open_json
 import numpy as np
 from ...component import ModelComponent
 
+
 def fit_ccs_data(ccs_data, data):
     """
     Calculates the amount of input (and their bounds) required for each unit of CO2 entering the carbon capture (CC)
@@ -16,41 +17,51 @@ def fit_ccs_data(ccs_data, data):
 
     """
 
-    tec_data = open_json(ccs_data['ccs_type'], data.model_information.tec_data_path)
-    performance_data = tec_data['TechnologyPerf']
+    tec_data = open_json(ccs_data["ccs_type"], data.model_information.tec_data_path)
+    performance_data = tec_data["TechnologyPerf"]
     time_steps = len(data.topology.timesteps)
-
 
     molar_mass_CO2 = 44.01
 
-    co2_concentration = ccs_data['co2_concentration']
-    carbon_capture_rate = performance_data['capture_rate']
+    co2_concentration = ccs_data["co2_concentration"]
+    carbon_capture_rate = performance_data["capture_rate"]
 
     # Recalculate min/max size
-    tec_data['size_min'] = tec_data['size_min'] * co2_concentration
-    tec_data['size_max'] = tec_data['size_max'] * co2_concentration
+    tec_data["size_min"] = tec_data["size_min"] * co2_concentration
+    tec_data["size_max"] = tec_data["size_max"] * co2_concentration
 
     # Calculate input ratios
-    if 'MEA' in ccs_data['ccs_type']:
-        tec_data['TechnologyPerf']['input_ratios'] = {}
-        for car in  tec_data['TechnologyPerf']['input_carrier']:
-            tec_data['TechnologyPerf']['input_ratios'][car] = (tec_data['TechnologyPerf']['eta'][car] + tec_data['TechnologyPerf']['omega'][car] * co2_concentration) / (
-                    co2_concentration * molar_mass_CO2 * 3.6)
+    if "MEA" in ccs_data["ccs_type"]:
+        tec_data["TechnologyPerf"]["input_ratios"] = {}
+        for car in tec_data["TechnologyPerf"]["input_carrier"]:
+            tec_data["TechnologyPerf"]["input_ratios"][car] = (
+                tec_data["TechnologyPerf"]["eta"][car]
+                + tec_data["TechnologyPerf"]["omega"][car] * co2_concentration
+            ) / (co2_concentration * molar_mass_CO2 * 3.6)
     else:
-        raise Exception("Only CCS type MEA is modelled so far. ccs_type in the json file of the technology must include MEA")
+        raise Exception(
+            "Only CCS type MEA is modelled so far. ccs_type in the json file of the technology must include MEA"
+        )
 
     # Calculate bounds
-    tec_data['TechnologyPerf']['bounds'] = {}
-    tec_data['TechnologyPerf']['bounds']['input'] = {}
-    tec_data['TechnologyPerf']['bounds']['output'] = {}
-    for car in  tec_data['TechnologyPerf']['input_carrier']:
-        tec_data['TechnologyPerf']['bounds']['input'][car] = np.column_stack((np.zeros(shape=(time_steps)),
-                                                                             np.ones(shape=(time_steps)) *
-                                                                             tec_data['TechnologyPerf']['input_ratios'][car]))
-    for car in  tec_data['TechnologyPerf']['output_carrier']:
-        tec_data['TechnologyPerf']['bounds']['output'][car] =  np.column_stack((np.zeros(shape=(time_steps)),
-                                                                             np.ones(shape=(time_steps)) *
-                                                                                 carbon_capture_rate))
+    tec_data["TechnologyPerf"]["bounds"] = {}
+    tec_data["TechnologyPerf"]["bounds"]["input"] = {}
+    tec_data["TechnologyPerf"]["bounds"]["output"] = {}
+    for car in tec_data["TechnologyPerf"]["input_carrier"]:
+        tec_data["TechnologyPerf"]["bounds"]["input"][car] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                np.ones(shape=(time_steps))
+                * tec_data["TechnologyPerf"]["input_ratios"][car],
+            )
+        )
+    for car in tec_data["TechnologyPerf"]["output_carrier"]:
+        tec_data["TechnologyPerf"]["bounds"]["output"][car] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                np.ones(shape=(time_steps)) * carbon_capture_rate,
+            )
+        )
 
     return tec_data
 

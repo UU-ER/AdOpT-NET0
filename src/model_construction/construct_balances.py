@@ -223,7 +223,9 @@ def construct_global_energybalance(model, config):
 
             tec_input = sum(
                 sum(
-                    b_period.node_blocks[node].tech_blocks_active[tec].var_input_tot[t, car]
+                    b_period.node_blocks[node]
+                    .tech_blocks_active[tec]
+                    .var_input_tot[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
                     if car in b_period.node_blocks[node].set_carriers
                     and b_period.node_blocks[node]
