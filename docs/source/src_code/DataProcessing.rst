@@ -1,7 +1,8 @@
-.. _backbone_data-handle:
+.. _src-code_data-processing:
 
-The DataHandle Class
+Data Processing
 =====================================
+
 ``src.data_management.handle_input_data.DataHandle`` provides a class for data storage and methods to import
 and manipulate data consistent with the model.
 

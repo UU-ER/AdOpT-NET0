@@ -229,8 +229,5 @@ optimality, or took longer than expected for the complexity of your system, you 
 :ref:`model diagnostics<model_diagnostics>`.
 
 For a simple means to get a grip on your results, you can :ref:`start the streamlit visualisation<results_visualization>`,
-by running the following piece of code in your terminal. From there, you can also download CSV files with your result data.
-
-.. testcode::
-
-    streamlit run src/visualization/streamlit_app.py
+by opening the following link in your browser: https://resultvisualization.streamlit.app/. From there, you can also
+download CSV files with your result data.

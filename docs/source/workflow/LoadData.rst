@@ -34,6 +34,7 @@ system by setting:
 
 After the complete system topology and system characteristics are finalised, the final data can be loaded into the input
 data folder. This remaining data covers:
+
 - Carbon costs: Prices of carbon emissions and/or subsidies for emission reductions.
 - Climate data: global horizontal irradiance (ghi), direct normal irradiance (dni), diffuse horizontal irradiance (dhi),
   air temperature, relative humidity, inflow of water, wind speed at 10 metres.
@@ -56,7 +57,7 @@ loading in data can be found in the ``data_loading.py`` module in the ``data_pre
 
 From API
 ^^^^^^^^^^^^^^^^
-For importing climate data from the JRC PVGIS database, the method ``load_climate_data_from_api`` can be used, passing
+For importing climate data from the JRC PVGIS database, the method :func:`load_climate_data_from_api` can be used, passing
 your :ref:`input data folder path<workflow_create-data-templates>`. This imports the climate data for each node,
 accounting for the location of the nodes as specified in ``NodeLocations.csv``. If no location is specified, it takes the
 default coordinates (52.5, 5.5) with an altitude of 10m.
@@ -74,8 +75,8 @@ for water flow into the reservoir.
 
 From model
 ^^^^^^^^^^^^^^^^
-For the technologies and networks, you can copy the JSON files in automatically using the ``copy_technology_data`` and
-``copy_network_data`` methods below. Note: the method automatically checks which technologies and networks it has to copy
+For the technologies and networks, you can copy the JSON files in automatically using the :func:`copy_technology_data` and
+:func:`copy_network_data` methods below. Note: the method automatically checks which technologies and networks it has to copy
 from the model repository by reading in the ``Technology.JSON`` and ``Network.JSON`` files, respectively. Thus, make sure
 to use the naming conventions as in the JSON files in the model repository.
 
@@ -89,7 +90,7 @@ to use the naming conventions as in the JSON files in the model repository.
 Specifying a fixed value
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For carrier data, you can use the ``fill_carrier_data`` method if your value does not vary over time.
+For carrier data, you can use the :func:`fill_carrier_data` method if your value does not vary over time.
 
 .. automodule:: src.data_preprocessing.data_loading
     :members: fill_carrier_data

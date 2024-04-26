@@ -3,7 +3,7 @@
 Creating Input Data Templates
 =====================================
 After you have defined your system topology, you can now create the folder structure and the templates for the
-optimization based on the specified topology. For this, you call the ``create_input_data_folder_template`` method,
+optimization based on the specified topology. For this, you call the :func:`create_input_data_folder_template` method,
 passing your input data folder path (which must be the same folder path as for the :ref:`Model Templates<workflow_create-model-templates>`).
 
 .. automodule:: src.data_preprocessing.template_creation
