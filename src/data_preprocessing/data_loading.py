@@ -8,14 +8,13 @@ from timezonefinder import TimezoneFinder
 from pathlib import Path
 
 
-def load_climate_data_from_api(folder_path, dataset="JRC"):
+def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC") -> None:
     """
     Reads in climate data for a full year from a folder containing node data,
     where each node data is stored in a subfolder and node locations are provided in a CSV file named NodeLocations.csv
 
     :param str folder_path: Path to the folder containing node data and NodeLocations.csv
     :param str dataset: Dataset to import from, can be JRC (only onshore) or ERA5 (global)
-    :param int year: Optional, needs to be in range of data available. If nothing is specified, a typical year will be loaded
     :return: None
     """
     # Convert to Path
@@ -25,11 +24,11 @@ def load_climate_data_from_api(folder_path, dataset="JRC"):
     # Read NodeLocations.csv with node column as index
     node_locations_path = os.path.join(folder_path, "NodeLocations.csv")
     node_locations_df = pd.read_csv(
-        node_locations_path, sep=";", names=["node", "lon", "lat", "alt"]
+        node_locations_path, sep=";", names=["node", "lon", "lat", "alt"], header=0
     )
 
     # Read nodes and investment_periods from the JSON file
-    json_file_path = os.path.join(folder_path, "topology.json")
+    json_file_path = os.path.join(folder_path, "Topology.json")
     with open(json_file_path, "r") as json_file:
         topology = json.load(json_file)
 
@@ -79,20 +78,23 @@ def load_climate_data_from_api(folder_path, dataset="JRC"):
 
 
 def fill_carrier_data(
-    folder_path, value, columns=None, carriers=None, nodes=None, investment_periods=None
-):
+    folder_path: str | Path,
+    value: float,
+    columns: list = None,
+    carriers: list = None,
+    nodes: list = None,
+    investment_periods: list = None,
+) -> None:
     """
     Allows you to easily specify a constant value of Demand, Import limit, Export limit, Import price,
     Export price, Import emission factor, Export emission factor and/or Generic production.
 
     :param str folder_path: Path to the folder containing the case study data
-    :param int value: The new value of the carrier data to be changed
+    :param float value: The new value of the carrier data to be changed
     :param list columns: Name of the columns that need to be changed
     :param list investment_periods: Name of investment periods to be changed
     :param list nodes: Name of the nodes that need to be changed
     :param list carriers: Name of the carriers that need to be changed
-
-
     :return: None
     """
     # Convert to Path
@@ -100,7 +102,7 @@ def fill_carrier_data(
         folder_path = Path(folder_path)
 
     # Reads the topology json file
-    json_file_path = folder_path / "topology.json"
+    json_file_path = folder_path / "Topology.json"
     with open(json_file_path, "r") as json_file:
         topology = json.load(json_file)
 
@@ -134,11 +136,11 @@ def fill_carrier_data(
                 for column in columns if columns else column_options:
                     existing_data[column] = value * np.ones(len(existing_data))
 
-                # Save the updated data back to ClimateData.csv
+                # Save the updated data back to CarrierData.csv
                 existing_data.to_csv(output_file, index=False, sep=";")
 
 
-def copy_technology_data(folder_path, tec_data_path):
+def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
     """
     Automatically copies technology JSON files to the node folder for each node and investment period.
 
@@ -156,11 +158,8 @@ def copy_technology_data(folder_path, tec_data_path):
     if isinstance(tec_data_path, str):
         tec_data_path = Path(tec_data_path)
 
-    # Default tec_data_path if not provided
-    tec_data_path = tec_data_path / "technology_data"
-
     # Reads the topology JSON file
-    json_file_path = folder_path / "topology.json"
+    json_file_path = folder_path / "Topology.json"
     with open(json_file_path, "r") as json_file:
         topology = json.load(json_file)
 
@@ -184,7 +183,7 @@ def copy_technology_data(folder_path, tec_data_path):
                     shutil.copy(tec_json_file_path, output_folder)
 
 
-def copy_network_data(folder_path, ntw_data_path):
+def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path):
     """
     Automatically copies network JSON files to the network_data folder for each investment period.
 
@@ -202,11 +201,8 @@ def copy_network_data(folder_path, ntw_data_path):
     if isinstance(ntw_data_path, str):
         ntw_data_path = Path(ntw_data_path)
 
-    # Default tec_data_path if not provided
-    ntw_data_path = ntw_data_path / "network_data"
-
     # Reads the topology JSON file
-    json_file_path = folder_path / "topology.json"
+    json_file_path = folder_path / "Topology.json"
     with open(json_file_path, "r") as json_file:
         topology = json.load(json_file)
 
@@ -225,7 +221,7 @@ def copy_network_data(folder_path, ntw_data_path):
                 shutil.copy(ntw_json_file_path, output_folder)
 
 
-def find_json_path(data_path, name):
+def find_json_path(data_path: str | Path, name: str) -> Path:
     """
     Search for a JSON file with the given technology name in the specified path and its subfolders.
 
@@ -233,13 +229,13 @@ def find_json_path(data_path, name):
     :param str name: Name of the technology.
     :return: Path to the JSON file if found, otherwise None.
     """
-    for root, dirs, files in os.walk(data_path):
+    for root, dirs, files in os.walk(data_path.resolve()):
         for file in files:
             if file.lower() == f"{name.lower()}.json":
                 return Path(root) / Path(file)
 
 
-def import_jrc_climate_data(lon, lat, year, alt):
+def import_jrc_climate_data(lon: float, lat: float, year: int, alt: float) -> dict:
     """
     Reads in climate data for a full year from `JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_.
 

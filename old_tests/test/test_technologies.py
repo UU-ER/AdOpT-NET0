@@ -1126,7 +1126,7 @@ def test_dac():
     energyhub.configuration.reporting.save_path = "./src/test/results"
     energyhub.configuration.reporting.save_summary_path = "./src/test/results"
     energyhub.quick_solve()
-    cost1 = energyhub.model.var_total_cost.value
+    cost1 = energyhub.model.var_cost_total.value
 
     configuration = ModelConfiguration()
     configuration.optimization.typicaldays.N = 4
@@ -1135,7 +1135,7 @@ def test_dac():
     energyhub.configuration.reporting.save_path = "./src/test/results"
     energyhub.configuration.reporting.save_summary_path = "./src/test/results"
     energyhub.quick_solve()
-    cost2 = energyhub.model.var_total_cost.value
+    cost2 = energyhub.model.var_cost_total.value
 
     assert abs(cost1 - cost2) / cost1 <= 0.1
 
@@ -1149,7 +1149,7 @@ def test_existing_technologies():
         energyhub.construct_balances()
         energyhub.solve()
         assert energyhub.solution.solver.termination_condition == "optimal"
-        cost = energyhub.model.var_total_cost.value
+        cost = energyhub.model.var_cost_total.value
         return cost
 
     configuration = ModelConfiguration()

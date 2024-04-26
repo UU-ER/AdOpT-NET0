@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-def create_empty_network_matrix(nodes):
+def create_empty_network_matrix(nodes: list) -> pd.DataFrame:
     """
     Function creates matrix for defined nodes.
 
@@ -22,7 +22,7 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
     """
     This function creates the input data folder structure required to organize the input data to the model.
     Note that the folder needs to already exist with a Topology.json file in it that specifies the nodes, carriers,
-    timesteps, investement periods and the length of the investment period.
+    timesteps, investment periods and the length of the investment period.
 
     You can create an examplary json template with the function `create_topology_template`
 
@@ -65,7 +65,15 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
     )
     climate_data = pd.DataFrame(
         index=timesteps,
-        columns=["ghi", "dni", "dhi", "temp_air", "rh", "TECHNOLOGYNAME_hydro_inflow"],
+        columns=[
+            "ghi",
+            "dni",
+            "dhi",
+            "temp_air",
+            "rh",
+            "ws10",
+            "TECHNOLOGYNAME_hydro_inflow",
+        ],
     )
     carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
     node_locations = pd.DataFrame(
@@ -137,14 +145,6 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
             / "connection.csv",
             sep=";",
         )
-        empty_network_matrix.to_csv(
-            base_path
-            / investment_period
-            / "network_topology"
-            / "existing"
-            / "size_max_arcs.csv",
-            sep=";",
-        )
 
         # Node data
         (base_path / investment_period / "node_data").mkdir(parents=True, exist_ok=True)
@@ -194,15 +194,12 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
             ).mkdir(parents=True, exist_ok=True)
 
 
-def create_optimization_templates(path: Path | str) -> None:
+def initialize_topology_templates() -> dict:
     """
-    Creates an examplary topology json file in the specified path.
+    Creates a topology template and returns it as a dict
 
-    :param str/Path path: path to folder to create Topology.json
+    :return dict: topology_template
     """
-    if isinstance(path, str):
-        path = Path(path)
-
     topology_template = {
         "nodes": ["node1", "node2"],
         "carriers": ["electricity", "hydrogen"],
@@ -212,7 +209,15 @@ def create_optimization_templates(path: Path | str) -> None:
         "resolution": "1h",
         "investment_period_length": 1,
     }
+    return topology_template
 
+
+def initialize_configuration_templates() -> dict:
+    """
+    Creates a configuration template and returns it as a dict
+
+    :return dict: configuration_template
+    """
     configuration_template = {
         "optimization": {
             "objective": {
@@ -423,6 +428,21 @@ def create_optimization_templates(path: Path | str) -> None:
         },
     }
 
+    return configuration_template
+
+
+def create_optimization_templates(path: Path | str) -> None:
+    """
+    Creates an examplary topology json file in the specified path.
+
+    :param str/Path path: path to folder to create Topology.json
+    """
+    if isinstance(path, str):
+        path = Path(path)
+
+    topology_template = initialize_topology_templates()
+    configuration_template = initialize_configuration_templates()
+
     with open(path / "Topology.json", "w") as f:
         json.dump(topology_template, f, indent=4)
     with open(path / "ConfigModel.json", "w") as f:
@@ -431,7 +451,10 @@ def create_optimization_templates(path: Path | str) -> None:
 
 def create_montecarlo_template_csv(base_path):
     """
-    Creates a template CSV file for the monte carlo parameters and saves it to the given path.
+    Creates a template CSV file for the monte carlo parameters and saves it to the given path. The file should be
+    filled by specifying the type ('technology', 'network', 'import', 'export'), the name (specific technology or
+    network name, carrier in case of import or export), and the parameter ('CAPEX' for technology and network and
+    'price' or 'limit' for import and export).
 
     Args:
         path (): The file path where the CSV file will be saved.
@@ -442,7 +465,14 @@ def create_montecarlo_template_csv(base_path):
     if isinstance(base_path, str):
         base_path = Path(base_path)
 
-    data = {"parameter": [None], "min": [None], "ref": [None], "max": [None]}
+    data = {
+        "type": [None],
+        "name": [None],
+        "parameter": [None],
+        "min": [None],
+        "ref": [None],
+        "max": [None],
+    }
     df = pd.DataFrame(data)
 
     df.to_csv(base_path / "MonteCarlo.csv", sep=";", index=False)
