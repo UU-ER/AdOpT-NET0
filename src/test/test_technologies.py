@@ -86,10 +86,12 @@ def run_with_output_constraint(
 
 
 @pytest.mark.technologies
-def test_res_pv():
+def test_res_pv(request):
     """
     tests res technology
     """
+    root_folder = request.config.root_folder_path
+
     time_steps = 1
     technology = "TestTec_ResPhotovoltaic"
     tec = define_technology(technology, time_steps)

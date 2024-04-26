@@ -18,6 +18,44 @@ def create_empty_network_matrix(nodes: list) -> pd.DataFrame:
     return matrix
 
 
+def create_carbon_cost_data(timesteps):
+    carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
+    return carbon_cost
+
+
+def create_climate_data(timesteps):
+    climate_data = pd.DataFrame(
+        index=timesteps,
+        columns=[
+            "ghi",
+            "dni",
+            "dhi",
+            "temp_air",
+            "rh",
+            "ws10",
+            "TECHNOLOGYNAME_hydro_inflow",
+        ],
+    )
+    return climate_data
+
+
+def create_carrier_data(timesteps):
+    carrier_data = pd.DataFrame(
+        index=timesteps,
+        columns=[
+            "Demand",
+            "Import limit",
+            "Export limit",
+            "Import price",
+            "Export price",
+            "Import emission factor",
+            "Export emission factor",
+            "Generic production",
+        ],
+    )
+    return carrier_data
+
+
 def create_input_data_folder_template(base_path: Path | str) -> None:
     """
     This function creates the input data folder structure required to organize the input data to the model.
@@ -50,32 +88,10 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
     }
 
     # Template csvs
-    carrier_data = pd.DataFrame(
-        index=timesteps,
-        columns=[
-            "Demand",
-            "Import limit",
-            "Export limit",
-            "Import price",
-            "Export price",
-            "Import emission factor",
-            "Export emission factor",
-            "Generic production",
-        ],
-    )
-    climate_data = pd.DataFrame(
-        index=timesteps,
-        columns=[
-            "ghi",
-            "dni",
-            "dhi",
-            "temp_air",
-            "rh",
-            "ws10",
-            "TECHNOLOGYNAME_hydro_inflow",
-        ],
-    )
-    carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
+    carrier_data = create_carrier_data(timesteps)
+    climate_data = create_climate_data(timesteps)
+    carbon_cost = create_carbon_cost_data(timesteps)
+
     node_locations = pd.DataFrame(
         index=topology["nodes"], columns=["lon", "lat", "alt"]
     )
