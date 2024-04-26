@@ -294,8 +294,7 @@ class EnergyHub:
 
         self._define_solver_settings()
 
-        if config["optimization"]["monte_carlo"]["on"]["value"]:
-            # Todo: does not work yet
+        if config["optimization"]["monte_carlo"]["N"]["value"]:
             self._solve_monte_carlo(objective)
         elif objective == "pareto":
             # Todo: does not work yet
@@ -336,7 +335,7 @@ class EnergyHub:
             if not config["scaling"]["scaling_on"]["value"]:
                 if (
                     objective in ["emissions_minC", "pareto"]
-                    or config["optimization"]["monte_carlo"]["on"]["value"]
+                    or config["optimization"]["monte_carlo"]["N"]["value"]
                 ):
                     config["solveroptions"]["solver"]["value"] = "gurobi_persistent"
             self.solver = get_gurobi_parameters(config["solveroptions"])
@@ -480,9 +479,10 @@ class EnergyHub:
         Optimizes multiple runs with monte carlo
         """
         config = self.data.model_config
+        self.info_monte_carlo["monte_carlo_run"] = 0
 
-        for run in range(0, config["optimization"]["monte_carlo"]["on"]["value"]):
-            self.model_information.monte_carlo_run += 1
+        for run in range(0, config["optimization"]["monte_carlo"]["N"]["value"]):
+            self.info_monte_carlo["monte_carlo_run"] += 1
             self._monte_carlo_set_cost_parameters()
             if run == 0:
                 self._optimize(objective)
@@ -716,24 +716,40 @@ class EnergyHub:
         """
         config = self.data.model_config
 
-        if "Technologies" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-            for node in model.node_blocks:
-                for tec in model.node_blocks[node].tech_blocks_active:
-                    self._monte_carlo_technologies(node, tec)
+        if config["optimization"]["monte_carlo"]["type"]["value"] == 1:
+            if (
+                "Technologies"
+                in config["optimization"]["monte_carlo"]["on_what"]["value"]
+            ):
+                for period in self.model["full"].periods:
+                    for node in self.model["full"].periods[period].node_blocks:
+                        for tec in (
+                            self.model["full"]
+                            .periods[period]
+                            .node_blocks[node]
+                            .tech_blocks_active
+                        ):
+                            self._monte_carlo_technologies(node, tec)
 
-        if "Networks" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-            for netw in model.network_block:
-                self._monte_carlo_networks(netw)
+            if "Networks" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
+                for netw in model.network_block:
+                    self._monte_carlo_networks(netw)
 
-        if "ImportPrices" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-            for node in model.node_blocks:
-                for car in model.node_blocks[node].set_carriers:
-                    self._monte_carlo_import_prices(node, car)
+            if (
+                "ImportPrices"
+                in config["optimization"]["monte_carlo"]["on_what"]["value"]
+            ):
+                for node in model.node_blocks:
+                    for car in model.node_blocks[node].set_carriers:
+                        self._monte_carlo_import_prices(node, car)
 
-        if "ExportPrices" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-            for node in model.node_blocks:
-                for car in model.node_blocks[node].set_carriers:
-                    self._monte_carlo_export_prices(node, car)
+            if (
+                "ExportPrices"
+                in config["optimization"]["monte_carlo"]["on_what"]["value"]
+            ):
+                for node in model.node_blocks:
+                    for car in model.node_blocks[node].set_carriers:
+                        self._monte_carlo_export_prices(node, car)
 
     def _monte_carlo_technologies(self, node, tec):
         """
@@ -777,6 +793,12 @@ class EnergyHub:
             self.solver.add_constraint(b_tec.const_capex_aux)
 
         elif capex_model == 2:
+            warnings.warn(
+                "monte carlo on piecewise defined investment costs is not implemented"
+            )
+
+        elif capex_model == 3:
+            # TODO capex model 3
             warnings.warn(
                 "monte carlo on piecewise defined investment costs is not implemented"
             )
