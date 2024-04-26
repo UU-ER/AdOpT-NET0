@@ -110,14 +110,14 @@ def construct_nodal_energybalance(model, config):
         set_t_full = model.periods[period].set_t_full
 
         # Violation variables and costs
-        if config["energybalance"]["violation"]["value"] >= 0:
-            b_ebalance.var_violation = Var(
+        if config["energybalance"]["violation"]["value"] > 0:
+            b_period.var_violation = Var(
                 set_t_full,
                 model.set_carriers,
                 model.set_nodes,
                 domain=NonNegativeReals,
             )
-            b_ebalance.var_cost_violation = Var()
+            b_period.var_cost_violation = Var()
 
         def init_energybalance(const, t, car, node):
             if car in b_period.node_blocks[node].set_carriers:
@@ -147,8 +147,8 @@ def construct_nodal_energybalance(model, config):
 
                 export_flow = node_block.var_export_flow[t, car]
 
-                if config["energybalance"]["violation"]["value"] >= 0:
-                    violation = model.var_violation[t, car, node]
+                if config["energybalance"]["violation"]["value"] > 0:
+                    violation = b_period.var_violation[t, car, node]
                 else:
                     violation = 0
                 return (
@@ -198,13 +198,13 @@ def construct_global_energybalance(model, config):
 
         # Violation variables and costs
         if config["energybalance"]["violation"]["value"] >= 0:
-            b_ebalance.var_violation = Var(
+            b_period.var_violation = Var(
                 set_t_full,
                 model.set_carriers,
                 model.set_nodes,
                 domain=NonNegativeReals,
             )
-            b_ebalance.var_cost_violation = Var()
+            b_period.var_cost_violation = Var()
 
         def init_energybalance_global(const, t, car):
             tec_output = sum(
@@ -259,7 +259,7 @@ def construct_global_energybalance(model, config):
 
             if config["energybalance"]["violation"]["value"] >= 0:
                 violation = sum(
-                    b_ebalance.var_violation[t, car, node]
+                    b_period.var_violation[t, car, node]
                     for node in model.set_nodes
                     if car in b_period.node_blocks[node].set_carriers
                 )

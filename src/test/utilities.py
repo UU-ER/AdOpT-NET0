@@ -11,6 +11,7 @@ from src.data_preprocessing.template_creation import (
     create_carrier_data,
     create_carbon_cost_data,
 )
+from src.energyhub import EnergyHub
 
 
 def select_random_list_from_list(ls: list) -> list:
@@ -135,44 +136,6 @@ def make_data_for_technology_testing(nr_timesteps):
     return data
 
 
-def read_input_data_patch(self):
-    self._read_topology()
-    self._read_model_config()
-    self._read_time_series()
-    self._read_node_locations()
-    self._read_energybalance_options()
-    self._read_technology_data()
-    self._read_network_data()
-
-
-def create_patched_datahandle(nr_timesteps):
-    """
-    Creates a patched datahandle with:
-    - nr_timesteps specified
-    - two nodes
-    - two investment periods
-    - no technologies
-    - no networks
-    """
-
-    # Create DataHandle and monkey patch it
-    dh = DataHandle()
-    dh.start_period = 0
-    dh.end_period = dh.start_period + nr_timesteps
-    dh._read_topology = read_topology_patch.__get__(dh, DataHandle)
-    dh._read_time_series = _read_time_series_patch.__get__(dh, DataHandle)
-    dh._read_energybalance_options = _read_energybalance_options_patch.__get__(
-        dh, DataHandle
-    )
-    dh._read_technology_data = _read_technology_data_patch.__get__(dh, DataHandle)
-    dh._read_network_data = _read_network_data_data_patch.__get__(dh, DataHandle)
-    dh.read_input_data = read_input_data_patch.__get__(dh, DataHandle)
-
-    dh.read_input_data()
-
-    return dh
-
-
 def _read_energybalance_options_patch(self):
     for investment_period in self.topology["investment_periods"]:
         self.energybalance_options[investment_period] = {}
@@ -247,3 +210,40 @@ def _read_network_data_data_patch(self):
     self.network_data["full"] = {}
     for investment_period in self.topology["investment_periods"]:
         self.network_data["full"][investment_period] = {}
+
+
+def read_input_data_patch(self):
+
+    self.model_config = initialize_configuration_templates()
+    self._read_topology()
+    self._read_time_series()
+    self._read_energybalance_options()
+    self._read_technology_data()
+    self._read_network_data()
+
+
+def create_patched_datahandle(nr_timesteps):
+    """
+    Creates a patched datahandle with:
+    - nr_timesteps specified
+    - two nodes
+    - two investment periods
+    - no technologies
+    - no networks
+    """
+
+    # Create DataHandle and monkey patch it
+    dh = DataHandle()
+
+    dh._read_topology = read_topology_patch.__get__(dh)
+    dh._read_time_series = _read_time_series_patch.__get__(dh)
+    dh._read_energybalance_options = _read_energybalance_options_patch.__get__(dh)
+    dh._read_technology_data = _read_technology_data_patch.__get__(dh)
+    dh._read_network_data = _read_network_data_data_patch.__get__(dh)
+    dh.read_input_data = read_input_data_patch.__get__(dh)
+
+    dh.start_period = 0
+    dh.end_period = dh.start_period + nr_timesteps
+    dh.read_input_data()
+
+    return dh

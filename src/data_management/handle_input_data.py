@@ -26,6 +26,7 @@ class DataHandle:
         self.logger = logger
 
         # Attributes
+        self.topology = None
         self.data_path = None
         self.time_series = {}
         self.energybalance_options = {}
