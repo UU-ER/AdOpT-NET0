@@ -4,26 +4,27 @@ Load Input Data
 =====================================
 
 Now that you have the :ref:`correct folder structure and templates for the data <workflow_create-data-templates>`,
-you can start to actually fill the templates and folders with data. First, you need to further define your energy
+you can start to fill the templates and folders with data. First, you need to further define your energy
 system by setting:
 
 #. The geographical coordinates of your nodes in ``NodeLocations.csv``.
 
-#. The networks that are existing and that may be newly installed in each investment period in ``Networks.JSON``, using
-   the network names as in ``.\data\network_data``.
+#. The networks in ``Networks.JSON`` for each investment period, where we distinguish between new (to be installed)
+   networks and existing networks, using the network names as in ``.\data\network_data``.
     - Then, for each of the networks that you specify, an input data folder with that network name should be added
       in the corresponding folder ("existing" or "new") in the network_topology folder. To these folders, you should
       copy the CSV files ``connection.csv``, ``distance.csv`` and ``size_max_arcs.csv`` from the corresponding folder
       ("existing" or "new"). You then define the topology for all of your networks by filling in these files (as
-      illustrated in an elaborate example :ref:`here`<workflow_example-usage>`) in their respective folders.
+      illustrated in an elaborate example :ref:`here`<workflow_example-usage>`) in their respective folders. Note that
+      for new networks the ``size_max_arcs.csv`` contains an upper limit, the actual size is determined by the optimization.
     - Finally, you can adjust the network data in the json files of the specific network types, either (1) in the model
       repository, before :ref:`copying these<load-data_from-model>` to the network_data folder in your input data folder,
       or (2) in the network_data folder in your input data folder, after :ref:`copying them from the model repository <load-data_from-model>`.
       Note that option (1) is more efficient if you want the network data to be the same at each investment period,
       while option (2) is more convenient if you want it to change per investment period.
 
-#. The technologies that are existing and that may be newly installed at each node in each investment period, in
-   ``Technologies.JSON``, using the technology names as in ``.\data\network_data``.
+#. The technologies in ``Technologies.JSON`` for each investment period and each node, where we distinguish between new
+   (to be installed) technologies and existing technologies using the technology names as in ``.\data\technology_data``.
     - Then, you can adjust the technology data in the json files of the specific technology types, either (1) in the model
       repository, before :ref:`copying these<load-data_from-model>` to the technology_data folder in your input data folder,
       or (2) in the technology_data folder in your input data folder, after :ref:`copying them from the model repository <load-data_from-model>`.
@@ -34,9 +35,12 @@ system by setting:
 
 After the complete system topology and system characteristics are finalised, the final data can be loaded into the input
 data folder. This remaining data covers:
-- Carbon costs: Prices of carbon emissions and/or subsidies for emission reductions.
+
+- Carbon costs: Prices of carbon emissions and/or subsidies for emission reductions. These are defined for each investment
+  period and node.
 - Climate data: global horizontal irradiance (ghi), direct normal irradiance (dni), diffuse horizontal irradiance (dhi),
-  air temperature, relative humidity, inflow of water, wind speed at 10 metres.
+  air temperature, relative humidity, inflow of water, wind speed at 10 metres. The data is defined for each investment
+  period and node based on the geographical location.
 - Carrier data: Data on demand, import/export limits/prices/emission factors, and generic production for each carrier at
   each node in each investment period.
 
