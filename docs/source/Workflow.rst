@@ -2,16 +2,14 @@
 
 Users Workflow
 =====================================
-In order to use this library to model your energy system and run the optimization, you will have to prepare the model
-for your application. This workflow documentation will guide you through all the steps that are required. In short,
-these steps are as follows:
+This workflow documentation will guide you through all the steps that are required to prepare the model for your
+application. In short, these steps are as follows:
 
-- Set up a working directory for all data preprocessing.
+- Set up a working directory of your case study for all input data preprocessing.
 - Create the templates for the system topology and the model configuration.
-- Define your system topology.
-- Create the templates for the input data files.
+- Define your system topology and model configuration.
+- Create the folder structure and templates for the input data files.
 - Load and define input data (e.g., weather data, technology performance, demand data, etc.).
-- Define the modelling configuration (i.e., objective, global optimization settings, solver options, etc.).
 - Construct the model.
 - Solve the model and, possibly, incorporate options to lower the complexity of the model.
 - Check the model diagnostics.
