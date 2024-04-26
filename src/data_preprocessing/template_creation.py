@@ -198,9 +198,9 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
 
 def create_optimization_templates(path: Path | str) -> None:
     """
-    Creates an examplary topology json file in the specified path.
+    Creates an examplary topology json file and a model configuration json file in the specified path.
 
-    :param str/Path path: path to folder to create Topology.json
+    :param str/Path path: path to folder to create Topology.json and ModelConfig.json
     """
     if isinstance(path, str):
         path = Path(path)

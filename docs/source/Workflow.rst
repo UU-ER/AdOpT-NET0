@@ -12,8 +12,7 @@ these steps are as follows:
 - Create the templates for the input data files.
 - Load and define input data (e.g., weather data, technology performance, demand data, etc.).
 - Define the modelling configuration (i.e., objective, global optimization settings, solver options, etc.).
-- Construct the model.
-- Solve the model and, possibly, incorporate options to lower the complexity of the model.
+- Construct and solve the model and, possibly, incorporate options to lower the complexity of the model.
 - Check the model diagnostics.
 - Obtain and interpret the optimization results.
 
@@ -28,11 +27,10 @@ each of the aforementioned steps, see the following pages:
     workflow/DefineTopology
     workflow/CreateDataTemplates
     workflow/LoadData
-    workflow/ModelConfiguration
-    workflow/ModelConstruction
-    workflow/ModelSolve
-    workflow/ModelDiagnostics
-    workflow/ResultManagement
+    workflow/DefineModelConfiguration
+    workflow/SolveModel
+    workflow/CheckModelDiagnostics
+    workflow/ManageResults
 
 ..  _workflow_example-usage:
 

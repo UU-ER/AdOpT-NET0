@@ -4,7 +4,70 @@ Load Input Data
 =====================================
 
 Now that you have the :ref:`correct folder structure and templates for the data <workflow_create-data-templates>`,
-you can start to actually fill the templates and folders with data. There are four options for loading data:
+you can start to actually fill the templates and folders with data. First, you need to further define your energy
+system by setting:
+
+#. The geographical coordinates of your nodes in ``NodeLocations.csv``.
+
+#. The networks that are existing and that may be newly installed in each investment period in ``Networks.JSON``, using
+   the network names as in ``.\data\network_data``.
+    - Then, for each of the networks that you specify, an input data folder with that network name should be added
+      in the corresponding folder ("existing" or "new") in the network_topology folder. To these folders, you should
+      copy the CSV files ``connection.csv``, ``distance.csv`` and ``size_max_arcs.csv`` from the corresponding folder
+      ("existing" or "new"). You then define the topology for all of your networks by filling in these files (as
+      illustrated in an elaborate example :ref:`here`<workflow_example-usage>`.
+    - Finally, you can specify the and copy the required JSON files into the network_data folder from the model repository, as explained
+      :ref:`below<load-data_from-model>`.
+
+
+- ``ConfigModel.JSON``, in which you can :ref:`define the model configuration settings<model_configuration>`
+
+- A folder for each investment period that you specified in the topology, containing:
+
+    - ``Networks.JSON``, in which you specify the networks that are existing and that may be newly installed in the
+      optimization. For each of the networks that you specify, an input data folder should be :ref:`added and filled <workflow_load-data>`
+      in the corresponding folder (existing or new) in the network_topology folder.
+    - A folder called ``network_data``, in which you :ref:`upload JSON files with network data <workflow_load-data>`
+      for each network specified in the ``Networks.JSON``.
+    - A folder called ``network_topology``, which itself contains:
+
+        - A folder called ``existing``: containing the data templates that should be copied and :ref:`filled in<workflow_load-data>`
+          for all existing network types.
+        - A folder called ``new``: containing the data templates that should be copied and :ref:`filled in<workflow_load-data>`
+          for all new network types.
+    - A folder called ``node_data``, containing:
+
+        - A folder for each node that you specified in the topology, containing:
+
+            - ``Technologies.JSON``, in which you specify technologies that are existing and that may be newly installed
+              in the optimization. For each of the technologies that you specify, an input data folder should be
+              :ref:`added and filled <workflow_load-data>` in the technology_data folder.
+            - ``CarbonCost.csv``, in which you :ref:`specify carbon prices and subsidies<workflow_load-data>`
+              for each timestep.
+            - ``ClimateData.csv``, in which you :ref:`specify climate data <workflow_load-data>`
+              for each timestep.
+            - A folder called ``carrier_data``, containing:
+
+                - A ``carrier_name.csv`` file for each carrier, in which you can specify the balance constraints
+                  (demand, import/export limits, etc.) for that carrier at the specific node in each timestep.
+                - ``EnergybalanceOptions.JSON``, in which you specify for each carrier whether or not curtailment of
+                  production is possible.
+            - A folder called ``technology_data``, in which you :ref:`upload JSON files with technology data <workflow_load-data>`
+              for each technology specified in the ``Technologies.JSON``.
+
+
+
+
+
+
+
+
+
+
+
+
+
+There are four options for loading data:
 
 #. :ref:`From API<load-data_from-api>`: for climate data.
 #. :ref:`From model<load-data_from-model>`: for technologies and networks, you can copy the required JSON files into the technology_data and network_data folders, respectively.
@@ -62,41 +125,3 @@ to manually specify the profiles in the carrier csv files in your input data fol
 profile from a national database (if your nodes are countries) into the correct column in the csv.
 
 
-
-Your directory should now contain the following files:
-
-- ``Topology.JSON``, in which you have :ref:`specified your system topology<workflow_define-topology>`.
-- ``ConfigModel.JSON``, in which you can :ref:`define the model configuration settings<model_configuration>`
-- ``NodeLocations.csv``, in which you can specify the geographical coordinates of your nodes.
-- A folder for each investment period that you specified in the topology, containing:
-
-    - ``Networks.JSON``, in which you specify the networks that are existing and that may be newly installed in the
-      optimization. For each of the networks that you specify, an input data folder should be :ref:`added and filled <workflow_load-data>`
-      in the corresponding folder (existing or new) in the network_topology folder.
-    - A folder called ``network_data``, in which you :ref:`upload JSON files with network data <workflow_load-data>`
-      for each network specified in the ``Networks.JSON``.
-    - A folder called ``network_topology``, which itself contains:
-
-        - A folder called ``existing``: containing the data templates that should be copied and :ref:`filled in<workflow_load-data>`
-          for all existing network types.
-        - A folder called ``new``: containing the data templates that should be copied and :ref:`filled in<workflow_load-data>`
-          for all new network types.
-    - A folder called ``node_data``, containing:
-
-        - A folder for each node that you specified in the topology, containing:
-
-            - ``Technologies.JSON``, in which you specify technologies that are existing and that may be newly installed
-              in the optimization. For each of the technologies that you specify, an input data folder should be
-              :ref:`added and filled <workflow_load-data>` in the technology_data folder.
-            - ``CarbonCost.csv``, in which you :ref:`specify carbon prices and subsidies<workflow_load-data>`
-              for each timestep.
-            - ``ClimateData.csv``, in which you :ref:`specify climate data <workflow_load-data>`
-              for each timestep.
-            - A folder called ``carrier_data``, containing:
-
-                - A ``carrier_name.csv`` file for each carrier, in which you can specify the balance constraints
-                  (demand, import/export limits, etc.) for that carrier at the specific node in each timestep.
-                - ``EnergybalanceOptions.JSON``, in which you specify for each carrier whether or not curtailment of
-                  production is possible.
-            - A folder called ``technology_data``, in which you :ref:`upload JSON files with technology data <workflow_load-data>`
-              for each technology specified in the ``Technologies.JSON``.
