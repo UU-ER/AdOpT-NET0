@@ -230,7 +230,6 @@ def find_json_path(data_path: str | Path, name: str) -> Path:
     :return: Path to the JSON file if found, otherwise None.
     """
     for root, dirs, files in os.walk(data_path.resolve()):
-        print(files)
         for file in files:
             if file.lower() == f"{name.lower()}.json":
                 return Path(root) / Path(file)

@@ -22,7 +22,7 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
     """
     This function creates the input data folder structure required to organize the input data to the model.
     Note that the folder needs to already exist with a Topology.json file in it that specifies the nodes, carriers,
-    timesteps, investement periods and the length of the investment period.
+    timesteps, investment periods and the length of the investment period.
 
     You can create an examplary json template with the function `create_topology_template`
 
@@ -143,14 +143,6 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
             / "network_topology"
             / "existing"
             / "connection.csv",
-            sep=";",
-        )
-        empty_network_matrix.to_csv(
-            base_path
-            / investment_period
-            / "network_topology"
-            / "existing"
-            / "size_max_arcs.csv",
             sep=";",
         )
 
@@ -459,7 +451,10 @@ def create_optimization_templates(path: Path | str) -> None:
 
 def create_montecarlo_template_csv(base_path):
     """
-    Creates a template CSV file for the monte carlo parameters and saves it to the given path.
+    Creates a template CSV file for the monte carlo parameters and saves it to the given path. The file should be
+    filled by specifying the type ('technology', 'network', 'import', 'export'), the name (specific technology or
+    network name, carrier in case of import or export), and the parameter ('CAPEX' for technology and network and
+    'price' or 'limit' for import and export).
 
     Args:
         path (): The file path where the CSV file will be saved.
@@ -470,7 +465,14 @@ def create_montecarlo_template_csv(base_path):
     if isinstance(base_path, str):
         base_path = Path(base_path)
 
-    data = {"parameter": [None], "min": [None], "ref": [None], "max": [None]}
+    data = {
+        "type": [None],
+        "name": [None],
+        "parameter": [None],
+        "min": [None],
+        "ref": [None],
+        "max": [None],
+    }
     df = pd.DataFrame(data)
 
     df.to_csv(base_path / "MonteCarlo.csv", sep=";", index=False)
