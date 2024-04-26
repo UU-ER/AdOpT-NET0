@@ -65,7 +65,15 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
     )
     climate_data = pd.DataFrame(
         index=timesteps,
-        columns=["ghi", "dni", "dhi", "temp_air", "rh", "TECHNOLOGYNAME_hydro_inflow"],
+        columns=[
+            "ghi",
+            "dni",
+            "dhi",
+            "temp_air",
+            "rh",
+            "ws10",
+            "TECHNOLOGYNAME_hydro_inflow",
+        ],
     )
     carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
     node_locations = pd.DataFrame(
