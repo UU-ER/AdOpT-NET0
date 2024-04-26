@@ -105,3 +105,7 @@ def make_climate_data(start_date, end_date):
     climate_data["ws10"] = 10
 
     return climate_data
+
+
+def make_data():
+    pass
