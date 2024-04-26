@@ -57,7 +57,7 @@ class Res(Technology):
                 hubheight = 120
             self._perform_fitting_WT(climate_data, hubheight)
 
-    def _perform_fitting_PV(self, climate_data, location, **kwargs):
+    def _perform_fitting_PV(self, climate_data: pd.DataFrame, location: dict, **kwargs):
         """
         Calculates capacity factors and specific area requirements for a PV system using pvlib
 

@@ -1,4 +1,4 @@
-from src.model_configuration import ModelConfiguration
+# from src.model_configuration import ModelConfiguration
 import src.data_preprocessing as dp
 from src.energyhub import EnergyHub
 import numpy as np
@@ -19,7 +19,9 @@ dp.load_climate_data_from_api(path)
 
 pyhub = EnergyHub()
 pyhub.read_data(path, start_period=0, end_period=3)
-pyhub.construct_model()
+pyhub.quick_solve()
+# pyhub.construct_balances()
+# pyhub.solve()
 
 
 # dm.create_optimization_templates(path)

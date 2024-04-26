@@ -341,13 +341,13 @@ def test_emission_balance2():
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == "optimal"
 
-    cost1 = energyhub.model.var_total_cost.value
+    cost1 = energyhub.model.var_cost_total.value
     emissions1 = energyhub.model.var_emissions_net.value
 
     # Emission Optimization
     energyhub.configuration.optimization.objective = "emissions_pos"
     energyhub.solve()
-    cost2 = energyhub.model.var_total_cost.value
+    cost2 = energyhub.model.var_cost_total.value
     emissions2 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == "optimal"
 
@@ -368,13 +368,13 @@ def test_optimization_types():
     energyhub.solve()
     assert energyhub.solution.solver.termination_condition == "optimal"
 
-    cost1 = energyhub.model.var_total_cost.value
+    cost1 = energyhub.model.var_cost_total.value
     emissions1 = energyhub.model.var_emissions_net.value
 
     # Emission Optimization
     energyhub.configuration.optimization.objective = "emissions_pos"
     energyhub.solve()
-    cost2 = energyhub.model.var_total_cost.value
+    cost2 = energyhub.model.var_cost_total.value
     emissions2 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == "optimal"
 
@@ -384,7 +384,7 @@ def test_optimization_types():
     # Emission & Cost Optimization
     energyhub.configuration.optimization.objective = "emissions_minC"
     energyhub.solve()
-    cost3 = energyhub.model.var_total_cost.value
+    cost3 = energyhub.model.var_cost_total.value
     emissions3 = energyhub.model.var_emissions_net.value
     assert energyhub.solution.solver.termination_condition == "optimal"
 
@@ -407,7 +407,7 @@ def test_simplification_algorithms():
     energyhub1.configuration.reporting.save_path = "./src/test/results"
     energyhub1.configuration.reporting.save_summary_path = "./src/test/results"
     energyhub1.quick_solve()
-    cost1 = energyhub1.model.var_total_cost.value
+    cost1 = energyhub1.model.var_cost_total.value
     assert energyhub1.solution.solver.termination_condition == "optimal"
 
     # Typical days Method 2 (standard)
@@ -418,7 +418,7 @@ def test_simplification_algorithms():
     energyhub2.configuration.reporting.save_path = "./src/test/results"
     energyhub2.configuration.reporting.save_summary_path = "./src/test/results"
     energyhub2.quick_solve()
-    cost2 = energyhub2.model.var_total_cost.value
+    cost2 = energyhub2.model.var_cost_total.value
     assert energyhub2.solution.solver.termination_condition == "optimal"
     assert abs(cost1 - cost2) / cost1 <= 0.2
 
@@ -430,7 +430,7 @@ def test_simplification_algorithms():
     energyhub4.configuration.reporting.save_path = "./src/test/results"
     energyhub4.configuration.reporting.save_summary_path = "./src/test/results"
     energyhub4.quick_solve()
-    cost4 = energyhub4.model.var_total_cost.value
+    cost4 = energyhub4.model.var_cost_total.value
     assert energyhub4.solution.solver.termination_condition == "optimal"
     assert abs(cost1 - cost4) / cost1 <= 0.1
 
