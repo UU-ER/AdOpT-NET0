@@ -1,4 +1,4 @@
-..  _src-code_result_management:
+.. _src-code_result_management:
 
 Result Management
 =====================================
@@ -62,6 +62,7 @@ Root group (top-level, being the .h5-file) [group] - contains:
 Note: for the time-independent results, one dataset contains only one value, while for the time-dependent results one
 dataset contains a value for each timestep in your model run.
 
+.. _export_excel:
 
 Export to Excel
 ^^^^^^^^^^^^^^^^
@@ -73,7 +74,7 @@ The two functions are documented below.
 .. automodule:: src.result_management.read_results
     :members:
 
-..  _results_visualization:
+.. _results_visualization:
 
 Visualization
 ^^^^^^^^^^^^^^^^^^^^^^^^^

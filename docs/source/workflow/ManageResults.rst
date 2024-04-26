@@ -1,4 +1,4 @@
-..  _workflow_manage-results:
+.. _workflow_manage-results:
 
 Manage results
 =====================================

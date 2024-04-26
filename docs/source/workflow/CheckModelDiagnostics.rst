@@ -1,4 +1,4 @@
-..  _model_diagnostics:
+.. _model_diagnostics:
 
 Check Model Diagnostics
 =====================================

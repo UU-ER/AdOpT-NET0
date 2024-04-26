@@ -56,7 +56,7 @@ There are four options for loading data:
 A detailed description of these different methods can be found in the sections below. Note: all methods related to
 loading in data can be found in the ``data_loading.py`` module in the ``data_preprocessing`` directory.
 
-..  _load-data_from-api:
+.. _load-data_from-api:
 
 From API
 ^^^^^^^^^^^^^^^^
@@ -74,7 +74,7 @@ based on the technology type "OpenHydro" (see :ref:`here<technologies>`). For th
 column name with the technology in your system, e.g., "PumpedHydro_Open" and :ref:`load a profile<load-data_profile>`
 for water flow into the reservoir.
 
-..  _load-data_from-model:
+.. _load-data_from-model:
 
 From model
 ^^^^^^^^^^^^^^^^
@@ -88,7 +88,7 @@ to use the naming conventions as in the JSON files in the model repository.
     :members: copy_technology_data, copy_network_data
     :exclude-members:
 
-..  _load-data_fixed-value:
+.. _load-data_fixed-value:
 
 Specifying a fixed value
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -99,7 +99,7 @@ For carrier data, you can use the :func:`fill_carrier_data` method if your value
     :members: fill_carrier_data
     :exclude-members:
 
-..  _load-data_profile:
+.. _load-data_profile:
 
 Specifying a profile
 ^^^^^^^^^^^^^^^^^^^^^

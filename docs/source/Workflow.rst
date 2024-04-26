@@ -228,6 +228,6 @@ If your model solved to optimality, you can continue with checking out your resu
 optimality, or took longer than expected for the complexity of your system, you can take a look at the
 :ref:`model diagnostics<model_diagnostics>`.
 
-For a simple means to get a grip on your results, you can :ref:`start the streamlit visualisation<results_visualization>`,
-by opening the following link in your browser: https://resultvisualization.streamlit.app/. From there, you can also
-download CSV files with your result data.
+For a simple means to get a grip on your results, you can :ref:`start the streamlit visualisation<results_visualization>`.
+From there, you can also download CSV files with your result data. Alternatively, you can :ref:`export<export_excel>'
+datasets from your .h5 files to Excel.

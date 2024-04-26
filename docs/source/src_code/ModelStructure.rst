@@ -3,7 +3,9 @@
 Model Structure
 ====================
 
+Energyhub, balances, nodes, investment periods (overall structure of model)
 
+Then: components
 
 
 Technologies and Networks are modelled as subclasses from the ModelComponent class:

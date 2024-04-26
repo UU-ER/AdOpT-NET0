@@ -37,6 +37,8 @@ Generic Technologies
 .. automodule:: src.components.technologies.genericTechnologies.stor
     :members: Stor
 
+Specific Technologies
+----------------------------------------------
 
 Solid Sorbent Direct Air Capture
 ----------------------------------------------
@@ -57,3 +59,6 @@ Hydro Open
 ----------------------------------------------
 .. automodule:: src.components.technologies.specificTechnologies.hydro_open
     :members: HydroOpen
+
+Carbon Capture and Storage Technologies
+----------------------------------------------
