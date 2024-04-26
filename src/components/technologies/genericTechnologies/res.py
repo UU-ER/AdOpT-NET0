@@ -1,3 +1,5 @@
+import warnings
+
 import pvlib
 from timezonefinder import TimezoneFinder
 import pandas as pd
@@ -5,6 +7,7 @@ from pathlib import Path
 from pyomo.environ import *
 from scipy.interpolate import interp1d
 import numpy as np
+
 
 from ..technology import Technology
 from ..utilities import FittedPerformance
@@ -165,10 +168,19 @@ class Res(Technology):
         :param hubheight: hubheight of wind turbine
         """
         # Load data for wind turbine type
-        WT_data = pd.read_csv(
-            Path("./data/technology_data/RES/WT_data/WT_data.csv"), delimiter=";"
-        )
-        WT_data = WT_data[WT_data["TurbineName"] == self.name]
+        # FIXME: find nicer way to do this
+        WT_path = Path(__file__).parent.parent.parent.parent.parent
+        WT_data_path = WT_path / "data/technology_data/RES/WT_data/WT_data.csv"
+        WT_data = pd.read_csv(WT_data_path, delimiter=";")
+
+        # match WT with data
+        if self.name in WT_data["TurbineName"]:
+            WT_data = WT_data[WT_data["TurbineName"] == self.name]
+        else:
+            WT_data = WT_data[WT_data["TurbineName"] == "WindTurbine_Onshore_1500"]
+            warnings.warn(
+                "TurbineName not in csv, standard WindTurbine_Onshore_1500 selected."
+            )
 
         # Load wind speed and correct for height
         ws = climate_data["ws10"]

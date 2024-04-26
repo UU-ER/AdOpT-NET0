@@ -34,8 +34,8 @@ def define_technology(tec_name: str, nr_timesteps: int) -> Technology:
     # Technology fitting
     climate_data = make_climate_data("2022-01-01 12:00", nr_timesteps)
     location = {}
-    location["lon"] = 10
-    location["lat"] = 52
+    location["lon"] = 5.5
+    location["lat"] = 52.5
     location["alt"] = 0
     tec.fit_technology_performance(climate_data, location)
 
@@ -79,7 +79,7 @@ def run_with_output_constraint(
     )
 
     model.obj = Objective(expr=model.var_capex, sense=minimize)
-    solver = SolverFactory("glpk")
+    solver = SolverFactory("gurobi")
     solution = solver.solve(model)
 
     return solution.solver.termination_condition
@@ -101,7 +101,7 @@ def test_res_pv():
     termination = run_with_output_constraint(
         model, tec.size_max * 1.1 * tec.fitted_performance.rated_power
     )
-    assert termination == TerminationCondition.infeasible
+    assert termination == TerminationCondition.infeasibleOrUnbounded
 
     # FEASIBILITY CASES
     termination = run_with_output_constraint(model, 1)
@@ -124,7 +124,7 @@ def test_res_wt():
     termination = run_with_output_constraint(
         model, tec.size_max * 1.1 * tec.fitted_performance.rated_power
     )
-    assert termination == TerminationCondition.infeasible
+    assert termination == TerminationCondition.infeasibleOrUnbounded
 
     # FEASIBILITY CASES
     termination = run_with_output_constraint(model, 1)
