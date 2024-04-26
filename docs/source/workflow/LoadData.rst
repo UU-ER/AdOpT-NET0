@@ -15,57 +15,32 @@ system by setting:
       in the corresponding folder ("existing" or "new") in the network_topology folder. To these folders, you should
       copy the CSV files ``connection.csv``, ``distance.csv`` and ``size_max_arcs.csv`` from the corresponding folder
       ("existing" or "new"). You then define the topology for all of your networks by filling in these files (as
-      illustrated in an elaborate example :ref:`here`<workflow_example-usage>`.
-    - Finally, you can specify the and copy the required JSON files into the network_data folder from the model repository, as explained
-      :ref:`below<load-data_from-model>`.
+      illustrated in an elaborate example :ref:`here`<workflow_example-usage>`) in their respective folders.
+    - Finally, you can adjust the network data in the json files of the specific network types, either (1) in the model
+      repository, before :ref:`copying these<load-data_from-model>` to the network_data folder in your input data folder,
+      or (2) in the network_data folder in your input data folder, after :ref:`copying them from the model repository <load-data_from-model>`.
+      Note that option (1) is more efficient if you want the network data to be the same at each investment period,
+      while option (2) is more convenient if you want it to change per investment period.
 
+#. The technologies that are existing and that may be newly installed at each node in each investment period, in
+   ``Technologies.JSON``, using the technology names as in ``.\data\network_data``.
+    - Then, you can adjust the technology data in the json files of the specific technology types, either (1) in the model
+      repository, before :ref:`copying these<load-data_from-model>` to the technology_data folder in your input data folder,
+      or (2) in the technology_data folder in your input data folder, after :ref:`copying them from the model repository <load-data_from-model>`.
+      Note that option (1) is more efficient if you want the technology data to be the same at each node and in each investment period,
+      while option (2) is more convenient if you want it to change per node and/or investment period.
 
-- ``ConfigModel.JSON``, in which you can :ref:`define the model configuration settings<model_configuration>`
+#. For the carriers, whether or not curtailment of general production is possible in ``EnergybalanceOptions.JSON``.
 
-- A folder for each investment period that you specified in the topology, containing:
+After the complete system topology and system characteristics are finalised, the final data can be loaded into the input
+data folder. This remaining data covers:
+- Carbon costs: Prices of carbon emissions and/or subsidies for emission reductions.
+- Climate data: global horizontal irradiance (ghi), direct normal irradiance (dni), diffuse horizontal irradiance (dhi),
+  air temperature, relative humidity, inflow of water, wind speed at 10 metres.
+- Carrier data: Data on demand, import/export limits/prices/emission factors, and generic production for each carrier at
+  each node in each investment period.
 
-    - ``Networks.JSON``, in which you specify the networks that are existing and that may be newly installed in the
-      optimization. For each of the networks that you specify, an input data folder should be :ref:`added and filled <workflow_load-data>`
-      in the corresponding folder (existing or new) in the network_topology folder.
-    - A folder called ``network_data``, in which you :ref:`upload JSON files with network data <workflow_load-data>`
-      for each network specified in the ``Networks.JSON``.
-    - A folder called ``network_topology``, which itself contains:
-
-        - A folder called ``existing``: containing the data templates that should be copied and :ref:`filled in<workflow_load-data>`
-          for all existing network types.
-        - A folder called ``new``: containing the data templates that should be copied and :ref:`filled in<workflow_load-data>`
-          for all new network types.
-    - A folder called ``node_data``, containing:
-
-        - A folder for each node that you specified in the topology, containing:
-
-            - ``Technologies.JSON``, in which you specify technologies that are existing and that may be newly installed
-              in the optimization. For each of the technologies that you specify, an input data folder should be
-              :ref:`added and filled <workflow_load-data>` in the technology_data folder.
-            - ``CarbonCost.csv``, in which you :ref:`specify carbon prices and subsidies<workflow_load-data>`
-              for each timestep.
-            - ``ClimateData.csv``, in which you :ref:`specify climate data <workflow_load-data>`
-              for each timestep.
-            - A folder called ``carrier_data``, containing:
-
-                - A ``carrier_name.csv`` file for each carrier, in which you can specify the balance constraints
-                  (demand, import/export limits, etc.) for that carrier at the specific node in each timestep.
-                - ``EnergybalanceOptions.JSON``, in which you specify for each carrier whether or not curtailment of
-                  production is possible.
-            - A folder called ``technology_data``, in which you :ref:`upload JSON files with technology data <workflow_load-data>`
-              for each technology specified in the ``Technologies.JSON``.
-
-
-
-
-
-
-
-
-
-
-
-
+All this data is time-dependent, so you need to specify data for all time steps of your model run.
 
 There are four options for loading data:
 
@@ -90,6 +65,11 @@ default coordinates (52.5, 5.5) with an altitude of 10m.
     :members: load_climate_data_from_api
     :exclude-members:
 
+NB: this imports all climate data, except for the hydro inflow. Hydro inflow needs to be specified for any technologies
+based on the technology type "OpenHydro" (see :ref:`here<technologies>`). For this, replace the "TECHNOLOGYNAME" in the
+column name with the technology in your system, e.g., "PumpedHydro_Open" and :ref:`load a profile<load-data_profile>`
+for water flow into the reservoir.
+
 ..  _load-data_from-model:
 
 From model
@@ -109,8 +89,7 @@ to use the naming conventions as in the JSON files in the model repository.
 Specifying a fixed value
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For carrier data, think of demand or import/export limits of a specific carrier at a specific node, you can use the
-``fill_carrier_data`` method if your value does not vary over time.
+For carrier data, you can use the ``fill_carrier_data`` method if your value does not vary over time.
 
 .. automodule:: src.data_preprocessing.data_loading
     :members: fill_carrier_data
@@ -123,5 +102,3 @@ Specifying a profile
 If the carrier data values do change over time (e.g., you want to have a demand profile resembling actual load) you have
 to manually specify the profiles in the carrier csv files in your input data folder. For example, you can copy a demand
 profile from a national database (if your nodes are countries) into the correct column in the csv.
-
-
