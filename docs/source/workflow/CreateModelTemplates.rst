@@ -2,8 +2,9 @@
 
 Creating Model Templates
 =====================================
-In order to set up your model, you start by creating a new folder for all input data. In the main module
-(``main.py``), you specify the path to this folder and pass it through the ``create_optimization_templates`` method.
+In order to set up your model, you start by creating a new folder for your case study that will all input data. In the
+main module (``main.py``), you specify the path to this folder and pass it through the ``create_optimization_templates``
+method.
 
 .. automodule:: src.data_preprocessing.template_creation
     :members: create_optimization_templates
