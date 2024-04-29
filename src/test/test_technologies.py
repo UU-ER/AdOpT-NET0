@@ -14,6 +14,7 @@ import json
 from src.test.utilities import make_climate_data, make_data_for_technology_testing
 from src.components.technologies.technology import Technology
 from src.data_management.utilities import open_json, select_technology
+from src.components.utilities import perform_disjunct_relaxation
 
 
 def define_technology(
@@ -61,6 +62,8 @@ def construct_tec_model(tec: Technology, nr_timesteps: int) -> ConcreteModel:
     data = make_data_for_technology_testing(nr_timesteps)
 
     m = tec.construct_tech_model(m, data, m.set_t, m.set_t_full)
+    if tec.big_m_transformation_required:
+        m = perform_disjunct_relaxation(m)
 
     return m
 
