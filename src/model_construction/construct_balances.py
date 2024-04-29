@@ -257,7 +257,7 @@ def construct_global_energybalance(model, config):
                 if car in b_period.node_blocks[node].set_carriers
             )
 
-            if config["energybalance"]["violation"]["value"] >= 0:
+            if config["energybalance"]["violation"]["value"] > 0:
                 violation = sum(
                     b_period.var_violation[t, car, node]
                     for node in model.set_nodes
@@ -271,8 +271,19 @@ def construct_global_energybalance(model, config):
                 == demand - gen_prod
             )
 
+        model.set_used_carriers = Set(
+            initialize=list(
+                set().union(
+                    *[
+                        b_period.node_blocks[node].set_carriers
+                        for node in model.set_nodes
+                    ]
+                )
+            )
+        )
+
         b_ebalance.const_energybalance = Constraint(
-            set_t_full, model.set_carriers, rule=init_energybalance_global
+            set_t_full, model.set_used_carriers, rule=init_energybalance_global
         )
 
         return b_ebalance

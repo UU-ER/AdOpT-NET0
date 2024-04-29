@@ -87,5 +87,114 @@ def test_model_nodal_energy_balance():
     assert m.periods[period].node_blocks[node].var_import_flow[1, carrier].value == 1
 
 
-# TODO: Test global energy balance
-# Todo: Reduce number of nodes and periods to 1
+def test_model_global_energy_balance():
+    """
+    Construct a mock technology model for testing
+
+    :param Technology tec: Technology object.
+    :param int nr_timesteps: Number of timesteps to create climate data for
+    :return ConcreteModel m: Pyomo Concrete Model
+    """
+    nr_timesteps = 1
+
+    dh = create_patched_datahandle(nr_timesteps)
+    config = {"energybalance": {"violation": {"value": 0}}}
+    period = dh.topology["investment_periods"][0]
+    node1 = dh.topology["nodes"][0]
+    node2 = dh.topology["nodes"][1]
+    carrier = dh.topology["carriers"][0]
+
+    # INFEASIBILITY CASE
+    dh.time_series["full"].loc[:, (period, node1, "CarrierData", carrier, "Demand")] = 1
+
+    m = construct_model(dh)
+    m = construct_network_constraints(m)
+    m = construct_global_energybalance(m, config)
+
+    termination_condition = solve_model(m)
+
+    assert termination_condition == TerminationCondition.infeasible
+
+    # FEASIBILITY CASE
+    # Through violation
+    config["energybalance"]["violation"]["value"] = 1
+    m = construct_model(dh)
+    m = construct_network_constraints(m)
+    m = construct_global_energybalance(m, config)
+
+    termination_condition = solve_model(m)
+
+    assert termination_condition == TerminationCondition.optimal
+    assert m.periods[period].var_violation[1, carrier, node1].value == 1
+
+    # Through import at other node
+    config["energybalance"]["violation"]["value"] = 0
+    dh.time_series["full"].loc[
+        :, (period, node2, "CarrierData", carrier, "Import limit")
+    ] = 1
+    m = construct_model(dh)
+    m = construct_network_constraints(m)
+    m = construct_global_energybalance(m, config)
+
+    termination_condition = solve_model(m)
+
+    assert termination_condition == TerminationCondition.optimal
+    assert m.periods[period].node_blocks[node2].var_import_flow[1, carrier].value == 1
+
+
+def test_model_emission_balance():
+    """
+    Construct a mock technology model for testing
+
+    :param Technology tec: Technology object.
+    :param int nr_timesteps: Number of timesteps to create climate data for
+    :return ConcreteModel m: Pyomo Concrete Model
+    """
+    nr_timesteps = 1
+
+    dh = create_patched_datahandle(nr_timesteps)
+    config = {"energybalance": {"violation": {"value": 0}, "copperplate": {"value": 0}}}
+    period = dh.topology["investment_periods"][0]
+    node = dh.topology["nodes"][0]
+    carrier = dh.topology["carriers"][0]
+
+    # INFEASIBILITY CASE
+    dh.time_series["full"].loc[:, (period, node, "CarrierData", carrier, "Demand")] = 1
+    dh.time_series["full"].loc[
+        :, (period, node, "CarrierData", carrier, "Import limit")
+    ] = 1
+    dh.time_series["full"].loc[
+        :, (period, node, "CarrierData", carrier, "Import emission factor")
+    ] = 1
+
+    m = construct_model(dh)
+    m = construct_network_constraints(m)
+    m = construct_nodal_energybalance(m, config)
+    m = construct_emission_balance(m, config)
+
+    def init_emissions_to_zero(const, period):
+        return m.periods[period].var_emissions_net == 0
+
+    m.test_const_emissions_to_zero = Constraint(
+        m.set_periods, rule=init_emissions_to_zero
+    )
+
+    termination_condition = solve_model(m)
+
+    assert termination_condition == TerminationCondition.infeasible
+
+    # FEASIBILITY CASE
+    m = construct_model(dh)
+    m = construct_network_constraints(m)
+    m = construct_nodal_energybalance(m, config)
+    m = construct_emission_balance(m, config)
+
+    termination_condition = solve_model(m)
+
+    assert termination_condition == TerminationCondition.optimal
+    assert m.periods[period].var_emissions_net.value == 1
+    assert m.periods[period].var_emissions_pos.value == 1
+    assert m.periods[period].var_emissions_neg.value == 0
+
+
+# Todo: Test system costs
