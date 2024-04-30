@@ -2,12 +2,9 @@ import pytest
 from pathlib import Path
 from pyomo.environ import (
     ConcreteModel,
-    Set,
     Constraint,
-    Objective,
     TerminationCondition,
     SolverFactory,
-    minimize,
 )
 
 from src.test.utilities import create_patched_datahandle
@@ -21,9 +18,13 @@ from src.model_construction.construct_balances import (
     construct_network_constraints,
     construct_system_cost,
 )
+from src.data_management import DataHandle
 
 
-def construct_model(dh):
+def construct_model(dh: DataHandle) -> ConcreteModel:
+    """
+    Constructs a model
+    """
 
     ehub = EnergyHub()
     ehub.data = dh
@@ -33,7 +34,7 @@ def construct_model(dh):
     return m
 
 
-def solve_model(m):
+def solve_model(m: ConcreteModel) -> TerminationCondition:
     solver = SolverFactory("gurobi")
     solution = solver.solve(m)
     termination_condition = solution.solver.termination_condition
@@ -42,11 +43,16 @@ def solve_model(m):
 
 def test_model_nodal_energy_balance():
     """
-    Construct a mock technology model for testing
+    Tests the energybalance on a nodal level
 
-    :param Technology tec: Technology object.
-    :param int nr_timesteps: Number of timesteps to create climate data for
-    :return ConcreteModel m: Pyomo Concrete Model
+    This testing function contains three subtests:
+
+    INFEASIBILITY CASES
+    1) Demand at first node is 1, with no imports and exports
+
+    FEASIBILITY CASES
+    2) Demand at first node is 1, violation is allowed
+    3) Demand at first node is 1, import is allowed
     """
     nr_timesteps = 1
 
@@ -96,11 +102,16 @@ def test_model_nodal_energy_balance():
 
 def test_model_global_energy_balance():
     """
-    Construct a mock technology model for testing
+    Tests the energybalance on a global level
 
-    :param Technology tec: Technology object.
-    :param int nr_timesteps: Number of timesteps to create climate data for
-    :return ConcreteModel m: Pyomo Concrete Model
+    This testing function contains three subtests:
+
+    INFEASIBILITY CASES
+    1) Demand at first node is 1, with no imports and exports
+
+    FEASIBILITY CASES
+    2) Demand at first node is 1, violation is allowed
+    3) Demand at first node is 1, import is allowed at node 2
     """
     nr_timesteps = 1
 
@@ -151,11 +162,15 @@ def test_model_global_energy_balance():
 
 def test_model_emission_balance():
     """
-    Construct a mock technology model for testing
+    Tests the emission balance
 
-    :param Technology tec: Technology object.
-    :param int nr_timesteps: Number of timesteps to create climate data for
-    :return ConcreteModel m: Pyomo Concrete Model
+    This testing function contains two subtests:
+
+    INFEASIBILITY CASES
+    1) Demand at first node is 1, import is allowed at an import emission factor. Total emissions are set to zero.
+
+    FEASIBILITY CASES
+    2) Demand at first node is 1, import is allowed at an import emission factor.
     """
     nr_timesteps = 1
 
@@ -204,14 +219,17 @@ def test_model_emission_balance():
     assert m.periods[period].var_emissions_neg.value == 0
 
 
-# Todo: Test system costs
 def test_model_cost_balance():
     """
-    Construct a mock technology model for testing
+    Tests the emission balance
 
-    :param Technology tec: Technology object.
-    :param int nr_timesteps: Number of timesteps to create climate data for
-    :return ConcreteModel m: Pyomo Concrete Model
+    This testing function contains two subtests:
+
+    INFEASIBILITY CASES
+    1) Demand at first node is 1, import is allowed at an import price. Total cost is set to zero.
+
+    FEASIBILITY CASES
+    2) Demand at first node is 1, import is allowed at an import price.
     """
     nr_timesteps = 1
 
@@ -236,14 +254,12 @@ def test_model_cost_balance():
     m = construct_system_cost(m, config)
     m = construct_global_balance(m)
 
-    m.test_const_system_costs = Constraint(expr=m.var_npv == 2)
+    m.test_const_system_costs = Constraint(expr=m.var_npv == 0)
 
     termination_condition = solve_model(m)
     assert termination_condition == TerminationCondition.infeasible
 
     # FEASIBILITY CASE
-    # Through violation
-
     m = construct_model(dh)
     m = construct_network_constraints(m)
     m = construct_global_energybalance(m, config)
