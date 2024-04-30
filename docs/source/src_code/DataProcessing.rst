@@ -3,8 +3,9 @@
 Data Processing
 =====================================
 
-``src.data_management.handle_input_data.DataHandle`` provides a class for data storage and methods to import
-and manipulate data consistent with the model.
+All the data and settings that have been defined in your input data folder, have to be read into the model. For this,
+``src.data_management.handle_input_data.DataHandle`` provides a class to import and manipulate data consistent with
+the model.
 
 .. automodule:: src.data_management.handle_input_data
     :members:

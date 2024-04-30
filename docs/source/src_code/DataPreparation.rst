@@ -3,12 +3,16 @@
 Data Preparation
 =====================================
 
-Consists of two modules: ``template_creation.py`` and ``data_loading.py``.
+When preparing the input data for your model application, you use the following two modules: ``template_creation.py``
+and ``data_loading.py``. For the code of these modules, see their respective pages below.
 
-.. automodule:: src.data_preprocessing.template_creation
-    :members:
-    :exclude-members:
+Before the data gets processed by the model, you also have to :ref:`set the Model Configuration<workflow_model-configuration>`.
+Regarding this, the options of scaling, clustering and time averaging are elaborated upon in the documentation below.
 
-.. automodule:: src.data_preprocessing.data_loading
-    :members:
-    :exclude-members:
+.. toctree::
+    :maxdepth: 1
+
+    data_preparation/TemplateCreation
+    data_preparation/DataLoading
+    data_preparation/ModelConfiguration
+

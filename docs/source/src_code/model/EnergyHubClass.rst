@@ -1,4 +1,4 @@
-.. _energyhub_class:
+..  _energyhub_class:
 
 Energy Hub Class
 ================

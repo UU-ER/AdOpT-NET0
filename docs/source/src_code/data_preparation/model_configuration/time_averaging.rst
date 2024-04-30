@@ -1,4 +1,4 @@
-.. _time_averaging:
+..   _time_averaging:
 
 Two-stage time averaging algorithm
 =====================================
@@ -10,27 +10,13 @@ system design and operation problems with high penetration of renewable energy.
 Computers & Chemical Engineering, 107816.
 `doi.org/10.1016/J.COMPCHEMENG.2022.107816 <doi.org/10.1016/J.COMPCHEMENG.2022.107816>`_.
 
-The algorithm is implemented as a sub-class of the DataHandle class and the EnergyHub class
+The algorithm is implemented as a sub-class of the DataHandle class and the EnergyHub class. For using this method in
+your solve, adjust the value for the "timestaging" setting in ``ConfigModel.json``, accordingly. For example:
 
-Examplary Usage
-^^^^^^^^^^^^^^^^^^
-You need to define the system topology and the input data before using the algorithm. Then you can pass the DataHandle
-to the :func:`.EnergyHub` class:
 
 .. testcode::
 
-    from src.energyhub import *
-
-
-    import src.data_management as dm
-
-    # Define topology and data (not shown here)
-
-    # Set configuration (use time-staging algorithm)
-    configuration = ModelConfiguration()
-    configuration.optimization.timestaging = 4
-
-
-    # Construct Model and solve
-    energyhub = EnergyHub(data, configuration)
-    ehub.quick_solve()
+        "timestaging": {
+            "description": "Defines number of timesteps that are averaged (0 = off).",
+            "value": 4
+        },

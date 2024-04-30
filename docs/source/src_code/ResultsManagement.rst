@@ -19,42 +19,54 @@ The structure (object tree) of the resulting HDF5 file is as follows:
 
 Root group (top-level, being the .h5-file) [group] - contains:
 
-* Summary [group]
-    Contains one dataset [leaf] for each variable.
-* Design (for all time-independent results) [group]
+* **Summary** [group]: Contains one dataset [leaf] for each variable.
+
+* **Design** (for all time-independent results) [group]
+
     * Networks [group]
 
         * Specific network [group]: For each specific network that is present in your model, a separate group is created.
           e.g., "ElectricitySimple".
+
             * Arc [group]: For each arc that contains that network, another group is created, e.g., "NodeANodeB".
 
                 * Datasets [leaves]: datasets, one for each variable.
+
     * Nodes [group]
 
         * Specific node [group]: For each specific node that is present in your model, a separate group is created,
           e.g., "Node A".
+
             * Technology [group]: For each technology that is present at this node, a separate group is created, e.g.,
               "SteamTurbine".
+
                 * Datasets [leaves]: datasets, one for each variable.
-* Operation (for all time-dependent results) [group]
+
+* **Operation** (for all time-dependent results) [group]
+
     * Networks [group]
 
         * Specific network [group]: For each specific network that is present in your model, a separate group is created.
           e.g., "ElectricitySimple".
+
             * Arc [group]: For each arc that contains that network, another group is created, e.g., "NodeANodeB".
 
                 * Datasets [leaves]: datasets, one for each variable.
+
     * Nodes [group]
 
         * Specific node [group]: For each specific node that is present in your model, a separate group is created,
           e.g., "Node A".
+
             * "energy_balance" [group]: A group for the energy balances of all carriers present at that node.
 
                 * Carrier [group]: For each carrier, a specific group is made, e.g., "Electricity".
 
                     * Datasets [leaves]: datasets of the relevant variables over time.
+
             * "technology_operation" [group]: a group for the technology operation of all energy technologies present at
               that node.
+
                 * Technology [group]: For each technology, a specific group is made, e.g., "SteamTurbine".
 
                     * Datasets [leaves]: datasets of the relevant variables over time.

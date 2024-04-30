@@ -10,7 +10,5 @@ For users who want to learn what happens behind the scenes and for developers.
 
     src_code/DataPreparation
     src_code/DataProcessing
-    src_code/ModelConfiguration
-    src_code/ModelStructure
-    src_code/ModelConstruction
+    src_code/Model
     src_code/ResultsManagement

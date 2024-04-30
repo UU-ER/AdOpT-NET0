@@ -10,7 +10,8 @@ system by setting:
 #. The geographical coordinates of your nodes in ``NodeLocations.csv``.
 
 #. The networks in ``Networks.JSON`` for each investment period, where we distinguish between new (to be installed)
-   networks and existing networks, using the network names as in ``.\data\network_data``.
+   networks and existing networks, using the network names as in ``.\data\network_data`` (a list of these can be found
+   :ref:`here <network_list>`).
     - Then, for each of the networks that you specify, an input data folder with that network name should be added
       in the corresponding folder ("existing" or "new") in the network_topology folder. To these folders, you should
       copy the CSV files ``connection.csv``, ``distance.csv`` and ``size_max_arcs.csv`` from the corresponding folder
@@ -24,7 +25,8 @@ system by setting:
       while option (2) is more convenient if you want it to change per investment period.
 
 #. The technologies in ``Technologies.JSON`` for each investment period and each node, where we distinguish between new
-   (to be installed) technologies and existing technologies using the technology names as in ``.\data\technology_data``.
+   (to be installed) technologies and existing technologies using the technology names as in ``.\data\technology_data``
+   (a list of these can be found :ref:`here <technologies_list>`).
     - Then, you can adjust the technology data in the json files of the specific technology types, either (1) in the model
       repository, before :ref:`copying these<load-data_from-model>` to the technology_data folder in your input data folder,
       or (2) in the technology_data folder in your input data folder, after :ref:`copying them from the model repository <load-data_from-model>`.
