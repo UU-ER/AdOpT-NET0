@@ -17,7 +17,8 @@ def test_data_handle_reading(request):
     """
     case_study_folder_path = request.config.case_study_folder_path
 
-    dh = DataHandle(case_study_folder_path)
+    dh = DataHandle()
+    dh.read_input_data(case_study_folder_path)
 
 
 @pytest.mark.data_management
@@ -29,7 +30,8 @@ def test_data_handle_clustering(request):
     """
     case_study_folder_path = request.config.case_study_folder_path
 
-    dh = DataHandle(case_study_folder_path)
+    dh = DataHandle()
+    dh.read_input_data(case_study_folder_path)
     dh.model_config["optimization"]["typicaldays"]["N"]["value"] = 2
     dh._cluster_data()
 
@@ -42,6 +44,7 @@ def test_data_handle_averaging(request):
     """
     case_study_folder_path = request.config.case_study_folder_path
 
-    dh = DataHandle(case_study_folder_path)
+    dh = DataHandle()
+    dh.read_input_data(case_study_folder_path)
     dh.model_config["optimization"]["timestaging"]["value"] = 2
     dh._average_data()

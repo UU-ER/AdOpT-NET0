@@ -267,6 +267,7 @@ class Network(ModelComponent):
             b_arc = self._define_capex_arc(b_arc, b_netw, node_from, node_to)
             b_arc = self._define_flow(b_arc, b_netw)
             b_arc = self._define_opex_arc(b_arc, b_netw)
+            b_arc = self._define_emissions_arc(b_arc, b_netw)
 
             if self.energy_consumption:
                 b_arc = self._define_energyconsumption_arc(b_arc, b_netw)
@@ -559,7 +560,7 @@ class Network(ModelComponent):
         b_netw.para_loss2emissions = self.performance_data["loss2emissions"]
         b_netw.para_emissionfactor = self.performance_data["emissionfactor"]
 
-        b_netw.var_netw_emissions_pos = Var(self.set_t)
+        b_netw.var_netw_emissions_pos = Var(self.set_t, self.set_nodes)
 
         return b_netw
 
@@ -872,6 +873,23 @@ class Network(ModelComponent):
         b_arc.const_opex_variable = Constraint(self.set_t, rule=init_opex_variable)
         return b_arc
 
+    def _define_emissions_arc(self, b_arc, b_netw):
+        """
+        defines emission per arc
+        """
+        b_arc.var_emissions = Var(self.set_t)
+
+        def init_arc_emissions(const, t):
+            return (
+                b_arc.var_emissions[t]
+                == b_arc.var_flow[t] * b_netw.para_emissionfactor
+                + b_arc.var_losses[t] * b_netw.para_loss2emissions
+            )
+
+        b_netw.const_arc_emissions = Constraint(self.set_t, rule=init_arc_emissions)
+
+        return b_arc
+
     def _define_bidirectional_constraints(self, b_netw):
         """
         Defines constraints necessary, in case one arc can transport in two directions.
@@ -1036,16 +1054,15 @@ class Network(ModelComponent):
         Defines Emissions from network
         """
 
-        def init_netw_emissions(const, t):
-            return (
-                sum(b_netw.arc_block[arc].var_flow[t] for arc in b_netw.set_arcs)
-                * b_netw.para_emissionfactor
-                + sum(b_netw.arc_block[arc].var_losses[t] for arc in b_netw.set_arcs)
-                * b_netw.para_loss2emissions
-                == b_netw.var_netw_emissions_pos[t]
+        def init_netw_emissions(const, t, node):
+            return b_netw.var_netw_emissions_pos[t, node] == sum(
+                b_netw.arc_block[from_node, node].var_emissions[t]
+                for from_node in b_netw.set_receives_from[node]
             )
 
-        b_netw.const_netw_emissions = Constraint(self.set_t, rule=init_netw_emissions)
+        b_netw.const_netw_emissions = Constraint(
+            self.set_t, self.set_nodes, rule=init_netw_emissions
+        )
         return b_netw
 
     def _define_energyconsumption_total(self, b_netw):
