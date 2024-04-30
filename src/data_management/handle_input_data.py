@@ -16,9 +16,7 @@ class DataHandle:
     folder path when initializing the class.
     """
 
-    def __init__(
-        self, data_path: Path | str, start_period: int = None, end_period: int = None
-    ) -> None:
+    def __init__(self) -> None:
         """
         Constructor
 
@@ -27,12 +25,9 @@ class DataHandle:
         # Get logger
         self.logger = logger
 
-        # Convert to Path
-        if isinstance(data_path, str):
-            data_path = Path(data_path)
-
         # Attributes
-        self.data_path = data_path
+        self.topology = None
+        self.data_path = None
         self.time_series = {}
         self.energybalance_options = {}
         self.technology_data = {}
@@ -41,13 +36,27 @@ class DataHandle:
         self.model_config = {}
         self.k_means_specs = {}
         self.averaged_specs = {}
+        self.start_period = None
+        self.end_period = None
+
+    def read_input_data(
+        self, data_path: Path | str, start_period: int = None, end_period: int = None
+    ) -> None:
+        """
+        Reads the data from folder structure
+        """
+        # Read in data
+        # Convert to Path
+        if isinstance(data_path, str):
+            data_path = Path(data_path)
+
+        self.data_path = data_path
         self.start_period = start_period
         self.end_period = end_period
 
         # Check consistency
         check_input_data_consistency(data_path)
 
-        # Read in data
         self._read_topology()
         self._read_model_config()
         self._read_time_series()

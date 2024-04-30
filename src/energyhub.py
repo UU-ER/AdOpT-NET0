@@ -65,7 +65,8 @@ class EnergyHub:
         """
         log_event("--- Reading in data ---")
 
-        self.data = DataHandle(data_path, start_period, end_period)
+        self.data = DataHandle()
+        self.data.read_input_data(data_path, start_period, end_period)
         self._perform_preprocessing_checks()
 
         log_event("--- Reading in data complete ---")
