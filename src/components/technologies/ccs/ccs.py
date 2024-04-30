@@ -1,4 +1,4 @@
-from ....utilities import open_json
+from ..utilities import open_json
 import numpy as np
 from ...component import ModelComponent
 
@@ -13,8 +13,6 @@ def fit_ccs_data(ccs_data, data):
     :param dict ccs_data: performance data of the CCS technology
     :param data: input data
     :return: tec_data
-
-
     """
 
     tec_data = open_json(ccs_data["ccs_type"], data.model_information.tec_data_path)
@@ -64,26 +62,3 @@ def fit_ccs_data(ccs_data, data):
         )
 
     return tec_data
-
-    #
-    #
-    # if self.performance_data['plant_size'] == 'small':
-    #
-    #     self.economics.capex_data[
-    #         'unit_capex'] = 3.44 / convert2t_per_h + 185 * carbon_capture_rate * co2_concentration / convert2t_per_h
-    #     self.economics.capex_data['fix_capex'] = 2.17
-    #
-    # elif self.performance_data['plant_size'] == 'medium':
-    #
-    #
-    #     self.economics.capex_data[
-    #         'unit_capex'] = 2.83 / convert2t_per_h + 125 * carbon_capture_rate * co2_concentration / convert2t_per_h
-    #     self.economics.capex_data['fix_capex'] = 11.1
-    #
-    # elif self.performance_data['plant_size'] == 'large':
-    #
-    #     self.economics.capex_data[
-    #         'unit_capex'] = 3.11 / convert2t_per_h + 123 * carbon_capture_rate * co2_concentration / convert2t_per_h
-    #     self.economics.capex_data['fix_capex'] = 10.8
-    #
-    #

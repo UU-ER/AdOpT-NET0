@@ -2,6 +2,7 @@ import pandas as pd
 from pyomo.gdp import *
 from warnings import warn
 from pyomo.environ import *
+from types import SimpleNamespace
 
 from ..component import ModelComponent
 from ..utilities import (
@@ -45,6 +46,9 @@ class Technology(ModelComponent):
 
         if "ccs" in self.performance_data and self.performance_data["ccs"]["possible"]:
             self.ccs_data = None
+            self.ccs = 1
+        else:
+            self.ccs = 0
             # To be filled during model construction
 
         # Size-input/output constraints
@@ -209,37 +213,6 @@ class Technology(ModelComponent):
         # TECHNOLOGY DATA
         config = data["config"]
 
-        # Fitting CCS data and setting up the new carriers if CCS is possible
-        if "ccs" in self.performance_data and self.performance_data["ccs"]["possible"]:
-            self.ccs_data = fit_ccs_data(self.performance_data["ccs"], data)
-            additional_input_carriers = self.ccs_data["TechnologyPerf"]["input_carrier"]
-            additional_output_carriers = self.ccs_data["TechnologyPerf"][
-                "output_carrier"
-            ]
-            b_tec.set_input_carriers_all = Set(
-                initialize=list(
-                    set(
-                        self.performance_data["input_carrier"]
-                        + additional_input_carriers
-                    )
-                )
-            )
-            b_tec.set_output_carriers_all = Set(
-                initialize=list(
-                    set(
-                        self.performance_data["output_carrier"]
-                        + additional_output_carriers
-                    )
-                )
-            )
-        else:
-            b_tec.set_input_carriers_all = Set(
-                initialize=self.performance_data["input_carrier"]
-            )
-            b_tec.set_output_carriers_all = Set(
-                initialize=self.performance_data["output_carrier"]
-            )
-
         # MODELING TYPICAL DAYS
         self.set_t_full = set_t
         if config["optimization"]["typicaldays"]["N"]["value"] != 0:
@@ -256,16 +229,25 @@ class Technology(ModelComponent):
         else:
             self.modelled_with_full_res = 1
 
+        # READ CCS DATA
+        if self.ccs:
+            self.ccs_data = fit_ccs_data(self.performance_data["ccs"], data)
+
         # GENERAL TECHNOLOGY CONSTRAINTS
+        b_tec = self._define_input_carriers(b_tec)
+        b_tec = self._define_output_carriers(b_tec)
         b_tec = self._define_size(b_tec)
         b_tec = self._define_capex(b_tec, data)
         b_tec = self._define_input(b_tec, data)
         b_tec = self._define_output(b_tec, data)
         b_tec = self._define_opex(b_tec, data)
-        if "ccs" in self.performance_data and self.performance_data["ccs"]["possible"]:
-            b_tec = self._define_ccs(b_tec, data)
+        if self.ccs:
+            b_tec = self._define_ccs_performance(b_tec, data)
+            b_tec = self._define_ccs_emissions(b_tec, data)
+            b_tec = self._define_ccs_costs(b_tec, data)
         else:
             b_tec = self._define_emissions(b_tec, data)
+
         # CLUSTERED DATA
         if (
             config["optimization"]["typicaldays"]["N"]["value"] != 0
@@ -299,233 +281,105 @@ class Technology(ModelComponent):
                         "Switching dynamics off for performance function type 4, type changed to 3 for "
                         + self.name
                     )
-        # Aggregate the input, output, CAPEX and fixed OPEX of tech+CCS
+
+        self._aggregate_input(b_tec, data)
+        self._aggregate_output(b_tec, data)
+        self._aggregate_cost(b_tec)
+
+        return b_tec
+
+    def _aggregate_input(self, b_tec, data):
         size_max = self.size_max
         rated_power = self.fitted_performance.rated_power
-        if "ccs" in self.performance_data and self.performance_data["ccs"]["possible"]:
+        config = data["config"]
 
-            def init_input_bounds(bounds, t, car):
-                if (
-                    energyhub.model_information.clustered_data
-                    and not self.modelled_with_full_res
-                ):
-                    bound_tec = (
-                        self.fitted_performance.bounds["input"][car][
-                            sequence[t - 1] - 1, :
-                        ]
-                        * size_max
-                        * rated_power
-                        if car in self.fitted_performance.bounds["input"]
-                        else 0
-                    )
-                    bound_ccs = (
-                        self.ccs_data["TechnologyPerf"]["bounds"]["input"][car][
-                            sequence[t - 1] - 1, :
-                        ]
-                        * self.ccs_data["size_max"]
-                        if car in self.ccs_data["TechnologyPerf"]["bounds"]["input"]
-                        else 0
-                    )
-                    return tuple(bound_tec + bound_ccs)
-                else:
-                    bound_tec = (
-                        self.fitted_performance.bounds["input"][car][t - 1, :]
-                        * size_max
-                        * rated_power
-                        if car in self.fitted_performance.bounds["input"]
-                        else 0
-                    )
-                    bound_ccs = (
-                        self.ccs_data["TechnologyPerf"]["bounds"]["input"][car][
-                            t - 1, :
-                        ]
-                        * self.ccs_data["size_max"]
-                        if car in self.ccs_data["TechnologyPerf"]["bounds"]["input"]
-                        else 0
-                    )
-                    return tuple(bound_tec + bound_ccs)
-
-            b_tec.var_input_tot = Var(
-                self.set_t,
-                b_tec.set_input_carriers_all,
-                within=NonNegativeReals,
-                bounds=init_input_bounds,
-            )
-
-            def init_output_bounds(bounds, t, car):
-                if (
-                    energyhub.model_information.clustered_data
-                    and not self.modelled_with_full_res
-                ):
-                    bound_tec = (
-                        self.fitted_performance.bounds["output"][car][
-                            sequence[t - 1] - 1, :
-                        ]
-                        * size_max
-                        * rated_power
-                        if car in self.fitted_performance.bounds["output"]
-                        else 0
-                    )
-                    bound_ccs = (
-                        self.ccs_data["TechnologyPerf"]["bounds"]["output"][car][
-                            sequence[t - 1] - 1, :
-                        ]
-                        * self.ccs_data["size_max"]
-                        if car in self.ccs_data["TechnologyPerf"]["bounds"]["output"]
-                        else 0
-                    )
-                    return tuple(bound_tec + bound_ccs)
-                else:
-                    bound_tec = (
-                        self.fitted_performance.bounds["output"][car][t - 1, :]
-                        * size_max
-                        * rated_power
-                        if car in self.fitted_performance.bounds["output"]
-                        else 0
-                    )
-                    bound_ccs = (
-                        self.ccs_data["TechnologyPerf"]["bounds"]["output"][car][
-                            t - 1, :
-                        ]
-                        * self.ccs_data["size_max"]
-                        if car in self.ccs_data["TechnologyPerf"]["bounds"]["output"]
-                        else 0
-                    )
-                    return tuple(bound_tec + bound_ccs)
-
-            b_tec.var_output_tot = Var(
-                self.set_t,
-                b_tec.set_output_carriers_all,
-                within=NonNegativeReals,
-                bounds=init_output_bounds,
-            )
-
-            def init_aggregate_input(const, t, car):
-                var_input_tec = (
-                    b_tec.var_input[t, car] if car in b_tec.set_input_carriers else 0
+        def init_input_bounds(bounds, t, car):
+            if (
+                config["optimization"]["typicaldays"]["N"]["value"] != 0
+                and not self.modelled_with_full_res
+            ):
+                return tuple(
+                    self.fitted_performance.bounds["input"][car][sequence[t - 1] - 1, :]
+                    * size_max
+                    * rated_power
                 )
-                var_input_ccs = (
-                    b_tec.var_input_ccs[t, car]
-                    if car in b_tec.set_input_carriers_ccs
-                    else 0
-                )
-                return b_tec.var_input_tot[t, car] == var_input_tec + var_input_ccs
-
-            b_tec.const_input_aggregation = Constraint(
-                self.set_t, b_tec.set_input_carriers_all, rule=init_aggregate_input
-            )
-
-            def init_aggregate_output(const, t, car):
-                var_output_tec = (
-                    b_tec.var_output[t, car] if car in b_tec.set_output_carriers else 0
-                )
-                var_output_ccs = (
-                    b_tec.var_output_ccs[t, car]
-                    if car in b_tec.set_output_carriers_ccs
-                    else 0
-                )
-                return b_tec.var_output_tot[t, car] == var_output_tec + var_output_ccs
-
-            b_tec.const_output_aggregation = Constraint(
-                self.set_t, b_tec.set_output_carriers_all, rule=init_aggregate_output
-            )
-
-            b_tec.var_capex_tot = Var()
-            b_tec.var_opex_fixed_tot = Var()
-
-            def init_aggregate_capex(const):
-                return b_tec.var_capex_tot == b_tec.var_capex_ccs + b_tec.var_capex
-
-            b_tec.const_capex_aggregation = Constraint(rule=init_aggregate_capex)
-
-            def init_aggregate_opex(const):
-                return (
-                    b_tec.var_opex_fixed_tot
-                    == b_tec.var_opex_fixed_ccs + b_tec.var_opex_fixed
+            else:
+                return tuple(
+                    self.fitted_performance.bounds["input"][car][t - 1, :]
+                    * size_max
+                    * rated_power
                 )
 
-            b_tec.const_opex_aggregation = Constraint(rule=init_aggregate_opex)
+        b_tec.var_input_tot = Var(
+            self.set_t,
+            b_tec.set_input_carriers_all,
+            within=NonNegativeReals,
+            bounds=init_input_bounds,
+        )
 
-        else:
+        def init_aggregate_input(const, t, car):
+            return b_tec.var_input[t, car] == b_tec.var_input_tot[t, car]
 
-            def init_input_bounds(bounds, t, car):
-                if (
-                    energyhub.model_information.clustered_data
-                    and not self.modelled_with_full_res
-                ):
-                    return tuple(
-                        self.fitted_performance.bounds["input"][car][
-                            sequence[t - 1] - 1, :
-                        ]
-                        * size_max
-                        * rated_power
-                    )
-                else:
-                    return tuple(
-                        self.fitted_performance.bounds["input"][car][t - 1, :]
-                        * size_max
-                        * rated_power
-                    )
+        b_tec.const_input_aggregation = Constraint(
+            self.set_t, b_tec.set_input_carriers_all, rule=init_aggregate_input
+        )
 
-            b_tec.var_input_tot = Var(
-                self.set_t,
-                b_tec.set_input_carriers_all,
-                within=NonNegativeReals,
-                bounds=init_input_bounds,
-            )
+        return b_tec
 
-            def init_output_bounds(bounds, t, car):
-                if (
-                    energyhub.model_information.clustered_data
-                    and not self.modelled_with_full_res
-                ):
-                    return tuple(
-                        self.fitted_performance.bounds["output"][car][
-                            sequence[t - 1] - 1, :
-                        ]
-                        * size_max
-                        * rated_power
-                    )
-                else:
-                    return tuple(
-                        self.fitted_performance.bounds["output"][car][t - 1, :]
-                        * size_max
-                        * rated_power
-                    )
+    def _aggregate_output(self, b_tec, data):
+        size_max = self.size_max
+        rated_power = self.fitted_performance.rated_power
+        config = data["config"]
 
-            b_tec.var_output_tot = Var(
-                self.set_t,
-                b_tec.set_output_carriers_all,
-                within=NonNegativeReals,
-                bounds=init_output_bounds,
-            )
+        def init_output_bounds(bounds, t, car):
+            if (
+                config["optimization"]["typicaldays"]["N"]["value"] != 0
+                and not self.modelled_with_full_res
+            ):
+                return tuple(
+                    self.fitted_performance.bounds["output"][car][
+                        sequence[t - 1] - 1, :
+                    ]
+                    * size_max
+                    * rated_power
+                )
+            else:
+                return tuple(
+                    self.fitted_performance.bounds["output"][car][t - 1, :]
+                    * size_max
+                    * rated_power
+                )
 
-            def init_aggregate_input(const, t, car):
-                return b_tec.var_input[t, car] == b_tec.var_input_tot[t, car]
+        b_tec.var_output_tot = Var(
+            self.set_t,
+            b_tec.set_output_carriers_all,
+            within=NonNegativeReals,
+            bounds=init_output_bounds,
+        )
 
-            b_tec.const_input_aggregation = Constraint(
-                self.set_t, b_tec.set_input_carriers_all, rule=init_aggregate_input
-            )
+        def init_aggregate_output(const, t, car):
+            return b_tec.var_output[t, car] == b_tec.var_output_tot[t, car]
 
-            def init_aggregate_output(const, t, car):
-                return b_tec.var_output[t, car] == b_tec.var_output_tot[t, car]
+        b_tec.const_output_aggregation = Constraint(
+            self.set_t, b_tec.set_output_carriers_all, rule=init_aggregate_output
+        )
 
-            b_tec.const_output_aggregation = Constraint(
-                self.set_t, b_tec.set_output_carriers_all, rule=init_aggregate_output
-            )
+        return b_tec
 
-            b_tec.var_capex_tot = Var()
-            b_tec.var_opex_fixed_tot = Var()
+    def _aggregate_cost(self, b_tec):
 
-            def init_aggregate_capex(const):
-                return b_tec.var_capex_tot == b_tec.var_capex_aux
+        b_tec.var_capex_tot = Var()
+        b_tec.var_opex_fixed_tot = Var()
 
-            b_tec.const_capex_aggregation = Constraint(rule=init_aggregate_capex)
+        def init_aggregate_capex(const):
+            return b_tec.var_capex_tot == b_tec.var_capex_aux
 
-            def init_aggregate_opex(const):
-                return b_tec.var_opex_fixed_tot == b_tec.var_opex_fixed
+        b_tec.const_capex_aggregation = Constraint(rule=init_aggregate_capex)
 
-            b_tec.const_opex_aggregation = Constraint(rule=init_aggregate_opex)
+        def init_aggregate_opex(const):
+            return b_tec.var_opex_fixed_tot == b_tec.var_opex_fixed
+
+        b_tec.const_opex_aggregation = Constraint(rule=init_aggregate_opex)
 
         return b_tec
 
@@ -648,6 +502,51 @@ class Technology(ModelComponent):
         model = determine_constraint_scaling(model, b_tec, f, f_global)
 
         return model
+
+    def _define_input_carriers(self, b_tec):
+        """
+        Defines the input carriers
+        """
+        if (self.technology_model == "RES") or (self.technology_model == "CONV4"):
+            b_tec.set_input_carriers = Set(initialize=[])
+        else:
+            b_tec.set_input_carriers = Set(
+                initialize=self.performance_data["input_carrier"]
+            )
+
+        if self.ccs:
+            b_tec.set_input_carriers_ccs = Set(
+                initialize=self.ccs_data["TechnologyPerf"]["input_carrier"]
+            )
+        else:
+            b_tec.set_input_carriers_ccs = Set(initialize=[])
+
+        b_tec.set_input_carriers_all = (
+            b_tec.set_input_carriers_ccs | b_tec.set_input_carriers
+        )
+
+        return b_tec
+
+    def _define_output_carriers(self, b_tec):
+        """
+        Defines the output carriers
+        """
+        b_tec.set_output_carriers = Set(
+            initialize=self.performance_data["output_carrier"]
+        )
+
+        if self.ccs:
+            b_tec.set_output_carriers_ccs = Set(
+                initialize=self.ccs_data["TechnologyPerf"]["output_carrier"]
+            )
+        else:
+            b_tec.set_output_carriers_ccs = Set(initialize=[])
+
+        b_tec.set_input_carriers_all = (
+            b_tec.set_output_carriers_ccs | b_tec.set_output_carriers
+        )
+
+        return b_tec
 
     def _define_size(self, b_tec):
         """
@@ -871,34 +770,30 @@ class Technology(ModelComponent):
 
         rated_power = fitted_performance.rated_power
 
-        if (technology_model == "RES") or (technology_model == "CONV4"):
-            b_tec.set_input_carriers = Set(initialize=[])
-        else:
-            b_tec.set_input_carriers = Set(initialize=performance_data["input_carrier"])
+        def init_input_bounds(bounds, t, car):
+            if (
+                config["optimization"]["typicaldays"]["N"]["value"] != 0
+                and not self.modelled_with_full_res
+            ):
+                return tuple(
+                    fitted_performance.bounds["input"][car][sequence[t - 1] - 1, :]
+                    * size_max
+                    * rated_power
+                )
+            else:
+                return tuple(
+                    fitted_performance.bounds["input"][car][t - 1, :]
+                    * size_max
+                    * rated_power
+                )
 
-            def init_input_bounds(bounds, t, car):
-                if (
-                    config["optimization"]["typicaldays"]["N"]["value"] != 0
-                    and not self.modelled_with_full_res
-                ):
-                    return tuple(
-                        fitted_performance.bounds["input"][car][sequence[t - 1] - 1, :]
-                        * size_max
-                        * rated_power
-                    )
-                else:
-                    return tuple(
-                        fitted_performance.bounds["input"][car][t - 1, :]
-                        * size_max
-                        * rated_power
-                    )
+        b_tec.var_input = Var(
+            set_t,
+            b_tec.set_input_carriers,
+            within=NonNegativeReals,
+            bounds=init_input_bounds,
+        )
 
-            b_tec.var_input = Var(
-                set_t,
-                b_tec.set_input_carriers,
-                within=NonNegativeReals,
-                bounds=init_input_bounds,
-            )
         return b_tec
 
     def _define_output(self, b_tec, data):
@@ -929,8 +824,6 @@ class Technology(ModelComponent):
             size_max = size_initial
         else:
             size_max = self.size_max
-
-        b_tec.set_output_carriers = Set(initialize=performance_data["output_carrier"])
 
         def init_output_bounds(bounds, t, car):
             if (
@@ -1086,25 +979,18 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def _define_ccs(self, b_tec, energyhub):
+    def _define_ccs_performance(self, b_tec, data):
         """
-        Defines CCS performance and costs. The unit capex parameter is calculated from Eq. 10 of Weimann et al. 2023
+        Defines CCS performance. The unit capex parameter is calculated from Eq. 10 of Weimann et al. 2023
         """
-        co2_concentration = self.performance_data["ccs"]["co2_concentration"]
         size_max = self.ccs_data["size_max"]
-        set_t = energyhub.model.set_t_full
+        set_t = self.set_t_full
         carbon_capture_rate = self.ccs_data["TechnologyPerf"]["capture_rate"]
         performance_data = self.performance_data
         emissions_based_on = self.emissions_based_on
+        config = data["config"]
 
         # TODO: maybe make the full set of all carriers as a intersection between this set and the others?
-        b_tec.set_input_carriers_ccs = Set(
-            initialize=self.ccs_data["TechnologyPerf"]["input_carrier"]
-        )
-        b_tec.set_output_carriers_ccs = Set(
-            initialize=self.ccs_data["TechnologyPerf"]["output_carrier"]
-        )
-
         # Emission Factor
         b_tec.para_tec_emissionfactor = Param(
             domain=Reals, initialize=performance_data["emission_factor"]
@@ -1114,7 +1000,7 @@ class Technology(ModelComponent):
 
         def init_input_bounds(bounds, t, car):
             if (
-                energyhub.model_information.clustered_data
+                config["optimization"]["typicaldays"]["N"]["value"] != 0
                 and not self.modelled_with_full_res
             ):
                 return tuple(
@@ -1138,7 +1024,7 @@ class Technology(ModelComponent):
 
         def init_output_bounds(bounds, t, car):
             if (
-                energyhub.model_information.clustered_data
+                config["optimization"]["typicaldays"]["N"]["value"] != 0
                 and not self.modelled_with_full_res
             ):
                 return tuple(
@@ -1193,6 +1079,18 @@ class Technology(ModelComponent):
         b_tec.const_input_el = Constraint(
             set_t, b_tec.set_input_carriers_ccs, rule=init_input_ccs
         )
+
+        return b_tec
+
+    def _define_ccs_emissions(self, b_tec, data):
+        """
+        Defines CCS performance. The unit capex parameter is calculated from Eq. 10 of Weimann et al. 2023
+        """
+        co2_concentration = self.performance_data["ccs"]["co2_concentration"]
+        set_t = self.set_t_full
+        carbon_capture_rate = self.ccs_data["TechnologyPerf"]["capture_rate"]
+        performance_data = self.performance_data
+        emissions_based_on = self.emissions_based_on
 
         # Emissions
         if emissions_based_on == "output":
@@ -1251,12 +1149,18 @@ class Technology(ModelComponent):
             bounds=(b_tec.para_size_min_ccs, b_tec.para_size_max_ccs),
         )
 
+        return b_tec
+
+    def _define_ccs_costs(self, b_tec, data):
+        co2_concentration = self.performance_data["ccs"]["co2_concentration"]
+        carbon_capture_rate = self.ccs_data["TechnologyPerf"]["capture_rate"]
+        config = data["config"]
+
         # Costs
-        configuration = energyhub.configuration
         economics = self.ccs_data["Economics"]
-        economics = types.SimpleNamespace(**economics)
-        discount_rate = set_discount_rate(configuration, economics)
-        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
+        economics = SimpleNamespace(**economics)
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
         annualization_factor = annualize(
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
@@ -1269,93 +1173,65 @@ class Technology(ModelComponent):
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
+        b_tec.para_kappa_ccs = Param(
+            domain=Reals, initialize=economics.CAPEX_kappa, mutable=True
+        )
+        b_tec.para_lambda_ccs = Param(
+            domain=Reals, initialize=economics.CAPEX_lambda, mutable=True
+        )
+        b_tec.para_zeta_ccs = Param(
+            domain=Reals, initialize=economics.CAPEX_zeta, mutable=True
+        )
 
-        if configuration.economic.global_simple_capex_model:
+        def init_unit_capex_ccs_annualized(self):
+            unit_capex = (
+                economics.CAPEX_kappa / convert2t_per_h
+                + economics.CAPEX_lambda
+                * carbon_capture_rate
+                * co2_concentration
+                / convert2t_per_h
+            ) * annualization_factor
+            return unit_capex
 
-            b_tec.para_unit_capex_ccs = Param(
-                domain=Reals, initialize=economics.unit_CAPEX, mutable=True
+        b_tec.para_unit_capex_annual_ccs = Param(
+            domain=Reals, initialize=init_unit_capex_ccs_annualized, mutable=True
+        )
+        b_tec.para_fix_capex_annual_ccs = Param(
+            domain=Reals,
+            initialize=annualization_factor * economics.CAPEX_zeta,
+            mutable=True,
+        )
+
+        def calculate_max_capex_ccs():
+            max_capex = (
+                self.ccs_data["size_max"] * b_tec.para_unit_capex_annual_ccs
+                + b_tec.para_fix_capex_annual_ccs
             )
-            b_tec.para_unit_capex_annual_ccs = Param(
-                domain=Reals,
-                initialize=economics.unit_CAPEX * annualization_factor,
-                mutable=True,
-            )
+            return (0, max_capex)
 
-            def calculate_max_capex_ccs():
-                max_capex = self.ccs_data["size_max"] * b_tec.para_unit_capex_annual_ccs
-                return (0, max_capex)
+        b_tec.var_capex_aux_ccs = Var(bounds=calculate_max_capex_ccs())
 
-            b_tec.var_capex_aux_ccs = Var(bounds=calculate_max_capex_ccs())
+        # capex unit commitment constraint
+        self.big_m_transformation_required = 1
+        s_indicators = range(0, 2)
 
-            b_tec.const_capex_aux_ccs = Constraint(
-                expr=b_tec.var_size_ccs * b_tec.para_unit_capex_annual_ccs
-                == b_tec.var_capex_aux_ccs
-            )
-
-        else:
-            b_tec.para_kappa_ccs = Param(
-                domain=Reals, initialize=economics.CAPEX_kappa, mutable=True
-            )
-            b_tec.para_lambda_ccs = Param(
-                domain=Reals, initialize=economics.CAPEX_lambda, mutable=True
-            )
-            b_tec.para_zeta_ccs = Param(
-                domain=Reals, initialize=economics.CAPEX_zeta, mutable=True
-            )
-
-            def init_unit_capex_ccs_annualized(self):
-                unit_capex = (
-                    economics.CAPEX_kappa / convert2t_per_h
-                    + economics.CAPEX_lambda
-                    * carbon_capture_rate
-                    * co2_concentration
-                    / convert2t_per_h
-                ) * annualization_factor
-                return unit_capex
-
-            b_tec.para_unit_capex_annual_ccs = Param(
-                domain=Reals, initialize=init_unit_capex_ccs_annualized, mutable=True
-            )
-            b_tec.para_fix_capex_annual_ccs = Param(
-                domain=Reals,
-                initialize=annualization_factor * economics.CAPEX_zeta,
-                mutable=True,
-            )
-
-            def calculate_max_capex_ccs():
-                max_capex = (
-                    self.ccs_data["size_max"] * b_tec.para_unit_capex_annual_ccs
+        def init_installation(dis, ind):
+            if ind == 0:  # tech not installed
+                dis.const_capex_aux_ccs = Constraint(expr=b_tec.var_capex_aux_ccs == 0)
+                dis.const_not_installed_ccs = Constraint(expr=b_tec.var_size_ccs == 0)
+            else:  # tech installed
+                dis.const_capex_aux_ccs = Constraint(
+                    expr=b_tec.var_size_ccs * b_tec.para_unit_capex_annual_ccs
                     + b_tec.para_fix_capex_annual_ccs
+                    == b_tec.var_capex_aux_ccs
                 )
-                return (0, max_capex)
 
-            b_tec.var_capex_aux_ccs = Var(bounds=calculate_max_capex_ccs())
+        b_tec.dis_installation_ccs = Disjunct(s_indicators, rule=init_installation)
 
-            # capex unit commitment constraint
-            self.big_m_transformation_required = 1
-            s_indicators = range(0, 2)
+        def bind_disjunctions(dis):
+            return [b_tec.dis_installation_ccs[i] for i in s_indicators]
 
-            def init_installation(dis, ind):
-                if ind == 0:  # tech not installed
-                    dis.const_capex_aux_ccs = Constraint(
-                        expr=b_tec.var_capex_aux_ccs == 0
-                    )
-                    dis.const_not_installed_ccs = Constraint(
-                        expr=b_tec.var_size_ccs == 0
-                    )
-                else:  # tech installed
-                    dis.const_capex_aux_ccs = Constraint(
-                        expr=b_tec.var_size_ccs * b_tec.para_unit_capex_annual_ccs
-                        + b_tec.para_fix_capex_annual_ccs
-                        == b_tec.var_capex_aux_ccs
-                    )
-
-            b_tec.dis_installation_ccs = Disjunct(s_indicators, rule=init_installation)
-
-            def bind_disjunctions(dis):
-                return [b_tec.dis_installation_ccs[i] for i in s_indicators]
-
-            b_tec.disjunction_installation_ccs = Disjunction(rule=bind_disjunctions)
+        b_tec.disjunction_installation_ccs = Disjunction(rule=bind_disjunctions)
 
         # CAPEX
 
