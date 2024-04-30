@@ -222,7 +222,7 @@ def read_input_data_patch(self):
     self._read_network_data()
 
 
-def create_patched_datahandle(nr_timesteps):
+def make_data_handle(nr_timesteps):
     """
     Creates a patched datahandle with:
     - nr_timesteps specified
