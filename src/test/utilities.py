@@ -78,7 +78,7 @@ def create_basic_case_study(folder_path: Path) -> None:
     save_json(configuration, folder_path / "ConfigModel.json")
 
 
-def make_climate_data(start_date: str, nr_periods: int):
+def make_climate_data(start_date: str, nr_periods: int = 1):
     timesteps = pd.date_range(
         start=start_date,
         periods=nr_periods,
