@@ -1,0 +1,46 @@
+{
+  "tec_type": "SINK",
+  "size_min": 0,
+  "size_max": 10000000,
+  "size_is_int": 0,
+  "decommission": 0,
+  "Economics": {
+    "comment": "CAPEX is 0, cost are given by OPEX_variable in EUR/tCO2 stored",
+    "CAPEX_model": 1,
+    "unit_CAPEX": 0,
+    "OPEX_variable": 20,
+    "OPEX_fixed": 0,
+    "discount_rate": 0.1,
+    "lifetime": 25,
+    "decommission_cost": 0
+  },
+  "TechnologyPerf": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "injection_rate_max": 114,
+    "input_carrier": [
+      "CO2captured",
+      "electricity"
+    ],
+    "main_input_carrier": "CO2captured",
+    "output_carrier": [
+    ],
+    "emission_factor": 0,
+    "allow_only_one_direction": 1,
+    "performance": {
+      "energy_consumption": {
+        "in": {
+          "electricity": 0.034
+        }
+      }
+    }
+  },
+  "Units": {
+    "size": "tonne",
+    "input_carrier": {
+      "CO2": "tonne/hr"
+    },
+    "output_carrier": {
+      "CO2": "tonne/hr"
+    }
+  }
+}
