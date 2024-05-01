@@ -171,7 +171,7 @@ def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
             )
             with open(json_tec_file_path, "r") as json_tec_file:
                 json_tec = json.load(json_tec_file)
-            tecs_at_node = json_tec["existing"] + json_tec["new"]
+            tecs_at_node = list(json_tec["existing"].keys()) + json_tec["new"]
 
             output_folder = (
                 folder_path / period / "node_data" / node_name / "technology_data"

@@ -542,7 +542,7 @@ class Technology(ModelComponent):
         else:
             b_tec.set_output_carriers_ccs = Set(initialize=[])
 
-        b_tec.set_input_carriers_all = (
+        b_tec.set_output_carriers_all = (
             b_tec.set_output_carriers_ccs | b_tec.set_output_carriers
         )
 
@@ -864,8 +864,10 @@ class Technology(ModelComponent):
         b_tec.var_opex_variable = Var(set_t)
 
         def init_opex_variable(const, t):
-            if self.technology_model == "RES":
-                opex_variable_based_on = b_tec.var_output[t, b_tec.set_output_carriers]
+            if (self.technology_model == "RES") or (self.technology_model == "CONV4"):
+                opex_variable_based_on = b_tec.var_output[
+                    t, b_tec.set_output_carriers[1]
+                ]
             else:
                 opex_variable_based_on = b_tec.var_input[t, self.main_car]
             return (

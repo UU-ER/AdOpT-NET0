@@ -47,14 +47,12 @@ class Sink(Technology):
 
         self.fitted_performance = FittedPerformance()
 
-    def fit_technology_performance(self, node_data):
+    def fit_technology_performance(self, climate_data, location):
         """
         Fits conversion technology type SINK and returns fitted parameters as a dict
 
         :param node_data: contains data on demand, climate data, etc.
         """
-
-        climate_data = node_data.data["climate_data"]
 
         time_steps = len(climate_data)
 
@@ -82,7 +80,7 @@ class Sink(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 0
 
-    def construct_tech_model(self, b_tec, energyhub):
+    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type SINK, resembling a permanent storage technology
 
@@ -91,21 +89,16 @@ class Sink(Technology):
         :return: b_tec
         """
 
-        super(Sink, self).construct_tech_model(b_tec, energyhub)
-
-        set_t_full = energyhub.model.set_t_full
+        super(Sink, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
         coeff = self.fitted_performance.coefficients
-
-        nr_timesteps_averaged = (
-            energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
-        )
+        config = data["config"]
 
         # Additional decision variables
         b_tec.var_storage_level = Var(
-            set_t_full,
+            set_t,
             domain=NonNegativeReals,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
@@ -114,11 +107,11 @@ class Sink(Technology):
         def init_size_constraint(const, t):
             return b_tec.var_storage_level[t] <= b_tec.var_size
 
-        b_tec.const_size = Constraint(set_t_full, rule=init_size_constraint)
+        b_tec.const_size = Constraint(set_t, rule=init_size_constraint)
 
         # Constraint storage level
         if (
-            energyhub.model_information.clustered_data
+            config["optimization"]["typicaldays"]["N"]["value"] != 0
             and not self.modelled_with_full_res
         ):
 
@@ -146,7 +139,7 @@ class Sink(Technology):
                         == b_tec.var_storage_level[t - 1] + self.input[t, self.main_car]
                     )
 
-            b_tec.const_storage_level = Constraint(set_t_full, rule=init_storage_level)
+            b_tec.const_storage_level = Constraint(set_t, rule=init_storage_level)
 
         # Maximal injection rate
         def init_maximal_injection(const, t):

@@ -100,8 +100,10 @@ def make_climate_data(start_date: str, nr_periods: int = 1):
 
 def read_topology_patch(self):
     """
-    Monkey Patch: Reads topology from template
+    Reads topology from template
     """
+    self.topology = initialize_topology_templates()
+
     self.topology["time_index"] = {}
     time_index = pd.date_range(
         start=self.topology["start_date"],

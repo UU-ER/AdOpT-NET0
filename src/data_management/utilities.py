@@ -290,6 +290,8 @@ def select_technology(tec_data):
         return Conv4(tec_data)
     elif tec_data["tec_type"] == "STOR":
         return Stor(tec_data)
+    elif tec_data["tec_type"] == "SINK":
+        return Sink(tec_data)
     # Specific tecs
     elif tec_data["tec_type"] == "DAC_Adsorption":
         return DacAdsorption(tec_data)
