@@ -6,7 +6,7 @@ from src.test.utilities import make_data_handle
 from src.energyhub import EnergyHub
 
 
-def test_full_model_pipeline():
+def test_full_model_flow():
     """
     Tests the full modelling pipeline with a small case study
 
