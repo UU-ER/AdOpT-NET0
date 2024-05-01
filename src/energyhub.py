@@ -10,7 +10,6 @@ from pyomo.environ import (
     minimize,
     Suffix,
     SolverStatus,
-    TerminationCondition,
 )
 import os
 import time

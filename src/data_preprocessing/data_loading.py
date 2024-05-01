@@ -10,12 +10,14 @@ from pathlib import Path
 
 def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC") -> None:
     """
+    Reads in climate data for a full year from a folder containing node data and writes it to the respective file.
+
     Reads in climate data for a full year from a folder containing node data,
-    where each node data is stored in a subfolder and node locations are provided in a CSV file named NodeLocations.csv
+    where each node data is stored in a subfolder and node locations are provided in a CSV file named NodeLocations.csv.
+    The data is written to the file
 
     :param str folder_path: Path to the folder containing node data and NodeLocations.csv
     :param str dataset: Dataset to import from, can be JRC (only onshore) or ERA5 (global)
-    :return: None
     """
     # Convert to Path
     if isinstance(folder_path, str):
@@ -80,12 +82,14 @@ def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC") ->
 def fill_carrier_data(
     folder_path: str | Path,
     value: float,
-    columns: list = None,
-    carriers: list = None,
-    nodes: list = None,
+    columns: list = [],
+    carriers: list = [],
+    nodes: list = [],
     investment_periods: list = None,
 ) -> None:
     """
+    Specifies a constant value for a time series and writes it to file
+
     Allows you to easily specify a constant value of Demand, Import limit, Export limit, Import price,
     Export price, Import emission factor, Export emission factor and/or Generic production.
 
@@ -95,7 +99,6 @@ def fill_carrier_data(
     :param list investment_periods: Name of investment periods to be changed
     :param list nodes: Name of the nodes that need to be changed
     :param list carriers: Name of the carriers that need to be changed
-    :return: None
     """
     # Convert to Path
     if isinstance(folder_path, str):
@@ -142,7 +145,7 @@ def fill_carrier_data(
 
 def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
     """
-    Automatically copies technology JSON files to the node folder for each node and investment period.
+    Copies technology JSON files to the node folder for each node and investment period.
 
     This function reads the topology JSON file to determine the existing and new technologies at each node for
     each investment period. It then searches for the corresponding JSON files in the specified `tec_data_path`
@@ -150,7 +153,6 @@ def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
 
     :param str folder_path: Path to the folder containing the case study data.
     :param str tec_data_path: Path to the folder containing the technology data.
-    :return: None
     """
     # Convert to Path
     if isinstance(folder_path, str):
@@ -185,7 +187,7 @@ def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
 
 def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path):
     """
-    Automatically copies network JSON files to the network_data folder for each investment period.
+    Copies network JSON files to the network_data folder for each investment period.
 
     This function reads the topology JSON file to determine the existing and new networks for
     each investment period. It then searches for the corresponding JSON files in the specified `ntw_data_path`
@@ -221,7 +223,7 @@ def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path):
                 shutil.copy(ntw_json_file_path, output_folder)
 
 
-def find_json_path(data_path: str | Path, name: str) -> Path:
+def find_json_path(data_path: str | Path, name: str) -> Path | None:
     """
     Search for a JSON file with the given technology name in the specified path and its subfolders.
 
@@ -235,7 +237,9 @@ def find_json_path(data_path: str | Path, name: str) -> Path:
                 return Path(root) / Path(file)
 
 
-def import_jrc_climate_data(lon: float, lat: float, year: int, alt: float) -> dict:
+def import_jrc_climate_data(
+    lon: float, lat: float, year: int | str, alt: float
+) -> dict:
     """
     Reads in climate data for a full year from `JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_.
 
@@ -250,6 +254,7 @@ def import_jrc_climate_data(lon: float, lat: float, year: int, alt: float) -> di
     containing climate data (ghi = global horizontal irradiance, dni = direct normal irradiance, \
     dhi = diffuse horizontal irradiance, rh = relative humidity, temp_air = air temperature, ws = wind speed at \
     specified hight. Wind speed is returned as a dict for different heights.
+    :rtype: dict
     """
     # get time zone
     tf = TimezoneFinder()
