@@ -46,6 +46,7 @@ class EnergyHub:
         self.model = {}
         self.solution = {}
         self.solver = None
+        self.last_solve_info = {}
         self.info_pareto = {}
         self.info_pareto["pareto_point"] = -1
         self.info_solving_algorithms = {}
@@ -137,7 +138,13 @@ class EnergyHub:
                     log_event(f"------ Constructing Network {netw}")
 
                     # Add sets, parameters, variables, constraints to block
-                    b_netw = construct_network_block(b_netw, netw, data_period)
+                    b_netw = construct_network_block(
+                        b_netw,
+                        data_period,
+                        model.set_nodes,
+                        b_period.set_t_full,
+                        b_period.set_t_clustered,
+                    )
 
                     return b_netw
 
@@ -246,10 +253,12 @@ class EnergyHub:
         - :func:`~src.energyhub.construct_model`
         - :func:`~src.energyhub.construct_balances`
         - :func:`~src.energyhub.solve`
+        - :func:`~src.energyhub.write_results`
         """
         self.construct_model()
         self.construct_balances()
         self.solve()
+        self.write_results()
 
     def construct_balances(self):
         """
@@ -616,9 +625,6 @@ class EnergyHub:
 
         result_folder_path = create_unique_folder_name(save_path, folder_name)
         create_save_folder(result_folder_path)
-        save_summary_path = Path.joinpath(
-            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
-        )
 
         # Scale model
         if config["scaling"]["scaling_on"]["value"] == 1:
@@ -657,6 +663,22 @@ class EnergyHub:
 
         self.solution.write()
 
+        self.last_solve_info["pareto_point"] = self.info_pareto["pareto_point"]
+        self.last_solve_info["monte_carlo_run"] = 0
+        self.last_solve_info["config"] = config
+        self.last_solve_info["result_folder_path"] = result_folder_path
+
+        print("Solving model completed in " + str(round(time.time() - start)) + " s")
+        print("_" * 60)
+
+    def write_results(self):
+        config = self.data.model_config
+
+        save_summary_path = Path.joinpath(
+            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
+        )
+
+        model_info = self.last_solve_info
         # Write H5 File
         if (self.solution.solver.status == SolverStatus.ok) or (
             self.solution.solver.status == SolverStatus.warning
@@ -665,12 +687,9 @@ class EnergyHub:
             model = self.model["full"]
 
             # Fixme: change this for averaging
-            model_info = {}
-            model_info["pareto_point"] = self.info_pareto["pareto_point"]
-            model_info["monte_carlo_run"] = 0
-            model_info["config"] = config
+
             summary_dict = write_optimization_results_to_h5(
-                model, self.solution, result_folder_path, model_info, self.data
+                model, self.solution, model_info, self.data
             )
 
             # Write Summary
@@ -684,9 +703,6 @@ class EnergyHub:
                 pd.concat(
                     [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
                 ).to_excel(save_summary_path, index=False, sheet_name="Summary")
-
-        print("Solving model completed in " + str(round(time.time() - start)) + " s")
-        print("_" * 60)
 
     def _write_solution_diagnostics(self, save_path):
         config = self.data.model_config
@@ -1076,7 +1092,7 @@ class EnergyHub:
         config = self.data.model_config
         model = self.model["full"]
 
-        if not config["optimization"]["monte_carlo"]["on"]["value"]:
+        if not config["optimization"]["monte_carlo"]["N"]["value"]:
             try:
                 model.del_component(model.objective)
             except:
