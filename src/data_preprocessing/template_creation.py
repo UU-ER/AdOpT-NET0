@@ -18,12 +18,26 @@ def create_empty_network_matrix(nodes: list) -> pd.DataFrame:
     return matrix
 
 
-def create_carbon_cost_data(timesteps):
+def create_carbon_cost_data(timesteps: pd.date_range) -> pd.DataFrame:
+    """
+    Creates a data frame with carbon cost data
+
+    :param pd.date_range timesteps: timesteps used as index
+    :return: Data frame with columns: "price", "subsidy"
+    :rtype: pd.DataFrame
+    """
     carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
     return carbon_cost
 
 
-def create_climate_data(timesteps):
+def create_climate_data(timesteps: pd.date_range) -> pd.DataFrame:
+    """
+    Creates a data frame with climate data
+
+    :param pd.date_range timesteps: timesteps used as index
+    :return: Data frame with two columns "ghi", "dni", "dhi", "temp_air", "rh", "ws10", "TECHNOLOGYNAME_hydro_inflow"
+    :rtype: pd.DataFrame
+    """
     climate_data = pd.DataFrame(
         index=timesteps,
         columns=[
@@ -40,6 +54,13 @@ def create_climate_data(timesteps):
 
 
 def create_carrier_data(timesteps):
+    """
+    Creates a data frame with carrier data
+
+    :param pd.date_range timesteps: timesteps used as index
+    :return: Data frame with two columns "Demand", "Import limit", "Export limit", "Import price", "Export price", "Import emission factor", "Export emission factor", "Generic production",
+    :rtype: pd.DataFrame
+    """
     carrier_data = pd.DataFrame(
         index=timesteps,
         columns=[
@@ -58,13 +79,15 @@ def create_carrier_data(timesteps):
 
 def create_input_data_folder_template(base_path: Path | str) -> None:
     """
+    Creates a folder structure based on the topology contained in the folder
+
     This function creates the input data folder structure required to organize the input data to the model.
     Note that the folder needs to already exist with a Topology.json file in it that specifies the nodes, carriers,
     timesteps, investment periods and the length of the investment period.
 
-    You can create an examplary json template with the function `create_topology_template`
+    You can create an examplary json template with the function `func:create_topology_template`
 
-    :param str/Path base_path: path to folder
+    :param str, Path base_path: path to folder
     """
     # Convert to Path
     if isinstance(base_path, str):
@@ -214,7 +237,8 @@ def initialize_topology_templates() -> dict:
     """
     Creates a topology template and returns it as a dict
 
-    :return dict: topology_template
+    :return: topology_template
+    :rtype: dict
     """
     topology_template = {
         "nodes": ["node1", "node2"],
@@ -232,7 +256,8 @@ def initialize_configuration_templates() -> dict:
     """
     Creates a configuration template and returns it as a dict
 
-    :return dict: configuration_template
+    :return: configuration_template
+    :rtype: dict
     """
     configuration_template = {
         "optimization": {
@@ -465,18 +490,15 @@ def create_optimization_templates(path: Path | str) -> None:
         json.dump(configuration_template, f, indent=4)
 
 
-def create_montecarlo_template_csv(base_path):
+def create_montecarlo_template_csv(base_path: Path | str):
     """
-    Creates a template CSV file for the monte carlo parameters and saves it to the given path. The file should be
-    filled by specifying the type ('technology', 'network', 'import', 'export'), the name (specific technology or
+    Creates a template CSV file for the monte carlo parameters and saves it to the given path.
+
+    The file should be filled by specifying the type ('technology', 'network', 'import', 'export'), the name (specific technology or
     network name, carrier in case of import or export), and the parameter ('CAPEX' for technology and network and
     'price' or 'limit' for import and export).
 
-    Args:
-        path (): The file path where the CSV file will be saved.
-
-    Returns:
-        None
+    :param str/Path path: path to folder to create Topology.json
     """
     if isinstance(base_path, str):
         base_path = Path(base_path)
