@@ -1,10 +1,11 @@
 from ..utilities import open_json
 import numpy as np
-from ...component import ModelComponent
 
 
-def fit_ccs_data(ccs_data, data):
+def fit_ccs_data(ccs_data: dict, data: dict)->dict:
     """
+    Obtain bounds and input ratios for CCS
+
     Calculates the amount of input (and their bounds) required for each unit of CO2 entering the carbon capture (CC)
     object. The minimum and maximum size parameters are multiplied by the CO2 concentration, so that the units
     of the size becomes t/h of CO2 in. These are also the units used for the rest of the model.
@@ -12,21 +13,20 @@ def fit_ccs_data(ccs_data, data):
     mixed-integer linear model of post-combustion carbon capture for reliable use in energy system optimisation
     https://doi.org/10.1016/j.apenergy.2023.120738).
 
-    :param dict ccs_data: performance data of the CCS technology
-    :param data: input data
-    :return: tec_data
+    :param dict ccs_data: data of the CCS technology
+    :param dict data: input data
+    :return: technology data updated with the bounds and input ratios for CCS
+    :rtype: dict
     """
 
     tec_data = open_json(ccs_data["ccs_type"], data.model_information.tec_data_path)
     performance_data = tec_data["TechnologyPerf"]
     time_steps = len(data.topology.timesteps)
-
     molar_mass_CO2 = 44.01
-
     co2_concentration = ccs_data["co2_concentration"]
     carbon_capture_rate = performance_data["capture_rate"]
 
-    # Recalculate min/max size
+    # Recalculate min/max size to have it in t/hCO2_in
     tec_data["size_min"] = tec_data["size_min"] * co2_concentration
     tec_data["size_max"] = tec_data["size_max"] * co2_concentration
 
@@ -43,7 +43,7 @@ def fit_ccs_data(ccs_data, data):
             "Only CCS type MEA is modelled so far. ccs_type in the json file of the technology must include MEA"
         )
 
-    # Calculate bounds
+    # Calculate input and output bounds
     tec_data["TechnologyPerf"]["bounds"] = {}
     tec_data["TechnologyPerf"]["bounds"]["input"] = {}
     tec_data["TechnologyPerf"]["bounds"]["output"] = {}
