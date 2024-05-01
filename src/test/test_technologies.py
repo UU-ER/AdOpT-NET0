@@ -79,6 +79,60 @@ def construct_tec_model(
     return m
 
 
+def generate_output_constraint(
+    model: ConcreteModel, demand: list, output_ratios: dict = None
+) -> ConcreteModel:
+
+    def init_output_constraint(const, t, car):
+        if output_ratios:
+            if isinstance(output_ratios.get(car), dict):
+                alpha = output_ratios[car]["alpha1"]
+            else:
+                alpha = output_ratios[car]
+            if isinstance(alpha, list):
+                return model.var_output[t, car] >= demand[t - 1] * alpha[0]
+            else:
+                return model.var_output[t, car] == demand[t - 1] * alpha
+        else:
+            return model.var_output[t, car] == demand[t - 1]
+
+    model.test_const_output = Constraint(
+        model.set_t, model.set_output_carriers, rule=init_output_constraint
+    )
+
+    return model
+
+
+def generate_var_x_constraint(
+    model: ConcreteModel,
+    var_x: list = None,
+) -> ConcreteModel:
+    def init_var_x_constraint(const, t):
+        return model.var_x[t] == var_x[t - 1]
+
+    model.test_const_var_x = Constraint(model.set_t, rule=init_var_x_constraint)
+    return model
+
+
+def generate_size_constraint(
+    model: ConcreteModel,
+    size: float = None,
+) -> ConcreteModel:
+    def init_size_constraint(const):
+        return model.var_size <= size
+
+    model.test_const_size = Constraint(rule=init_size_constraint)
+    return model
+
+
+def run_model(model: ConcreteModel) -> TerminationCondition:
+    model.obj = Objective(expr=model.var_capex, sense=minimize)
+    solver = SolverFactory("gurobi")
+    solution = solver.solve(model)
+
+    return solution.solver.termination_condition
+
+
 def run_with_output_constraint(
     model: ConcreteModel,
     demand: list,
@@ -258,6 +312,8 @@ def test_res_pv():
     oversize = (
         np.ones(time_steps) * tec.size_max * 1.1 * tec.fitted_performance.rated_power
     )
+
+    model = generate_output_constraint
     termination = run_with_output_constraint(model, oversize)
     assert termination == TerminationCondition.infeasibleOrUnbounded
 
