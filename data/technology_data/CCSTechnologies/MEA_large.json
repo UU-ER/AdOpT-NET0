@@ -1,0 +1,51 @@
+{
+  "tec_type": "CCS_MEA",
+  "comment": "Note that size_min and max are in terms of t/h of flue gas, but in the model everything is converted to t/h CO2 in",
+  "size_min": 792.18,
+  "size_max": 1985.203,
+  "size_is_int": 0,
+  "decommission": 0,
+  "Economics": {
+    "comment": "CAPEX in EUR/t/hCO2_in, OPEX_variable in EUR/t/h_CO2_captured, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 3,
+    "unit_CAPEX": 1.1084E+06,
+    "CAPEX_kappa": 3.44E+06,
+    "CAPEX_lambda": 185E+06,
+    "CAPEX_zeta": 2.17E+06,
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0.05,
+    "discount_rate": 0.1,
+    "lifetime": 30,
+    "decommission_cost": 0
+  },
+  "TechnologyPerf": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "plant_size": "small",
+    "input_carrier": [
+      "electricity",
+      "heat"
+    ],
+    "output_carrier": [
+      "CO2captured"
+    ],
+    "capture_rate": 0.9,
+    "eta" : {
+      "electricity": 0.0958,
+      "heat": 0.2684
+    },
+    "omega" : {
+      "electricity": 0.2885,
+      "heat": 150.22
+    }
+  },
+  "Units": {
+    "size": "tonne/hr",
+    "input_carrier": {
+      "electricity": "",
+      "heat": ""
+    },
+    "output_carrier": {
+      "CO2captured": ""
+    }
+  }
+}

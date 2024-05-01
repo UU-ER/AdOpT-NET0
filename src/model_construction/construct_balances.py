@@ -123,15 +123,15 @@ def construct_nodal_energybalance(model, config):
             if car in b_period.node_blocks[node].set_carriers:
                 node_block = b_period.node_blocks[node]
                 tec_output = sum(
-                    node_block.tech_blocks_active[tec].var_output[t, car]
+                    node_block.tech_blocks_active[tec].var_output_tot[t, car]
                     for tec in node_block.set_technologies
-                    if car in node_block.tech_blocks_active[tec].set_output_carriers
+                    if car in node_block.tech_blocks_active[tec].set_output_carriers_all
                 )
 
                 tec_input = sum(
-                    node_block.tech_blocks_active[tec].var_input[t, car]
+                    node_block.tech_blocks_active[tec].var_input_tot[t, car]
                     for tec in node_block.set_technologies
-                    if car in node_block.tech_blocks_active[tec].set_input_carriers
+                    if car in node_block.tech_blocks_active[tec].set_input_carriers_all
                 )
 
                 netw_inflow = node_block.var_netw_inflow[t, car]
@@ -211,24 +211,26 @@ def construct_global_energybalance(model, config):
                 sum(
                     b_period.node_blocks[node]
                     .tech_blocks_active[tec]
-                    .var_output[t, car]
+                    .var_output_tot[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
                     if car in b_period.node_blocks[node].set_carriers
                     and b_period.node_blocks[node]
                     .tech_blocks_active[tec]
-                    .set_output_carriers
+                    .set_output_carriers_all
                 )
                 for node in model.set_nodes
             )
 
             tec_input = sum(
                 sum(
-                    b_period.node_blocks[node].tech_blocks_active[tec].var_input[t, car]
+                    b_period.node_blocks[node]
+                    .tech_blocks_active[tec]
+                    .var_input_tot[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
                     if car in b_period.node_blocks[node].set_carriers
                     and b_period.node_blocks[node]
                     .tech_blocks_active[tec]
-                    .set_input_carriers
+                    .set_input_carriers_all
                 )
                 for node in model.set_nodes
             )
