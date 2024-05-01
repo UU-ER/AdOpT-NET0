@@ -6,7 +6,7 @@ Result Management
 Export to h5
 ^^^^^^^^^^^^^^^^
 
-Results obtained from the model (in case it solved) are exported by default to an h5 file as specified in
+Results obtained from the model (in case it is solved) are exported by default to an h5 file as specified in
 ``Configuration.reporting.save_path``. Additionally, a summary is written to an excel file specified in
 ``Configuration.reporting.save_summary_path``. In case this excel file exists already, the new summary is appended
 as a new row. Documentation on the h5py library and how to handle h5 files can be found

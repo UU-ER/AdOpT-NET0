@@ -5,7 +5,7 @@ Technologies
 
 The technology class is a subclass of the ModelComponent class. In the model, we further distinguish between
 generic technologies and specific technologies. Generic technologies offer a framework that can be adjusted for multiple
-technologies: only the performance, the input and output carriers change, while the equations remain the same.
+technologies: only the performance parameters, and the input and output carriers change, while the equations remain the same.
 
 Technology types, divided by generic and specific technologies:
 

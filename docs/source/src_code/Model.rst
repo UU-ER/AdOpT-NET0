@@ -19,8 +19,7 @@ Model Construction & Solving
 
 The model is constructed by calling the ``EnergyHub.construct_model()`` method. This method clearly illustrates the
 structure of the model. There are sets of investment periods, nodes and carriers based on the ``topology.json``. Then,
-a block is created for the investment periods (holding all investment periods in the set), the networks (holding all
-network types), the nodes (holding all nodes in the set), and for the technologies (holding all technology types). The
+a block is created for each investment period (all investment periods in the set), each network, each node, and for each technologies. The
 methods for the block creation are called by the aforementioned ``EnergyHub.construct_model()`` method from the
 ``.\src\model_construction`` directory (with a separate module for each block type).
 
