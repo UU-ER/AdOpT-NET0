@@ -612,10 +612,10 @@ class Technology(ModelComponent):
         b_tec.var_opex_variable = Var(set_t)
 
         def init_opex_variable(const, t):
-            if self.technology_model == "SINK":
-                opex_variable_based_on = b_tec.var_input[t, self.main_car]
+            if self.technology_model == "RES":
+                opex_variable_based_on = b_tec.var_output[t, b_tec.set_output_carriers]
             else:
-                opex_variable_based_on = b_tec.var_output[t, self.main_car]
+                opex_variable_based_on = b_tec.var_input[t, self.main_car]
             return (
                 opex_variable_based_on * b_tec.para_opex_variable
                 == b_tec.var_opex_variable[t]

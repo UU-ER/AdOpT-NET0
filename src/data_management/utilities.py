@@ -417,7 +417,8 @@ def check_input_data_consistency(path: Path | str) -> None:
             with open(check_node_path / "Technologies.json") as json_file:
                 technologies_at_node = json.load(json_file)
             technologies_at_node = set(
-                technologies_at_node["existing"] + technologies_at_node["new"]
+                list(technologies_at_node["existing"].keys())
+                + technologies_at_node["new"]
             )
             for technology in technologies_at_node:
                 check_path_existance(
