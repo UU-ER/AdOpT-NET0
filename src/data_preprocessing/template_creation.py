@@ -82,7 +82,7 @@ def create_input_data_folder_template(base_path: Path | str) -> None:
 
     # Template jsons:
     networks = {"existing": [], "new": []}
-    technologies = {"existing": [], "new": []}
+    technologies = {"existing": {}, "new": []}
     energy_balance_options = {
         carrier: {"curtailment_possible": 0} for carrier in topology["carriers"]
     }

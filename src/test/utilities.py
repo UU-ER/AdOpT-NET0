@@ -102,8 +102,6 @@ def read_topology_patch(self):
     """
     Monkey Patch: Reads topology from template
     """
-    self.topology = initialize_topology_templates()
-
     self.topology["time_index"] = {}
     time_index = pd.date_range(
         start=self.topology["start_date"],
@@ -222,7 +220,7 @@ def read_input_data_patch(self):
     self._read_network_data()
 
 
-def make_data_handle(nr_timesteps):
+def make_data_handle(nr_timesteps, topology=None):
     """
     Creates a patched datahandle with:
     - nr_timesteps specified
@@ -234,6 +232,11 @@ def make_data_handle(nr_timesteps):
 
     # Create DataHandle and monkey patch it
     dh = DataHandle()
+
+    if topology is None:
+        dh.topology = initialize_topology_templates()
+    else:
+        dh.topology = topology
 
     dh._read_topology = read_topology_patch.__get__(dh)
     dh._read_time_series = _read_time_series_patch.__get__(dh)

@@ -309,6 +309,7 @@ class DataHandle:
                     / network
                     / "connection.csv",
                     sep=";",
+                    index_col=0,
                 )
                 netw_data.distance = pd.read_csv(
                     self.data_path
@@ -318,6 +319,7 @@ class DataHandle:
                     / network
                     / "distance.csv",
                     sep=";",
+                    index_col=0,
                 )
                 netw_data.size_max_arcs = pd.read_csv(
                     self.data_path
@@ -327,6 +329,7 @@ class DataHandle:
                     / network
                     / "size_max_arcs.csv",
                     sep=";",
+                    index_col=0,
                 )
                 netw_data.calculate_max_size_arc()
                 self.network_data[aggregation_type][investment_period][
@@ -350,6 +353,7 @@ class DataHandle:
                     / network
                     / "connection.csv",
                     sep=";",
+                    index_col=0,
                 )
                 netw_data.distance = pd.read_csv(
                     self.data_path
@@ -359,6 +363,7 @@ class DataHandle:
                     / network
                     / "distance.csv",
                     sep=";",
+                    index_col=0,
                 )
                 netw_data.size_initial = pd.read_csv(
                     self.data_path
@@ -368,6 +373,7 @@ class DataHandle:
                     / network
                     / "size.csv",
                     sep=";",
+                    index_col=0,
                 )
                 netw_data.size_max_arcs = pd.read_csv(
                     self.data_path
@@ -377,6 +383,7 @@ class DataHandle:
                     / network
                     / "size_max_arcs.csv",
                     sep=";",
+                    index_col=0,
                 )
                 netw_data.calculate_max_size_arc()
                 self.network_data[aggregation_type][investment_period][
