@@ -383,7 +383,7 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def write_tec_design_results_to_group(self, h5_group, model_block):
+    def write_results_tec_design(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
@@ -422,7 +422,7 @@ class Technology(ModelComponent):
                 "opex_fixed_ccs", data=[model_block.var_opex_fixed_ccs.value]
             )
 
-    def write_tec_operation_results_to_group(self, h5_group, model_block):
+    def write_results_tec_operation(self, h5_group, model_block):
 
         for car in model_block.set_input_carriers_all:
             if model_block.find_component("var_input"):
@@ -625,18 +625,23 @@ class Technology(ModelComponent):
                     * economics.capex_data["unit_capex"]
                     * annualization_factor
                 )
+                bounds = (0, max_capex)
             elif self.economics.capex_model == 2:
                 max_capex = (
                     b_tec.para_size_max
                     * max(economics.capex_data["piecewise_capex"]["bp_y"])
                     * annualization_factor
                 )
+                bounds = (0, max_capex)
             elif self.economics.capex_model == 3:
                 max_capex = (
                     b_tec.para_size_max * economics.capex_data["unit_capex"]
                     + economics.capex_data["fix_capex"]
                 ) * annualization_factor
-            return (0, max_capex)
+                bounds = (0, max_capex)
+            else:
+                bounds = None
+            return bounds
 
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
@@ -715,8 +720,9 @@ class Technology(ModelComponent):
 
             b_tec.disjunction_installation = Disjunction(rule=bind_disjunctions)
 
-            # b_tec.const_capex_aux = Constraint(
-            #     expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
+        else:
+            # Defined in the technology subclass
+            pass
 
         # CAPEX
         if self.existing and not self.decommission:

@@ -6,6 +6,7 @@ import numpy as np
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
+from src.components.utilities import annualize, set_discount_rate
 
 
 class Sink(Technology):
@@ -46,6 +47,7 @@ class Sink(Technology):
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
+        self.flexibility_data = tec_data["Flexibility"]
 
     def fit_technology_performance(self, climate_data, location):
         """
@@ -63,7 +65,11 @@ class Sink(Technology):
         for car in self.performance_data["input_carrier"]:
             if car == self.performance_data["main_input_carrier"]:
                 self.fitted_performance.bounds["input"][car] = np.column_stack(
-                    (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
+                    (
+                        np.zeros(shape=(time_steps)),
+                        np.ones(shape=(time_steps))
+                        * self.flexibility_data["injection_rate_max"],
+                    )
                 )
             else:
                 if "energy_consumption" in self.performance_data["performance"]:
@@ -73,9 +79,20 @@ class Sink(Technology):
                     self.fitted_performance.bounds["input"][car] = np.column_stack(
                         (
                             np.zeros(shape=(time_steps)),
-                            np.ones(shape=(time_steps)) * energy_consumption["in"][car],
+                            np.ones(shape=(time_steps))
+                            * self.flexibility_data["injection_rate_max"]
+                            * energy_consumption["in"][car],
                         )
                     )
+
+        # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
+        # to account for charging and discharging capacity costs.
+        if self.flexibility_data["power_energy_ratio"] == "flex":
+            self.economics.capex_model = 4
+        if self.flexibility_data["power_energy_ratio"] not in ["flex", "fixed"]:
+            raise Warning(
+                "power_energy_ratio should be either flexible ('flex') or fixed ('fixed')"
+            )
 
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 0
@@ -92,8 +109,6 @@ class Sink(Technology):
         super(Sink, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        coeff = self.fitted_performance.coefficients
         config = data["config"]
 
         # Additional decision variables
@@ -102,6 +117,13 @@ class Sink(Technology):
             domain=NonNegativeReals,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
+        b_tec.var_capacity_injection = Var(
+            domain=NonNegativeReals,
+            bounds=(0, self.flexibility_data["injection_rate_max"]),
+        )
+
+        if self.flexibility_data["power_energy_ratio"] == "flex":
+            b_tec = self._define_sink_capex(b_tec, data)
 
         # Size constraint
         def init_size_constraint(const, t):
@@ -128,6 +150,8 @@ class Sink(Technology):
                         + self.input[self.sequence[t - 1], self.main_car]
                     )
 
+            b_tec.const_storage_level = Constraint(set_t, rule=init_storage_level)
+
         else:
 
             def init_storage_level(const, t):
@@ -143,12 +167,24 @@ class Sink(Technology):
 
         # Maximal injection rate
         def init_maximal_injection(const, t):
-            return (
-                self.input[t, self.main_car]
-                <= self.performance_data["injection_rate_max"]
-            )
+            return self.input[t, self.main_car] <= b_tec.var_capacity_injection
 
         b_tec.const_max_charge = Constraint(self.set_t, rule=init_maximal_injection)
+
+        # if injection rates are fixed/ flexible:
+        def init_max_capacity_charge(const):
+            if self.flexibility_data["power_energy_ratio"] == "fixed":
+                return (
+                    b_tec.var_capacity_injection
+                    == self.flexibility_data["injection_rate_max"]
+                )
+            else:
+                return (
+                    b_tec.var_capacity_injection
+                    <= self.flexibility_data["injection_rate_max"]
+                )
+
+        b_tec.const_max_cap_charge = Constraint(rule=init_max_capacity_charge)
 
         # Energy consumption for injection
         if "energy_consumption" in self.performance_data["performance"]:
@@ -179,19 +215,95 @@ class Sink(Technology):
 
         return b_tec
 
-    def write_tec_operation_results_to_group(self, h5_group, model_block):
+    def _define_sink_capex(self, b_tec, data):
+
+        flexibility = self.flexibility_data
+        config = data["config"]
+        economics = self.economics
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        annualization_factor = annualize(
+            discount_rate, economics.lifetime, fraction_of_year_modelled
+        )
+
+        # CAPEX PARAMETERS
+        b_tec.para_unit_capex_injection_cap = Param(
+            domain=Reals, initialize=flexibility["capex_injection_cap"], mutable=True
+        )
+        b_tec.para_unit_capex_sink_cap = Param(
+            domain=Reals, initialize=economics.capex_data["unit_capex"], mutable=True
+        )
+
+        b_tec.para_unit_capex_injection_cap_annual = Param(
+            domain=Reals,
+            initialize=(annualization_factor * b_tec.para_unit_capex_injection_cap),
+            mutable=True,
+        )
+        b_tec.para_unit_capex_sink_cap_annual = Param(
+            domain=Reals,
+            initialize=(annualization_factor * b_tec.para_unit_capex_sink_cap),
+            mutable=True,
+        )
+
+        # BOUNDS
+        max_capex_injection_cap = (
+            b_tec.para_unit_capex_injection_cap_annual
+            * flexibility["injection_rate_max"]
+        )
+        max_capex_sink_cap = b_tec.para_unit_capex_sink_cap_annual * b_tec.para_size_max
+
+        b_tec.var_capex_injection_cap = Var(
+            domain=NonNegativeReals, bounds=(0, max_capex_injection_cap)
+        )
+        b_tec.var_capex_sink_cap = Var(
+            domain=NonNegativeReals, bounds=(0, max_capex_sink_cap)
+        )
+
+        # CAPEX constraint
+        b_tec.const_capex_injection_cap = Constraint(
+            expr=b_tec.var_capacity_injection
+            * b_tec.para_unit_capex_injection_cap_annual
+            == b_tec.var_capex_injection_cap
+        )
+        b_tec.const_capex_sink_cap = Constraint(
+            expr=b_tec.var_size * b_tec.para_unit_capex_sink_cap_annual
+            == b_tec.var_capex_sink_cap
+        )
+        b_tec.const_capex_aux = Constraint(
+            expr=b_tec.var_capex_injection_cap + b_tec.var_capex_sink_cap
+            == b_tec.var_capex_aux
+        )
+
+        return b_tec
+
+    def write_results_tec_operation(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(Sink, self).write_tec_operation_results_to_group(h5_group, model_block)
+        super(Sink, self).write_results_tec_operation(h5_group, model_block)
 
         h5_group.create_dataset(
             "storage_level",
             data=[model_block.var_storage_level[t].value for t in self.set_t_full],
         )
+
+    def write_results_tec_design(self, h5_group, model_block):
+
+        super(Sink, self).write_results_tec_design(h5_group, model_block)
+
+        if self.flexibility_data["power_energy_ratio"] == "flex":
+            h5_group.create_dataset(
+                "capacity_injection", data=[model_block.var_capacity_injection.value]
+            )
+            h5_group.create_dataset(
+                "capex_injection_cap", data=[model_block.var_capex_injection_cap.value]
+            )
+            h5_group.create_dataset(
+                "capex_sink_cap", data=[model_block.var_capex_sink_cap.value]
+            )
 
     def _define_ramping_rates(self, b_tec):
         """

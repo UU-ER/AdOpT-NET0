@@ -34,10 +34,16 @@
       "eta_in": 0.96,
       "eta_out": 0.96,
       "lambda": 0.001,
-      "theta": 0,
-      "charge_max": 0.33333333333333331,
-      "discharge_max": 0.33333333333333331
+      "theta": 0
     }
+  },
+  "Flexibility": {
+    "comment": "determines the flexibility of the power capacity compared to the energy capacity",
+    "power_energy_ratio": "flex",
+    "charge_rate": 5,
+    "discharge_rate": 5,
+    "capex_charging_power": 10,
+    "capex_discharging_power": 10
   },
   "Units": {
     "size": "MWh",
@@ -47,5 +53,11 @@
     "output_carrier": {
       "electricity": "MW"
     }
+  },
+  "ScalingFactors": {
+    "const_opex_variable": 1e2,
+    "const_opex_fixed": 1e2,
+    "const_capex_aux": 1e-3,
+    "var_capex_aux": 1e-1
   }
 }

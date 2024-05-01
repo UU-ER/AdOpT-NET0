@@ -508,6 +508,9 @@ def test_tec_storage(request):
     termination = solution.solver.termination_condition
 
     assert termination == TerminationCondition.optimal
+    assert model.var_size.value > 0
+    assert model.var_capex_aux.value > 0
+    assert sum(model.var_input[t, "electricity"].value for t in model.set_t) >= 1
 
 
 def test_tec_sink(request):

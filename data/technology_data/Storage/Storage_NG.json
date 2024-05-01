@@ -34,10 +34,16 @@
       "eta_in": 1,
       "eta_out": 1,
       "lambda": 0,
-      "theta": 0,
-      "charge_max": 1,
-      "discharge_max": 1
+      "theta": 0
     }
+  },
+  "Flexibility": {
+    "comment": "determines the flexibility of the power capacity compared to the energy capacity",
+    "power_energy_ratio": "fixed",
+    "charge_rate": 1,
+    "discharge_rate": 1,
+    "capex_charging_power": 0,
+    "capex_discharging_power": 0
   },
   "Units": {
     "size": "MWh",

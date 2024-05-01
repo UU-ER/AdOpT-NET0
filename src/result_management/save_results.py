@@ -136,7 +136,7 @@ def write_optimization_results_to_h5(model, solution, model_info, data):
                     b_netw = b_period.network_block[netw_name]
                     data.network_data[aggregation_type][period][
                         netw_name
-                    ].write_netw_design_results_to_group(netw_specific_group, b_netw)
+                    ].write_results_netw_design(netw_specific_group, b_netw)
 
         # TIME-INDEPENDENT RESULTS: NODES [g]
         nodes_design = g_design.create_group("nodes")
@@ -153,7 +153,7 @@ def write_optimization_results_to_h5(model, solution, model_info, data):
                     b_tec = b_node.tech_blocks_active[tec_name]
                     data.technology_data[aggregation_type][period][node_name][
                         tec_name
-                    ].write_tec_design_results_to_group(tec_group, b_tec)
+                    ].write_results_tec_design(tec_group, b_tec)
 
         # TIME-DEPENDENT RESULTS (operation) [g]
         operation = f.create_group("operation")
@@ -172,7 +172,7 @@ def write_optimization_results_to_h5(model, solution, model_info, data):
                     b_netw = b_period.network_block[netw_name]
                     data.network_data[aggregation_type][period][
                         netw_name
-                    ].write_netw_operation_results_to_group(netw_specific_group, b_netw)
+                    ].write_results_netw_operation(netw_specific_group, b_netw)
 
         # TECHNOLOGY OPERATION [g] > within: node > specific technology [g]
         tec_operation_group = operation.create_group("technology_operation")
@@ -188,7 +188,7 @@ def write_optimization_results_to_h5(model, solution, model_info, data):
                     b_tec = b_node.tech_blocks_active[tec_name]
                     data.technology_data[aggregation_type][period][node_name][
                         tec_name
-                    ].write_tec_operation_results_to_group(tec_group, b_tec)
+                    ].write_results_tec_operation(tec_group, b_tec)
 
         # ENERGY BALANCE [g] > within: node > specific carrier [g]
         ebalance_group = operation.create_group("energy_balance")

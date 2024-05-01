@@ -296,7 +296,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def write_netw_design_results_to_group(self, h5_group, model_block):
+    def write_results_netw_design(self, h5_group, model_block):
         """
         Function to report results of networks after optimization
 
@@ -333,7 +333,7 @@ class Network(ModelComponent):
             )
             arc_group.create_dataset("total_emissions", data=total_emissions)
 
-    def write_netw_operation_results_to_group(self, h5_group, model_block):
+    def write_results_netw_operation(self, h5_group, model_block):
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]

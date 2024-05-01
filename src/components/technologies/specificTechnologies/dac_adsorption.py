@@ -375,16 +375,14 @@ class DacAdsorption(Technology):
 
         return b_tec
 
-    def write_tec_operation_results_to_group(self, h5_group, model_block):
+    def write_results_tec_operation(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(DacAdsorption, self).write_tec_operation_results_to_group(
-            h5_group, model_block
-        )
+        super(DacAdsorption, self).write_results_tec_operation(h5_group, model_block)
 
         h5_group.create_dataset(
             "modules_on",
