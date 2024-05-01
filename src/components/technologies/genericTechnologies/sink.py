@@ -3,6 +3,7 @@ from pyomo.environ import *
 from pyomo.gdp import *
 import copy
 from warnings import warn
+import h5py
 import numpy as np
 
 from ..utilities import FittedPerformance
@@ -319,7 +320,7 @@ class Sink(Technology):
                 CAPEX_storSize = Size_storSize * UnitCost_storSize
                 CAPEX_injCapacity = injCapacity * UnitCost_injCapacity
 
-        :param b_tec: technology Block
+        :param Block b_tec: technology Block
         :param dict data: input data
         :return: technology Block with the CAPEX constraints for the sink technology
         :rtype: b_tec
@@ -387,12 +388,12 @@ class Sink(Technology):
 
         return b_tec
 
-    def write_results_tec_operation(self, h5_group, model_block):
+    def write_results_tec_operation(self, h5_group:  h5py.Group, model_block: Block):
         """
-        Function to report results of technologies after optimization
+        Function to report results of technologies operations after optimization
 
-        :param b_tec: technology model block
-        :return: dict results: holds results
+        :param Block b_tec: technology model block
+        :param h5py.Group h5_group: technology model block
         """
         super(Sink, self).write_results_tec_operation(h5_group, model_block)
 
@@ -401,8 +402,13 @@ class Sink(Technology):
             data=[model_block.var_storage_level[t].value for t in self.set_t_full],
         )
 
-    def write_results_tec_design(self, h5_group, model_block):
+    def write_results_tec_design(self, h5_group:  h5py.Group, model_block: Block):
+        """
+       Function to report results of technologies design after optimization
 
+       :param  h5py.Group h5_group: h5 file structure
+       :param Block b_tec: technology model block
+       """
         super(Sink, self).write_results_tec_design(h5_group, model_block)
 
         if self.flexibility_data["injection_capacity_is_decision_var"]:
@@ -416,11 +422,11 @@ class Sink(Technology):
                 "capex_stor_size", data=[model_block.var_capex_stor_size.value]
             )
 
-    def _define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec: Block):
         """
         Constraints the inputs for a ramping rate
 
-        :param b_tec: technology model block
+        :param Block b_tec: technology model block
         :return: technology Block with the constraints for the dynamic behaviour
         """
         ramping_rate = self.performance_data["ramping_rate"]
