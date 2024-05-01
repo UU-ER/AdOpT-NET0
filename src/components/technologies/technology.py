@@ -26,11 +26,14 @@ Suggestions:
 class Technology(ModelComponent):
     """
     Class to read and manage data for technologies
+
+    This class is parent class to all generic and specific technologies. It creates the variables, parameters,
+    constraints and sets of a technology.
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
         """
-        Initializes technology class from technology name
+        Initializes technology class from technology data
 
         The technology name needs to correspond to the name of a JSON file in ./data/technology_data.
 
@@ -49,15 +52,14 @@ class Technology(ModelComponent):
             self.ccs = 1
         else:
             self.ccs = 0
-            # To be filled during model construction
 
-        # Size-input/output constraints
+        # Input/output are based on
         if self.technology_model == "CONV1":
             self.performance_data["size_based_on"] = tec_data["size_based_on"]
         else:
             self.performance_data["size_based_on"] = "input"
 
-        # Emissions are based on...
+        # Emissions are based on
         if (self.technology_model == "DAC_Adsorption") or (
             self.technology_model == "CONV4"
         ):
@@ -67,20 +69,27 @@ class Technology(ModelComponent):
 
         self.fitted_performance = None
 
+        # Other attributes
         self.input = []
         self.output = []
         self.set_t = []
         self.set_t_full = []
         self.sequence = []
 
+        # Scaling factors
         self.scaling_factors = []
         if "ScalingFactors" in tec_data:
             self.scaling_factors = tec_data["ScalingFactors"]
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(
+        self, b_tec: Block, data: dict, set_t: Set, set_t_clustered: Set
+    ) -> Block:
         r"""
-        This function adds Sets, Parameters, Variables and Constraints that are common for all technologies (see below
-        for the case when CCS is possible). For each technology type, individual parts are added.
+        Construct the technology model
+
+        This function is extented in the generic/specific technology classes. It adds Sets, Parameters, Variables and
+        Constraints that are common for all technologies (see below
+        for the case when CCS is possible).
         The following description is true for new technologies. For existing technologies a few adaptions are made
         (see below).
 
@@ -372,11 +381,13 @@ class Technology(ModelComponent):
         b_tec.var_opex_fixed_tot = Var()
 
         def init_aggregate_capex(const):
+            """capex_tot = capex_aux"""
             return b_tec.var_capex_tot == b_tec.var_capex_aux
 
         b_tec.const_capex_aggregation = Constraint(rule=init_aggregate_capex)
 
         def init_aggregate_opex(const):
+            """opex_fixed_tot = opex_fixed"""
             return b_tec.var_opex_fixed_tot == b_tec.var_opex_fixed
 
         b_tec.const_opex_aggregation = Constraint(rule=init_aggregate_opex)
