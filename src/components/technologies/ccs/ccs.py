@@ -6,7 +6,9 @@ from ...component import ModelComponent
 def fit_ccs_data(ccs_data, data):
     """
     Calculates the amount of input (and their bounds) required for each unit of CO2 entering the carbon capture (CC)
-    object. So far, only post-combustion MEA has been modelled (based on Eq. 7 in Weimann et Al. (2023), A thermodynamic-based
+    object. The minimum and maximum size parameters are multiplied by the CO2 concentration, so that the units
+    of the size becomes t/h of CO2 in. These are also the units used for the rest of the model.
+    So far, only post-combustion MEA has been modelled (based on Eq. 7 in Weimann et Al. (2023), A thermodynamic-based
     mixed-integer linear model of post-combustion carbon capture for reliable use in energy system optimisation
     https://doi.org/10.1016/j.apenergy.2023.120738).
 
