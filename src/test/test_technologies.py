@@ -951,3 +951,34 @@ def test_heat_pump(request):
     assert termination == TerminationCondition.optimal
     assert model.var_size.value >= 0.1
     assert model.var_input[1, "electricity"].value >= 0.1
+
+
+def test_gasturbine(request):
+    """
+    tests Gas Turbine
+    """
+    time_steps = 1
+    technology = "TestTec_GasTurbine_NG_10"
+    tec = define_technology(
+        technology, time_steps, request.config.technology_data_folder_path
+    )
+
+    # INFEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [9])
+    model.test_const_input = Constraint(expr=model.var_input[1, "gas"] == 0)
+
+    termination = run_model(model)
+    assert termination == TerminationCondition.infeasibleOrUnbounded
+
+    # FEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model.test_const_output = Constraint(expr=model.var_output[1, "electricity"] == 10)
+    model.test_const_input = Constraint(expr=model.var_input[1, "hydrogen"] == 0)
+    # model.test_const_input = Constraint(expr=model.var_input[1, "gas"] == 40)
+
+    termination = run_model(model)
+    assert termination == TerminationCondition.optimal
+    assert model.var_size.value == 1
+    assert model.var_input[1, "electricity"].value >= 10 / 0.4
+    assert model.var_output[1, "heat"].value >= 10 * 0.5
