@@ -52,9 +52,9 @@ def test_full_model_flow():
     netw_block = p.network_block["electricitySimple"]
 
     # Size same in both directions
-    s_arc1 = netw_block.arc_block["node1", "node2"].var_size.value
-    s_arc2 = netw_block.arc_block["node2", "node1"].var_size.value
-    assert round(s_arc1, 3) == round(s_arc2, 3)
+    s_arc1 = round(netw_block.arc_block["node1", "node2"].var_size.value, 3)
+    s_arc2 = round(netw_block.arc_block["node2", "node1"].var_size.value, 3)
+    assert s_arc1 == s_arc2
 
     # Flow in one direction is larger 1
     assert netw_block.arc_block["node1", "node2"].var_flow[1].value > 1
