@@ -20,14 +20,15 @@ Model Configuration Overview
 -----------------------------
 
 .. csv-table:: Model Configuration Settings
-   :header: "Category", "Sub-category", "Description", "Options", "Value"
+   :header: "Category", "Option", "Description", "Options", "Value"
    :widths: 15, 15, 40, 20, 10
 
    "optimization", "objective", "String specifying the objective/type of optimization.", "'costs', 'emissions_pos', 'emissions_net', 'emissions_minC', 'costs_emissionlimit', 'pareto'", "costs"
-   "optimization", "monte_carlo.on", "Turn Monte Carlo simulation on.", "0, 1", 0
+   "optimization", "monte_carlo.N", "Number of Monte Carlo simulations (0 = off).", "", 0
+   "optimization", "monte_carlo.type", "Type of Monte Carlo simulation. For type 1 the user defines the standard deviation and the components to vary. For type 2 the user provides a csv file with the parameters and their min, max and reference values. ", "1, 2", 1
    "optimization", "monte_carlo.sd", "Value defining the range in which variables are varied in Monte Carlo simulations (defined as the standard deviation of the original value).", "", 0.2
-   "optimization", "monte_carlo.N", "Number of Monte Carlo simulations.", "", 100
-   "optimization", "monte_carlo.on_what", "List: Defines component to vary.", "'Technologies', 'ImportPrices', 'ExportPrices'", "Technologies"
+   "optimization", "monte_carlo.on_what", "List: Defines component to vary.", "'Technologies', 'Networks', 'ImportPrices', 'ExportPrices'", "Technologies"
+   "optimization", "monte_carlo.csv_path", "Path to the CSV file containing the optimization parameters.", "", None
    "optimization", "pareto_points", "Number of Pareto points.", "", 5
    "optimization", "timestaging", "Defines number of timesteps that are averaged (0 = off).", "", 0
    "optimization", "typicaldays.N", "Determines number of typical days (0 = off).", "", 0
@@ -49,12 +50,11 @@ Model Configuration Overview
    "solveroptions", "numericfocus", "Degree of which Gurobi tries to detect and manage numeric issues.", "0, 1, 2, 3", 0
    "solveroptions", "cuts", "Setting defining the aggressiveness of the global cut.", "-1, 0, 1, 2, 3", -1
    "reporting", "save_detailed", "Setting to select how the results are saved. When turned off only the summary is saved.", "0, 1", 1
+   "reporting", "save_summary_path", "Path to save the summary file path to.", "", "./userData/"
    "reporting", "save_path", "Option to define the save path.", "", "./userData/"
    "reporting", "case_name", "Option to define a case study name that is added to the results folder name.", "", -1
    "reporting", "write_solution_diagnostics", "If 1, writes solution quality, if 2 also writes pyomo to Gurobi variable map and constraint map to file.", "0, 1, 2", 0
    "energybalance", "violation", "Determines the energy balance violation price (-1 is no violation allowed).", "", -1
    "energybalance", "copperplate", "Determines if a copperplate approach is used.", "0, 1", 0
    "economic", "global_discountrate", "Determines if and which global discount rate is used. This holds for the CAPEX of all technologies and networks.", "", -1
-   "economic", "global_simple_capex_model", "Determines if the CAPEX model of technologies is set to 1 for all technologies.", "0, 1", 0
-   "performance", "dynamics", "Determines if dynamics are used.", "0, 1", 0
-
+   "economic", "global_simple_capex_model", "Determines if the CAPEX model of technologies is set to 1 for all technologies.", "0,
