@@ -886,3 +886,68 @@ def test_dac(request):
     assert model.var_input[1, "heat"].value > 0.1
     assert model.var_input[1, "electricity"].value > 0.01
     assert model.var_size.value > 1
+    assert model.var_capex.value > 1
+
+
+def test_hydro_open(request):
+    """
+    tests Open Hydro
+    """
+    time_steps = 3
+    technology = "TestTec_Hydro_Open"
+    tec = define_technology(
+        technology, time_steps, request.config.technology_data_folder_path
+    )
+
+    # INFEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [1, 1, 1])
+
+    def init_test_input(const, t):
+        return model.var_input[t, "electricity"] == 0
+
+    model.test_const_input = Constraint(model.set_t, rule=init_test_input)
+
+    termination = run_model(model)
+    assert termination == TerminationCondition.infeasibleOrUnbounded
+
+    # FEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [0, 1, 1])
+
+    def init_test_input(const, t):
+        return model.var_input[t, "electricity"] == 0
+
+    model.test_const_input = Constraint(model.set_t, rule=init_test_input)
+
+    termination = run_model(model)
+    assert termination == TerminationCondition.optimal
+    assert model.var_size.value == 2
+
+
+def test_heat_pump(request):
+    """
+    tests Open Hydro
+    """
+    time_steps = 1
+    technology = "TestTec_HeatPump_AirSourced"
+    tec = define_technology(
+        technology, time_steps, request.config.technology_data_folder_path
+    )
+
+    # INFEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [1])
+    model.test_const_input = Constraint(expr=model.var_input[1, "electricity"] == 0)
+
+    termination = run_model(model)
+    assert termination == TerminationCondition.infeasibleOrUnbounded
+
+    # FEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [1])
+
+    termination = run_model(model)
+    assert termination == TerminationCondition.optimal
+    assert model.var_size.value >= 0.1
+    assert model.var_input[1, "electricity"].value >= 0.1
