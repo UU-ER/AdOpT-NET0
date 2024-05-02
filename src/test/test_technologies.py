@@ -106,6 +106,54 @@ def generate_output_constraint(
     return model
 
 
+def generate_output_constraint_start_timestep(
+    model: ConcreteModel, demand: float, output_ratios: dict = None
+) -> ConcreteModel:
+
+    def init_output_constraint(const, car):
+        if output_ratios:
+            if isinstance(output_ratios.get(car), dict):
+                alpha = output_ratios[car]["alpha1"]
+            else:
+                alpha = output_ratios[car]
+            if isinstance(alpha, list):
+                return model.var_output[1, car] >= demand * alpha[0]
+            else:
+                return model.var_output[1, car] == demand * alpha
+        else:
+            return model.var_output[1, car] == demand
+
+    model.test_const_output = Constraint(
+        model.set_output_carriers, rule=init_output_constraint
+    )
+
+    return model
+
+
+def generate_output_constraint_end_timestep(
+    model: ConcreteModel, demand: float, output_ratios: dict = None
+) -> ConcreteModel:
+
+    def init_output_constraint(const, car):
+        if output_ratios:
+            if isinstance(output_ratios.get(car), dict):
+                alpha = output_ratios[car]["alpha1"]
+            else:
+                alpha = output_ratios[car]
+            if isinstance(alpha, list):
+                return model.var_output[len(model.set_t), car] >= demand * alpha[0]
+            else:
+                return model.var_output[len(model.set_t), car] == demand * alpha
+        else:
+            return model.var_output[len(model.set_t), car] == demand
+
+    model.test_const_output = Constraint(
+        model.set_output_carriers, rule=init_output_constraint
+    )
+
+    return model
+
+
 def generate_var_x_constraint(
     model: ConcreteModel,
     var_x: list = None,
@@ -114,6 +162,28 @@ def generate_var_x_constraint(
         return model.var_x[t] == var_x[t - 1]
 
     model.test_const_var_x = Constraint(model.set_t, rule=init_var_x_constraint)
+    return model
+
+
+def generate_var_y_constraint(
+    model: ConcreteModel,
+    var_y: list = None,
+) -> ConcreteModel:
+    def init_var_y_constraint(const, t):
+        return model.var_y[t] == var_y[t - 1]
+
+    model.test_const_var_y = Constraint(model.set_t, rule=init_var_y_constraint)
+    return model
+
+
+def generate_var_z_constraint(
+    model: ConcreteModel,
+    var_z: list = None,
+) -> ConcreteModel:
+    def init_var_z_constraint(const, t):
+        return model.var_z[t] == var_z[t - 1]
+
+    model.test_const_var_z = Constraint(model.set_t, rule=init_var_z_constraint)
     return model
 
 
@@ -667,62 +737,126 @@ def test_dynamics_fast(request):
                 assert termination == TerminationCondition.infeasibleOrUnbounded
 
 
-# def test_dynamics_slow(request):
-#     """
-#     tests dynamic operation
-#     """
-#
-#     time_steps = 7
-#
-#     for conv_type in [1, 2, 3]:
-#         technology = "TestTec_Conv" + str(conv_type)
-#
-#         # Technology Model
-#         perf_type = 4
-#         tec = define_technology(technology, time_steps, request.config.technology_data_folder_path, perf_type=perf_type)
-#
-#         if conv_type == 1:
-#             output_ratios = None
-#         else:
-#             output_ratios = tec.fitted_performance.coefficients
-#
-#         # change SU time and SD time
-#         SU_time = 2
-#         SD_time = 1
-#         min_part_load = 0.6
-#         tec.performance_data["SU_time"] = SU_time
-#         tec.performance_data["SD_time"] = SD_time
-#         tec.performance_data["min_part_load"] = min_part_load
-#         output = [1, 1, 1, 0, 1, 1, 1]
-#         var_x = [1, 1, 0, 0, 0, 0, 1]
-#         model = construct_tec_model(tec, nr_timesteps=time_steps, dynamics=1)
-#
-#         model = generate_output_constraint(model, output, output_ratios=output_ratios)
-#         model = generate_var_x_constraint(model, var_x)
-#         model = generate_size_constraint(model, 1)
-#         termination = run_model(model)
-#         assert termination == TerminationCondition.infeasibleOrUnbounded
-#
-#         # # Calculate SU and SD trajectories
-#         # SU_trajectory = []
-#         # for i in range(1, SU_time + 1):
-#         #     SU_trajectory.append((min_part_load / (SU_time + 1)) * i)
-#         #
-#         # SD_trajectory = []
-#         # for i in range(1, SD_time + 1):
-#         #     SD_trajectory.append((min_part_load / (SD_time + 1)) * i)
-#         # SD_trajectory = sorted(SD_trajectory, reverse=True)
-#
-#         # output = [1, 0.6, 0.3, 0, 0.2, 0.4, 0.6]
-#         var_x_at_t = [4] * time_steps
-#         model = generate_var_x_constraint(model, var_x_at_t)
-#         model = generate_size_constraint(model, 1)
-#         model = run_with_first_last_step_constraint(
-#             model, demand=output, output_ratios=output_ratios)
-#         termination = run_model(model)
-#
-#
-#         assert termination == TerminationCondition.optimal
+def test_dynamics_slow(request):
+    """
+    tests dynamic operation
+    """
+
+    time_steps = 5
+
+    for conv_type in [1, 2, 3]:
+        technology = "TestTec_Conv" + str(conv_type)
+
+        # Technology Model
+        perf_type = 4
+        tec = define_technology(
+            technology,
+            nr_timesteps=time_steps,
+            load_path=request.config.technology_data_folder_path,
+            perf_type=perf_type,
+        )
+
+        if conv_type == 1:
+            output_ratios = None
+        else:
+            output_ratios = tec.fitted_performance.coefficients
+
+        # check SD time
+        SD_time = 2
+        min_part_load = 0.6
+        tec.performance_data["SD_time"] = SD_time
+        tec.performance_data["min_part_load"] = min_part_load
+        output_start = 0.6
+        var_z = [0, 0, 1, 0, 0]
+        var_x = [1, 1, 0, 0, 0]
+        model = construct_tec_model(tec, nr_timesteps=time_steps, dynamics=1)
+
+        model = generate_var_z_constraint(model, var_z)
+        model = generate_var_x_constraint(model, var_x)
+        model = generate_output_constraint_start_timestep(
+            model, demand=output_start, output_ratios=output_ratios
+        )
+        termination = run_model(model)
+        assert termination == TerminationCondition.optimal
+
+        main_car = tec.performance_data["main_input_carrier"]
+        trajectory = model.var_size.value * min_part_load / (SD_time + 1)
+
+        if conv_type < 3:
+            input_at_SD1 = (
+                model.var_input[3, "gas"].value + model.var_input[3, "hydrogen"].value
+            )
+            input_at_SD2 = (
+                model.var_input[4, "gas"].value + model.var_input[4, "hydrogen"].value
+            )
+        else:
+            input_at_SD1 = model.var_input[3, main_car].value
+            input_at_SD2 = model.var_input[4, main_car].value
+
+        assert round(input_at_SD2, 3) == round(trajectory, 3)
+        assert round(input_at_SD1, 3) == round(trajectory * SD_time, 3)
+
+        # Check infeasibility case
+        var_x = [1, 1, 0, 0, 1]
+        model = construct_tec_model(tec, nr_timesteps=time_steps, dynamics=1)
+
+        model = generate_var_z_constraint(model, var_z)
+        model = generate_var_x_constraint(model, var_x)
+        model = generate_output_constraint_start_timestep(model, demand=output_start)
+        termination = run_model(model)
+        assert termination == TerminationCondition.infeasibleOrUnbounded
+
+        # check SU time
+        tec = define_technology(
+            technology,
+            nr_timesteps=time_steps,
+            load_path=request.config.technology_data_folder_path,
+            perf_type=perf_type,
+        )
+
+        SU_time = 2
+        min_part_load = 0.6
+        tec.performance_data["SU_time"] = SU_time
+        tec.performance_data["min_part_load"] = min_part_load
+        output_start = 0.6
+        var_y = [0, 0, 0, 1, 0]
+        var_x = [0, 0, 0, 1, 1]
+        model = construct_tec_model(tec, nr_timesteps=time_steps, dynamics=1)
+
+        model = generate_var_y_constraint(model, var_y)
+        model = generate_var_x_constraint(model, var_x)
+        model = generate_output_constraint_end_timestep(
+            model, demand=output_start, output_ratios=output_ratios
+        )
+        termination = run_model(model)
+        assert termination == TerminationCondition.optimal
+
+        main_car = tec.performance_data["main_input_carrier"]
+        trajectory = model.var_size.value * min_part_load / (SU_time + 1)
+
+        if conv_type < 3:
+            input_at_SU1 = (
+                model.var_input[2, "gas"].value + model.var_input[2, "hydrogen"].value
+            )
+            input_at_SU2 = (
+                model.var_input[3, "gas"].value + model.var_input[3, "hydrogen"].value
+            )
+        else:
+            input_at_SU1 = model.var_input[2, main_car].value
+            input_at_SU2 = model.var_input[3, main_car].value
+
+        assert round(input_at_SU1, 3) == round(trajectory, 3)
+        assert round(input_at_SU2, 3) == round(trajectory * SU_time, 3)
+
+        # Check infeasibility case
+        var_x = [0, 0, 1, 1, 1]
+        model = construct_tec_model(tec, nr_timesteps=time_steps, dynamics=1)
+
+        model = generate_var_y_constraint(model, var_y)
+        model = generate_var_x_constraint(model, var_x)
+        model = generate_output_constraint_start_timestep(model, demand=output_start)
+        termination = run_model(model)
+        assert termination == TerminationCondition.infeasibleOrUnbounded
 
 
 def test_dac(request):
