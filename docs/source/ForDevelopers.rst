@@ -1,3 +1,5 @@
+.. _developers-guide:
+
 Developer Instruction
 =====================================
 This page contains general instructions for the developers that are working on the PyHub.

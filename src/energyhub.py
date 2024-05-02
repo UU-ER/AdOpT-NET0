@@ -30,6 +30,7 @@ class EnergyHub:
 
     When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
     class:
+
     - self.logger: Logger
     - self.data: Data container
     - self.model: Model container
@@ -75,20 +76,26 @@ class EnergyHub:
         """
         Constructs the model. The model structure is as follows:
 
-        GLOBAL SETS
+        **Global sets**
+
         - set_periods: set of investment periods
         - set_nodes: set of nodes
         - set_carriers: set of carriers modelled
 
-        GLOBAL VARIABLES
+        **Global variables**
+
         - var_npv: net present value of all costs
         - var_emissions_net: net emissions over all investment periods
 
-        REST OF MODEL
+        **Rest of model**
         The rest of the model is organized in nested, hierarchical pyomo modelling blocks:
+
         Investment Period Block
+
             Network Block
+
             Node Block
+
                 Technology Block
         """
         log_event("--- Constructing Model ---")
@@ -321,7 +328,7 @@ class EnergyHub:
 
         :param str nodename: name of node for which technology is installed
         :param list technologies: list of technologies that should be added to nodename
-        :return: None
+        :return None:
         """
         self.data.read_single_technology_data(nodename, technologies)
         add_technology(self, nodename, technologies)

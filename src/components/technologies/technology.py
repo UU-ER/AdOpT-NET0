@@ -117,26 +117,25 @@ class Technology(ModelComponent):
         **Constraint declarations**
 
         - CAPEX, can be linear (for ``capex_model == 1``), piecewise linear (for ``capex_model == 2``) or linear with \
-        a fixed cost when the technology is installed (for ``capex_model == 3``). Linear is defined as:
+          a fixed cost when the technology is installed (for ``capex_model == 3``). Linear is defined as:
 
-        .. math::
-            CAPEX_{tec} = Size_{tec} * UnitCost_{tec}
+            .. math::
+                CAPEX_{tec} = Size_{tec} * UnitCost_{tec}
 
-        while linear with fixed installation costs is defined as:
+          while linear with fixed installation costs is defined as:
 
-
-        .. math::
-            CAPEX_{tec} = Size_{tec} * UnitCost_{tec} + FixCost_{tec}
+            .. math::
+                CAPEX_{tec} = Size_{tec} * UnitCost_{tec} + FixCost_{tec}
 
         - Variable OPEX: defined per unit of output for the main carrier:
 
-        .. math::
-            OPEXvar_{t, tec} = Output_{t, maincarrier} * opex_{var} \forall t \in T
+            .. math::
+                OPEXvar_{t, tec} = Output_{t, maincarrier} * opex_{var} \forall t \in T
 
         - Fixed OPEX: defined as a fraction of annual CAPEX:
 
-        .. math::
-            OPEXfix_{tec} = CAPEX_{tec} * opex_{fix}
+            .. math::
+                OPEXfix_{tec} = CAPEX_{tec} * opex_{fix}
 
         Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 1) or not (decommission = 0).
         For technologies that cannot be decommissioned, the size is fixed to the size given in the technology data.
