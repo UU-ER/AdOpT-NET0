@@ -9,6 +9,7 @@ import os
 import json
 
 from ..components.technologies import *
+from ..components.technologies import *
 from ..utilities import log_event
 
 
@@ -203,13 +204,12 @@ def calculate_dni(data: pd.DataFrame, lon: float, lat: float) -> pd.Series:
     return data["dni"]
 
 
-def select_technology(tec_data: dict) -> object:
+def select_technology(tec_data: dict):
     """
     Returns the correct subclass for a technology
 
     :param dict tec_data: dictonary derived from the technology json files
     :return: Technology Class
-    :rtype: object
     """
     # Generic tecs
     if tec_data["tec_type"] == "RES":
@@ -235,6 +235,34 @@ def select_technology(tec_data: dict) -> object:
         return HeatPump(tec_data)
     elif tec_data["tec_type"] == "HydroOpen":
         return HydroOpen(tec_data)
+
+
+def read_tec_data(
+    tec_name: str, load_path: Path, climate_data: pd.DataFrame, location: dict
+):
+    """
+    Loads the technology data from load_path and preprocesses it.
+
+    :param str tec_name: technology name
+    :param Path load_path: load path
+    :param pd.DataFrame climate_data: Climate Data
+    :param dict location: Dictonary with node location
+    :return: Technology data
+    :rtype: Technoogy Object
+    """
+    tec_data = open_json(tec_name, load_path)
+    tec_data["name"] = tec_name
+    tec_data = select_technology(tec_data)
+    tec_data.fit_technology_performance(climate_data, location)
+    if tec_data.ccs:
+        ccs_data = open_json(tec_data.performance_data["ccs"]["ccs_type"], load_path)
+        tec_data.ccs_data = fit_ccs_data(
+            tec_data.performance_data["ccs"]["co2_concentration"],
+            ccs_data,
+            climate_data,
+        )
+
+    return tec_data
 
 
 def open_json(tec: str, load_path: Path) -> dict:

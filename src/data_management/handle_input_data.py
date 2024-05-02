@@ -297,17 +297,13 @@ class DataHandle:
 
                 # New technologies
                 for technology in technologies_at_node["new"]:
-                    tec_data = open_json(
+                    tec_data = read_tec_data(
                         technology,
                         self.data_path
                         / investment_period
                         / "node_data"
                         / node
                         / "technology_data",
-                    )
-                    tec_data["name"] = technology
-                    tec_data = select_technology(tec_data)
-                    tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
                         ]["global"],
@@ -317,24 +313,20 @@ class DataHandle:
 
                 # Existing technologies
                 for technology in technologies_at_node["existing"]:
-                    tec_data = open_json(
+                    tec_data = read_tec_data(
                         technology,
                         self.data_path
                         / investment_period
                         / "node_data"
                         / node
                         / "technology_data",
-                    )
-                    tec_data["name"] = technology
-                    tec_data = select_technology(tec_data)
-                    tec_data.existing = 1
-                    tec_data.size_initial = technologies_at_node["existing"][technology]
-                    tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
                         ]["global"],
                         self.node_locations.loc[node, :],
                     )
+                    tec_data.existing = 1
+                    tec_data.size_initial = technologies_at_node["existing"][technology]
                     technology_data[investment_period][node][
                         technology + "_existing"
                     ] = tec_data

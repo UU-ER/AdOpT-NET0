@@ -88,14 +88,3 @@ def test_full_model_flow():
     assert round(m.var_emissions_net.value, 3) == round(
         m.periods["period1"].node_blocks["node1"].var_import_flow[1, "gas"].value, 3
     )
-
-
-#
-# None: 0.0:
-# m.periods["period1"].node_blocks["node1"].tech_blocks_active["TestTec_GasTurbine_simple_existing"].var_tec_emissions_pos[1].pprint()
-# m.periods["period1"].node_blocks["node2"].tech_blocks_active["TestTec_BoilerEl"].var_tec_emissions_pos[1].pprint()
-# m.periods["period1"].node_blocks["node1"].var_car_emissions_pos[1].pprint()
-# m.periods["period1"].node_blocks["node2"].var_car_emissions_pos[1].pprint()
-# m.periods["period1"].network_block["electricitySimple"].var_netw_emissions_pos[1, "node1"].pprint()
-# m.periods["period1"].network_block["electricitySimple"].var_netw_emissions_pos[1, "node2"].pprint()
-# m.periods["period1"].var_emissions_pos.pprint()
