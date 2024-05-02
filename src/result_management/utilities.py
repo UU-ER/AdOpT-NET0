@@ -44,7 +44,7 @@ def get_time_stage(energyhub: EnergyHub) -> int:
     :rtype: int
     """
 
-    #fixme with algorithms
+    # fixme with algorithms
     if config["optimization"]["timestaging"]["value"]:
         time_stage = energyhub.model_information.averaged_data_specs.stage + 1
     else:

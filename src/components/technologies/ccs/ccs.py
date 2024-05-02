@@ -2,7 +2,7 @@ from ..utilities import open_json
 import numpy as np
 
 
-def fit_ccs_data(ccs_data: dict, data: dict)->dict:
+def fit_ccs_data(ccs_data: dict, data: dict) -> dict:
     """
     Obtain bounds and input ratios for CCS
 

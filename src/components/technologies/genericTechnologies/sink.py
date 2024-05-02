@@ -114,7 +114,9 @@ class Sink(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 0
 
-    def construct_tech_model(self, b_tec: Block, data: dict, set_t: Set, set_t_clustered: Set)-> Block:
+    def construct_tech_model(
+        self, b_tec: Block, data: dict, set_t: Set, set_t_clustered: Set
+    ) -> Block:
         """
         Construct SINK constraints
 
@@ -252,16 +254,15 @@ class Sink(Technology):
             if self.flexibility_data["injection_capacity_is_decision_var"]:
                 # injectionCapacity <= injectionRateMax
                 return (
-                        b_tec.var_injection_capacity
-                        <= self.flexibility_data["injection_rate_max"]
+                    b_tec.var_injection_capacity
+                    <= self.flexibility_data["injection_rate_max"]
                 )
             else:
                 # injectionCapacity == injectionRateMax
                 return (
-                        b_tec.var_injection_capacity
-                        == self.flexibility_data["injection_rate_max"]
+                    b_tec.var_injection_capacity
+                    == self.flexibility_data["injection_rate_max"]
                 )
-
 
         b_tec.const_max_injection_cap = Constraint(rule=init_max_capacity_injection)
 
@@ -360,7 +361,9 @@ class Sink(Technology):
             b_tec.para_unit_capex_injection_cap_annual
             * flexibility["injection_rate_max"]
         )
-        max_capex_stor_size = b_tec.para_unit_capex_stor_size_annual * b_tec.para_size_max
+        max_capex_stor_size = (
+            b_tec.para_unit_capex_stor_size_annual * b_tec.para_size_max
+        )
 
         b_tec.var_capex_injection_cap = Var(
             domain=NonNegativeReals, bounds=(0, max_capex_injection_cap)
@@ -388,7 +391,7 @@ class Sink(Technology):
 
         return b_tec
 
-    def write_results_tec_operation(self, h5_group:  h5py.Group, model_block: Block):
+    def write_results_tec_operation(self, h5_group: h5py.Group, model_block: Block):
         """
         Function to report results of technologies operations after optimization
 
@@ -402,13 +405,13 @@ class Sink(Technology):
             data=[model_block.var_storage_level[t].value for t in self.set_t_full],
         )
 
-    def write_results_tec_design(self, h5_group:  h5py.Group, model_block: Block):
+    def write_results_tec_design(self, h5_group: h5py.Group, model_block: Block):
         """
-       Function to report results of technologies design after optimization
+        Function to report results of technologies design after optimization
 
-       :param  h5py.Group h5_group: h5 file structure
-       :param Block b_tec: technology model block
-       """
+        :param  h5py.Group h5_group: h5 file structure
+        :param Block b_tec: technology model block
+        """
         super(Sink, self).write_results_tec_design(h5_group, model_block)
 
         if self.flexibility_data["injection_capacity_is_decision_var"]:
@@ -434,7 +437,10 @@ class Sink(Technology):
         def init_ramping_down_rate_input(const, t):
             if t > 1:
                 # -rampingRate <= input[t] - input[t-1]
-                return -ramping_rate <= self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+                return (
+                    -ramping_rate
+                    <= self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+                )
             else:
                 return Constraint.Skip
 
@@ -445,7 +451,10 @@ class Sink(Technology):
         def init_ramping_up_rate_input(const, t):
             if t > 1:
                 # input[t] - input[t-1] <= rampingRate
-                return self.input[t, self.main_car] - self.input[t - 1, self.main_car]<= ramping_rate
+                return (
+                    self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+                    <= ramping_rate
+                )
             else:
                 return Constraint.Skip
 

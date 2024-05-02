@@ -22,7 +22,9 @@ def print_h5_tree(file_path: Path | str):
         hdf_file.visititems(print_attrs)
 
 
-def extract_datasets_from_h5group(group: h5py.Group, prefix: tuple = ()) -> pd.DataFrame:
+def extract_datasets_from_h5group(
+    group: h5py.Group, prefix: tuple = ()
+) -> pd.DataFrame:
     """
     Extracts datasets from a group within an h5 file
 

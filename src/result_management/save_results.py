@@ -3,7 +3,9 @@ import h5py
 from .utilities import *
 
 
-def get_summary(model: EnergyHub, solution: object, folder_path: Path, model_info: dict) -> dict:
+def get_summary(
+    model: EnergyHub, solution: object, folder_path: Path, model_info: dict
+) -> dict:
     """
     Retrieves all variable values relevant for the summary of an optimization run.
 
@@ -94,7 +96,9 @@ def get_summary(model: EnergyHub, solution: object, folder_path: Path, model_inf
     return summary_dict
 
 
-def write_optimization_results_to_h5(model: EnergyHub, solution: object, model_info: dict, data: dict) -> dict:
+def write_optimization_results_to_h5(
+    model: EnergyHub, solution: object, model_info: dict, data: dict
+) -> dict:
     """
     Collects the results from the model blocks and writes them to an HDF5 file
 
