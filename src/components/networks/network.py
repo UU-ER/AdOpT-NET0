@@ -562,7 +562,9 @@ class Network(ModelComponent):
         b_netw.para_loss2emissions = self.performance_data["loss2emissions"]
         b_netw.para_emissionfactor = self.performance_data["emissionfactor"]
 
-        b_netw.var_netw_emissions_pos = Var(self.set_t, self.set_nodes)
+        b_netw.var_netw_emissions_pos = Var(
+            self.set_t, self.set_nodes, domain=NonNegativeReals
+        )
 
         return b_netw
 
@@ -888,7 +890,7 @@ class Network(ModelComponent):
                 + b_arc.var_losses[t] * b_netw.para_loss2emissions
             )
 
-        b_netw.const_arc_emissions = Constraint(self.set_t, rule=init_arc_emissions)
+        b_arc.const_arc_emissions = Constraint(self.set_t, rule=init_arc_emissions)
 
         return b_arc
 

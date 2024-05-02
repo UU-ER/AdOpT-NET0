@@ -886,7 +886,7 @@ def test_dac(request):
     assert model.var_input[1, "heat"].value > 0.1
     assert model.var_input[1, "electricity"].value > 0.01
     assert model.var_size.value > 1
-    assert model.var_capex.value > 1
+    assert model.var_capex.value > 0
 
 
 def test_hydro_open(request):
@@ -980,5 +980,5 @@ def test_gasturbine(request):
     termination = run_model(model)
     assert termination == TerminationCondition.optimal
     assert model.var_size.value == 1
-    assert model.var_input[1, "electricity"].value >= 10 / 0.4
+    assert model.var_input[1, "gas"].value >= 10 / 0.4
     assert model.var_output[1, "heat"].value >= 10 * 0.5

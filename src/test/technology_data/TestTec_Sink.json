@@ -36,7 +36,7 @@
   },
   "Flexibility": {
     "comment": "determines the flexibility of the power capacity compared to the energy capacity",
-    "power_energy_ratio": "fixed",
+    "injection_capacity_is_decision_var": 0,
     "injection_rate_max": 1,
     "capex_charging_power": 0,
     "capex_discharging_power": 0
