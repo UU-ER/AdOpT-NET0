@@ -723,3 +723,11 @@ def test_dynamics_fast(request):
 #
 #
 #         assert termination == TerminationCondition.optimal
+
+
+def test_dac(request):
+    time_steps = 1
+    technology = "TestTec_DAC_adsorption"
+    tec = define_technology(
+        technology, time_steps, request.config.technology_data_folder_path
+    )
