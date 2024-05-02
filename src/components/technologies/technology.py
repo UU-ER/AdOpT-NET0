@@ -881,7 +881,11 @@ class Technology(ModelComponent):
         b_tec.var_opex_variable = Var(set_t)
 
         def init_opex_variable(const, t):
-            if (self.technology_model == "RES") or (self.technology_model == "CONV4"):
+            if (
+                (self.technology_model == "RES")
+                or (self.technology_model == "CONV4")
+                or (self.technology_model == "DAC_Adsorption")
+            ):
                 opex_variable_based_on = b_tec.var_output[
                     t, b_tec.set_output_carriers[1]
                 ]
