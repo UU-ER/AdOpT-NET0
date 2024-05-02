@@ -36,6 +36,7 @@ class HeatPump(Technology):
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance(tec_data)
+        self.main_car = self.performance_data["main_input_carrier"]
 
     def fit_technology_performance(self, climate_data, location):
         """
@@ -67,11 +68,11 @@ class HeatPump(Technology):
         delta_T = t_out - T
 
         # Determine COP
-        if self.name == "HeatPump_AirSourced":
+        if "AirSourced" in self.name:
             cop = 6.08 - 0.09 * delta_T + 0.0005 * delta_T**2
-        elif self.name == "HeatPump_GroundSourced":
+        elif "GroundSourced" in self.name:
             cop = 10.29 - 0.21 * delta_T + 0.0012 * delta_T**2
-        elif self.name == "HeatPump_WaterSourced":
+        elif "WaterSourced" in self.name:
             cop = 9.97 - 0.20 * delta_T + 0.0012 * delta_T**2
 
         print("Deriving performance data for Heat Pump...")
@@ -197,8 +198,10 @@ class HeatPump(Technology):
             b_tec = self._performance_function_type_1(b_tec)
         elif performance_function_type == 2:
             b_tec = self._performance_function_type_2(b_tec)
+            self.big_m_transformation_required = 1
         elif performance_function_type == 3:
             b_tec = self._performance_function_type_3(b_tec)
+            self.big_m_transformation_required = 1
 
         # size constraint based on input
         def init_size_constraint(const, t):
