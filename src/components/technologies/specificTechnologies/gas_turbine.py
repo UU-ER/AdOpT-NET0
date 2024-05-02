@@ -83,6 +83,7 @@ class GasTurbine(Technology):
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
+        self.main_car = self.performance_data["main_input_carrier"]
 
     def fit_technology_performance(self, climate_data, location):
         """
@@ -280,7 +281,7 @@ class GasTurbine(Technology):
                             alpha * b_tec.var_total_input[t]
                             + beta * b_tec.var_units_on[t]
                         )
-                        * f.iloc[t - 1]
+                        * f[t - 1]
                     )
 
                 dis.const_input_output_on_el = Constraint(rule=init_input_output_on_el)
