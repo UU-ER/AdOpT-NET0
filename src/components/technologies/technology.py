@@ -26,11 +26,14 @@ Suggestions:
 class Technology(ModelComponent):
     """
     Class to read and manage data for technologies
+
+    This class is parent class to all generic and specific technologies. It creates the variables, parameters,
+    constraints and sets of a technology.
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
         """
-        Initializes technology class from technology name
+        Initializes technology class from technology data
 
         The technology name needs to correspond to the name of a JSON file in ./data/technology_data.
 
@@ -49,15 +52,14 @@ class Technology(ModelComponent):
             self.ccs = 1
         else:
             self.ccs = 0
-            # To be filled during model construction
 
-        # Size-input/output constraints
+        # Input/output are based on
         if self.technology_model == "CONV1":
             self.performance_data["size_based_on"] = tec_data["size_based_on"]
         else:
             self.performance_data["size_based_on"] = "input"
 
-        # Emissions are based on...
+        # Emissions are based on
         if (self.technology_model == "DAC_Adsorption") or (
             self.technology_model == "CONV4"
         ):
@@ -67,20 +69,27 @@ class Technology(ModelComponent):
 
         self.fitted_performance = None
 
+        # Other attributes
         self.input = []
         self.output = []
         self.set_t = []
         self.set_t_full = []
         self.sequence = []
 
+        # Scaling factors
         self.scaling_factors = []
         if "ScalingFactors" in tec_data:
             self.scaling_factors = tec_data["ScalingFactors"]
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(
+        self, b_tec: Block, data: dict, set_t: Set, set_t_clustered: Set
+    ) -> Block:
         r"""
-        This function adds Sets, Parameters, Variables and Constraints that are common for all technologies (see below
-        for the case when CCS is possible). For each technology type, individual parts are added.
+        Construct the technology model
+
+        This function is extented in the generic/specific technology classes. It adds Sets, Parameters, Variables and
+        Constraints that are common for all technologies (see below
+        for the case when CCS is possible).
         The following description is true for new technologies. For existing technologies a few adaptions are made
         (see below).
 
@@ -372,18 +381,20 @@ class Technology(ModelComponent):
         b_tec.var_opex_fixed_tot = Var()
 
         def init_aggregate_capex(const):
+            """capex_tot = capex_aux"""
             return b_tec.var_capex_tot == b_tec.var_capex_aux
 
         b_tec.const_capex_aggregation = Constraint(rule=init_aggregate_capex)
 
         def init_aggregate_opex(const):
+            """opex_fixed_tot = opex_fixed"""
             return b_tec.var_opex_fixed_tot == b_tec.var_opex_fixed
 
         b_tec.const_opex_aggregation = Constraint(rule=init_aggregate_opex)
 
         return b_tec
 
-    def write_tec_design_results_to_group(self, h5_group, model_block):
+    def write_results_tec_design(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
@@ -422,7 +433,7 @@ class Technology(ModelComponent):
                 "opex_fixed_ccs", data=[model_block.var_opex_fixed_ccs.value]
             )
 
-    def write_tec_operation_results_to_group(self, h5_group, model_block):
+    def write_results_tec_operation(self, h5_group, model_block):
 
         for car in model_block.set_input_carriers_all:
             if model_block.find_component("var_input"):
@@ -542,7 +553,7 @@ class Technology(ModelComponent):
         else:
             b_tec.set_output_carriers_ccs = Set(initialize=[])
 
-        b_tec.set_input_carriers_all = (
+        b_tec.set_output_carriers_all = (
             b_tec.set_output_carriers_ccs | b_tec.set_output_carriers
         )
 
@@ -625,18 +636,23 @@ class Technology(ModelComponent):
                     * economics.capex_data["unit_capex"]
                     * annualization_factor
                 )
+                bounds = (0, max_capex)
             elif self.economics.capex_model == 2:
                 max_capex = (
                     b_tec.para_size_max
                     * max(economics.capex_data["piecewise_capex"]["bp_y"])
                     * annualization_factor
                 )
+                bounds = (0, max_capex)
             elif self.economics.capex_model == 3:
                 max_capex = (
                     b_tec.para_size_max * economics.capex_data["unit_capex"]
                     + economics.capex_data["fix_capex"]
                 ) * annualization_factor
-            return (0, max_capex)
+                bounds = (0, max_capex)
+            else:
+                bounds = None
+            return bounds
 
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
@@ -715,8 +731,9 @@ class Technology(ModelComponent):
 
             b_tec.disjunction_installation = Disjunction(rule=bind_disjunctions)
 
-            # b_tec.const_capex_aux = Constraint(
-            #     expr=b_tec.var_size * b_tec.para_unit_capex_annual + b_tec.para_fix_capex_annual == b_tec.var_capex_aux)
+        else:
+            # Defined in the technology subclass
+            pass
 
         # CAPEX
         if self.existing and not self.decommission:
@@ -864,8 +881,14 @@ class Technology(ModelComponent):
         b_tec.var_opex_variable = Var(set_t)
 
         def init_opex_variable(const, t):
-            if self.technology_model == "RES":
-                opex_variable_based_on = b_tec.var_output[t, b_tec.set_output_carriers]
+            if (
+                (self.technology_model == "RES")
+                or (self.technology_model == "CONV4")
+                or (self.technology_model == "DAC_Adsorption")
+            ):
+                opex_variable_based_on = b_tec.var_output[
+                    t, b_tec.set_output_carriers[1]
+                ]
             else:
                 opex_variable_based_on = b_tec.var_input[t, self.main_car]
             return (

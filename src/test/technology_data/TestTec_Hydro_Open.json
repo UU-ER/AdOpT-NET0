@@ -1,21 +1,21 @@
 {
-  "tec_type": "STOR",
+  "tec_type": "HydroOpen",
   "size_min": 0,
-  "size_max": 1.0E+7,
+  "size_max": 10000000.0,
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX_annual in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MWh or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 10,
-    "fix_CAPEX": 1e4,
+    "unit_CAPEX": 1,
+    "fix_CAPEX": 0,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
     "OPEX_variable": 0,
-    "OPEX_fixed": 0,
-    "discount_rate": 0,
+    "OPEX_fixed": 0.0,
+    "discount_rate": 0.0,
     "lifetime": 1,
     "decommission_cost": 0
   },
@@ -28,15 +28,17 @@
     "output_carrier": [
       "electricity"
     ],
-    "allow_only_one_direction": 1,
     "emission_factor": 0,
+    "allow_only_one_direction": 0,
+    "can_pump": 1,
+    "maximum_discharge_time_discrete": 0,
     "performance": {
-      "eta_in": 0.5,
-      "eta_out": 0.5,
+      "eta_in": 0.96,
+      "eta_out": 0.96,
       "lambda": 0,
-      "theta": 0,
-      "charge_max": 1,
-      "discharge_max": 1
+      "charge_max": 0.5,
+      "discharge_max": 0.5,
+      "spilling_max": 1
     }
   },
   "Units": {

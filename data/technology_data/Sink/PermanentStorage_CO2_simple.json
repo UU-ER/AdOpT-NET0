@@ -16,7 +16,6 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "injection_rate_max": 114,
     "input_carrier": [
       "CO2captured",
       "electricity"
@@ -33,6 +32,12 @@
         }
       }
     }
+  },
+  "Flexibility": {
+    "comment": "determines the flexibility of the power capacity compared to the energy capacity",
+    "injection_capacity_is_decision_var": 0,
+    "injection_rate_max": 114,
+    "capex_injection_cap": 0
   },
   "Units": {
     "size": "tonne",

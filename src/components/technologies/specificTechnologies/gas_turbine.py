@@ -83,6 +83,7 @@ class GasTurbine(Technology):
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
+        self.main_car = self.performance_data["main_input_carrier"]
 
     def fit_technology_performance(self, climate_data, location):
         """
@@ -280,7 +281,7 @@ class GasTurbine(Technology):
                             alpha * b_tec.var_total_input[t]
                             + beta * b_tec.var_units_on[t]
                         )
-                        * f.iloc[t - 1]
+                        * f[t - 1]
                     )
 
                 dis.const_input_output_on_el = Constraint(rule=init_input_output_on_el)
@@ -328,16 +329,14 @@ class GasTurbine(Technology):
 
         return b_tec
 
-    def write_tec_operation_results_to_group(self, h5_group, model_block):
+    def write_results_tec_operation(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(GasTurbine, self).write_tec_operation_results_to_group(
-            h5_group, model_block
-        )
+        super(GasTurbine, self).write_results_tec_operation(h5_group, model_block)
 
         h5_group.create_dataset(
             "modules_on", data=[model_block.var_units_on[t].value for t in self.set_t]

@@ -296,7 +296,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def write_netw_design_results_to_group(self, h5_group, model_block):
+    def write_results_netw_design(self, h5_group, model_block):
         """
         Function to report results of networks after optimization
 
@@ -333,7 +333,7 @@ class Network(ModelComponent):
             )
             arc_group.create_dataset("total_emissions", data=total_emissions)
 
-    def write_netw_operation_results_to_group(self, h5_group, model_block):
+    def write_results_netw_operation(self, h5_group, model_block):
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
@@ -562,7 +562,9 @@ class Network(ModelComponent):
         b_netw.para_loss2emissions = self.performance_data["loss2emissions"]
         b_netw.para_emissionfactor = self.performance_data["emissionfactor"]
 
-        b_netw.var_netw_emissions_pos = Var(self.set_t, self.set_nodes)
+        b_netw.var_netw_emissions_pos = Var(
+            self.set_t, self.set_nodes, domain=NonNegativeReals
+        )
 
         return b_netw
 
@@ -888,7 +890,7 @@ class Network(ModelComponent):
                 + b_arc.var_losses[t] * b_netw.para_loss2emissions
             )
 
-        b_netw.const_arc_emissions = Constraint(self.set_t, rule=init_arc_emissions)
+        b_arc.const_arc_emissions = Constraint(self.set_t, rule=init_arc_emissions)
 
         return b_arc
 

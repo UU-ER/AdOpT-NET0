@@ -3,12 +3,16 @@ import os
 from pathlib import Path
 
 
-def create_unique_folder_name(path, name):
+def create_unique_folder_name(path: Path, name: str) -> Path:
     """
-    Creates a unique folder name, in case the specified name already exists in path
-    :param path: path to check
-    :param name: folder name
-    :return:
+    Creates a unique folder name, in case the specified name already exists in the given path.
+
+    The unique folder name is either the given folder name if the folder name did not exist yet in the given path, or
+    the given folder name with an added suffix (_1, _2, _3, etc.).
+    :param Path path: path to check
+    :param str name: folder name
+    :return: path to the folder with the unique folder name
+    :rtype: Path
     """
     folder_path = Path.joinpath(path, name)
     counter = 1
@@ -20,22 +24,11 @@ def create_unique_folder_name(path, name):
     return folder_path
 
 
-def create_save_folder(save_path):
+def create_save_folder(save_path: Path):
     """
     Creates a new folder at save_path
 
-    :param str save_path: path to create folder at
+    :param Path save_path: path at which the folder is created
     :return:
     """
     os.makedirs(save_path)
-
-
-def get_time_stage(energyhub):
-    """
-    Gets time stage
-    """
-    if config["optimization"]["timestaging"]["value"]:
-        time_stage = energyhub.model_information.averaged_data_specs.stage + 1
-    else:
-        time_stage = 0
-    return time_stage

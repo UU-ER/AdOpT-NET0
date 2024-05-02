@@ -6,33 +6,44 @@ from pathlib import Path
 from .utilities import *
 from ..components.networks import *
 from ..logger import logger
+from ..utilities import log_event
 
 
 class DataHandle:
     """
     Data Handle for loading and performing operations on input data.
 
-    The Data Handle class reads in the data previously specified in the respective input data folder. Pass the
-    folder path when initializing the class.
+    The Data Handle class reads in the data previously specified in the respective input data folder.
+    It can also perform input data manipulation for two solving algorithms:
+
+    - clustering algorithm
+    - averaging algorithm
+
+    :param dict topology: Container for the topology
+    :param Path data_path: Container data_path
+    :param dict time_series: Container for all time series
+    :param dict energybalance_options: Container for energy balance options
+    :param dict technology_data: Container for technology data
+    :param dict network_data: Container for network data
+    :param pd.DataFrame node_locations: Container for node locations
+    :param dict model_config: Container for the model configuration
+    :param dict k_means_specs: Container for k-means clustering algorithm specifications
+    :param dict averaged_specs: Container for averaging algorithm specifications
+    :param int, None start_period: starting period to use, if None, the first available period is used
+    :param int, None end_period: end period to use, if None, the last available period is used
     """
 
     def __init__(self) -> None:
         """
         Constructor
-
-        :param str/Path base_path: path to folder
         """
-        # Get logger
-        self.logger = logger
-
-        # Attributes
-        self.topology = None
-        self.data_path = None
+        self.topology = {}
+        self.data_path = Path()
         self.time_series = {}
         self.energybalance_options = {}
         self.technology_data = {}
         self.network_data = {}
-        self.node_locations = {}
+        self.node_locations = pd.DataFrame()
         self.model_config = {}
         self.k_means_specs = {}
         self.averaged_specs = {}
@@ -40,12 +51,28 @@ class DataHandle:
         self.end_period = None
 
     def read_input_data(
-        self, data_path: Path | str, start_period: int = None, end_period: int = None
+        self, data_path: Path, start_period: int = None, end_period: int = None
     ) -> None:
         """
-        Reads the data from folder structure
+        Overarching function to read the data from folder structure contained in data_path
+
+        Checks the consistency of the provided folder structure and reads all required data form it, in case the
+        input data check succeeds. In case used, it also clusters/averages the data accordingly.
+
+        The following items are read:
+
+        - topology
+        - model configuration
+        - time series for all periods and nodes
+        - node locations
+        - energy balance options
+        - technology data
+        - network data
+
+        :param Path data_path: Path to read input data from
+        :param int | None start_period: Starting period of model if None, the first available period is used
+        :param int | None end_period: End period of model if None, the last available period is used
         """
-        # Read in data
         # Convert to Path
         if isinstance(data_path, str):
             data_path = Path(data_path)
@@ -57,6 +84,7 @@ class DataHandle:
         # Check consistency
         check_input_data_consistency(data_path)
 
+        # Read all data
         self._read_topology()
         self._read_model_config()
         self._read_time_series()
@@ -73,17 +101,21 @@ class DataHandle:
 
     def _read_topology(self) -> None:
         """
-        Reads topology from path
+        Reads topology
         """
+        # Open json
         with open(self.data_path / "Topology.json") as json_file:
             self.topology = json.load(json_file)
 
+        # Process timesteps
         self.topology["time_index"] = {}
         time_index = pd.date_range(
             start=self.topology["start_date"],
             end=self.topology["end_date"],
             freq=self.topology["resolution"],
         )
+
+        # Calculate fraction of year modelled
         original_number_timesteps = len(time_index)
         self.topology["time_index"]["full"] = time_index[
             self.start_period : self.end_period
@@ -93,39 +125,52 @@ class DataHandle:
             new_number_timesteps / original_number_timesteps
         )
 
-        self.logger.info("Topology read successfully")
+        # Log success
+        log_event("Topology read successfully")
 
     def _read_model_config(self) -> None:
         """
         Reads model configuration
         """
+        # Open json
         with open(self.data_path / "ConfigModel.json") as json_file:
             self.model_config = json.load(json_file)
 
-        self.logger.info("Model Configuration read successfully")
-        self.logger.info("Model Configuration used: " + json.dumps(self.model_config))
+        # Log success
+        log_event("Model Configuration read successfully")
+        log_event(
+            "Model Configuration used: " + json.dumps(self.model_config), print_it=0
+        )
 
     def _read_time_series(self) -> None:
         """
-        Reads all time-series data
+        Reads all time-series data and shortens time series accordingly
         """
 
         def replace_nan_in_list(ls: list) -> list:
             """
             Replaces nan with zeros and writes warning to logger
+
+            :param list ls: List
+            :return list: returns list with nan replaces by zero
+            :rtype: list
             """
             if any(np.isnan(x) for x in ls):
                 ls = [0 if np.isnan(x) else x for x in ls]
-                self.logger.warning(
+                log_event(
                     f"Found NaN values in data for investment period {investment_period}, node {node}, key1 {var}, carrier {carrier}, key2 {key}. Replaced with zeros."
                 )
                 return ls
             else:
                 return ls
 
+        # Initialize data dict
         data = {}
+
+        # Loop through all investment_periods and nodes
         for investment_period in self.topology["investment_periods"]:
             for node in self.topology["nodes"]:
+
                 # Carbon Costs
                 var = "CarbonCost"
                 carrier = "global"
@@ -179,6 +224,7 @@ class DataHandle:
                             replace_nan_in_list(carrier_data[key])
                         )
 
+        # Post-process data dict to dataframe and shorten
         data = pd.DataFrame(data)
         data = data.iloc[self.start_period : self.end_period]
         data.index = self.topology["time_index"]["full"]
@@ -187,15 +233,19 @@ class DataHandle:
         )
         self.time_series["full"] = data
 
-        self.logger.info("Time series read successfully")
+        # Log success
+        log_event("Time series read successfully")
 
     def _read_node_locations(self) -> None:
         """
         Reads node locations
         """
         self.node_locations = pd.read_csv(
-            self.data_path / "NodeLocations.csv", index_col=0, sep=";"
+            (self.data_path / "NodeLocations.csv"), index_col=0, sep=";"
         )
+
+        # Log success
+        log_event("Node Locations read successfully")
 
     def _read_energybalance_options(self) -> None:
         """
@@ -217,15 +267,25 @@ class DataHandle:
                     node
                 ] = energybalance_options
 
+        log_event("Energy balance options read successfully")
+
     def _read_technology_data(self, aggregation_type: str = "full") -> None:
         """
         Reads all technology data and fits it
+
+        :param str aggregation_type: specifies the aggregation type and thus the dict key to write the data to
         """
+
+        # Initialize technology_data dict
         technology_data = {}
+
+        # Loop through all investment_periods and nodes
         for investment_period in self.topology["investment_periods"]:
             technology_data[investment_period] = {}
             for node in self.topology["nodes"]:
                 technology_data[investment_period][node] = {}
+
+                # Get technologies at node
                 with open(
                     self.data_path
                     / investment_period
@@ -281,13 +341,20 @@ class DataHandle:
 
         self.technology_data[aggregation_type] = technology_data
 
+        log_event("Technology data read successfully")
+
     def _read_network_data(self, aggregation_type: str = "full") -> None:
         """
         Reads all network data
         """
+        # Initialize network_data dict
         self.network_data[aggregation_type] = {}
+
+        # Loop through all investment_periods and nodes
         for investment_period in self.topology["investment_periods"]:
             self.network_data[aggregation_type][investment_period] = {}
+
+            # Get all networks in period
             with open(
                 self.data_path / investment_period / "Networks.json"
             ) as json_file:
@@ -390,7 +457,10 @@ class DataHandle:
                     network + "_existing"
                 ] = netw_data
 
+        log_event("Network data read successfully")
+
     def _cluster_data(self):
+        # Todo: document
         nr_clusters = self.model_config["optimization"]["typicaldays"]["N"]["value"]
         nr_time_intervals_per_day = 24
         nr_days_full_resolution = (
@@ -444,6 +514,7 @@ class DataHandle:
         self._read_technology_data(aggregation_type="clustered")
 
     def _average_data(self):
+        # Todo: document
         """
         Averages all nodal and global data
 

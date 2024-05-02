@@ -29,7 +29,7 @@
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 4,
+    "performance_function_type": 1,
     "input_carrier": [
       "gas",
       "hydrogen"
@@ -40,7 +40,7 @@
       "electricity"
     ],
     "emission_factor": 0,
-    "min_part_load": 0.5,
+    "min_part_load": 0.1,
     "performance": {
       "in": [
         0,
@@ -68,11 +68,13 @@
       "gas": 1,
       "hydrogen": 2
     },
-    "ramping_rate": -1,
+    "ramping_time": -1,
+    "ref_size": -1,
+    "ramping_const_int": -1,
     "standby_power": -1,
     "min_uptime": -1,
     "min_downtime": -1,
-    "SU_time": 1,
+    "SU_time": -1,
     "SD_time": -1,
     "SU_load": -1,
     "SD_load": -1,

@@ -4,3 +4,4 @@ from .conv3 import Conv3
 from .conv4 import Conv4
 from .stor import Stor
 from .res import Res
+from .sink import Sink

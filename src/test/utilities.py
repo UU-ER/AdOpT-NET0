@@ -86,22 +86,25 @@ def make_climate_data(start_date: str, nr_periods: int = 1):
     )
     climate_data = pd.DataFrame(
         index=timesteps,
-        columns=["ghi", "dni", "dhi", "temp_air", "rh", "TECHNOLOGYNAME_hydro_inflow"],
+        columns=["ghi", "dni", "dhi", "temp_air", "rh", "TestTec_Hydro_Open_inflow"],
     )
-    climate_data["ghi"] = 22
-    climate_data["dni"] = 47.7
-    climate_data["dhi"] = 11
+    climate_data["ghi"] = 152
+    climate_data["dni"] = 162.9
+    climate_data["dhi"] = 112
     climate_data["temp_air"] = 4
-    climate_data["rh"] = 10
-    climate_data["ws10"] = 10
+    climate_data["rh"] = 81
+    climate_data["ws10"] = 6.17
+    climate_data["TestTec_Hydro_Open_inflow"] = 1
 
     return climate_data
 
 
 def read_topology_patch(self):
     """
-    Monkey Patch: Reads topology from template
+    Reads topology from template
     """
+    self.topology = initialize_topology_templates()
+
     self.topology["time_index"] = {}
     time_index = pd.date_range(
         start=self.topology["start_date"],

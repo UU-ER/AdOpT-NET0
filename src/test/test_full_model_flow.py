@@ -59,14 +59,14 @@ def test_full_model_flow():
     # Flow in one direction is larger 1
     assert netw_block.arc_block["node1", "node2"].var_flow[1].value > 1
     # Flow in other direction is 0
-    assert netw_block.arc_block["node2", "node1"].var_flow[1].value == 0
+    assert round(netw_block.arc_block["node2", "node1"].var_flow[1].value, 3) == 0
 
     # TECHNOLOGY CHECKS
     tec_block1 = p.node_blocks["node1"].tech_blocks_active[
         "TestTec_GasTurbine_simple_existing"
     ]
     # Size as assigned size
-    assert tec_block1.var_size.value == 10
+    assert round(tec_block1.var_size.value, 3) == 10
     # Output larger than heat+electricity demand
     assert tec_block1.var_output[1, "electricity"].value > 2
     # Gas import == gas consumption
@@ -78,7 +78,7 @@ def test_full_model_flow():
     # Size larger heat demand
     assert tec_block2.var_size.value >= 1
     # Output equal to demand
-    assert tec_block2.var_output[1, "heat"].value == 1
+    assert round(tec_block2.var_output[1, "heat"].value, 3) == 1
 
     # COST CHECKS
     assert m.var_npv.value > 0
@@ -88,3 +88,14 @@ def test_full_model_flow():
     assert round(m.var_emissions_net.value, 3) == round(
         m.periods["period1"].node_blocks["node1"].var_import_flow[1, "gas"].value, 3
     )
+
+
+#
+# None: 0.0:
+# m.periods["period1"].node_blocks["node1"].tech_blocks_active["TestTec_GasTurbine_simple_existing"].var_tec_emissions_pos[1].pprint()
+# m.periods["period1"].node_blocks["node2"].tech_blocks_active["TestTec_BoilerEl"].var_tec_emissions_pos[1].pprint()
+# m.periods["period1"].node_blocks["node1"].var_car_emissions_pos[1].pprint()
+# m.periods["period1"].node_blocks["node2"].var_car_emissions_pos[1].pprint()
+# m.periods["period1"].network_block["electricitySimple"].var_netw_emissions_pos[1, "node1"].pprint()
+# m.periods["period1"].network_block["electricitySimple"].var_netw_emissions_pos[1, "node2"].pprint()
+# m.periods["period1"].var_emissions_pos.pprint()
