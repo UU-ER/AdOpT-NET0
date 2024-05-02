@@ -47,10 +47,7 @@ def test_full_model_flow():
     m = pyhub.model["full"]
     p = m.periods["period1"]
 
-    if (
-        pyhub.solution.solver.termination_condition
-        == TerminationCondition.infeasibleOrUnbounded
-    ):
+    if pyhub.solution.solver.termination_condition == TerminationCondition.infeasible:
         warn(
             "This turns out to be infeasible if solved with GLPK 5. Test on local machine!"
         )
