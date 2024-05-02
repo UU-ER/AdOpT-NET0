@@ -1,7 +1,6 @@
 from datetime import datetime
 import os
 from pathlib import Path
-from ..energyhub import EnergyHub
 
 
 def create_unique_folder_name(path: Path, name: str) -> Path:
@@ -33,20 +32,3 @@ def create_save_folder(save_path: Path):
     :return:
     """
     os.makedirs(save_path)
-
-
-def get_time_stage(energyhub: EnergyHub) -> int:
-    """
-    Gets time stage from the configuration
-
-    :param: energyhub
-    :return: time stage
-    :rtype: int
-    """
-
-    # fixme with algorithms
-    if config["optimization"]["timestaging"]["value"]:
-        time_stage = energyhub.model_information.averaged_data_specs.stage + 1
-    else:
-        time_stage = 0
-    return time_stage

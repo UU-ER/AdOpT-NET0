@@ -1,0 +1,49 @@
+{
+  "tec_type": "DAC_Adsorption",
+  "size_min": 0,
+  "size_max": 200,
+  "size_is_int": 1,
+  "decommission": 0,
+  "Economics": {
+    "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "unit_CAPEX": 1,
+    "fix_CAPEX": 0,
+    "piecewise_CAPEX": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0,
+    "discount_rate": 0,
+    "lifetime": 1,
+    "decommission_cost": 0
+  },
+  "TechnologyPerf": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "electricity",
+      "heat"
+    ],
+    "main_output_carrier": "CO2",
+    "output_carrier": [
+      "CO2"
+    ],
+    "nr_segments": 2,
+    "ohmic_heating": 1,
+    "emission_factor": -1,
+    "performance": {
+      "eta_elth": 0.97
+    }
+  },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "electricity": "MW",
+      "heat": "MW"
+    },
+    "output_carrier": {
+      "CO2captured": "tonne/hr"
+    }
+  }
+}
