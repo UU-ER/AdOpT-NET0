@@ -3,18 +3,26 @@ import h5py
 from .utilities import *
 
 
-def get_summary(model, solution, folder_path, model_info):
+def get_summary(
+    model: EnergyHub, solution: object, folder_path: Path, model_info: dict
+) -> dict:
     """
     Retrieves all variable values relevant for the summary of an optimization run.
 
-    :param energyhub: EnergyHub
+    These variables and their values are written to a dictionary.
+
+    :param EnergyHub model: the model for which you want to obtain the results summary.
+    :param object solution: Pyomo solver results
     :param folder_path: folder path of optimization run
-    :return:
+    :param dict model_info: information of the last solve done by the model
+    :return: a dictionary containing the most important model results (i.e., summary_dict)
+    :rtype: dict
     """
     # SUMMARY: create dictionary
     summary_dict = {}
 
     # summary: retrieve / calculate cost variables
+    # Fixme: algorithms
     summary_dict["total_npv"] = model.var_npv.value
     summary_dict["cost_capex_tecs"] = sum(
         model.periods[period].var_cost_capex_tecs.value for period in model.set_periods
@@ -71,12 +79,12 @@ def get_summary(model, solution, folder_path, model_info):
     summary_dict["absolute gap"] = (
         solution.problem(0).upper_bound - solution.problem(0).lower_bound
     )
+    summary_dict["solver_status"] = solution.solver.termination_condition.value
 
     # summary: retrieve / calculate run specs
     summary_dict["objective"] = model_info["config"]["optimization"]["objective"][
         "value"
     ]
-    summary_dict["solver_status"] = solution.solver.termination_condition.value
     summary_dict["pareto_point"] = model_info["pareto_point"]
     summary_dict["monte_carlo_run"] = model_info["monte_carlo_run"]
 
@@ -88,14 +96,22 @@ def get_summary(model, solution, folder_path, model_info):
     return summary_dict
 
 
-def write_optimization_results_to_h5(model, solution, model_info, data):
+def write_optimization_results_to_h5(
+    model: EnergyHub, solution: object, model_info: dict, data: dict
+) -> dict:
     """
-    Collects the results from the model blocks and writes them to an HDF5 file using the h5py library.
-    The summary results are returned in a dictionary format for further processing into an excel in the energyhub.
+    Collects the results from the model blocks and writes them to an HDF5 file
+
+    Saving to HDF5 files is done using the h5py library.
+    The summary results are returned in a dictionary format for exporting to Excel.
     Overhead (calculation of variables) are placed in the utilities file.
 
-    :param energyhub:
-    :return: summary_dict
+    :param EnergyHub model: the model for which you want to save the results to an HDF5 file.
+    :param object solution: Pyomo solver results
+    :param dict model_info: information of the last solve done by the model
+    :param dict data: a dictionary containing all data read in by the DataHandle class.
+    :return: a dictionary containing the most important model results (i.e., summary_dict)
+    :rtype: dict
     """
     config = model_info["config"]
     folder_path = model_info["result_folder_path"]
