@@ -789,3 +789,31 @@ def test_hydro_open(request):
     termination = run_model(model)
     assert termination == TerminationCondition.optimal
     assert model.var_size.value == 2
+
+
+def test_heat_pump(request):
+    """
+    tests Open Hydro
+    """
+    time_steps = 1
+    technology = "TestTec_HeatPump_AirSourced"
+    tec = define_technology(
+        technology, time_steps, request.config.technology_data_folder_path
+    )
+
+    # INFEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [1])
+    model.test_const_input = Constraint(expr=model.var_input[1, "electricity"] == 0)
+
+    termination = run_model(model)
+    assert termination == TerminationCondition.infeasibleOrUnbounded
+
+    # FEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [1])
+
+    termination = run_model(model)
+    assert termination == TerminationCondition.optimal
+    assert model.var_size.value >= 0.1
+    assert model.var_input[1, "electricity"].value >= 0.1
