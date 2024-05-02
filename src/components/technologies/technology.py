@@ -459,7 +459,6 @@ class Technology(ModelComponent):
             data=[model_block.var_tec_emissions_neg[t].value for t in self.set_t_full],
         )
         if model_block.find_component("var_x"):
-            model_block.var_x.pprint()
             h5_group.create_dataset(
                 "var_x",
                 data=[
