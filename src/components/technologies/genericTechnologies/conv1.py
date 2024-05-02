@@ -353,7 +353,7 @@ class Conv1(Technology):
                                 self.input[t, car_standby_power]
                                 == standby_power * b_tec.var_size * rated_power
                             )
-
+                        else:
                             return self.input[t, car_input] == 0
 
                     dis.const_input = Constraint(

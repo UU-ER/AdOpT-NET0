@@ -136,7 +136,7 @@ def test_copy_technology_data(request):
                 / "Technologies.json"
             )
             technologies = load_json(path)
-            technologies["existing"] = ["TestTec_Conv1"]
+            technologies["existing"] = {"TestTec_Conv1": 5}
             technologies["new"] = ["TestTec_Conv2"]
             save_json(technologies, path)
 

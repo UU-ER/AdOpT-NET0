@@ -4,14 +4,15 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-from src.data_preprocessing import *
+from src.data_preprocessing import (
+    initialize_configuration_templates,
+    initialize_topology_templates,
+)
 from src.data_management import DataHandle
 from src.data_preprocessing.template_creation import (
-    create_climate_data,
     create_carrier_data,
     create_carbon_cost_data,
 )
-from src.energyhub import EnergyHub
 
 
 def select_random_list_from_list(ls: list) -> list:
@@ -86,21 +87,22 @@ def make_climate_data(start_date: str, nr_periods: int = 1):
     )
     climate_data = pd.DataFrame(
         index=timesteps,
-        columns=["ghi", "dni", "dhi", "temp_air", "rh", "TECHNOLOGYNAME_hydro_inflow"],
+        columns=["ghi", "dni", "dhi", "temp_air", "rh", "TestTec_Hydro_Open_inflow"],
     )
-    climate_data["ghi"] = 22
-    climate_data["dni"] = 47.7
-    climate_data["dhi"] = 11
+    climate_data["ghi"] = 152
+    climate_data["dni"] = 162.9
+    climate_data["dhi"] = 112
     climate_data["temp_air"] = 4
-    climate_data["rh"] = 10
-    climate_data["ws10"] = 10
+    climate_data["rh"] = 81
+    climate_data["ws10"] = 6.17
+    climate_data["TestTec_Hydro_Open_inflow"] = 1
 
     return climate_data
 
 
 def read_topology_patch(self):
     """
-    Monkey Patch: Reads topology from template
+    Reads topology from template
     """
     self.topology = initialize_topology_templates()
 
@@ -222,7 +224,7 @@ def read_input_data_patch(self):
     self._read_network_data()
 
 
-def create_patched_datahandle(nr_timesteps):
+def make_data_handle(nr_timesteps, topology=None):
     """
     Creates a patched datahandle with:
     - nr_timesteps specified
@@ -234,6 +236,11 @@ def create_patched_datahandle(nr_timesteps):
 
     # Create DataHandle and monkey patch it
     dh = DataHandle()
+
+    if topology is None:
+        dh.topology = initialize_topology_templates()
+    else:
+        dh.topology = topology
 
     dh._read_topology = read_topology_patch.__get__(dh)
     dh._read_time_series = _read_time_series_patch.__get__(dh)

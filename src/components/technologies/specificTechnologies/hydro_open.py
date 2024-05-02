@@ -63,6 +63,7 @@ class HydroOpen(Technology):
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
+        self.main_car = self.performance_data["main_input_carrier"]
 
     def fit_technology_performance(self, climate_data, location):
         """
@@ -108,7 +109,8 @@ class HydroOpen(Technology):
         else:
             raise Exception(
                 "Using Technology Type Hydro_Open requires a hydro_natural_inflow in climate data"
-                " to be defined for this node. You can do this by using DataHandle.read_hydro_natural_inflow"
+                " to be defined for this node. Add a column in the climate data for respective node with column name"
+                f" {self.name}_inflow"
             )
 
         # Maximum discharge
@@ -320,16 +322,14 @@ class HydroOpen(Technology):
 
         return b_tec
 
-    def write_tec_operation_results_to_group(self, h5_group, model_block):
+    def write_results_tec_operation(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(HydroOpen, self).write_tec_operation_results_to_group(
-            h5_group, model_block
-        )
+        super(HydroOpen, self).write_results_tec_operation(h5_group, model_block)
 
         h5_group.create_dataset(
             "spilling", data=[model_block.var_spilling[t].value for t in self.set_t]

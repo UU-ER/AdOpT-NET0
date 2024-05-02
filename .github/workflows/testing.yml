@@ -37,9 +37,12 @@ jobs:
       run: |
         python -c "import os; print(os.listdir()); print(os.getcwd())"
 
-    - name: Test and build coverage file
+    - name: Test
       run: |
         coverage run -m pytest
+
+    - name: Build coverage report
+      run: |
         coverage report -m >coverage.txt
 
     - name: Upload Coverage Report

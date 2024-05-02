@@ -156,13 +156,9 @@ class DacAdsorption(Technology):
         self.fitted_performance.bounds["input"]["heat"] = np.column_stack(
             (np.zeros(shape=(time_steps)), th_in_max)
         )
-        self.fitted_performance.bounds["input"]["total"] = [
-            sum(x)
-            for x in zip(
-                self.fitted_performance.bounds["input"]["heat"],
-                self.fitted_performance.bounds["input"]["electricity"],
-            )
-        ]
+        self.fitted_performance.bounds["input"]["total"] = np.column_stack(
+            (np.zeros(shape=(time_steps)), total_in_max)
+        )
         # Coefficients
         self.fitted_performance.coefficients["alpha"] = alpha
         self.fitted_performance.coefficients["beta"] = beta
@@ -232,11 +228,9 @@ class DacAdsorption(Technology):
         def init_input_ohmic_bounds(bds, t):
             return tuple(
                 (
-                    el - th
-                    for el, th in zip(
-                        bounds["input"]["electricity"][t - 1] * b_tec.para_size_max,
-                        bounds["input"]["heat"][t - 1] * b_tec.para_size_max,
-                    )
+                    bounds["input"]["heat"][t - 1]
+                    / performance_data["performance"]["eta_elth"]
+                    * b_tec.para_size_max
                 )
             )
 
@@ -375,16 +369,14 @@ class DacAdsorption(Technology):
 
         return b_tec
 
-    def write_tec_operation_results_to_group(self, h5_group, model_block):
+    def write_results_tec_operation(self, h5_group, model_block):
         """
         Function to report results of technologies after optimization
 
         :param b_tec: technology model block
         :return: dict results: holds results
         """
-        super(DacAdsorption, self).write_tec_operation_results_to_group(
-            h5_group, model_block
-        )
+        super(DacAdsorption, self).write_results_tec_operation(h5_group, model_block)
 
         h5_group.create_dataset(
             "modules_on",

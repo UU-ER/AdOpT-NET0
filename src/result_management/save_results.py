@@ -1,20 +1,29 @@
 import h5py
 
 from .utilities import *
+from pyomo.environ import ConcreteModel
 
 
-def get_summary(model, solution, folder_path, model_info):
+def get_summary(
+    model: ConcreteModel, solution: object, folder_path: Path, model_info: dict
+) -> dict:
     """
     Retrieves all variable values relevant for the summary of an optimization run.
 
-    :param energyhub: EnergyHub
+    These variables and their values are written to a dictionary.
+
+    :param ConcreteModel model: the model for which you want to obtain the results summary.
+    :param object solution: Pyomo solver results
     :param folder_path: folder path of optimization run
-    :return:
+    :param dict model_info: information of the last solve done by the model
+    :return: a dictionary containing the most important model results (i.e., summary_dict)
+    :rtype: dict
     """
     # SUMMARY: create dictionary
     summary_dict = {}
 
     # summary: retrieve / calculate cost variables
+    # Fixme: algorithms
     summary_dict["total_npv"] = model.var_npv.value
     summary_dict["cost_capex_tecs"] = sum(
         model.periods[period].var_cost_capex_tecs.value for period in model.set_periods
@@ -71,12 +80,12 @@ def get_summary(model, solution, folder_path, model_info):
     summary_dict["absolute gap"] = (
         solution.problem(0).upper_bound - solution.problem(0).lower_bound
     )
+    summary_dict["solver_status"] = solution.solver.termination_condition.value
 
     # summary: retrieve / calculate run specs
     summary_dict["objective"] = model_info["config"]["optimization"]["objective"][
         "value"
     ]
-    summary_dict["solver_status"] = solution.solver.termination_condition.value
     summary_dict["pareto_point"] = model_info["pareto_point"]
     summary_dict["monte_carlo_run"] = model_info["monte_carlo_run"]
 
@@ -88,21 +97,30 @@ def get_summary(model, solution, folder_path, model_info):
     return summary_dict
 
 
-def write_optimization_results_to_h5(model, solution, folder_path, model_info, data):
+def write_optimization_results_to_h5(
+    model: ConcreteModel, solution: object, model_info: dict, data: dict
+) -> dict:
     """
-    Collects the results from the model blocks and writes them to an HDF5 file using the h5py library.
-    The summary results are returned in a dictionary format for further processing into an excel in the energyhub.
+    Collects the results from the model blocks and writes them to an HDF5 file
+
+    Saving to HDF5 files is done using the h5py library.
+    The summary results are returned in a dictionary format for exporting to Excel.
     Overhead (calculation of variables) are placed in the utilities file.
 
-    :param energyhub:
-    :return: summary_dict
+    :param ConcreteModel model: the model for which you want to save the results to an HDF5 file.
+    :param object solution: Pyomo solver results
+    :param dict model_info: information of the last solve done by the model
+    :param dict data: a dictionary containing all data read in by the DataHandle class.
+    :return: a dictionary containing the most important model results (i.e., summary_dict)
+    :rtype: dict
     """
+    config = model_info["config"]
+    folder_path = model_info["result_folder_path"]
 
     # create the results h5 file in the results folder
     h5_file_path = os.path.join(folder_path, "optimization_results.h5")
     with h5py.File(h5_file_path, mode="w") as f:
 
-        config = model_info["config"]
         summary_dict = get_summary(model, solution, folder_path, model_info)
 
         # SUMMARY [g]: convert dictionary to h5 datasets
@@ -117,32 +135,34 @@ def write_optimization_results_to_h5(model, solution, folder_path, model_info, d
 
         aggregation_type = "full"
 
+        # TIME-INDEPENDENT RESULTS (design) [g]
+        g_design = f.create_group("design")
+
+        # TIME-INDEPENDENT RESULTS: NETWORKS [g] > within: specific network [g] > within: specific arc of network[g]
+        networks_design = g_design.create_group("networks")
+
         for period in model.set_periods:
-            g_period = f.create_group(period)
-
-            # TIME-INDEPENDENT RESULTS (design) [g]
-            g_design = g_period.create_group("design")
-
-            # TIME-INDEPENDENT RESULTS: NETWORKS [g] > within: specific network [g] > within: specific arc of network[g]
-            networks_design = g_design.create_group("networks")
+            g_period_netw_design = networks_design.create_group(period)
 
             b_period = model.periods[period]
             set_t = b_period.set_t_full
 
             if not config["energybalance"]["copperplate"]["value"]:
                 for netw_name in b_period.set_networks:
-                    netw_specific_group = networks_design.create_group(netw_name)
+                    netw_specific_group = g_period_netw_design.create_group(netw_name)
                     b_netw = b_period.network_block[netw_name]
                     data.network_data[aggregation_type][period][
                         netw_name
-                    ].write_netw_design_results_to_group(netw_specific_group, b_netw)
+                    ].write_results_netw_design(netw_specific_group, b_netw)
 
-            # TIME-INDEPENDENT RESULTS: NODES [g]
-            nodes_design = g_design.create_group("nodes")
+        # TIME-INDEPENDENT RESULTS: NODES [g]
+        nodes_design = g_design.create_group("nodes")
+        for period in model.set_periods:
+            g_period_node_design = nodes_design.create_group(period)
 
             # TIME-INDEPENDENT RESULTS: NODES: specific node [g] within: specific technology [g]
             for node_name in model.set_nodes:
-                node_specific_group = nodes_design.create_group(node_name)
+                node_specific_group = g_period_node_design.create_group(node_name)
                 b_node = b_period.node_blocks[node_name]
 
                 for tec_name in b_node.set_technologies:
@@ -150,26 +170,34 @@ def write_optimization_results_to_h5(model, solution, folder_path, model_info, d
                     b_tec = b_node.tech_blocks_active[tec_name]
                     data.technology_data[aggregation_type][period][node_name][
                         tec_name
-                    ].write_tec_design_results_to_group(tec_group, b_tec)
+                    ].write_results_tec_design(tec_group, b_tec)
 
-            # TIME-DEPENDENT RESULTS (operation) [g]
-            operation = f.create_group("operation")
+        # TIME-DEPENDENT RESULTS (operation) [g]
+        operation = f.create_group("operation")
 
-            # TIME-DEPENDENT RESULTS: NETWORKS [g] > within: specific network [g] > within: specific arc of network [g]
-            networks_operation = operation.create_group("networks")
+        # TIME-DEPENDENT RESULTS: NETWORKS [g] > within: specific network [g] > within: specific arc of network [g]
+        networks_operation = operation.create_group("networks")
+
+        for period in model.set_periods:
+            g_period_netw_operation = networks_operation.create_group(period)
 
             if not config["energybalance"]["copperplate"]["value"]:
                 for netw_name in b_period.set_networks:
-                    netw_specific_group = networks_operation.create_group(netw_name)
+                    netw_specific_group = g_period_netw_operation.create_group(
+                        netw_name
+                    )
                     b_netw = b_period.network_block[netw_name]
                     data.network_data[aggregation_type][period][
                         netw_name
-                    ].write_netw_operation_results_to_group(netw_specific_group, b_netw)
+                    ].write_results_netw_operation(netw_specific_group, b_netw)
 
-            # TECHNOLOGY OPERATION [g] > within: node > specific technology [g]
-            tec_operation_group = operation.create_group("technology_operation")
+        # TECHNOLOGY OPERATION [g] > within: node > specific technology [g]
+        tec_operation_group = operation.create_group("technology_operation")
+        for period in model.set_periods:
+            g_period_tec_operation = tec_operation_group.create_group(period)
+
             for node_name in model.set_nodes:
-                node_specific_group = tec_operation_group.create_group(node_name)
+                node_specific_group = g_period_tec_operation.create_group(node_name)
                 b_node = b_period.node_blocks[node_name]
 
                 for tec_name in b_node.set_technologies:
@@ -177,12 +205,16 @@ def write_optimization_results_to_h5(model, solution, folder_path, model_info, d
                     b_tec = b_node.tech_blocks_active[tec_name]
                     data.technology_data[aggregation_type][period][node_name][
                         tec_name
-                    ].write_tec_operation_results_to_group(tec_group, b_tec)
+                    ].write_results_tec_operation(tec_group, b_tec)
 
-            # ENERGY BALANCE [g] > within: node > specific carrier [g]
-            ebalance_group = operation.create_group("energy_balance")
+        # ENERGY BALANCE [g] > within: node > specific carrier [g]
+        ebalance_group = operation.create_group("energy_balance")
+
+        for period in model.set_periods:
+            g_period_ebalance = ebalance_group.create_group(period)
+
             for node_name in model.set_nodes:
-                node_specific_group = ebalance_group.create_group(node_name)
+                node_specific_group = g_period_ebalance.create_group(node_name)
                 b_node = b_period.node_blocks[node_name]
 
                 for car in b_node.set_carriers:

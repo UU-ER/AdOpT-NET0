@@ -223,7 +223,9 @@ class Network(ModelComponent):
             # Use initial size
             self.size_max_arcs = self.size_initial
 
-    def construct_general_constraints(self, b_netw, energyhub):
+    def construct_general_constraints(
+        self, b_netw, data, set_nodes, set_t_full, set_t_clustered
+    ):
         r"""
         Adds a network as model block.
 
@@ -231,16 +233,18 @@ class Network(ModelComponent):
         :return: network model
         """
         # Data from energyhub
-        self.set_nodes = energyhub.model.set_nodes
-        self.set_t = energyhub.model.set_t_full
+        config = data["config"]
 
-        b_netw = self._define_possible_arcs(b_netw, energyhub)
+        self.set_nodes = set_nodes
+        self.set_t = set_t_full
+
+        b_netw = self._define_possible_arcs(b_netw, data)
 
         if self.performance_data["bidirectional"] == 1:
             b_netw = self._define_unique_arcs(b_netw)
 
         b_netw = self._define_size(b_netw)
-        b_netw = self._define_capex_parameters(b_netw, energyhub)
+        b_netw = self._define_capex_parameters(b_netw, data)
         b_netw = self._define_opex_parameters(b_netw)
         b_netw = self._define_emission_vars(b_netw)
         b_netw = self._define_network_characteristics(b_netw)
@@ -292,7 +296,7 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def write_netw_design_results_to_group(self, h5_group, model_block):
+    def write_results_netw_design(self, h5_group, model_block):
         """
         Function to report results of networks after optimization
 
@@ -329,7 +333,7 @@ class Network(ModelComponent):
             )
             arc_group.create_dataset("total_emissions", data=total_emissions)
 
-    def write_netw_operation_results_to_group(self, h5_group, model_block):
+    def write_results_netw_operation(self, h5_group, model_block):
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
@@ -379,7 +383,7 @@ class Network(ModelComponent):
 
         return model
 
-    def _define_possible_arcs(self, b_netw, energyhub):
+    def _define_possible_arcs(self, b_netw, data):
         """
         Define all possible arcs that have a connection
 
@@ -388,7 +392,6 @@ class Network(ModelComponent):
         - set_receives_from: Set of nodes for each node specifying receiving from nodes
         - set_sends_to: Set of nodes for each node specifying sending to nodes
         """
-        model = energyhub.model
         connection = copy.deepcopy(self.connection[:])
 
         def init_arcs_set(set):
@@ -404,14 +407,14 @@ class Network(ModelComponent):
                 if j == node:
                     yield i
 
-        b_netw.set_receives_from = Set(model.set_nodes, initialize=init_nodesIn)
+        b_netw.set_receives_from = Set(self.set_nodes, initialize=init_nodesIn)
 
         def init_nodesOut(set, node):
             for i, j in b_netw.set_arcs:
                 if i == node:
                     yield j
 
-        b_netw.set_sends_to = Set(model.set_nodes, initialize=init_nodesOut)
+        b_netw.set_sends_to = Set(self.set_nodes, initialize=init_nodesOut)
 
         return b_netw
 
@@ -470,7 +473,7 @@ class Network(ModelComponent):
                         )
         return b_netw
 
-    def _define_capex_parameters(self, b_netw, energyhub):
+    def _define_capex_parameters(self, b_netw, data):
         """
         Defines variables and parameters related to technology capex.
 
@@ -481,13 +484,12 @@ class Network(ModelComponent):
         - total capex for network
         """
 
-        configuration = energyhub.configuration
-
+        config = data["config"]
         economics = self.economics
 
         # CHECK FOR GLOBAL ECONOMIC OPTIONS
         discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = energyhub.topology.fraction_of_year_modelled
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
 
         # CAPEX
         annualization_factor = annualize(
@@ -560,7 +562,9 @@ class Network(ModelComponent):
         b_netw.para_loss2emissions = self.performance_data["loss2emissions"]
         b_netw.para_emissionfactor = self.performance_data["emissionfactor"]
 
-        b_netw.var_netw_emissions_pos = Var(self.set_t, self.set_nodes)
+        b_netw.var_netw_emissions_pos = Var(
+            self.set_t, self.set_nodes, domain=NonNegativeReals
+        )
 
         return b_netw
 
@@ -886,7 +890,7 @@ class Network(ModelComponent):
                 + b_arc.var_losses[t] * b_netw.para_loss2emissions
             )
 
-        b_netw.const_arc_emissions = Constraint(self.set_t, rule=init_arc_emissions)
+        b_arc.const_arc_emissions = Constraint(self.set_t, rule=init_arc_emissions)
 
         return b_arc
 

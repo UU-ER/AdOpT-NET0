@@ -7,7 +7,7 @@ from pyomo.environ import (
     SolverFactory,
 )
 
-from src.test.utilities import create_patched_datahandle
+from src.test.utilities import make_data_handle
 from src.components.technologies.technology import Technology
 from src.energyhub import EnergyHub
 from src.model_construction.construct_balances import (
@@ -56,7 +56,7 @@ def test_model_nodal_energy_balance():
     """
     nr_timesteps = 1
 
-    dh = create_patched_datahandle(nr_timesteps)
+    dh = make_data_handle(nr_timesteps)
     config = {"energybalance": {"violation": {"value": 0}}}
     period = dh.topology["investment_periods"][0]
     node = dh.topology["nodes"][0]
@@ -115,7 +115,7 @@ def test_model_global_energy_balance():
     """
     nr_timesteps = 1
 
-    dh = create_patched_datahandle(nr_timesteps)
+    dh = make_data_handle(nr_timesteps)
     config = {"energybalance": {"violation": {"value": 0}}}
     period = dh.topology["investment_periods"][0]
     node1 = dh.topology["nodes"][0]
@@ -174,7 +174,7 @@ def test_model_emission_balance():
     """
     nr_timesteps = 1
 
-    dh = create_patched_datahandle(nr_timesteps)
+    dh = make_data_handle(nr_timesteps)
     config = {"energybalance": {"violation": {"value": 0}, "copperplate": {"value": 0}}}
     period = dh.topology["investment_periods"][0]
     node = dh.topology["nodes"][0]
@@ -233,7 +233,7 @@ def test_model_cost_balance():
     """
     nr_timesteps = 1
 
-    dh = create_patched_datahandle(nr_timesteps)
+    dh = make_data_handle(nr_timesteps)
     config = {"energybalance": {"violation": {"value": 0}, "copperplate": {"value": 0}}}
     period = dh.topology["investment_periods"][0]
     node = dh.topology["nodes"][0]
