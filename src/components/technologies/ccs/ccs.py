@@ -1,8 +1,12 @@
-from ..utilities import open_json
+import pandas as pd
+
+from src.components.technologies.utilities import open_json
 import numpy as np
 
 
-def fit_ccs_data(ccs_data: dict, data: dict) -> dict:
+def fit_ccs_data(
+    co2_concentration: float, ccs_data: dict, climate_data: pd.DataFrame
+) -> dict:
     """
     Obtain bounds and input ratios for CCS
 
@@ -19,24 +23,22 @@ def fit_ccs_data(ccs_data: dict, data: dict) -> dict:
     :rtype: dict
     """
 
-    tec_data = open_json(ccs_data["ccs_type"], data.model_information.tec_data_path)
-    performance_data = tec_data["TechnologyPerf"]
-    time_steps = len(data.topology.timesteps)
+    performance_data = ccs_data["TechnologyPerf"]
+    time_steps = len(climate_data)
     molar_mass_CO2 = 44.01
-    co2_concentration = ccs_data["co2_concentration"]
     carbon_capture_rate = performance_data["capture_rate"]
 
     # Recalculate min/max size to have it in t/hCO2_in
-    tec_data["size_min"] = tec_data["size_min"] * co2_concentration
-    tec_data["size_max"] = tec_data["size_max"] * co2_concentration
+    ccs_data["size_min"] = ccs_data["size_min"] * co2_concentration
+    ccs_data["size_max"] = ccs_data["size_max"] * co2_concentration
 
     # Calculate input ratios
-    if "MEA" in ccs_data["ccs_type"]:
-        tec_data["TechnologyPerf"]["input_ratios"] = {}
-        for car in tec_data["TechnologyPerf"]["input_carrier"]:
-            tec_data["TechnologyPerf"]["input_ratios"][car] = (
-                tec_data["TechnologyPerf"]["eta"][car]
-                + tec_data["TechnologyPerf"]["omega"][car] * co2_concentration
+    if ccs_data["ccs_type"] == "MEA":
+        ccs_data["TechnologyPerf"]["input_ratios"] = {}
+        for car in ccs_data["TechnologyPerf"]["input_carrier"]:
+            ccs_data["TechnologyPerf"]["input_ratios"][car] = (
+                ccs_data["TechnologyPerf"]["eta"][car]
+                + ccs_data["TechnologyPerf"]["omega"][car] * co2_concentration
             ) / (co2_concentration * molar_mass_CO2 * 3.6)
     else:
         raise Exception(
@@ -44,23 +46,23 @@ def fit_ccs_data(ccs_data: dict, data: dict) -> dict:
         )
 
     # Calculate input and output bounds
-    tec_data["TechnologyPerf"]["bounds"] = {}
-    tec_data["TechnologyPerf"]["bounds"]["input"] = {}
-    tec_data["TechnologyPerf"]["bounds"]["output"] = {}
-    for car in tec_data["TechnologyPerf"]["input_carrier"]:
-        tec_data["TechnologyPerf"]["bounds"]["input"][car] = np.column_stack(
+    ccs_data["TechnologyPerf"]["bounds"] = {}
+    ccs_data["TechnologyPerf"]["bounds"]["input"] = {}
+    ccs_data["TechnologyPerf"]["bounds"]["output"] = {}
+    for car in ccs_data["TechnologyPerf"]["input_carrier"]:
+        ccs_data["TechnologyPerf"]["bounds"]["input"][car] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
                 np.ones(shape=(time_steps))
-                * tec_data["TechnologyPerf"]["input_ratios"][car],
+                * ccs_data["TechnologyPerf"]["input_ratios"][car],
             )
         )
-    for car in tec_data["TechnologyPerf"]["output_carrier"]:
-        tec_data["TechnologyPerf"]["bounds"]["output"][car] = np.column_stack(
+    for car in ccs_data["TechnologyPerf"]["output_carrier"]:
+        ccs_data["TechnologyPerf"]["bounds"]["output"][car] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
                 np.ones(shape=(time_steps)) * carbon_capture_rate,
             )
         )
 
-    return tec_data
+    return ccs_data
