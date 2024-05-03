@@ -18,10 +18,18 @@ import pandas as pd
 import sys
 import datetime
 
+from pyomo.gdp import Disjunction, Disjunct
+
 from .data_management import DataHandle
 from .model_construction import *
 from .utilities import get_glpk_parameters, get_gurobi_parameters, log_event
 from .result_management import *
+from .components.utilities import (
+    annualize,
+    set_discount_rate,
+    perform_disjunct_relaxation,
+)
+from .components.technologies.utilities import set_capex_model
 
 
 class EnergyHub:
@@ -257,7 +265,8 @@ class EnergyHub:
         self.construct_model()
         self.construct_balances()
         self.solve()
-        self.write_results()
+        if self.data.model_config["optimization"]["monte_carlo"]["N"]["value"] == 0:
+            self.write_results()
 
     def construct_balances(self):
         """
@@ -342,10 +351,7 @@ class EnergyHub:
         ]:
             # Gurobi
             if not config["scaling"]["scaling_on"]["value"]:
-                if (
-                    objective in ["emissions_minC", "pareto"]
-                    or config["optimization"]["monte_carlo"]["N"]["value"]
-                ):
+                if objective in ["emissions_minC", "pareto"]:
                     config["solveroptions"]["solver"]["value"] = "gurobi_persistent"
             self.solver = get_gurobi_parameters(config["solveroptions"])
 
@@ -495,8 +501,10 @@ class EnergyHub:
             self._monte_carlo_set_cost_parameters()
             if run == 0:
                 self._optimize(objective)
+                self.write_results()
             else:
                 self._call_solver()
+                self.write_results()
 
     def scale_model(self):
         """
@@ -685,7 +693,7 @@ class EnergyHub:
 
             model = self.model["full"]
 
-            # Fixme: change this for averaging
+            # Fixme: change this for averaging and kmeans
 
             summary_dict = write_optimization_results_to_h5(
                 model, self.solution, model_info, self.data
@@ -732,42 +740,64 @@ class EnergyHub:
         """
         config = self.data.model_config
 
+        # use correct resolution
+        if len(self.model.keys()) == 1:
+            resolution = next(iter(self.model))
+        else:
+            resolution = list(self.model.keys())[-1]
+
         if config["optimization"]["monte_carlo"]["type"]["value"] == 1:
             if (
                 "Technologies"
                 in config["optimization"]["monte_carlo"]["on_what"]["value"]
             ):
-                for period in self.model["full"].periods:
-                    for node in self.model["full"].periods[period].node_blocks:
+                for period in self.model[resolution].periods:
+                    for node in self.model[resolution].periods[period].node_blocks:
                         for tec in (
-                            self.model["full"]
+                            self.model[resolution]
                             .periods[period]
                             .node_blocks[node]
                             .tech_blocks_active
                         ):
-                            self._monte_carlo_technologies(node, tec)
+                            self._monte_carlo_technologies(
+                                resolution, period, node, tec
+                            )
 
             if "Networks" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-                for netw in model.network_block:
-                    self._monte_carlo_networks(netw)
+                for period in self.model[resolution].periods:
+                    for netw in self.model[resolution].periods[period].network_block:
+                        # FIXME this one when networks are tested
+                        self._monte_carlo_networks(netw)
 
             if (
                 "ImportPrices"
                 in config["optimization"]["monte_carlo"]["on_what"]["value"]
             ):
-                for node in model.node_blocks:
-                    for car in model.node_blocks[node].set_carriers:
-                        self._monte_carlo_import_prices(node, car)
+                for period in self.model[resolution].periods:
+                    for node in self.model[resolution].periods[period].node_blocks:
+                        for car in (
+                            self.model[resolution]
+                            .periods[period]
+                            .node_blocks[node]
+                            .set_carriers
+                        ):
+                            self._monte_carlo_import_prices(node, car)
 
             if (
                 "ExportPrices"
                 in config["optimization"]["monte_carlo"]["on_what"]["value"]
             ):
-                for node in model.node_blocks:
-                    for car in model.node_blocks[node].set_carriers:
-                        self._monte_carlo_export_prices(node, car)
+                for period in self.model[resolution].periods:
+                    for node in self.model[resolution].periods[period].node_blocks:
+                        for car in (
+                            self.model[resolution]
+                            .periods[period]
+                            .node_blocks[node]
+                            .set_carriers
+                        ):
+                            self._monte_carlo_export_prices(node, car)
 
-    def _monte_carlo_technologies(self, node, tec):
+    def _monte_carlo_technologies(self, resolution, period, node, tec):
         """
         Changes the capex of technologies
         """
@@ -776,29 +806,31 @@ class EnergyHub:
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        tec_data = self.data.technology_data[node][tec]
+        tec_data = self.data.technology_data[resolution][period][node][tec]
         economics = tec_data.economics
         discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = self.topology.fraction_of_year_modelled
+        fraction_of_year_modelled = self.data.topology["fraction_of_year_modelled"]
+
+        b_tec = (
+            self.model[resolution]
+            .periods[period]
+            .node_blocks[node]
+            .tech_blocks_active[tec]
+        )
 
         capex_model = set_capex_model(config, economics)
         annualization_factor = annualize(
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
 
-        b_tec = model.node_blocks[node].tech_blocks_active[tec]
-
         if capex_model == 1:
             # UNIT CAPEX
             # Update parameter
             unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
-            model.node_blocks[node].tech_blocks_active[tec].para_unit_capex = unit_capex
-            model.node_blocks[node].tech_blocks_active[tec].para_unit_capex_annual = (
-                unit_capex * annualization_factor
-            )
+            b_tec.para_unit_capex = unit_capex
+            b_tec.para_unit_capex_annual = unit_capex * annualization_factor
 
-            # Remove constraint (from persistent solver and from model)
-            self.solver.remove_constraint(b_tec.const_capex_aux)
+            # Remove constraint (from model)
             b_tec.del_component(b_tec.const_capex_aux)
 
             # Add constraint again
@@ -806,7 +838,6 @@ class EnergyHub:
                 expr=b_tec.var_size * b_tec.para_unit_capex_annual
                 == b_tec.var_capex_aux
             )
-            self.solver.add_constraint(b_tec.const_capex_aux)
 
         elif capex_model == 2:
             warnings.warn(
@@ -814,10 +845,49 @@ class EnergyHub:
             )
 
         elif capex_model == 3:
-            # TODO capex model 3
-            warnings.warn(
-                "monte carlo on piecewise defined investment costs is not implemented"
+            unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
+            b_tec.para_unit_capex = unit_capex
+            b_tec.para_unit_capex_annual = unit_capex * annualization_factor
+
+            fix_capex = tec_data.economics.capex_data["fix_capex"] * sd_random
+            b_tec.para_fix_capex = fix_capex
+            b_tec.para_fix_capex_annual = fix_capex * annualization_factor
+
+            # remove disjunctions
+            b_tec.del_component(b_tec.dis_installation)
+            b_tec.del_component(b_tec.disjunction_installation)
+            b_tec.del_component(b_tec.const_capex)
+            b_tec.del_component(b_tec.const_capex_aggregation)
+
+            # new capex unit commitment constraint
+            s_indicators = range(0, 2)
+
+            def init_installation(dis, ind):
+                if ind == 0:  # tech not installed
+                    dis.const_capex_aux = Constraint(expr=b_tec.var_capex_aux == 0)
+                    dis.const_not_installed = Constraint(expr=b_tec.var_size == 0)
+                else:  # tech installed
+                    dis.const_capex_aux = Constraint(
+                        expr=b_tec.var_size * b_tec.para_unit_capex_annual
+                        + b_tec.para_fix_capex_annual
+                        == b_tec.var_capex_aux
+                    )
+
+            b_tec.dis_installation = Disjunct(s_indicators, rule=init_installation)
+
+            def bind_disjunctions(dis):
+                return [b_tec.dis_installation[i] for i in s_indicators]
+
+            b_tec.disjunction_installation = Disjunction(rule=bind_disjunctions)
+
+            b_tec.const_capex = Constraint(expr=b_tec.var_capex == b_tec.var_capex_aux)
+
+            b_tec.const_capex_aggregation = Constraint(
+                expr=b_tec.var_capex_tot == b_tec.var_capex_aux
             )
+
+            # perform relaxation
+            b_tec = perform_disjunct_relaxation(b_tec)
 
     def _monte_carlo_networks(self, netw):
         """
