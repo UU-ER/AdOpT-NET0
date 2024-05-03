@@ -259,7 +259,7 @@ class Conv1(Technology):
 
             else:  # technology on
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 # input-output relation
                 def init_input_output_on(const):
@@ -369,7 +369,7 @@ class Conv1(Technology):
 
             else:  # piecewise definition
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 def init_input_on1(const):
                     return (

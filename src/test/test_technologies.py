@@ -715,12 +715,6 @@ def test_dynamics_fast(request):
                 )
                 model = generate_var_x_constraint(model, var_x)
 
-                # TEST CONSTRAINT
-                if conv_type == 3 and perf_type == 3:
-                    model.test_infeas_const = Constraint(
-                        expr=model.var_input_tot[2, "gas"] == 0.666666
-                    )
-
                 termination = run_model(model, request.config.solver)
                 assert termination == TerminationCondition.optimal
 
