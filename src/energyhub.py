@@ -952,6 +952,25 @@ class EnergyHub:
 
             b_arc.const_capex_aux = Constraint(rule=init_capex)
 
+            s_indicators = range(0, 2)
+
+            def init_installation(dis, ind):
+                if ind == 0:  # network not installed
+                    dis.const_capex_aux = Constraint(expr=b_arc.var_capex_aux == 0)
+                    dis.const_not_installed = Constraint(expr=b_arc.var_size == 0)
+                else:  # network installed
+                    dis.const_capex_aux = Constraint(rule=init_capex)
+
+            b_arc.dis_installation = Disjunct(s_indicators, rule=init_installation)
+
+            def bind_disjunctions(dis):
+                return [b_arc.dis_installation[i] for i in s_indicators]
+
+            b_arc.disjunction_installation = Disjunction(rule=bind_disjunctions)
+
+            # perform relaxation
+            b_netw = perform_disjunct_relaxation(b_netw)
+
     def _monte_carlo_import_prices(self, resolution, period, node, car):
         """
         Changes the import prices
