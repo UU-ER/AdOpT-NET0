@@ -773,8 +773,7 @@ class EnergyHub:
             if "Networks" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
                 for period in self.model[resolution].periods:
                     for netw in self.model[resolution].periods[period].network_block:
-                        # FIXME this one when networks are tested
-                        self._monte_carlo_networks(netw)
+                        self._monte_carlo_networks(resolution, period, netw)
 
             if (
                 "ImportPrices"
@@ -900,86 +899,58 @@ class EnergyHub:
             # perform relaxation
             b_tec = perform_disjunct_relaxation(b_tec)
 
-    def _monte_carlo_networks(self, netw):
+    def _monte_carlo_networks(self, resolution, period, netw):
         """
         Changes the capex of networks
         """
-        # TODO: This does not work!
         config = self.data.model_config
 
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        netw_data = self.data.network_data[netw]
+        netw_data = self.data.network_data[resolution][period][netw]
         economics = netw_data.economics
         discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = self.topology.fraction_of_year_modelled
+        fraction_of_year_modelled = self.data.topology["fraction_of_year_modelled"]
 
-        capex_model = economics.capex_model
         annualization_factor = annualize(
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
 
-        b_netw = model.network_block[netw]
+        b_netw = self.model[resolution].periods[period].network_block[netw]
 
-        if capex_model == 1:
-            b_netw.para_capex_gamma1 = (
-                economics.capex_data["gamma1"] * annualization_factor * sd_random
-            )
-            b_netw.para_capex_gamma2 = (
-                economics.capex_data["gamma2"] * annualization_factor * sd_random
-            )
-
-        elif capex_model == 2:
-            b_netw.para_capex_gamma1 = (
-                economics.capex_data["gamma1"] * annualization_factor * sd_random
-            )
-            b_netw.para_capex_gamma2 = (
-                economics.capex_data["gamma2"] * annualization_factor * sd_random
-            )
-
-        elif capex_model == 3:
-            b_netw.para_capex_gamma1 = (
-                economics.capex_data["gamma1"] * annualization_factor * sd_random
-            )
-            b_netw.para_capex_gamma2 = (
-                economics.capex_data["gamma2"] * annualization_factor * sd_random
-            )
-            b_netw.para_capex_gamma3 = (
-                economics.capex_data["gamma3"] * annualization_factor * sd_random
-            )
+        # Update cost parameters
+        b_netw.para_capex_gamma1 = (
+            economics.capex_data["gamma1"] * annualization_factor * sd_random
+        )
+        b_netw.para_capex_gamma2 = (
+            economics.capex_data["gamma2"] * annualization_factor * sd_random
+        )
+        b_netw.para_capex_gamma3 = (
+            economics.capex_data["gamma3"] * annualization_factor * sd_random
+        )
+        b_netw.para_capex_gamma4 = (
+            economics.capex_data["gamma4"] * annualization_factor * sd_random
+        )
 
         for arc in b_netw.set_arcs:
             b_arc = b_netw.arc_block[arc]
 
             # Remove constraint (from persistent solver and from model)
-            self.solver.remove_constraint(b_arc.const_capex_aux)
+            # FIXME: remove disjuctions installation
             b_arc.del_component(b_arc.const_capex_aux)
 
             # Add constraint again
             def init_capex(const):
-                if economics.capex_model == 1:
-                    return (
-                        b_arc.var_capex_aux
-                        == b_arc.var_size * b_netw.para_capex_gamma1
-                        + b_netw.para_capex_gamma2
-                    )
-                elif economics.capex_model == 2:
-                    return (
-                        b_arc.var_capex_aux
-                        == b_arc.var_size * b_arc.distance * b_netw.para_capex_gamma1
-                        + b_netw.para_capex_gamma2
-                    )
-                elif economics.capex_model == 3:
-                    return (
-                        b_arc.var_capex_aux
-                        == b_arc.var_size * b_arc.distance * b_netw.para_capex_gamma1
-                        + b_arc.var_size * b_netw.para_capex_gamma2
-                        + b_netw.para_capex_gamma3
-                    )
+                return (
+                    b_arc.var_capex_aux
+                    == b_netw.para_capex_gamma1
+                    + b_netw.para_capex_gamma2 * b_arc.var_size
+                    + b_netw.para_capex_gamma3 * b_arc.distance
+                    + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
+                )
 
             b_arc.const_capex_aux = Constraint(rule=init_capex)
-            self.solver.add_constraint(b_arc.const_capex_aux)
 
     def _monte_carlo_import_prices(self, resolution, period, node, car):
         """
