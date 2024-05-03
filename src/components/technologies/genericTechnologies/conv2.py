@@ -240,7 +240,7 @@ class Conv2(Technology):
 
             else:  # technology on
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 # input-output relation
                 def init_input_output_on(const, car_output):

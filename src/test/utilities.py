@@ -3,15 +3,18 @@ import random
 from pathlib import Path
 import pandas as pd
 import numpy as np
+from pyomo.core import ConcreteModel, Objective, minimize
+from pyomo.opt import TerminationCondition, SolverFactory
 
-from src.data_preprocessing import *
+from src.data_preprocessing import (
+    initialize_configuration_templates,
+    initialize_topology_templates,
+)
 from src.data_management import DataHandle
 from src.data_preprocessing.template_creation import (
-    create_climate_data,
     create_carrier_data,
     create_carbon_cost_data,
 )
-from src.energyhub import EnergyHub
 
 
 def select_random_list_from_list(ls: list) -> list:
@@ -121,7 +124,7 @@ def read_topology_patch(self):
     )
 
 
-def make_data_for_technology_testing(nr_timesteps):
+def make_data_for_testing(nr_timesteps):
 
     # Create DataHandle and monkey patch it
     dh = DataHandle()
@@ -253,3 +256,22 @@ def make_data_handle(nr_timesteps, topology=None):
     dh.read_input_data()
 
     return dh
+
+
+def run_model(
+    model: ConcreteModel, solver, objective: str = "capex_tot"
+) -> TerminationCondition:
+    if objective == "capex_tot":
+        model.obj = Objective(expr=model.var_capex_tot, sense=minimize)
+    elif objective == "capex":
+        model.obj = Objective(expr=model.var_capex, sense=minimize)
+    elif objective == "emissions":
+        model.obj = Objective(
+            expr=sum(model.var_tec_emissions_pos[t] for t in model.set_t),
+            sense=minimize,
+        )
+
+    solver = SolverFactory(solver)
+    solution = solver.solve(model)
+
+    return solution.solver.termination_condition

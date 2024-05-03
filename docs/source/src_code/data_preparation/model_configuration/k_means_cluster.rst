@@ -1,4 +1,4 @@
-.. _clustering:
+..   _clustering:
 
 Typical Day Clustering
 =====================================
@@ -10,22 +10,5 @@ The algorithm is implemented in a sub-class of the DataHandle class. The energyb
 renewable technologies 'RES' as well as networks are always modelled at full resolution. Other technologies are
 modelled with a reduced resolution.
 
-Examplary Usage
-^^^^^^^^^^^^^^^^^^
-You need to define the system topology and the input data before clustering the data. Then you can initialize
-an instance of the :func:`.ClusteredDataHandle` class and pass it to the :func:`.EnergyHub` class:
-
-.. testcode::
-
-    import src.data_management as dm
-
-    # Define topology and data (not shown here)
-
-    # Set configuration (cluster into 40 typical days)
-    configuration = ModelConfiguration()
-    configuration.optimization.typicaldays.N = 40
-
-
-    # Construct Model and solve
-    energyhub = EnergyHub(data, configuration)
-    ehub.quick_solve()
+To implement this method, you need to adjust the model configuration by setting a number of typical days N
+in ``ConfigModel.json`` as shown in :ref:`this example <workflow_example-usage>`.

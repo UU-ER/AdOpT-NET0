@@ -413,7 +413,7 @@ def construct_system_cost(model, config):
         def init_cost_capex_tecs(const):
             return b_period.var_cost_capex_tecs == sum(
                 sum(
-                    b_period.node_blocks[node].tech_blocks_active[tec].var_capex
+                    b_period.node_blocks[node].tech_blocks_active[tec].var_capex_tot
                     for tec in b_period.node_blocks[node].set_technologies
                 )
                 for node in model.set_nodes
@@ -440,7 +440,7 @@ def construct_system_cost(model, config):
                     sum(
                         b_period.node_blocks[node]
                         .tech_blocks_active[tec]
-                        .var_opex_variable[t]
+                        .var_opex_variable_tot[t]
                         * nr_timesteps_averaged
                         for tec in b_period.node_blocks[node].set_technologies
                     )
@@ -451,7 +451,9 @@ def construct_system_cost(model, config):
 
             tec_opex_fixed = sum(
                 sum(
-                    b_period.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
+                    b_period.node_blocks[node]
+                    .tech_blocks_active[tec]
+                    .var_opex_fixed_tot
                     for tec in b_period.node_blocks[node].set_technologies
                 )
                 for node in model.set_nodes
