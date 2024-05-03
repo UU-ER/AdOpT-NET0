@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 from pyomo.environ import (
     ConcreteModel,
@@ -806,8 +807,60 @@ class EnergyHub:
                             self._monte_carlo_export_prices(
                                 resolution, period, node, car
                             )
+        elif config["optimization"]["monte_carlo"]["type"]["value"] == 2:
+            filepath = (
+                Path(config["optimization"]["monte_carlo"]["csv_path"]["value"])
+                / "MonteCarlo.csv"
+            )
+            MC_parameters = pd.read_csv(filepath)
 
-    def _monte_carlo_technologies(self, resolution, period, node, tec):
+            for index, row in MC_parameters.iterrows():
+                if row["type"] == "technology":
+                    MC_technology_row = row
+                    tec = MC_technology_row["name"]
+
+                    for period in self.model[resolution].periods:
+                        for node in self.model[resolution].periods[period].node_blocks:
+                            if tec in (
+                                self.model[resolution]
+                                .periods[period]
+                                .node_blocks[node]
+                                .tech_blocks_active
+                            ):
+                                self._monte_carlo_technologies(
+                                    resolution, period, node, tec, MC_technology_row
+                                )
+                elif row["type"] == "network":
+                    MC_network_row = row
+                    # TODO: implement for networks
+                elif row["type"] == "import":
+                    MC_import_row = row
+
+                    for period in self.model[resolution].periods:
+                        for node in self.model[resolution].periods[period].node_blocks:
+                            self._monte_carlo_import_prices(
+                                resolution,
+                                period,
+                                node,
+                                MC_import_row["name"],
+                                MC_import_row,
+                            )
+                elif row["type"] == "export":
+                    MC_export_row = row
+
+                    for period in self.model[resolution].periods:
+                        for node in self.model[resolution].periods[period].node_blocks:
+                            self._monte_carlo_export_prices(
+                                resolution,
+                                period,
+                                node,
+                                MC_export_row["name"],
+                                MC_export_row,
+                            )
+
+    def _monte_carlo_technologies(
+        self, resolution, period, node, tec, MC_technology_row=None
+    ):
         """
         Changes the capex of technologies
         """
@@ -836,7 +889,13 @@ class EnergyHub:
         if capex_model == 1:
             # UNIT CAPEX
             # Update parameter
-            unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
+            if MC_technology_row is not None:
+                unit_capex = random.uniform(
+                    MC_technology_row["min"], MC_technology_row["max"]
+                )
+            else:
+                unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
+
             b_tec.para_unit_capex = unit_capex
             b_tec.para_unit_capex_annual = unit_capex * annualization_factor
 
@@ -971,7 +1030,9 @@ class EnergyHub:
             # perform relaxation
             b_netw = perform_disjunct_relaxation(b_netw)
 
-    def _monte_carlo_import_prices(self, resolution, period, node, car):
+    def _monte_carlo_import_prices(
+        self, resolution, period, node, car, MC_import_row=None
+    ):
         """
         Changes the import prices
         """
@@ -990,9 +1051,14 @@ class EnergyHub:
 
         # Update parameter
         for t in set_t:
-            model.periods[period].node_blocks[node].para_import_price[t, car] = (
-                import_prices.iloc[t - 1] * sd_random
-            )
+            if MC_import_row is not None:
+                model.periods[period].node_blocks[node].para_import_price[t, car] = (
+                    random.uniform(MC_import_row["min"], MC_import_row["max"])
+                )
+            else:
+                model.periods[period].node_blocks[node].para_import_price[t, car] = (
+                    import_prices.iloc[t - 1] * sd_random
+                )
 
         # delete old constraint
         b_period_cost.del_component(b_period_cost.const_cost_import)
@@ -1021,7 +1087,9 @@ class EnergyHub:
 
         b_period_cost.const_cost_import = Constraint(rule=init_cost_import)
 
-    def _monte_carlo_export_prices(self, resolution, period, node, car):
+    def _monte_carlo_export_prices(
+        self, resolution, period, node, car, MC_export_row=None
+    ):
         """
         Changes the export prices
         """
@@ -1040,9 +1108,14 @@ class EnergyHub:
 
         # Update parameter
         for t in set_t:
-            model.periods[period].node_blocks[node].para_export_price[t, car] = (
-                export_prices.iloc[t - 1] * sd_random
-            )
+            if MC_export_row is not None:
+                model.periods[period].node_blocks[node].para_export_price[t, car] = (
+                    random.uniform(MC_export_row["min"], MC_export_row["max"])
+                )
+            else:
+                model.periods[period].node_blocks[node].para_export_price[t, car] = (
+                    export_prices.iloc[t - 1] * sd_random
+                )
 
         # delete old constraint
         b_period_cost.del_component(b_period_cost.const_cost_export)

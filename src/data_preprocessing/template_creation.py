@@ -301,7 +301,7 @@ def initialize_configuration_templates() -> dict:
                     "value": "Technologies",
                 },
                 "csv_path": {
-                    "description": "Path to the CSV file containing the optimization parameters.",
+                    "description": "Path to the folder where the CSV file containing the optimization parameters is located.",
                     "value": None,
                 },
             },
@@ -494,9 +494,10 @@ def create_montecarlo_template_csv(base_path: Path | str):
     """
     Creates a template CSV file for the monte carlo parameters and saves it to the given path.
 
-    The file should be filled by specifying the type ('technology', 'network', 'import', 'export'), the name (specific technology or
-    network name, carrier in case of import or export), and the parameter ('CAPEX' for technology and network and
-    'price' or 'limit' for import and export).
+    The file should be filled by specifying the type ('technology', 'network', 'import', 'export'), the name (
+    specific technology or network name, carrier in case of import or export), and the parameter ('unit_CAPEX' or
+    'fix_CAPEX' for technology, 'gamma1' 'gamma2' 'gamma3' or 'gamma4' for network and 'price' or 'limit' for import
+    and export).
 
     :param str/Path path: path to folder to create Topology.json
     """
