@@ -2,7 +2,6 @@ alabaster==0.7.12
 alembic==1.8.1
 attrs==22.1.0
 Babel==2.11.0
-cdsapi==0.5.1
 certifi==2022.9.24
 cftime==1.6.2
 charset-normalizer==2.1.1
@@ -18,15 +17,10 @@ dill==0.3.6
 docutils==0.17.1
 et-xmlfile==1.1.0
 feedinlib==0.1.0rc4
-Fiona==1.8.22
 fonttools==4.38.0
 fsspec==2022.11.0
 GeoAlchemy2==0.6.3
-geopandas==0.10.2
 greenlet==2.0.1
-gurobipy==9.5.2
-h3==3.7.4
-h5py==3.7.0
 idna==3.4
 imagesize==1.4.1
 importlib-metadata==5.0.0
@@ -42,8 +36,6 @@ MarkupSafe==2.1.1
 matplotlib==3.5.3
 more-itertools==9.0.0
 munch==2.5.0
-netCDF4==1.6.1
-networkx==2.6.3
 numexpr==2.8.4
 numpy==1.21.6
 oedialect==0.0.10
@@ -60,9 +52,7 @@ Pint==0.18
 ply==3.11
 psycopg2==2.9.5
 psycopg2-binary==2.9.5
-pvlib==0.9.3
 Pygments==2.13.0
-Pyomo==6.4.2
 pyparsing==3.0.9
 pyproj==3.2.1
 python-dateutil==2.8.2
