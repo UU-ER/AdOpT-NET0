@@ -223,7 +223,7 @@ class Network(ModelComponent):
             # Use initial size
             self.size_max_arcs = self.size_initial
 
-    def construct_general_constraints(
+    def construct_netw_model(
         self, b_netw, data, set_nodes, set_t_full, set_t_clustered
     ):
         r"""

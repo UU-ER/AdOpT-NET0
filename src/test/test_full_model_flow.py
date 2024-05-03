@@ -5,7 +5,7 @@ from warnings import warn
 from src.energyhub import EnergyHub
 
 
-def test_full_model_flow():
+def test_full_model_flow(request):
     """
     Tests the full modelling pipeline with a small case study
 
@@ -42,14 +42,15 @@ def test_full_model_flow():
     pyhub.read_data(path, start_period=0, end_period=1)
     pyhub.construct_model()
     pyhub.construct_balances()
+    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
     pyhub.solve()
 
     m = pyhub.model["full"]
     p = m.periods["period1"]
 
-    if pyhub.solution.solver.termination_condition == TerminationCondition.infeasible:
+    if request.config.solver == "glpk":
         warn(
-            "This turns out to be infeasible if solved with GLPK 5. Test on local machine!"
+            "This turns out to be infeasible if solved with GLPK. Test on local machine!"
         )
     else:
 
