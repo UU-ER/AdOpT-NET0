@@ -13,7 +13,7 @@ def pytest_configure(config):
     config.technology_data_folder_path = Path("./src/test/technology_data")
     config.network_data_folder_path = Path("./src/test/network_data")
     config.root_folder_path = Path(".")
-    config.solver = "glpk"
+    config.solver = "gurobi"
 
 
 @pytest.fixture(autouse=True)
