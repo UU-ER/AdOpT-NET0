@@ -781,7 +781,9 @@ class EnergyHub:
                             .node_blocks[node]
                             .set_carriers
                         ):
-                            self._monte_carlo_import_prices(node, car)
+                            self._monte_carlo_import_prices(
+                                resolution, period, node, car
+                            )
 
             if (
                 "ExportPrices"
@@ -795,7 +797,9 @@ class EnergyHub:
                             .node_blocks[node]
                             .set_carriers
                         ):
-                            self._monte_carlo_export_prices(node, car)
+                            self._monte_carlo_export_prices(
+                                resolution, period, node, car
+                            )
 
     def _monte_carlo_technologies(self, resolution, period, node, tec):
         """
@@ -970,7 +974,7 @@ class EnergyHub:
             b_arc.const_capex_aux = Constraint(rule=init_capex)
             self.solver.add_constraint(b_arc.const_capex_aux)
 
-    def _monte_carlo_import_prices(self, node, car):
+    def _monte_carlo_import_prices(self, resolution, period, node, car):
         """
         Changes the import prices
         """
@@ -979,90 +983,48 @@ class EnergyHub:
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        model = self.model
-        set_t = model.set_t_full
+        model = self.model[resolution]
+        import_prices = self.data.time_series[resolution][period][node]["CarrierData"][
+            car
+        ]["Import price"]
+        b_period_cost = model.block_costbalance[period]
+        # TODO: check for averaging
+        set_t = model.periods[period].set_t_full
 
-        import_prices = self.data.node_data[node].data["import_prices"][car]
-        b_node = model.node_blocks[node]
-
+        # Update parameter
         for t in set_t:
-            # Update parameter
-            b_node.para_import_price[t, car] = import_prices.iloc[t - 1] * sd_random
-
-            # Remove constraint (from persistent solver and from model)
-            self.solver.remove_constraint(model.const_node_cost)
-            model.del_component(model.const_node_cost)
-
-            # Add constraint again
-            nr_timesteps_averaged = (
-                self.model_information.averaged_data_specs.nr_timesteps_averaged
+            model.periods[period].node_blocks[node].para_import_price[t, car] = (
+                import_prices.iloc[t - 1] * sd_random
             )
 
-            def init_node_cost(const):
-                tec_capex = sum(
-                    sum(
-                        model.node_blocks[node].tech_blocks_active[tec].var_capex
-                        for tec in model.node_blocks[node].set_tecsAtNode
-                    )
-                    for node in model.set_nodes
-                )
-                tec_opex_variable = sum(
-                    sum(
-                        sum(
-                            model.node_blocks[node]
-                            .tech_blocks_active[tec]
-                            .var_opex_variable[t]
-                            * nr_timesteps_averaged
-                            for tec in model.node_blocks[node].set_tecsAtNode
-                        )
-                        for t in set_t
-                    )
-                    for node in model.set_nodes
-                )
-                tec_opex_fixed = sum(
-                    sum(
-                        model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
-                        for tec in model.node_blocks[node].set_tecsAtNode
-                    )
-                    for node in model.set_nodes
-                )
-                import_cost = sum(
-                    sum(
-                        sum(
-                            model.node_blocks[node].var_import_flow[t, car]
-                            * model.node_blocks[node].para_import_price[t, car]
-                            * nr_timesteps_averaged
-                            for car in model.node_blocks[node].set_carriers
-                        )
-                        for t in set_t
-                    )
-                    for node in model.set_nodes
-                )
-                export_revenue = sum(
-                    sum(
-                        sum(
-                            model.node_blocks[node].var_export_flow[t, car]
-                            * model.node_blocks[node].para_export_price[t, car]
-                            * nr_timesteps_averaged
-                            for car in model.node_blocks[node].set_carriers
-                        )
-                        for t in set_t
-                    )
-                    for node in model.set_nodes
-                )
-                return (
-                    tec_capex
-                    + tec_opex_variable
-                    + tec_opex_fixed
-                    + import_cost
-                    - export_revenue
-                    == model.var_node_cost
-                )
+        # delete old constraint
+        b_period_cost.del_component(b_period_cost.const_cost_import)
 
-            model.const_node_cost = Constraint(rule=init_node_cost)
-            self.solver.add_constraint(model.const_node_cost)
+        # add new constraint
+        if config["optimization"]["timestaging"]["value"] == 0:
+            nr_timesteps_averaged = 1
+        else:
+            nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
 
-    def _monte_carlo_export_prices(self, node, car):
+        def init_cost_import(const):
+            return model.periods[period].var_cost_imports == sum(
+                sum(
+                    sum(
+                        model.periods[period].node_blocks[node].var_import_flow[t, car]
+                        * model.periods[period]
+                        .node_blocks[node]
+                        .para_import_price[t, car]
+                        * nr_timesteps_averaged
+                        for car in model.periods[period].node_blocks[node].set_carriers
+                    )
+                    for t in set_t
+                )
+                for node in model.set_nodes
+            )
+
+        b_period_cost.const_cost_import = Constraint(rule=init_cost_import)
+
+    def _monte_carlo_export_prices(self, resolution, period, node, car):
         """
         Changes the export prices
         """
@@ -1071,88 +1033,46 @@ class EnergyHub:
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        model = self.model
-        set_t = model.set_t_full
+        model = self.model[resolution]
+        export_prices = self.data.time_series[resolution][period][node]["CarrierData"][
+            car
+        ]["Export price"]
+        b_period_cost = model.block_costbalance[period]
+        # TODO: check for averaging
+        set_t = model.periods[period].set_t_full
 
-        export_prices = self.data.node_data[node].data["export_prices"][car]
-        b_node = model.node_blocks[node]
-
+        # Update parameter
         for t in set_t:
-            # Update parameter
-            b_node.para_export_price[t, car] = export_prices[t - 1] * sd_random
-
-            # Remove constraint (from persistent solver and from model)
-            self.solver.remove_constraint(model.const_node_cost)
-            model.del_component(model.const_node_cost)
-
-            # Add constraint again
-            nr_timesteps_averaged = (
-                self.model_information.averaged_data_specs.nr_timesteps_averaged
+            model.periods[period].node_blocks[node].para_export_price[t, car] = (
+                export_prices.iloc[t - 1] * sd_random
             )
 
-            def init_node_cost(const):
-                tec_capex = sum(
-                    sum(
-                        model.node_blocks[node].tech_blocks_active[tec].var_capex
-                        for tec in model.node_blocks[node].set_tecsAtNode
-                    )
-                    for node in model.set_nodes
-                )
-                tec_opex_variable = sum(
-                    sum(
-                        sum(
-                            model.node_blocks[node]
-                            .tech_blocks_active[tec]
-                            .var_opex_variable[t]
-                            * nr_timesteps_averaged
-                            for tec in model.node_blocks[node].set_tecsAtNode
-                        )
-                        for t in set_t
-                    )
-                    for node in model.set_nodes
-                )
-                tec_opex_fixed = sum(
-                    sum(
-                        model.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
-                        for tec in model.node_blocks[node].set_tecsAtNode
-                    )
-                    for node in model.set_nodes
-                )
-                import_cost = sum(
-                    sum(
-                        sum(
-                            model.node_blocks[node].var_import_flow[t, car]
-                            * model.node_blocks[node].para_import_price[t, car]
-                            * nr_timesteps_averaged
-                            for car in model.node_blocks[node].set_carriers
-                        )
-                        for t in set_t
-                    )
-                    for node in model.set_nodes
-                )
-                export_revenue = sum(
-                    sum(
-                        sum(
-                            model.node_blocks[node].var_export_flow[t, car]
-                            * model.node_blocks[node].para_export_price[t, car]
-                            * nr_timesteps_averaged
-                            for car in model.node_blocks[node].set_carriers
-                        )
-                        for t in set_t
-                    )
-                    for node in model.set_nodes
-                )
-                return (
-                    tec_capex
-                    + tec_opex_variable
-                    + tec_opex_fixed
-                    + import_cost
-                    - export_revenue
-                    == model.var_node_cost
-                )
+        # delete old constraint
+        b_period_cost.del_component(b_period_cost.const_cost_export)
 
-            model.const_node_cost = Constraint(rule=init_node_cost)
-            self.solver.add_constraint(model.const_node_cost)
+        # add new constraint
+        if config["optimization"]["timestaging"]["value"] == 0:
+            nr_timesteps_averaged = 1
+        else:
+            nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
+
+        def init_cost_export(const):
+            return model.periods[period].var_cost_exports == -sum(
+                sum(
+                    sum(
+                        model.periods[period].node_blocks[node].var_export_flow[t, car]
+                        * model.periods[period]
+                        .node_blocks[node]
+                        .para_export_price[t, car]
+                        * nr_timesteps_averaged
+                        for car in model.periods[period].node_blocks[node].set_carriers
+                    )
+                    for t in set_t
+                )
+                for node in model.set_nodes
+            )
+
+        b_period_cost.const_cost_export = Constraint(rule=init_cost_export)
 
     def _delete_objective(self):
         """

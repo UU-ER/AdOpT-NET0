@@ -130,9 +130,15 @@ def construct_node_block(b_node, data, set_t):
             """Rule initiating a carrier parameter"""
             return ts[car][key][t - 1]
 
-        parameter = Param(
-            set_t, b_node.set_carriers, rule=init_carrier_parameter, mutable=False
-        )
+        if key in ["Import emission factor", "Export emission factor"]:
+            parameter = Param(
+                set_t, b_node.set_carriers, rule=init_carrier_parameter, mutable=False
+            )
+        else:
+            parameter = Param(
+                set_t, b_node.set_carriers, rule=init_carrier_parameter, mutable=True
+            )
+
         return parameter
 
     def create_carbonprice_parameter(key):

@@ -286,7 +286,8 @@ def write_optimization_results_to_h5(
                         data=[node_data.var_export_flow[t, car].value for t in set_t],
                     )
                     car_group.create_dataset(
-                        "demand", data=[node_data.para_demand[t, car] for t in set_t]
+                        "demand",
+                        data=[node_data.para_demand[t, car].value for t in set_t],
                     )
 
     return summary_dict
