@@ -259,7 +259,7 @@ def make_data_handle(nr_timesteps, topology=None):
 
 
 def run_model(
-    model: ConcreteModel, objective: str = "capex_tot"
+    model: ConcreteModel, solver, objective: str = "capex_tot"
 ) -> TerminationCondition:
     if objective == "capex_tot":
         model.obj = Objective(expr=model.var_capex_tot, sense=minimize)
@@ -271,7 +271,7 @@ def run_model(
             sense=minimize,
         )
 
-    solver = SolverFactory("glpk")
+    solver = SolverFactory(solver)
     solution = solver.solve(model)
 
     return solution.solver.termination_condition

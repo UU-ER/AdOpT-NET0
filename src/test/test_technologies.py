@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 from pathlib import Path
 from pyomo.environ import (
@@ -288,7 +290,7 @@ def test_res_pv(request):
     )
 
     model = generate_output_constraint(model, oversize)
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -298,7 +300,7 @@ def test_res_pv(request):
     # FEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [1])
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
 
 
@@ -321,7 +323,7 @@ def test_res_wt(request):
         np.ones(time_steps) * tec.size_max * 1.1 * tec.fitted_performance.rated_power
     )
     model = generate_output_constraint(model, oversize)
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -331,7 +333,7 @@ def test_res_wt(request):
     # FEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [1])
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
 
 
@@ -372,7 +374,7 @@ def test_conv_perf(request):
                     * tec.fitted_performance.rated_power
                 )
                 model = generate_output_constraint(model, oversize)
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 assert termination in [
                     TerminationCondition.infeasibleOrUnbounded,
                     TerminationCondition.infeasible,
@@ -383,7 +385,7 @@ def test_conv_perf(request):
                 model = generate_output_constraint(
                     model, [1], output_ratios=output_ratios
                 )
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 assert termination == TerminationCondition.optimal
 
                 # Check performance for performance type 1
@@ -439,7 +441,7 @@ def test_conv_perf(request):
                     model, minsize, equality_constraint=True
                 )
                 model = generate_output_constraint(model, demand)
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 model.pprint()
                 assert termination in [
                     TerminationCondition.infeasibleOrUnbounded,
@@ -452,7 +454,7 @@ def test_conv_perf(request):
                 model = generate_output_constraint(
                     model, [1], output_ratios=output_ratios
                 )
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 assert termination == TerminationCondition.optimal
 
                 # Check performance for performance type 1
@@ -529,30 +531,38 @@ def test_conv_CAPEX(request):
 
         # Check CAPEX
         model = generate_output_constraint(model, [1])
-        termination = run_model(model)
-        assert termination == TerminationCondition.optimal
 
-        if capex_model == 1:
-            assert round(model.var_capex.value, 4) == round(
-                tec.economics.capex_data["unit_capex"] * model.var_size.value * a, 4
+        if capex_model == 2 and request.config.solver == "glpk":
+            warnings.warn(
+                "SOS constraints dont work with glpk, test on local machine"
+                " with gurobi"
             )
+        else:
+            termination = run_model(model, request.config.solver)
+            assert termination == TerminationCondition.optimal
 
-        if capex_model == 2:
-            bp_x = tec.economics.capex_data["piecewise_capex"]["bp_x"]
-            bp_y = tec.economics.capex_data["piecewise_capex"]["bp_y"]
-            assert round(model.var_capex.value, 4) == round(
-                calculate_piecewise_function(model.var_size.value, bp_x, bp_y) * a, 4
-            )
-
-        if capex_model == 3:
-            assert round(model.var_capex.value, 5) == round(
-                (
-                    tec.economics.capex_data["unit_capex"] * model.var_size.value
-                    + tec.economics.capex_data["fix_capex"]
+            if capex_model == 1:
+                assert round(model.var_capex.value, 4) == round(
+                    tec.economics.capex_data["unit_capex"] * model.var_size.value * a, 4
                 )
-                * a,
-                5,
-            )
+
+            if capex_model == 2:
+                bp_x = tec.economics.capex_data["piecewise_capex"]["bp_x"]
+                bp_y = tec.economics.capex_data["piecewise_capex"]["bp_y"]
+                assert round(model.var_capex.value, 4) == round(
+                    calculate_piecewise_function(model.var_size.value, bp_x, bp_y) * a,
+                    4,
+                )
+
+            if capex_model == 3:
+                assert round(model.var_capex.value, 5) == round(
+                    (
+                        tec.economics.capex_data["unit_capex"] * model.var_size.value
+                        + tec.economics.capex_data["fix_capex"]
+                    )
+                    * a,
+                    5,
+                )
 
 
 def test_tec_storage(request):
@@ -574,7 +584,7 @@ def test_tec_storage(request):
         np.ones(time_steps) * tec.size_max * 1.1 * tec.fitted_performance.rated_power
     )
     model = generate_output_constraint(model, oversize)
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -592,7 +602,7 @@ def test_tec_storage(request):
         model.set_t, model.set_output_carriers, rule=init_output_constraint
     )
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
 
     assert termination == TerminationCondition.optimal
     assert model.var_size.value > 0
@@ -613,7 +623,7 @@ def test_tec_sink(request):
 
     # INFEASIBILITY CASES
     model.test_const_input = Constraint(expr=model.var_input_tot[1, "CO2captured"] == 2)
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -624,7 +634,7 @@ def test_tec_sink(request):
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model.test_const_input = Constraint(expr=model.var_input_tot[2, "CO2captured"] == 1)
     model.test_const_level = Constraint(expr=model.var_storage_level[1] == 0)
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
 
     assert termination == TerminationCondition.optimal
     assert model.var_storage_level[2].value == 1
@@ -666,7 +676,7 @@ def test_dynamics_fast(request):
                 model = generate_output_constraint(
                     model, output, output_ratios=output_ratios
                 )
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 assert termination in [
                     TerminationCondition.infeasibleOrUnbounded,
                     TerminationCondition.infeasible,
@@ -684,7 +694,7 @@ def test_dynamics_fast(request):
                     model, minsize, equality_constraint=True
                 )
                 model = generate_output_constraint(model, demand)
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 assert termination in [
                     TerminationCondition.infeasibleOrUnbounded,
                     TerminationCondition.infeasible,
@@ -704,7 +714,7 @@ def test_dynamics_fast(request):
                     model, output, output_ratios=output_ratios
                 )
                 model = generate_var_x_constraint(model, var_x)
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 assert termination == TerminationCondition.optimal
 
                 # Check max startups
@@ -730,7 +740,7 @@ def test_dynamics_fast(request):
                 )
                 model = generate_var_x_constraint(model, var_x)
                 model = generate_size_constraint(model, 1)
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 assert termination in [
                     TerminationCondition.infeasibleOrUnbounded,
                     TerminationCondition.infeasible,
@@ -751,7 +761,7 @@ def test_dynamics_fast(request):
                 )
                 model = generate_var_x_constraint(model, var_x)
                 model = generate_size_constraint(model, 1)
-                termination = run_model(model)
+                termination = run_model(model, request.config.solver)
                 assert termination in [
                     TerminationCondition.infeasibleOrUnbounded,
                     TerminationCondition.infeasible,
@@ -798,7 +808,7 @@ def test_dynamics_slow(request):
         model = generate_output_constraint_start_timestep(
             model, demand=output_start, output_ratios=output_ratios
         )
-        termination = run_model(model)
+        termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
 
         main_car = tec.performance_data["main_input_carrier"]
@@ -827,7 +837,7 @@ def test_dynamics_slow(request):
         model = generate_var_z_constraint(model, var_z)
         model = generate_var_x_constraint(model, var_x)
         model = generate_output_constraint_start_timestep(model, demand=output_start)
-        termination = run_model(model)
+        termination = run_model(model, request.config.solver)
         assert termination in [
             TerminationCondition.infeasibleOrUnbounded,
             TerminationCondition.infeasible,
@@ -856,7 +866,7 @@ def test_dynamics_slow(request):
         model = generate_output_constraint_end_timestep(
             model, demand=output_start, output_ratios=output_ratios
         )
-        termination = run_model(model)
+        termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
 
         main_car = tec.performance_data["main_input_carrier"]
@@ -885,7 +895,7 @@ def test_dynamics_slow(request):
         model = generate_var_y_constraint(model, var_y)
         model = generate_var_x_constraint(model, var_x)
         model = generate_output_constraint_start_timestep(model, demand=output_start)
-        termination = run_model(model)
+        termination = run_model(model, request.config.solver)
         assert termination in [
             TerminationCondition.infeasibleOrUnbounded,
             TerminationCondition.infeasible,
@@ -908,7 +918,7 @@ def test_dac(request):
     model = generate_output_constraint(model, [1])
     model.test_const_input = Constraint(expr=model.var_input_tot[1, "electricity"] == 0)
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -919,7 +929,7 @@ def test_dac(request):
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [1])
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
     assert model.var_input_tot[1, "heat"].value > 0.1
     assert model.var_input_tot[1, "electricity"].value > 0.01
@@ -946,7 +956,7 @@ def test_hydro_open(request):
 
     model.test_const_input = Constraint(model.set_t, rule=init_test_input)
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -962,7 +972,7 @@ def test_hydro_open(request):
 
     model.test_const_input = Constraint(model.set_t, rule=init_test_input)
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
     assert model.var_size.value == 2
 
@@ -982,7 +992,7 @@ def test_heat_pump(request):
     model = generate_output_constraint(model, [1])
     model.test_const_input = Constraint(expr=model.var_input_tot[1, "electricity"] == 0)
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -993,7 +1003,7 @@ def test_heat_pump(request):
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [1])
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
     assert model.var_size.value >= 0.1
     assert model.var_input_tot[1, "electricity"].value >= 0.1
@@ -1014,7 +1024,7 @@ def test_gasturbine(request):
     model = generate_output_constraint(model, [9])
     model.test_const_input = Constraint(expr=model.var_input_tot[1, "gas"] == 0)
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -1028,7 +1038,7 @@ def test_gasturbine(request):
     )
     model.test_const_input = Constraint(expr=model.var_input_tot[1, "hydrogen"] == 0)
 
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
     assert model.var_size.value == 1
     assert model.var_input_tot[1, "gas"].value >= 10 / 0.4
@@ -1051,7 +1061,7 @@ def test_ccs(request):
         expr=model.var_output_tot[1, "electricity"] == 1
     )
     model.test_const_emissions = Constraint(expr=model.var_tec_emissions_pos[1] == 0)
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
         TerminationCondition.infeasible,
@@ -1063,7 +1073,7 @@ def test_ccs(request):
     model.test_const_output = Constraint(
         expr=model.var_output_tot[1, "electricity"] == 1
     )
-    termination = run_model(model)
+    termination = run_model(model, request.config.solver)
     cost_no_ccs = model.var_capex_tot.value
     emissions_no_ccs = sum([model.var_tec_emissions_pos[t].value for t in model.set_t])
 
@@ -1077,7 +1087,7 @@ def test_ccs(request):
     model.test_const_output = Constraint(
         expr=model.var_output_tot[1, "electricity"] == 1
     )
-    termination = run_model(model, objective="emissions")
+    termination = run_model(model, request.config.solver, objective="emissions")
     assert termination == TerminationCondition.optimal
 
     cost_ccs = model.var_capex_tot.value

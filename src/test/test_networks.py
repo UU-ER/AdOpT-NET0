@@ -80,7 +80,7 @@ def test_network_unidirectional(request):
     m.test_const_outflow2 = pyo.Constraint(
         expr=m.var_inflow[1, "hydrogen", "node2"] == 1
     )
-    termination = run_model(m, objective="capex")
+    termination = run_model(m, request.config.solver, objective="capex")
     assert termination in [
         pyo.TerminationCondition.infeasibleOrUnbounded,
         pyo.TerminationCondition.infeasible,
@@ -94,7 +94,7 @@ def test_network_unidirectional(request):
     m.test_const_outflow1 = pyo.Constraint(
         expr=m.var_inflow[1, "hydrogen", "node1"] == 1
     )
-    termination = run_model(m, objective="capex")
+    termination = run_model(m, request.config.solver, objective="capex")
     assert termination == pyo.TerminationCondition.optimal
     assert round(m.arc_block["node2", "node1"].var_size.value, 3) == round(
         m.arc_block["node1", "node2"].var_size.value, 3
@@ -118,7 +118,7 @@ def test_network_bidirectional(request):
     m.test_const_outflow2 = pyo.Constraint(
         expr=m.var_inflow[1, "hydrogen", "node2"] == 2
     )
-    termination = run_model(m, objective="capex")
+    termination = run_model(m, request.config.solver, objective="capex")
     assert termination == pyo.TerminationCondition.optimal
     assert round(m.arc_block["node2", "node1"].var_size.value, 3) >= 1
     assert round(m.arc_block["node2", "node1"].var_size.value, 3) <= 2
@@ -144,7 +144,7 @@ def test_network_energyconsumption(request):
         expr=m.var_consumption[1, "electricity", "node2"] == 0
     )
 
-    termination = run_model(m, objective="capex")
+    termination = run_model(m, request.config.solver, objective="capex")
     assert termination in [
         pyo.TerminationCondition.infeasibleOrUnbounded,
         pyo.TerminationCondition.infeasible,
@@ -156,6 +156,6 @@ def test_network_energyconsumption(request):
         expr=m.var_inflow[1, "hydrogen", "node1"] == 1
     )
 
-    termination = run_model(m, objective="capex")
+    termination = run_model(m, request.config.solver, objective="capex")
     assert termination == pyo.TerminationCondition.optimal
     assert m.var_consumption[1, "electricity", "node2"].value > 0
