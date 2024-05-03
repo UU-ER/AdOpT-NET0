@@ -301,7 +301,7 @@ class Conv3(Technology):
 
             else:  # technology on
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 # input-output relation
                 def init_input_output_on(const, car_output):
@@ -372,6 +372,8 @@ class Conv3(Technology):
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
 
+                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+
                 if standby_power == -1:
 
                     def init_input_off(const, car_input):
@@ -405,6 +407,8 @@ class Conv3(Technology):
                 )
 
             else:  # piecewise definition
+
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 def init_input_on1(const):
                     return (

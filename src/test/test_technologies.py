@@ -714,6 +714,7 @@ def test_dynamics_fast(request):
                     model, output, output_ratios=output_ratios
                 )
                 model = generate_var_x_constraint(model, var_x)
+
                 termination = run_model(model, request.config.solver)
                 assert termination == TerminationCondition.optimal
 
