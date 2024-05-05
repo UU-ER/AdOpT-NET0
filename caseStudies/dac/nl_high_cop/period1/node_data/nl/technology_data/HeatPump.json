@@ -8,21 +8,21 @@
   "Economics": {
     "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
-    "unit_CAPEX": 114430,
-    "fix_CAPEX": 1e6,
+    "unit_CAPEX": 700000,
+    "fix_CAPEX": 0,
     "piecewise_CAPEX": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
     "OPEX_variable": 0.5,
-    "OPEX_fixed": 0.01,
+    "OPEX_fixed": 1.8,
     "discount_rate": 0.1,
     "lifetime": 25,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 2,
+    "performance_function_type": 1,
     "input_carrier": [
       "electricity"
     ],
@@ -31,7 +31,7 @@
       "heat"
     ],
     "emission_factor": 0,
-    "min_part_load": 0.02,
+    "min_part_load": 0,
     "performance": {
       "in": [
         0,
@@ -39,7 +39,7 @@
       ],
       "out": [
         0,
-        4
+        3.36
       ]
     },
     "ramping_time": -1,

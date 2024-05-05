@@ -1,18 +1,18 @@
 {
   "tec_type": "RES",
   "size_min": 0,
-  "size_max": 1000,
-  "size_is_int": 0,
+  "size_max": 1.5E+6,
+  "size_is_int": 1,
   "decommission": 0,
   "Economics": {
     "CAPEX_model": 1,
-    "comment": "CAPEX in EUR/MW, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
-    "unit_CAPEX": 119362.879,
+    "comment": "CAPEX in EUR/module, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "unit_CAPEX": 5227348,
     "fix_CAPEX": 0,
-    "OPEX_variable": 16.937521,
-    "OPEX_fixed": 0,
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0.282,
     "discount_rate": 0.1,
-    "lifetime": 20,
+    "lifetime": 25,
     "decommission_cost": 0
   },
   "TechnologyPerf": {
@@ -28,5 +28,9 @@
     "output_carrier": {
       "electricity": "MW"
     }
+  },
+  "ScalingFactors": {
+    "const_capex_aux": 1e-3,
+    "var_capex_aux": 1e-1
   }
 }
