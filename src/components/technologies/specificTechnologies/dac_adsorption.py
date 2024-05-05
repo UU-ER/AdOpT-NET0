@@ -142,7 +142,7 @@ class DacAdsorption(Technology):
         print("Complete: ", 100, "%")
 
         # Output Bounds
-        self.fitted_performance.bounds["output"]["CO2"] = np.column_stack(
+        self.fitted_performance.bounds["output"]["CO2captured"] = np.column_stack(
             (np.zeros(shape=(time_steps)), out_max)
         )
         # Input Bounds
@@ -252,7 +252,7 @@ class DacAdsorption(Technology):
             # Input-output (eq. 2)
             def init_output(const):
                 return (
-                    self.output[t, "CO2"]
+                    self.output[t, "CO2captured"]
                     == alpha[t - 1, ind - 1] * b_tec.var_input_total[t]
                     + beta[t - 1, ind - 1] * b_tec.var_modules_on[t]
                 )

@@ -60,6 +60,9 @@ class Res(Technology):
                 hubheight = 120
             self._perform_fitting_WT(climate_data, hubheight)
 
+        elif "Generic" in self.name:
+            self._perform_fitting_generic(climate_data)
+
     def _perform_fitting_PV(self, climate_data: pd.DataFrame, location: dict, **kwargs):
         """
         Calculates capacity factors and specific area requirements for a PV system using pvlib
@@ -222,6 +225,20 @@ class Res(Technology):
         self.fitted_performance.time_dependent_coefficients = 1
         # Other Data
         self.fitted_performance.rated_power = rated_power / 1000
+
+    def _perform_fitting_generic(self, climate_data):
+
+        capacity_factor = climate_data[self.name]
+
+        # Calculate output bounds
+        lower_output_bound = np.zeros(shape=(len(climate_data)))
+        upper_output_bound = capacity_factor.to_numpy()
+        output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
+
+        # Output Bounds
+        self.fitted_performance.bounds["output"]["electricity"] = output_bounds
+        # Coefficients
+        self.fitted_performance.coefficients["capfactor"] = round(capacity_factor, 3)
 
     def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
         """
