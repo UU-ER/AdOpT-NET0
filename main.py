@@ -8,15 +8,10 @@ import numpy as np
 # Todo: make it possible to add technology blocks retrospectively
 # Todo: logging
 
+# Todo: Cost data
+#
 path = "caseStudies/dac/nl"
 
-# dp.create_optimization_templates(path)
-# dp.create_input_data_folder_template(path)
-
-# dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-# dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-# dp.load_climate_data_from_api(path)
-#
 pyhub = EnergyHub()
 pyhub.read_data(path, start_period=0, end_period=10)
 pyhub.quick_solve()
