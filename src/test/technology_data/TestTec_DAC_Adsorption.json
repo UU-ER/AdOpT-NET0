@@ -25,9 +25,9 @@
       "electricity",
       "heat"
     ],
-    "main_output_carrier": "CO2",
+    "main_output_carrier": "CO2captured",
     "output_carrier": [
-      "CO2"
+      "CO2captured"
     ],
     "nr_segments": 2,
     "ohmic_heating": 1,
