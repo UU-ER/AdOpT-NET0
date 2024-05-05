@@ -9,6 +9,7 @@ from pyomo.environ import (
     TransformationFactory,
     minimize,
     Suffix,
+    SolverStatus,
 )
 import os
 import time
@@ -17,10 +18,9 @@ import pandas as pd
 import sys
 import datetime
 
-from .logger import logger
 from .data_management import DataHandle
 from .model_construction import *
-from .utilities import get_glpk_parameters, get_gurobi_parameters
+from .utilities import get_glpk_parameters, get_gurobi_parameters, log_event
 from .result_management import *
 
 
@@ -30,6 +30,7 @@ class EnergyHub:
 
     When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
     class:
+
     - self.logger: Logger
     - self.data: Data container
     - self.model: Model container
@@ -41,12 +42,15 @@ class EnergyHub:
         """
         Constructor
         """
-        self.logger = logger
-
         self.data = None
         self.model = {}
         self.solution = {}
         self.solver = None
+        self.last_solve_info = {}
+        self.info_pareto = {}
+        self.info_pareto["pareto_point"] = -1
+        self.info_solving_algorithms = {}
+        self.info_monte_carlo = {}
 
     def read_data(
         self, data_path: Path | str, start_period: int = None, end_period: int = None
@@ -60,39 +64,55 @@ class EnergyHub:
         :param int start_period: starting period of the model
         :param int end_period: end period of the model
         """
-        self.logger.info("--- Reading in data ---")
-        print("_" * 60)
-        print("--- Reading in data ---")
+        log_event("--- Reading in data ---")
 
-        self.data = DataHandle(data_path, start_period, end_period)
+        self.data = DataHandle()
+        self.data.read_input_data(data_path, start_period, end_period)
         self._perform_preprocessing_checks()
 
-        self.logger.info("--- Reading in data complete ---")
-        print("--- Reading in data complete ---")
+        log_event("--- Reading in data complete ---")
 
     def construct_model(self):
         """
-        Construct the model.
+        Constructs the model. The model structure is as follows:
 
-        :return:
-        :rtype:
+        **Global sets**
+
+        - set_periods: set of investment periods
+        - set_nodes: set of nodes
+        - set_carriers: set of carriers modelled
+
+        **Global variables**
+
+        - var_npv: net present value of all costs
+        - var_emissions_net: net emissions over all investment periods
+
+        **Rest of model**
+        The rest of the model is organized in nested, hierarchical pyomo modelling blocks:
+
+        Investment Period Block
+
+            Network Block
+
+            Node Block
+
+                Technology Block
         """
-        self.logger.info("--- Constructing Model ---")
-        print("_" * 60)
-        print("--- Constructing Model ---")
+        log_event("--- Constructing Model ---")
         start = time.time()
 
         # INITIALIZE MODEL
-        # TODO: Add clustered, averaged here
-        self.model["full"] = ConcreteModel()
-
-        # Get data
-        model = self.model["full"]
-        topology = self.data.topology
-        config = self.data.model_config
         aggregation_type = "full"
 
-        # DEFINE SETS
+        # TODO: Add clustered, averaged here
+        self.model[aggregation_type] = ConcreteModel()
+
+        # GET DATA
+        model = self.model[aggregation_type]
+        topology = self.data.topology
+        config = self.data.model_config
+
+        # DEFINE GLOBAL SETS
         # Nodes, Carriers, Technologies, Networks
         model.set_periods = Set(initialize=topology["investment_periods"])
         model.set_nodes = Set(initialize=topology["nodes"])
@@ -102,39 +122,35 @@ class EnergyHub:
         model.var_npv = Var()
         model.var_emissions_net = Var()
 
-        # Investment Period Block
+        # INVESTMENT PERIOD BLOCK
         def init_period_block(b_period):
             """Pyomo rule to initialize a block holding all investment periods"""
 
             # Get data for investment period
             investment_period = b_period.index()
-            data_period = {}
-            data_period["topology"] = self.data.topology
-            data_period["technology_data"] = self.data.technology_data[
-                aggregation_type
-            ][investment_period]
-            data_period["time_series"] = self.data.time_series[aggregation_type].loc[
-                :, investment_period
-            ]
-            data_period["network_data"] = self.data.network_data[aggregation_type][
-                investment_period
-            ]
-            data_period["energybalance_options"] = self.data.energybalance_options[
-                investment_period
-            ]
-            data_period["config"] = self.data.model_config
+            data_period = get_data_for_investment_period(
+                self.data, investment_period, aggregation_type
+            )
+            log_event(f"--- Constructing Investment Period {investment_period}")
 
             # Add sets, parameters, variables, constraints to block
             b_period = construct_investment_period_block(b_period, data_period)
 
-            # Network Block
+            # NETWORK BLOCK
             if not config["energybalance"]["copperplate"]["value"]:
 
                 def init_network_block(b_netw, netw):
                     """Pyomo rule to initialize a block holding all networks"""
+                    log_event(f"------ Constructing Network {netw}")
 
                     # Add sets, parameters, variables, constraints to block
-                    b_netw = construct_network_block(b_netw, netw, data_period)
+                    b_netw = construct_network_block(
+                        b_netw,
+                        data_period,
+                        model.set_nodes,
+                        b_period.set_t_full,
+                        b_period.set_t_clustered,
+                    )
 
                     return b_netw
 
@@ -142,26 +158,21 @@ class EnergyHub:
                     b_period.set_networks, rule=init_network_block
                 )
 
-            # Node Block
+            # NODE BLOCK
             def init_node_block(b_node, node):
                 """Pyomo rule to initialize a block holding all nodes"""
+                log_event(f"------ Constructing Node {node}")
 
                 # Get data for node
-                data_node = {}
-                data_node["topology"] = data_period["topology"]
-                data_node["technology_data"] = data_period["technology_data"][node]
-                data_node["time_series"] = data_period["time_series"][node]
-                data_node["network_data"] = data_period["network_data"]
-                data_node["energybalance_options"] = data_period[
-                    "energybalance_options"
-                ][node]
-                data_node["config"] = self.data.model_config
+                data_node = get_data_for_node(data_period, node)
 
                 # Add sets, parameters, variables, constraints to block
                 b_node = construct_node_block(b_node, data_node, b_period.set_t_full)
 
-                # Technology Block
+                # TECHNOLOGY BLOCK
                 def init_technology_block(b_tec, tec):
+                    log_event(f"------ Constructing Technology {tec}")
+
                     b_tec = construct_technology_block(
                         b_tec, data_node, b_period.set_t_full, b_period.set_t_clustered
                     )
@@ -180,13 +191,12 @@ class EnergyHub:
 
         model.periods = Block(model.set_periods, rule=init_period_block)
 
-        print(
-            "Constructing model completed in " + str(round(time.time() - start)) + " s"
-        )
+        log_event(f"Constructing model completed in {str(round(time.time() - start))}s")
 
     def _perform_preprocessing_checks(self):
         """
         Checks some things, before constructing or solving the model
+        Todo: Document what is done here
         :return:
         """
         config = self.data.model_config
@@ -248,22 +258,23 @@ class EnergyHub:
         This method lumbs together the following functions for convenience:
         - :func:`~src.energyhub.construct_model`
         - :func:`~src.energyhub.construct_balances`
-        - :func:`~src.energyhub.solve_model`
+        - :func:`~src.energyhub.solve`
+        - :func:`~src.energyhub.write_results`
         """
         self.construct_model()
         self.construct_balances()
-
         self.solve()
+        self.write_results()
 
     def construct_balances(self):
         """
+        Todo: document
         Constructs the energy balance, emission balance and calculates costs
 
         Links all components with the constructing the energybalance (:func:`~add_energybalance`),
         the total cost (:func:`~add_system_costs`) and the emission balance (:func:`~add_emissionbalance`)
         """
-        print("_" * 60)
-        print("Constructing balances...")
+        log_event("Constructing balances...")
         start = time.time()
 
         config = self.data.model_config
@@ -281,10 +292,8 @@ class EnergyHub:
         model = construct_system_cost(model, config)
         model = construct_global_balance(model)
 
-        print(
-            "Constructing balances completed in "
-            + str(round(time.time() - start))
-            + " s"
+        log_event(
+            f"Constructing balances completed in {str(round(time.time() - start))}s"
         )
 
     def solve(self):
@@ -304,12 +313,14 @@ class EnergyHub:
         if config["optimization"]["monte_carlo"]["N"]["value"]:
             self._solve_monte_carlo(objective)
         elif objective == "pareto":
+            # Todo: does not work yet
             self._solve_pareto()
         else:
             self._optimize(objective)
 
     def add_technology_to_node(self, nodename, technologies):
         """
+        Fixme: This function does not work
         Adds technologies retrospectively to the model.
 
         After adding a technology to a node, the energy and emission balance need to be re-constructed, as well as the
@@ -317,23 +328,10 @@ class EnergyHub:
 
         :param str nodename: name of node for which technology is installed
         :param list technologies: list of technologies that should be added to nodename
-        :return: None
+        :return None:
         """
         self.data.read_single_technology_data(nodename, technologies)
         add_technology(self, nodename, technologies)
-
-    def save_model(self, save_path, file_name):
-        """
-        Saves an instance of the energyhub instance to the specified path (using pickel/dill).
-
-        The object can later be loaded using into the work space using :func:`~load_energyhub_instance`
-
-        :param str file_path: path to save
-        :param str file_name: filename
-        :return: None
-        """
-        with open(Path(save_path) / file_name, mode="wb") as file:
-            pickle.dump(self, file)
 
     def _define_solver_settings(self):
         """
@@ -359,6 +357,7 @@ class EnergyHub:
             self.solver = get_gurobi_parameters(config["solveroptions"])
 
         elif config["solveroptions"]["solver"]["value"] == "glpk":
+            # Todo: put solver parameters of glpk in function
             self.solver = get_glpk_parameters(config["solveroptions"])
 
         # For persistent solver, set model instance
@@ -372,8 +371,6 @@ class EnergyHub:
         # Define Objective Function
         if objective == "costs":
             self._optimize_cost()
-        elif objective == "emissions_pos":
-            self._optimize_emissions_pos()
         elif objective == "emissions_net":
             self._optimize_emissions_net()
         elif objective == "emissions_minC":
@@ -405,102 +402,92 @@ class EnergyHub:
         model.objective = Objective(rule=init_cost_objective, sense=minimize)
         self._call_solver()
 
-    def _optimize_emissions_pos(self):
-        """
-        Minimizes positive emission
-        """
-        self._delete_objective()
-
-        def init_emission_pos_objective(obj):
-            return self.model.var_emissions_pos
-
-        self.model.objective = Objective(
-            rule=init_emission_pos_objective, sense=minimize
-        )
-        self._call_solver()
-
     def _optimize_emissions_net(self):
         """
         Minimize net emissions
         """
+        model = self.model["full"]
+
         self._delete_objective()
 
         def init_emission_net_objective(obj):
-            return self.model.var_emissions_net
+            return model.var_emissions_net
 
-        self.model.objective = Objective(
-            rule=init_emission_net_objective, sense=minimize
-        )
+        model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
         self._call_solver()
 
     def _optimize_costs_emissionslimit(self):
         """
         Minimize costs at emission limit
         """
+        model = self.model["full"]
+
         config = self.data.model_config
 
         emission_limit = config["optimization"]["emission_limit"]["value"]
-        if self.model.find_component("const_emission_limit"):
+        if model.find_component("const_emission_limit"):
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-                self.solver.remove_constraint(self.model.const_emission_limit)
-            self.model.del_component(self.model.const_emission_limit)
-        self.model.const_emission_limit = Constraint(
-            expr=self.model.var_emissions_net <= emission_limit * 1.001
+                self.solver.remove_constraint(model.const_emission_limit)
+            model.del_component(model.const_emission_limit)
+        model.const_emission_limit = Constraint(
+            expr=model.var_emissions_net <= emission_limit * 1.001
         )
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-            self.solver.add_constraint(self.model.const_emission_limit)
+            self.solver.add_constraint(model.const_emission_limit)
         self._optimize_cost()
 
     def _optimize_costs_minE(self):
         """
         Minimize costs at minimum emissions
         """
+        model = self.model["full"]
+
         config = self.data.model_config
 
         self._optimize_emissions_net()
-        emission_limit = self.model.var_emissions_net.value
-        if self.model.find_component("const_emission_limit"):
+        emission_limit = model.var_emissions_net.value
+        if model.find_component("const_emission_limit"):
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-                self.solver.remove_constraint(self.model.const_emission_limit)
-            self.model.del_component(self.model.const_emission_limit)
-        self.model.const_emission_limit = Constraint(
-            expr=self.model.var_emissions_net <= emission_limit * 1.001
+                self.solver.remove_constraint(model.const_emission_limit)
+            model.del_component(model.const_emission_limit)
+        model.const_emission_limit = Constraint(
+            expr=model.var_emissions_net <= emission_limit * 1.001
         )
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-            self.solver.add_constraint(self.model.const_emission_limit)
+            self.solver.add_constraint(model.const_emission_limit)
         self._optimize_cost()
 
     def _solve_pareto(self):
         """
         Optimize the pareto front
         """
+        model = self.model["full"]
         config = self.data.model_config
         pareto_points = config["optimization"]["pareto_points"]["value"]
 
         # Min Cost
-        self.model_information.pareto_point = 0
+        self.info_pareto["pareto_point"] = 0
         self._optimize_cost()
-        emissions_max = self.model.var_emissions_net.value
+        emissions_max = model.var_emissions_net.value
 
         # Min Emissions
-        self.model_information.pareto_point = pareto_points + 1
+        self.info_pareto["pareto_point"] = pareto_points + 1
         self._optimize_costs_minE()
-        emissions_min = self.model.var_emissions_net.value
+        emissions_min = model.var_emissions_net.value
 
         # Emission limit
-        self.model_information.pareto_point = 0
+        self.info_pareto["pareto_point"] = 0
         emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
         for pareto_point in range(0, pareto_points):
-            self.model_information.pareto_point += 1
+            self.info_pareto["pareto_point"] += 1
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-                self.solver.remove_constraint(self.model.const_emission_limit)
-            self.model.del_component(self.model.const_emission_limit)
-            self.model.const_emission_limit = Constraint(
-                expr=self.model.var_emissions_net
-                <= emission_limits[pareto_point] * 1.005
+                self.solver.remove_constraint(model.const_emission_limit)
+            model.del_component(model.const_emission_limit)
+            model.const_emission_limit = Constraint(
+                expr=model.var_emissions_net <= emission_limits[pareto_point] * 1.005
             )
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-                self.solver.add_constraint(self.model.const_emission_limit)
+                self.solver.add_constraint(model.const_emission_limit)
             self._optimize_cost()
 
     def _solve_monte_carlo(self, objective):
@@ -508,9 +495,10 @@ class EnergyHub:
         Optimizes multiple runs with monte carlo
         """
         config = self.data.model_config
+        self.info_monte_carlo["monte_carlo_run"] = 0
 
         for run in range(0, config["optimization"]["monte_carlo"]["N"]["value"]):
-            self.model_information.monte_carlo_run += 1
+            self.info_monte_carlo["monte_carlo_run"] += 1
             self._monte_carlo_set_cost_parameters()
             if run == 0:
                 self._optimize(objective)
@@ -576,7 +564,7 @@ class EnergyHub:
             model_full.scaling_factor[model_full.var_netw_cost] = (
                 f_global.cost_vars * f_global.energy_vars
             )
-            model_full.scaling_factor[model_full.var_total_cost] = (
+            model_full.scaling_factor[model_full.var_cost_total] = (
                 f_global.cost_vars * f_global.energy_vars
             )
             model_full.scaling_factor[model_full.var_carbon_revenue] = (
@@ -643,9 +631,6 @@ class EnergyHub:
 
         result_folder_path = create_unique_folder_name(save_path, folder_name)
         create_save_folder(result_folder_path)
-        save_summary_path = Path.joinpath(
-            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
-        )
 
         # Scale model
         if config["scaling"]["scaling_on"]["value"] == 1:
@@ -684,13 +669,34 @@ class EnergyHub:
 
         self.solution.write()
 
+        self.last_solve_info["pareto_point"] = self.info_pareto["pareto_point"]
+        self.last_solve_info["monte_carlo_run"] = 0
+        self.last_solve_info["config"] = config
+        self.last_solve_info["result_folder_path"] = result_folder_path
+
+        print("Solving model completed in " + str(round(time.time() - start)) + " s")
+        print("_" * 60)
+
+    def write_results(self):
+        config = self.data.model_config
+
+        save_summary_path = Path.joinpath(
+            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
+        )
+
+        model_info = self.last_solve_info
         # Write H5 File
-        # Todo: termination conditions for different solvers. best implemented in the solver parameters
-        if self.solution.solver.termination_condition == "optimal":
+        if (self.solution.solver.status == SolverStatus.ok) or (
+            self.solution.solver.status == SolverStatus.warning
+        ):
 
             model = self.model["full"]
 
-            summary_dict = write_optimization_results_to_h5(model, result_folder_path)
+            # Fixme: change this for averaging
+
+            summary_dict = write_optimization_results_to_h5(
+                model, self.solution, model_info, self.data
+            )
 
             # Write Summary
             if not os.path.exists(save_summary_path):
@@ -703,9 +709,6 @@ class EnergyHub:
                 pd.concat(
                     [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
                 ).to_excel(save_summary_path, index=False, sheet_name="Summary")
-
-        print("Solving model completed in " + str(round(time.time() - start)) + " s")
-        print("_" * 60)
 
     def _write_solution_diagnostics(self, save_path):
         config = self.data.model_config
@@ -736,24 +739,40 @@ class EnergyHub:
         """
         config = self.data.model_config
 
-        if "Technologies" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-            for node in self.model.node_blocks:
-                for tec in self.model.node_blocks[node].tech_blocks_active:
-                    self._monte_carlo_technologies(node, tec)
+        if config["optimization"]["monte_carlo"]["type"]["value"] == 1:
+            if (
+                "Technologies"
+                in config["optimization"]["monte_carlo"]["on_what"]["value"]
+            ):
+                for period in self.model["full"].periods:
+                    for node in self.model["full"].periods[period].node_blocks:
+                        for tec in (
+                            self.model["full"]
+                            .periods[period]
+                            .node_blocks[node]
+                            .tech_blocks_active
+                        ):
+                            self._monte_carlo_technologies(node, tec)
 
-        if "Networks" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-            for netw in self.model.network_block:
-                self._monte_carlo_networks(netw)
+            if "Networks" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
+                for netw in model.network_block:
+                    self._monte_carlo_networks(netw)
 
-        if "ImportPrices" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-            for node in self.model.node_blocks:
-                for car in self.model.node_blocks[node].set_carriers:
-                    self._monte_carlo_import_prices(node, car)
+            if (
+                "ImportPrices"
+                in config["optimization"]["monte_carlo"]["on_what"]["value"]
+            ):
+                for node in model.node_blocks:
+                    for car in model.node_blocks[node].set_carriers:
+                        self._monte_carlo_import_prices(node, car)
 
-        if "ExportPrices" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-            for node in self.model.node_blocks:
-                for car in self.model.node_blocks[node].set_carriers:
-                    self._monte_carlo_export_prices(node, car)
+            if (
+                "ExportPrices"
+                in config["optimization"]["monte_carlo"]["on_what"]["value"]
+            ):
+                for node in model.node_blocks:
+                    for car in model.node_blocks[node].set_carriers:
+                        self._monte_carlo_export_prices(node, car)
 
     def _monte_carlo_technologies(self, node, tec):
         """
@@ -774,18 +793,16 @@ class EnergyHub:
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
 
-        b_tec = self.model.node_blocks[node].tech_blocks_active[tec]
+        b_tec = model.node_blocks[node].tech_blocks_active[tec]
 
         if capex_model == 1:
             # UNIT CAPEX
             # Update parameter
             unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
-            self.model.node_blocks[node].tech_blocks_active[
-                tec
-            ].para_unit_capex = unit_capex
-            self.model.node_blocks[node].tech_blocks_active[
-                tec
-            ].para_unit_capex_annual = (unit_capex * annualization_factor)
+            model.node_blocks[node].tech_blocks_active[tec].para_unit_capex = unit_capex
+            model.node_blocks[node].tech_blocks_active[tec].para_unit_capex_annual = (
+                unit_capex * annualization_factor
+            )
 
             # Remove constraint (from persistent solver and from model)
             self.solver.remove_constraint(b_tec.const_capex_aux)
@@ -799,6 +816,12 @@ class EnergyHub:
             self.solver.add_constraint(b_tec.const_capex_aux)
 
         elif capex_model == 2:
+            warnings.warn(
+                "monte carlo on piecewise defined investment costs is not implemented"
+            )
+
+        elif capex_model == 3:
+            # TODO capex model 3
             warnings.warn(
                 "monte carlo on piecewise defined investment costs is not implemented"
             )
@@ -823,7 +846,7 @@ class EnergyHub:
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
 
-        b_netw = self.model.network_block[netw]
+        b_netw = model.network_block[netw]
 
         if capex_model == 1:
             b_netw.para_capex_gamma1 = (
@@ -897,7 +920,7 @@ class EnergyHub:
         set_t = model.set_t_full
 
         import_prices = self.data.node_data[node].data["import_prices"][car]
-        b_node = self.model.node_blocks[node]
+        b_node = model.node_blocks[node]
 
         for t in set_t:
             # Update parameter
@@ -905,7 +928,7 @@ class EnergyHub:
 
             # Remove constraint (from persistent solver and from model)
             self.solver.remove_constraint(model.const_node_cost)
-            self.model.del_component(model.const_node_cost)
+            model.del_component(model.const_node_cost)
 
             # Add constraint again
             nr_timesteps_averaged = (
@@ -989,7 +1012,7 @@ class EnergyHub:
         set_t = model.set_t_full
 
         export_prices = self.data.node_data[node].data["export_prices"][car]
-        b_node = self.model.node_blocks[node]
+        b_node = model.node_blocks[node]
 
         for t in set_t:
             # Update parameter
@@ -997,7 +1020,7 @@ class EnergyHub:
 
             # Remove constraint (from persistent solver and from model)
             self.solver.remove_constraint(model.const_node_cost)
-            self.model.del_component(model.const_node_cost)
+            model.del_component(model.const_node_cost)
 
             # Add constraint again
             nr_timesteps_averaged = (
@@ -1075,7 +1098,7 @@ class EnergyHub:
         config = self.data.model_config
         model = self.model["full"]
 
-        if not config["optimization"]["monte_carlo"]["on"]["value"]:
+        if not config["optimization"]["monte_carlo"]["N"]["value"]:
             try:
                 model.del_component(model.objective)
             except:

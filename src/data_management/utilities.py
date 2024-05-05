@@ -7,36 +7,14 @@ from types import SimpleNamespace
 import pvlib
 import os
 import json
-from ..logger import logger
 
 from ..components.technologies import *
-
-
-def save_object(data, save_path):
-    """
-    Save object to path
-
-    :param data: object to save
-    :param Path save_path: path to save object to
-    """
-    with open(save_path, "wb") as handle:
-        pickle.dump(data, handle)
-
-
-def load_object(load_path):
-    """
-    Loads a previously saved object
-
-    :param Path load_path: Path to load object from
-    :return object: object loaded
-    """
-    with open(load_path, "rb") as handle:
-        data = pd.read_pickle(handle)
-
-    return data
+from ..components.technologies import *
+from ..utilities import log_event
 
 
 class simplification_specs:
+    # Todo: docu
     """
     Two dataframes with (1) full resolution specifications and (2) reduces resolution specifications
     Dataframe with full resolution:
@@ -53,6 +31,7 @@ class simplification_specs:
 
 
 def perform_k_means(full_resolution, nr_clusters):
+    # Todo: docu
     """
     Performs k-means clustering on a matrix
 
@@ -75,6 +54,7 @@ def perform_k_means(full_resolution, nr_clusters):
 def compile_sequence(
     day_labels, nr_clusters, nr_days_full_resolution, nr_time_intervals_per_day
 ):
+    # Todo: docu
     """
 
     :param day_labels: labels for each typical day
@@ -95,6 +75,7 @@ def compile_sequence(
 
 
 def get_day_factors(keys):
+    # Todo: docu
     """
     Get factors for each hour
 
@@ -108,6 +89,7 @@ def get_day_factors(keys):
 
 
 def compile_full_resolution_matrix(data_full_res, nr_time_intervals_per_day):
+    # Todo: docu
     """
     Compiles full resolution matrix to be clustered
 
@@ -142,6 +124,7 @@ def compile_full_resolution_matrix(data_full_res, nr_time_intervals_per_day):
 
 
 def reshape_df(series_to_add, column_names, nr_cols):
+    # Todo: docu
     """
     Transform all data to large dataframe with each row being one day
     """
@@ -155,6 +138,7 @@ def reshape_df(series_to_add, column_names, nr_cols):
 
 
 def average_timeseries_data(data_matrix, nr_timesteps_averaged, time_index):
+    # Todo: docu
     """
     Averages the nr_timesteps_averaged in the DataFrame.
 
@@ -177,6 +161,7 @@ def average_timeseries_data(data_matrix, nr_timesteps_averaged, time_index):
 def average_timeseries_data_clustered(
     data_matrix, nr_timesteps_averaged, clustered_days
 ):
+    # Todo: docu
     """
     Averages the nr_timesteps_averaged in the DataFrame.
 
@@ -199,11 +184,15 @@ def average_timeseries_data_clustered(
     return pd.concat(averaged_dfs, axis=1)
 
 
-def calculate_dni(data, lon, lat):
+def calculate_dni(data: pd.DataFrame, lon: float, lat: float) -> pd.Series:
     """
     Calculate direct normal irradiance from ghi and dhi
-    :param DataFrame data: climate data
-    :return: data: climate data including dni
+
+    :param pd.DataFrame data: climate data
+    :param float lon: longitude
+    :param float lat: latitude
+    :return data: climate data including dni
+    :rtype: pd.Series
     """
     zenith = pvlib.solarposition.get_solarposition(data.index, lat, lon)
     data["dni"] = pvlib.irradiance.dni(
@@ -215,66 +204,11 @@ def calculate_dni(data, lon, lat):
     return data["dni"]
 
 
-def shorten_input_data(time_series, nr_time_steps):
-    """
-    Shortens time series to required length
-
-    :param list time_series: time_series to shorten
-    :param int nr_time_steps: nr of time steps to shorten to
-    """
-    if len(time_series) != nr_time_steps:
-        warnings.warn(
-            "Time series is longer than chosen time horizon - taking only the first "
-            + "couple of time slices"
-        )
-        time_series = time_series[0:nr_time_steps]
-
-    return time_series
-
-
-class NodeData:
-    """
-    Class to handle node data
-    """
-
-    def __init__(self, topology):
-        # Initialize Node Data (all time-dependent input data goes here)
-        self.data = {}
-        self.data_clustered = {}
-        variables = [
-            "demand",
-            "production_profile",
-            "import_prices",
-            "import_limit",
-            "import_emissionfactors",
-            "export_prices",
-            "export_limit",
-            "export_emissionfactors",
-        ]
-
-        for var in variables:
-            self.data[var] = pd.DataFrame(index=topology.timesteps)
-            for carrier in topology.carriers:
-                self.data[var][carrier] = 0
-        self.data["climate_data"] = pd.DataFrame(index=topology.timesteps)
-
-        self.options = SimpleNamespace()
-        self.options.production_profile_curtailment = {}
-        for carrier in topology.carriers:
-            self.options.production_profile_curtailment[carrier] = 0
-
-        self.location = SimpleNamespace()
-        self.location.lon = None
-        self.location.lat = None
-        self.location.altitude = None
-
-
-def select_technology(tec_data):
+def select_technology(tec_data: dict):
     """
     Returns the correct subclass for a technology
 
-    :param str tec_name: Technology Name
-    :param int existing: if technology is existing
+    :param dict tec_data: dictonary derived from the technology json files
     :return: Technology Class
     """
     # Generic tecs
@@ -290,6 +224,8 @@ def select_technology(tec_data):
         return Conv4(tec_data)
     elif tec_data["tec_type"] == "STOR":
         return Stor(tec_data)
+    elif tec_data["tec_type"] == "SINK":
+        return Sink(tec_data)
     # Specific tecs
     elif tec_data["tec_type"] == "DAC_Adsorption":
         return DacAdsorption(tec_data)
@@ -301,7 +237,43 @@ def select_technology(tec_data):
         return HydroOpen(tec_data)
 
 
-def open_json(tec, load_path):
+def read_tec_data(
+    tec_name: str, load_path: Path, climate_data: pd.DataFrame, location: dict
+):
+    """
+    Loads the technology data from load_path and preprocesses it.
+
+    :param str tec_name: technology name
+    :param Path load_path: load path
+    :param pd.DataFrame climate_data: Climate Data
+    :param dict location: Dictonary with node location
+    :return: Technology data
+    :rtype: Technoogy Object
+    """
+    tec_data = open_json(tec_name, load_path)
+    tec_data["name"] = tec_name
+    tec_data = select_technology(tec_data)
+    tec_data.fit_technology_performance(climate_data, location)
+    if tec_data.ccs:
+        ccs_data = open_json(tec_data.performance_data["ccs"]["ccs_type"], load_path)
+        tec_data.ccs_data = fit_ccs_data(
+            tec_data.performance_data["ccs"]["co2_concentration"],
+            ccs_data,
+            climate_data,
+        )
+
+    return tec_data
+
+
+def open_json(tec: str, load_path: Path) -> dict:
+    """
+    Loops through load_path and subdirectories and returns json with name tec + ".json"
+
+    :param str tec: name of technology to read json for
+    :param Path load_path: directory path to loop through all subdirectories and search for tec + ".json"
+    :return: Dictonary containing the json data
+    :rtype: dict
+    """
     # Read in JSON files
     for path, subdirs, files in os.walk(load_path):
         if "data" in locals():
@@ -326,6 +298,16 @@ def open_json(tec, load_path):
 def check_input_data_consistency(path: Path | str) -> None:
     """
     Checks if the topology is consistent with the input data.
+
+    Checks for:
+    - is there a folder for each investment period?
+    - is there a network file for each network defined?
+    - are there all required files for all networks in the directory?
+    - are node directories there?
+    - is ClimateData, CarbonCost for each node there?
+    - is Technologies.json there?
+    - is there a json file for all technologies?
+    - is there a carrier file for each defined carrier?
 
     :param str/Path node: node as specified in the topology
     """
@@ -417,7 +399,8 @@ def check_input_data_consistency(path: Path | str) -> None:
             with open(check_node_path / "Technologies.json") as json_file:
                 technologies_at_node = json.load(json_file)
             technologies_at_node = set(
-                technologies_at_node["existing"] + technologies_at_node["new"]
+                list(technologies_at_node["existing"].keys())
+                + technologies_at_node["new"]
             )
             for technology in technologies_at_node:
                 check_path_existance(
@@ -433,4 +416,4 @@ def check_input_data_consistency(path: Path | str) -> None:
                     f"Data for carrier {carrier} is missing in {check_node_path}",
                 )
 
-    logger.info("Input data folder has been checked successfully - no errors occurred.")
+    log_event("Input data folder has been checked successfully - no errors occurred.")

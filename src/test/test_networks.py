@@ -1,217 +1,161 @@
-import numpy as np
+from pathlib import Path
+import json
+import pyomo.environ as pyo
 
-from src.data_management import *
-from src.energyhub import EnergyHub as ehub
-from src.model_configuration import ModelConfiguration
+from src.components.networks import Network
+from src.test.utilities import make_data_for_testing, run_model
+from src.data_preprocessing.template_creation import create_empty_network_matrix
+from src.components.utilities import perform_disjunct_relaxation
 
 
-def test_networks():
+def define_network(
+    load_path: Path, bidirectional: bool = False, energyconsumption: bool = False
+):
+    with open(load_path / ("TestNetwork.json")) as json_file:
+        netw_data = json.load(json_file)
+
+    netw_data["name"] = "TestNetwork"
+
+    if bidirectional:
+        netw_data["NetworkPerf"]["bidirectional"] = 1
+        netw_data["NetworkPerf"]["bidirectional_precise"] = 1
+    else:
+        netw_data["NetworkPerf"]["bidirectional"] = 0
+
+    if not energyconsumption:
+        netw_data["NetworkPerf"]["energyconsumption"] = {}
+
+    netw_data = Network(netw_data)
+
+    return netw_data
+
+
+def construct_netw_model(
+    netw: Network,
+    nr_timesteps: int,
+) -> pyo.ConcreteModel:
     """
-    Creates dataset for test_network().
-    import electricity @ node 1
-    electricity demand @ node 2
+    Construct a mock technology model for testing
+
+    :param Technology tec: Technology object.
+    :param int nr_timesteps: Number of timesteps to create climate data for
+    :return ConcreteModel m: Pyomo Concrete Model
     """
-    # Test bidirectional
-    data = load_object(r"./src/test/test_data/networks.p")
-    cost_correction = data["topology"]["fraction_of_year_modelled"]
-    configuration = ModelConfiguration()
-    data.network_data["hydrogenTest"].performance_data["bidirectional"] = 1
-    data.network_data["hydrogenTest"].energy_consumption = {}
-    energyhub1 = ehub(data, configuration)
-    energyhub1.configuration.reporting.save_path = "./src/test/results"
-    energyhub1.configuration.reporting.save_summary_path = "./src/test/results"
-    energyhub1.construct_model()
-    energyhub1.construct_balances()
-    energyhub1.solve()
-    cost1 = energyhub1.model.objective()
-    assert energyhub1.solution.solver.termination_condition == "optimal"
-    # is network size double the demand (because of losses)
-    should = 20
-    res = (
-        energyhub1.model.network_block["hydrogenTest"]
-        .arc_block["test_node1", "test_node2"]
-        .var_size.value
+
+    data = make_data_for_testing(nr_timesteps)
+
+    netw_matrix = create_empty_network_matrix(data["topology"]["nodes"])
+    netw_matrix.loc["node1"]["node2"] = 1
+    netw_matrix.loc["node2"]["node1"] = 1
+
+    netw.connection = netw_matrix
+    netw.distance = netw_matrix
+    netw.size_max_arcs = netw_matrix * 10
+
+    m = pyo.ConcreteModel()
+    m.set_t = pyo.Set(initialize=list(range(1, nr_timesteps + 1)))
+    m.set_t_full = pyo.Set(initialize=list(range(1, nr_timesteps + 1)))
+    m.set_nodes = pyo.Set(initialize=data["topology"]["nodes"])
+
+    m = netw.construct_netw_model(m, data, m.set_nodes, m.set_t, m.set_t_full)
+    if netw.big_m_transformation_required:
+        m = perform_disjunct_relaxation(m)
+
+    return m
+
+
+def test_network_unidirectional(request):
+    nr_timesteps = 1
+    netw = define_network(
+        request.config.network_data_folder_path,
+        bidirectional=True,
+        energyconsumption=False,
     )
-    assert abs(should - res) / res <= 0.001
 
-    # Test no bidirectional
-    data = load_object(r"./src/test/test_data/networks.p")
-    data.network_data["hydrogenTest"].performance_data["bidirectional"] = 0
-    data.network_data["hydrogenTest"].energy_consumption = {}
-    energyhub2 = ehub(data, configuration)
-    energyhub2.configuration.reporting.save_path = "./src/test/results"
-    energyhub2.configuration.reporting.save_summary_path = "./src/test/results"
-    energyhub2.construct_model()
-    energyhub2.construct_balances()
-    energyhub2.solve()
-    cost2 = energyhub2.model.objective()
-    assert energyhub2.solution.solver.termination_condition == "optimal"
-    # is network size double the demand (because of losses)
-    should = 20
-    res = (
-        energyhub1.model.network_block["hydrogenTest"]
-        .arc_block["test_node1", "test_node2"]
-        .var_size.value
+    # INFEASIBILITY CASE
+    m = construct_netw_model(netw, nr_timesteps)
+    m.test_const_outflow1 = pyo.Constraint(
+        expr=m.var_inflow[1, "hydrogen", "node1"] == 1
     )
-    assert abs(should - res) / res <= 0.001
-
-    # Test consumption at node
-    data = load_object(r"./src/test/test_data/networks.p")
-    cost_correction = data["topology"]["fraction_of_year_modelled"]
-    data.network_data["hydrogenTest"].performance_data["bidirectional"] = 0
-    energyhub3 = ehub(data, configuration)
-    energyhub3.configuration.reporting.save_path = "./src/test/results"
-    energyhub3.configuration.reporting.save_summary_path = "./src/test/results"
-    energyhub3.construct_model()
-    energyhub3.construct_balances()
-    energyhub3.solve()
-    cost3 = energyhub3.model.objective()
-    assert energyhub3.solution.solver.termination_condition == "optimal"
-    # is network size double the demand (because of losses)
-    should = 20
-    res = (
-        energyhub3.model.network_block["hydrogenTest"]
-        .arc_block["test_node1", "test_node2"]
-        .var_size.value
+    m.test_const_outflow2 = pyo.Constraint(
+        expr=m.var_inflow[1, "hydrogen", "node2"] == 1
     )
-    assert abs(should - res) / res <= 0.001
-    # is import of electricity there?
-    should = 20
-    res = (
-        energyhub3.model.node_blocks["test_node1"]
-        .var_import_flow[1, "electricity"]
-        .value
-    )
-    assert abs(should - res) / res <= 0.001
-    res = (
-        energyhub3.model.node_blocks["test_node2"]
-        .var_import_flow[2, "electricity"]
-        .value
-    )
-    assert abs(should - res) / res <= 0.001
-    # Is objective correct (electricity import*price + invest in hydrogen pipeline)
-    should = 40 * 10 + 1000 * cost_correction * 2
-    res = energyhub3.model.objective()
-    assert abs(should - res) / res <= 0.001
-
-    # does bidirectional produce double costs?
-    assert abs(cost2 / cost1 - 2) <= 0.001
-
-
-def test_CAPEX_networks():
-    # Test bidirectional
-    data = load_object(r"./src/test/test_data/networks.p")
-    cost_correction = data["topology"]["fraction_of_year_modelled"]
-    configuration = ModelConfiguration()
-
-    # collect data
-    gamma1 = data.network_data["hydrogenTest"].economics.capex_data["gamma1"]
-    gamma2 = data.network_data["hydrogenTest"].economics.capex_data["gamma2"]
-    gamma3 = data.network_data["hydrogenTest"].economics.capex_data["gamma3"]
-    gamma4 = data.network_data["hydrogenTest"].economics.capex_data["gamma4"]
-
-    data.network_data["hydrogenTest"].energy_consumption = {}
-    data.network_data["hydrogenTest"].performance_data["bidirectional"] = 1
-
-    # Solve model
-    energyhub = ehub(data, configuration)
-    energyhub.configuration.reporting.save_path = "./src/test/results"
-    energyhub.configuration.reporting.save_summary_path = "./src/test/results"
-    energyhub.quick_solve()
-
-    # test if optimal
-    assert energyhub.solution.solver.termination_condition == "optimal"
-
-    distance = data.topology.networks_new["hydrogenTest"]["distance"]["test_node1"][
-        "test_node2"
+    termination = run_model(m, request.config.solver, objective="capex")
+    assert termination in [
+        pyo.TerminationCondition.infeasibleOrUnbounded,
+        pyo.TerminationCondition.infeasible,
     ]
-    size = (
-        energyhub.model.network_block["hydrogenTest"]
-        .arc_block["test_node1", "test_node2"]
-        .var_size.value
+
+    # FEASIBILITY CASE
+    m = construct_netw_model(netw, nr_timesteps)
+    m.test_const_outflow1 = pyo.Constraint(
+        expr=m.var_inflow[1, "hydrogen", "node1"] == 1
     )
-    # check if capex is correct
-    should = (
-        gamma1 + gamma2 * size + gamma3 * distance + gamma4 * size * distance
-    ) * cost_correction
-    res = energyhub.model.network_block["hydrogenTest"].var_capex.value
-    assert abs(should - res) / res <= 0.001
+    m.test_const_outflow1 = pyo.Constraint(
+        expr=m.var_inflow[1, "hydrogen", "node1"] == 1
+    )
+    termination = run_model(m, request.config.solver, objective="capex")
+    assert termination == pyo.TerminationCondition.optimal
+    assert round(m.arc_block["node2", "node1"].var_size.value, 3) == round(
+        m.arc_block["node1", "node2"].var_size.value, 3
+    )
+    assert m.var_capex.value > 0
 
 
-def test_existing_networks():
-    def run_ehub(data, configuration):
-        energyhub = ehub(data, configuration)
-        energyhub.configuration.reporting.save_path = "./src/test/results"
-        energyhub.configuration.reporting.save_summary_path = "./src/test/results"
-        energyhub.construct_model()
-        energyhub.construct_balances()
-        energyhub.solve()
-        return energyhub
+def test_network_bidirectional(request):
+    nr_timesteps = 1
+    netw = define_network(
+        request.config.network_data_folder_path,
+        bidirectional=False,
+        energyconsumption=False,
+    )
 
-    data_save_path1 = "./src/test/test_data/existing_netw1.p"
-    data_save_path2 = "./src/test/test_data/existing_netw2.p"
-    data_save_path3 = "./src/test/test_data/existing_netw3.p"
-    data_save_path4 = "./src/test/test_data/existing_netw4.p"
-
-    configuration = ModelConfiguration()
-
-    data1 = load_object(data_save_path1)
-    ehub1 = run_ehub(data1, configuration)
-    cost1 = ehub1.model.var_total_cost.value
-    assert ehub1.solution.solver.termination_condition == "infeasibleOrUnbounded"
-
-    data2 = load_object(data_save_path2)
-    ehub2 = run_ehub(data2, configuration)
-    cost2 = ehub2.model.var_total_cost.value
-    assert ehub2.solution.solver.termination_condition == "optimal"
-
-    data3 = load_object(data_save_path3)
-    ehub3 = run_ehub(data3, configuration)
-    cost3 = ehub3.model.var_total_cost.value
-    assert ehub3.solution.solver.termination_condition == "optimal"
-
-    data4 = load_object(data_save_path4)
-    ehub4 = run_ehub(data4, configuration)
-    cost4 = ehub4.model.var_total_cost.value
-    assert ehub4.solution.solver.termination_condition == "optimal"
-
-    assert cost2 > cost3
-    assert cost3 > cost4
+    # FEASIBILITY CASE
+    m = construct_netw_model(netw, nr_timesteps)
+    m.test_const_outflow1 = pyo.Constraint(
+        expr=m.var_inflow[1, "hydrogen", "node1"] == 1
+    )
+    m.test_const_outflow2 = pyo.Constraint(
+        expr=m.var_inflow[1, "hydrogen", "node2"] == 2
+    )
+    termination = run_model(m, request.config.solver, objective="capex")
+    assert termination == pyo.TerminationCondition.optimal
+    assert round(m.arc_block["node2", "node1"].var_size.value, 3) >= 1
+    assert round(m.arc_block["node2", "node1"].var_size.value, 3) <= 2
+    assert round(m.arc_block["node1", "node2"].var_size.value, 3) >= 2
+    assert round(m.arc_block["node1", "node2"].var_size.value, 3) <= 3
+    assert m.var_capex.value > 0
 
 
-def test_violation():
+def test_network_energyconsumption(request):
+    nr_timesteps = 1
+    netw = define_network(
+        request.config.network_data_folder_path,
+        bidirectional=True,
+        energyconsumption=True,
+    )
 
-    data = load_object(r"./src/test/test_data/networks.p")
+    # INFEASIBILITY CASE
+    m = construct_netw_model(netw, nr_timesteps)
+    m.test_const_outflow1 = pyo.Constraint(
+        expr=m.var_inflow[1, "hydrogen", "node1"] == 1
+    )
+    m.test_const_econs = pyo.Constraint(
+        expr=m.var_consumption[1, "electricity", "node2"] == 0
+    )
 
-    # model configuration
-    configuration = ModelConfiguration()
-    configuration.energybalance.violation = 10
+    termination = run_model(m, request.config.solver, objective="capex")
+    assert termination in [
+        pyo.TerminationCondition.infeasibleOrUnbounded,
+        pyo.TerminationCondition.infeasible,
+    ]
 
-    # solving
-    energyhub = ehub(data, configuration)
-    energyhub.configuration.reporting.save_path = "./src/test/results"
-    energyhub.configuration.reporting.save_summary_path = "./src/test/results"
-    energyhub.quick_solve()
+    # FEASIBILITY CASE
+    m = construct_netw_model(netw, nr_timesteps)
+    m.test_const_outflow1 = pyo.Constraint(
+        expr=m.var_inflow[1, "hydrogen", "node1"] == 1
+    )
 
-    assert energyhub.solution.solver.termination_condition == "optimal"
-
-    assert energyhub.model.var_violation[2, "hydrogen", "test_node1"].value == 10
-    assert energyhub.model.var_violation_cost.value == 200
-
-
-def test_copperplate():
-    data = load_object(r"./src/test/test_data/networks.p")
-
-    # model configuration
-    configuration = ModelConfiguration()
-    configuration.energybalance.copperplate = 1
-
-    # solving
-    energyhub = ehub(data, configuration)
-    energyhub.configuration.reporting.save_path = "./src/test/results"
-    energyhub.configuration.reporting.save_summary_path = "./src/test/results"
-    energyhub.quick_solve()
-
-    assert energyhub.solution.solver.termination_condition == "optimal"
-
-    assert energyhub.model.var_netw_cost.value == 0
+    termination = run_model(m, request.config.solver, objective="capex")
+    assert termination == pyo.TerminationCondition.optimal
+    assert m.var_consumption[1, "electricity", "node2"].value > 0

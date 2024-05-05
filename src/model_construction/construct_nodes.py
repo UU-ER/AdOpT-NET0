@@ -40,10 +40,10 @@ def determine_carriers_from_networks(network_data):
         # Todo: This can be further extended to check if node is connected to network
         # Todo: This needs to be written correctly, possibly its buggy, check if energy consumption works
         # Todo: This does not work for copperplate
-        for car in network_data[netw].performance_data["carrier"]:
-            carriers.append(car)
-        for car in network_data[netw].energyconsumption["carrier"]:
-            carriers.append(car)
+        carriers.extend([network_data[netw].performance_data["carrier"]])
+
+        if network_data[netw].performance_data["energyconsumption"]:
+            carriers.extend(network_data[netw].energy_consumption["carrier"].keys())
 
     return list(set(carriers))
 

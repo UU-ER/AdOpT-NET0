@@ -69,6 +69,7 @@ class Conv1(Technology):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
 
+        :param pd.Dataframe climate_data: dataframe containing climate data
         :param performance_data: contains X and y data of technology performance
         :param performance_function_type: options for type of performance function (linear, piecewise,...)
         :param nr_seg: number of segments on piecewise defined function
@@ -258,7 +259,7 @@ class Conv1(Technology):
 
             else:  # technology on
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 # input-output relation
                 def init_input_output_on(const):
@@ -352,7 +353,7 @@ class Conv1(Technology):
                                 self.input[t, car_standby_power]
                                 == standby_power * b_tec.var_size * rated_power
                             )
-
+                        else:
                             return self.input[t, car_input] == 0
 
                     dis.const_input = Constraint(
@@ -368,7 +369,7 @@ class Conv1(Technology):
 
             else:  # piecewise definition
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
 
                 def init_input_on1(const):
                     return (
