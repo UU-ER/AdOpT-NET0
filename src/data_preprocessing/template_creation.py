@@ -300,10 +300,6 @@ def initialize_configuration_templates() -> dict:
                     ],
                     "value": "Technologies",
                 },
-                "csv_path": {
-                    "description": "Path to the folder where the CSV file containing the optimization parameters is located.",
-                    "value": None,
-                },
             },
             "pareto_points": {"description": "Number of Pareto points.", "value": 5},
             "timestaging": {

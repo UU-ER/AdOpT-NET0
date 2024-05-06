@@ -749,86 +749,59 @@ class EnergyHub:
         config = self.data.model_config
 
         # use correct resolution
-        if len(self.model.keys()) == 1:
-            resolution = next(iter(self.model))
-        else:
-            resolution = list(self.model.keys())[-1]
+        model = self.model["full"]
 
         if config["optimization"]["monte_carlo"]["type"]["value"] == 1:
             if (
                 "Technologies"
                 in config["optimization"]["monte_carlo"]["on_what"]["value"]
             ):
-                for period in self.model[resolution].periods:
-                    for node in self.model[resolution].periods[period].node_blocks:
+                for period in model.periods:
+                    for node in model.periods[period].node_blocks:
                         for tec in (
-                            self.model[resolution]
-                            .periods[period]
-                            .node_blocks[node]
-                            .tech_blocks_active
+                            model.periods[period].node_blocks[node].tech_blocks_active
                         ):
-                            self._monte_carlo_technologies(
-                                resolution, period, node, tec
-                            )
+                            self._monte_carlo_technologies(period, node, tec)
 
             if "Networks" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
-                for period in self.model[resolution].periods:
-                    for netw in self.model[resolution].periods[period].network_block:
-                        self._monte_carlo_networks(resolution, period, netw)
+                for period in model.periods:
+                    for netw in model.periods[period].network_block:
+                        self._monte_carlo_networks(period, netw)
 
             if (
                 "ImportPrices"
                 in config["optimization"]["monte_carlo"]["on_what"]["value"]
             ):
-                for period in self.model[resolution].periods:
-                    for node in self.model[resolution].periods[period].node_blocks:
-                        for car in (
-                            self.model[resolution]
-                            .periods[period]
-                            .node_blocks[node]
-                            .set_carriers
-                        ):
-                            self._monte_carlo_import_prices(
-                                resolution, period, node, car
-                            )
+                for period in model.periods:
+                    for node in model.periods[period].node_blocks:
+                        for car in model.periods[period].node_blocks[node].set_carriers:
+                            self._monte_carlo_import_prices(period, node, car)
 
             if (
                 "ExportPrices"
                 in config["optimization"]["monte_carlo"]["on_what"]["value"]
             ):
-                for period in self.model[resolution].periods:
-                    for node in self.model[resolution].periods[period].node_blocks:
-                        for car in (
-                            self.model[resolution]
-                            .periods[period]
-                            .node_blocks[node]
-                            .set_carriers
-                        ):
-                            self._monte_carlo_export_prices(
-                                resolution, period, node, car
-                            )
+                for period in model.periods:
+                    for node in model.periods[period].node_blocks:
+                        for car in model.periods[period].node_blocks[node].set_carriers:
+                            self._monte_carlo_export_prices(period, node, car)
         elif config["optimization"]["monte_carlo"]["type"]["value"] == 2:
-            filepath = (
-                Path(config["optimization"]["monte_carlo"]["csv_path"]["value"])
-                / "MonteCarlo.csv"
-            )
-            MC_parameters = pd.read_csv(filepath)
+            MC_parameters = self.data.monte_carlo_specs
 
             for index, row in MC_parameters.iterrows():
                 if row["type"] == "technology":
                     MC_technology_row = row
                     tec = MC_technology_row["name"]
 
-                    for period in self.model[resolution].periods:
-                        for node in self.model[resolution].periods[period].node_blocks:
+                    for period in model.periods:
+                        for node in model.periods[period].node_blocks:
                             if tec in (
-                                self.model[resolution]
-                                .periods[period]
+                                model.periods[period]
                                 .node_blocks[node]
                                 .tech_blocks_active
                             ):
                                 self._monte_carlo_technologies(
-                                    resolution, period, node, tec, MC_technology_row
+                                    period, node, tec, MC_technology_row
                                 )
                 elif row["type"] == "network":
                     MC_network_row = row
@@ -836,10 +809,9 @@ class EnergyHub:
                 elif row["type"] == "import":
                     MC_import_row = row
 
-                    for period in self.model[resolution].periods:
-                        for node in self.model[resolution].periods[period].node_blocks:
+                    for period in model.periods:
+                        for node in model.periods[period].node_blocks:
                             self._monte_carlo_import_prices(
-                                resolution,
                                 period,
                                 node,
                                 MC_import_row["name"],
@@ -848,45 +820,39 @@ class EnergyHub:
                 elif row["type"] == "export":
                     MC_export_row = row
 
-                    for period in self.model[resolution].periods:
-                        for node in self.model[resolution].periods[period].node_blocks:
+                    for period in model.periods:
+                        for node in model.periods[period].node_blocks:
                             self._monte_carlo_export_prices(
-                                resolution,
                                 period,
                                 node,
                                 MC_export_row["name"],
                                 MC_export_row,
                             )
 
-    def _monte_carlo_technologies(
-        self, resolution, period, node, tec, MC_technology_row=None
-    ):
+    def _monte_carlo_technologies(self, period, node, tec, MC_technology_row=None):
         """
         Changes the capex of technologies
         """
+        aggregation_type = "full"
         config = self.data.model_config
+        tec_data = self.data.technology_data[aggregation_type][period][node][tec]
+        model = self.model[aggregation_type]
 
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        tec_data = self.data.technology_data[resolution][period][node][tec]
         economics = tec_data.economics
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = self.data.topology["fraction_of_year_modelled"]
 
-        b_tec = (
-            self.model[resolution]
-            .periods[period]
-            .node_blocks[node]
-            .tech_blocks_active[tec]
-        )
+        b_tec = model.periods[period].node_blocks[node].tech_blocks_active[tec]
 
-        capex_model = set_capex_model(config, economics)
         annualization_factor = annualize(
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
 
-        if capex_model == 1:
+        # Change parameters
+        if tec_data.economics.capex_model == 1:
             # UNIT CAPEX
             # Update parameter
             if MC_technology_row is not None:
@@ -899,21 +865,12 @@ class EnergyHub:
             b_tec.para_unit_capex = unit_capex
             b_tec.para_unit_capex_annual = unit_capex * annualization_factor
 
-            # Remove constraint (from model)
-            b_tec.del_component(b_tec.const_capex_aux)
-
-            # Add constraint again
-            b_tec.const_capex_aux = Constraint(
-                expr=b_tec.var_size * b_tec.para_unit_capex_annual
-                == b_tec.var_capex_aux
-            )
-
-        elif capex_model == 2:
+        elif tec_data.economics.capex_model == 2:
             warnings.warn(
                 "monte carlo on piecewise defined investment costs is not implemented"
             )
 
-        elif capex_model == 3:
+        elif tec_data.economics.capex_model == 3:
             unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
             b_tec.para_unit_capex = unit_capex
             b_tec.para_unit_capex_annual = unit_capex * annualization_factor
@@ -922,52 +879,68 @@ class EnergyHub:
             b_tec.para_fix_capex = fix_capex
             b_tec.para_fix_capex_annual = fix_capex * annualization_factor
 
-            # remove disjunctions
+        # Change variable bounds
+        def calculate_max_capex():
+            if economics.capex_model == 1:
+                max_capex = b_tec.para_size_max * b_tec.para_unit_capex_annual
+                bounds = (0, max_capex)
+            elif economics.capex_model == 2:
+                # Todo: Calculate
+                pass
+                # max_capex = (
+                #     b_tec.para_size_max
+                #     * max(economics.capex_data["piecewise_capex"]["bp_y"])
+                #     * annualization_factor
+                # )
+                # bounds = (0, max_capex)
+            elif economics.capex_model == 3:
+                max_capex = (
+                    b_tec.para_size_max * b_tec.para_unit_capex_annual
+                    + b_tec.para_fix_capex_annual
+                )
+                bounds = (0, max_capex)
+            else:
+                bounds = None
+            return bounds
+
+        bounds = calculate_max_capex()
+        b_tec.var_capex_aux.setlb(bounds[0])
+        b_tec.var_capex_aux.setub(bounds[1])
+
+        # Delete constraints/conjunctions/relaxations
+        if economics.capex_model == 1:
+            big_m_transformation_required = 0
+            b_tec.del_component(b_tec.const_capex_aux)
+        elif economics.capex_model == 2:
+            big_m_transformation_required = 1
+            b_tec.del_component(b_tec.const_capex_aux)
+        elif economics.capex_model == 3:
+            big_m_transformation_required = 1
             b_tec.del_component(b_tec.dis_installation)
             b_tec.del_component(b_tec.disjunction_installation)
-            b_tec.del_component(b_tec.const_capex)
-            b_tec.del_component(b_tec.const_capex_aggregation)
+            b_tec.del_component(b_tec._pyomo_gdp_bigm_reformulation)
 
-            # new capex unit commitment constraint
-            s_indicators = range(0, 2)
+        # Reconstruct technology constraints
+        data_period = get_data_for_investment_period(
+            self.data, period, aggregation_type
+        )
+        data_node = get_data_for_node(data_period, node)
 
-            def init_installation(dis, ind):
-                if ind == 0:  # tech not installed
-                    dis.const_capex_aux = Constraint(expr=b_tec.var_capex_aux == 0)
-                    dis.const_not_installed = Constraint(expr=b_tec.var_size == 0)
-                else:  # tech installed
-                    dis.const_capex_aux = Constraint(
-                        expr=b_tec.var_size * b_tec.para_unit_capex_annual
-                        + b_tec.para_fix_capex_annual
-                        == b_tec.var_capex_aux
-                    )
-
-            b_tec.dis_installation = Disjunct(s_indicators, rule=init_installation)
-
-            def bind_disjunctions(dis):
-                return [b_tec.dis_installation[i] for i in s_indicators]
-
-            b_tec.disjunction_installation = Disjunction(rule=bind_disjunctions)
-
-            b_tec.const_capex = Constraint(expr=b_tec.var_capex == b_tec.var_capex_aux)
-
-            b_tec.const_capex_aggregation = Constraint(
-                expr=b_tec.var_capex_tot == b_tec.var_capex_aux
-            )
-
-            # perform relaxation
+        b_tec = tec_data._define_capex_constraints(b_tec, data_node)
+        if big_m_transformation_required:
             b_tec = perform_disjunct_relaxation(b_tec)
 
-    def _monte_carlo_networks(self, resolution, period, netw):
+    def _monte_carlo_networks(self, period, netw):
         """
         Changes the capex of networks
         """
         config = self.data.model_config
+        aggregation_type = "full"
 
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        netw_data = self.data.network_data[resolution][period][netw]
+        netw_data = self.data.network_data[aggregation_type][period][netw]
         economics = netw_data.economics
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = self.data.topology["fraction_of_year_modelled"]
@@ -976,7 +949,7 @@ class EnergyHub:
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
 
-        b_netw = self.model[resolution].periods[period].network_block[netw]
+        b_netw = self.model[aggregation_type].periods[period].network_block[netw]
 
         # Update cost parameters
         b_netw.para_capex_gamma1 = (
@@ -1030,21 +1003,20 @@ class EnergyHub:
             # perform relaxation
             b_netw = perform_disjunct_relaxation(b_netw)
 
-    def _monte_carlo_import_prices(
-        self, resolution, period, node, car, MC_import_row=None
-    ):
+    def _monte_carlo_import_prices(self, period, node, car, MC_import_row=None):
         """
         Changes the import prices
         """
         config = self.data.model_config
+        aggregation_type = "full"
 
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        model = self.model[resolution]
-        import_prices = self.data.time_series[resolution][period][node]["CarrierData"][
-            car
-        ]["Import price"]
+        model = self.model[aggregation_type]
+        import_prices = self.data.time_series[aggregation_type][period][node][
+            "CarrierData"
+        ][car]["Import price"]
         b_period_cost = model.block_costbalance[period]
         # TODO: check for averaging
         set_t = model.periods[period].set_t_full
@@ -1087,21 +1059,20 @@ class EnergyHub:
 
         b_period_cost.const_cost_import = Constraint(rule=init_cost_import)
 
-    def _monte_carlo_export_prices(
-        self, resolution, period, node, car, MC_export_row=None
-    ):
+    def _monte_carlo_export_prices(self, period, node, car, MC_export_row=None):
         """
         Changes the export prices
         """
         config = self.data.model_config
+        aggregation_type = "full"
 
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        model = self.model[resolution]
-        export_prices = self.data.time_series[resolution][period][node]["CarrierData"][
-            car
-        ]["Export price"]
+        model = self.model[aggregation_type]
+        export_prices = self.data.time_series[aggregation_type][period][node][
+            "CarrierData"
+        ][car]["Export price"]
         b_period_cost = model.block_costbalance[period]
         # TODO: check for averaging
         set_t = model.periods[period].set_t_full
