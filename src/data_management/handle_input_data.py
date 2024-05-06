@@ -47,6 +47,7 @@ class DataHandle:
         self.model_config = {}
         self.k_means_specs = {}
         self.averaged_specs = {}
+        self.monte_carlo_specs = {}
         self.start_period = None
         self.end_period = None
 
@@ -92,6 +93,10 @@ class DataHandle:
         self._read_energybalance_options()
         self._read_technology_data()
         self._read_network_data()
+
+        # Monte Carlo
+        if self.model_config["optimization"]["monte_carlo"]["N"]["value"] > 0:
+            self._read_monte_carlo()
 
         # Clustering/Averaging algorithms
         if self.model_config["optimization"]["typicaldays"]["N"]["value"] != 0:
@@ -450,6 +455,12 @@ class DataHandle:
                 ] = netw_data
 
         log_event("Network data read successfully")
+
+    def _read_monte_carlo(self):
+        """
+        Reads monte carlo data
+        """
+        self.monte_carlo_specs = pd.read_csv(self.data_path / "MonteCarlo.csv")
 
     def _cluster_data(self):
         # Todo: document
