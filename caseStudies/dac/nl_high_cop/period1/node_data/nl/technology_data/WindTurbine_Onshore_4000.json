@@ -20,7 +20,7 @@
     "output_carrier": [
       "electricity"
     ],
-    "curtailment": 1,
+    "curtailment": 2,
     "emission_factor": 0
   },
   "Units": {

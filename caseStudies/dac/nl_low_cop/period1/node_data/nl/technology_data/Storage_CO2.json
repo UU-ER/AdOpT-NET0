@@ -22,11 +22,11 @@
   "TechnologyPerf": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
-      "electricity"
+      "CO2captured"
     ],
-    "main_input_carrier": "electricity",
+    "main_input_carrier": "CO2captured",
     "output_carrier": [
-      "electricity"
+      "CO2captured"
     ],
     "emission_factor": 0,
     "allow_only_one_direction": 1,

@@ -1,0 +1,5 @@
+{
+    "existing": {},
+    "new": ["DAC_Adsorption", "HeatPump", "Photovoltaic", "WindTurbine_Onshore_4000",
+        "Storage_CO2", "Storage_Battery"]
+}

@@ -8,22 +8,21 @@ import numpy as np
 # Todo: make it possible to add technology blocks retrospectively
 # Todo: logging
 
-end_period = 20
+end_period = 8760
 #
-path = "caseStudies/dac/nl_low_cop"
-
-pyhub = EnergyHub()
-pyhub.read_data(path, start_period=0, end_period=end_period)
-pyhub.quick_solve()
-pyhub.model["full"].pprint()
-#
-# path = "caseStudies/dac/nl_high_cop"
+# path = "caseStudies/dac/nl_low_cop"
 #
 # pyhub = EnergyHub()
-# pyhub.read_data(path, start_period=0, end_period=end_period)
+# pyhub.read_data(path)
 # pyhub.quick_solve()
-# # pyhub.construct_balances()
-# # pyhub.solve()
+
+path = "caseStudies/dac/nl_high_cop"
+
+pyhub = EnergyHub()
+pyhub.read_data(path)
+pyhub.quick_solve()
+# pyhub.construct_balances()
+# pyhub.solve()
 
 
 # dm.create_optimization_templates(path)

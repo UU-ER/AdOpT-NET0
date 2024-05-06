@@ -118,7 +118,7 @@ def write_optimization_results_to_h5(
     folder_path = model_info["result_folder_path"]
 
     # create the results h5 file in the results folder
-    h5_file_path = os.path.join(folder_path, "optimization_results.h5")
+    h5_file_path = os.path.join(folder_path, "optimization_results_lowcop.h5")
     with h5py.File(h5_file_path, mode="w") as f:
 
         summary_dict = get_summary(model, solution, folder_path, model_info)
