@@ -303,9 +303,6 @@ class Res(Technology):
         super(Res, self).write_results_tec_design(h5_group, model_block)
 
         h5_group.create_dataset("rated_power", data=self.fitted_performance.rated_power)
-        h5_group.create_dataset(
-            "cap_factor", data=self.fitted_performance.coefficients["capfactor"]
-        )
 
     def write_results_tec_operation(self, h5_group, model_block):
 
@@ -320,6 +317,10 @@ class Res(Technology):
                 capfactor[t - 1] * model_block.var_size.value * rated_power
                 for t in self.set_t
             ],
+        )
+
+        h5_group.create_dataset(
+            "cap_factor", data=self.fitted_performance.coefficients["capfactor"]
         )
 
         if self.performance_data["curtailment"] == 2:
