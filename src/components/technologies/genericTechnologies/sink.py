@@ -13,7 +13,7 @@ from src.components.utilities import annualize, set_discount_rate
 
 class Sink(Technology):
     """
-    This model resembles a permanent storage technology (sink). It takes energy and a main carrier (e.g. CO2, H2 etc)
+    This model resembles a permanent storage technology (sink). It takes energy and a main carrier (e.g. CO2 etc)
     as inputs, and it has no output.
 
     **Parameter declarations:**
@@ -62,6 +62,7 @@ class Sink(Technology):
         .. math::
             CAPEX_storSize = Size_storSize * UnitCost_storSize
             CAPEX_injCapacity = injCapacity * UnitCost_injCapacity
+
     """
 
     def __init__(self, tec_data: dict):
@@ -70,7 +71,7 @@ class Sink(Technology):
         self.fitted_performance = FittedPerformance()
         self.flexibility_data = tec_data["Flexibility"]
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_technology_performance(self, climate_data: pd.DataFrame):
         """
         Calculate input bounds and select new capex model
 
@@ -122,53 +123,6 @@ class Sink(Technology):
         Construct SINK constraints
 
         Adds constraints to technology blocks for tec_type SINK, resembling a permanent storage technology
-
-        **Parameter declarations:**
-
-        - Min Size
-        - Max Size
-        - Unit CAPEX storage size (annualized from given data on up-front CAPEX, lifetime and discount rate)
-        - Unit CAPEX injection capacity (annualized from given data on up-front CAPEX, lifetime and discount rate)
-
-        **Variable declarations:**
-
-        - Storage level in :math:`t`: :math:`E_t`
-        - Injection capacity
-        - CAPEX storage size
-        - CAPEX injection capacity
-
-        **Constraint declarations:**
-
-        - Maximal injection rate:
-
-          .. math::
-            Input_{t} \leq injCapacity
-
-        - Maximal injection capacity:
-
-          .. math::
-            injCapacity \leq injRateMax
-
-        - Size constraint:
-
-          .. math::
-            E_{t} \leq storageSize
-
-        - Storage level calculation:
-
-          .. math::
-            E_{t} = E_{t-1} + Input_{t}
-
-        - If an energy consumption for the injection is given, the respective carrier input is:
-
-          .. math::
-            Input_{t, car} = cons_{car, in} Input_{t}
-
-        - CAPEX is given by two contributions
-
-            .. math::
-                CAPEX_storSize = Size_storSize * UnitCost_storSize
-                CAPEX_injCapacity = injCapacity * UnitCost_injCapacity
 
         :param b_tec: technology Block
         :param dict data: input data

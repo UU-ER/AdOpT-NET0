@@ -3,6 +3,8 @@ from pyomo.gdp import *
 import copy
 from warnings import warn
 import numpy as np
+import pandas as pd
+
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
@@ -84,11 +86,13 @@ class Stor(Technology):
         self.fitted_performance = FittedPerformance()
         self.flexibility_data = tec_data["Flexibility"]
 
-    def fit_technology_performance(self, climate_data, location):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location):
         """
-        Fits conversion technology type STOR and returns fitted parameters as a dict
+        Fits conversion technology type STOR and fills in the fitted parameters in a dict
 
-        :param node_data: contains data on demand, climate data, etc.
+        :param pd.DataFrame climate_data: needed for the timesteps
+        :param dict location: location data
+
         """
 
         time_steps = len(climate_data)
@@ -155,13 +159,17 @@ class Stor(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec: Block, data: dict, set_t: Set, set_t_clustered: Set
+    ) -> Block:
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
-        :param b_tec:
-        :param energyhub:
-        :return: b_tec
+        :param b_tec: technology Block
+        :param dict data: input data
+        :param Set set_t: set of timesteps in the model
+        :param Set set_t_clustered: set of timesteps when clustering algorithm is used
+        :return: technology Block with the constraints for the storage technology
+        :rtype: b_tec
         """
 
         super(Stor, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
@@ -184,7 +192,7 @@ class Stor(Technology):
         # )
         nr_timesteps_averaged = 1
 
-        # Abdditional parameters
+        # Additional parameters
         eta_in = coeff["eta_in"]
         eta_out = coeff["eta_out"]
         eta_lambda = coeff["lambda"]
@@ -210,6 +218,7 @@ class Stor(Technology):
 
         # Size constraint
         def init_size_constraint(const, t):
+            # storageLevel <= storSize
             return b_tec.var_storage_level[t] <= b_tec.var_size
 
         b_tec.const_size = Constraint(set_t_full, rule=init_size_constraint)
@@ -221,7 +230,7 @@ class Stor(Technology):
         ):
 
             def init_storage_level(const, t):
-                if t == 1:  # couple first and last time interval
+                if t == 1:  # couple first and last time interval: storageLevel[1] == storageLevel[end]
                     return b_tec.var_storage_level[t] == b_tec.var_storage_level[
                         max(set_t_full)
                     ] * (
