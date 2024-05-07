@@ -2,6 +2,7 @@ from pyomo.environ import *
 from pyomo.gdp import *
 import copy
 from warnings import warn
+import pandas as pd
 
 from ..genericTechnologies.utilities import fit_performance_generic_tecs
 from ..technology import Technology
@@ -9,31 +10,41 @@ from ..technology import Technology
 
 class Conv3(Technology):
     """
-    This technology type resembles a technology with different performance functions for the respective output
-    carriers. The performance function is based on the input of the main carrier , i.e.
-    :math:`output_{car} = f_{car}(input_{maincarrier})`.
-    The ratio between all input carriers is fixed.
-    Three different performance function fits are possible.
+    This technology type resembles a technology for which the output can be written as a function of the input,
+    according to different performance functions that can be specified in the JSON files (``performance_function_type``).
+    Four different performance function fits of the technology data (again specified in the JSON file) are possible,
+    and for all the function is based on the input of the main carrier , i.e.,:
+     :math:`output_{car} = f_{car}(input_{maincarrier})`.
+    Note that the ratio between all input carriers is fixed.
 
     **Constraint declarations:**
 
+    For all technologies modelled with CONV3 (regardless of performance function type):
     - Size constraints are formulated on the input.
 
       .. math::
          Input_{t, maincarrier} \leq S
 
-    - The ratios of inputs for all performance function types are fixed and given as:
+    - The ratios of inputs are fixed and given as:
 
       .. math::
         Input_{t, car} = {\\phi}_{car} * Input_{t, maincarrier}
 
-    - ``performance_function_type == 1``: Linear through origin, i.e.:
+    Type 1 is a linear performance function through the origin. However, a minimum part load can be specified,
+    basically meaning that the part of the performance function from the origin to this minimum part load value
+    cannot be met, thus it also cannot be turned off. So, for ``performance_function_type == 1`` the following
+    constraint holds:
 
       .. math::
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
 
-    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
-      technology is in on, it holds:
+    Type 2 is a linear performance function with a minimum part load. In this case, the linear line does not have to
+    be in line with the origin, and the technology can be turned off as well. Thus, the performance is either at the
+    origin (off) or it is at a linear line. Therefore, a big-m transformation is required. So, for
+    ``performance_function_type == 2``, the following constraints hold:
+
+
+    - If the technology is in on, it holds:
 
       .. math::
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier} + {\\alpha}_{2, car}
@@ -41,7 +52,7 @@ class Conv3(Technology):
       .. math::
         Input_{maincarrier} \geq Input_{min} * S
 
-      If the technology is off, input and output is set to 0:
+    - If the technology is off, input and output are set to 0:
 
       .. math::
          Output_{t, car} = 0
@@ -49,10 +60,13 @@ class Conv3(Technology):
       .. math::
          Input_{t, maincarrier} = 0
 
-    - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
-      The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
-      is defined piecewise for the respective number of pieces
+    For ``performance_function_type == 3``, the performance is modelled as a piecewise linear function. Note that this
+    requires a big-m transformation. For this case, the same constraints as for ``performance_function_type == 2`` hold,
+    but for each "piece" (segment) of the performance function (as specified in the JSON file, ``nr_seg``), the alpha_1
+    and alpha_2 change, so the performance function (output = f(input)) is written for each segment separately.
 
+    For ``performance_function_type == 4``, the performance is also modelled as a piecewise linear function. However,
+    this type additionally includes constraints for slow (>1h) startup and shutdown trajectories.
     """
 
     def __init__(self, tec_data):
@@ -61,13 +75,14 @@ class Conv3(Technology):
         self.fitted_performance = None
         self.main_car = self.performance_data["main_input_carrier"]
 
-    def fit_technology_performance(self, climate_data, location):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits conversion technology type 3 and returns fitted parameters as a dict
 
-        :param performance_data: contains X and y data of technology performance
-        :param performance_function_type: options for type of performance function (linear, piecewise,...)
-        :param nr_seg: number of segments on piecewise defined function
+        :param pd.DataFrame climate_data: a dataframe containing all climate data for the respective node at which the
+        tec is installed.
+        :param dict location: the coordinates of the node, needed because the method is called from a higher level than
+        the node level.
         """
 
         if self.performance_data["size_based_on"] == "output":
@@ -86,13 +101,16 @@ class Conv3(Technology):
                     * self.performance_data["input_ratios"][car]
                 )
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec: Block, data: pd.DataFrame, set_t: Set, set_t_clustered: Set) -> Block:
         """
         Adds constraints to technology blocks for tec_type CONV3
 
-        :param obj b_tec: technology block
-        :param Energyhub energyhub: energyhub instance
-        :return: technology block
+        :param Block b_tec: technology block
+        :param pd.DataFrame data: dataframe of all input data
+        :param Set set_t: set of all time steps
+        :param Set set_t_clustered: set of all time steps when using the clustering algorithm
+        :return: technology block (b_tec)
+        :rtype: Block
         """
         super(Conv3, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
 
@@ -175,7 +193,7 @@ class Conv3(Technology):
                 self.set_t, rule=bind_disjunctions
             )
 
-        # size constraint based main carrier input
+        # size constraint based on main carrier input
         def init_size_constraint(const, t):
             return self.input[t, self.main_car] <= b_tec.var_size * rated_power
 
@@ -188,20 +206,27 @@ class Conv3(Technology):
 
         return b_tec
 
-    def _performance_function_type_1(self, b_tec):
+    def _performance_function_type_1(self, b_tec: Block) -> Block:
         """
-        Linear, no minimal partload, through origin
-        :param b_tec: technology block
-        :return: technology block
+        Sets the input-output constraint for a tec based on tec_type CONV3 with performance type 1.
+
+        Type 1 is a linear performance function through the origin. However, a minimum part load can be specified,
+        basically meaning that the part of the performance function from the origin to this minimum part load value
+        cannot be met, thus it also cannot be turned off.
+
+        :param Block b_tec: technology block
+        :return: the technology block (b_tec)
+        :rtype: Block
         """
-        # Performance parameter:
+
+        # Performance parameters:
         alpha1 = {}
         for car in self.performance_data["performance"]["out"]:
             alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
         rated_power = self.fitted_performance.rated_power
         min_part_load = self.performance_data["min_part_load"]
 
-        # Input-output correlation
+        # Input-output relation
         def init_input_output(const, t, car_output):
             return (
                 self.output[t, car_output]
@@ -212,6 +237,7 @@ class Conv3(Technology):
             self.set_t, b_tec.set_output_carriers, rule=init_input_output
         )
 
+        # setting the minimum part load constraint if applicable
         if min_part_load > 0:
 
             def init_min_part_load(const, t):
@@ -224,12 +250,19 @@ class Conv3(Technology):
 
         return b_tec
 
-    def _performance_function_type_2(self, b_tec):
+    def _performance_function_type_2(self, b_tec: Block) -> Block:
         """
-        Linear, minimal partload
-        :param b_tec: technology block
-        :return: technology block
+        Sets the input-output constraint for a tec based on tec_type CONV3 with performance type 2.
+
+        Type 2 is a linear performance function with a minimum part load. In this case, the linear line does not have to
+        be in line with the origin, and the technology can be turned off as well. Thus, the performance is either at the
+        origin (off) or it is at a linear line. Therefore, a big-m transformation is required.
+
+        :param Block b_tec: technology block
+        :return: the technology block (b_tec)
+        :rtype: Block
         """
+
         # Transformation required
         self.big_m_transformation_required = 1
 
@@ -315,7 +348,7 @@ class Conv3(Technology):
                     b_tec.set_output_carriers, rule=init_input_output_on
                 )
 
-                # min part load relation
+                # min part load constraint
                 def init_min_partload(const):
                     return (
                         self.input[t, self.main_car]
@@ -336,11 +369,16 @@ class Conv3(Technology):
 
         return b_tec
 
-    def _performance_function_type_3(self, b_tec):
+    def _performance_function_type_3(self, b_tec: Block) -> Block:
         """
-        Piece-wise linear, minimal partload
-        :param b_tec: technology block
-        :return: technology block
+        Sets the input-output constraint for a tec based on tec_type CONV3 with performance type 3.
+
+        Type 3 is a piecewise linear fit to the performance data, based on the number of segments specified. Note that
+        this requires a big-m transformation. Again, a minimum part load is possible.
+
+        :param Block b_tec: technology block
+        :return: the technology block (b_tec)
+        :rtype: Block
         """
         # Transformation required
         self.big_m_transformation_required = 1
@@ -437,7 +475,7 @@ class Conv3(Technology):
                     b_tec.set_output_carriers, rule=init_output_on
                 )
 
-                # min part load relation
+                # min part load constraint
                 def init_min_partload(const):
                     return (
                         self.input[t, self.main_car]
@@ -458,17 +496,24 @@ class Conv3(Technology):
 
         return b_tec
 
-    def _performance_function_type_4(self, b_tec):
+    def _performance_function_type_4(self, b_tec: Block) -> Block:
         """
-        Piece-wise linear, minimal partload, includes constraints for slow (>1h) startup and shutdown trajectories.
+        Sets the constraints (input-output and startup/shutdown) for a tec based on tec_type CONV3 with performance
+        type 4.
+
+        Type 4 is also a piecewise linear fit to the performance data, based on the number of segments specified. Note
+        that this requires a big-m transformation. Again, a minimum part load is possible. Additionally, type 4 includes
+        constraints for slow (>1h) startup and shutdown trajectories.
 
         Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L., & Hobbs, B. F. (2017). Hidden
         power system inflexibilities imposed by traditional unit commitment formulations. Applied Energy, 191, 223–238.
         https://doi.org/10.1016/J.APENERGY.2017.01.089
 
-        :param b_tec: technology block
-        :return: technology block
+        :param Block b_tec: technology block
+        :return: the technology block (b_tec)
+        :rtype: Block
         """
+
         # Transformation required
         self.big_m_transformation_required = 1
 
@@ -690,12 +735,13 @@ class Conv3(Technology):
 
         return b_tec
 
-    def _define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec: Block) -> Block:
         """
         Constraints the inputs for a ramping rate
 
-        :param b_tec: technology model block
-        :return:
+        :param Block b_tec: technology block
+        :return: the technology block (b_tec)
+        :rtype: Block
         """
         ramping_time = self.performance_data["ramping_time"]
 

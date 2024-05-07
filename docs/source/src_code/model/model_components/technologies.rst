@@ -97,6 +97,6 @@ All technologies that are modelled are listed below, as well as their respective
 types of technologies that follow similar constraints, which are explained :ref:`here<technologies>`).
 
 .. csv-table::
-   :file: ..\..\..\generated_tech_list.csv
+   :file: generated_tech_list.csv
    :header-rows: 1
    :delim: ;
