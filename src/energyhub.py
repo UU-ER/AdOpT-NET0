@@ -800,12 +800,31 @@ class EnergyHub:
                                 .node_blocks[node]
                                 .tech_blocks_active
                             ):
-                                self._monte_carlo_technologies(
-                                    period, node, tec, MC_technology_row
-                                )
+                                if (
+                                    self.data.technology_data["full"][period][node][
+                                        tec
+                                    ].economics.capex_model
+                                    == 1
+                                ):
+                                    self._monte_carlo_technologies(
+                                        period, node, tec, MC_technology_row
+                                    )
+                                else:
+                                    MC_technology_rows = []
+                                    for index, row in MC_parameters.iterrows():
+                                        if row["type"] == "technology":
+                                            MC_technology_rows.append(row)
+                                    self._monte_carlo_technologies(
+                                        period, node, tec, MC_technology_rows
+                                    )
+
                 elif row["type"] == "network":
                     MC_network_row = row
-                    # TODO: implement for networks
+                    netw = MC_network_row["name"]
+
+                    for period in model.periods:
+                        self._monte_carlo_networks(period, netw, MC_network_row)
+
                 elif row["type"] == "import":
                     MC_import_row = row
 
@@ -871,11 +890,18 @@ class EnergyHub:
             )
 
         elif tec_data.economics.capex_model == 3:
-            unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
+            if MC_technology_row is not None:
+                for row in MC_technology_row:
+                    if row["parameter"] == "unit_CAPEX":
+                        unit_capex = random.uniform(row["min"], row["max"])
+                    elif row["parameter"] == "fix_CAPEX":
+                        fix_capex = random.uniform(row["min"], row["max"])
+            else:
+                unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
+                fix_capex = tec_data.economics.capex_data["fix_capex"] * sd_random
+
             b_tec.para_unit_capex = unit_capex
             b_tec.para_unit_capex_annual = unit_capex * annualization_factor
-
-            fix_capex = tec_data.economics.capex_data["fix_capex"] * sd_random
             b_tec.para_fix_capex = fix_capex
             b_tec.para_fix_capex_annual = fix_capex * annualization_factor
 
@@ -930,7 +956,7 @@ class EnergyHub:
         if big_m_transformation_required:
             b_tec = perform_disjunct_relaxation(b_tec)
 
-    def _monte_carlo_networks(self, period, netw):
+    def _monte_carlo_networks(self, period, netw, MC_network_row=None):
         """
         Changes the capex of networks
         """
@@ -951,57 +977,51 @@ class EnergyHub:
 
         b_netw = self.model[aggregation_type].periods[period].network_block[netw]
 
-        # Update cost parameters
-        b_netw.para_capex_gamma1 = (
-            economics.capex_data["gamma1"] * annualization_factor * sd_random
-        )
-        b_netw.para_capex_gamma2 = (
-            economics.capex_data["gamma2"] * annualization_factor * sd_random
-        )
-        b_netw.para_capex_gamma3 = (
-            economics.capex_data["gamma3"] * annualization_factor * sd_random
-        )
-        b_netw.para_capex_gamma4 = (
-            economics.capex_data["gamma4"] * annualization_factor * sd_random
-        )
+        if MC_network_row is not None:
+            if MC_network_row["parameter"] == "gamma1":
+                b_netw.para_capex_gamma1 = random.uniform(
+                    MC_network_row["min"], MC_network_row["max"]
+                )
+            if MC_network_row["parameter"] == "gamma2":
+                b_netw.para_capex_gamma2 = random.uniform(
+                    MC_network_row["min"], MC_network_row["max"]
+                )
+            if MC_network_row["parameter"] == "gamma3":
+                b_netw.para_capex_gamma3 = random.uniform(
+                    MC_network_row["min"], MC_network_row["max"]
+                )
+            if MC_network_row["parameter"] == "gamma4":
+                b_netw.para_capex_gamma4 = random.uniform(
+                    MC_network_row["min"], MC_network_row["max"]
+                )
+        else:
+            # Update cost parameters
+            b_netw.para_capex_gamma1 = (
+                economics.capex_data["gamma1"] * annualization_factor * sd_random
+            )
+            b_netw.para_capex_gamma2 = (
+                economics.capex_data["gamma2"] * annualization_factor * sd_random
+            )
+            b_netw.para_capex_gamma3 = (
+                economics.capex_data["gamma3"] * annualization_factor * sd_random
+            )
+            b_netw.para_capex_gamma4 = (
+                economics.capex_data["gamma4"] * annualization_factor * sd_random
+            )
 
-        for arc in b_netw.set_arcs:
+        for arc in b_netw.set_arcs_unique:
             b_arc = b_netw.arc_block[arc]
 
             # Remove constraint (from persistent solver and from model)
-            # FIXME: remove disjuctions installation
-            b_arc.del_component(b_arc.const_capex_aux)
+            big_m_transformation_required = 1
+            b_arc.del_component(b_arc._pyomo_gdp_bigm_reformulation)
+            b_arc.del_component(b_arc.dis_installation)
+            b_arc.del_component(b_arc.disjunction_installation)
 
-            # Add constraint again
-            def init_capex(const):
-                return (
-                    b_arc.var_capex_aux
-                    == b_netw.para_capex_gamma1
-                    + b_netw.para_capex_gamma2 * b_arc.var_size
-                    + b_netw.para_capex_gamma3 * b_arc.distance
-                    + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
-                )
+            b_netw = netw_data._define_capex_arc(b_arc, b_netw, arc[0], arc[1])
 
-            b_arc.const_capex_aux = Constraint(rule=init_capex)
-
-            s_indicators = range(0, 2)
-
-            def init_installation(dis, ind):
-                if ind == 0:  # network not installed
-                    dis.const_capex_aux = Constraint(expr=b_arc.var_capex_aux == 0)
-                    dis.const_not_installed = Constraint(expr=b_arc.var_size == 0)
-                else:  # network installed
-                    dis.const_capex_aux = Constraint(rule=init_capex)
-
-            b_arc.dis_installation = Disjunct(s_indicators, rule=init_installation)
-
-            def bind_disjunctions(dis):
-                return [b_arc.dis_installation[i] for i in s_indicators]
-
-            b_arc.disjunction_installation = Disjunction(rule=bind_disjunctions)
-
-            # perform relaxation
-            b_netw = perform_disjunct_relaxation(b_netw)
+        # perform relaxation
+        b_netw = perform_disjunct_relaxation(b_netw)
 
     def _monte_carlo_import_prices(self, period, node, car, MC_import_row=None):
         """
