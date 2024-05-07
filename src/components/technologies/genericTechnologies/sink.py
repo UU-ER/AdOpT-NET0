@@ -60,8 +60,8 @@ class Sink(Technology):
     - CAPEX is given by two contributions
 
         .. math::
-            CAPEX_storSize = Size_storSize * UnitCost_storSize
-            CAPEX_injCapacity = injCapacity * UnitCost_injCapacity
+            CAPEX_{storSize} = Size_{storSize} * UnitCost_{storSize}
+            CAPEX_{injCapacity} = injCapacity * UnitCost_{injCapacity}
 
     """
 
@@ -251,30 +251,12 @@ class Sink(Technology):
 
         return b_tec
 
-    def _define_sink_capex(self, b_tec, data):
+    def _define_sink_capex(sels, b_tec: Block, data: dict) -> Block:
         """
 
         Construct CAPEX of SINK constraints
 
         Adds constraints to technology blocks for tec_type SINK to calculate the CAPEX
-
-        **Parameter declarations:**
-
-        - Unit CAPEX storage size (annualized from given data on up-front CAPEX, lifetime and discount rate)
-        - Unit CAPEX injection capacity (annualized from given data on up-front CAPEX, lifetime and discount rate)
-
-        **Variable declarations:**
-
-        - CAPEX storage size
-        - CAPEX injection capacity
-
-        **Constraint declarations:**
-
-        - CAPEX is given by two contributions
-
-            .. math::
-                CAPEX_storSize = Size_storSize * UnitCost_storSize
-                CAPEX_injCapacity = injCapacity * UnitCost_injCapacity
 
         :param Block b_tec: technology Block
         :param dict data: input data
