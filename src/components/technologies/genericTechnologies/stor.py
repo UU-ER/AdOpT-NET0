@@ -167,7 +167,8 @@ class Stor(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec: Block, data: dict, set_t: Set, set_t_clustered: Set
+    def construct_tech_model(
+        self, b_tec: Block, data: dict, set_t: Set, set_t_clustered: Set
     ) -> Block:
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
@@ -448,7 +449,7 @@ class Stor(Technology):
 
         return b_tec
 
-    def _define_stor_capex(self, b_tec: Block, data: dict)-> Block:
+    def _define_stor_capex(self, b_tec: Block, data: dict) -> Block:
         """
         Construct constraints for the storage CAPEX
 
@@ -563,11 +564,11 @@ class Stor(Technology):
 
     def write_results_tec_design(self, h5_group: h5py.Group, model_block: Block):
         """
-       Function to report results of technologies design after optimization
+        Function to report results of technologies design after optimization
 
-       :param  h5py.Group h5_group: h5 file structure
-       :param Block b_tec: technology model block
-       """
+        :param  h5py.Group h5_group: h5 file structure
+        :param Block b_tec: technology model block
+        """
         super(Stor, self).write_results_tec_design(h5_group, model_block)
 
         if self.flexibility_data["power_energy_ratio"] == "flex":

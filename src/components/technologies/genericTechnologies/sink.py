@@ -71,7 +71,7 @@ class Sink(Technology):
         self.fitted_performance = FittedPerformance()
         self.flexibility_data = tec_data["Flexibility"]
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location):
         """
         Calculate input bounds and select new capex model
 

@@ -12,6 +12,7 @@ from ..utilities import (
     determine_constraint_scaling,
 )
 from .utilities import set_capex_model
+from ...utilities import log_event
 
 """
 TODO
@@ -27,6 +28,203 @@ class Technology(ModelComponent):
 
     This class is parent class to all generic and specific technologies. It creates the variables, parameters,
     constraints and sets of a technology.
+
+    This function is extented in the generic/specific technology classes. It adds Sets, Parameters, Variables and
+    Constraints that are common for all technologies
+    The following description is true for new technologies. For existing technologies a few adaptions are made
+    (see below).
+    When CCS is available, we add heat and electricity to the input carriers Set and CO2captured to the output
+    carriers Set. Moreover, we create extra Parameters and Variables equivalent to the ones created for the
+    technology, but specific for CCS. In addition, we create Variables that are the sum of the input, output,
+    CAPEX and OPEX of the technology and of CCS. We calculate the emissions of the techology discounting already
+    what is being captured by the CCS.
+
+    **Set declarations:**
+
+    - set_input_carriers: Set of input carriers
+    - set_output_carriers: Set of output carriers
+
+    If ccs is possible:
+
+    - set_input_carriers_ccs: Set of ccs input carriers
+    - set_output_carriers_ccs: Set of ccs output carriers
+
+    **Parameter declarations:**
+
+    The following is a list of declared pyomo parameters.
+
+    - para_size_min: minimal possible size
+    - para_size_max: maximal possible size
+    - para_unit_capex: investment costs per unit
+    - para_unit_capex_annual: Unit CAPEX annualized (annualized from given data on
+      up-front CAPEX, lifetime and discount rate)
+    - para_fix_capex: fixed costs independent of size
+    - para_fix_capex_annual: Fixed CAPEX annualized (annualized from given data on
+      up-front CAPEX, lifetime and discount rate)
+    - para_opex_variable: operational cost EUR/output or input
+    - para_opex_fixed: fixed opex as fraction of annualized capex
+    - para_tec_emissionfactor: emission factor per output or input
+
+    If ccs is possible:
+
+    - para_size_min_ccs: minimal possible size
+    - para_size_max_ccs: maximal possible size
+    - para_unit_capex_annual_ccs: investment costs per unit (annualized from given data on up-front CAPEX, lifetime
+      and discount rate)
+    - para_fix_capex_annual_ccs: Fixed CAPEX annualized (annualized from given data on
+      up-front CAPEX, lifetime and discount rate)
+    - para_opex_variable_ccs: operational cost EUR/output or input
+    - para_opex_fixed_ccs: fixed opex as fraction of annualized capex
+
+    For existing technologies:
+
+    - para_size_initial: initial size
+    - para_decommissioning_cost: Decommissioning cost
+
+    **Variable declarations:**
+
+    - var_size: Size of the technology, can be integer or continuous
+    - var_input: input to the technology, defined for each input carrier and time slice
+    - var_output: output of the technology, defined for each output carrier and time
+      slice
+    - var_input_tot: input aggregation of technology and ccs input
+    - var_output_tot: output aggregation of technology and ccs output
+    - var_capex: annualized investment of the technology
+    - var_opex_variable: variable operation costs, defined for each time slice
+    - var_opex_fixed: fixed operational costs
+    - var_capex_tot: aggregation of technology and ccs capex
+    - var_capex_aux: auxiliary variable to calculate the fixed opex of existing technologies
+    - var_opex_variable_tot: aggregation of technology and ccs opex variable, defined for
+      each time slice
+    - var_opex_fixed_tot: aggregation of technology and ccs opex fixed
+    - var_tec_emissions_pos: positive emissions, defined per time slice
+    - var_tec_emissions_neg: negative emissions, defined per time slice
+
+    If ccs is possible:
+
+    - var_size_ccs: Size of ccs
+    - var_input_ccs: input to the ccs component, defined for each ccs input carrier and
+      time slice
+    - var_output_ccs: output from the ccs component, defined for each ccs output carrier
+      and time slice
+    - var_capex_ccs: annualized investment of ccs
+    - var_capex_aux_ccs: auxiliary variable to calculate the fixed opex of existing ccs
+    - var_opex_variable_ccs: variable operation costs, defined for each time slice
+    - var_opex_fixed_ccs: fixed operational costs
+
+    **Constraint declarations**
+
+    - For new technologies, CAPEX, can be linear (for ``capex_model == 1``), piecewise
+      linear (for ``capex_model == 2``) or linear with a fixed cost when the
+      technology is installed (for ``capex_model == 3``). The capex model can
+      also be overwritten in the children technology classes  (for ``capex_model ==
+      4``). Linear is defined as:
+
+        .. math::
+            capex_{aux} = size * capex_{unitannual}
+
+      while linear with fixed installation costs is defined as. Note that capex_aux is
+      zero if the technology is not installed:
+
+        .. math::
+            capex_{aux} = size * capex_{unitannual} + capex_{fixed}
+
+      Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 1) or not (decommission = 0).
+      For technologies that cannot be decommissioned, the size is fixed to the size
+      given in the technology data.
+      For technologies that can be decommissioned, the size can be smaller or equal to the initial size. Reducing the
+      size comes at the decommissioning costs specified in the economics of the technology.
+      The fixed opex is calculated by determining the capex that the technology would have costed if newly build and
+      then taking the respective opex_fixed share of this. This is done with the auxiliary variable capex_aux.
+
+    - For existing technologies that can be decommissioned, the CAPEX equal to
+      the decommissioning costs:
+
+        .. math::
+            capex = (size_{initial} - size) * decommissioningcost
+
+    - Variable OPEX: variable opex is defined in terms of the input, with the
+      exception of DAC_Adsorption, RES and CONV4, where it is defined per unit of
+      output:
+
+        .. math::
+            opexvar_{t} = Input_{t, maincarrier} * opex_{var}
+
+    - Fixed OPEX: defined as a fraction of annual CAPEX:
+
+        .. math::
+            opexfix = capex * opex_{fix}
+
+    - Input aggregation: aggregates total input from technology
+      and ccs. In case there is no ccs, input_ccs is zero:
+
+        .. math::
+            input_{t, car} + input_ccs_{t, car} = input_tot_{t, car}
+
+    - Output aggregation: aggregates total output from technology
+      and ccs. In case there is no ccs, output_ccs is zero:
+
+        .. math::
+            output_{t, car} + output_ccs_{t, car} = output_tot_{t, car}
+
+    - Capex aggregation: aggregates capex of technology
+      and ccs. In case there is no ccs, capex_ccs is zero:
+
+        .. math::
+            capex + capex_{ccs} = capex_{tot}
+
+    - Opex variable aggregation: aggregates opex variable of technology
+      and ccs. In case there is no ccs, var_opex_variable_ccs is zero:
+
+        .. math::
+            opex_{variable, t} + opex_{variable,ccs, t} =  opex_{variable,tot, t}
+
+    - Opex fixed aggregation: aggregates opex fixed of technology
+      and ccs. In case there is no ccs, opex_fixed_ccs is zero:
+
+        .. math::
+            opex_{fixed} + opex_{fixed,ccs} =  opex_{fixed,tot}
+
+    - Emissions: depending if they are based on input or output and depending if
+      emission factor is negative or positive
+
+        .. math::
+            emissions_{pos/neg,t} = output_{maincarrier, t} * emissionfactor_{pos}
+
+    If CCS is possible the following constraints apply:
+
+    - Input carriers are given by:
+
+    .. math::
+        input_CCS_{car} <= inputRatio_{carrier} * output_CCS/captureRate
+        input_tot_{car} = inputTec_{car} + input_CCS_{car}
+
+    - CO2 captured output is constrained by:
+
+    .. math::
+        output_CCS <= input(output)_{tec} * emissionFactor * captureRate
+
+    - The total output are given by:
+
+    .. math::
+        output_tot_{car} = outputTec_{car} + output_CCS_{car}
+
+    - Emissions of the technolgy are:
+
+    .. math::
+        emissions_{tec} = input(output)_{tec} * emissionFactor - output_CCS
+
+    - CAPEX is given by
+
+    .. math::
+        CAPEX_CCS = Size_CCS * UnitCost_CCS + FixCost_CCS
+        CAPEX_tot = CAPEX_CCS + CAPEX_{tec}
+
+    - Fixed OPEX: defined as a fraction of annual CAPEX:
+
+    .. math::
+        OPEXfix_CCS = CAPEX_CCS * opex_CCS
+        OPEX_tot = OPEX_CCS + OPEX_{tec}
     """
 
     def __init__(self, tec_data: dict):
@@ -82,139 +280,18 @@ class Technology(ModelComponent):
     def construct_tech_model(
         self, b_tec: Block, data: dict, set_t: Set, set_t_clustered: Set
     ) -> Block:
-        r"""
-        Construct the technology model
+        """
+        Construct the technology model with all required parameters, variable, sets,...
 
-        This function is extented in the generic/specific technology classes. It adds Sets, Parameters, Variables and
-        Constraints that are common for all technologies (see below
-        for the case when CCS is possible).
-        The following description is true for new technologies. For existing technologies a few adaptions are made
-        (see below).
-
-        **Set declarations:**
-
-        - Set of input carriers
-        - Set of output carriers
-
-        **Parameter declarations:**
-
-        - Min Size
-        - Max Size
-        - Output max (same as size max)
-        - Unit CAPEX (annualized from given data on up-front CAPEX, lifetime and discount rate)
-        - Variable OPEX
-        - Fixed OPEX
-
-        **Variable declarations:**
-
-        - Size (can be integer or continuous)
-        - Input for each input carrier
-        - Output for each output carrier
-        - CAPEX
-        - Variable OPEX
-        - Fixed OPEX
-
-        **Constraint declarations**
-
-        - CAPEX, can be linear (for ``capex_model == 1``), piecewise linear (for ``capex_model == 2``) or linear with \
-          a fixed cost when the technology is installed (for ``capex_model == 3``). Linear is defined as:
-
-            .. math::
-                CAPEX_{tec} = Size_{tec} * UnitCost_{tec}
-
-          while linear with fixed installation costs is defined as:
-
-            .. math::
-                CAPEX_{tec} = Size_{tec} * UnitCost_{tec} + FixCost_{tec}
-
-        - Variable OPEX: defined per unit of output for the main carrier:
-
-            .. math::
-                OPEXvar_{t, tec} = Output_{t, maincarrier} * opex_{var} \forall t \in T
-
-        - Fixed OPEX: defined as a fraction of annual CAPEX:
-
-            .. math::
-                OPEXfix_{tec} = CAPEX_{tec} * opex_{fix}
-
-        Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 1) or not (decommission = 0).
-        For technologies that cannot be decommissioned, the size is fixed to the size given in the technology data.
-        For technologies that can be decommissioned, the size can be smaller or equal to the initial size. Reducing the
-        size comes at the decommissioning costs specified in the economics of the technology.
-        The fixed opex is calculated by determining the capex that the technology would have costed if newly build and
-        then taking the respective opex_fixed share of this. This is done with the auxiliary variable var_capex_aux.
-
-        :param str nodename: name of node for which technology is installed
-        :param set set_tecsToAdd: list of technologies to add
-        :param energyhub EnergyHub: instance of the energyhub
-        :return: b_node
-
-        When CCS is available, we add heat and electricity to the input carriers Set and CO2captured to the output
-        carriers Set. Moreover, we create extra Parameters and Variables equivalent to the ones created for the
-        technology, but specific for CCS. In addition, we create Variables that are the sum of the input, output,
-        CAPEX and OPEX of the technology and of CCS. We calculate the emissions of the techology discounting already
-        what is being captured by the CCS.
-
-        **Parameter declarations:**
-
-        - Min Size CCS
-        - Max Size CCS
-        - Unit CAPEX CCS (annualized from given data on up-front CAPEX, lifetime and discount rate)
-        - Fixed OPEX (fraction of the CAPEX)
-
-        **Variable declarations:**
-
-        - Size CCS (in t/h of CO2 entering capture process)
-        - Input for heat and electricity
-        - Output of CO2 captured
-        - CAPEX CCS
-        - Fixed OPEX CCS
-        - Total input
-        - Total output
-        - Total CAPEX
-        - Total OPEX fixed
-
-        **Constraint declarations**
-
-
-       - Input carriers are given by:
-
-        .. math::
-            input_CCS_{car} <= inputRatio_{carrier} * output_CCS/captureRate
-            input_tot_{car} = inputTec_{car} + input_CCS_{car}
-
-        - CO2 captured output is constrained by:
-
-        .. math::
-            output_CCS <= input(output)_{tec} * emissionFactor * captureRate
-
-        - The total output are given by:
-
-        .. math::
-            output_tot_{car} = outputTec_{car} + output_CCS_{car}
-
-        - Emissions of the technolgy are:
-
-        .. math::
-            emissions_{tec} = input(output)_{tec} * emissionFactor - output_CCS
-
-        - CAPEX is given by
-
-        .. math::
-            CAPEX_CCS = Size_CCS * UnitCost_CCS + FixCost_CCS
-            CAPEX_tot = CAPEX_CCS + CAPEX_{tec}
-
-        - Fixed OPEX: defined as a fraction of annual CAPEX:
-
-        .. math::
-            OPEXfix_CCS = CAPEX_CCS * opex_CCS
-            OPEX_tot = OPEX_CCS + OPEX_{tec}
-
-
-
+        :param Block b_tec: Technology block
+        :param dict data: data containing model configuration
+        :param Set set_t: full resolution set of time slices
+        :param Set set_t_clustered: clustered resolution set of time slices
+        :return: b_tec
+        :rtype: Block
         """
 
-        print("\t - Adding Technology " + self.name)
+        log_event("\t - Adding Technology " + self.name)
 
         # TECHNOLOGY DATA
         config = data["config"]
@@ -243,6 +320,8 @@ class Technology(ModelComponent):
         b_tec = self._define_input(b_tec, data)
         b_tec = self._define_output(b_tec, data)
         b_tec = self._define_opex(b_tec, data)
+
+        # CCS and Emissions
         if self.ccs:
             b_tec = self._define_ccs_performance(b_tec, data)
             b_tec = self._define_ccs_emissions(b_tec, data)
@@ -284,6 +363,7 @@ class Technology(ModelComponent):
                         + self.name
                     )
 
+        # AGGREGATE ALL VARIABLES
         self._aggregate_input(b_tec)
         self._aggregate_output(b_tec)
         self._aggregate_cost(b_tec)
@@ -291,6 +371,13 @@ class Technology(ModelComponent):
         return b_tec
 
     def _aggregate_input(self, b_tec):
+        """
+        Aggregates ccs and technology input
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
+        """
 
         b_tec.var_input_tot = Var(
             self.set_t,
@@ -299,6 +386,7 @@ class Technology(ModelComponent):
         )
 
         def init_aggregate_input(const, t, car):
+            """input_ccs + input = input_tot"""
             input_tec = (
                 b_tec.var_input[t, car] if car in b_tec.set_input_carriers else 0
             )
@@ -319,7 +407,13 @@ class Technology(ModelComponent):
         return b_tec
 
     def _aggregate_output(self, b_tec):
+        """
+        Aggregates ccs and technology output
 
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
+        """
         b_tec.var_output_tot = Var(
             self.set_t,
             b_tec.set_output_carriers_all,
@@ -327,6 +421,7 @@ class Technology(ModelComponent):
         )
 
         def init_aggregate_output(const, t, car):
+            """output + output_ccs = output_tot"""
             output_tec = (
                 b_tec.var_output[t, car] if car in b_tec.set_output_carriers else 0
             )
@@ -347,6 +442,13 @@ class Technology(ModelComponent):
         return b_tec
 
     def _aggregate_cost(self, b_tec):
+        """
+        Aggregates ccs and technology cost
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
+        """
 
         set_t = self.set_t_full
 
@@ -355,6 +457,7 @@ class Technology(ModelComponent):
         b_tec.var_opex_variable_tot = Var(set_t)
 
         def init_aggregate_capex(const):
+            """capex + capex_ccs = capex_tot"""
             capex_tec = b_tec.var_capex
             if self.ccs:
                 capex_ccs = b_tec.var_capex_ccs
@@ -365,6 +468,7 @@ class Technology(ModelComponent):
         b_tec.const_capex_aggregation = Constraint(rule=init_aggregate_capex)
 
         def init_aggregate_opex_var(const, t):
+            """var_opex_variable + var_opex_variable_ccs = var_opex_variable_tot"""
             opex_var_tec = b_tec.var_opex_variable[t]
             if self.ccs:
                 opex_var_ccs = b_tec.var_opex_variable_ccs[t]
@@ -377,6 +481,7 @@ class Technology(ModelComponent):
         )
 
         def init_aggregate_opex_fixed(const):
+            """var_opex_fixed + var_opex_fixed_ccs = var_opex_fixed_tot"""
             opex_fixed_tec = b_tec.var_opex_fixed
             if self.ccs:
                 opex_fixed_ccs = b_tec.var_opex_fixed_ccs
@@ -390,10 +495,9 @@ class Technology(ModelComponent):
 
     def write_results_tec_design(self, h5_group, model_block):
         """
-        Function to report results of technologies after optimization
+        Function to report design results of technologies after optimization
 
         :param model_block: technology model block
-        :return: dict results: holds results
         """
 
         h5_group.create_dataset("technology", data=[self.name])
@@ -428,7 +532,11 @@ class Technology(ModelComponent):
             )
 
     def write_results_tec_operation(self, h5_group, model_block):
+        """
+        Function to report operation results of technologies after optimization
 
+        :param model_block: technology model block
+        """
         for car in model_block.set_input_carriers_all:
             if model_block.find_component("var_input"):
                 h5_group.create_dataset(
@@ -453,7 +561,6 @@ class Technology(ModelComponent):
             data=[model_block.var_tec_emissions_neg[t].value for t in self.set_t_full],
         )
         if model_block.find_component("var_x"):
-            model_block.var_x.pprint()
             h5_group.create_dataset(
                 "var_x",
                 data=[
@@ -508,9 +615,13 @@ class Technology(ModelComponent):
 
         return model
 
-    def _define_input_carriers(self, b_tec):
+    def _define_input_carriers(self, b_tec: Block):
         """
         Defines the input carriers
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         if (self.technology_model == "RES") or (self.technology_model == "CONV4"):
             b_tec.set_input_carriers = Set(initialize=[])
@@ -532,9 +643,13 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def _define_output_carriers(self, b_tec):
+    def _define_output_carriers(self, b_tec: Block):
         """
         Defines the output carriers
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         b_tec.set_output_carriers = Set(
             initialize=self.performance_data["output_carrier"]
@@ -553,17 +668,13 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def _define_size(self, b_tec):
+    def _define_size(self, b_tec: Block):
         """
         Defines variables and parameters related to technology size.
 
-        Parameters defined:
-        - size min
-        - size max
-        - size initial (for existing technologies)
-
-        Variables defined:
-        - size
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         if self.existing:
             size_max = self.size_initial
@@ -604,13 +715,9 @@ class Technology(ModelComponent):
         """
         Defines variables and parameters related to technology capex.
 
-        Parameters defined:
-        - unit capex/ breakpoints for capex function
-
-        Variables defined:
-        - capex_aux (theoretical CAPEX for existing technologies)
-        - CAPEX (actual CAPEX)
-        - Decommissioning Costs (for existing technologies)
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         config = data["config"]
 
@@ -664,10 +771,13 @@ class Technology(ModelComponent):
                 initialize=annualization_factor * economics.capex_data["unit_capex"],
                 mutable=True,
             )
+
+            """capex_aux = size * capex_unit_annual"""
             b_tec.const_capex_aux = Constraint(
                 expr=b_tec.var_size * b_tec.para_unit_capex_annual
                 == b_tec.var_capex_aux
             )
+
         elif capex_model == 2:
             bp_x = economics.capex_data["piecewise_capex"]["bp_x"]
             bp_y_annual = [
@@ -754,15 +864,13 @@ class Technology(ModelComponent):
         """
         Defines input to a technology
 
-        var_input is always in full resolution
-        var_input_aux can be in reduced resolution
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         # Technology related options
         existing = self.existing
-        performance_data = self.performance_data
         fitted_performance = self.fitted_performance
-        technology_model = self.technology_model
-        modelled_with_full_res = self.modelled_with_full_res
         config = data["config"]
 
         # set_t and sequence
@@ -811,13 +919,13 @@ class Technology(ModelComponent):
         """
         Defines output to a technology
 
-        var_output is always in full resolution
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         # Technology related options
         existing = self.existing
-        performance_data = self.performance_data
         fitted_performance = self.fitted_performance
-        modelled_with_full_res = self.modelled_with_full_res
         config = data["config"]
 
         rated_power = fitted_performance.rated_power
@@ -864,6 +972,10 @@ class Technology(ModelComponent):
     def _define_opex(self, b_tec, data):
         """
         Defines variable and fixed OPEX
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         economics = self.economics
         set_t = self.set_t_full
@@ -875,6 +987,7 @@ class Technology(ModelComponent):
         b_tec.var_opex_variable = Var(set_t)
 
         def init_opex_variable(const, t):
+            """opexvar_{t} = Input_{t, maincarrier} * opex_{var}"""
             if (
                 (self.technology_model == "RES")
                 or (self.technology_model == "CONV4")
@@ -905,6 +1018,10 @@ class Technology(ModelComponent):
     def _define_emissions(self, b_tec, data):
         """
         Defines Emissions
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
 
         set_t = self.set_t_full
@@ -939,6 +1056,7 @@ class Technology(ModelComponent):
             if emissions_based_on == "output":
 
                 def init_tec_emissions_pos(const, t):
+                    """emissions_pos = output * emissionfactor"""
                     if performance_data["emission_factor"] >= 0:
                         return (
                             b_tec.var_output[t, performance_data["main_output_carrier"]]
@@ -1002,6 +1120,10 @@ class Technology(ModelComponent):
     def _define_ccs_performance(self, b_tec, data):
         """
         Defines CCS performance. The unit capex parameter is calculated from Eq. 10 of Weimann et al. 2023
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         size_max = self.ccs_data["size_max"]
         set_t = self.set_t_full
@@ -1069,7 +1191,6 @@ class Technology(ModelComponent):
         # Input-output correlation
         def init_input_output_ccs(const, t):
             if emissions_based_on == "output":
-                print(emissions_based_on)
                 return (
                     b_tec.var_output_ccs[t, "CO2captured"]
                     <= carbon_capture_rate
@@ -1077,7 +1198,6 @@ class Technology(ModelComponent):
                     * b_tec.var_output[t, self.main_car]
                 )
             else:
-                print(emissions_based_on)
                 return (
                     b_tec.var_output_ccs[t, "CO2captured"]
                     <= carbon_capture_rate
@@ -1105,10 +1225,13 @@ class Technology(ModelComponent):
     def _define_ccs_emissions(self, b_tec, data):
         """
         Defines CCS performance. The unit capex parameter is calculated from Eq. 10 of Weimann et al. 2023
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
-        co2_concentration = self.performance_data["ccs"]["co2_concentration"]
+
         set_t = self.set_t_full
-        carbon_capture_rate = self.ccs_data["TechnologyPerf"]["capture_rate"]
         performance_data = self.performance_data
         emissions_based_on = self.emissions_based_on
 
@@ -1172,6 +1295,13 @@ class Technology(ModelComponent):
         return b_tec
 
     def _define_ccs_costs(self, b_tec, data):
+        """
+        Defines ccs costs
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
+        """
         co2_concentration = self.performance_data["ccs"]["co2_concentration"]
         carbon_capture_rate = self.ccs_data["TechnologyPerf"]["capture_rate"]
         config = data["config"]
@@ -1189,19 +1319,6 @@ class Technology(ModelComponent):
         convert2t_per_h = (
             molar_mass_CO2 * co2_concentration * 3.6
         )  # convert kmol/s of fluegas to ton/h of CO2molar_mass_CO2 = 44.01
-
-        # CAPEX auxilliary (used to calculate theoretical CAPEX)
-        # For new technologies, this is equal to actual CAPEX
-        # For existing technologies it is used to calculate fixed OPEX
-        b_tec.para_kappa_ccs = Param(
-            domain=Reals, initialize=economics.CAPEX_kappa, mutable=True
-        )
-        b_tec.para_lambda_ccs = Param(
-            domain=Reals, initialize=economics.CAPEX_lambda, mutable=True
-        )
-        b_tec.para_zeta_ccs = Param(
-            domain=Reals, initialize=economics.CAPEX_zeta, mutable=True
-        )
 
         def init_unit_capex_ccs_annualized(self):
             unit_capex = (
@@ -1296,6 +1413,10 @@ class Technology(ModelComponent):
     def _define_auxiliary_vars(self, b_tec, data):
         """
         Defines auxiliary variables, that are required for the modelling of clustered data
+
+        :param Block b_tec: Technology block
+        :return: Technology block
+        :rtype: Block
         """
         set_t_clustered = data.model.set_t_clustered
         set_t_full = self.set_t_full
@@ -1369,6 +1490,7 @@ class Technology(ModelComponent):
         """
         Selects the dynamic constraints that are required based on the technology dynamic performance parameters or the
         performance function type.
+
         :param b_tec:
         :return:
         """
