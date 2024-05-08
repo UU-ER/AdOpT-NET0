@@ -25,12 +25,12 @@
       "electricity",
       "heat"
     ],
-    "main_output_carrier": "CO2",
+    "main_output_carrier": "CO2captured",
     "output_carrier": [
-      "CO2"
+      "CO2captured"
     ],
     "nr_segments": 2,
-    "ohmic_heating": 1,
+    "ohmic_heating": 0,
     "emission_factor": -1,
     "performance": {
       "eta_elth": 0.97

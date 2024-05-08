@@ -19,6 +19,6 @@ List of Networks
 All networks that are modelled are listed below.
 
 .. csv-table::
-   :file: ..\..\..\generated_netw_list.csv
+   :file: generated_netw_list.csv
    :header-rows: 1
    :delim: ;

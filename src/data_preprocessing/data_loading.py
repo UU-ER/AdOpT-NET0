@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 import numpy as np
 import shutil
@@ -183,6 +185,8 @@ def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
                 tec_json_file_path = find_json_path(tec_data_path, tec_name)
                 if tec_json_file_path:
                     shutil.copy(tec_json_file_path, output_folder)
+                else:
+                    warnings.warn(f"Technology {tec_name} not found")
 
 
 def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path):

@@ -15,8 +15,8 @@ mathjax_path = (
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "EnergyHub"
-copyright = "2023, Jan Wiegner, Julia Tiggeloven"
-author = "Jan Wiegner, Julia Tiggeloven"
+copyright = "2023, Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk"
+author = "Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk"
 release = "0.1"
 
 # -- General configuration ---------------------------------------------------
@@ -81,7 +81,7 @@ target_dir = os.path.abspath(
 )
 tech_list = generate_component_list(target_dir)
 
-with open("generated_tech_list.csv", "w") as f:
+with open("src_code/model/model_components/generated_tech_list.csv", "w") as f:
     f.write(f"Technology name; Technology model (Tec_type)\n")
     for tech in tech_list:
         f.write(f"{tech[0]}; {tech[1]}\n")
@@ -91,7 +91,7 @@ target_dir = os.path.abspath(os.path.join(current_dir, "..", "..", "data/network
 netw_list = generate_component_list(target_dir)
 
 
-with open("generated_netw_list.csv", "w") as f:
+with open("src_code/model/model_components/generated_netw_list.csv", "w") as f:
     f.write(f"Network name\n")
     for netw in netw_list:
         f.write(f"{netw}\n")
