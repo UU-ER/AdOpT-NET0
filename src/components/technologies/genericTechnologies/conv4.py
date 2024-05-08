@@ -81,7 +81,9 @@ class Conv4(Technology):
                     * self.performance_data["output_ratios"][car]
                 )
 
-    def construct_tech_model(self, b_tec: Block, data: pd.DataFrame, set_t: Set, set_t_clustered: Set) -> Block:
+    def construct_tech_model(
+        self, b_tec: Block, data: pd.DataFrame, set_t: Set, set_t_clustered: Set
+    ) -> Block:
         """
         Adds constraints to technology blocks for tec_type CONV4
 
