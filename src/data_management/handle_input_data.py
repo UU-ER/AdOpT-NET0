@@ -503,6 +503,8 @@ class DataHandle:
 
         self._read_technology_data(aggregation_type="clustered")
 
+        log_event("Clustered data successfully")
+
     def _average_data(self):
         # Todo: document
         """
@@ -546,3 +548,5 @@ class DataHandle:
 
             # read technology data
             self._read_technology_data(aggregation_type="clustered_averaged")
+
+        log_event("Averaged data successfully")

@@ -179,6 +179,9 @@ class Network(ModelComponent):
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with network model
         """
+        # LOG
+        log_event(f"\t - Constructing Network {self.name}")
+
         # Data from energyhub
         self.set_nodes = set_nodes
         self.set_t = set_t_full
@@ -224,6 +227,12 @@ class Network(ModelComponent):
             if b_arc.big_m_transformation_required:
                 b_arc = perform_disjunct_relaxation(b_arc)
 
+            # LOG
+            log_event(
+                f"\t\t - Constructing Arc {node_from} - {node_to} " f"completed",
+                print_it=False,
+            )
+
         b_netw.arc_block = pyo.Block(b_netw.set_arcs, rule=arc_block_init)
 
         # CONSTRAINTS FOR BIDIRECTIONAL NETWORKS
@@ -238,6 +247,9 @@ class Network(ModelComponent):
 
         if self.energy_consumption:
             b_netw = self._define_energyconsumption_total(b_netw)
+
+        # LOG
+        log_event(f"\t - Constructing Network {self.name} completed", print_it=False)
 
         return b_netw
 

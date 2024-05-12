@@ -3,6 +3,7 @@ from pathlib import Path
 import os
 
 from pyomo.environ import ConcreteModel
+from ..logger import log_event
 
 
 def get_summary(model, solution, folder_path: Path, model_info: dict) -> dict:
@@ -113,6 +114,9 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
     """
     config = model_info["config"]
     folder_path = model_info["result_folder_path"]
+
+    # LOG
+    log_event(f"Writing results to {folder_path}")
 
     # create the results h5 file in the results folder
     h5_file_path = os.path.join(folder_path, "optimization_results.h5")

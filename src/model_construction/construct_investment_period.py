@@ -1,4 +1,5 @@
 from pyomo.environ import Set, RangeSet, Var
+from ..logger import log_event
 
 
 def construct_investment_period_block(b_period, data: dict):
@@ -42,6 +43,9 @@ def construct_investment_period_block(b_period, data: dict):
     topology = data["topology"]
     network_data = data["network_data"]
 
+    # LOG
+    log_event(f"Constructing Investment Period {investment_period}")
+
     # SETS
     b_period.set_networks = Set(initialize=network_data.keys())
     b_period.set_t_full = RangeSet(1, len(topology["time_index"]["full"]))
@@ -67,5 +71,9 @@ def construct_investment_period_block(b_period, data: dict):
     b_period.var_emissions_pos = Var()
     b_period.var_emissions_neg = Var()
     b_period.var_emissions_net = Var()
+
+    log_event(
+        f"Constructing Investment Period {investment_period} completed", print_it=False
+    )
 
     return b_period

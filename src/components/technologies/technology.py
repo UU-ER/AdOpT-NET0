@@ -281,8 +281,8 @@ class Technology(ModelComponent):
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-
-        log_event("\t - Adding Technology " + self.name)
+        # LOG
+        log_event(f"\t - Adding Technology {self.name}")
 
         # TECHNOLOGY DATA
         config = data["config"]
@@ -314,9 +314,13 @@ class Technology(ModelComponent):
 
         # CCS and Emissions
         if self.ccs:
+            log_event(f"\t - Adding CCS to Technology {self.name}")
             b_tec = self._define_ccs_performance(b_tec, data)
             b_tec = self._define_ccs_emissions(b_tec)
             b_tec = self._define_ccs_costs(b_tec, data)
+            log_event(
+                f"\t - Adding CCS to Technology {self.name} completed", print_it=False
+            )
         else:
             b_tec = self._define_emissions(b_tec)
 
@@ -1204,6 +1208,9 @@ class Technology(ModelComponent):
         emissions_based_on = self.emissions_based_on
         config = data["config"]
 
+        # LOG
+        log_event(f"\t - Adding CCS to Technology {self.name}")
+
         # TODO: maybe make the full set of all carriers as a intersection between this set and the others?
         # Emission Factor
         b_tec.para_tec_emissionfactor = pyo.Param(
@@ -1500,6 +1507,7 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
+        log_event(f"\t - Adding dynamics to Technology {self.name}")
         SU_load = self.performance_data["SU_load"]
         SD_load = self.performance_data["SD_load"]
         min_uptime = self.performance_data["min_uptime"]
@@ -1517,6 +1525,8 @@ class Technology(ModelComponent):
             b_tec = self._dynamics_SUSD_logic(b_tec)
         if not performance_function_type4 and (SU_load + SD_load > -2):
             b_tec = self._dynamics_fast_SUSD(b_tec)
+
+        log_event(f"\t - Adding dynamics to Technology {self.name}", print_it=False)
 
         return b_tec
 
