@@ -1,5 +1,4 @@
 from pathlib import Path
-from pyomo.environ import TerminationCondition
 from warnings import warn
 
 from src.energyhub import EnergyHub
@@ -34,7 +33,6 @@ def test_full_model_flow(request):
     - output electric boiler = 1
     - total cost
     - total emissions
-
     """
     path = Path("src/test/case_study_full_pipeline")
 

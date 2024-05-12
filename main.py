@@ -9,13 +9,13 @@ import numpy as np
 # Todo: logging
 
 
-path = "C:/Users/6145795/Documents/Projects/PyHub/DocumentationTests"
+path = "C:/Users/6574114/PycharmProjects/EHUB-Py/test_cases/Monte Carlo"
 # dp.create_optimization_templates(path)
 # dp.create_input_data_folder_template(path)
-
-dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-dp.load_climate_data_from_api(path)
+#
+# dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
+# dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
+# dp.load_climate_data_from_api(path)
 
 pyhub = EnergyHub()
 pyhub.read_data(path, start_period=0, end_period=3)

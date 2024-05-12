@@ -1,7 +1,5 @@
-from pyomo.environ import *
-from pyomo.gdp import *
-import copy
-from warnings import warn
+import pyomo.environ as pyo
+import pyomo.gdp as gdp
 import numpy as np
 import pandas as pd
 
@@ -47,7 +45,12 @@ class Conv4(Technology):
          Output_{t, car} = 0
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
+        """
+        Constructor
+
+        :param dict tec_data: technology data
+        """
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance(self.performance_data)
@@ -61,10 +64,8 @@ class Conv4(Technology):
         The performance data for a specific location (node) as specified in the JSON (containing X,Y data of tech
         performance) is fitted.
 
-        :param pd.DataFrame climate_data: a dataframe containing all climate data for the respective node at which the
-        tec is installed.
-        :param dict location: the coordinates of the node, needed because the method is called from a higher level than
-        the node level.
+        :param pd.Dataframe climate_data: dataframe containing climate data
+        :param dict location: dict containing location details
         """
 
         self.fitted_performance.bounds["output"][
@@ -81,20 +82,19 @@ class Conv4(Technology):
                     * self.performance_data["output_ratios"][car]
                 )
 
-    def construct_tech_model(
-        self, b_tec: Block, data: pd.DataFrame, set_t: Set, set_t_clustered: Set
-    ) -> Block:
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV4
 
-        :param Block b_tec: technology block
-        :param pd.DataFrame data: dataframe of all input data
-        :param Set set_t: set of all time steps
-        :param Set set_t_clustered: set of all time steps when using the clustering algorithm
-        :return: technology block (b_tec)
-        :rtype: Block
+        :param b_tec: pyomo block with technology model
+        :param dict data: data containing model configuration
+        :param set_t_full: pyomo set containing timesteps
+        :param set_t_clustered: pyomo set containing clustered timesteps
+        :return: pyomo block with technology model
         """
-        super(Conv4, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
+        super(Conv4, self).construct_tech_model(
+            b_tec, data, set_t_full, set_t_clustered
+        )
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
@@ -112,14 +112,14 @@ class Conv4(Technology):
         # constraint on output ratios
         def init_output_output(const, t, car_output):
             if car_output == self.main_car:
-                return Constraint.Skip
+                return pyo.Constraint.Skip
             else:
                 return (
                     self.output[t, car_output]
                     == phi[car_output] * self.output[t, self.main_car]
                 )
 
-        b_tec.const_output_output = Constraint(
+        b_tec.const_output_output = pyo.Constraint(
             self.set_t, b_tec.set_output_carriers, rule=init_output_output
         )
 
@@ -127,20 +127,19 @@ class Conv4(Technology):
         def init_size_constraint(const, t):
             return self.output[t, self.main_car] <= b_tec.var_size * rated_power
 
-        b_tec.const_size = Constraint(self.set_t, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
 
         return b_tec
 
-    def _performance_function_type_2(self, b_tec: Block) -> Block:
+    def _performance_function_type_2(self, b_tec):
         """
         Sets the minimum part load constraint for a tec based on tec_type CONV4 with performance type 2.
 
         Type 2 is a performance including a minimum part load. The technology can either be switched off, or it has to
         operate beyond the minimum part load point.
 
-        :param Block b_tec: technology block
-        :return: the technology block (b_tec)
-        :rtype: Block
+        :param b_tec: pyomo block with technology model
+        :return: pyomo block with technology model
         """
         # Transformation required
         self.big_m_transformation_required = 1
@@ -158,7 +157,7 @@ class Conv4(Technology):
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
 
-                dis.const_output_off = Constraint(
+                dis.const_output_off = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_off
                 )
 
@@ -170,14 +169,14 @@ class Conv4(Technology):
                         >= min_part_load * b_tec.var_size * rated_power
                     )
 
-                dis.const_min_partload = Constraint(rule=init_min_partload)
+                dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
-        b_tec.dis_output = Disjunct(self.set_t, s_indicators, rule=init_output)
+        b_tec.dis_output = gdp.Disjunct(self.set_t, s_indicators, rule=init_output)
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_output[t, i] for i in s_indicators]
 
-        b_tec.disjunction_output = Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_output = gdp.Disjunction(self.set_t, rule=bind_disjunctions)
 
         return b_tec

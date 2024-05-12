@@ -1,5 +1,4 @@
 import warnings
-
 import pandas as pd
 import numpy as np
 import shutil
@@ -10,7 +9,7 @@ from timezonefinder import TimezoneFinder
 from pathlib import Path
 
 
-def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC") -> None:
+def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC"):
     """
     Reads in climate data for a full year from a folder containing node data and writes it to the respective file.
 
@@ -88,7 +87,7 @@ def fill_carrier_data(
     carriers: list = [],
     nodes: list = [],
     investment_periods: list = None,
-) -> None:
+):
     """
     Specifies a constant value for a time series and writes it to file
 

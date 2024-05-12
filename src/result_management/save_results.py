@@ -1,20 +1,19 @@
 import h5py
+from pathlib import Path
+import os
 
-from .utilities import *
 from pyomo.environ import ConcreteModel
 
 
-def get_summary(
-    model: ConcreteModel, solution: object, folder_path: Path, model_info: dict
-) -> dict:
+def get_summary(model, solution, folder_path: Path, model_info: dict) -> dict:
     """
     Retrieves all variable values relevant for the summary of an optimization run.
 
     These variables and their values are written to a dictionary.
 
-    :param ConcreteModel model: the model for which you want to obtain the results summary.
-    :param object solution: Pyomo solver results
-    :param folder_path: folder path of optimization run
+    :param model: the model for which you want to obtain the results summary.
+    :param solution: Pyomo solver results
+    :param Path folder_path: folder path of optimization run
     :param dict model_info: information of the last solve done by the model
     :return: a dictionary containing the most important model results (i.e., summary_dict)
     :rtype: dict
@@ -97,9 +96,7 @@ def get_summary(
     return summary_dict
 
 
-def write_optimization_results_to_h5(
-    model: ConcreteModel, solution: object, model_info: dict, data: dict
-) -> dict:
+def write_optimization_results_to_h5(model, solution, model_info: dict, data) -> dict:
     """
     Collects the results from the model blocks and writes them to an HDF5 file
 
@@ -108,9 +105,9 @@ def write_optimization_results_to_h5(
     Overhead (calculation of variables) are placed in the utilities file.
 
     :param ConcreteModel model: the model for which you want to save the results to an HDF5 file.
-    :param object solution: Pyomo solver results
+    :param solution: Pyomo solver results
     :param dict model_info: information of the last solve done by the model
-    :param dict data: a dictionary containing all data read in by the DataHandle class.
+    :param data: DataHandle object containing all data read in by the DataHandle class.
     :return: a dictionary containing the most important model results (i.e., summary_dict)
     :rtype: dict
     """

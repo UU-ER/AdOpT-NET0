@@ -1,7 +1,7 @@
 from pyomo.environ import Set, RangeSet, Var
 
 
-def construct_investment_period_block(b_period, data):
+def construct_investment_period_block(b_period, data: dict):
     """
     SETS
     - set_networks
@@ -9,7 +9,9 @@ def construct_investment_period_block(b_period, data):
     - set_t_clustered
 
     VARIABLES
+
     Cost Variables
+
     - var_cost_capex_tecs: Total Capex of technologies for respective investment period
     - var_cost_capex_netws: Total Capex of networks for respective investment period
     - var_cost_opex_tecs: Total Opex (fixed and variable) of technologies for respective investment period
@@ -22,14 +24,16 @@ def construct_investment_period_block(b_period, data):
     - var_carbon_revenue: Total carbon revenues from negative emission technologies
     - var_carbon_cost: Total carbon cost from technologies, networks and imports/exports
     - var_cost_total: Total annualized cost for respective investment period
+
     Emission Variables
+
     - var_emissions_pos: Positive emissions from technologies, networks and imports/exports
     - var_emissions_neg: Negative emissions from technologies and imports/exports
     - var_emissions_net: Net emissions in investment period
 
-    :param Block b_period: Pyomo block to holding respective investment period
-    :param dict data: Data of investment period
-    :return Block b_period:
+    :param b_period: pyomo block with investment period
+    :param dict data: data containing model configuration
+    :return: pyomo block with investment period
     """
 
     # PREPROCESSING

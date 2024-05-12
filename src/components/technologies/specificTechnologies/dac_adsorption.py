@@ -1,7 +1,6 @@
-from pyomo.environ import *
-from pyomo.gdp import *
+import pyomo.environ as pyo
+import pyomo.gdp as gdp
 import copy
-from warnings import warn
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -24,18 +23,22 @@ class DacAdsorption(Technology):
     spraying.
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
+        """
+        Constructor
+
+        :param dict tec_data: technology data
+        """
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
 
-    def fit_technology_performance(self, climate_data, location):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
-        Fits conversion technology type 1 and returns fitted parameters as a dict
+        Fits the technology performance
 
-        :param performance_data: contains X and y data of technology performance
-        :param performance_function_type: options for type of performance function (linear, piecewise,...)
-        :param nr_seg: number of segments on piecewise defined function
+        :param pd.Dataframe climate_data: dataframe containing climate data
+        :param dict location: dict containing location details
         """
 
         # Climate data & Number of timesteps
@@ -170,16 +173,18 @@ class DacAdsorption(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type DAC_adsorption
 
-        :param obj b_tec: technology block
-        :param Energyhub energyhub: energyhub instance
-        :return: technology block
+        :param b_tec: pyomo block with technology model
+        :param dict data: data containing model configuration
+        :param set_t_full: pyomo set containing timesteps
+        :param set_t_clustered: pyomo set containing clustered timesteps
+        :return: pyomo block with technology model
         """
         super(DacAdsorption, self).construct_tech_model(
-            b_tec, data, set_t, set_t_clustered
+            b_tec, data, set_t_full, set_t_clustered
         )
 
         # Comments on the equations refer to the equation numbers in the paper. All equations can be looked up there.
@@ -195,34 +200,34 @@ class DacAdsorption(Technology):
         ohmic_heating = performance_data["ohmic_heating"]
 
         # Additional sets
-        b_tec.set_pieces = RangeSet(1, nr_segments)
+        b_tec.set_pieces = pyo.RangeSet(1, nr_segments)
 
         # Additional decision variables
-        b_tec.var_modules_on = Var(
+        b_tec.var_modules_on = pyo.Var(
             self.set_t,
-            domain=NonNegativeIntegers,
+            domain=pyo.NonNegativeIntegers,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
 
         def init_input_total_bounds(bds, t):
             return tuple(bounds["input"]["total"][t - 1] * b_tec.para_size_max)
 
-        b_tec.var_input_total = Var(
-            self.set_t, within=NonNegativeReals, bounds=init_input_total_bounds
+        b_tec.var_input_total = pyo.Var(
+            self.set_t, within=pyo.NonNegativeReals, bounds=init_input_total_bounds
         )
 
         def init_input_el_bounds(bds, t):
             return tuple(bounds["input"]["electricity"][t - 1] * b_tec.para_size_max)
 
-        b_tec.var_input_el = Var(
-            self.set_t, within=NonNegativeReals, bounds=init_input_el_bounds
+        b_tec.var_input_el = pyo.Var(
+            self.set_t, within=pyo.NonNegativeReals, bounds=init_input_el_bounds
         )
 
         def init_input_th_bounds(bds, t):
             return tuple(bounds["input"]["heat"][t - 1] * b_tec.para_size_max)
 
-        b_tec.var_input_th = Var(
-            self.set_t, within=NonNegativeReals, bounds=init_input_th_bounds
+        b_tec.var_input_th = pyo.Var(
+            self.set_t, within=pyo.NonNegativeReals, bounds=init_input_th_bounds
         )
 
         def init_input_ohmic_bounds(bds, t):
@@ -234,8 +239,8 @@ class DacAdsorption(Technology):
                 )
             )
 
-        b_tec.var_input_ohmic = Var(
-            self.set_t, within=NonNegativeReals, bounds=init_input_ohmic_bounds
+        b_tec.var_input_ohmic = pyo.Var(
+            self.set_t, within=pyo.NonNegativeReals, bounds=init_input_ohmic_bounds
         )
 
         # Additional parameters
@@ -257,7 +262,7 @@ class DacAdsorption(Technology):
                     + beta[t - 1, ind - 1] * b_tec.var_modules_on[t]
                 )
 
-            dis.const_output = Constraint(rule=init_output)
+            dis.const_output = pyo.Constraint(rule=init_output)
 
             # Lower bound on the energy input (eq. 5)
             def init_input_low_bound(const):
@@ -266,7 +271,7 @@ class DacAdsorption(Technology):
                     <= b_tec.var_input_total[t]
                 )
 
-            dis.const_input_on1 = Constraint(rule=init_input_low_bound)
+            dis.const_input_on1 = pyo.Constraint(rule=init_input_low_bound)
 
             # Upper bound on the energy input (eq. 5)
             def init_input_up_bound(const):
@@ -275,9 +280,9 @@ class DacAdsorption(Technology):
                     <= b_point[t - 1, ind] * b_tec.var_modules_on[t]
                 )
 
-            dis.const_input_on2 = Constraint(rule=init_input_up_bound)
+            dis.const_input_on2 = pyo.Constraint(rule=init_input_up_bound)
 
-        b_tec.dis_input_output = Disjunct(
+        b_tec.dis_input_output = gdp.Disjunct(
             self.set_t, b_tec.set_pieces, rule=init_input_output
         )
 
@@ -285,7 +290,9 @@ class DacAdsorption(Technology):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in b_tec.set_pieces]
 
-        b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = gdp.Disjunction(
+            self.set_t, rule=bind_disjunctions
+        )
 
         # Electricity-Heat relationship (eq. 7-10)
         def init_input_input(dis, t, ind):
@@ -297,7 +304,7 @@ class DacAdsorption(Technology):
                     + delta[t - 1, ind - 1] * b_tec.var_modules_on[t]
                 )
 
-            dis.const_output = Constraint(rule=init_input)
+            dis.const_output = pyo.Constraint(rule=init_input)
 
             # Lower bound on the energy input (eq. 10)
             def init_input_low_bound(const):
@@ -306,7 +313,7 @@ class DacAdsorption(Technology):
                     <= b_tec.var_input_total[t]
                 )
 
-            dis.const_input_on1 = Constraint(rule=init_input_low_bound)
+            dis.const_input_on1 = pyo.Constraint(rule=init_input_low_bound)
 
             # Upper bound on the energy input (eq. 10)
             def init_input_up_bound(const):
@@ -315,9 +322,9 @@ class DacAdsorption(Technology):
                     <= a_point[t - 1, ind] * b_tec.var_modules_on[t]
                 )
 
-            dis.const_input_on2 = Constraint(rule=init_input_up_bound)
+            dis.const_input_on2 = pyo.Constraint(rule=init_input_up_bound)
 
-        b_tec.dis_input_input = Disjunct(
+        b_tec.dis_input_input = gdp.Disjunct(
             self.set_t, b_tec.set_pieces, rule=init_input_input
         )
 
@@ -325,13 +332,15 @@ class DacAdsorption(Technology):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_input[t, i] for i in b_tec.set_pieces]
 
-        b_tec.disjunction_input_input = Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_input = gdp.Disjunction(
+            self.set_t, rule=bind_disjunctions
+        )
 
         # Constraint of number of working modules (eq. 6)
         def init_modules_on(const, t):
             return b_tec.var_modules_on[t] <= b_tec.var_size
 
-        b_tec.const_var_modules_on = Constraint(self.set_t, rule=init_modules_on)
+        b_tec.const_var_modules_on = pyo.Constraint(self.set_t, rule=init_modules_on)
 
         # Connection thermal and electric energy demand (eq. 11)
         def init_thermal_energy(const, t):
@@ -340,7 +349,9 @@ class DacAdsorption(Technology):
                 == b_tec.var_input_total[t] - b_tec.var_input_el[t]
             )
 
-        b_tec.const_thermal_energy = Constraint(self.set_t, rule=init_thermal_energy)
+        b_tec.const_thermal_energy = pyo.Constraint(
+            self.set_t, rule=init_thermal_energy
+        )
 
         # Account for ohmic heating (eq. 12)
         def init_input_el(const, t):
@@ -349,7 +360,7 @@ class DacAdsorption(Technology):
                 == b_tec.var_input_ohmic[t] + b_tec.var_input_el[t]
             )
 
-        b_tec.const_input_el = Constraint(self.set_t, rule=init_input_el)
+        b_tec.const_input_el = pyo.Constraint(self.set_t, rule=init_input_el)
 
         def init_input_th(const, t):
             return (
@@ -357,7 +368,7 @@ class DacAdsorption(Technology):
                 == b_tec.var_input_th[t] - b_tec.var_input_ohmic[t] * eta_elth
             )
 
-        b_tec.const_input_th = Constraint(self.set_t, rule=init_input_th)
+        b_tec.const_input_th = pyo.Constraint(self.set_t, rule=init_input_th)
 
         # If ohmic heating not allowed, set to zero
         if not ohmic_heating:
@@ -365,16 +376,18 @@ class DacAdsorption(Technology):
             def init_ohmic_heating(const, t):
                 return b_tec.var_input_ohmic[t] == 0
 
-            b_tec.const_ohmic_heating = Constraint(self.set_t, rule=init_ohmic_heating)
+            b_tec.const_ohmic_heating = pyo.Constraint(
+                self.set_t, rule=init_ohmic_heating
+            )
 
         return b_tec
 
     def write_results_tec_operation(self, h5_group, model_block):
         """
-        Function to report results of technologies after optimization
+        Function to report technology operation
 
-        :param b_tec: technology model block
-        :return: dict results: holds results
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
         """
         super(DacAdsorption, self).write_results_tec_operation(h5_group, model_block)
 
