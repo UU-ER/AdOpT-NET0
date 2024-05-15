@@ -64,3 +64,82 @@ def extract_dataset_from_h5(dataset: h5py.Dataset) -> list:
     data = [item.decode("utf-8") for item in dataset]
 
     return data
+
+
+def add_values_to_summary(summary_path: Path or str, value_set: list = None):
+    """Collects values of input parameters and variables from h5 files and adds them to the summary.
+
+    Args:
+        summary_path (Path or str): Path to the summary Excel file.
+        value_set (list, optional): Set of values to extract. Defaults to ['tec_capex', 'tec_size'].
+    """
+    if value_set is None:
+        value_set = {"tec_capex", "tec_size"}
+        # value_set = {'tec_capex', 'tec_size', 'netw_capex', 'netw_size', 'import_price', 'import_limit', 'total_import',
+        #              'export_price', 'export_limit', 'total_export'}
+
+    # Ensure summary_path is a Path object
+    if not isinstance(summary_path, Path):
+        summary_path = Path(summary_path)
+
+    path_root = summary_path.parent.parent
+    summary_results = pd.read_excel(summary_path)
+
+    # paths to results
+    paths = {}
+    for timestamp in summary_results["time_stamp"].unique():
+        paths[timestamp] = list(
+            summary_results.loc[
+                summary_results["time_stamp"] == timestamp, "time_stamp"
+            ].values
+        )
+
+    # dicts to store data
+    tec_output_dict = {}
+
+    # Extract data from h5 files
+    for case in paths:
+        path = Path(case)
+        hdf_file_path = path / "optimization_results.h5"
+        if hdf_file_path.exists():
+            with h5py.File(hdf_file_path, "r") as hdf_file:
+                df = extract_datasets_from_h5group(hdf_file["design/nodes"]).sum()
+                for period in df.index.levels[0]:
+                    for node in df.index.levels[1]:
+                        for tec in df.index.levels[2]:
+                            parameters = [
+                                "size",
+                                "capex_tot",
+                                "para_unitCAPEX",
+                                "para_fixCAPEX",
+                            ]
+                            for para in parameters:
+                                output_name = f"{period}/{node}/{tec}/{para}"
+                                try:
+                                    tec_output = df.loc[period, node, tec, para]
+                                    if case not in tec_output_dict:
+                                        tec_output_dict[case] = {}
+                                    if output_name not in tec_output_dict[case]:
+                                        tec_output_dict[case][output_name] = tec_output
+                                except KeyError:
+                                    pass
+
+    if any(
+        value in value_set for value in ["import_price", "import_limit", "total_import"]
+    ):
+        # TODO add import, export and networks similarly
+        pass
+        #     if hdf_file_path.exists():
+        #         with h5py.File(hdf_file_path, 'r') as hdf_file:
+        #             df = extract_datasets_from_h5group(hdf_file["operation/energy_balance"])
+        #         df = df.sum()
+
+    # Add new columns to summary_results
+    tec_output_df = pd.DataFrame(tec_output_dict).T
+    summary_results = summary_results.set_index("time_stamp")
+    summary_results_appended = pd.merge(
+        summary_results, tec_output_df, right_index=True, left_index=True
+    )
+
+    # Save the updated summary_results to the Excel file
+    summary_results_appended.to_excel(summary_path, index=False)

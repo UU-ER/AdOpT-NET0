@@ -89,6 +89,9 @@ def get_summary(
     summary_dict["pareto_point"] = model_info["pareto_point"]
     summary_dict["monte_carlo_run"] = model_info["monte_carlo_run"]
 
+    if model_info["config"]["reporting"]["case_name"]["value"] != -1:
+        summary_dict["case"] = model_info["config"]["reporting"]["case_name"]["value"]
+
     # Fixme: averaging algorithm
     # time_stage = get_time_stage(energyhub)
     # summary_dict["time_stage"] = time_stage
