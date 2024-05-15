@@ -8,7 +8,6 @@ import numpy as np
 
 from src.test.utilities import make_climate_data, make_data_for_testing, run_model
 from src.components.technologies.technology import Technology
-from src.components.technologies import fit_ccs_data
 from src.data_management.utilities import open_json, select_technology
 from src.components.utilities import annualize
 from src.components.utilities import perform_disjunct_relaxation
@@ -37,7 +36,7 @@ def define_technology(
     tec["name"] = tec_name
 
     if perf_type:
-        tec["TechnologyPerf"]["performance_function_type"] = perf_type
+        tec["Performance"]["performance_function_type"] = perf_type
     if CAPEX_model:
         tec["Economics"]["CAPEX_model"] = CAPEX_model
 
@@ -49,12 +48,9 @@ def define_technology(
     location["lon"] = 5.5
     location["lat"] = 52.5
     location["alt"] = 0
+    if tec.options.ccs_possible:
+        tec.ccs_data = open_json(tec.options.ccs_type, load_path)
     tec.fit_technology_performance(climate_data, location)
-    if tec.ccs:
-        ccs_data = open_json(tec.performance_data["ccs"]["ccs_type"], load_path)
-        tec.ccs_data = fit_ccs_data(
-            tec.performance_data["ccs"]["co2_concentration"], ccs_data, climate_data
-        )
 
     return tec
 
@@ -258,7 +254,7 @@ def test_res_pv(request):
 
     # INFEASIBILITY CASES
     oversize = (
-        np.ones(time_steps) * tec.size_max * 1.1 * tec.fitted_performance.rated_power
+        np.ones(time_steps) * tec.parameters.size_max * 1.1 * tec.parameters.rated_power
     )
 
     model = generate_output_constraint(model, oversize)
@@ -292,7 +288,7 @@ def test_res_wt(request):
 
     # INFEASIBILITY CASES
     oversize = (
-        np.ones(time_steps) * tec.size_max * 1.1 * tec.fitted_performance.rated_power
+        np.ones(time_steps) * tec.parameters.size_max * 1.1 * tec.parameters.rated_power
     )
     model = generate_output_constraint(model, oversize)
     termination = run_model(model, request.config.solver)
@@ -331,9 +327,9 @@ def test_conv_perf(request):
             model = construct_tec_model(tec, nr_timesteps=time_steps)
 
             if conv_type == 2 or conv_type == 3:
-                output_ratios = tec.fitted_performance.coefficients
+                output_ratios = tec.coeff.time_independent["fit"]
             elif conv_type == 4:
-                output_ratios = tec.performance_data["output_ratios"]
+                output_ratios = tec.parameters.unfitted_data["output_ratios"]
             else:
                 output_ratios = None
 
@@ -341,9 +337,9 @@ def test_conv_perf(request):
                 # INFEASIBILITY CASES
                 oversize = (
                     np.ones(time_steps)
-                    * tec.size_max
+                    * tec.parameters.size_max
                     * 1.1
-                    * tec.fitted_performance.rated_power
+                    * tec.parameters.rated_power
                 )
                 model = generate_output_constraint(model, oversize)
                 termination = run_model(model, request.config.solver)
@@ -369,8 +365,7 @@ def test_conv_perf(request):
                         model.var_output_tot[car].value for car in model.var_output_tot
                     )
                     assert round(car_output, 2) == round(
-                        tec.fitted_performance.coefficients["out"]["alpha1"]
-                        * car_input,
+                        tec.coeff.time_independent["fit"]["out"]["alpha1"] * car_input,
                         2,
                     )
                 if conv_type == 2:
@@ -380,26 +375,26 @@ def test_conv_perf(request):
                     for car in model.var_output_tot:
                         car_output = model.var_output_tot[car].value
                         assert round(car_output, 2) == round(
-                            tec.fitted_performance.coefficients[car[1]]["alpha1"]
+                            tec.coeff.time_independent["fit"][car[1]]["alpha1"]
                             * car_input,
                             2,
                         )
                 if conv_type == 3:
                     main_car_input = model.var_input_tot[
-                        1, tec.performance_data["main_input_carrier"]
+                        1, tec.info.main_input_carrier
                     ].value
                     for car in model.var_input_tot:
                         car_input = model.var_input_tot[car].value
                         assert (
                             car_input
-                            == tec.performance_data["input_ratios"][car[1]]
+                            == tec.coeff.time_independent["phi"][car[1]]
                             * main_car_input
                         )
                     for car in model.var_output_tot:
                         car_output = model.var_output_tot[car].value
                         assert (
                             car_output
-                            == tec.fitted_performance.coefficients[car[1]]["alpha1"]
+                            == tec.coeff.time_independent["fit"][car[1]]["alpha1"]
                             * main_car_input
                         )
 
@@ -407,14 +402,14 @@ def test_conv_perf(request):
                 # Check minimum load
                 minsize = 10
                 demand = [
-                    minsize * tec.performance_data["min_part_load"] * 0.1
+                    minsize * tec.coeff.time_independent["min_part_load"] * 0.1
                 ] * time_steps
                 model = generate_size_constraint(
                     model, minsize, equality_constraint=True
                 )
                 model = generate_output_constraint(model, demand)
                 termination = run_model(model, request.config.solver)
-                model.pprint()
+
                 assert termination in [
                     TerminationCondition.infeasibleOrUnbounded,
                     TerminationCondition.infeasible,
@@ -431,8 +426,8 @@ def test_conv_perf(request):
 
                 # Check performance for performance type 1
                 if conv_type == 1:
-                    bp_x = tec.fitted_performance.coefficients["out"]["bp_x"]
-                    bp_y = tec.fitted_performance.coefficients["out"]["bp_y"]
+                    bp_x = tec.coeff.time_independent["fit"]["out"]["bp_x"]
+                    bp_y = tec.coeff.time_independent["fit"]["out"]["bp_y"]
                     car_input = sum(
                         model.var_input_tot[car].value for car in model.var_input_tot
                     )
@@ -448,8 +443,8 @@ def test_conv_perf(request):
                         model.var_input_tot[car].value for car in model.var_input_tot
                     )
                     for car in model.var_output_tot:
-                        bp_x = tec.fitted_performance.coefficients[car[1]]["bp_x"]
-                        bp_y = tec.fitted_performance.coefficients[car[1]]["bp_y"]
+                        bp_x = tec.coeff.time_independent["fit"][car[1]]["bp_x"]
+                        bp_y = tec.coeff.time_independent["fit"][car[1]]["bp_y"]
                         car_output = model.var_output_tot[car].value
                         assert round(car_output, 2) == round(
                             calculate_piecewise_function(car_input, bp_x, bp_y)
@@ -458,18 +453,17 @@ def test_conv_perf(request):
                         )
                 if conv_type == 3:
                     main_car_input = model.var_input_tot[
-                        1, tec.performance_data["main_input_carrier"]
+                        1, tec.info.main_input_carrier
                     ].value
                     for car in model.var_input_tot:
                         car_input = model.var_input_tot[car].value
                         assert round(car_input, 2) == round(
-                            tec.performance_data["input_ratios"][car[1]]
-                            * main_car_input,
+                            tec.coeff.time_independent["phi"][car[1]] * main_car_input,
                             2,
                         )
                     for car in model.var_output_tot:
-                        bp_x = tec.fitted_performance.coefficients[car[1]]["bp_x"]
-                        bp_y = tec.fitted_performance.coefficients[car[1]]["bp_y"]
+                        bp_x = tec.coeff.time_independent["fit"][car[1]]["bp_x"]
+                        bp_y = tec.coeff.time_independent["fit"][car[1]]["bp_y"]
                         car_output = model.var_output_tot[car].value
                         assert round(car_output, 2) == round(
                             calculate_piecewise_function(main_car_input, bp_x, bp_y)
@@ -553,7 +547,7 @@ def test_tec_storage(request):
 
     # INFEASIBILITY CASES
     oversize = (
-        np.ones(time_steps) * tec.size_max * 1.1 * tec.fitted_performance.rated_power
+        np.ones(time_steps) * tec.parameters.size_max * 1.1 * tec.parameters.rated_power
     )
     model = generate_output_constraint(model, oversize)
     termination = run_model(model, request.config.solver)
@@ -638,12 +632,12 @@ def test_dynamics_fast(request):
             if conv_type == 1:
                 output_ratios = None
             else:
-                output_ratios = tec.fitted_performance.coefficients
+                output_ratios = tec.coeff.time_independent["fit"]
 
             if perf_type == 1:
                 # Set parameters
-                tec.performance_data["ramping_time"] = 4
-                tec.performance_data["ref_size"] = 4
+                tec.coeff.dynamics["ramping_time"] = 4
+                tec.coeff.dynamics["ref_size"] = 4
                 output = [1, 1, 5, 1, 1]
                 model = construct_tec_model(tec, nr_timesteps=time_steps)
 
@@ -661,7 +655,7 @@ def test_dynamics_fast(request):
                 model = construct_tec_model(tec, nr_timesteps=time_steps)
                 minsize = 10
                 demand = [
-                    minsize * tec.performance_data["min_part_load"] * 0.1
+                    minsize * tec.coeff.time_independent["min_part_load"] * 0.1
                 ] * time_steps
 
                 model = generate_size_constraint(
@@ -677,9 +671,9 @@ def test_dynamics_fast(request):
 
             elif perf_type > 1:
                 # Set parameters
-                tec.performance_data["standby_power"] = 0.2
-                tec.performance_data["min_part_load"] = 0.3
-                tec.performance_data["max_startups"] = 1
+                tec.coeff.time_independent["standby_power"] = 0.2
+                tec.coeff.time_independent["min_part_load"] = 0.3
+                tec.coeff.dynamics["max_startups"] = 1
                 output = [1, 0, 1, 0.5, 1]
                 var_x = [1, 0, 1, 1, 1]
                 model = construct_tec_model(tec, nr_timesteps=time_steps, dynamics=1)
@@ -695,18 +689,19 @@ def test_dynamics_fast(request):
                 # Check max startups
                 assert (
                     sum(model.var_x[t].value for t in model.var_x)
-                    >= time_steps - tec.performance_data["max_startups"]
+                    >= time_steps - tec.coeff.dynamics["max_startups"]
                 )
 
                 # Check standbypower
-                main_car = tec.performance_data["main_input_carrier"]
+                main_car = tec.info.main_input_carrier
                 assert round(model.var_input_tot[2, main_car].value, 4) == round(
-                    model.var_size.value * tec.performance_data["standby_power"], 4
+                    model.var_size.value * tec.coeff.time_independent["standby_power"],
+                    4,
                 )
 
                 # Check SUSD loads
-                tec.performance_data["SU_load"] = 0.6
-                tec.performance_data["SD_load"] = 0.4
+                tec.coeff.dynamics["SU_load"] = 0.6
+                tec.coeff.dynamics["SD_load"] = 0.4
                 output = [1, 0, 1, 0.5, 1]
                 model = construct_tec_model(tec, nr_timesteps=time_steps, dynamics=1)
 
@@ -723,11 +718,11 @@ def test_dynamics_fast(request):
                 ]
 
                 # Check ramping rate with tech on
-                tec.performance_data["SU_load"] = 1
-                tec.performance_data["SD_load"] = 1
-                tec.performance_data["ramping_time"] = 4
-                tec.performance_data["ref_size"] = 1
-                tec.performance_data["ramping_const_int"] = 1
+                tec.coeff.dynamics["SU_load"] = 1
+                tec.coeff.dynamics["SD_load"] = 1
+                tec.coeff.dynamics["ramping_time"] = 4
+                tec.coeff.dynamics["ref_size"] = 1
+                tec.coeff.dynamics["ramping_const_int"] = 1
                 output = [1, 0, 1, 0.5, 1]
                 model = construct_tec_model(tec, nr_timesteps=time_steps, dynamics=1)
 
@@ -766,13 +761,13 @@ def test_dynamics_slow(request):
         if conv_type == 1:
             output_ratios = None
         else:
-            output_ratios = tec.fitted_performance.coefficients
+            output_ratios = tec.coeff.time_independent["fit"]
 
         # check SD time
         SD_time = 2
         min_part_load = 0.6
-        tec.performance_data["SD_time"] = SD_time
-        tec.performance_data["min_part_load"] = min_part_load
+        tec.coeff.dynamics["SD_time"] = SD_time
+        tec.coeff.time_independent["min_part_load"] = min_part_load
         output_start = 0.6
         var_z = [0, 0, 1, 0, 0]
         var_x = [1, 1, 0, 0, 0]
@@ -786,7 +781,7 @@ def test_dynamics_slow(request):
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
 
-        main_car = tec.performance_data["main_input_carrier"]
+        main_car = tec.info.main_input_carrier
         trajectory = model.var_size.value * min_part_load / (SD_time + 1)
 
         if conv_type < 3:
@@ -831,8 +826,8 @@ def test_dynamics_slow(request):
 
         SU_time = 2
         min_part_load = 0.6
-        tec.performance_data["SU_time"] = SU_time
-        tec.performance_data["min_part_load"] = min_part_load
+        tec.coeff.dynamics["SU_time"] = SU_time
+        tec.coeff.time_independent["min_part_load"] = min_part_load
         output_start = 0.6
         var_y = [0, 0, 0, 1, 0]
         var_x = [0, 0, 0, 1, 1]
@@ -849,7 +844,7 @@ def test_dynamics_slow(request):
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
 
-        main_car = tec.performance_data["main_input_carrier"]
+        main_car = tec.info.main_input_carrier
         trajectory = model.var_size.value * min_part_load / (SU_time + 1)
 
         if conv_type < 3:
@@ -965,30 +960,37 @@ def test_heat_pump(request):
     """
     time_steps = 1
     technology = "TestTec_HeatPump_AirSourced"
-    tec = define_technology(
-        technology, time_steps, request.config.technology_data_folder_path
-    )
 
-    # INFEASIBILITY CASES
-    model = construct_tec_model(tec, nr_timesteps=time_steps)
-    model = generate_output_constraint(model, [1])
-    model.test_const_input = Constraint(expr=model.var_input_tot[1, "electricity"] == 0)
+    for perf_funct in [1, 2, 3]:
+        tec = define_technology(
+            technology,
+            time_steps,
+            request.config.technology_data_folder_path,
+            perf_type=perf_funct,
+        )
 
-    termination = run_model(model, request.config.solver)
-    assert termination in [
-        TerminationCondition.infeasibleOrUnbounded,
-        TerminationCondition.infeasible,
-        TerminationCondition.other,
-    ]
+        # INFEASIBILITY CASES
+        model = construct_tec_model(tec, nr_timesteps=time_steps)
+        model = generate_output_constraint(model, [1])
+        model.test_const_input = Constraint(
+            expr=model.var_input_tot[1, "electricity"] == 0
+        )
 
-    # FEASIBILITY CASES
-    model = construct_tec_model(tec, nr_timesteps=time_steps)
-    model = generate_output_constraint(model, [1])
+        termination = run_model(model, request.config.solver)
+        assert termination in [
+            TerminationCondition.infeasibleOrUnbounded,
+            TerminationCondition.infeasible,
+            TerminationCondition.other,
+        ]
 
-    termination = run_model(model, request.config.solver)
-    assert termination == TerminationCondition.optimal
-    assert model.var_size.value >= 0.1
-    assert model.var_input_tot[1, "electricity"].value >= 0.1
+        # FEASIBILITY CASES
+        model = construct_tec_model(tec, nr_timesteps=time_steps)
+        model = generate_output_constraint(model, [1])
+
+        termination = run_model(model, request.config.solver)
+        assert termination == TerminationCondition.optimal
+        assert model.var_size.value >= 0.1
+        assert model.var_input_tot[1, "electricity"].value >= 0.1
 
 
 def test_gasturbine(request):

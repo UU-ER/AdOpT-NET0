@@ -3,7 +3,7 @@ import pyomo.gdp as gdp
 import numpy as np
 import pandas as pd
 
-from ..utilities import FittedPerformance
+from ...utilities import Parameters
 from ..technology import Technology
 
 
@@ -53,34 +53,39 @@ class Conv4(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance(self.performance_data)
-
-        self.main_car = self.performance_data["main_output_carrier"]
+        self.options.emissions_based_on = "output"
+        self.info.main_output_carrier = tec_data["Performance"]["main_output_carrier"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits conversion technology type 4 and returns fitted parameters as a dict
 
-        The performance data for a specific location (node) as specified in the JSON (containing X,Y data of tech
-        performance) is fitted.
-
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(Conv4, self).fit_technology_performance(climate_data, location)
 
-        self.fitted_performance.bounds["output"][
-            self.performance_data["main_output_carrier"]
-        ] = np.column_stack(
-            (np.zeros(shape=(len(climate_data))), np.ones(shape=(len(climate_data))))
-        )
-        for car in self.fitted_performance.output_carrier:
-            if not car == self.performance_data["main_output_carrier"]:
-                self.fitted_performance.bounds["output"][car] = (
-                    self.fitted_performance.bounds["output"][
-                        self.performance_data["main_output_carrier"]
-                    ]
-                    * self.performance_data["output_ratios"][car]
+        # Bounds
+        self.bounds["output"][self.parameters.unfitted_data["main_output_carrier"]] = (
+            np.column_stack(
+                (
+                    np.zeros(shape=(len(climate_data))),
+                    np.ones(shape=(len(climate_data))),
                 )
+            )
+        )
+        for car in self.info.output_carrier:
+            if not car == self.info.main_output_carrier:
+                self.bounds["output"][car] = (
+                    self.bounds["output"][self.info.main_output_carrier]
+                    * self.parameters.unfitted_data["output_ratios"][car]
+                )
+
+        # Coefficients
+        phi = {}
+        for car in self.parameters.unfitted_data["output_ratios"]:
+            phi[car] = self.parameters.unfitted_data["output_ratios"][car]
+        self.coeff.time_independent["phi"] = phi
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -97,26 +102,23 @@ class Conv4(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        rated_power = self.fitted_performance.rated_power
-        performance_function_type = performance_data["performance_function_type"]
-        phi = {}
-        for car in self.performance_data["output_ratios"]:
-            phi[car] = self.performance_data["output_ratios"][car]
+        c_ti = self.coeff.time_independent
+        rated_power = self.parameters.rated_power
+        phi = c_ti["phi"]
 
         # add additional constraints for performance type 2 (min. part load)
-        if performance_function_type == 2:
+        if self.options.performance_function_type == 2:
             b_tec = self._performance_function_type_2(b_tec)
 
         # Size constraints
         # constraint on output ratios
         def init_output_output(const, t, car_output):
-            if car_output == self.main_car:
+            if car_output == self.info.main_output_carrier:
                 return pyo.Constraint.Skip
             else:
                 return (
                     self.output[t, car_output]
-                    == phi[car_output] * self.output[t, self.main_car]
+                    == phi[car_output] * self.output[t, self.info.main_output_carrier]
                 )
 
         b_tec.const_output_output = pyo.Constraint(
@@ -125,7 +127,10 @@ class Conv4(Technology):
 
         # size constraint based on main carrier output
         def init_size_constraint(const, t):
-            return self.output[t, self.main_car] <= b_tec.var_size * rated_power
+            return (
+                self.output[t, self.info.main_output_carrier]
+                <= b_tec.var_size * rated_power
+            )
 
         b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
 
@@ -145,8 +150,9 @@ class Conv4(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
+        rated_power = self.parameters.rated_power
+        c_ti = self.coeff.time_independent
+        min_part_load = c_ti["min_part_load"]
 
         # define disjuncts
         s_indicators = range(0, 2)
@@ -165,7 +171,7 @@ class Conv4(Technology):
 
                 def init_min_partload(const):
                     return (
-                        self.output[t, self.main_car]
+                        self.output[t, self.info.main_output_carrier]
                         >= min_part_load * b_tec.var_size * rated_power
                     )
 

@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 import numpy as np
 
 from ..technology import Technology
-from ..utilities import FittedPerformance
+from ...utilities import get_attribute_from_dict
 
 
 class Res(Technology):
@@ -39,7 +39,7 @@ class Res(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance(self.performance_data)
+        self.options.emissions_based_on = "output"
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -48,12 +48,14 @@ class Res(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(Res, self).fit_technology_performance(climate_data, location)
+
         if "Photovoltaic" in self.name:
-            if "system_type" in self.performance_data:
+            if "system_type" in self.parameters.unfitted_data:
                 self._perform_fitting_PV(
                     climate_data,
                     location,
-                    system_data=self.performance_data["system_type"],
+                    system_data=self.parameters.unfitted_data["system_type"],
                 )
             else:
                 self._perform_fitting_PV(climate_data, location)
@@ -62,11 +64,16 @@ class Res(Technology):
             self._perform_fitting_ST(climate_data)
 
         elif "WindTurbine" in self.name:
-            if "hubheight" in self.performance_data:
-                hubheight = self.performance_data["hubheight"]
+            if "hubheight" in self.parameters.unfitted_data:
+                hubheight = self.parameters.unfitted_data["hubheight"]
             else:
                 hubheight = 120
             self._perform_fitting_WT(climate_data, hubheight)
+
+        # Options
+        self.options.other["curtailment"] = get_attribute_from_dict(
+            self.parameters.unfitted_data, "curtailment", 0
+        )
 
     def _perform_fitting_PV(self, climate_data: pd.DataFrame, location: dict, **kwargs):
         """
@@ -150,13 +157,10 @@ class Res(Technology):
         output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
 
         # Output Bounds
-        self.fitted_performance.bounds["output"]["electricity"] = output_bounds
+        self.bounds["output"]["electricity"] = output_bounds
         # Coefficients
-        self.fitted_performance.coefficients["capfactor"] = round(capacity_factor, 3)
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
-        # Other Data
-        self.fitted_performance.other["specific_area"] = specific_area
+        self.coeff.time_dependent["capfactor"] = round(capacity_factor, 3)
+        self.coeff.time_independent["specific_area"] = specific_area
 
     def _perform_fitting_ST(self, climate_data: pd.DataFrame):
         """
@@ -222,13 +226,11 @@ class Res(Technology):
         output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
 
         # Output Bounds
-        self.fitted_performance.bounds["output"]["electricity"] = output_bounds
+        self.bounds["output"]["electricity"] = output_bounds
         # Coefficients
-        self.fitted_performance.coefficients["capfactor"] = capacity_factor[0].round(3)
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
-        # Other Data
-        self.fitted_performance.rated_power = rated_power / 1000
+        self.coeff.time_dependent["capfactor"] = capacity_factor[0].round(3)
+        # Rated Power
+        self.parameters.rated_power = rated_power / 1000
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -243,18 +245,9 @@ class Res(Technology):
         super(Res, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        coeff = self.fitted_performance.coefficients
-        rated_power = self.fitted_performance.rated_power
-
-        if "curtailment" in performance_data:
-            curtailment = performance_data["curtailment"]
-        else:
-            curtailment = 0
-
-        # PARAMETERS
-        # Set capacity factors
-        capfactor = coeff["capfactor"]
+        c_td = self.coeff.time_dependent
+        rated_power = self.parameters.rated_power
+        curtailment = self.options.other["curtailment"]
 
         # CONSTRAINTS
         if curtailment == 0:  # no curtailment allowed (default)
@@ -262,7 +255,7 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    == capfactor[t - 1] * b_tec.var_size * rated_power
+                    == c_td["capfactor"][t - 1] * b_tec.var_size * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(
@@ -274,7 +267,7 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    <= capfactor[t - 1] * b_tec.var_size * rated_power
+                    <= c_td["capfactor"][t - 1] * b_tec.var_size * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(
@@ -298,7 +291,7 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    == capfactor[t - 1] * b_tec.var_size_on[t] * rated_power
+                    == c_td["capfactor"][t - 1] * b_tec.var_size_on[t] * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(
@@ -317,7 +310,7 @@ class Res(Technology):
 
         super(Res, self).write_results_tec_design(h5_group, model_block)
 
-        h5_group.create_dataset("rated_power", data=self.fitted_performance.rated_power)
+        h5_group.create_dataset("rated_power", data=self.parameters.rated_power)
 
     def write_results_tec_operation(self, h5_group, model_block):
         """
@@ -328,8 +321,8 @@ class Res(Technology):
         """
         super(Res, self).write_results_tec_operation(h5_group, model_block)
 
-        rated_power = self.fitted_performance.rated_power
-        capfactor = self.fitted_performance.coefficients["capfactor"]
+        rated_power = self.parameters.rated_power
+        capfactor = self.coeff.time_dependent["capfactor"]
 
         h5_group.create_dataset(
             "max_out",
@@ -339,11 +332,9 @@ class Res(Technology):
             ],
         )
 
-        h5_group.create_dataset(
-            "cap_factor", data=self.fitted_performance.coefficients["capfactor"]
-        )
+        h5_group.create_dataset("cap_factor", data=capfactor)
 
-        if self.performance_data["curtailment"] == 2:
+        if curtailment == 2:
             h5_group.create_dataset(
                 "units_on", data=[model_block.var_size_on[t].value for t in self.set_t]
             )

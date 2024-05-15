@@ -6,7 +6,8 @@ import numpy as np
 from pathlib import Path
 from scipy.interpolate import griddata
 
-from ..utilities import FittedPerformance, fit_piecewise_function
+from ..utilities import fit_piecewise_function
+from ...utilities import Parameters
 from ..technology import Technology
 
 
@@ -31,7 +32,8 @@ class DacAdsorption(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance()
+        self.options.emissions_based_on = "output"
+        self.info.main_output_carrier = "CO2captured"
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -40,12 +42,13 @@ class DacAdsorption(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(DacAdsorption, self).fit_technology_performance(climate_data, location)
 
         # Climate data & Number of timesteps
         time_steps = len(climate_data)
 
         # Number of segments
-        nr_segments = self.performance_data["nr_segments"]
+        nr_segments = self.parameters.unfitted_data["nr_segments"]
 
         # Read performance data from file
         performance_data = pd.read_csv(
@@ -145,33 +148,40 @@ class DacAdsorption(Technology):
         print("Complete: ", 100, "%")
 
         # Output Bounds
-        self.fitted_performance.bounds["output"]["CO2captured"] = np.column_stack(
+        self.bounds["output"]["CO2captured"] = np.column_stack(
             (np.zeros(shape=(time_steps)), out_max)
         )
         # Input Bounds
-        self.fitted_performance.bounds["input"]["electricity"] = np.column_stack(
+        self.bounds["input"]["electricity"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
                 el_in_max
-                + th_in_max / self.performance_data["performance"]["eta_elth"],
+                + th_in_max / self.parameters.unfitted_data["performance"]["eta_elth"],
             )
         )
-        self.fitted_performance.bounds["input"]["heat"] = np.column_stack(
+        self.bounds["input"]["heat"] = np.column_stack(
             (np.zeros(shape=(time_steps)), th_in_max)
         )
-        self.fitted_performance.bounds["input"]["total"] = np.column_stack(
+        self.bounds["input"]["total"] = np.column_stack(
             (np.zeros(shape=(time_steps)), total_in_max)
         )
         # Coefficients
-        self.fitted_performance.coefficients["alpha"] = alpha
-        self.fitted_performance.coefficients["beta"] = beta
-        self.fitted_performance.coefficients["b"] = b
-        self.fitted_performance.coefficients["gamma"] = gamma
-        self.fitted_performance.coefficients["delta"] = delta
-        self.fitted_performance.coefficients["a"] = a
+        self.coeff.time_dependent["alpha"] = alpha
+        self.coeff.time_dependent["beta"] = beta
+        self.coeff.time_dependent["b"] = b
+        self.coeff.time_dependent["gamma"] = gamma
+        self.coeff.time_dependent["delta"] = delta
+        self.coeff.time_dependent["a"] = a
 
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
+        self.coeff.time_independent["eta_elth"] = self.parameters.unfitted_data[
+            "performance"
+        ]["eta_elth"]
+
+        # Options
+        self.options.other["nr_segments"] = self.parameters.unfitted_data["nr_segments"]
+        self.options.other["ohmic_heating"] = self.parameters.unfitted_data[
+            "ohmic_heating"
+        ]
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -193,11 +203,20 @@ class DacAdsorption(Technology):
         self.big_m_transformation_required = 1
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        coeff = self.fitted_performance.coefficients
-        bounds = self.fitted_performance.bounds
-        nr_segments = performance_data["nr_segments"]
-        ohmic_heating = performance_data["ohmic_heating"]
+        nr_segments = self.options.other["nr_segments"]
+        ohmic_heating = self.options.other["ohmic_heating"]
+
+        bounds = self.bounds
+        c_td = self.coeff.time_dependent
+        c_ti = self.coeff.time_independent
+
+        alpha = c_td["alpha"]
+        beta = c_td["beta"]
+        b_point = c_td["b"]
+        gamma = c_td["gamma"]
+        delta = c_td["delta"]
+        a_point = c_td["a"]
+        eta_elth = c_ti["eta_elth"]
 
         # Additional sets
         b_tec.set_pieces = pyo.RangeSet(1, nr_segments)
@@ -232,25 +251,12 @@ class DacAdsorption(Technology):
 
         def init_input_ohmic_bounds(bds, t):
             return tuple(
-                (
-                    bounds["input"]["heat"][t - 1]
-                    / performance_data["performance"]["eta_elth"]
-                    * b_tec.para_size_max
-                )
+                (bounds["input"]["heat"][t - 1] / eta_elth * b_tec.para_size_max)
             )
 
         b_tec.var_input_ohmic = pyo.Var(
             self.set_t, within=pyo.NonNegativeReals, bounds=init_input_ohmic_bounds
         )
-
-        # Additional parameters
-        alpha = coeff["alpha"]
-        beta = coeff["beta"]
-        b_point = coeff["b"]
-        gamma = coeff["gamma"]
-        delta = coeff["delta"]
-        a_point = coeff["a"]
-        eta_elth = performance_data["performance"]["eta_elth"]
 
         # Input-Output relationship (eq. 1-5)
         def init_input_output(dis, t, ind):

@@ -302,6 +302,8 @@ class DataHandle:
                         / "node_data"
                         / node
                         / "technology_data",
+                    )
+                    tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
                         ]["global"],
@@ -318,13 +320,17 @@ class DataHandle:
                         / "node_data"
                         / node
                         / "technology_data",
+                    )
+                    tec_data.existing = 1
+                    tec_data.parameters.size_initial = technologies_at_node["existing"][
+                        technology
+                    ]
+                    tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
                         ]["global"],
                         self.node_locations.loc[node, :],
                     )
-                    tec_data.existing = 1
-                    tec_data.size_initial = technologies_at_node["existing"][technology]
                     technology_data[investment_period][node][
                         technology + "_existing"
                     ] = tec_data
@@ -388,7 +394,7 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data._calculate_max_size_arc()
+                netw_data.fit_network_performance()
                 self.network_data[aggregation_type][investment_period][
                     network
                 ] = netw_data
@@ -442,7 +448,8 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data._calculate_max_size_arc()
+                netw_data.fit_network_performance()
+
                 self.network_data[aggregation_type][investment_period][
                     network + "_existing"
                 ] = netw_data

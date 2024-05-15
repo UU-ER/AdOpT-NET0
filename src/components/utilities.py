@@ -1,5 +1,6 @@
 import time
 import pyomo.environ as pyo
+
 from ..logger import log_event
 
 
@@ -197,3 +198,136 @@ def determine_constraint_scaling(model, model_block, f: dict, f_global):
             model.scaling_factor[constr] = global_scaling_factor
 
     return model
+
+
+class Parameters:
+    """
+    Class to hold fitted performance of technologies
+    """
+
+    def __init__(self, component_data: dict):
+        self.unfitted_data = component_data["Performance"]
+        self.size_min = component_data["size_min"]
+        self.size_max = component_data["size_max"]
+        self.size_initial = None
+        self.rated_power = 1
+
+        self.rated_power = get_attribute_from_dict(
+            component_data["Performance"], "rated_power", 1
+        )
+        self.min_part_load = get_attribute_from_dict(
+            component_data["Performance"], "min_part_load", 0
+        )
+        self.standby_power = get_attribute_from_dict(
+            component_data["Performance"], "standby_power", -1
+        )
+
+
+class ComponentOptions:
+    """
+    Class to hold options for technologies
+
+
+    """
+
+    def __init__(self, component_data: dict):
+        self.modelled_with_full_res = 0
+        self.size_is_int = component_data["size_is_int"]
+        self.decommission = component_data["decommission"]
+        self.size_based_on = None
+        self.emissions_based_on = None
+
+        # TECHNOLOGY
+        # Performance Function Type
+        self.performance_function_type = get_attribute_from_dict(
+            component_data["Performance"], "performance_function_type", None
+        )
+
+        # CCS
+        if (
+            "ccs" in component_data["Performance"]
+            and component_data["Performance"]["ccs"]["possible"]
+        ):
+            self.ccs_possible = True
+            self.ccs_type = component_data["Performance"]["ccs"]["ccs_type"]
+        else:
+            self.ccs_possible = False
+            self.ccs_type = None
+
+        # Standby power
+        self.standby_power_carrier = get_attribute_from_dict(
+            component_data["Performance"], "standby_power_carrier", -1
+        )
+
+        # NETWORKS
+        if "bidirectional" in component_data["Performance"]:
+            self.bidirectional = component_data["Performance"]["bidirectional"]
+            if self.bidirectional:
+                self.bidirectional_precise = get_attribute_from_dict(
+                    component_data["Performance"], "bidirectional_precise", 1
+                )
+
+        if "energyconsumption" in component_data["Performance"]:
+            if component_data["Performance"]["energyconsumption"]:
+                self.energyconsumption = 1
+            else:
+                self.energyconsumption = 0
+
+        # other technology specific options
+        self.other = {}
+
+
+class ComponentInfo:
+    """
+    Class to hold options for technologies
+    """
+
+    def __init__(self, component_data: dict):
+
+        # TECHNOLOGIES
+        if "tec_type" in component_data:
+            self.technology_model = component_data["tec_type"]
+
+        # Input carrier
+        self.input_carrier = get_attribute_from_dict(
+            component_data["Performance"], "input_carrier", []
+        )
+
+        # Output Carriers
+        self.output_carrier = get_attribute_from_dict(
+            component_data["Performance"], "output_carrier", []
+        )
+
+        # NETWORKS
+        # Transported carrier
+        if "carrier" in component_data["Performance"]:
+            self.transported_carrier = component_data["Performance"]["carrier"]
+
+        # Determined in child classes
+        self.main_input_carrier = None
+        self.main_output_carrier = None
+
+
+class Coefficients:
+    """
+    defines a simple class for fitted coefficients
+    """
+
+    def __init__(self):
+        self.time_dependent = {}
+        self.time_independent = {}
+        self.dynamics = {}
+
+
+def get_attribute_from_dict(d: dict, key: str, value_other) -> str | float:
+    """
+    Takes an attribute from dict, if it doesnt exist replace with value_other
+
+    :param dict d: dictonary
+    :param str key: key to look for in dictonary
+    :param value_other: if key is not in dict, return this value
+    """
+    if key in d:
+        return d[key]
+    else:
+        return value_other

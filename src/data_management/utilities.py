@@ -219,9 +219,7 @@ def select_technology(tec_data: dict):
         return HydroOpen(tec_data)
 
 
-def read_tec_data(
-    tec_name: str, load_path: Path, climate_data: pd.DataFrame, location: dict
-):
+def read_tec_data(tec_name: str, load_path: Path):
     """
     Loads the technology data from load_path and preprocesses it.
 
@@ -234,15 +232,10 @@ def read_tec_data(
     tec_data = open_json(tec_name, load_path)
     tec_data["name"] = tec_name
     tec_data = select_technology(tec_data)
-    tec_data.fit_technology_performance(climate_data, location)
-    if tec_data.ccs:
-        ccs_data = open_json(tec_data.performance_data["ccs"]["ccs_type"], load_path)
-        tec_data.ccs_data = fit_ccs_data(
-            tec_data.performance_data["ccs"]["co2_concentration"],
-            ccs_data,
-            climate_data,
-        )
 
+    # CCS
+    if tec_data.options.ccs_possible:
+        tec_data.ccs_data = open_json(tec_data.options.ccs_type, load_path)
     return tec_data
 
 

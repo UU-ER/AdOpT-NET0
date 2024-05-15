@@ -4,9 +4,12 @@ import numpy as np
 import pandas as pd
 import h5py
 
-from ..utilities import FittedPerformance
 from ..technology import Technology
-from src.components.utilities import annualize, set_discount_rate
+from src.components.utilities import (
+    annualize,
+    set_discount_rate,
+    get_attribute_from_dict,
+)
 
 
 class Stor(Technology):
@@ -94,7 +97,9 @@ class Stor(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance()
+        self.options.emissions_based_on = "input"
+        self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
+
         self.flexibility_data = tec_data["Flexibility"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
@@ -104,19 +109,13 @@ class Stor(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(Stor, self).fit_technology_performance(climate_data, location)
 
         time_steps = len(climate_data)
 
-        # Main carrier (carrier to be stored)
-        self.main_car = self.performance_data["main_input_carrier"]
-
-        # Calculate ambient loss factor
-        theta = self.performance_data["performance"]["theta"]
-        ambient_loss_factor = (65 - climate_data["temp_air"]) / (90 - 65) * theta
-
         # Output Bounds
-        for car in self.performance_data["output_carrier"]:
-            self.fitted_performance.bounds["output"][car] = np.column_stack(
+        for car in self.info.output_carrier:
+            self.bounds["output"][car] = np.column_stack(
                 (
                     np.zeros(shape=(time_steps)),
                     np.ones(shape=(time_steps))
@@ -124,9 +123,9 @@ class Stor(Technology):
                 )
             )
         # Input Bounds
-        for car in self.performance_data["input_carrier"]:
-            if car == self.performance_data["main_input_carrier"]:
-                self.fitted_performance.bounds["input"][car] = np.column_stack(
+        for car in self.info.input_carrier:
+            if car == self.info.main_input_carrier:
+                self.bounds["input"][car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
@@ -134,11 +133,11 @@ class Stor(Technology):
                     )
                 )
             else:
-                if "energy_consumption" in self.performance_data["performance"]:
-                    energy_consumption = self.performance_data["performance"][
+                if "energy_consumption" in self.parameters.unfitted_data["performance"]:
+                    energy_consumption = self.parameters.unfitted_data["performance"][
                         "energy_consumption"
                     ]
-                    self.fitted_performance.bounds["input"][car] = np.column_stack(
+                    self.bounds["input"][car] = np.column_stack(
                         (
                             np.zeros(shape=(time_steps)),
                             np.ones(shape=(time_steps))
@@ -157,17 +156,34 @@ class Stor(Technology):
             )
 
         # Coefficients
-        self.fitted_performance.coefficients["ambient_loss_factor"] = (
+        theta = self.parameters.unfitted_data["performance"]["theta"]
+        ambient_loss_factor = (65 - climate_data["temp_air"]) / (90 - 65) * theta
+
+        self.coeff.time_dependent["ambient_loss_factor"] = (
             ambient_loss_factor.to_numpy()
         )
-        for par in self.performance_data["performance"]:
+
+        for par in self.parameters.unfitted_data["performance"]:
             if not par == "theta":
-                self.fitted_performance.coefficients[par] = self.performance_data[
+                self.coeff.time_independent[par] = self.parameters.unfitted_data[
                     "performance"
                 ][par]
 
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
+        self.coeff.time_independent["charge_rate"] = self.flexibility_data[
+            "charge_rate"
+        ]
+        self.coeff.time_independent["discharge_rate"] = self.flexibility_data[
+            "discharge_rate"
+        ]
+        if "energy_consumption" in self.parameters.unfitted_data["performance"]:
+            self.coeff.time_independent["energy_consumption"] = (
+                self.parameters.unfitted_data["performance"]["energy_consumption"]
+            )
+
+        # Options
+        self.options.other["allow_only_one_direction"] = get_attribute_from_dict(
+            self.parameters.unfitted_data, "allow_only_one_direction", 0
+        )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -186,13 +202,10 @@ class Stor(Technology):
         config = data["config"]
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        coeff = self.fitted_performance.coefficients
-
-        if "allow_only_one_direction" in performance_data:
-            allow_only_one_direction = performance_data["allow_only_one_direction"]
-        else:
-            allow_only_one_direction = 0
+        c_td = self.coeff.time_dependent
+        c_ti = self.coeff.time_independent
+        dynamics = self.coeff.dynamics
+        allow_only_one_direction = self.options.other["allow_only_one_direction"]
 
         # Todo: needs to be fixed with averaging algorithm
         # nr_timesteps_averaged = (
@@ -201,12 +214,12 @@ class Stor(Technology):
         nr_timesteps_averaged = 1
 
         # Additional parameters
-        eta_in = coeff["eta_in"]
-        eta_out = coeff["eta_out"]
-        eta_lambda = coeff["lambda"]
-        charge_rate = self.flexibility_data["charge_rate"]
-        discharge_rate = self.flexibility_data["discharge_rate"]
-        ambient_loss_factor = coeff["ambient_loss_factor"]
+        eta_in = c_ti["eta_in"]
+        eta_out = c_ti["eta_out"]
+        eta_lambda = c_ti["lambda"]
+        charge_rate = c_ti["charge_rate"]
+        discharge_rate = c_ti["discharge_rate"]
+        ambient_loss_factor = c_td["ambient_loss_factor"]
 
         # Additional decision variables
         b_tec.var_storage_level = pyo.Var(
@@ -235,7 +248,7 @@ class Stor(Technology):
         # Storage level calculation
         if (
             config["optimization"]["typicaldays"]["N"]["value"] != 0
-            and not self.modelled_with_full_res
+            and not self.options.modelled_with_full_res
         ):
 
             def init_storage_level(const, t):
@@ -256,8 +269,13 @@ class Stor(Technology):
                     ] * ambient_loss_factor[
                         max(set_t_full) - 1
                     ] ** nr_timesteps_averaged + (
-                        eta_in * self.input[self.sequence[t - 1], self.main_car]
-                        - 1 / eta_out * self.output[self.sequence[t - 1], self.main_car]
+                        eta_in
+                        * self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                        - 1
+                        / eta_out
+                        * self.output[
+                            self.sequence[t - 1], self.info.main_input_carrier
+                        ]
                     ) * sum(
                         (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                     )
@@ -271,8 +289,13 @@ class Stor(Technology):
                     ] * ambient_loss_factor[
                         t - 1
                     ] ** nr_timesteps_averaged + (
-                        eta_in * self.input[self.sequence[t - 1], self.main_car]
-                        - 1 / eta_out * self.output[self.sequence[t - 1], self.main_car]
+                        eta_in
+                        * self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                        - 1
+                        / eta_out
+                        * self.output[
+                            self.sequence[t - 1], self.info.main_input_carrier
+                        ]
                     ) * sum(
                         (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                     )
@@ -293,8 +316,8 @@ class Stor(Technology):
                     ] * ambient_loss_factor[
                         max(set_t_full) - 1
                     ] ** nr_timesteps_averaged + (
-                        eta_in * self.input[t, self.main_car]
-                        - 1 / eta_out * self.output[t, self.main_car]
+                        eta_in * self.input[t, self.info.main_input_carrier]
+                        - 1 / eta_out * self.output[t, self.info.main_input_carrier]
                     ) * sum(
                         (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                     )
@@ -308,8 +331,8 @@ class Stor(Technology):
                     ] * ambient_loss_factor[
                         t - 1
                     ] ** nr_timesteps_averaged + (
-                        eta_in * self.input[t, self.main_car]
-                        - 1 / eta_out * self.output[t, self.main_car]
+                        eta_in * self.input[t, self.info.main_input_carrier]
+                        - 1 / eta_out * self.output[t, self.info.main_input_carrier]
                     ) * sum(
                         (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                     )
@@ -328,8 +351,8 @@ class Stor(Technology):
             def init_cut_bidirectional(const, t):
                 # output[t]/discharge_rate + input[t]/charge_rate <= storSize
                 return (
-                    self.output[t, self.main_car] / discharge_rate
-                    + self.input[t, self.main_car] / charge_rate
+                    self.output[t, self.info.main_input_carrier] / discharge_rate
+                    + self.input[t, self.info.main_input_carrier] / charge_rate
                     <= b_tec.var_size
                 )
 
@@ -371,13 +394,18 @@ class Stor(Technology):
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t):
             # input[t] <= chargeCapacity
-            return self.input[t, self.main_car] <= b_tec.var_capacity_charge
+            return (
+                self.input[t, self.info.main_input_carrier] <= b_tec.var_capacity_charge
+            )
 
         b_tec.const_max_charge = pyo.Constraint(self.set_t, rule=init_maximal_charge)
 
         def init_maximal_discharge(const, t):
             # output[t] <= dischargeCapacity
-            return self.output[t, self.main_car] <= b_tec.var_capacity_discharge
+            return (
+                self.output[t, self.info.main_input_carrier]
+                <= b_tec.var_capacity_discharge
+            )
 
         b_tec.const_max_discharge = pyo.Constraint(
             self.set_t, rule=init_maximal_discharge
@@ -405,8 +433,8 @@ class Stor(Technology):
         b_tec.const_max_cap_discharge = pyo.Constraint(rule=init_max_capacity_discharge)
 
         # Energy consumption charging/discharging
-        if "energy_consumption" in coeff:
-            energy_consumption = coeff["energy_consumption"]
+        if "energy_consumption" in c_ti:
+            energy_consumption = c_ti["energy_consumption"]
             if "in" in energy_consumption:
                 b_tec.set_energyconsumption_carriers_in = pyo.Set(
                     initialize=energy_consumption["in"].keys()
@@ -416,7 +444,8 @@ class Stor(Technology):
                     # e.g electricity_cons[t] == input[t] * energy_cons[electricity]
                     return (
                         self.input[t, car]
-                        == self.input[t, self.main_car] * energy_consumption["in"][car]
+                        == self.input[t, self.info.main_input_carrier]
+                        * energy_consumption["in"][car]
                     )
 
                 b_tec.const_energyconsumption_in = pyo.Constraint(
@@ -438,7 +467,7 @@ class Stor(Technology):
                     # e.g electricity_prod[t] == output[t] * energy_cons[electricity]
                     return (
                         self.output[t, car]
-                        == self.output[t, self.main_car]
+                        == self.output[t, self.info.main_input_carrier]
                         * energy_consumption["out"][car]
                     )
 
@@ -449,8 +478,8 @@ class Stor(Technology):
                 )
 
         # RAMPING RATES
-        if "ramping_time" in self.performance_data:
-            if not self.performance_data["ramping_time"] == -1:
+        if "ramping_time" in dynamics:
+            if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -464,7 +493,6 @@ class Stor(Technology):
         :return: pyomo block with technology model
         """
 
-        flexibility = self.flexibility_data
         config = data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
@@ -472,6 +500,8 @@ class Stor(Technology):
         annualization_factor = annualize(
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
+        flexibility = self.flexibility_data
+        c_ti = self.coeff.time_independent
 
         # CAPEX PARAMETERS
         b_tec.para_unit_capex_charging_cap = pyo.Param(
@@ -509,12 +539,12 @@ class Stor(Technology):
         # BOUNDS
         max_capex_charging_cap = (
             b_tec.para_unit_capex_charging_cap_annual
-            * flexibility["charge_rate"]
+            * c_ti["charge_rate"]
             * b_tec.para_size_max
         )
         max_capex_discharging_cap = (
             b_tec.para_unit_capex_discharging_cap_annual
-            * flexibility["discharge_rate"]
+            * c_ti["discharge_rate"]
             * b_tec.para_size_max
         )
         max_capex_energy_cap = (
@@ -605,22 +635,18 @@ class Stor(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        ramping_time = self.performance_data["ramping_time"]
+        dynamics = self.coeff.dynamics
+
+        ramping_time = dynamics["ramping_time"]
 
         # Calculate ramping rates
-        if (
-            "ref_size" in self.performance_data
-            and not self.performance_data["ref_size"] == -1
-        ):
-            ramping_rate = self.performance_data["ref_size"] / ramping_time
+        if "ref_size" in dynamics and not dynamics["ref_size"] == -1:
+            ramping_rate = dynamics["ref_size"] / ramping_time
         else:
             ramping_rate = b_tec.var_size / ramping_time
 
         # Constraints ramping rates
-        if (
-            "ramping_const_int" in self.performance_data
-            and self.performance_data["ramping_const_int"] == 1
-        ):
+        if "ramping_const_int" in dynamics and dynamics["ramping_const_int"] == 1:
 
             s_indicators = range(0, 3)
 

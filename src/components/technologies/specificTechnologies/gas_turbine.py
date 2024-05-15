@@ -4,7 +4,8 @@ import copy
 import numpy as np
 import pandas as pd
 
-from ..utilities import FittedPerformance, fit_piecewise_function
+from ..utilities import fit_piecewise_function
+from ...utilities import Parameters
 from ..technology import Technology
 
 
@@ -84,8 +85,9 @@ class GasTurbine(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance()
-        self.main_car = self.performance_data["main_input_carrier"]
+        self.options.emissions_based_on = "input"
+        self.options.size_based_on = "output"
+        self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -99,6 +101,8 @@ class GasTurbine(Technology):
         :param climate_data: climate data
         :return:
         """
+        super(GasTurbine, self).fit_technology_performance(climate_data, location)
+
         # Climate data & Number of timesteps
         time_steps = len(climate_data)
 
@@ -108,47 +112,52 @@ class GasTurbine(Technology):
         # Temperature correction factors
         f = np.empty(shape=(time_steps))
         f[T <= 6] = (
-            self.performance_data["gamma"][0]
-            * (T[T <= 6] / self.performance_data["T_iso"])
-            + self.performance_data["delta"][0]
+            self.parameters.unfitted_data["gamma"][0]
+            * (T[T <= 6] / self.parameters.unfitted_data["T_iso"])
+            + self.parameters.unfitted_data["delta"][0]
         )
         f[T > 6] = (
-            self.performance_data["gamma"][1]
-            * (T[T > 6] / self.performance_data["T_iso"])
-            + self.performance_data["delta"][1]
+            self.parameters.unfitted_data["gamma"][1]
+            * (T[T > 6] / self.parameters.unfitted_data["T_iso"])
+            + self.parameters.unfitted_data["delta"][1]
         )
 
         # Derive return
         fit = {}
-        fit["coeff"] = {}
-        fit["coeff"]["f"] = f.round(5)
-        fit["coeff"]["alpha"] = round(self.performance_data["alpha"], 5)
-        fit["coeff"]["beta"] = round(self.performance_data["beta"], 5)
-        fit["coeff"]["epsilon"] = round(self.performance_data["epsilon"], 5)
-        fit["coeff"]["in_min"] = round(self.performance_data["in_min"], 5)
-        fit["coeff"]["in_max"] = round(self.performance_data["in_max"], 5)
-        if len(self.performance_data["input_carrier"]) == 2:
-            fit["coeff"]["max_H2_admixture"] = self.performance_data["max_H2_admixture"]
+        fit["td"] = {}
+        fit["td"]["temperature_correction"] = f.round(5)
+
+        fit["ti"] = {}
+        fit["ti"]["alpha"] = round(self.parameters.unfitted_data["alpha"], 5)
+        fit["ti"]["beta"] = round(self.parameters.unfitted_data["beta"], 5)
+        fit["ti"]["epsilon"] = round(self.parameters.unfitted_data["epsilon"], 5)
+        fit["ti"]["in_min"] = round(self.parameters.unfitted_data["in_min"], 5)
+        fit["ti"]["in_max"] = round(self.parameters.unfitted_data["in_max"], 5)
+        if len(self.info.input_carrier) == 2:
+            fit["ti"]["max_H2_admixture"] = self.parameters.unfitted_data[
+                "max_H2_admixture"
+            ]
         else:
-            fit["coeff"]["max_H2_admixture"] = 1
+            fit["ti"]["max_H2_admixture"] = 1
 
         # Input bounds
         fit["input_bounds"] = {}
-        for c in self.performance_data["input_carrier"]:
+        for c in self.info.input_carrier:
             if c == "hydrogen":
                 fit["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.performance_data["in_max"]
-                        * fit["coeff"]["max_H2_admixture"],
+                        * self.parameters.unfitted_data["in_max"]
+                        * fit["ti"]["max_H2_admixture"],
                     )
                 )
             else:
                 fit["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps)) * self.performance_data["in_max"],
+                        np.ones(shape=(time_steps))
+                        * self.parameters.unfitted_data["in_max"],
                     )
                 )
 
@@ -159,34 +168,35 @@ class GasTurbine(Technology):
                 np.zeros(shape=(time_steps)),
                 f
                 * (
-                    self.performance_data["in_max"] * fit["coeff"]["alpha"]
-                    + fit["coeff"]["beta"]
+                    self.parameters.unfitted_data["in_max"] * fit["ti"]["alpha"]
+                    + fit["ti"]["beta"]
                 ),
             )
         )
         fit["output_bounds"]["heat"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                fit["coeff"]["epsilon"] * fit["coeff"]["in_max"]
+                fit["ti"]["epsilon"] * fit["ti"]["in_max"]
                 - f
                 * (
-                    self.performance_data["in_max"] * fit["coeff"]["alpha"]
-                    + fit["coeff"]["beta"]
+                    self.parameters.unfitted_data["in_max"] * fit["ti"]["alpha"]
+                    + fit["ti"]["beta"]
                 ),
             )
         )
 
         # Output Bounds
-        self.fitted_performance.bounds["output"] = fit["output_bounds"]
+        self.bounds["output"] = fit["output_bounds"]
         # Input Bounds
-        for car in self.performance_data["input_carrier"]:
-            self.fitted_performance.bounds["input"][car] = np.column_stack(
+        for car in self.info.input_carrier:
+            self.bounds["input"][car] = np.column_stack(
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
         # Coefficients
-        self.fitted_performance.coefficients = fit["coeff"]
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
+        for par in fit["td"]:
+            self.coeff.time_dependent[par] = fit["td"][par]
+        for par in fit["ti"]:
+            self.coeff.time_independent[par] = fit["ti"][par]
 
     def construct_tech_model(self, b_tec, data: dict, set_t, set_t_clustered):
         """
@@ -204,24 +214,25 @@ class GasTurbine(Technology):
         self.big_m_transformation_required = 1
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        coeff = self.fitted_performance.coefficients
-        bounds = self.fitted_performance.bounds
+        bounds = self.bounds
+        c_td = self.coeff.time_dependent
+        c_ti = self.coeff.time_independent
+        dynamics = self.coeff.dynamics
 
         # Parameter declaration
-        in_min = coeff["in_min"]
-        in_max = coeff["in_max"]
-        max_H2_admixture = coeff["max_H2_admixture"]
-        alpha = coeff["alpha"]
-        beta = coeff["beta"]
-        epsilon = coeff["epsilon"]
-        f = coeff["f"]
+        in_min = c_ti["in_min"]
+        in_max = c_ti["in_max"]
+        max_H2_admixture = c_ti["max_H2_admixture"]
+        alpha = c_ti["alpha"]
+        beta = c_ti["beta"]
+        epsilon = c_ti["epsilon"]
+        temperature_correction = c_td["temperature_correction"]
 
         # Additional decision variables
-        size_max = self.size_max
+        size_max = self.parameters.size_max
 
         def init_input_bounds(bd, t):
-            if len(performance_data["input_carrier"]) == 2:
+            if len(self.info.input_carrier) == 2:
                 car = "gas"
             else:
                 car = "hydrogen"
@@ -244,7 +255,7 @@ class GasTurbine(Technology):
         b_tec.const_total_input = pyo.Constraint(self.set_t, rule=init_total_input)
 
         # Constrain hydrogen input
-        if len(performance_data["input_carrier"]) == 2:
+        if len(self.info.input_carrier) == 2:
 
             def init_h2_input(const, t):
                 return (
@@ -283,7 +294,7 @@ class GasTurbine(Technology):
                             alpha * b_tec.var_total_input[t]
                             + beta * b_tec.var_units_on[t]
                         )
-                        * f[t - 1]
+                        * temperature_correction[t - 1]
                     )
 
                 dis.const_input_output_on_el = pyo.Constraint(
@@ -331,8 +342,8 @@ class GasTurbine(Technology):
         b_tec.const_n_on = pyo.Constraint(self.set_t, rule=init_n_on)
 
         # RAMPING RATES
-        if "ramping_time" in self.performance_data:
-            if not self.performance_data["ramping_time"] == -1:
+        if "ramping_time" in dynamics:
+            if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -357,22 +368,18 @@ class GasTurbine(Technology):
         :param b_tec: technology model block
         :return:
         """
-        ramping_time = self.performance_data["ramping_time"]
+        dynamics = self.coeff.dynamics
+
+        ramping_time = dynamics["ramping_time"]
 
         # Calculate ramping rates
-        if (
-            "ref_size" in self.performance_data
-            and not self.performance_data["ref_size"] == -1
-        ):
-            ramping_rate = self.performance_data["ref_size"] / ramping_time
+        if "ref_size" in dynamics and not dynamics["ref_size"] == -1:
+            ramping_rate = dynamics["ref_size"] / ramping_time
         else:
             ramping_rate = b_tec.var_size / ramping_time
 
         # Constraints ramping rates
-        if (
-            "ramping_const_int" in self.performance_data
-            and self.performance_data["ramping_const_int"] == 1
-        ):
+        if "ramping_const_int" in dynamics and dynamics["ramping_const_int"] == 1:
 
             s_indicators = range(0, 3)
 

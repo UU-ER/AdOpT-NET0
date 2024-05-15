@@ -25,13 +25,13 @@ def define_network(
     netw_data["name"] = "TestNetwork"
 
     if bidirectional:
-        netw_data["NetworkPerf"]["bidirectional"] = 1
-        netw_data["NetworkPerf"]["bidirectional_precise"] = 1
+        netw_data["Performance"]["bidirectional"] = 1
+        netw_data["Performance"]["bidirectional_precise"] = 1
     else:
-        netw_data["NetworkPerf"]["bidirectional"] = 0
+        netw_data["Performance"]["bidirectional"] = 0
 
     if not energyconsumption:
-        netw_data["NetworkPerf"]["energyconsumption"] = {}
+        netw_data["Performance"]["energyconsumption"] = {}
 
     netw_data = Network(netw_data)
 
@@ -59,6 +59,7 @@ def construct_netw_model(
     netw.connection = netw_matrix
     netw.distance = netw_matrix
     netw.size_max_arcs = netw_matrix * 10
+    netw.fit_network_performance()
 
     m = pyo.ConcreteModel()
     m.set_t = pyo.Set(initialize=list(range(1, nr_timesteps + 1)))

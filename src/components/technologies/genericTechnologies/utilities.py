@@ -2,53 +2,22 @@ import statsmodels.api as sm
 import numpy as np
 
 from ..utilities import (
-    FittedPerformance,
     fit_linear_function,
     fit_piecewise_function,
     sig_figs,
 )
 
 
-def fit_performance_generic_tecs(tec_data: dict, time_steps: int):
-    """
-    Fits technology performance according to performance function type
-
-    :param dict tec_data: technology data
-    :param int time_steps: number of time steps
-    :return: fitting
-    """
-
-    performance_data = tec_data["performance"]
-    performance_function_type = tec_data["performance_function_type"]
-    size_based_on = tec_data["size_based_on"]
-
-    # Calculate fit
-    if performance_function_type == 1:
-        fitting = FitGenericTecTypeType1(tec_data)
-    elif performance_function_type == 2:
-        fitting = FitGenericTecTypeType2(tec_data)
-    elif performance_function_type == 3 or performance_function_type == 4:
-        fitting = FitGenericTecTypeType34(tec_data)
-    else:
-        raise Exception("performance_function_type must be an integer between 1 and 3")
-    fitting.fit_performance_function(performance_data)
-    fitting.calculate_input_bounds(size_based_on, time_steps)
-    fitting.calculate_output_bounds(size_based_on, time_steps)
-
-    # Write remaining information to object
-    if "rated_power" in tec_data:
-        fitting.rated_power = tec_data["rated_power"]
-    else:
-        fitting.rated_power = 1
-    fitting.time_dependent_coefficients = 0
-    return fitting
-
-
-class FitGenericTecTypeType1(FittedPerformance):
+class FitGenericTecTypeType1:
     """
     Subclass to fit performance of type1 performance functions (linear, through origin)
     out = alpha1 * in
     """
+
+    def __init__(self, info):
+        self.info = info
+        self.coeff = {}
+        self.bounds = {}
 
     def fit_performance_function(self, performance_data: dict):
         """
@@ -59,10 +28,12 @@ class FitGenericTecTypeType1(FittedPerformance):
         x = performance_data["in"]
 
         for car in performance_data["out"]:
-            self.coefficients[car] = {}
+            self.coeff[car] = {}
             y = performance_data["out"][car]
             fit = fit_linear_function(x, y)
-            self.coefficients[car]["alpha1"] = sig_figs(fit[0], 6)
+            self.coeff[car]["alpha1"] = sig_figs(fit[0], 6)
+
+        return self.coeff
 
     def calculate_input_bounds(self, size_based_on: str, time_steps: int):
         """
@@ -71,26 +42,29 @@ class FitGenericTecTypeType1(FittedPerformance):
         :param str size_based_on: 'input' or 'output'
         :param int time_steps: number of time steps
         """
+        input_bounds = {}
+
         if size_based_on == "input":
-            for car in self.input_carrier:
-                self.bounds["input"][car] = np.column_stack(
+            for car in self.info.input_carrier:
+                input_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
         elif size_based_on == "output":
-            for car in self.input_carrier:
-                if car in self.coefficients:
+            for car in self.info.input_carrier:
+                if car in self.coeff:
                     car_aux = car
                 else:
                     car_aux = "out"
-                self.bounds["input"][car] = np.column_stack(
+                input_bounds[car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps))
-                        / self.coefficients[car_aux]["alpha1"],
+                        np.ones(shape=(time_steps)) / self.coeff[car_aux]["alpha1"],
                     )
                 )
         else:
             raise Exception("size_based_on must be either input or output")
+
+        return input_bounds
 
     def calculate_output_bounds(self, size_based_on: str, time_steps: int):
         """
@@ -99,34 +73,42 @@ class FitGenericTecTypeType1(FittedPerformance):
         :param str size_based_on: 'input' or 'output'
         :param int time_steps: number of time steps
         """
+        output_bounds = {}
+
         if size_based_on == "input":
-            for car in self.output_carrier:
-                if car in self.coefficients:
+            for car in self.info.output_carrier:
+                if car in self.coeff:
                     car_aux = car
                 else:
                     car_aux = "out"
-                self.bounds["output"][car] = np.column_stack(
+                output_bounds[car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps))
-                        * self.coefficients[car_aux]["alpha1"],
+                        np.ones(shape=(time_steps)) * self.coeff[car_aux]["alpha1"],
                     )
                 )
         elif size_based_on == "output":
-            for car in self.output_carrier:
-                self.bounds["output"][car] = np.column_stack(
+            for car in self.info.output_carrier:
+                output_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
         else:
             raise Exception("size_based_on must be either input or output")
 
+        return output_bounds
 
-class FitGenericTecTypeType2(FittedPerformance):
+
+class FitGenericTecTypeType2:
     """
     Subclass to fit performance of type1 performance functions (linear, with min partload)
     out = alpha1 * in + alpha2
     (out - alpha2)/alpha1
     """
+
+    def __init__(self, info):
+        self.info = info
+        self.coeff = {}
+        self.bounds = {}
 
     def fit_performance_function(self, performance_data: dict):
         """
@@ -138,11 +120,13 @@ class FitGenericTecTypeType2(FittedPerformance):
         x = sm.add_constant(x)
 
         for car in performance_data["out"]:
-            self.coefficients[car] = {}
+            self.coeff[car] = {}
             y = performance_data["out"][car]
             fit = fit_linear_function(x, y)
-            self.coefficients[car]["alpha1"] = sig_figs(fit[1], 6)
-            self.coefficients[car]["alpha2"] = sig_figs(fit[0], 6)
+            self.coeff[car]["alpha1"] = sig_figs(fit[1], 6)
+            self.coeff[car]["alpha2"] = sig_figs(fit[0], 6)
+
+        return self.coeff
 
     def calculate_input_bounds(self, size_based_on: str, time_steps: int):
         """
@@ -151,25 +135,29 @@ class FitGenericTecTypeType2(FittedPerformance):
         :param str size_based_on: 'input' or 'output'
         :param int time_steps: number of time steps
         """
+        input_bounds = {}
+
         if size_based_on == "input":
-            for car in self.input_carrier:
-                self.bounds["input"][car] = np.column_stack(
+            for car in self.info.input_carrier:
+                input_bounds[car] = np.column_stack(
                     (np.zeros(shape=time_steps), np.ones(shape=time_steps))
                 )
         elif size_based_on == "output":
-            for car in self.input_carrier:
-                if car in self.coefficients:
+            for car in self.info.input_carrier:
+                if car in self.coeff:
                     car_aux = car
                 else:
                     car_aux = "out"
-                self.bounds["input"][car] = (
+                input_bounds[car] = (
                     np.column_stack(
                         (np.zeros(shape=time_steps), np.ones(shape=time_steps))
                     )
-                    - self.coefficients[car_aux]["alpha2"]
-                ) / self.coefficients[car_aux]["alpha1"]
+                    - self.coeff[car_aux]["alpha2"]
+                ) / self.coeff[car_aux]["alpha1"]
         else:
             raise Exception("size_based_on must be either input or output")
+
+        return input_bounds
 
     def calculate_output_bounds(self, size_based_on: str, time_steps: int):
         """
@@ -178,34 +166,42 @@ class FitGenericTecTypeType2(FittedPerformance):
         :param str size_based_on: 'input' or 'output'
         :param int time_steps: number of time steps
         """
+        output_bounds = {}
+
         if size_based_on == "input":
-            for car in self.output_carrier:
-                if car in self.coefficients:
+            for car in self.info.output_carrier:
+                if car in self.coeff:
                     car_aux = car
                 else:
                     car_aux = "out"
-                self.bounds["output"][car] = np.column_stack(
+                output_bounds[car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps))
-                        * self.coefficients[car_aux]["alpha1"]
-                        + self.coefficients[car_aux]["alpha2"],
+                        np.ones(shape=(time_steps)) * self.coeff[car_aux]["alpha1"]
+                        + self.coeff[car_aux]["alpha2"],
                     )
                 )
         elif size_based_on == "output":
-            for car in self.output_carrier:
-                self.bounds["output"][car] = np.column_stack(
+            for car in self.info.output_carrier:
+                output_bounds[car] = np.column_stack(
                     (np.zeros(shape=time_steps), np.ones(shape=time_steps))
                 )
         else:
             raise Exception("size_based_on must be either input or output")
 
+        return output_bounds
 
-class FitGenericTecTypeType34(FittedPerformance):
+
+class FitGenericTecTypeType34:
     """
     Subclass to fit performance of type3 performance functions (piecewise linear, with min partload)
     out = alpha1[i] * in + alpha2
     """
+
+    def __init__(self, info):
+        self.info = info
+        self.coeff = {}
+        self.bounds = {}
 
     def fit_performance_function(self, performance_data: dict):
         """
@@ -219,7 +215,9 @@ class FitGenericTecTypeType34(FittedPerformance):
             nr_seg = 2
         x = performance_data["in"]
         y = performance_data["out"]
-        self.coefficients = fit_piecewise_function(x, y, nr_seg)
+        self.coeff = fit_piecewise_function(x, y, nr_seg)
+
+        return self.coeff
 
     def calculate_input_bounds(self, size_based_on: str, time_steps: int):
         """
@@ -228,25 +226,29 @@ class FitGenericTecTypeType34(FittedPerformance):
         :param str size_based_on: 'input' or 'output'
         :param int time_steps: number of time steps
         """
+        input_bounds = {}
+
         if size_based_on == "input":
-            for car in self.input_carrier:
-                self.bounds["input"][car] = np.column_stack(
+            for car in self.info.input_carrier:
+                input_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
         elif size_based_on == "output":
-            for car in self.input_carrier:
-                if car in self.coefficients:
+            for car in self.info.input_carrier:
+                if car in self.coeff:
                     car_aux = car
                 else:
                     car_aux = "out"
-                self.bounds["input"][car] = (
+                input_bounds[car] = (
                     np.column_stack(
                         (np.zeros(shape=time_steps), np.ones(shape=time_steps))
                     )
-                    - self.coefficients[car_aux]["alpha2"][-1]
-                ) / self.coefficients[car_aux]["alpha1"][-1]
+                    - self.coeff[car_aux]["alpha2"][-1]
+                ) / self.coeff[car_aux]["alpha1"][-1]
         else:
             raise Exception("size_based_on must be either input or output")
+
+        return input_bounds
 
     def calculate_output_bounds(self, size_based_on: str, time_steps: int):
         """
@@ -255,24 +257,27 @@ class FitGenericTecTypeType34(FittedPerformance):
         :param str size_based_on: 'input' or 'output'
         :param int time_steps: number of time steps
         """
+        output_bounds = {}
+
         if size_based_on == "input":
-            for car in self.output_carrier:
-                if car in self.coefficients:
+            for car in self.info.output_carrier:
+                if car in self.coeff:
                     car_aux = car
                 else:
                     car_aux = "out"
-                self.bounds["output"][car] = np.column_stack(
+                output_bounds[car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps))
-                        * self.coefficients[car_aux]["alpha1"][-1]
-                        + self.coefficients[car_aux]["alpha2"][-1],
+                        np.ones(shape=(time_steps)) * self.coeff[car_aux]["alpha1"][-1]
+                        + self.coeff[car_aux]["alpha2"][-1],
                     )
                 )
         elif size_based_on == "output":
-            for car in self.output_carrier:
-                self.bounds["output"][car] = np.column_stack(
+            for car in self.info.output_carrier:
+                output_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
         else:
             raise Exception("size_based_on must be either input or output")
+
+        return output_bounds

@@ -534,7 +534,7 @@ if execute == 1:
     with open("./data/technology_data/" + tec + ".json") as json_file:
         technology_data = json.load(json_file)
 
-    tec_data = technology_data["TechnologyPerf"]
+    tec_data = technology_data["Performance"]
     performance_data = tec_data["performance"]
     X = performance_data["in"]
     Y = performance_data["out"]

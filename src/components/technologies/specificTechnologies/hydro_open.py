@@ -3,7 +3,7 @@ import pyomo.gdp as gdp
 import numpy as np
 import pandas as pd
 
-from ..utilities import FittedPerformance
+from ...utilities import get_attribute_from_dict
 from ..technology import Technology
 
 
@@ -68,8 +68,8 @@ class HydroOpen(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance()
-        self.main_car = self.performance_data["main_input_carrier"]
+        self.options.emissions_based_on = "input"
+        self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -78,37 +78,38 @@ class HydroOpen(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(HydroOpen, self).fit_technology_performance(climate_data, location)
 
         # Climate data & Number of timesteps
         time_steps = len(climate_data)
 
         # Output Bounds
-        for car in self.performance_data["output_carrier"]:
-            self.fitted_performance.bounds["output"][car] = np.column_stack(
+        for car in self.info.output_carrier:
+            self.bounds["output"][car] = np.column_stack(
                 (
                     np.zeros(shape=(time_steps)),
                     np.ones(shape=(time_steps))
-                    * self.performance_data["performance"]["discharge_max"],
+                    * self.parameters.unfitted_data["performance"]["discharge_max"],
                 )
             )
         # Input Bounds
-        for car in self.performance_data["input_carrier"]:
-            self.fitted_performance.bounds["input"][car] = np.column_stack(
+        for car in self.info.input_carrier:
+            self.bounds["input"][car] = np.column_stack(
                 (
                     np.zeros(shape=(time_steps)),
                     np.ones(shape=(time_steps))
-                    * self.performance_data["performance"]["charge_max"],
+                    * self.parameters.unfitted_data["performance"]["charge_max"],
                 )
             )
         # Coefficients
-        for par in self.performance_data["performance"]:
-            self.fitted_performance.coefficients[par] = self.performance_data[
+        for par in self.parameters.unfitted_data["performance"]:
+            self.coeff.time_independent[par] = self.parameters.unfitted_data[
                 "performance"
             ][par]
 
         # Natural inflow
         if self.name + "_inflow" in climate_data:
-            self.fitted_performance.coefficients["hydro_inflow"] = climate_data[
+            self.coeff.time_dependent["hydro_inflow"] = climate_data[
                 self.name + "_inflow"
             ]
         else:
@@ -119,19 +120,30 @@ class HydroOpen(Technology):
             )
 
         # Maximum discharge
-        if self.performance_data["maximum_discharge_time_discrete"]:
+        if self.parameters.unfitted_data["maximum_discharge_time_discrete"]:
             if self.name + "_maximum_discharge" in climate_data:
-                self.fitted_performance.coefficients["hydro_maximum_discharge"] = (
-                    climate_data[self.name + "_maximum_discharge"]
-                )
+                self.coeff.time_dependent["hydro_maximum_discharge"] = climate_data[
+                    self.name + "_maximum_discharge"
+                ]
             else:
                 raise Exception(
                     "Using Technology Type Hydro_Open with maximum_discharge_time_discrete == 1 requires "
                     "hydro_maximum_discharge to be defined for this node."
                 )
 
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
+        # Options
+        self.options.other["allow_only_one_direction"] = get_attribute_from_dict(
+            self.parameters.unfitted_data, "allow_only_one_direction", 0
+        )
+        self.options.other["can_pump"] = get_attribute_from_dict(
+            self.parameters.unfitted_data, "can_pump", 1
+        )
+        self.options.other["bidirectional_precise"] = get_attribute_from_dict(
+            self.parameters.unfitted_data, "bidirectional_precise", 1
+        )
+        self.options.other["maximum_discharge_time_discrete"] = get_attribute_from_dict(
+            self.parameters.unfitted_data, "maximum_discharge_time_discrete", 1
+        )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -148,18 +160,18 @@ class HydroOpen(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        coeff = self.fitted_performance.coefficients
-        bounds = self.fitted_performance.bounds
+        c_td = self.coeff.time_dependent
+        c_ti = self.coeff.time_independent
+        dynamics = self.coeff.dynamics
+        allow_only_one_direction = self.options.other["allow_only_one_direction"]
 
-        if "allow_only_one_direction" in performance_data:
-            allow_only_one_direction = performance_data["allow_only_one_direction"]
-        else:
-            allow_only_one_direction = 0
-
-        can_pump = performance_data["can_pump"]
-        if performance_data["maximum_discharge_time_discrete"]:
-            hydro_maximum_discharge = coeff["hydro_maximum_discharge"]
+        eta_in = c_ti["eta_in"]
+        eta_out = c_ti["eta_out"]
+        eta_lambda = c_ti["lambda"]
+        charge_max = c_ti["charge_max"]
+        discharge_max = c_ti["discharge_max"]
+        spilling_max = c_ti["spilling_max"]
+        hydro_natural_inflow = c_td["hydro_inflow"]
 
         # Todo: needs to be fixed with averaging algorithm
         # nr_timesteps_averaged = (
@@ -181,13 +193,6 @@ class HydroOpen(Technology):
         )
 
         # Abdditional parameters
-        eta_in = coeff["eta_in"]
-        eta_out = coeff["eta_out"]
-        eta_lambda = coeff["lambda"]
-        charge_max = coeff["charge_max"]
-        discharge_max = coeff["discharge_max"]
-        hydro_natural_inflow = coeff["hydro_inflow"]
-        spilling_max = coeff["spilling_max"]
 
         # Size constraint
         def init_size_constraint(const, t, car):
@@ -234,7 +239,7 @@ class HydroOpen(Technology):
             self.set_t, b_tec.set_input_carriers, rule=init_storage_level
         )
 
-        if not can_pump:
+        if not self.options.other["can_pump"]:
 
             def init_input_zero(const, t, car):
                 return self.input[t, car] == 0
@@ -259,41 +264,40 @@ class HydroOpen(Technology):
             )
 
             # Disjunct modelling
-            if "bidirectional_precise" in self.performance_data:
-                if self.performance_data["bidirectional_precise"] == 1:
-                    self.big_m_transformation_required = 1
-                    s_indicators = range(0, 2)
+            if self.options.other["bidirectional_precise"]:
+                self.big_m_transformation_required = 1
+                s_indicators = range(0, 2)
 
-                    def init_input_output(dis, t, ind):
-                        if ind == 0:  # input only
+                def init_input_output(dis, t, ind):
+                    if ind == 0:  # input only
 
-                            def init_output_to_zero(const, car_input):
-                                return self.output[t, car_input] == 0
+                        def init_output_to_zero(const, car_input):
+                            return self.output[t, car_input] == 0
 
-                            dis.const_output_to_zero = pyo.Constraint(
-                                b_tec.set_input_carriers, rule=init_output_to_zero
-                            )
+                        dis.const_output_to_zero = pyo.Constraint(
+                            b_tec.set_input_carriers, rule=init_output_to_zero
+                        )
 
-                        elif ind == 1:  # output only
+                    elif ind == 1:  # output only
 
-                            def init_input_to_zero(const, car_input):
-                                return self.input[t, car_input] == 0
+                        def init_input_to_zero(const, car_input):
+                            return self.input[t, car_input] == 0
 
-                            dis.const_input_to_zero = pyo.Constraint(
-                                b_tec.set_input_carriers, rule=init_input_to_zero
-                            )
+                        dis.const_input_to_zero = pyo.Constraint(
+                            b_tec.set_input_carriers, rule=init_input_to_zero
+                        )
 
-                    b_tec.dis_input_output = gdp.Disjunct(
-                        self.set_t, s_indicators, rule=init_input_output
-                    )
+                b_tec.dis_input_output = gdp.Disjunct(
+                    self.set_t, s_indicators, rule=init_input_output
+                )
 
-                    # Bind disjuncts
-                    def bind_disjunctions(dis, t):
-                        return [b_tec.dis_input_output[t, i] for i in s_indicators]
+                # Bind disjuncts
+                def bind_disjunctions(dis, t):
+                    return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
-                    b_tec.disjunction_input_output = gdp.Disjunction(
-                        self.set_t, rule=bind_disjunctions
-                    )
+                b_tec.disjunction_input_output = gdp.Disjunction(
+                    self.set_t, rule=bind_disjunctions
+                )
 
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t, car):
@@ -310,10 +314,10 @@ class HydroOpen(Technology):
             self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge
         )
 
-        if performance_data["maximum_discharge_time_discrete"]:
+        if self.options.other["maximum_discharge_time_discrete"]:
 
             def init_maximal_discharge2(const, t, car):
-                return self.output[t, car] <= hydro_maximum_discharge[t - 1]
+                return self.output[t, car] <= c_td["hydro_maximum_discharge"][t - 1]
 
             b_tec.const_max_discharge2 = pyo.Constraint(
                 self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge2
@@ -328,8 +332,8 @@ class HydroOpen(Technology):
         )
 
         # RAMPING RATES
-        if "ramping_time" in self.performance_data:
-            if not self.performance_data["ramping_time"] == -1:
+        if "ramping_time" in dynamics:
+            if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -359,14 +363,13 @@ class HydroOpen(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        ramping_time = self.performance_data["ramping_time"]
+        dynamics = self.coeff.dynamics
+
+        ramping_time = dynamics["ramping_time"]
 
         # Calculate ramping rates
-        if (
-            "ref_size" in self.performance_data
-            and not self.performance_data["ref_size"] == -1
-        ):
-            ramping_rate = self.performance_data["ref_size"] / ramping_time
+        if "ref_size" in dynamics and not dynamics["ref_size"] == -1:
+            ramping_rate = dynamics["ref_size"] / ramping_time
         else:
             ramping_rate = b_tec.var_size / ramping_time
 

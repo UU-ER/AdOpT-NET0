@@ -3,7 +3,11 @@ import pyomo.gdp as gdp
 from warnings import warn
 import pandas as pd
 
-from ..genericTechnologies.utilities import fit_performance_generic_tecs
+from ..genericTechnologies.utilities import (
+    FitGenericTecTypeType1,
+    FitGenericTecTypeType2,
+    FitGenericTecTypeType34,
+)
 from ..technology import Technology
 
 
@@ -61,8 +65,9 @@ class Conv2(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = None
-        self.main_car = self.performance_data["main_input_carrier"]
+        self.options.emissions_based_on = "input"
+        self.options.size_based_on = "input"
+        self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -71,11 +76,39 @@ class Conv2(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(Conv2, self).fit_technology_performance(climate_data, location)
 
-        if self.performance_data["size_based_on"] == "output":
+        if self.options.size_based_on == "output":
             raise Exception("size_based_on == output for CONV2 not possible.")
-        self.fitted_performance = fit_performance_generic_tecs(
-            self.performance_data, time_steps=len(climate_data)
+        # Nr time steps
+        time_steps = len(climate_data)
+
+        # Initialize fitting class
+        if self.options.performance_function_type == 1:
+            f = FitGenericTecTypeType1(self.info)
+        elif self.options.performance_function_type == 2:
+            f = FitGenericTecTypeType2(self.info)
+        elif (
+            self.options.performance_function_type == 3
+            or self.options.performance_function_type == 4
+        ):
+            f = FitGenericTecTypeType34(self.info)
+        else:
+            raise Exception(
+                "performance_function_type must be an integer between 1 and 4"
+            )
+
+        # fit coefficients
+        self.coeff.time_independent["fit"] = f.fit_performance_function(
+            self.parameters.unfitted_data["performance"]
+        )
+
+        # fit bounds
+        self.bounds["input"] = f.calculate_input_bounds(
+            self.options.size_based_on, time_steps
+        )
+        self.bounds["output"] = f.calculate_output_bounds(
+            self.options.size_based_on, time_steps
         )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
@@ -93,17 +126,17 @@ class Conv2(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        rated_power = self.fitted_performance.rated_power
-        performance_function_type = performance_data["performance_function_type"]
+        c_ti = self.coeff.time_independent
+        dynamics = self.coeff.dynamics
+        rated_power = self.parameters.rated_power
 
-        if performance_function_type == 1:
+        if self.options.performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
-        elif performance_function_type == 2:
+        elif self.options.performance_function_type == 2:
             b_tec = self._performance_function_type_2(b_tec)
-        elif performance_function_type == 3:
+        elif self.options.performance_function_type == 3:
             b_tec = self._performance_function_type_3(b_tec)
-        elif performance_function_type == 4:
+        elif self.options.performance_function_type == 4:
             b_tec = self._performance_function_type_4(b_tec)
 
         # Size constraints
@@ -117,13 +150,13 @@ class Conv2(Technology):
         b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
 
         # Maximum input of carriers
-        if "max_input" in performance_data:
+        if "max_input" in c_ti:
             b_tec.set_max_input_carriers = pyo.Set(
-                initialize=list(performance_data["max_input"].keys())
+                initialize=list(c_ti["max_input"].keys())
             )
 
             def init_max_input(const, t, car):
-                return self.input[t, car] <= performance_data["max_input"][car] * sum(
+                return self.input[t, car] <= c_ti["max_input"][car] * sum(
                     self.input[t, car_input] for car_input in b_tec.set_input_carriers
                 )
 
@@ -132,8 +165,8 @@ class Conv2(Technology):
             )
 
         # RAMPING RATES
-        if "ramping_time" in self.performance_data:
-            if not self.performance_data["ramping_time"] == -1:
+        if "ramping_time" in dynamics:
+            if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -146,11 +179,14 @@ class Conv2(Technology):
         :return: pyomo block with technology model
         """
         # Performance parameter:
+        rated_power = self.parameters.rated_power
+        c_ti = self.coeff.time_independent
+        min_part_load = c_ti["min_part_load"]
+
         alpha1 = {}
-        for car in self.performance_data["performance"]["out"]:
-            alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
+        for car in c_ti["fit"]:
+            alpha1[car] = c_ti["fit"][car]["alpha1"]
+        min_part_load = c_ti["min_part_load"]
 
         # Input-output correlation
         def init_input_output(const, t, car_output):
@@ -185,23 +221,22 @@ class Conv2(Technology):
         # Transformation required
         self.big_m_transformation_required = 1
 
-        # Performance Parameters
+        # Performance parameter:
+        rated_power = self.parameters.rated_power
+        c_ti = self.coeff.time_independent
         alpha1 = {}
         alpha2 = {}
-        for car in self.performance_data["performance"]["out"]:
-            alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
-            alpha2[car] = self.fitted_performance.coefficients[car]["alpha2"]
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
-        standby_power = self.performance_data["standby_power"]
+        for car in c_ti["fit"]:
+            alpha1[car] = c_ti["fit"][car]["alpha1"]
+            alpha2[car] = c_ti["fit"][car]["alpha2"]
+        min_part_load = c_ti["min_part_load"]
+        standby_power = c_ti["standby_power"]
 
         if standby_power != -1:
-            if (
-                "standby_power_carrier" not in self.performance_data
-            ) or self.performance_data["standby_power_carrier"] == -1:
-                car_standby_power = self.main_car
+            if self.options.standby_power_carrier == -1:
+                car_standby_power = self.info.main_input_carrier
             else:
-                car_standby_power = self.performance_data["standby_power_carrier"]
+                car_standby_power = self.options.standby_power_carrier
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
@@ -233,7 +268,7 @@ class Conv2(Technology):
                 else:
 
                     def init_standby_power(const, car_input):
-                        if car_input == self.main_car:
+                        if car_input == self.info.main_input_carrier:
                             return (
                                 self.input[t, car_standby_power]
                                 == standby_power * b_tec.var_size * rated_power
@@ -308,24 +343,23 @@ class Conv2(Technology):
         # Transformation required
         self.big_m_transformation_required = 1
 
-        # Performance Parameters
+        # Performance parameter:
+        rated_power = self.parameters.rated_power
+        c_ti = self.coeff.time_independent
         alpha1 = {}
         alpha2 = {}
-        for car in self.performance_data["performance"]["out"]:
-            bp_x = self.fitted_performance.coefficients[car]["bp_x"]
-            alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
-            alpha2[car] = self.fitted_performance.coefficients[car]["alpha2"]
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
-        standby_power = self.performance_data["standby_power"]
+        for car in c_ti["fit"]:
+            alpha1[car] = c_ti["fit"][car]["alpha1"]
+            alpha2[car] = c_ti["fit"][car]["alpha2"]
+            bp_x = c_ti["fit"][car]["bp_x"]
+        min_part_load = c_ti["min_part_load"]
+        standby_power = c_ti["standby_power"]
 
         if standby_power != -1:
-            if (
-                "standby_power_carrier" not in self.performance_data
-            ) or self.performance_data["standby_power_carrier"] == -1:
-                car_standby_power = self.main_car
+            if self.options.standby_power_carrier == -1:
+                car_standby_power = self.info.main_input_carrier
             else:
-                car_standby_power = self.performance_data["standby_power_carrier"]
+                car_standby_power = self.options.standby_power_carrier
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
@@ -351,7 +385,7 @@ class Conv2(Technology):
                 else:
 
                     def init_standby_power(const, car_input):
-                        if car_input == self.main_car:
+                        if car_input == self.info.main_input_carrier:
                             return (
                                 self.input[t, car_standby_power]
                                 == standby_power * b_tec.var_size * rated_power
@@ -451,17 +485,19 @@ class Conv2(Technology):
         # Transformation required
         self.big_m_transformation_required = 1
 
-        # Performance Parameters
-        SU_time = self.performance_data["SU_time"]
-        SD_time = self.performance_data["SD_time"]
+        # Performance parameter:
+        rated_power = self.parameters.rated_power
+        c_ti = self.coeff.time_independent
+        dynamics = self.coeff.dynamics
         alpha1 = {}
         alpha2 = {}
-        for car in self.performance_data["performance"]["out"]:
-            bp_x = self.fitted_performance.coefficients[car]["bp_x"]
-            alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
-            alpha2[car] = self.fitted_performance.coefficients[car]["alpha2"]
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
+        for car in c_ti["fit"]:
+            alpha1[car] = c_ti["fit"][car]["alpha1"]
+            alpha2[car] = c_ti["fit"][car]["alpha2"]
+            bp_x = c_ti["fit"][car]["bp_x"]
+        min_part_load = c_ti["min_part_load"]
+        SU_time = dynamics["SU_time"]
+        SD_time = dynamics["SD_time"]
 
         if SU_time <= 0 and SD_time <= 0:
             warn(
@@ -702,22 +738,21 @@ class Conv2(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        ramping_time = self.performance_data["ramping_time"]
+        dynamics = self.coeff.dynamics
+
+        ramping_time = dynamics["ramping_time"]
 
         # Calculate ramping rates
-        if (
-            "ref_size" in self.performance_data
-            and not self.performance_data["ref_size"] == -1
-        ):
-            ramping_rate = self.performance_data["ref_size"] / ramping_time
+        if "ref_size" in dynamics and not dynamics["ref_size"] == -1:
+            ramping_rate = dynamics["ref_size"] / ramping_time
         else:
             ramping_rate = b_tec.var_size / ramping_time
 
         # Constraints ramping rates
         if (
-            not self.performance_data["performance_function_type"] == 1
-            and "ramping_const_int" in self.performance_data
-            and self.performance_data["ramping_const_int"] == 1
+            not self.options.performance_function_type == 1
+            and "ramping_const_int" in dynamics
+            and dynamics["ramping_const_int"] == 1
         ):
 
             s_indicators = range(0, 3)

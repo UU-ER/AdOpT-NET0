@@ -15,7 +15,7 @@
     "lifetime": 40,
     "decommission_cost": 0
   },
-  "NetworkPerf": {
+  "Performance": {
     "carrier": "hydrogen",
     "bidirectional": 0,
     "loss": 7E-8,

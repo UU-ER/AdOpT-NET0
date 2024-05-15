@@ -54,26 +54,6 @@ def set_capex_model(config: dict, economics) -> int:
     return capex_model
 
 
-class FittedPerformance:
-    """
-    Class to manage fitted performance of technologies
-    """
-
-    def __init__(self, tec_data: dict = None):
-        self.bounds = {"input": {}, "output": {}}
-        self.coefficients = {}
-        self.time_dependent_coefficients = 0
-        self.other = {}
-        self.rated_power = 1
-        if tec_data:
-            if "rated_power" in tec_data:
-                self.rated_power = tec_data["rated_power"]
-            if "input_carrier" in tec_data:
-                self.input_carrier = tec_data["input_carrier"]
-            if "output_carrier" in tec_data:
-                self.output_carrier = tec_data["output_carrier"]
-
-
 def fit_linear_function(x: np.array, y: np.array) -> np.array:
     """
     Fits linear model to x and y data and returns coefficients

@@ -1,6 +1,5 @@
-import pandas as pd
-
 from ..components.utilities import Economics
+from .utilities import Parameters, ComponentInfo, ComponentOptions, Coefficients
 
 
 class ModelComponent:
@@ -18,13 +17,12 @@ class ModelComponent:
         self.name = data["name"]
         self.existing = 0
         self.size_initial = []
-        self.size_is_int = data["size_is_int"]
-        self.size_min = data["size_min"]
-        self.size_max = data["size_max"]
-        self.decommission = data["decommission"]
         self.economics = Economics(data["Economics"])
-        self.big_m_transformation_required = 0
 
-        self.results = {}
-        self.results["time_dependent"] = pd.DataFrame()
-        self.results["time_independent"] = pd.DataFrame()
+        self.parameters = Parameters(data)
+        self.options = ComponentOptions(data)
+        self.info = ComponentInfo(data)
+        self.bounds = {"input": {}, "output": {}}
+        self.coeff = Coefficients()
+
+        self.big_m_transformation_required = 0
