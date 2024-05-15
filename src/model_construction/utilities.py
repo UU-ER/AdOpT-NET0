@@ -29,15 +29,15 @@ def get_data_for_investment_period(
     """
     data_period = {}
     data_period["topology"] = data.topology
-    data_period["technology_data"] = data.technology_data[aggregation_type][
-        investment_period
-    ]
+    data_period["technology_data"] = data.technology_data[investment_period]
     data_period["time_series"] = data.time_series[aggregation_type].loc[
         :, investment_period
     ]
-    data_period["network_data"] = data.network_data[aggregation_type][investment_period]
+    data_period["network_data"] = data.network_data[investment_period]
     data_period["energybalance_options"] = data.energybalance_options[investment_period]
     data_period["config"] = data.model_config
+    data_period["k_means_specs"] = data.k_means_specs
+    data_period["averaged_specs"] = data.averaged_specs
 
     return data_period
 
@@ -58,5 +58,7 @@ def get_data_for_node(data: dict, node: str) -> dict:
     data_node["network_data"] = data["network_data"]
     data_node["energybalance_options"] = data["energybalance_options"][node]
     data_node["config"] = data["config"]
+    data_node["k_means_specs"] = data["k_means_specs"]
+    data_node["averaged_specs"] = data["averaged_specs"]
 
     return data_node

@@ -159,7 +159,7 @@ class Stor(Technology):
         theta = self.parameters.unfitted_data["performance"]["theta"]
         ambient_loss_factor = (65 - climate_data["temp_air"]) / (90 - 65) * theta
 
-        self.coeff.time_dependent["ambient_loss_factor"] = (
+        self.coeff.time_dependent_full["ambient_loss_factor"] = (
             ambient_loss_factor.to_numpy()
         )
 
@@ -198,19 +198,15 @@ class Stor(Technology):
 
         super(Stor, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
-        set_t_full = self.set_t_full
         config = data["config"]
 
         # DATA OF TECHNOLOGY
-        c_td = self.coeff.time_dependent
+        c_td = self.coeff.time_dependent_used
         c_ti = self.coeff.time_independent
         dynamics = self.coeff.dynamics
         allow_only_one_direction = self.options.other["allow_only_one_direction"]
 
         # Todo: needs to be fixed with averaging algorithm
-        # nr_timesteps_averaged = (
-        #     energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
-        # )
         nr_timesteps_averaged = 1
 
         # Additional parameters
@@ -246,100 +242,48 @@ class Stor(Technology):
         b_tec.const_size = pyo.Constraint(set_t_full, rule=init_size_constraint)
 
         # Storage level calculation
-        if (
-            config["optimization"]["typicaldays"]["N"]["value"] != 0
-            and not self.options.modelled_with_full_res
-        ):
+        def init_storage_level(const, t):
+            if t == 1:
+                # TODO document the storage level constraints
+                # couple first and last time interval: storageLevel[1] ==
+                # storageLevel[end] * (1-self_discharge)^nr_timesteps_averaged +
+                # - storageLevel[end] * ambient_loss_factor[end-1]^nr_timesteps_averaged +
+                # + (eta_in * input[] +1/eta_out * output[]) *
+                # (sum (1-self_discharge)^i for i in [0, nr_timesteps_averaged])
+                #
+                return b_tec.var_storage_level[t] == b_tec.var_storage_level[
+                    max(set_t_full)
+                ] * (1 - eta_lambda) ** nr_timesteps_averaged - b_tec.var_storage_level[
+                    max(set_t_full)
+                ] * ambient_loss_factor[
+                    max(set_t_full) - 1
+                ] ** nr_timesteps_averaged + (
+                    eta_in
+                    * self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                    - 1
+                    / eta_out
+                    * self.output[self.sequence[t - 1], self.info.main_input_carrier]
+                ) * sum(
+                    (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
+                )
+            else:  # all other time intervals
+                return b_tec.var_storage_level[t] == b_tec.var_storage_level[t - 1] * (
+                    1 - eta_lambda
+                ) ** nr_timesteps_averaged - b_tec.var_storage_level[
+                    t
+                ] * ambient_loss_factor[
+                    t - 1
+                ] ** nr_timesteps_averaged + (
+                    eta_in
+                    * self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                    - 1
+                    / eta_out
+                    * self.output[self.sequence[t - 1], self.info.main_input_carrier]
+                ) * sum(
+                    (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
+                )
 
-            def init_storage_level(const, t):
-                if t == 1:
-                    # TODO document the storage level constraints
-                    # couple first and last time interval: storageLevel[1] ==
-                    # storageLevel[end] * (1-self_discharge)^nr_timesteps_averaged +
-                    # - storageLevel[end] * ambient_loss_factor[end-1]^nr_timesteps_averaged +
-                    # + (eta_in * input[] +1/eta_out * output[]) *
-                    # (sum (1-self_discharge)^i for i in [0, nr_timesteps_averaged])
-                    #
-                    return b_tec.var_storage_level[t] == b_tec.var_storage_level[
-                        max(set_t_full)
-                    ] * (
-                        1 - eta_lambda
-                    ) ** nr_timesteps_averaged - b_tec.var_storage_level[
-                        max(set_t_full)
-                    ] * ambient_loss_factor[
-                        max(set_t_full) - 1
-                    ] ** nr_timesteps_averaged + (
-                        eta_in
-                        * self.input[self.sequence[t - 1], self.info.main_input_carrier]
-                        - 1
-                        / eta_out
-                        * self.output[
-                            self.sequence[t - 1], self.info.main_input_carrier
-                        ]
-                    ) * sum(
-                        (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
-                    )
-                else:  # all other time intervals
-                    return b_tec.var_storage_level[t] == b_tec.var_storage_level[
-                        t - 1
-                    ] * (
-                        1 - eta_lambda
-                    ) ** nr_timesteps_averaged - b_tec.var_storage_level[
-                        t
-                    ] * ambient_loss_factor[
-                        t - 1
-                    ] ** nr_timesteps_averaged + (
-                        eta_in
-                        * self.input[self.sequence[t - 1], self.info.main_input_carrier]
-                        - 1
-                        / eta_out
-                        * self.output[
-                            self.sequence[t - 1], self.info.main_input_carrier
-                        ]
-                    ) * sum(
-                        (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
-                    )
-
-            b_tec.const_storage_level = pyo.Constraint(
-                set_t_full, rule=init_storage_level
-            )
-        else:
-
-            def init_storage_level(const, t):
-                if t == 1:  # couple first and last time interval
-                    return b_tec.var_storage_level[t] == b_tec.var_storage_level[
-                        max(set_t_full)
-                    ] * (
-                        1 - eta_lambda
-                    ) ** nr_timesteps_averaged - b_tec.var_storage_level[
-                        max(set_t_full)
-                    ] * ambient_loss_factor[
-                        max(set_t_full) - 1
-                    ] ** nr_timesteps_averaged + (
-                        eta_in * self.input[t, self.info.main_input_carrier]
-                        - 1 / eta_out * self.output[t, self.info.main_input_carrier]
-                    ) * sum(
-                        (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
-                    )
-                else:  # all other time intervalls
-                    return b_tec.var_storage_level[t] == b_tec.var_storage_level[
-                        t - 1
-                    ] * (
-                        1 - eta_lambda
-                    ) ** nr_timesteps_averaged - b_tec.var_storage_level[
-                        t
-                    ] * ambient_loss_factor[
-                        t - 1
-                    ] ** nr_timesteps_averaged + (
-                        eta_in * self.input[t, self.info.main_input_carrier]
-                        - 1 / eta_out * self.output[t, self.info.main_input_carrier]
-                    ) * sum(
-                        (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
-                    )
-
-            b_tec.const_storage_level = pyo.Constraint(
-                set_t_full, rule=init_storage_level
-            )
+        b_tec.const_storage_level = pyo.Constraint(set_t_full, rule=init_storage_level)
 
         # This makes sure that only either input or output is larger zero.
         if allow_only_one_direction == 1:

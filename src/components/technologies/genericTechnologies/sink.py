@@ -163,52 +163,23 @@ class Sink(Technology):
         b_tec.const_size = pyo.Constraint(set_t_full, rule=init_size_constraint)
 
         # Constraint storage level
-        if (
-            config["optimization"]["typicaldays"]["N"]["value"] != 0
-            and not self.options.modelled_with_full_res
-        ):
 
-            def init_storage_level(const, t):
-                # storageLevel[1] <= injRate[1]
-                if t == 1:
-                    return (
-                        b_tec.var_storage_level[t]
-                        == self.input[
-                            self.sequence[t - 1], self.info.main_input_carrier
-                        ]
-                    )
-                else:
-                    # storageLevel[t] <= storageLevel[t-1]+injRate[t]
-                    return (
-                        b_tec.var_storage_level[t]
-                        == b_tec.var_storage_level[t - 1]
-                        + self.input[self.sequence[t - 1], self.info.main_input_carrier]
-                    )
+        def init_storage_level(const, t):
+            # storageLevel[1] <= injRate[1]
+            if t == 1:
+                return (
+                    b_tec.var_storage_level[t]
+                    == self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                )
+            else:
+                # storageLevel[t] <= storageLevel[t-1]+injRate[t]
+                return (
+                    b_tec.var_storage_level[t]
+                    == b_tec.var_storage_level[t - 1]
+                    + self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                )
 
-            b_tec.const_storage_level = pyo.Constraint(
-                set_t_full, rule=init_storage_level
-            )
-
-        else:
-
-            def init_storage_level(const, t):
-                # storageLevel[1] <= injRate[1]
-                if t == 1:
-                    return (
-                        b_tec.var_storage_level[t]
-                        == self.input[t, self.info.main_input_carrier]
-                    )
-                else:
-                    # storageLevel[t] <= storageLevel[t-1]+injRate[t]
-                    return (
-                        b_tec.var_storage_level[t]
-                        == b_tec.var_storage_level[t - 1]
-                        + self.input[t, self.info.main_input_carrier]
-                    )
-
-            b_tec.const_storage_level = pyo.Constraint(
-                set_t_full, rule=init_storage_level
-            )
+        b_tec.const_storage_level = pyo.Constraint(set_t_full, rule=init_storage_level)
 
         # Maximal injection rate
         def init_maximal_injection(const, t):

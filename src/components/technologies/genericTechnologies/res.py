@@ -159,7 +159,7 @@ class Res(Technology):
         # Output Bounds
         self.bounds["output"]["electricity"] = output_bounds
         # Coefficients
-        self.coeff.time_dependent["capfactor"] = round(capacity_factor, 3)
+        self.coeff.time_dependent_full["capfactor"] = round(capacity_factor, 3)
         self.coeff.time_independent["specific_area"] = specific_area
 
     def _perform_fitting_ST(self, climate_data: pd.DataFrame):
@@ -228,7 +228,7 @@ class Res(Technology):
         # Output Bounds
         self.bounds["output"]["electricity"] = output_bounds
         # Coefficients
-        self.coeff.time_dependent["capfactor"] = capacity_factor[0].round(3)
+        self.coeff.time_dependent_full["capfactor"] = capacity_factor[0].round(3)
         # Rated Power
         self.parameters.rated_power = rated_power / 1000
 
@@ -245,7 +245,7 @@ class Res(Technology):
         super(Res, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
         # DATA OF TECHNOLOGY
-        c_td = self.coeff.time_dependent
+        c_td = self.coeff.time_dependent_used
         rated_power = self.parameters.rated_power
         curtailment = self.options.other["curtailment"]
 
@@ -322,7 +322,7 @@ class Res(Technology):
         super(Res, self).write_results_tec_operation(h5_group, model_block)
 
         rated_power = self.parameters.rated_power
-        capfactor = self.coeff.time_dependent["capfactor"]
+        capfactor = self.coeff.time_dependent_used["capfactor"]
 
         h5_group.create_dataset(
             "max_out",
@@ -334,7 +334,7 @@ class Res(Technology):
 
         h5_group.create_dataset("cap_factor", data=capfactor)
 
-        if curtailment == 2:
+        if self.options.other["curtailment"] == 2:
             h5_group.create_dataset(
                 "units_on", data=[model_block.var_size_on[t].value for t in self.set_t]
             )

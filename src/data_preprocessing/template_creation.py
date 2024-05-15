@@ -317,7 +317,7 @@ def initialize_configuration_templates() -> dict:
                 },
                 "method": {
                     "description": "Determine method used for modeling technologies with typical days.",
-                    "options": [2],
+                    "options": [1, 2],
                     "value": 2,
                 },
             },

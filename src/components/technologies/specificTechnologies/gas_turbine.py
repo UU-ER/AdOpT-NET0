@@ -194,11 +194,11 @@ class GasTurbine(Technology):
             )
         # Coefficients
         for par in fit["td"]:
-            self.coeff.time_dependent[par] = fit["td"][par]
+            self.coeff.time_dependent_full[par] = fit["td"][par]
         for par in fit["ti"]:
             self.coeff.time_independent[par] = fit["ti"][par]
 
-    def construct_tech_model(self, b_tec, data: dict, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for gas turbines
 
@@ -207,7 +207,7 @@ class GasTurbine(Technology):
         :return: technology block
         """
         super(GasTurbine, self).construct_tech_model(
-            b_tec, data, set_t, set_t_clustered
+            b_tec, data, set_t_full, set_t_clustered
         )
 
         # Transformation required
@@ -215,7 +215,7 @@ class GasTurbine(Technology):
 
         # DATA OF TECHNOLOGY
         bounds = self.bounds
-        c_td = self.coeff.time_dependent
+        c_td = self.coeff.time_dependent_used
         c_ti = self.coeff.time_independent
         dynamics = self.coeff.dynamics
 

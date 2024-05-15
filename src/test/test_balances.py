@@ -63,7 +63,10 @@ def test_model_nodal_energy_balance():
     nr_timesteps = 1
 
     dh = make_data_handle(nr_timesteps)
-    config = {"energybalance": {"violation": {"value": 0}}}
+    config = {
+        "energybalance": {"violation": {"value": 0}},
+        "optimization": {"typicaldays": {"N": {"value": 0}}},
+    }
     period = dh.topology["investment_periods"][0]
     node = dh.topology["nodes"][0]
     carrier = dh.topology["carriers"][0]
@@ -72,7 +75,7 @@ def test_model_nodal_energy_balance():
     dh.time_series["full"].loc[:, (period, node, "CarrierData", carrier, "Demand")] = 1
 
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_nodal_energybalance(m, config)
 
     termination_condition = solve_model(m)
@@ -83,7 +86,7 @@ def test_model_nodal_energy_balance():
     # Through violation
     config["energybalance"]["violation"]["value"] = 1
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_nodal_energybalance(m, config)
 
     termination_condition = solve_model(m)
@@ -97,7 +100,7 @@ def test_model_nodal_energy_balance():
         :, (period, node, "CarrierData", carrier, "Import limit")
     ] = 1
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_nodal_energybalance(m, config)
 
     termination_condition = solve_model(m)
@@ -122,7 +125,10 @@ def test_model_global_energy_balance():
     nr_timesteps = 1
 
     dh = make_data_handle(nr_timesteps)
-    config = {"energybalance": {"violation": {"value": 0}}}
+    config = {
+        "energybalance": {"violation": {"value": 0}},
+        "optimization": {"typicaldays": {"N": {"value": 0}}},
+    }
     period = dh.topology["investment_periods"][0]
     node1 = dh.topology["nodes"][0]
     node2 = dh.topology["nodes"][1]
@@ -132,7 +138,7 @@ def test_model_global_energy_balance():
     dh.time_series["full"].loc[:, (period, node1, "CarrierData", carrier, "Demand")] = 1
 
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_global_energybalance(m, config)
 
     termination_condition = solve_model(m)
@@ -143,7 +149,7 @@ def test_model_global_energy_balance():
     # Through violation
     config["energybalance"]["violation"]["value"] = 1
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_global_energybalance(m, config)
 
     termination_condition = solve_model(m)
@@ -157,7 +163,7 @@ def test_model_global_energy_balance():
         :, (period, node2, "CarrierData", carrier, "Import limit")
     ] = 1
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_global_energybalance(m, config)
 
     termination_condition = solve_model(m)
@@ -182,7 +188,10 @@ def test_model_emission_balance():
     nr_timesteps = 1
 
     dh = make_data_handle(nr_timesteps)
-    config = {"energybalance": {"violation": {"value": 0}, "copperplate": {"value": 0}}}
+    config = {
+        "energybalance": {"violation": {"value": 0}, "copperplate": {"value": 0}},
+        "optimization": {"typicaldays": {"N": {"value": 0}}},
+    }
     period = dh.topology["investment_periods"][0]
     node = dh.topology["nodes"][0]
     carrier = dh.topology["carriers"][0]
@@ -197,9 +206,9 @@ def test_model_emission_balance():
     ] = 1
 
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_nodal_energybalance(m, config)
-    m = construct_emission_balance(m, config)
+    m = construct_emission_balance(m, dh)
 
     def init_emissions_to_zero(const, period):
         return m.periods[period].var_emissions_net == 0
@@ -214,9 +223,9 @@ def test_model_emission_balance():
 
     # FEASIBILITY CASE
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_nodal_energybalance(m, config)
-    m = construct_emission_balance(m, config)
+    m = construct_emission_balance(m, dh)
 
     termination_condition = solve_model(m)
 
@@ -242,7 +251,10 @@ def test_model_cost_balance():
     nr_timesteps = 1
 
     dh = make_data_handle(nr_timesteps)
-    config = {"energybalance": {"violation": {"value": 0}, "copperplate": {"value": 0}}}
+    config = {
+        "energybalance": {"violation": {"value": 0}, "copperplate": {"value": 0}},
+        "optimization": {"typicaldays": {"N": {"value": 0}}},
+    }
     period = dh.topology["investment_periods"][0]
     node = dh.topology["nodes"][0]
     carrier = dh.topology["carriers"][0]
@@ -257,9 +269,9 @@ def test_model_cost_balance():
     ] = 1
 
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_global_energybalance(m, config)
-    m = construct_system_cost(m, config)
+    m = construct_system_cost(m, dh)
     m = construct_global_balance(m)
 
     m.test_const_system_costs = Constraint(expr=m.var_npv == 0)
@@ -269,9 +281,9 @@ def test_model_cost_balance():
 
     # FEASIBILITY CASE
     m = construct_model(dh)
-    m = construct_network_constraints(m)
+    m = construct_network_constraints(m, config)
     m = construct_global_energybalance(m, config)
-    m = construct_system_cost(m, config)
+    m = construct_system_cost(m, dh)
     m = construct_global_balance(m)
 
     termination_condition = solve_model(m)

@@ -41,6 +41,7 @@ class EnergyHub:
         self.info_pareto["pareto_point"] = -1
         self.info_solving_algorithms = {}
         self.info_monte_carlo = {}
+        self.current_aggregation_type = None
 
     def read_data(
         self, data_path: Path | str, start_period: int = None, end_period: int = None
@@ -96,13 +97,12 @@ class EnergyHub:
                             "SU_time",
                             "SD_time",
                         ]
-                        count = 0
                         for par in par_check:
                             if (
                                 par
                                 not in self.data.technology_data[node][
                                     tec
-                                ].performance_data
+                                ].coeff.dynamics
                             ):
                                 raise ValueError(
                                     f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
@@ -149,10 +149,25 @@ class EnergyHub:
         log_event("--- Constructing Model ---")
         start = time.time()
 
-        # INITIALIZE MODEL
-        aggregation_type = "full"
+        # Determine aggregation
+        config = self.data.model_config
 
-        # TODO: Add clustered, averaged here
+        if config["optimization"]["typicaldays"]["N"]["value"] == 0:
+            aggregation_type = "full"
+            aggregation_data = "full"
+            self.current_aggregation_type = "full"
+        elif config["optimization"]["typicaldays"]["method"]["value"] == 1:
+            aggregation_type = "clustered"
+            aggregation_data = "clustered"
+            self.current_aggregation_type = "clustered"
+        elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
+            aggregation_type = "clustered"
+            aggregation_data = "full"
+            self.current_aggregation_type = "clustered"
+        else:
+            raise Exception("clustering method needs to be 1 or 2")
+
+        # INITIALIZE MODEL
         self.model[aggregation_type] = pyo.ConcreteModel()
 
         # GET DATA
@@ -177,7 +192,7 @@ class EnergyHub:
             # Get data for investment period
             investment_period = b_period.index()
             data_period = get_data_for_investment_period(
-                self.data, investment_period, aggregation_type
+                self.data, investment_period, aggregation_data
             )
             # Add sets, parameters, variables, constraints to block
             b_period = construct_investment_period_block(b_period, data_period)
@@ -209,7 +224,9 @@ class EnergyHub:
                 data_node = get_data_for_node(data_period, node)
 
                 # Add sets, parameters, variables, constraints to block
-                b_node = construct_node_block(b_node, data_node, b_period.set_t_full)
+                b_node = construct_node_block(
+                    b_node, data_node, b_period.set_t_full, b_period.set_t_clustered
+                )
 
                 # TECHNOLOGY BLOCK
                 def init_technology_block(b_tec, tec):
@@ -245,18 +262,19 @@ class EnergyHub:
         start = time.time()
 
         config = self.data.model_config
-        model = self.model["full"]
+        data = self.data
+        model = self.model[self.current_aggregation_type]
 
         model = delete_all_balances(model)
 
         if not config["energybalance"]["copperplate"]["value"]:
-            model = construct_network_constraints(model)
+            model = construct_network_constraints(model, config)
             model = construct_nodal_energybalance(model, config)
         else:
             model = construct_global_energybalance(model, config)
 
-        model = construct_emission_balance(model, config)
-        model = construct_system_cost(model, config)
+        model = construct_emission_balance(model, data)
+        model = construct_system_cost(model, data)
         model = construct_global_balance(model)
 
         log_event(
@@ -313,7 +331,7 @@ class EnergyHub:
             self.solution.solver.status == pyo.SolverStatus.warning
         ):
 
-            model = self.model["full"]
+            model = self.model[self.current_aggregation_type]
 
             # Fixme: change this for averaging
 
@@ -353,7 +371,7 @@ class EnergyHub:
         Defines solver and its settings depending on objective and solver
         """
         config = self.data.model_config
-        model = self.model["full"]
+        model = self.model[self.current_aggregation_type]
 
         objective = config["optimization"]["objective"]["value"]
 
@@ -407,7 +425,7 @@ class EnergyHub:
         """
         Minimizes Costs
         """
-        model = self.model["full"]
+        model = self.model[self.current_aggregation_type]
 
         self._delete_objective()
 
@@ -422,7 +440,7 @@ class EnergyHub:
         """
         Minimize net emissions
         """
-        model = self.model["full"]
+        model = self.model[self.current_aggregation_type]
 
         self._delete_objective()
 
@@ -439,7 +457,7 @@ class EnergyHub:
         """
         Minimize costs at emission limit
         """
-        model = self.model["full"]
+        model = self.model[self.current_aggregation_type]
 
         config = self.data.model_config
 
@@ -460,7 +478,7 @@ class EnergyHub:
         """
         Minimize costs at minimum emissions
         """
-        model = self.model["full"]
+        model = self.model[self.current_aggregation_type]
 
         config = self.data.model_config
 
@@ -485,7 +503,7 @@ class EnergyHub:
         config = self.data.model_config
 
         f_global = config["scaling_factors"]["value"]
-        model_full = self.model["full"]
+        model_full = self.model[self.current_aggregation_type]
 
         model_full.scaling_factor = pyo.Suffix(direction=pyo.Suffix.EXPORT)
 
@@ -609,7 +627,7 @@ class EnergyHub:
             self.scale_model()
             model = self.model["scaled"]
         else:
-            model = self.model["full"]
+            model = self.model[self.current_aggregation_type]
 
         # Call solver
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
@@ -633,7 +651,7 @@ class EnergyHub:
 
         if config["scaling"]["scaling_on"]["value"] == 1:
             pyo.TransformationFactory("core.scale_model").propagate_solution(
-                model, self.model["full"]
+                model, self.model[self.current_aggregation_type]
             )
 
         if config["reporting"]["write_solution_diagnostics"]["value"] >= 1:
@@ -681,7 +699,7 @@ class EnergyHub:
         """
         Optimize the pareto front
         """
-        model = self.model["full"]
+        model = self.model[self.current_aggregation_type]
         config = self.data.model_config
         pareto_points = config["optimization"]["pareto_points"]["value"]
 
@@ -739,9 +757,13 @@ class EnergyHub:
                 in config["optimization"]["monte_carlo"]["on_what"]["value"]
             ):
                 for period in self.model["full"].periods:
-                    for node in self.model["full"].periods[period].node_blocks:
+                    for node in (
+                        self.model[self.current_aggregation_type]
+                        .periods[period]
+                        .node_blocks
+                    ):
                         for tec in (
-                            self.model["full"]
+                            self.model[self.current_aggregation_type]
                             .periods[period]
                             .node_blocks[node]
                             .tech_blocks_active
@@ -1090,7 +1112,7 @@ class EnergyHub:
         Delete the objective function
         """
         config = self.data.model_config
-        model = self.model["full"]
+        model = self.model[self.current_aggregation_type]
 
         if not config["optimization"]["monte_carlo"]["N"]["value"]:
             try:
@@ -1125,7 +1147,7 @@ class EnergyHub:
         :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
         """
 
-        m_full = self.model["full"]
+        m_full = self.model[self.current_aggregation_type]
         m_avg = self.model["avg_first_stage"]
 
         # Technologies

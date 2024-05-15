@@ -228,9 +228,20 @@ class Network(ModelComponent):
         # LOG
         log_event(f"\t - Constructing Network {self.name}")
 
-        # Data from energyhub
+        # NETWORK DATA
+        config = data["config"]
+
+        # MODELING TYPICAL DAYS
+        self.options.modelled_with_full_res = True
+        self.options.lower_res_than_full = False
+        if config["optimization"]["typicaldays"]["method"]["value"] == 1:
+            self.set_t = set_t_clustered
+        elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
+            self.set_t = set_t_full
+        else:
+            self.set_t = set_t_full
+
         self.set_nodes = set_nodes
-        self.set_t = set_t_full
 
         b_netw = self._define_possible_arcs(b_netw)
 
@@ -1086,6 +1097,7 @@ class Network(ModelComponent):
         :param model_block: pyomo network block
         :param h5_group: h5 group to write to
         """
+        c_ti = self.coeff.time_independent
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
@@ -1109,10 +1121,9 @@ class Network(ModelComponent):
                 "total_flow", data=sum(arc.var_flow[t].value for t in self.set_t)
             )
             total_emissions = (
-                sum(arc.var_flow[t].value for t in self.set_t)
-                * model_block.para_emissionfactor
+                sum(arc.var_flow[t].value for t in self.set_t) * c_ti["emissionfactor"]
                 + sum(arc.var_losses[t].value for t in self.set_t)
-                * model_block.para_loss2emissions
+                * c_ti["loss2emissions"]
             )
             arc_group.create_dataset("total_emissions", data=total_emissions)
 

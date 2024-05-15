@@ -109,7 +109,7 @@ class HydroOpen(Technology):
 
         # Natural inflow
         if self.name + "_inflow" in climate_data:
-            self.coeff.time_dependent["hydro_inflow"] = climate_data[
+            self.coeff.time_dependent_full["hydro_inflow"] = climate_data[
                 self.name + "_inflow"
             ]
         else:
@@ -122,9 +122,9 @@ class HydroOpen(Technology):
         # Maximum discharge
         if self.parameters.unfitted_data["maximum_discharge_time_discrete"]:
             if self.name + "_maximum_discharge" in climate_data:
-                self.coeff.time_dependent["hydro_maximum_discharge"] = climate_data[
-                    self.name + "_maximum_discharge"
-                ]
+                self.coeff.time_dependent_full["hydro_maximum_discharge"] = (
+                    climate_data[self.name + "_maximum_discharge"]
+                )
             else:
                 raise Exception(
                     "Using Technology Type Hydro_Open with maximum_discharge_time_discrete == 1 requires "
@@ -160,7 +160,7 @@ class HydroOpen(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        c_td = self.coeff.time_dependent
+        c_td = self.coeff.time_dependent_used
         c_ti = self.coeff.time_independent
         dynamics = self.coeff.dynamics
         allow_only_one_direction = self.options.other["allow_only_one_direction"]

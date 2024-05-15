@@ -1,5 +1,7 @@
 import pyomo.environ as pyo
 
+from src.utilities import get_set_t, get_hour_factors
+
 
 def delete_all_balances(model):
     """
@@ -32,7 +34,7 @@ def delete_all_balances(model):
     return model
 
 
-def construct_network_constraints(model):
+def construct_network_constraints(model, config):
     """Construct the network constraints to calculate nodal in- and outflow and energy balance
 
     :param model: pyomo model
@@ -43,7 +45,8 @@ def construct_network_constraints(model):
         """Pyomo rule to generate network constraint block"""
 
         b_period = model.periods[period]
-        set_t_full = model.periods[period].set_t_full
+
+        set_t = get_set_t(config, b_period)
 
         def init_netw_inflow(const, node, car, t):
             if car in b_period.node_blocks[node].set_carriers:
@@ -56,7 +59,7 @@ def construct_network_constraints(model):
                 return pyo.Constraint.Skip
 
         b_netw_const.const_netw_inflow = pyo.Constraint(
-            model.set_nodes, model.set_carriers, set_t_full, rule=init_netw_inflow
+            model.set_nodes, model.set_carriers, set_t, rule=init_netw_inflow
         )
 
         def init_netw_outflow(const, node, car, t):
@@ -71,7 +74,7 @@ def construct_network_constraints(model):
                 return pyo.Constraint.Skip
 
         b_netw_const.const_netw_outflow = pyo.Constraint(
-            model.set_nodes, model.set_carriers, set_t_full, rule=init_netw_outflow
+            model.set_nodes, model.set_carriers, set_t, rule=init_netw_outflow
         )
 
         def init_netw_consumption(const, node, car, t):
@@ -89,7 +92,7 @@ def construct_network_constraints(model):
                 return pyo.Constraint.Skip
 
         b_netw_const.const_netw_consumption = pyo.Constraint(
-            model.set_nodes, model.set_carriers, set_t_full, rule=init_netw_consumption
+            model.set_nodes, model.set_carriers, set_t, rule=init_netw_consumption
         )
 
     model.block_network_constraints = pyo.Block(
@@ -115,12 +118,13 @@ def construct_nodal_energybalance(model, config: dict):
 
     def init_energybalance(b_ebalance, period):
         b_period = model.periods[period]
-        set_t_full = model.periods[period].set_t_full
+
+        set_t = get_set_t(config, b_period)
 
         # Violation variables and costs
         if config["energybalance"]["violation"]["value"] > 0:
             b_period.var_violation = pyo.Var(
-                set_t_full,
+                set_t,
                 model.set_carriers,
                 model.set_nodes,
                 domain=pyo.NonNegativeReals,
@@ -175,7 +179,7 @@ def construct_nodal_energybalance(model, config: dict):
                 return pyo.Constraint.Skip
 
         b_ebalance.const_energybalance = pyo.Constraint(
-            set_t_full, model.set_carriers, model.set_nodes, rule=init_energybalance
+            set_t, model.set_carriers, model.set_nodes, rule=init_energybalance
         )
 
         return b_ebalance
@@ -201,12 +205,13 @@ def construct_global_energybalance(model, config):
 
     def init_energybalance(b_ebalance, period):
         b_period = model.periods[period]
-        set_t_full = model.periods[period].set_t_full
+
+        set_t = get_set_t(config, b_period)
 
         # Violation variables and costs
         if config["energybalance"]["violation"]["value"] >= 0:
             b_period.var_violation = pyo.Var(
-                set_t_full,
+                set_t,
                 model.set_carriers,
                 model.set_nodes,
                 domain=pyo.NonNegativeReals,
@@ -292,7 +297,7 @@ def construct_global_energybalance(model, config):
         )
 
         b_ebalance.const_energybalance = pyo.Constraint(
-            set_t_full, model.set_used_carriers, rule=init_energybalance_global
+            set_t, model.set_used_carriers, rule=init_energybalance_global
         )
 
         return b_ebalance
@@ -302,19 +307,20 @@ def construct_global_energybalance(model, config):
     return model
 
 
-def construct_emission_balance(model, config):
+def construct_emission_balance(model, data):
     """
     Calculates the total and the net CO_2 balance.
 
     :param model: pyomo model
-    :param dict config: config dict containing scaling factors
+    :param data: DataHandle
     :return: pyomo model
     """
+    config = data.model_config
 
     def init_emissionbalance(b_emissionbalance, period):
         b_period = model.periods[period]
-        set_t = model.periods[period].set_t_clustered
-        # FIXME: Fix with averaging algorithm
+        set_t = get_set_t(config, b_period)
+        hour_factors = get_hour_factors(config, data)
         nr_timesteps_averaged = 1
 
         # calculate total emissions from technologies, networks and importing/exporting carriers
@@ -326,6 +332,7 @@ def construct_emission_balance(model, config):
                         .tech_blocks_active[tec]
                         .var_tec_emissions_pos[t]
                         * nr_timesteps_averaged
+                        * hour_factors[t - 1]
                         for t in set_t
                     )
                     for tec in b_period.node_blocks[node].set_technologies
@@ -336,6 +343,7 @@ def construct_emission_balance(model, config):
                 sum(
                     b_period.node_blocks[node].var_car_emissions_pos[t]
                     * nr_timesteps_averaged
+                    * hour_factors[t - 1]
                     for t in set_t
                 )
                 for node in model.set_nodes
@@ -346,6 +354,7 @@ def construct_emission_balance(model, config):
                         sum(
                             b_period.network_block[netw].var_netw_emissions_pos[t, node]
                             * nr_timesteps_averaged
+                            * hour_factors[t - 1]
                             for t in set_t
                         )
                         for node in model.set_nodes
@@ -369,6 +378,7 @@ def construct_emission_balance(model, config):
                         .tech_blocks_active[tec]
                         .var_tec_emissions_neg[t]
                         * nr_timesteps_averaged
+                        * hour_factors[t - 1]
                         for t in set_t
                     )
                     for tec in b_period.node_blocks[node].set_technologies
@@ -379,6 +389,7 @@ def construct_emission_balance(model, config):
                 sum(
                     b_period.node_blocks[node].var_car_emissions_neg[t]
                     * nr_timesteps_averaged
+                    * hour_factors[t - 1]
                     for t in set_t
                 )
                 for node in model.set_nodes
@@ -401,7 +412,7 @@ def construct_emission_balance(model, config):
     return model
 
 
-def construct_system_cost(model, config):
+def construct_system_cost(model, data):
     """
     Calculates total system costs in three steps.
 
@@ -413,11 +424,12 @@ def construct_system_cost(model, config):
     :param dict config: config dict containing scaling factors
     :return: pyomo model
     """
+    config = data.model_config
+    hour_factors = get_hour_factors(config, data)
 
     def init_period_cost(b_period_cost, period):
         b_period = model.periods[period]
-        set_t = model.periods[period].set_t_full
-        # FIXME: Fix with averaging algorithm
+        set_t = get_set_t(config, b_period)
         nr_timesteps_averaged = 1
 
         # Capex Tecs
@@ -453,6 +465,7 @@ def construct_system_cost(model, config):
                         .tech_blocks_active[tec]
                         .var_opex_variable_tot[t]
                         * nr_timesteps_averaged
+                        * hour_factors[t - 1]
                         for tec in b_period.node_blocks[node].set_technologies
                     )
                     for t in set_t
@@ -481,6 +494,7 @@ def construct_system_cost(model, config):
                     sum(
                         b_period.network_block[netw].var_opex_variable[t]
                         * nr_timesteps_averaged
+                        * hour_factors[t - 1]
                         for netw in b_period.set_networks
                     )
                     for t in set_t
@@ -523,6 +537,7 @@ def construct_system_cost(model, config):
                         b_period.node_blocks[node].var_import_flow[t, car]
                         * b_period.node_blocks[node].para_import_price[t, car]
                         * nr_timesteps_averaged
+                        * hour_factors[t - 1]
                         for car in b_period.node_blocks[node].set_carriers
                     )
                     for t in set_t
@@ -540,6 +555,7 @@ def construct_system_cost(model, config):
                         b_period.node_blocks[node].var_export_flow[t, car]
                         * b_period.node_blocks[node].para_export_price[t, car]
                         * nr_timesteps_averaged
+                        * hour_factors[t - 1]
                         for car in b_period.node_blocks[node].set_carriers
                     )
                     for t in set_t
@@ -556,7 +572,11 @@ def construct_system_cost(model, config):
                     b_period.var_cost_violation
                     == sum(
                         sum(
-                            sum(b_period.var_violation[t, car, node] for t in set_t)
+                            sum(
+                                b_period.var_violation[t, car, node]
+                                * hour_factors[t - 1]
+                                for t in set_t
+                            )
                             for car in model.set_carriers
                         )
                         for node in model.set_nodes
@@ -577,6 +597,7 @@ def construct_system_cost(model, config):
                         .tech_blocks_active[tec]
                         .var_tec_emissions_neg[t]
                         * nr_timesteps_averaged
+                        * hour_factors[t - 1]
                         * b_period.node_blocks[node].para_carbon_subsidy[t]
                         for t in set_t
                     )
@@ -596,6 +617,7 @@ def construct_system_cost(model, config):
                         .tech_blocks_active[tec]
                         .var_tec_emissions_pos[t]
                         * nr_timesteps_averaged
+                        * hour_factors[t - 1]
                         * b_period.node_blocks[node].para_carbon_tax[t]
                         for t in set_t
                     )
@@ -608,6 +630,7 @@ def construct_system_cost(model, config):
                     b_period.node_blocks[node].var_car_emissions_pos[t]
                     * nr_timesteps_averaged
                     * b_period.node_blocks[node].para_carbon_tax[t]
+                    * hour_factors[t - 1]
                     for t in set_t
                 )
                 for node in model.set_nodes
@@ -618,6 +641,7 @@ def construct_system_cost(model, config):
                         sum(
                             b_period.network_block[netw].var_netw_emissions_pos[t, node]
                             * nr_timesteps_averaged
+                            * hour_factors[t - 1]
                             * b_period.node_blocks[node].para_carbon_tax[t]
                             for t in set_t
                         )

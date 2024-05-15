@@ -312,7 +312,7 @@ class Technology(ModelComponent):
                 co2_concentration, self.ccs_data, climate_data
             )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Construct the technology model with all required parameters, variable, sets,...
 
@@ -328,21 +328,38 @@ class Technology(ModelComponent):
         # TECHNOLOGY DATA
         config = data["config"]
 
+        self.set_t_full = set_t_full
+        self.set_t_clustered = set_t_clustered
+
         # MODELING TYPICAL DAYS
-        self.set_t_full = set_t
-        if config["optimization"]["typicaldays"]["N"]["value"] != 0:
-            if config["optimization"]["typicaldays"]["method"]["value"] == 2:
-                technologies_modelled_with_full_res = ["RES", "STOR", "Hydro_Open"]
-                if self.info.technology_model in technologies_modelled_with_full_res:
-                    self.options.modelled_with_full_res = 1
-                else:
-                    self.options.modelled_with_full_res = 0
+        technologies_modelled_with_full_res = ["RES", "STOR", "Hydro_Open"]
+        if (config["optimization"]["typicaldays"]["N"]["value"] != 0) and (
+            config["optimization"]["typicaldays"]["method"]["value"] == 2
+        ):
+            if self.info.technology_model in technologies_modelled_with_full_res:
+                self.options.modelled_with_full_res = True
+                self.options.lower_res_than_full = False
             else:
-                raise KeyError(
-                    "The clustering method specified in the configuration file does not exist."
-                )
+                self.options.modelled_with_full_res = False
+                self.options.lower_res_than_full = True
+
+        # Clustered data
+        if self.options.modelled_with_full_res:
+            self.coeff.time_dependent_used = self.coeff.time_dependent_full
         else:
-            self.options.modelled_with_full_res = 1
+            self.coeff.time_dependent_used = self.coeff.time_dependent_clustered
+
+        if self.options.lower_res_than_full:
+            self.sequence = data["k_means_specs"]["sequence"]
+            self.set_t = set_t_clustered
+        else:
+            if config["optimization"]["typicaldays"]["N"]["value"] == 0:
+                self.set_t = set_t_full
+            elif config["optimization"]["typicaldays"]["method"]["value"] == 1:
+                self.set_t = set_t_clustered
+            elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
+                self.set_t = set_t_full
+            self.sequence = list(self.set_t)
 
         # GENERAL TECHNOLOGY CONSTRAINTS
         b_tec = self._define_input_carriers(b_tec)
@@ -366,19 +383,17 @@ class Technology(ModelComponent):
             b_tec = self._define_emissions(b_tec)
 
         # CLUSTERED DATA
-        if (
-            config["optimization"]["typicaldays"]["N"]["value"] != 0
-            and not self.options.modelled_with_full_res
-        ):
+        if self.options.lower_res_than_full:
+            # Define input/output for reduced resolution
             b_tec = self._define_auxiliary_vars(b_tec, data)
+            if b_tec.find_component("var_input"):
+                self.input = b_tec.var_input_aux
+            self.output = b_tec.var_output_aux
         else:
-            if not (self.info.technology_model == "RES") and not (
-                self.info.technology_model == "CONV4"
-            ):
+            # Define input/output for full resolution
+            if b_tec.find_component("var_input"):
                 self.input = b_tec.var_input
             self.output = b_tec.var_output
-            self.set_t = set_t
-            self.sequence = list(self.set_t)
 
         # DYNAMICS
         if config["performance"]["dynamics"]["value"]:
@@ -651,35 +666,16 @@ class Technology(ModelComponent):
         """
         # Technology related data
         c = self.coeff.time_independent
-        config = data["config"]
-
-        # set_t and sequence
-        set_t = self.set_t_full
-        if (
-            config["optimization"]["typicaldays"]["N"]["value"] != 0
-            and not self.options.modelled_with_full_res
-        ):
-            sequence = data.k_means_specs.full_resolution["sequence"]
 
         def init_input_bounds(bounds, t, car):
-            if (
-                config["optimization"]["typicaldays"]["N"]["value"] != 0
-                and not self.options.modelled_with_full_res
-            ):
-                return tuple(
-                    self.bounds["input"][car][sequence[t - 1] - 1, :]
-                    * c["size_max"]
-                    * c["rated_power"]
-                )
-            else:
-                return tuple(
-                    self.bounds["input"][car][t - 1, :]
-                    * c["size_max"]
-                    * c["rated_power"]
-                )
+            return tuple(
+                self.bounds["input"][car][self.sequence[t - 1] - 1, :]
+                * c["size_max"]
+                * c["rated_power"]
+            )
 
         b_tec.var_input = pyo.Var(
-            set_t,
+            self.set_t,
             b_tec.set_input_carriers,
             within=pyo.NonNegativeReals,
             bounds=init_input_bounds,
@@ -697,35 +693,16 @@ class Technology(ModelComponent):
         """
         # Technology related data
         c = self.coeff.time_independent
-        config = data["config"]
-
-        # set_t
-        set_t = self.set_t_full
-        if (
-            config["optimization"]["typicaldays"]["N"]["value"] != 0
-            and not self.options.modelled_with_full_res
-        ):
-            sequence = data.k_means_specs.full_resolution["sequence"]
 
         def init_output_bounds(bounds, t, car):
-            if (
-                config["optimization"]["typicaldays"]["N"]["value"] != 0
-                and not self.options.modelled_with_full_res
-            ):
-                return tuple(
-                    self.bounds["output"][car][sequence[t - 1] - 1, :]
-                    * c["size_max"]
-                    * c["rated_power"]
-                )
-            else:
-                return tuple(
-                    self.bounds["output"][car][t - 1, :]
-                    * c["size_max"]
-                    * c["rated_power"]
-                )
+            return tuple(
+                self.bounds["output"][car][self.sequence[t - 1] - 1, :]
+                * c["size_max"]
+                * c["rated_power"]
+            )
 
         b_tec.var_output = pyo.Var(
-            set_t,
+            self.set_t,
             b_tec.set_output_carriers,
             within=pyo.NonNegativeReals,
             bounds=init_output_bounds,
@@ -740,13 +717,12 @@ class Technology(ModelComponent):
         :return: pyomo block with technology model
         """
         economics = self.economics
-        set_t = self.set_t_full
 
         # VARIABLE OPEX
         b_tec.para_opex_variable = pyo.Param(
             domain=pyo.Reals, initialize=economics.opex_variable, mutable=True
         )
-        b_tec.var_opex_variable = pyo.Var(set_t)
+        b_tec.var_opex_variable = pyo.Var(self.set_t)
 
         def init_opex_variable(const, t):
             """opexvar_{t} = Input_{t, maincarrier} * opex_{var}"""
@@ -767,7 +743,7 @@ class Technology(ModelComponent):
                 == b_tec.var_opex_variable[t]
             )
 
-        b_tec.const_opex_variable = pyo.Constraint(set_t, rule=init_opex_variable)
+        b_tec.const_opex_variable = pyo.Constraint(self.set_t, rule=init_opex_variable)
 
         # FIXED OPEX
         b_tec.para_opex_fixed = pyo.Param(
@@ -786,8 +762,6 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-
-        set_t = self.set_t_full
         c = self.coeff.time_independent
         technology_model = self.info.technology_model
         emissions_based_on = self.options.emissions_based_on
@@ -795,8 +769,8 @@ class Technology(ModelComponent):
         b_tec.para_tec_emissionfactor = pyo.Param(
             domain=pyo.Reals, initialize=c["emission_factor"]
         )
-        b_tec.var_tec_emissions_pos = pyo.Var(set_t, within=pyo.NonNegativeReals)
-        b_tec.var_tec_emissions_neg = pyo.Var(set_t, within=pyo.NonNegativeReals)
+        b_tec.var_tec_emissions_pos = pyo.Var(self.set_t, within=pyo.NonNegativeReals)
+        b_tec.var_tec_emissions_neg = pyo.Var(self.set_t, within=pyo.NonNegativeReals)
 
         if technology_model == "RES":
             # Set emissions to zero
@@ -804,14 +778,14 @@ class Technology(ModelComponent):
                 return b_tec.var_tec_emissions_pos[t] == 0
 
             b_tec.const_tec_emissions_pos = pyo.Constraint(
-                set_t, rule=init_tec_emissions_pos
+                self.set_t, rule=init_tec_emissions_pos
             )
 
             def init_tec_emissions_neg(const, t):
                 return b_tec.var_tec_emissions_neg[t] == 0
 
             b_tec.const_tec_emissions_neg = pyo.Constraint(
-                set_t, rule=init_tec_emissions_neg
+                self.set_t, rule=init_tec_emissions_neg
             )
 
         else:
@@ -830,7 +804,7 @@ class Technology(ModelComponent):
                         return b_tec.var_tec_emissions_pos[t] == 0
 
                 b_tec.const_tec_emissions_pos = pyo.Constraint(
-                    set_t, rule=init_tec_emissions_pos
+                    self.set_t, rule=init_tec_emissions_pos
                 )
 
                 def init_tec_emissions_neg(const, t):
@@ -844,7 +818,7 @@ class Technology(ModelComponent):
                         return b_tec.var_tec_emissions_neg[t] == 0
 
                 b_tec.const_tec_emissions_neg = pyo.Constraint(
-                    set_t, rule=init_tec_emissions_neg
+                    self.set_t, rule=init_tec_emissions_neg
                 )
 
             elif emissions_based_on == "input":
@@ -860,7 +834,7 @@ class Technology(ModelComponent):
                         return b_tec.var_tec_emissions_pos[t] == 0
 
                 b_tec.const_tec_emissions_pos = pyo.Constraint(
-                    set_t, rule=init_tec_emissions_pos
+                    self.set_t, rule=init_tec_emissions_pos
                 )
 
                 def init_tec_emissions_neg(const, t):
@@ -875,7 +849,7 @@ class Technology(ModelComponent):
                         return b_tec.var_tec_emissions_neg[t] == 0
 
                 b_tec.const_tec_emissions_neg = pyo.Constraint(
-                    set_t, rule=init_tec_emissions_neg
+                    self.set_t, rule=init_tec_emissions_neg
                 )
 
         return b_tec
@@ -889,12 +863,6 @@ class Technology(ModelComponent):
         :return: pyomo block with technology model
         """
         c = self.coeff.time_independent
-        set_t_clustered = data.model.set_t_clustered
-        set_t_full = self.set_t_full
-        self.set_t = set_t_clustered
-        self.sequence = data.k_means_specs.full_resolution["sequence"]
-
-        sequence = data.k_means_specs.full_resolution["sequence"]
 
         if not (self.info.technology_model == "RES") and not (
             self.info.technology_model == "CONV4"
@@ -908,7 +876,7 @@ class Technology(ModelComponent):
                 )
 
             b_tec.var_input_aux = pyo.Var(
-                set_t_clustered,
+                self.set_t_clustered,
                 b_tec.set_input_carriers,
                 within=pyo.NonNegativeReals,
                 bounds=init_input_bounds,
@@ -917,11 +885,10 @@ class Technology(ModelComponent):
             b_tec.const_link_full_resolution_input = link_full_resolution_to_clustered(
                 b_tec.var_input_aux,
                 b_tec.var_input,
-                set_t_full,
-                sequence,
+                self.set_t_full,
+                self.sequence,
                 b_tec.set_input_carriers,
             )
-            self.input = b_tec.var_input_aux
 
         def init_output_bounds(bounds, t, car):
             return tuple(
@@ -929,7 +896,7 @@ class Technology(ModelComponent):
             )
 
         b_tec.var_output_aux = pyo.Var(
-            set_t_clustered,
+            self.set_t_clustered,
             b_tec.set_output_carriers,
             within=pyo.NonNegativeReals,
             bounds=init_output_bounds,
@@ -938,12 +905,10 @@ class Technology(ModelComponent):
         b_tec.const_link_full_resolution_output = link_full_resolution_to_clustered(
             b_tec.var_output_aux,
             b_tec.var_output,
-            set_t_full,
-            sequence,
+            self.set_t_full,
+            self.sequence,
             b_tec.set_output_carriers,
         )
-
-        self.output = b_tec.var_output_aux
 
         return b_tec
 
@@ -1023,12 +988,9 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-
-        set_t = self.set_t_full
-
         b_tec.var_capex_tot = pyo.Var()
         b_tec.var_opex_fixed_tot = pyo.Var()
-        b_tec.var_opex_variable_tot = pyo.Var(set_t)
+        b_tec.var_opex_variable_tot = pyo.Var(self.set_t)
 
         def init_aggregate_capex(const):
             """capex + capex_ccs = capex_tot"""
@@ -1051,7 +1013,7 @@ class Technology(ModelComponent):
             return b_tec.var_opex_variable_tot[t] == opex_var_tec + opex_var_ccs
 
         b_tec.const_opex_var_aggregation = pyo.Constraint(
-            set_t, rule=init_aggregate_opex_var
+            self.set_t, rule=init_aggregate_opex_var
         )
 
         def init_aggregate_opex_fixed(const):
@@ -1082,24 +1044,20 @@ class Technology(ModelComponent):
         h5_group.create_dataset("capex_tot", data=[model_block.var_capex_tot.value])
         h5_group.create_dataset(
             "opex_variable",
-            data=[sum(model_block.var_opex_variable[t].value for t in self.set_t_full)],
+            data=[sum(model_block.var_opex_variable[t].value for t in self.set_t)],
         )
         h5_group.create_dataset(
             "opex_fixed_tot", data=[model_block.var_opex_fixed_tot.value]
         )
         h5_group.create_dataset(
             "emissions_pos",
-            data=[
-                sum(model_block.var_tec_emissions_pos[t].value for t in self.set_t_full)
-            ],
+            data=[sum(model_block.var_tec_emissions_pos[t].value for t in self.set_t)],
         )
         h5_group.create_dataset(
             "emissions_neg",
-            data=[
-                sum(model_block.var_tec_emissions_neg[t].value for t in self.set_t_full)
-            ],
+            data=[sum(model_block.var_tec_emissions_neg[t].value for t in self.set_t)],
         )
-        if "ccs" in self.performance_data and self.performance_data["ccs"]["possible"]:
+        if self.options.ccs_possible:
             h5_group.create_dataset("size_ccs", data=[model_block.var_size_ccs.value])
             h5_group.create_dataset("capex_tec", data=[model_block.var_capex.value])
             h5_group.create_dataset("capex_ccs", data=[model_block.var_capex_ccs.value])
@@ -1118,31 +1076,27 @@ class Technology(ModelComponent):
             if model_block.find_component("var_input"):
                 h5_group.create_dataset(
                     f"{car}_input",
-                    data=[
-                        model_block.var_input_tot[t, car].value for t in self.set_t_full
-                    ],
+                    data=[model_block.var_input_tot[t, car].value for t in self.set_t],
                 )
         for car in model_block.set_output_carriers_all:
             h5_group.create_dataset(
                 f"{car}_output",
-                data=[
-                    model_block.var_output_tot[t, car].value for t in self.set_t_full
-                ],
+                data=[model_block.var_output_tot[t, car].value for t in self.set_t],
             )
         h5_group.create_dataset(
             "emissions_pos",
-            data=[model_block.var_tec_emissions_pos[t].value for t in self.set_t_full],
+            data=[model_block.var_tec_emissions_pos[t].value for t in self.set_t],
         )
         h5_group.create_dataset(
             "emissions_neg",
-            data=[model_block.var_tec_emissions_neg[t].value for t in self.set_t_full],
+            data=[model_block.var_tec_emissions_neg[t].value for t in self.set_t],
         )
         if model_block.find_component("var_x"):
             h5_group.create_dataset(
                 "var_x",
                 data=[
                     0 if x is None else x
-                    for x in [model_block.var_x[t].value for t in self.set_t_full]
+                    for x in [model_block.var_x[t].value for t in self.set_t]
                 ],
             )
         if model_block.find_component("var_y"):
@@ -1150,7 +1104,7 @@ class Technology(ModelComponent):
                 "var_y",
                 data=[
                     0 if x is None else x
-                    for x in [model_block.var_y[t].value for t in self.set_t_full]
+                    for x in [model_block.var_y[t].value for t in self.set_t]
                 ],
             )
         if model_block.find_component("var_z"):
@@ -1158,7 +1112,7 @@ class Technology(ModelComponent):
                 "var_z",
                 data=[
                     0 if x is None else x
-                    for x in [model_block.var_z[t].value for t in self.set_t_full]
+                    for x in [model_block.var_z[t].value for t in self.set_t]
                 ],
             )
 
@@ -1166,17 +1120,12 @@ class Technology(ModelComponent):
             for car in model_block.set_input_carriers_ccs:
                 h5_group.create_dataset(
                     f"{car}_var_input_ccs",
-                    data=[
-                        model_block.var_input_ccs[t, car].value for t in self.set_t_full
-                    ],
+                    data=[model_block.var_input_ccs[t, car].value for t in self.set_t],
                 )
             for car in model_block.set_output_carriers_ccs:
                 h5_group.create_dataset(
                     f"{car}_var_output_ccs",
-                    data=[
-                        model_block.var_output_ccs[t, car].value
-                        for t in self.set_t_full
-                    ],
+                    data=[model_block.var_output_ccs[t, car].value for t in self.set_t],
                 )
 
     def scale_model(self, b_tec, model, config):
@@ -1208,7 +1157,6 @@ class Technology(ModelComponent):
         """
         ccs_coeff = self.ccs_coeff
 
-        set_t = self.set_t_full
         emissions_based_on = self.options.emissions_based_on
         config = data["config"]
         capture_rate = ccs_coeff.parameters.unfitted_data["capture_rate"]
@@ -1222,8 +1170,8 @@ class Technology(ModelComponent):
         b_tec.para_tec_emissionfactor = pyo.Param(
             domain=pyo.Reals, initialize=self.coeff.time_independent["emission_factor"]
         )
-        b_tec.var_tec_emissions_pos = pyo.Var(set_t, within=pyo.NonNegativeReals)
-        b_tec.var_tec_emissions_neg = pyo.Var(set_t, within=pyo.NonNegativeReals)
+        b_tec.var_tec_emissions_pos = pyo.Var(self.set_t, within=pyo.NonNegativeReals)
+        b_tec.var_tec_emissions_neg = pyo.Var(self.set_t, within=pyo.NonNegativeReals)
 
         def init_input_bounds(bounds, t, car):
             if (
@@ -1240,7 +1188,7 @@ class Technology(ModelComponent):
                 return tuple(ccs_coeff.bounds["input"][car][t - 1, :] * size_max)
 
         b_tec.var_input_ccs = pyo.Var(
-            set_t,
+            self.set_t,
             b_tec.set_input_carriers_ccs,
             within=pyo.NonNegativeReals,
             bounds=init_input_bounds,
@@ -1261,7 +1209,7 @@ class Technology(ModelComponent):
                 return tuple(ccs_coeff.bounds["output"][car][t - 1, :] * size_max)
 
         b_tec.var_output_ccs = pyo.Var(
-            set_t,
+            self.set_t,
             b_tec.set_output_carriers_ccs,
             within=pyo.NonNegativeReals,
             bounds=init_output_bounds,
@@ -1284,7 +1232,9 @@ class Technology(ModelComponent):
                     * b_tec.var_input[t, self.info.main_input_carrier]
                 )
 
-        b_tec.const_input_output_ccs = pyo.Constraint(set_t, rule=init_input_output_ccs)
+        b_tec.const_input_output_ccs = pyo.Constraint(
+            self.set_t, rule=init_input_output_ccs
+        )
 
         # Electricity and heat demand CCS
         def init_input_ccs(const, t, car):
@@ -1296,7 +1246,7 @@ class Technology(ModelComponent):
             )
 
         b_tec.const_input_el = pyo.Constraint(
-            set_t, b_tec.set_input_carriers_ccs, rule=init_input_ccs
+            self.set_t, b_tec.set_input_carriers_ccs, rule=init_input_ccs
         )
 
         return b_tec
@@ -1308,8 +1258,6 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-
-        set_t = self.set_t_full
         emissions_based_on = self.options.emissions_based_on
 
         # Emissions
@@ -1324,14 +1272,14 @@ class Technology(ModelComponent):
                 )
 
             b_tec.const_tec_emissions_pos = pyo.Constraint(
-                set_t, rule=init_tec_emissions_pos
+                self.set_t, rule=init_tec_emissions_pos
             )
 
             def init_tec_emissions_neg(const, t):
                 return b_tec.var_tec_emissions_neg[t] == 0
 
             b_tec.const_tec_emissions_neg = pyo.Constraint(
-                set_t, rule=init_tec_emissions_neg
+                self.set_t, rule=init_tec_emissions_neg
             )
 
         elif emissions_based_on == "input":
@@ -1345,14 +1293,14 @@ class Technology(ModelComponent):
                 )
 
             b_tec.const_tec_emissions_pos = pyo.Constraint(
-                set_t, rule=init_tec_emissions_pos
+                self.set_t, rule=init_tec_emissions_pos
             )
 
             def init_tec_emissions_neg(const, t):
                 return b_tec.var_tec_emissions_neg[t] == 0
 
             b_tec.const_tec_emissions_neg = pyo.Constraint(
-                set_t, rule=init_tec_emissions_neg
+                self.set_t, rule=init_tec_emissions_neg
             )
 
         # Initialize the size of CCS as in _define_size (size given in mass flow of CO2 entering the CCS object)
@@ -1470,11 +1418,10 @@ class Technology(ModelComponent):
         )
 
         # VARIABLE OPEX
-        set_t = self.set_t_full
         b_tec.para_opex_variable_ccs = pyo.Param(
             domain=pyo.Reals, initialize=economics.opex_variable, mutable=True
         )
-        b_tec.var_opex_variable_ccs = pyo.Var(set_t)
+        b_tec.var_opex_variable_ccs = pyo.Var(self.set_t)
 
         def init_opex_variable_ccs(const, t):
             return (
@@ -1484,7 +1431,7 @@ class Technology(ModelComponent):
             )
 
         b_tec.const_opex_variable_ccs = pyo.Constraint(
-            set_t, rule=init_opex_variable_ccs
+            self.set_t, rule=init_opex_variable_ccs
         )
 
         return b_tec
@@ -1536,15 +1483,9 @@ class Technology(ModelComponent):
         dynamics = self.coeff.dynamics
 
         # New variables
-        b_tec.var_x = pyo.Var(
-            self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
-        )
-        b_tec.var_y = pyo.Var(
-            self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
-        )
-        b_tec.var_z = pyo.Var(
-            self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
-        )
+        b_tec.var_x = pyo.Var(self.set_t, domain=pyo.NonNegativeReals, bounds=(0, 1))
+        b_tec.var_y = pyo.Var(self.set_t, domain=pyo.NonNegativeReals, bounds=(0, 1))
+        b_tec.var_z = pyo.Var(self.set_t, domain=pyo.NonNegativeReals, bounds=(0, 1))
 
         # Check for default values
         para_names = ["SU_time", "SD_time"]
@@ -1583,35 +1524,35 @@ class Technology(ModelComponent):
                     == b_tec.var_y[t] - b_tec.var_z[t]
                 )
 
-        b_tec.const_SUSD_logic1 = pyo.Constraint(self.set_t_full, rule=init_SUSD_logic1)
+        b_tec.const_SUSD_logic1 = pyo.Constraint(self.set_t, rule=init_SUSD_logic1)
 
         def init_SUSD_logic2(const, t):
             if t >= min_uptime:
                 return b_tec.var_y[t - min_uptime + 1] <= b_tec.var_x[t]
             else:
                 return (
-                    b_tec.var_y[len(self.set_t_full) + (t - min_uptime + 1)]
+                    b_tec.var_y[len(self.set_t) + (t - min_uptime + 1)]
                     <= b_tec.var_x[t]
                 )
 
-        b_tec.const_SUSD_logic2 = pyo.Constraint(self.set_t_full, rule=init_SUSD_logic2)
+        b_tec.const_SUSD_logic2 = pyo.Constraint(self.set_t, rule=init_SUSD_logic2)
 
         def init_SUSD_logic3(const, t):
             if t >= min_downtime:
                 return b_tec.var_z[t - min_downtime + 1] <= 1 - b_tec.var_x[t]
             else:
                 return (
-                    b_tec.var_z[len(self.set_t_full) + (t - min_downtime + 1)]
+                    b_tec.var_z[len(self.set_t) + (t - min_downtime + 1)]
                     <= 1 - b_tec.var_x[t]
                 )
 
-        b_tec.const_SUSD_logic3 = pyo.Constraint(self.set_t_full, rule=init_SUSD_logic3)
+        b_tec.const_SUSD_logic3 = pyo.Constraint(self.set_t, rule=init_SUSD_logic3)
 
         # Constrain number of startups
         if not max_startups == -1:
 
             def init_max_startups(const):
-                return sum(b_tec.var_y[t] for t in self.set_t_full) <= max_startups
+                return sum(b_tec.var_y[t] for t in self.set_t) <= max_startups
 
             b_tec.const_max_startups = pyo.Constraint(rule=init_max_startups)
 
@@ -1674,15 +1615,13 @@ class Technology(ModelComponent):
 
                 dis.const_SU_load_limit = pyo.Constraint(rule=init_SU_load_limit)
 
-        b_tec.dis_SU_load = gdp.Disjunct(
-            self.set_t_full, s_indicators, rule=init_SU_load
-        )
+        b_tec.dis_SU_load = gdp.Disjunct(self.set_t, s_indicators, rule=init_SU_load)
 
         def bind_disjunctions_SU_load(dis, t):
             return [b_tec.dis_SU_load[t, i] for i in s_indicators]
 
         b_tec.disjunction_SU_load = gdp.Disjunction(
-            self.set_t_full, rule=bind_disjunctions_SU_load
+            self.set_t, rule=bind_disjunctions_SU_load
         )
 
         # SD load limit
@@ -1715,15 +1654,13 @@ class Technology(ModelComponent):
 
                 dis.const_SD_load_limit = pyo.Constraint(rule=init_SD_load_limit)
 
-        b_tec.dis_SD_load = gdp.Disjunct(
-            self.set_t_full, s_indicators, rule=init_SD_load
-        )
+        b_tec.dis_SD_load = gdp.Disjunct(self.set_t, s_indicators, rule=init_SD_load)
 
         def bind_disjunctions_SD_load(dis, t):
             return [b_tec.dis_SD_load[t, i] for i in s_indicators]
 
         b_tec.disjunction_SD_load = gdp.Disjunction(
-            self.set_t_full, rule=bind_disjunctions_SD_load
+            self.set_t, rule=bind_disjunctions_SD_load
         )
 
         return b_tec

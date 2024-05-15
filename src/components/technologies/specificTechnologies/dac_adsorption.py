@@ -166,12 +166,12 @@ class DacAdsorption(Technology):
             (np.zeros(shape=(time_steps)), total_in_max)
         )
         # Coefficients
-        self.coeff.time_dependent["alpha"] = alpha
-        self.coeff.time_dependent["beta"] = beta
-        self.coeff.time_dependent["b"] = b
-        self.coeff.time_dependent["gamma"] = gamma
-        self.coeff.time_dependent["delta"] = delta
-        self.coeff.time_dependent["a"] = a
+        self.coeff.time_dependent_full["alpha"] = alpha
+        self.coeff.time_dependent_full["beta"] = beta
+        self.coeff.time_dependent_full["b"] = b
+        self.coeff.time_dependent_full["gamma"] = gamma
+        self.coeff.time_dependent_full["delta"] = delta
+        self.coeff.time_dependent_full["a"] = a
 
         self.coeff.time_independent["eta_elth"] = self.parameters.unfitted_data[
             "performance"
@@ -207,7 +207,7 @@ class DacAdsorption(Technology):
         ohmic_heating = self.options.other["ohmic_heating"]
 
         bounds = self.bounds
-        c_td = self.coeff.time_dependent
+        c_td = self.coeff.time_dependent_used
         c_ti = self.coeff.time_independent
 
         alpha = c_td["alpha"]

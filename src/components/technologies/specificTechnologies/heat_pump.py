@@ -177,9 +177,9 @@ class HeatPump(Technology):
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
         # Coefficients
-        self.coeff.time_dependent = fit["coeff"]
+        self.coeff.time_dependent_full = fit["coeff"]
 
-    def construct_tech_model(self, b_tec, data: dict, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type HP (Heat Pump)
 
@@ -187,7 +187,9 @@ class HeatPump(Technology):
         :param Energyhub energyhub: energyhub instance
         :return: technology block
         """
-        super(HeatPump, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
+        super(HeatPump, self).construct_tech_model(
+            b_tec, data, set_t_full, set_t_clustered
+        )
 
         # DATA OF TECHNOLOGY
         dynamics = self.coeff.dynamics
@@ -222,7 +224,7 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.coeff.time_dependent
+        c_td = self.coeff.time_dependent_used
         alpha1 = c_td["alpha1"]
 
         def init_input_output(const, t):
@@ -241,7 +243,7 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.coeff.time_dependent
+        c_td = self.coeff.time_dependent_used
         c_ti = self.coeff.time_independent
         alpha1 = c_td["alpha1"]
         alpha2 = c_td["alpha2"]
@@ -304,7 +306,7 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.coeff.time_dependent
+        c_td = self.coeff.time_dependent_used
         c_ti = self.coeff.time_independent
         alpha1 = c_td["alpha1"]
         alpha2 = c_td["alpha2"]
