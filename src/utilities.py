@@ -55,7 +55,7 @@ def get_set_t(config: dict, model_block):
         return model_block.set_t_full
 
 
-def get_hour_factors(config: dict, data) -> list:
+def get_hour_factors(config: dict, data, period: str) -> list:
     """
     Returns the correct hour factors to use for global balances
 
@@ -66,6 +66,6 @@ def get_hour_factors(config: dict, data) -> list:
     if config["optimization"]["typicaldays"]["N"]["value"] == 0:
         return [1] * len(data.topology["time_index"]["full"])
     elif config["optimization"]["typicaldays"]["method"]["value"] == 1:
-        return data.k_means_specs["factors"]
+        return data.k_means_specs[period]["factors"]
     elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
         return [1] * len(data.topology["time_index"]["full"])

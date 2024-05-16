@@ -130,6 +130,16 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
         for key in summary_dict:
             summary.create_dataset(key, data=summary_dict[key])
 
+        # TIME AGGREGATION INFORMATION [g]:
+        # K-means specs
+        k_means_specs = f.create_group("k_means_specs")
+        for investment_period in data.k_means_specs:
+            k_means_specs_period = k_means_specs.create_group(investment_period)
+            for key in data.k_means_specs[investment_period]:
+                k_means_specs_period.create_dataset(
+                    key, data=data.k_means_specs[investment_period][key]
+                )
+
         # Topology Information
         topology = f.create_group("topology")
         topology.create_dataset("nodes", data=list(model.set_nodes))

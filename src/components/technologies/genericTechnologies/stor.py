@@ -205,6 +205,10 @@ class Stor(Technology):
         c_ti = self.coeff.time_independent
         dynamics = self.coeff.dynamics
         allow_only_one_direction = self.options.other["allow_only_one_direction"]
+        if config["optimization"]["typicaldays"]["N"]["value"] != 0:
+            sequence_storage = data["k_means_specs"]["sequence"]
+        else:
+            sequence_storage = self.sequence
 
         # Todo: needs to be fixed with averaging algorithm
         nr_timesteps_averaged = 1
@@ -259,10 +263,10 @@ class Stor(Technology):
                     max(set_t_full) - 1
                 ] ** nr_timesteps_averaged + (
                     eta_in
-                    * self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                    * self.input[sequence_storage[t - 1], self.info.main_input_carrier]
                     - 1
                     / eta_out
-                    * self.output[self.sequence[t - 1], self.info.main_input_carrier]
+                    * self.output[sequence_storage[t - 1], self.info.main_input_carrier]
                 ) * sum(
                     (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                 )
@@ -275,10 +279,10 @@ class Stor(Technology):
                     t - 1
                 ] ** nr_timesteps_averaged + (
                     eta_in
-                    * self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                    * self.input[sequence_storage[t - 1], self.info.main_input_carrier]
                     - 1
                     / eta_out
-                    * self.output[self.sequence[t - 1], self.info.main_input_carrier]
+                    * self.output[sequence_storage[t - 1], self.info.main_input_carrier]
                 ) * sum(
                     (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                 )

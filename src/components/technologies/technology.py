@@ -328,6 +328,14 @@ class Technology(ModelComponent):
         # TECHNOLOGY DATA
         config = data["config"]
 
+        # SET T
+        """
+        - set_t_full is always the timesteps of the full resolution before any 
+        time-aggregation
+        - set_t_clustered is always the reduced resolution (which is equal to the 
+        full resolution if no time-aggregation is used
+        - set_t is the set of timesteps used for the performance
+        """
         self.set_t_full = set_t_full
         self.set_t_clustered = set_t_clustered
 

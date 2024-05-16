@@ -320,7 +320,7 @@ def construct_emission_balance(model, data):
     def init_emissionbalance(b_emissionbalance, period):
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
-        hour_factors = get_hour_factors(config, data)
+        hour_factors = get_hour_factors(config, data, period)
         nr_timesteps_averaged = 1
 
         # calculate total emissions from technologies, networks and importing/exporting carriers
@@ -425,11 +425,11 @@ def construct_system_cost(model, data):
     :return: pyomo model
     """
     config = data.model_config
-    hour_factors = get_hour_factors(config, data)
 
     def init_period_cost(b_period_cost, period):
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
+        hour_factors = get_hour_factors(config, data, period)
         nr_timesteps_averaged = 1
 
         # Capex Tecs

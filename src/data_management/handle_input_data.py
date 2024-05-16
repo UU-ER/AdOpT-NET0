@@ -464,11 +464,12 @@ class DataHandle:
 
         full_resolution = self.time_series["full"]
 
-        self.k_means_specs["sequence"] = []
-        self.k_means_specs["factors"] = []
-
         clustered_resolution = {}
         for investment_period in self.topology["investment_periods"]:
+            self.k_means_specs[investment_period] = {}
+            self.k_means_specs[investment_period]["sequence"] = []
+            self.k_means_specs[investment_period]["factors"] = []
+
             time_series = full_resolution.loc[:, investment_period]
             time_series = pd.concat(
                 {"time_series": time_series}, names=["type_series"], axis=1
@@ -518,15 +519,16 @@ class DataHandle:
             clustered_index = clustered_index.set_names(["Day", "Hour"])
             clustered_index = clustered_index.to_frame().reset_index(drop=True)
             clustered_index = clustered_index["Day"].reset_index()
+            clustered_index["index"] = clustered_index["index"] + 1
 
             # Determine Sequence
             for d in cluster_order:
-                self.k_means_specs["sequence"].extend(
+                self.k_means_specs[investment_period]["sequence"].extend(
                     (clustered_index[clustered_index["Day"] == d]["index"].to_list())
                 )
 
             # Determine Factors (how many times does a clustered hour occur)
-            self.k_means_specs["factors"] = (
+            self.k_means_specs[investment_period]["factors"] = (
                 clustered_index["Day"].map(cluster_no_occ).to_list()
             )
 
