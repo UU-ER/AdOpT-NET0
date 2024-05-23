@@ -80,27 +80,6 @@ class HydroOpen(Technology):
         """
         super(HydroOpen, self).fit_technology_performance(climate_data, location)
 
-        # Climate data & Number of timesteps
-        time_steps = len(climate_data)
-
-        # Output Bounds
-        for car in self.info.output_carrier:
-            self.bounds["output"][car] = np.column_stack(
-                (
-                    np.zeros(shape=(time_steps)),
-                    np.ones(shape=(time_steps))
-                    * self.parameters.unfitted_data["performance"]["discharge_max"],
-                )
-            )
-        # Input Bounds
-        for car in self.info.input_carrier:
-            self.bounds["input"][car] = np.column_stack(
-                (
-                    np.zeros(shape=(time_steps)),
-                    np.ones(shape=(time_steps))
-                    * self.parameters.unfitted_data["performance"]["charge_max"],
-                )
-            )
         # Coefficients
         for par in self.parameters.unfitted_data["performance"]:
             self.coeff.time_independent[par] = self.parameters.unfitted_data[
@@ -144,6 +123,34 @@ class HydroOpen(Technology):
         self.options.other["maximum_discharge_time_discrete"] = get_attribute_from_dict(
             self.parameters.unfitted_data, "maximum_discharge_time_discrete", 1
         )
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(HydroOpen, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
+
+        # Output Bounds
+        for car in self.info.output_carrier:
+            self.bounds["output"][car] = np.column_stack(
+                (
+                    np.zeros(shape=(time_steps)),
+                    np.ones(shape=(time_steps))
+                    * self.parameters.unfitted_data["performance"]["discharge_max"],
+                )
+            )
+
+        # Input Bounds
+        for car in self.info.input_carrier:
+            self.bounds["input"][car] = np.column_stack(
+                (
+                    np.zeros(shape=(time_steps)),
+                    np.ones(shape=(time_steps))
+                    * self.parameters.unfitted_data["performance"]["charge_max"],
+                )
+            )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """

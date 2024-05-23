@@ -130,30 +130,14 @@ class HeatPump(Technology):
                 bp_x[idx, :] = time_step_fit["out"]["bp_x"]
         print("Complete: ", 100, "%")
 
-        # Calculate input bounds
-        fit["output_bounds"] = {}
+        # Coefficients
         fit["coeff"] = {}
         if self.options.performance_function_type == 1:
             fit["coeff"]["alpha1"] = alpha1.round(5)
-            for c in self.info.output_carrier:
-                fit["output_bounds"][c] = np.column_stack(
-                    (
-                        np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps)) * fit["coeff"]["alpha1"][:, 0],
-                    )
-                )
 
         elif self.options.performance_function_type == 2:  # Linear performance function
             fit["coeff"]["alpha1"] = alpha1.round(5)
             fit["coeff"]["alpha2"] = alpha2.round(5)
-            for c in self.info.output_carrier:
-                fit["output_bounds"][c] = np.column_stack(
-                    (
-                        np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps)) * fit["coeff"]["alpha1"][:, 0]
-                        + fit["coeff"]["alpha2"][:, 0],
-                    )
-                )
 
         elif (
             self.options.performance_function_type == 3
@@ -161,23 +145,57 @@ class HeatPump(Technology):
             fit["coeff"]["alpha1"] = alpha1.round(5)
             fit["coeff"]["alpha2"] = alpha2.round(5)
             fit["coeff"]["bp_x"] = bp_x.round(5)
+
+        # Coefficients
+        self.coeff.time_dependent_full = fit["coeff"]
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(HeatPump, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
+
+        if self.options.performance_function_type == 1:
             for c in self.info.output_carrier:
-                fit["output_bounds"][c] = np.column_stack(
+                self.bounds["output"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        fit["coeff"]["alpha1"][:, -1] + fit["coeff"]["alpha2"][:, -1],
+                        np.ones(shape=(time_steps))
+                        * self.coeff.time_dependent_used["alpha1"][:, 0],
                     )
                 )
 
-        # Output Bounds
-        self.bounds["output"] = fit["output_bounds"]
+        elif self.options.performance_function_type == 2:  # Linear performance function
+            for c in self.info.output_carrier:
+                self.bounds["output"][c] = np.column_stack(
+                    (
+                        np.zeros(shape=(time_steps)),
+                        self.coeff.time_dependent_used["alpha1"][:, -1]
+                        + self.coeff.time_dependent_used["alpha2"][:, -1],
+                    )
+                )
+
+        elif (
+            self.options.performance_function_type == 3
+        ):  # Piecewise performance function
+            for c in self.info.output_carrier:
+                self.bounds["output"][c] = np.column_stack(
+                    (
+                        np.zeros(shape=(time_steps)),
+                        self.coeff.time_dependent_used["alpha1"][:, -1]
+                        + self.coeff.time_dependent_used["alpha2"][:, -1],
+                    )
+                )
+
         # Input Bounds
         for car in self.info.input_carrier:
             self.bounds["input"][car] = np.column_stack(
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
-        # Coefficients
-        self.coeff.time_dependent_full = fit["coeff"]
+
+        time_steps = len(self.set_t)
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """

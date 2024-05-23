@@ -312,6 +312,12 @@ class Technology(ModelComponent):
                 co2_concentration, self.ccs_data, climate_data
             )
 
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used. Overwritten in child classes
+        """
+        pass
+
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Construct the technology model with all required parameters, variable, sets,...
@@ -370,6 +376,9 @@ class Technology(ModelComponent):
             elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
                 self.set_t = set_t_full
             self.sequence = list(self.set_t)
+
+        # CALCULATE BOUNDS
+        self._calculate_bounds()
 
         # GENERAL TECHNOLOGY CONSTRAINTS
         b_tec = self._define_input_carriers(b_tec)

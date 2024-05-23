@@ -76,6 +76,21 @@ class Conv1(Technology):
         self.options.size_based_on = tec_data["size_based_on"]
         self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
+        # Initialize fitting class
+        if self.options.performance_function_type == 1:
+            self.f = FitGenericTecTypeType1(self.info)
+        elif self.options.performance_function_type == 2:
+            self.f = FitGenericTecTypeType2(self.info)
+        elif (
+            self.options.performance_function_type == 3
+            or self.options.performance_function_type == 4
+        ):
+            self.f = FitGenericTecTypeType34(self.info)
+        else:
+            raise Exception(
+                "performance_function_type must be an integer between 1 and 4"
+            )
+
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits conversion technology type 1 and returns fitted parameters as a dict
@@ -90,34 +105,23 @@ class Conv1(Technology):
         self.parameters.unfitted_data["performance"]["out"] = {}
         self.parameters.unfitted_data["performance"]["out"]["out"] = temp
 
-        # Nr time steps
-        time_steps = len(climate_data)
-
-        # Initialize fitting class
-        if self.options.performance_function_type == 1:
-            f = FitGenericTecTypeType1(self.info)
-        elif self.options.performance_function_type == 2:
-            f = FitGenericTecTypeType2(self.info)
-        elif (
-            self.options.performance_function_type == 3
-            or self.options.performance_function_type == 4
-        ):
-            f = FitGenericTecTypeType34(self.info)
-        else:
-            raise Exception(
-                "performance_function_type must be an integer between 1 and 4"
-            )
-
         # fit coefficients
-        self.coeff.time_independent["fit"] = f.fit_performance_function(
+        self.coeff.time_independent["fit"] = self.f.fit_performance_function(
             self.parameters.unfitted_data["performance"]
         )
 
-        # fit bounds
-        self.bounds["input"] = f.calculate_input_bounds(
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Conv1, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
+
+        self.bounds["input"] = self.f.calculate_input_bounds(
             self.options.size_based_on, time_steps
         )
-        self.bounds["output"] = f.calculate_output_bounds(
+        self.bounds["output"] = self.f.calculate_output_bounds(
             self.options.size_based_on, time_steps
         )
 

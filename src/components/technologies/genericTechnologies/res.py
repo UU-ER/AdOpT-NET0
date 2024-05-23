@@ -151,13 +151,6 @@ class Res(Technology):
         power = pv_model.results.ac.p_mp
         capacity_factor = power / peakpower
 
-        # Calculate output bounds
-        lower_output_bound = np.zeros(shape=(len(climate_data)))
-        upper_output_bound = capacity_factor.to_numpy()
-        output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
-
-        # Output Bounds
-        self.bounds["output"]["electricity"] = output_bounds
         # Coefficients
         self.coeff.time_dependent_full["capfactor"] = round(capacity_factor, 3)
         self.coeff.time_independent["specific_area"] = specific_area
@@ -220,17 +213,24 @@ class Res(Technology):
         ws[ws < 0] = 0
         capacity_factor = f(ws) / rated_power
 
-        # Calculate output bounds
-        lower_output_bound = np.zeros(shape=(len(climate_data)))
-        upper_output_bound = capacity_factor[0]
-        output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
-
-        # Output Bounds
-        self.bounds["output"]["electricity"] = output_bounds
         # Coefficients
         self.coeff.time_dependent_full["capfactor"] = capacity_factor[0].round(3)
         # Rated Power
         self.parameters.rated_power = rated_power / 1000
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Res, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
+
+        # Output bounds
+        lower_output_bound = np.zeros(shape=(time_steps))
+        upper_output_bound = self.coeff.time_dependent_used["capfactor"]
+        output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
+        self.bounds["output"]["electricity"] = output_bounds
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """

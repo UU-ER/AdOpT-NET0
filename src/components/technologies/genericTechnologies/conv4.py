@@ -65,27 +65,36 @@ class Conv4(Technology):
         """
         super(Conv4, self).fit_technology_performance(climate_data, location)
 
-        # Bounds
+        # Coefficients
+        phi = {}
+        for car in self.parameters.unfitted_data["output_ratios"]:
+            phi[car] = self.parameters.unfitted_data["output_ratios"][car]
+        self.coeff.time_independent["phi"] = phi
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Conv4, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
+
+        # Output Bounds
         self.bounds["output"][self.parameters.unfitted_data["main_output_carrier"]] = (
             np.column_stack(
                 (
-                    np.zeros(shape=(len(climate_data))),
-                    np.ones(shape=(len(climate_data))),
+                    np.zeros(shape=(time_steps)),
+                    np.ones(shape=(time_steps)),
                 )
             )
         )
+
         for car in self.info.output_carrier:
             if not car == self.info.main_output_carrier:
                 self.bounds["output"][car] = (
                     self.bounds["output"][self.info.main_output_carrier]
                     * self.parameters.unfitted_data["output_ratios"][car]
                 )
-
-        # Coefficients
-        phi = {}
-        for car in self.parameters.unfitted_data["output_ratios"]:
-            phi[car] = self.parameters.unfitted_data["output_ratios"][car]
-        self.coeff.time_independent["phi"] = phi
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """

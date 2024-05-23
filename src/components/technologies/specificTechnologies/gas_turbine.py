@@ -140,20 +140,36 @@ class GasTurbine(Technology):
         else:
             fit["ti"]["max_H2_admixture"] = 1
 
+        # Coefficients
+        for par in fit["td"]:
+            self.coeff.time_dependent_full[par] = fit["td"][par]
+        for par in fit["ti"]:
+            self.coeff.time_independent[par] = fit["ti"][par]
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(GasTurbine, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
+
+        bounds = {}
+
         # Input bounds
-        fit["input_bounds"] = {}
+        bounds["input_bounds"] = {}
         for c in self.info.input_carrier:
             if c == "hydrogen":
-                fit["input_bounds"][c] = np.column_stack(
+                bounds["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
                         * self.parameters.unfitted_data["in_max"]
-                        * fit["ti"]["max_H2_admixture"],
+                        * self.coeff.time_independent["max_H2_admixture"],
                     )
                 )
             else:
-                fit["input_bounds"][c] = np.column_stack(
+                bounds["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
@@ -162,41 +178,39 @@ class GasTurbine(Technology):
                 )
 
         # Output bounds
-        fit["output_bounds"] = {}
-        fit["output_bounds"]["electricity"] = np.column_stack(
+        bounds["output_bounds"] = {}
+        bounds["output_bounds"]["electricity"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                f
+                self.coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.parameters.unfitted_data["in_max"] * fit["ti"]["alpha"]
-                    + fit["ti"]["beta"]
+                    self.parameters.unfitted_data["in_max"]
+                    * self.coeff.time_independent["alpha"]
+                    + self.coeff.time_independent["beta"]
                 ),
             )
         )
-        fit["output_bounds"]["heat"] = np.column_stack(
+        bounds["output_bounds"]["heat"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                fit["ti"]["epsilon"] * fit["ti"]["in_max"]
-                - f
+                self.coeff.time_independent["epsilon"]
+                * self.coeff.time_independent["in_max"]
+                - self.coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.parameters.unfitted_data["in_max"] * fit["ti"]["alpha"]
-                    + fit["ti"]["beta"]
+                    self.parameters.unfitted_data["in_max"]
+                    * self.coeff.time_independent["alpha"]
+                    + self.coeff.time_independent["beta"]
                 ),
             )
         )
 
         # Output Bounds
-        self.bounds["output"] = fit["output_bounds"]
+        self.bounds["output"] = bounds["output_bounds"]
         # Input Bounds
         for car in self.info.input_carrier:
             self.bounds["input"][car] = np.column_stack(
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
-        # Coefficients
-        for par in fit["td"]:
-            self.coeff.time_dependent_full[par] = fit["td"][par]
-        for par in fit["ti"]:
-            self.coeff.time_independent[par] = fit["ti"][par]
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """

@@ -111,41 +111,6 @@ class Stor(Technology):
         """
         super(Stor, self).fit_technology_performance(climate_data, location)
 
-        time_steps = len(climate_data)
-
-        # Output Bounds
-        for car in self.info.output_carrier:
-            self.bounds["output"][car] = np.column_stack(
-                (
-                    np.zeros(shape=(time_steps)),
-                    np.ones(shape=(time_steps))
-                    * self.flexibility_data["discharge_rate"],
-                )
-            )
-        # Input Bounds
-        for car in self.info.input_carrier:
-            if car == self.info.main_input_carrier:
-                self.bounds["input"][car] = np.column_stack(
-                    (
-                        np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps))
-                        * self.flexibility_data["charge_rate"],
-                    )
-                )
-            else:
-                if "energy_consumption" in self.parameters.unfitted_data["performance"]:
-                    energy_consumption = self.parameters.unfitted_data["performance"][
-                        "energy_consumption"
-                    ]
-                    self.bounds["input"][car] = np.column_stack(
-                        (
-                            np.zeros(shape=(time_steps)),
-                            np.ones(shape=(time_steps))
-                            * self.flexibility_data["charge_rate"]
-                            * energy_consumption["in"][car],
-                        )
-                    )
-
         # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
         # to account for charging and discharging capacity costs.
         if self.flexibility_data["power_energy_ratio"] == "flex":
@@ -184,6 +149,47 @@ class Stor(Technology):
         self.options.other["allow_only_one_direction"] = get_attribute_from_dict(
             self.parameters.unfitted_data, "allow_only_one_direction", 0
         )
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Stor, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
+
+        # Output Bounds
+        for car in self.info.output_carrier:
+            self.bounds["output"][car] = np.column_stack(
+                (
+                    np.zeros(shape=(time_steps)),
+                    np.ones(shape=(time_steps))
+                    * self.flexibility_data["discharge_rate"],
+                )
+            )
+        # Input Bounds
+        for car in self.info.input_carrier:
+            if car == self.info.main_input_carrier:
+                self.bounds["input"][car] = np.column_stack(
+                    (
+                        np.zeros(shape=(time_steps)),
+                        np.ones(shape=(time_steps))
+                        * self.flexibility_data["charge_rate"],
+                    )
+                )
+            else:
+                if "energy_consumption" in self.parameters.unfitted_data["performance"]:
+                    energy_consumption = self.parameters.unfitted_data["performance"][
+                        "energy_consumption"
+                    ]
+                    self.bounds["input"][car] = np.column_stack(
+                        (
+                            np.zeros(shape=(time_steps)),
+                            np.ones(shape=(time_steps))
+                            * self.flexibility_data["charge_rate"]
+                            * energy_consumption["in"][car],
+                        )
+                    )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """

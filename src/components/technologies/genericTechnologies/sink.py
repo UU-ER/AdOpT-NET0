@@ -82,7 +82,26 @@ class Sink(Technology):
         """
         super(Sink, self).fit_technology_performance(climate_data, location)
 
-        time_steps = len(climate_data)
+        # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
+        # to account for charging and discharging capacity costs.
+        if self.flexibility_data["injection_capacity_is_decision_var"]:
+            self.economics.capex_model = 4
+
+        self.coeff.time_independent["injection_rate_max"] = self.flexibility_data[
+            "injection_rate_max"
+        ]
+        if "energy_consumption" in self.parameters.unfitted_data["performance"]:
+            self.coeff.time_independent["energy_consumption"] = (
+                self.parameters.unfitted_data["performance"]["energy_consumption"]
+            )
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Sink, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
 
         # Input Bounds
         for car in self.info.input_carrier:
@@ -107,19 +126,6 @@ class Sink(Technology):
                             * energy_consumption["in"][car],
                         )
                     )
-
-        # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
-        # to account for charging and discharging capacity costs.
-        if self.flexibility_data["injection_capacity_is_decision_var"]:
-            self.economics.capex_model = 4
-
-        self.coeff.time_independent["injection_rate_max"] = self.flexibility_data[
-            "injection_rate_max"
-        ]
-        if "energy_consumption" in self.parameters.unfitted_data["performance"]:
-            self.coeff.time_independent["energy_consumption"] = (
-                self.parameters.unfitted_data["performance"]["energy_consumption"]
-            )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """

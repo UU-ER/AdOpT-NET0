@@ -147,24 +147,6 @@ class DacAdsorption(Technology):
 
         print("Complete: ", 100, "%")
 
-        # Output Bounds
-        self.bounds["output"]["CO2captured"] = np.column_stack(
-            (np.zeros(shape=(time_steps)), out_max)
-        )
-        # Input Bounds
-        self.bounds["input"]["electricity"] = np.column_stack(
-            (
-                np.zeros(shape=(time_steps)),
-                el_in_max
-                + th_in_max / self.parameters.unfitted_data["performance"]["eta_elth"],
-            )
-        )
-        self.bounds["input"]["heat"] = np.column_stack(
-            (np.zeros(shape=(time_steps)), th_in_max)
-        )
-        self.bounds["input"]["total"] = np.column_stack(
-            (np.zeros(shape=(time_steps)), total_in_max)
-        )
         # Coefficients
         self.coeff.time_dependent_full["alpha"] = alpha
         self.coeff.time_dependent_full["beta"] = beta
@@ -172,6 +154,10 @@ class DacAdsorption(Technology):
         self.coeff.time_dependent_full["gamma"] = gamma
         self.coeff.time_dependent_full["delta"] = delta
         self.coeff.time_dependent_full["a"] = a
+        self.coeff.time_dependent_full["out_max"] = out_max
+        self.coeff.time_dependent_full["el_in_max"] = el_in_max
+        self.coeff.time_dependent_full["th_in_max"] = th_in_max
+        self.coeff.time_dependent_full["total_in_max"] = total_in_max
 
         self.coeff.time_independent["eta_elth"] = self.parameters.unfitted_data[
             "performance"
@@ -182,6 +168,38 @@ class DacAdsorption(Technology):
         self.options.other["ohmic_heating"] = self.parameters.unfitted_data[
             "ohmic_heating"
         ]
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(DacAdsorption, self)._calculate_bounds()
+
+        time_steps = len(self.set_t)
+
+        # Output Bounds
+        self.bounds["output"]["CO2captured"] = np.column_stack(
+            (np.zeros(shape=(time_steps)), self.coeff.time_dependent_full["out_max"])
+        )
+
+        # Input Bounds
+        self.bounds["input"]["electricity"] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                self.coeff.time_dependent_full["el_in_max"]
+                + self.coeff.time_dependent_full["th_in_max"]
+                / self.parameters.unfitted_data["performance"]["eta_elth"],
+            )
+        )
+        self.bounds["input"]["heat"] = np.column_stack(
+            (np.zeros(shape=(time_steps)), self.coeff.time_dependent_full["th_in_max"])
+        )
+        self.bounds["input"]["total"] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                self.coeff.time_dependent_full["total_in_max"],
+            )
+        )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
