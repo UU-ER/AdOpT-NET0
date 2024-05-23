@@ -66,17 +66,18 @@ def extract_dataset_from_h5(dataset: h5py.Dataset) -> list:
     return data
 
 
-def add_values_to_summary(summary_path: Path or str, value_set: list = None):
-    """Collects values of input parameters and variables from h5 files and adds them to the summary.
+def add_values_to_summary(summary_path: Path or str, component_set: list = None):
+    """Collects values of input cost parameters and relevant variables from h5 files and adds them to the summary.
 
-    Args:
-        summary_path (Path or str): Path to the summary Excel file.
-        value_set (list, optional): Set of values to extract. Defaults to ['tec_capex', 'tec_size'].
+    Args: summary_path (Path or str): Path to the summary Excel file.
+    component_set (list, optional): Set of the
+    components to extract the parameter and variables from. Defaults to ["Technologies", "Networks", "Import",
+    "Export"].
+
     """
-    if value_set is None:
-        value_set = {"tec_capex", "tec_size"}
-        # value_set = {'tec_capex', 'tec_size', 'netw_capex', 'netw_size', 'import_price', 'import_limit', 'total_import',
-        #              'export_price', 'export_limit', 'total_export'}
+
+    if component_set is None:
+        component_set = {"Technologies", "Networks", "Import", "Export"}
 
     # Ensure summary_path is a Path object
     if not isinstance(summary_path, Path):
@@ -96,37 +97,74 @@ def add_values_to_summary(summary_path: Path or str, value_set: list = None):
 
     # dicts to store data
     tec_output_dict = {}
+    netw_output_dict = {}
 
     # Extract data from h5 files
+
     for case in paths:
         path = Path(case)
         hdf_file_path = path / "optimization_results.h5"
         if hdf_file_path.exists():
             with h5py.File(hdf_file_path, "r") as hdf_file:
-                df = extract_datasets_from_h5group(hdf_file["design/nodes"]).sum()
-                for period in df.index.levels[0]:
-                    for node in df.index.levels[1]:
-                        for tec in df.index.levels[2]:
-                            parameters = [
-                                "size",
-                                "capex_tot",
-                                "para_unitCAPEX",
-                                "para_fixCAPEX",
-                            ]
-                            for para in parameters:
-                                output_name = f"{period}/{node}/{tec}/{para}"
+
+                if "Technologies" in component_set:
+                    df = extract_datasets_from_h5group(hdf_file["design/nodes"]).sum()
+                    for period in df.index.levels[0]:
+                        for node in df.index.levels[1]:
+                            for tec in df.index.levels[2]:
+                                parameters = [
+                                    "size",
+                                    "capex_tot",
+                                    "para_unitCAPEX",
+                                    "para_fixCAPEX",
+                                ]
+                                for para in parameters:
+                                    output_name = f"{period}/{node}/{tec}/{para}"
+                                    try:
+                                        tec_output = df.loc[period, node, tec, para]
+                                        if case not in tec_output_dict:
+                                            tec_output_dict[case] = {}
+                                        if output_name not in tec_output_dict[case]:
+                                            tec_output_dict[case][
+                                                output_name
+                                            ] = tec_output
+                                    except KeyError:
+                                        pass
+
+                if "Networks" in component_set:
+                    df = extract_datasets_from_h5group(
+                        hdf_file["design/networks"]
+                    ).sum()
+                    for period in df.index.levels[0]:
+                        for netw in df.index.levels[1]:
+                            parameters1 = ["size", "capex"]
+                            for para in parameters1:
+                                output_name = f"{period}/{netw}/{para}"
                                 try:
-                                    tec_output = df.loc[period, node, tec, para]
-                                    if case not in tec_output_dict:
-                                        tec_output_dict[case] = {}
-                                    if output_name not in tec_output_dict[case]:
-                                        tec_output_dict[case][output_name] = tec_output
+                                    netw_output = df.loc[period, netw, para]
+                                    if case not in netw_output_dict:
+                                        netw_output_dict[case] = {}
+                                    if output_name not in netw_output_dict[case]:
+                                        netw_output_dict[case][
+                                            output_name
+                                        ] = netw_output
                                 except KeyError:
                                     pass
+                            for arc in df.index.levels[2]:
+                                parameters2 = ["size", "capex"]
+                                for para in parameters2:
+                                    output_name = f"{period}/{netw}/{arc}/{para}"
+                                    try:
+                                        tec_output = df.loc[period, netw, arc, para]
+                                        if case not in tec_output_dict:
+                                            tec_output_dict[case] = {}
+                                        if output_name not in tec_output_dict[case]:
+                                            tec_output_dict[case][
+                                                output_name
+                                            ] = tec_output
+                                    except KeyError:
+                                        pass
 
-    if any(
-        value in value_set for value in ["import_price", "import_limit", "total_import"]
-    ):
         # TODO add import, export and networks similarly
         pass
         #     if hdf_file_path.exists():
@@ -140,6 +178,7 @@ def add_values_to_summary(summary_path: Path or str, value_set: list = None):
     summary_results_appended = pd.merge(
         summary_results, tec_output_df, right_index=True, left_index=True
     )
+    # TODO make sure string is not deleted
 
     # Save the updated summary_results to the Excel file
     summary_results_appended.to_excel(summary_path, index=False)

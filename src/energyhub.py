@@ -23,6 +23,7 @@ from pyomo.gdp import Disjunction, Disjunct
 
 from .data_management import DataHandle
 from .model_construction import *
+from .result_management.read_results import add_values_to_summary
 from .utilities import get_glpk_parameters, get_gurobi_parameters, log_event
 from .result_management import *
 from .components.utilities import (
@@ -514,6 +515,15 @@ class EnergyHub:
                 self._call_solver()
                 self.write_results()
 
+        summary_path = Path.joinpath(
+            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
+        )
+        if config["optimization"]["monte_carlo"]["type"]["value"] == 1:
+            component_set = config["optimization"]["monte_carlo"]["on_what"]["value"]
+        elif config["optimization"]["monte_carlo"]["type"]["value"] == 2:
+            component_set = self.data.monte_carlo_specs["type"]
+        add_values_to_summary(summary_path, component_set=component_set)
+
     def scale_model(self):
         """
         Creates a scaled model in self.scaled_model using the scale factors specified in the json files for technologies
@@ -744,7 +754,7 @@ class EnergyHub:
 
     def _monte_carlo_set_cost_parameters(self):
         """
-        Performs monte carlo analysis
+        Performs monte carlo analysis on cost parameters.
         """
         config = self.data.model_config
 
@@ -768,28 +778,23 @@ class EnergyHub:
                     for netw in model.periods[period].network_block:
                         self._monte_carlo_networks(period, netw)
 
-            if (
-                "ImportPrices"
-                in config["optimization"]["monte_carlo"]["on_what"]["value"]
-            ):
+            if "Import" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
                 for period in model.periods:
                     for node in model.periods[period].node_blocks:
                         for car in model.periods[period].node_blocks[node].set_carriers:
                             self._monte_carlo_import_prices(period, node, car)
 
-            if (
-                "ExportPrices"
-                in config["optimization"]["monte_carlo"]["on_what"]["value"]
-            ):
+            if "Export" in config["optimization"]["monte_carlo"]["on_what"]["value"]:
                 for period in model.periods:
                     for node in model.periods[period].node_blocks:
                         for car in model.periods[period].node_blocks[node].set_carriers:
                             self._monte_carlo_export_prices(period, node, car)
+
         elif config["optimization"]["monte_carlo"]["type"]["value"] == 2:
             MC_parameters = self.data.monte_carlo_specs
 
             for index, row in MC_parameters.iterrows():
-                if row["type"] == "technology":
+                if row["type"] == "Technologies":
                     MC_technology_row = row
                     tec = MC_technology_row["name"]
 
@@ -812,20 +817,20 @@ class EnergyHub:
                                 else:
                                     MC_technology_rows = []
                                     for index, row in MC_parameters.iterrows():
-                                        if row["type"] == "technology":
+                                        if row["type"] == "Technologies":
                                             MC_technology_rows.append(row)
                                     self._monte_carlo_technologies(
                                         period, node, tec, MC_technology_rows
                                     )
 
-                elif row["type"] == "network":
+                elif row["type"] == "Networks":
                     MC_network_row = row
                     netw = MC_network_row["name"]
 
                     for period in model.periods:
                         self._monte_carlo_networks(period, netw, MC_network_row)
 
-                elif row["type"] == "import":
+                elif row["type"] == "Import":
                     MC_import_row = row
 
                     for period in model.periods:
@@ -836,7 +841,7 @@ class EnergyHub:
                                 MC_import_row["name"],
                                 MC_import_row,
                             )
-                elif row["type"] == "export":
+                elif row["type"] == "Export":
                     MC_export_row = row
 
                     for period in model.periods:
@@ -913,12 +918,6 @@ class EnergyHub:
             elif economics.capex_model == 2:
                 # Todo: Calculate
                 pass
-                # max_capex = (
-                #     b_tec.para_size_max
-                #     * max(economics.capex_data["piecewise_capex"]["bp_y"])
-                #     * annualization_factor
-                # )
-                # bounds = (0, max_capex)
             elif economics.capex_model == 3:
                 max_capex = (
                     b_tec.para_size_max * b_tec.para_unit_capex_annual
@@ -1013,15 +1012,15 @@ class EnergyHub:
             b_arc = b_netw.arc_block[arc]
 
             # Remove constraint (from persistent solver and from model)
-            big_m_transformation_required = 1
             b_arc.del_component(b_arc._pyomo_gdp_bigm_reformulation)
+            b_arc.del_component(b_arc.const_capex)
             b_arc.del_component(b_arc.dis_installation)
             b_arc.del_component(b_arc.disjunction_installation)
 
-            b_netw = netw_data._define_capex_arc(b_arc, b_netw, arc[0], arc[1])
+            b_arc = netw_data._define_capex_arc(b_arc, b_netw, arc[0], arc[1])
 
-        # perform relaxation
-        b_netw = perform_disjunct_relaxation(b_netw)
+            if b_arc.big_m_transformation_required:
+                b_arc = perform_disjunct_relaxation(b_arc)
 
     def _monte_carlo_import_prices(self, period, node, car, MC_import_row=None):
         """
