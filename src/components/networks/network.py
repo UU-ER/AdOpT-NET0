@@ -304,6 +304,19 @@ class Network(ModelComponent):
         :return: dict results: holds results
         """
 
+        h5_group.create_dataset(
+            "para_capex_gamma1", data=model_block.para_capex_gamma1.value
+        )
+        h5_group.create_dataset(
+            "para_capex_gamma2", data=model_block.para_capex_gamma2.value
+        )
+        h5_group.create_dataset(
+            "para_capex_gamma3", data=model_block.para_capex_gamma3.value
+        )
+        h5_group.create_dataset(
+            "para_capex_gamma4", data=model_block.para_capex_gamma4.value
+        )
+
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
             str = "".join(arc_name)
@@ -719,7 +732,23 @@ class Network(ModelComponent):
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
-        b_arc.var_capex_aux = Var(bounds=calculate_max_capex())
+        if hasattr(b_arc, "var_capex_aux"):
+            bounds = calculate_max_capex()
+            b_arc.var_capex_aux.setlb(bounds[0])
+            b_arc.var_capex_aux.setub(bounds[1])
+        else:
+            b_arc.var_capex_aux = Var(bounds=calculate_max_capex())
+
+        # CAPEX Variable
+        if hasattr(b_arc, "var_capex"):
+            bounds = calculate_max_capex()
+            b_arc.var_capex.setlb(bounds[0])
+            b_arc.var_capex.setub(bounds[1])
+        else:
+            if self.existing and not self.decommission:
+                b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
+            else:
+                b_arc.var_capex = Var(bounds=calculate_max_capex())
 
         def init_capex(const):
             return (
@@ -729,12 +758,6 @@ class Network(ModelComponent):
                 + b_netw.para_capex_gamma3 * b_arc.distance
                 + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
             )
-
-        # CAPEX Variable
-        if self.existing and not self.decommission:
-            b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
-        else:
-            b_arc.var_capex = Var(bounds=calculate_max_capex())
 
         # CAPEX aux:
         if self.existing and not self.decommission:

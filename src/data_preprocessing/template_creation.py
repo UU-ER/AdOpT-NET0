@@ -295,8 +295,8 @@ def initialize_configuration_templates() -> dict:
                     "options": [
                         "Technologies",
                         "Networks",
-                        "ImportPrices",
-                        "ExportPrices",
+                        "Import",
+                        "Export",
                     ],
                     "value": "Technologies",
                 },
@@ -488,11 +488,12 @@ def create_optimization_templates(path: Path | str) -> None:
 
 def create_montecarlo_template_csv(base_path: Path | str):
     """
-    Creates a template CSV file for the monte carlo parameters and saves it to the given path.
+    Creates a template CSV file for the monte carlo parameters and saves it to the given path. The monte carlo can
+    only be performed on economic parameters.
 
-    The file should be filled by specifying the type ('technology', 'network', 'import', 'export'), the name (
+    The file should be filled by specifying the type ("Technologies", "Networks", "Import", "Export"), the name (
     specific technology or network name, carrier in case of import or export), and the parameter ('unit_CAPEX' or
-    'fix_CAPEX' for technology, 'gamma1' 'gamma2' 'gamma3' or 'gamma4' for network and 'price' or 'limit' for import
+    'fix_CAPEX' for technology, 'gamma1' 'gamma2' 'gamma3' or 'gamma4' for network and 'price' for import
     and export).
 
     :param str/Path path: path to folder to create Topology.json

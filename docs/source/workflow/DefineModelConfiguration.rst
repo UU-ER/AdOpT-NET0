@@ -27,7 +27,7 @@ Model Configuration Overview
    "optimization", "monte_carlo.N", "Number of Monte Carlo simulations (0 = off).", "", 0
    "optimization", "monte_carlo.type", "Type of Monte Carlo simulation. For type 1 the user defines the standard deviation and the components to vary. For type 2 the user provides a csv file with the parameters and their min, max and reference values. ", "1, 2", 1
    "optimization", "monte_carlo.sd", "Value defining the range in which variables are varied in Monte Carlo simulations (defined as the standard deviation of the original value).", "", 0.2
-   "optimization", "monte_carlo.on_what", "List: Defines component to vary.", "'Technologies', 'Networks', 'ImportPrices', 'ExportPrices'", "Technologies"
+   "optimization", "monte_carlo.on_what", "List: Defines component to vary.", "'Technologies', 'Networks', 'Import', 'Export'", "Technologies"
    "optimization", "monte_carlo.csv_path", "Path to the CSV file containing the optimization parameters.", "", None
    "optimization", "pareto_points", "Number of Pareto points.", "", 5
    "optimization", "timestaging", "Defines number of timesteps that are averaged (0 = off).", "", 0

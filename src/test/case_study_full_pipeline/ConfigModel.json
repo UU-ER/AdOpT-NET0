@@ -34,8 +34,8 @@
                 "options": [
                     "Technologies",
                     "Networks",
-                    "ImportPrices",
-                    "ExportPrices"
+                    "Import",
+                    "Export"
                 ],
                 "value": "Technologies"
             },

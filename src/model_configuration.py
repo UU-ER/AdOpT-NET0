@@ -25,8 +25,8 @@ class ModelConfiguration:
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | monte_carlo.N      | Number of Monte Carlo simulations            |                                             | 100     |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
-    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'ImportPrices',             | Tec     |
-    |                    | Warning: Import/export prices                | 'ExportPrices'                              |         |
+    | monte_carlo.on_what| List: Defines component to vary.             | 'Technologies', 'Import',             | Tec     |
+    |                    | Warning: Import/export prices                | 'Export'                              |         |
     |                    | can take a long time.                        |                                             |         |
     +--------------------+----------------------------------------------+---------------------------------------------+---------+
     | pareto_points      | Number of Pareto points                      |                                             | 5       |
