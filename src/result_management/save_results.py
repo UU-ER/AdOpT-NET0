@@ -143,6 +143,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
         # Topology Information
         topology = f.create_group("topology")
         topology.create_dataset("nodes", data=list(model.set_nodes))
+        topology.create_dataset("periods", data=list(model.set_periods))
         topology.create_dataset("carriers", data=list(model.set_carriers))
 
         # TIME-INDEPENDENT RESULTS (design) [g]

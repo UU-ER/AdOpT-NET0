@@ -231,7 +231,7 @@ class ComponentOptions:
     """
 
     def __init__(self, component_data: dict):
-        self.modelled_with_full_res = True
+        self.modelled_with_full_res = False
         self.lower_res_than_full = False
         self.size_is_int = component_data["size_is_int"]
         self.decommission = component_data["decommission"]

@@ -506,8 +506,6 @@ class DataHandle:
                 noTypicalPeriods=nr_clusters,
                 hoursPerPeriod=24,
                 noSegments=24,
-                representationMethod="distributionAndMinMaxRepresentation",
-                distributionPeriodWise=False,
                 clusterMethod="k_means",
             )
 

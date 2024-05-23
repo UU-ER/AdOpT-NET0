@@ -340,6 +340,8 @@ class Technology(ModelComponent):
         self.set_t_clustered = set_t_clustered
 
         # MODELING TYPICAL DAYS
+        if config["optimization"]["typicaldays"]["N"]["value"] == 0:
+            self.options.modelled_with_full_res = True
         technologies_modelled_with_full_res = ["RES", "STOR", "Hydro_Open"]
         if (config["optimization"]["typicaldays"]["N"]["value"] != 0) and (
             config["optimization"]["typicaldays"]["method"]["value"] == 2

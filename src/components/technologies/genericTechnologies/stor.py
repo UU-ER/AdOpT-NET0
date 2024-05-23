@@ -260,7 +260,7 @@ class Stor(Technology):
                 ] * (1 - eta_lambda) ** nr_timesteps_averaged - b_tec.var_storage_level[
                     max(set_t_full)
                 ] * ambient_loss_factor[
-                    max(set_t_full) - 1
+                    max(self.set_t) - 1
                 ] ** nr_timesteps_averaged + (
                     eta_in
                     * self.input[sequence_storage[t - 1], self.info.main_input_carrier]
@@ -276,7 +276,7 @@ class Stor(Technology):
                 ) ** nr_timesteps_averaged - b_tec.var_storage_level[
                     t
                 ] * ambient_loss_factor[
-                    t - 1
+                    sequence_storage[t - 1] - 1
                 ] ** nr_timesteps_averaged + (
                     eta_in
                     * self.input[sequence_storage[t - 1], self.info.main_input_carrier]
