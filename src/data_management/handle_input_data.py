@@ -549,7 +549,7 @@ class DataHandle:
         and time dependent technology performance).
         """
         nr_clusters = self.model_config["optimization"]["typicaldays"]["N"]["value"]
-        hours_per_day = self.topology["time_index"]["full"]["hours_per_day"]
+        hours_per_day = self.topology["hours_per_day"]["full"]
 
         self.topology["time_index"]["clustered"] = range(0, nr_clusters * hours_per_day)
 

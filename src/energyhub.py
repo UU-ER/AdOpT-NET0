@@ -1224,7 +1224,7 @@ class EnergyHub:
                         b_netw_full.set_arcs, rule=size_constraints_arcs_init
                     )
 
-                block.size_constraints_netw = pyo.Constraint(
+                block.size_constraints_netw = pyo.Block(
                     m_full.periods[period].set_networks, rule=size_constraints_netw_init
                 )
 

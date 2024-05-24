@@ -94,7 +94,10 @@ def test_full_model_flow(request):
         )
 
 
-def test_clustering(request):
+def test_clustering_algo(request):
+    """
+    Tests method 1 and two of the clustering algorithm
+    """
 
     path = Path("src/test/case_study_full_pipeline")
 
@@ -126,7 +129,7 @@ def test_clustering(request):
             pyhub.data._read_technology_data()
             pyhub.data._read_network_data()
 
-            # Clustering/Averaging algorithms
+            # Clustering algorithms
             if (
                 pyhub.data.model_config["optimization"]["typicaldays"]["N"]["value"]
                 != 0
@@ -135,7 +138,6 @@ def test_clustering(request):
             if pyhub.data.model_config["optimization"]["timestaging"]["value"] != 0:
                 pyhub.data._average_data()
 
-            # pyhub.read_data(path, start_period=0, end_period=24 * 3)
             pyhub.quick_solve()
 
             if n == 2:
@@ -147,3 +149,48 @@ def test_clustering(request):
                 abs(npv_no_cluster - pyhub.model["clustered"].var_npv.value)
                 / npv_no_cluster
             ) <= tol
+
+
+def test_average_algo(request):
+    """
+    Tests method 1 and two of the clustering algorithm
+    """
+
+    path = Path("src/test/case_study_full_pipeline")
+
+    pyhub = EnergyHub()
+    pyhub.read_data(path, start_period=0, end_period=2 * 24)
+    pyhub.construct_model()
+    pyhub.construct_balances()
+    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.solve()
+
+    m = pyhub.model["full"]
+    npv_no_cluster = m.var_npv.value
+
+    pyhub = EnergyHub()
+    pyhub.data.set_settings(path)
+    pyhub.data._read_topology()
+    pyhub.data._read_model_config()
+
+    pyhub.data.model_config["optimization"]["timestaging"]["value"] = 4
+
+    pyhub.data._read_time_series()
+    pyhub.data._read_node_locations()
+    pyhub.data._read_energybalance_options()
+    pyhub.data._read_technology_data()
+    pyhub.data._read_network_data()
+
+    # Averaging algorithms
+    if pyhub.data.model_config["optimization"]["timestaging"]["value"] != 0:
+        pyhub.data._average_data()
+
+    pyhub.quick_solve()
+
+    assert (
+        abs(npv_no_cluster - pyhub.model["full"].var_npv.value) / npv_no_cluster
+    ) <= 0.01
+
+    assert (
+        abs(npv_no_cluster - pyhub.model["averaged"].var_npv.value) / npv_no_cluster
+    ) <= 0.1
