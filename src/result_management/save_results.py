@@ -1,4 +1,5 @@
 import h5py
+import numpy as np
 
 from .utilities import *
 from pyomo.environ import ConcreteModel
@@ -285,8 +286,16 @@ def write_optimization_results_to_h5(
                         data=[node_data.var_import_flow[t, car].value for t in set_t],
                     )
                     car_group.create_dataset(
+                        "import_price",
+                        data=[node_data.para_import_price[t, car].value for t in set_t],
+                    )
+                    car_group.create_dataset(
                         "export",
                         data=[node_data.var_export_flow[t, car].value for t in set_t],
+                    )
+                    car_group.create_dataset(
+                        "export_price",
+                        data=[node_data.para_export_price[t, car].value for t in set_t],
                     )
                     car_group.create_dataset(
                         "demand",
