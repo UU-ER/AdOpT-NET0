@@ -284,13 +284,13 @@ class DataHandle:
 
         log_event("Energy balance options read successfully")
 
-    def _read_technology_data(self, aggregation_type: str = "full"):
+    def _read_technology_data(self):
         """
         Reads all technology data and fits it
 
         :param str aggregation_type: specifies the aggregation type and thus the dict key to write the data to
         """
-
+        aggregation_type = "full"
         # Initialize technology_data dict
         technology_data = {}
 

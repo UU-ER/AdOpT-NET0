@@ -411,7 +411,10 @@ class Technology(ModelComponent):
 
         # Coefficients
         if self.options.modelled_with_full_res:
-            self.coeff.time_dependent_used = self.coeff.time_dependent_full
+            if config["optimization"]["timestaging"]["value"] == 0:
+                self.coeff.time_dependent_used = self.coeff.time_dependent_full
+            else:
+                self.coeff.time_dependent_used = self.coeff.time_dependent_averaged
         else:
             self.coeff.time_dependent_used = self.coeff.time_dependent_clustered
 

@@ -166,6 +166,8 @@ class HydroOpen(Technology):
             b_tec, data, set_t_full, set_t_clustered
         )
 
+        config = data["config"]
+
         # DATA OF TECHNOLOGY
         c_td = self.coeff.time_dependent_used
         c_ti = self.coeff.time_independent
@@ -180,11 +182,10 @@ class HydroOpen(Technology):
         spilling_max = c_ti["spilling_max"]
         hydro_natural_inflow = c_td["hydro_inflow"]
 
-        # Todo: needs to be fixed with averaging algorithm
-        # nr_timesteps_averaged = (
-        #     energyhub.model_information.averaged_data_specs.nr_timesteps_averaged
-        # )
-        nr_timesteps_averaged = 1
+        if config["optimization"]["timestaging"]["value"] != 0:
+            nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
+        else:
+            nr_timesteps_averaged = 1
 
         # Additional decision variables
         b_tec.var_storage_level = pyo.Var(

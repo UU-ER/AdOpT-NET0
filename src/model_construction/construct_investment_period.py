@@ -49,11 +49,19 @@ def construct_investment_period_block(b_period, data: dict):
     # SETS
     b_period.set_networks = Set(initialize=network_data.keys())
 
-    # time periods
+    # TIME PERIODS
     if config["optimization"]["typicaldays"]["N"]["value"] == 0:
         # No clustering
-        b_period.set_t_full = RangeSet(1, len(topology["time_index"]["full"]))
-        b_period.set_t_clustered = RangeSet(1, len(topology["time_index"]["full"]))
+        if config["optimization"]["timestaging"]["value"] == 0:
+            # no averaging
+            b_period.set_t_full = RangeSet(1, len(topology["time_index"]["full"]))
+            b_period.set_t_clustered = RangeSet(1, len(topology["time_index"]["full"]))
+        else:
+            # first stage averaging
+            b_period.set_t_full = RangeSet(1, len(topology["time_index"]["averaged"]))
+            b_period.set_t_clustered = RangeSet(
+                1, len(topology["time_index"]["averaged"])
+            )
 
     else:
         # Method 1 and 2

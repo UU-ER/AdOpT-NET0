@@ -321,7 +321,10 @@ def construct_emission_balance(model, data):
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
         hour_factors = get_hour_factors(config, data, period)
-        nr_timesteps_averaged = 1
+        if config["optimization"]["timestaging"]["value"] != 0:
+            nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
+        else:
+            nr_timesteps_averaged = 1
 
         # calculate total emissions from technologies, networks and importing/exporting carriers
         def init_emissions_pos(const):
@@ -430,7 +433,10 @@ def construct_system_cost(model, data):
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
         hour_factors = get_hour_factors(config, data, period)
-        nr_timesteps_averaged = 1
+        if config["optimization"]["timestaging"]["value"] != 0:
+            nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
+        else:
+            nr_timesteps_averaged = 1
 
         # Capex Tecs
         def init_cost_capex_tecs(const):

@@ -219,8 +219,10 @@ class Stor(Technology):
         elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
             sequence_storage = self.sequence
 
-        # Todo: needs to be fixed with averaging algorithm
-        nr_timesteps_averaged = 1
+        if config["optimization"]["timestaging"]["value"] != 0:
+            nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
+        else:
+            nr_timesteps_averaged = 1
 
         # Additional parameters
         eta_in = c_ti["eta_in"]

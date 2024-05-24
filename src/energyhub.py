@@ -40,8 +40,10 @@ class EnergyHub:
         self.info_pareto = {}
         self.info_pareto["pareto_point"] = -1
         self.info_solving_algorithms = {}
+        self.info_solving_algorithms["aggregation_type"] = "Full"
+        self.info_solving_algorithms["aggregation_data"] = "Full"
+        self.info_solving_algorithms["time_stage"] = 1
         self.info_monte_carlo = {}
-        self.current_aggregation_type = None
 
     def read_data(
         self, data_path: Path | str, start_period: int = None, end_period: int = None
@@ -151,22 +153,29 @@ class EnergyHub:
         # Determine aggregation
         config = self.data.model_config
 
-        if config["optimization"]["typicaldays"]["N"]["value"] == 0:
-            aggregation_type = "full"
-            aggregation_data = "full"
-            self.current_aggregation_type = "full"
-        elif config["optimization"]["typicaldays"]["method"]["value"] == 1:
-            aggregation_type = "clustered"
-            aggregation_data = "clustered"
-            self.current_aggregation_type = "clustered"
-        elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
-            aggregation_type = "clustered"
-            aggregation_data = "full"
-            self.current_aggregation_type = "clustered"
-        else:
-            raise Exception("clustering method needs to be 1 or 2")
+        # Clustered data
+        self.info_solving_algorithms["aggregation_type"] = "full"
+        self.info_solving_algorithms["aggregation_data"] = "full"
+
+        if config["optimization"]["typicaldays"]["N"]["value"] != 0:
+            if config["optimization"]["typicaldays"]["method"]["value"] == 1:
+                self.info_solving_algorithms["aggregation_type"] = "clustered"
+                self.info_solving_algorithms["aggregation_data"] = "clustered"
+            elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
+                self.info_solving_algorithms["aggregation_type"] = "clustered"
+                self.info_solving_algorithms["aggregation_data"] = "full"
+            else:
+                raise Exception("clustering method needs to be 1 or 2")
+
+        # Averaged data
+        if config["optimization"]["timestaging"]["value"] != 0:
+            if self.info_solving_algorithms["time_stage"] == 1:
+                self.info_solving_algorithms["aggregation_type"] = "averaged"
+                self.info_solving_algorithms["aggregation_data"] = "averaged"
 
         # INITIALIZE MODEL
+        aggregation_type = self.info_solving_algorithms["aggregation_type"]
+        aggregation_data = self.info_solving_algorithms["aggregation_data"]
         self.model[aggregation_type] = pyo.ConcreteModel()
 
         # GET DATA
@@ -251,7 +260,6 @@ class EnergyHub:
 
     def construct_balances(self):
         """
-        Todo: document
         Constructs the energy balance, emission balance and calculates costs
 
         Links all components with the constructing the energybalance (:func:`~add_energybalance`),
@@ -262,7 +270,7 @@ class EnergyHub:
 
         config = self.data.model_config
         data = self.data
-        model = self.model[self.current_aggregation_type]
+        model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         model = delete_all_balances(model)
 
@@ -330,7 +338,7 @@ class EnergyHub:
             self.solution.solver.status == pyo.SolverStatus.warning
         ):
 
-            model = self.model[self.current_aggregation_type]
+            model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
             # Fixme: change this for averaging
 
@@ -370,7 +378,7 @@ class EnergyHub:
         Defines solver and its settings depending on objective and solver
         """
         config = self.data.model_config
-        model = self.model[self.current_aggregation_type]
+        model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         objective = config["optimization"]["objective"]["value"]
 
@@ -400,6 +408,8 @@ class EnergyHub:
         """
         Solves the model with the given objective
         """
+        config = self.data.model_config
+
         # Define Objective Function
         if objective == "costs":
             self._optimize_cost()
@@ -413,18 +423,18 @@ class EnergyHub:
             raise Exception("objective in Configurations is incorrect")
 
         # Second stage of time averaging algorithm
-        # Fixme: averaging fix
-        # if (
-        #     self.model_information.averaged_data
-        #     and self.model_information.averaged_data_specs.stage == 0
-        # ):
-        #     self._optimize_time_averaging_second_stage()
+        if config["optimization"]["timestaging"]["value"] != 0:
+            self.info_solving_algorithms["time_stage"] = 2
+            config["optimization"]["timestaging"]["value"] = 0
+            self.info_solving_algorithms["objective"] = objective
+            self.write_results()
+            self._optimize_time_averaging_second_stage()
 
     def _optimize_cost(self):
         """
         Minimizes Costs
         """
-        model = self.model[self.current_aggregation_type]
+        model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         self._delete_objective()
 
@@ -439,7 +449,7 @@ class EnergyHub:
         """
         Minimize net emissions
         """
-        model = self.model[self.current_aggregation_type]
+        model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         self._delete_objective()
 
@@ -456,7 +466,7 @@ class EnergyHub:
         """
         Minimize costs at emission limit
         """
-        model = self.model[self.current_aggregation_type]
+        model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         config = self.data.model_config
 
@@ -477,7 +487,7 @@ class EnergyHub:
         """
         Minimize costs at minimum emissions
         """
-        model = self.model[self.current_aggregation_type]
+        model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         config = self.data.model_config
 
@@ -502,7 +512,7 @@ class EnergyHub:
         config = self.data.model_config
 
         f_global = config["scaling_factors"]["value"]
-        model_full = self.model[self.current_aggregation_type]
+        model_full = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         model_full.scaling_factor = pyo.Suffix(direction=pyo.Suffix.EXPORT)
 
@@ -626,7 +636,7 @@ class EnergyHub:
             self.scale_model()
             model = self.model["scaled"]
         else:
-            model = self.model[self.current_aggregation_type]
+            model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         # Call solver
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
@@ -650,7 +660,7 @@ class EnergyHub:
 
         if config["scaling"]["scaling_on"]["value"] == 1:
             pyo.TransformationFactory("core.scale_model").propagate_solution(
-                model, self.model[self.current_aggregation_type]
+                model, self.model[self.info_solving_algorithms["aggregation_type"]]
             )
 
         if config["reporting"]["write_solution_diagnostics"]["value"] >= 1:
@@ -698,18 +708,18 @@ class EnergyHub:
         """
         Optimize the pareto front
         """
-        model = self.model[self.current_aggregation_type]
+        model = self.model[self.info_solving_algorithms["aggregation_type"]]
         config = self.data.model_config
         pareto_points = config["optimization"]["pareto_points"]["value"]
 
         # Min Cost
         self.info_pareto["pareto_point"] = 0
-        self._optimize_cost()
+        self._optimize("costs")
         emissions_max = model.var_emissions_net.value
 
         # Min Emissions
         self.info_pareto["pareto_point"] = pareto_points + 1
-        self._optimize_costs_minE()
+        self._optimize("emissions_net")
         emissions_min = model.var_emissions_net.value
 
         # Emission limit
@@ -725,7 +735,7 @@ class EnergyHub:
             )
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.add_constraint(model.const_emission_limit)
-            self._optimize_cost()
+            self._optimize("costs")
 
     def _solve_monte_carlo(self, objective: str):
         """
@@ -757,12 +767,12 @@ class EnergyHub:
             ):
                 for period in self.model["full"].periods:
                     for node in (
-                        self.model[self.current_aggregation_type]
+                        self.model[self.info_solving_algorithms["aggregation_type"]]
                         .periods[period]
                         .node_blocks
                     ):
                         for tec in (
-                            self.model[self.current_aggregation_type]
+                            self.model[self.info_solving_algorithms["aggregation_type"]]
                             .periods[period]
                             .node_blocks[node]
                             .tech_blocks_active
@@ -1111,7 +1121,7 @@ class EnergyHub:
         Delete the objective function
         """
         config = self.data.model_config
-        model = self.model[self.current_aggregation_type]
+        model = self.model[self.info_solving_algorithms["aggregation_type"]]
 
         if not config["optimization"]["monte_carlo"]["N"]["value"]:
             try:
@@ -1123,18 +1133,11 @@ class EnergyHub:
         """
         Optimizes the second stage of the time_averaging algorithm
         """
-        self.model_information.averaged_data_specs.stage += 1
-        self.model_information.averaged_data_specs.nr_timesteps_averaged = 1
         bounds_on = "no_storage"
-        self.model_first_stage = self.model
-        self.solution_first_stage = copy.deepcopy(self.solution)
-        self.model = pyo.ConcreteModel()
-        self.solution = []
-        self.data = self.data_storage[0]
         self.construct_model()
         self.construct_balances()
         self._impose_size_constraints(bounds_on)
-        self.solve()
+        self._optimize(self.info_solving_algorithms["objective"])
 
     def _impose_size_constraints(self, bounds_on):
         """
@@ -1146,8 +1149,8 @@ class EnergyHub:
         :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
         """
 
-        m_full = self.model[self.current_aggregation_type]
-        m_avg = self.model["avg_first_stage"]
+        m_full = self.model["full"]
+        m_avg = self.model["averaged"]
 
         # Technologies
         if (
@@ -1156,29 +1159,43 @@ class EnergyHub:
             or bounds_on == "no_storage"
         ):
 
-            def size_constraint_block_tecs_init(block, node):
+            def size_constraint_block_tecs_init(block, period, node):
                 def size_constraints_tecs_init(const, tec):
                     if (
-                        self.data.technology_data[node][tec].technology_model == "STOR"
+                        self.data.technology_data[period][node][
+                            tec
+                        ].info.technology_model
+                        == "STOR"
                         and bounds_on == "no_storage"
                     ):
                         return pyo.Constraint.Skip
-                    elif self.data.technology_data[node][tec].existing:
+                    elif self.data.technology_data[period][node][tec].existing:
                         return pyo.Constraint.Skip
                     else:
+                        log_event(
+                            f"Size constraint imposed on {tec} at {node} in "
+                            f"{period}"
+                        )
                         return (
-                            m_avg.node_blocks[node]
+                            m_avg.periods[period]
+                            .node_blocks[node]
                             .tech_blocks_active[tec]
                             .var_size.value
-                            <= m_full.node_blocks[node].tech_blocks_active[tec].var_size
+                            <= m_full.periods[period]
+                            .node_blocks[node]
+                            .tech_blocks_active[tec]
+                            .var_size
                         )
 
                 block.size_constraints_tecs = pyo.Constraint(
-                    m_full.set_technologies[node], rule=size_constraints_tecs_init
+                    m_full.periods[period].node_blocks[node].set_technologies,
+                    rule=size_constraints_tecs_init,
                 )
 
             m_full.size_constraint_tecs = pyo.Block(
-                m_full.set_nodes, rule=size_constraint_block_tecs_init
+                m_full.set_periods,
+                m_full.set_nodes,
+                rule=size_constraint_block_tecs_init,
             )
 
         # Networks
@@ -1188,20 +1205,29 @@ class EnergyHub:
             or bounds_on == "no_storage"
         ):
 
-            def size_constraint_block_netw_init(block, netw):
-                b_netw_full = m_full.network_block[netw]
-                b_netw_avg = m_avg.network_block[netw]
+            def size_constraint_block_netw_init(block, period):
 
-                def size_constraints_netw_init(const, node_from, node_to):
-                    return (
-                        b_netw_full.arc_block[node_from, node_to].var_size
-                        >= b_netw_avg.arc_block[node_from, node_to].var_size.value
+                def size_constraints_netw_init(const, netw):
+
+                    b_netw_full = m_full.periods[period].network_block[netw]
+                    b_netw_avg = m_avg.periods[period].network_block[netw]
+
+                    log_event(f"Size constraint imposed on {netw} in " f"{period}")
+
+                    def size_constraints_arcs_init(const, node_from, node_to):
+                        return (
+                            b_netw_full.arc_block[node_from, node_to].var_size
+                            >= b_netw_avg.arc_block[node_from, node_to].var_size.value
+                        )
+
+                    block.size_constraints_arcs = pyo.Constraint(
+                        b_netw_full.set_arcs, rule=size_constraints_arcs_init
                     )
 
                 block.size_constraints_netw = pyo.Constraint(
-                    b_netw_full.set_arcs, rule=size_constraints_netw_init
+                    m_full.periods[period].set_networks, rule=size_constraints_netw_init
                 )
 
             m_full.size_constraints_netw = pyo.Block(
-                m_full.set_networks, rule=size_constraint_block_netw_init
+                m_full.set_periods, rule=size_constraint_block_netw_init
             )
