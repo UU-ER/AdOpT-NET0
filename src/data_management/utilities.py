@@ -390,4 +390,17 @@ def check_input_data_consistency(path: Path):
                     f"Data for carrier {carrier} is missing in {check_node_path}",
                 )
 
+    # Read config
+    with open(path / "ConfigModel.json") as json_file:
+        config = json.load(json_file)
+
+    # Check that averaging and k-means is not used at same time
+    if (config["optimization"]["typicaldays"]["N"]["value"] != 0) and (
+        config["optimization"]["timestaging"]["value"] != 0
+    ):
+        raise Exception(
+            "Using time step averaging and k-means clustering at the same"
+            " time is not allowed"
+        )
+
     log_event("Input data folder has been checked successfully - no errors occurred.")

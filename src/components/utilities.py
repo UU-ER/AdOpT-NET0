@@ -317,6 +317,7 @@ class Coefficients:
     def __init__(self):
         self.time_dependent_full = {}
         self.time_dependent_clustered = {}
+        self.time_dependent_averaged = {}
         self.time_dependent_used = {}
         self.time_independent = {}
         self.dynamics = {}
