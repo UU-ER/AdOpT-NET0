@@ -96,8 +96,7 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
         )
 
     # dicts to store data
-    tec_output_dict = {}
-    netw_output_dict = {}
+    output_dict = {}
 
     # Extract data from h5 files
 
@@ -122,12 +121,10 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
                                     output_name = f"{period}/{node}/{tec}/{para}"
                                     try:
                                         tec_output = df.loc[period, node, tec, para]
-                                        if case not in tec_output_dict:
-                                            tec_output_dict[case] = {}
-                                        if output_name not in tec_output_dict[case]:
-                                            tec_output_dict[case][
-                                                output_name
-                                            ] = tec_output
+                                        if case not in output_dict:
+                                            output_dict[case] = {}
+                                        if output_name not in output_dict[case]:
+                                            output_dict[case][output_name] = tec_output
                                     except KeyError:
                                         pass
 
@@ -137,17 +134,22 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
                     ).sum()
                     for period in df.index.levels[0]:
                         for netw in df.index.levels[1]:
-                            parameters1 = ["size", "capex"]
+                            parameters1 = [
+                                "para_capex_gamma1",
+                                "para_capex_gamma2",
+                                "para_capex_gamma3",
+                                "para_capex_gamma4",
+                            ]
                             for para in parameters1:
                                 output_name = f"{period}/{netw}/{para}"
                                 try:
                                     netw_output = df.loc[period, netw, para]
-                                    if case not in netw_output_dict:
-                                        netw_output_dict[case] = {}
-                                    if output_name not in netw_output_dict[case]:
-                                        netw_output_dict[case][
-                                            output_name
-                                        ] = netw_output
+                                    if case not in output_dict:
+                                        output_dict[case] = {}
+                                    if output_name not in output_dict[case]:
+                                        output_dict[case][output_name] = (
+                                            netw_output.iloc[0]
+                                        )
                                 except KeyError:
                                     pass
                             for arc in df.index.levels[2]:
@@ -155,17 +157,15 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
                                 for para in parameters2:
                                     output_name = f"{period}/{netw}/{arc}/{para}"
                                     try:
-                                        tec_output = df.loc[period, netw, arc, para]
-                                        if case not in tec_output_dict:
-                                            tec_output_dict[case] = {}
-                                        if output_name not in tec_output_dict[case]:
-                                            tec_output_dict[case][
-                                                output_name
-                                            ] = tec_output
+                                        arc_output = df.loc[period, netw, arc, para]
+                                        if case not in output_dict:
+                                            output_dict[case] = {}
+                                        if output_name not in output_dict[case]:
+                                            output_dict[case][output_name] = arc_output
                                     except KeyError:
                                         pass
 
-        # TODO add import, export and networks similarly
+        # TODO add import, export similarly
         pass
         #     if hdf_file_path.exists():
         #         with h5py.File(hdf_file_path, 'r') as hdf_file:
@@ -173,12 +173,17 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
         #         df = df.sum()
 
     # Add new columns to summary_results
-    tec_output_df = pd.DataFrame(tec_output_dict).T
+    output_df = pd.DataFrame(output_dict).T
     summary_results = summary_results.set_index("time_stamp")
-    summary_results_appended = pd.merge(
-        summary_results, tec_output_df, right_index=True, left_index=True
+
+    # Check for existing columns and overwrite them
+    for col in output_df.columns:
+        summary_results[col] = output_df[col]
+
+    # Reset the index to ensure time_stamp is a column
+    summary_results = summary_results.reset_index().rename(
+        columns={"index": "time_stamp"}
     )
-    # TODO make sure string is not deleted
 
     # Save the updated summary_results to the Excel file
-    summary_results_appended.to_excel(summary_path, index=False)
+    summary_results.to_excel(summary_path, index=False)

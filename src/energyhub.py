@@ -1008,7 +1008,7 @@ class EnergyHub:
                 economics.capex_data["gamma4"] * annualization_factor * sd_random
             )
 
-        for arc in b_netw.set_arcs_unique:
+        for arc in b_netw.set_arcs:
             b_arc = b_netw.arc_block[arc]
 
             # Remove constraint (from persistent solver and from model)
