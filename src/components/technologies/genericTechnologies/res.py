@@ -224,7 +224,7 @@ class Res(Technology):
         """
         super(Res, self)._calculate_bounds()
 
-        time_steps = len(self.set_t)
+        time_steps = len(self.set_t_performance)
 
         # Output bounds
         lower_output_bound = np.zeros(shape=(time_steps))
@@ -259,7 +259,9 @@ class Res(Technology):
                 )
 
             b_tec.const_input_output = pyo.Constraint(
-                self.set_t, b_tec.set_output_carriers, rule=init_input_output
+                self.set_t_performance,
+                b_tec.set_output_carriers,
+                rule=init_input_output,
             )
 
         elif curtailment == 1:  # continuous curtailment
@@ -271,12 +273,14 @@ class Res(Technology):
                 )
 
             b_tec.const_input_output = pyo.Constraint(
-                self.set_t, b_tec.set_output_carriers, rule=init_input_output
+                self.set_t_performance,
+                b_tec.set_output_carriers,
+                rule=init_input_output,
             )
 
         elif curtailment == 2:  # discrete curtailment
             b_tec.var_size_on = pyo.Var(
-                self.set_t,
+                self.set_t_performance,
                 within=pyo.NonNegativeIntegers,
                 bounds=(b_tec.para_size_min, b_tec.para_size_max),
             )
@@ -285,7 +289,7 @@ class Res(Technology):
                 return b_tec.var_size_on[t] <= b_tec.var_size
 
             b_tec.const_curtailed_units = pyo.Constraint(
-                self.set_t, rule=init_curtailed_units
+                self.set_t_performance, rule=init_curtailed_units
             )
 
             def init_input_output(const, t, c_output):
@@ -295,7 +299,9 @@ class Res(Technology):
                 )
 
             b_tec.const_input_output = pyo.Constraint(
-                self.set_t, b_tec.set_output_carriers, rule=init_input_output
+                self.set_t_performance,
+                b_tec.set_output_carriers,
+                rule=init_input_output,
             )
 
         return b_tec
@@ -328,7 +334,7 @@ class Res(Technology):
             "max_out",
             data=[
                 capfactor[t - 1] * model_block.var_size.value * rated_power
-                for t in self.set_t
+                for t in self.set_t_performance
             ],
         )
 
@@ -336,7 +342,8 @@ class Res(Technology):
 
         if self.options.other["curtailment"] == 2:
             h5_group.create_dataset(
-                "units_on", data=[model_block.var_size_on[t].value for t in self.set_t]
+                "units_on",
+                data=[model_block.var_size_on[t].value for t in self.set_t_performance],
             )
 
         for car in model_block.set_output_carriers:
@@ -345,6 +352,6 @@ class Res(Technology):
                 data=[
                     capfactor[t - 1] * model_block.var_size.value * rated_power
                     - model_block.var_output[t, car].value
-                    for t in self.set_t
+                    for t in self.set_t_performance
                 ],
             )

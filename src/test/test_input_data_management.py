@@ -12,7 +12,7 @@ def test_data_handle_reading(request):
     case_study_folder_path = request.config.case_study_folder_path
 
     dh = DataHandle()
-    dh.read_input_data(case_study_folder_path)
+    dh.set_settings(case_study_folder_path)
 
 
 #

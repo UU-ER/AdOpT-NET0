@@ -77,7 +77,7 @@ class Conv4(Technology):
         """
         super(Conv4, self)._calculate_bounds()
 
-        time_steps = len(self.set_t)
+        time_steps = len(self.set_t_performance)
 
         # Output Bounds
         self.bounds["output"][self.parameters.unfitted_data["main_output_carrier"]] = (
@@ -131,7 +131,7 @@ class Conv4(Technology):
                 )
 
         b_tec.const_output_output = pyo.Constraint(
-            self.set_t, b_tec.set_output_carriers, rule=init_output_output
+            self.set_t_performance, b_tec.set_output_carriers, rule=init_output_output
         )
 
         # size constraint based on main carrier output
@@ -141,7 +141,9 @@ class Conv4(Technology):
                 <= b_tec.var_size * rated_power
             )
 
-        b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(
+            self.set_t_performance, rule=init_size_constraint
+        )
 
         return b_tec
 
@@ -186,12 +188,16 @@ class Conv4(Technology):
 
                 dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
-        b_tec.dis_output = gdp.Disjunct(self.set_t, s_indicators, rule=init_output)
+        b_tec.dis_output = gdp.Disjunct(
+            self.set_t_performance, s_indicators, rule=init_output
+        )
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_output[t, i] for i in s_indicators]
 
-        b_tec.disjunction_output = gdp.Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_output = gdp.Disjunction(
+            self.set_t_performance, rule=bind_disjunctions
+        )
 
         return b_tec

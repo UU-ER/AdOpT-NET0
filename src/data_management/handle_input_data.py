@@ -50,7 +50,7 @@ class DataHandle:
         self.start_period = None
         self.end_period = None
 
-    def read_input_data(
+    def set_settings(
         self, data_path: Path, start_period: int = None, end_period: int = None
     ):
         """
@@ -84,7 +84,10 @@ class DataHandle:
         # Check consistency
         check_input_data_consistency(data_path)
 
-        # Read all data
+    def read_data(self):
+        """
+        Reads all data from folder
+        """
         self._read_topology()
         self._read_model_config()
         self._read_time_series()
@@ -489,13 +492,20 @@ class DataHandle:
                                 count += 1
                         else:
                             tec_series[(node, tec, series, "")] = c_td[series]
-            tec_series = pd.DataFrame(tec_series)
-            tec_series.columns.set_names(
-                ["Node", "Key1", "Carrier", "Key2"], inplace=True
-            )
+
+            # Make sure dataframe is correctly formatted
+            if tec_series:
+                tec_series = pd.DataFrame(tec_series)
+                tec_series.columns.set_names(
+                    ["Node", "Key1", "Carrier", "Key2"], inplace=True
+                )
+            else:
+                tec_series = pd.DataFrame(columns=["Node", "Key1", "Carrier", "Key2"])
+
             tec_series = pd.concat(
                 {"tec_series": tec_series}, names=["type_series"], axis=1
             )
+            tec_series.index = time_series.index
 
             # full matrix
             full_res_data_matrix = pd.concat([time_series, tec_series], axis=1)

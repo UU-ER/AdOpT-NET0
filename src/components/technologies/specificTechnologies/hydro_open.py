@@ -130,7 +130,7 @@ class HydroOpen(Technology):
         """
         super(HydroOpen, self)._calculate_bounds()
 
-        time_steps = len(self.set_t)
+        time_steps = len(self.set_t_performance)
 
         # Output Bounds
         for car in self.info.output_carrier:
@@ -188,13 +188,13 @@ class HydroOpen(Technology):
 
         # Additional decision variables
         b_tec.var_storage_level = pyo.Var(
-            self.set_t,
+            self.set_t_performance,
             b_tec.set_input_carriers,
             domain=pyo.NonNegativeReals,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
         b_tec.var_spilling = pyo.Var(
-            self.set_t,
+            self.set_t_performance,
             domain=pyo.NonNegativeReals,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
@@ -206,7 +206,7 @@ class HydroOpen(Technology):
             return b_tec.var_storage_level[t, car] <= b_tec.var_size
 
         b_tec.const_size = pyo.Constraint(
-            self.set_t, b_tec.set_input_carriers, rule=init_size_constraint
+            self.set_t_performance, b_tec.set_input_carriers, rule=init_size_constraint
         )
 
         # Storage level calculation
@@ -214,7 +214,7 @@ class HydroOpen(Technology):
             if t == 1:  # couple first and last time interval
                 return (
                     b_tec.var_storage_level[t, car]
-                    == b_tec.var_storage_level[max(self.set_t), car]
+                    == b_tec.var_storage_level[max(self.set_t_performance), car]
                     * (1 - eta_lambda) ** nr_timesteps_averaged
                     + (
                         eta_in * self.input[t, car]
@@ -243,7 +243,7 @@ class HydroOpen(Technology):
                 )
 
         b_tec.const_storage_level = pyo.Constraint(
-            self.set_t, b_tec.set_input_carriers, rule=init_storage_level
+            self.set_t_performance, b_tec.set_input_carriers, rule=init_storage_level
         )
 
         if not self.options.other["can_pump"]:
@@ -252,7 +252,7 @@ class HydroOpen(Technology):
                 return self.input[t, car] == 0
 
             b_tec.const_input_zero = pyo.Constraint(
-                self.set_t, b_tec.set_input_carriers, rule=init_input_zero
+                self.set_t_performance, b_tec.set_input_carriers, rule=init_input_zero
             )
 
         # This makes sure that only either input or output is larger zero.
@@ -267,7 +267,9 @@ class HydroOpen(Technology):
                 )
 
             b_tec.const_cut_bidirectional = pyo.Constraint(
-                self.set_t, b_tec.set_input_carriers, rule=init_cut_bidirectional
+                self.set_t_performance,
+                b_tec.set_input_carriers,
+                rule=init_cut_bidirectional,
             )
 
             # Disjunct modelling
@@ -295,7 +297,7 @@ class HydroOpen(Technology):
                         )
 
                 b_tec.dis_input_output = gdp.Disjunct(
-                    self.set_t, s_indicators, rule=init_input_output
+                    self.set_t_performance, s_indicators, rule=init_input_output
                 )
 
                 # Bind disjuncts
@@ -303,7 +305,7 @@ class HydroOpen(Technology):
                     return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
                 b_tec.disjunction_input_output = gdp.Disjunction(
-                    self.set_t, rule=bind_disjunctions
+                    self.set_t_performance, rule=bind_disjunctions
                 )
 
         # Maximal charging and discharging rates
@@ -311,14 +313,16 @@ class HydroOpen(Technology):
             return self.input[t, car] <= charge_max * b_tec.var_size
 
         b_tec.const_max_charge = pyo.Constraint(
-            self.set_t, b_tec.set_input_carriers, rule=init_maximal_charge
+            self.set_t_performance, b_tec.set_input_carriers, rule=init_maximal_charge
         )
 
         def init_maximal_discharge(const, t, car):
             return self.output[t, car] <= discharge_max * b_tec.var_size
 
         b_tec.const_max_discharge = pyo.Constraint(
-            self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge
+            self.set_t_performance,
+            b_tec.set_input_carriers,
+            rule=init_maximal_discharge,
         )
 
         if self.options.other["maximum_discharge_time_discrete"]:
@@ -327,7 +331,9 @@ class HydroOpen(Technology):
                 return self.output[t, car] <= c_td["hydro_maximum_discharge"][t - 1]
 
             b_tec.const_max_discharge2 = pyo.Constraint(
-                self.set_t, b_tec.set_input_carriers, rule=init_maximal_discharge2
+                self.set_t_performance,
+                b_tec.set_input_carriers,
+                rule=init_maximal_discharge2,
             )
 
         # Maximum spilling
@@ -335,7 +341,7 @@ class HydroOpen(Technology):
             return b_tec.var_spilling[t] <= spilling_max * b_tec.var_size
 
         b_tec.const_max_spilling = pyo.Constraint(
-            self.set_t, rule=init_maximal_spilling
+            self.set_t_performance, rule=init_maximal_spilling
         )
 
         # RAMPING RATES
@@ -355,12 +361,16 @@ class HydroOpen(Technology):
         super(HydroOpen, self).write_results_tec_operation(h5_group, model_block)
 
         h5_group.create_dataset(
-            "spilling", data=[model_block.var_spilling[t].value for t in self.set_t]
+            "spilling",
+            data=[model_block.var_spilling[t].value for t in self.set_t_performance],
         )
         for car in model_block.set_input_carriers:
             h5_group.create_dataset(
                 "storage_level_" + car,
-                data=[model_block.var_storage_level[t, car].value for t in self.set_t],
+                data=[
+                    model_block.var_storage_level[t, car].value
+                    for t in self.set_t_performance
+                ],
             )
 
     def _define_ramping_rates(self, b_tec):
@@ -455,7 +465,7 @@ class HydroOpen(Technology):
                         )
 
             b_tec.dis_ramping_operation_on = gdp.Disjunct(
-                self.set_t, s_indicators, rule=init_ramping_operation_on
+                self.set_t_performance, s_indicators, rule=init_ramping_operation_on
             )
 
             # Bind disjuncts
@@ -463,7 +473,7 @@ class HydroOpen(Technology):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
             b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
-                self.set_t, rule=bind_disjunctions
+                self.set_t_performance, rule=bind_disjunctions
             )
 
         else:
@@ -478,7 +488,7 @@ class HydroOpen(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate_input = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate_input
+                self.set_t_performance, rule=init_ramping_down_rate_input
             )
 
             def init_ramping_up_rate_input(const, t):
@@ -494,7 +504,7 @@ class HydroOpen(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate_input = pyo.Constraint(
-                self.set_t, rule=init_ramping_up_rate_input
+                self.set_t_performance, rule=init_ramping_up_rate_input
             )
 
             def init_ramping_down_rate_output(const, t):
@@ -507,7 +517,7 @@ class HydroOpen(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate_output = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate_output
+                self.set_t_performance, rule=init_ramping_down_rate_output
             )
 
             def init_ramping_down_rate_output(const, t):
@@ -523,7 +533,7 @@ class HydroOpen(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate_output = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate_output
+                self.set_t_performance, rule=init_ramping_down_rate_output
             )
 
         return b_tec

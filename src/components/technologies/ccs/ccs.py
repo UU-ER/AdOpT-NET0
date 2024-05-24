@@ -39,7 +39,6 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
 
     ccs_data = ModelComponent(ccs_data)
 
-    time_steps = len(climate_data)
     molar_mass_CO2 = 44.01
 
     # Recalculate min/max size to have it in t/hCO2_in
@@ -47,6 +46,9 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     ccs_data.parameters.size_max = ccs_data.parameters.size_max * co2_concentration
 
     # Calculate input ratios
+    ccs_data.coeff.time_independent["size_min"] = ccs_data.parameters.size_min
+    ccs_data.coeff.time_independent["size_max"] = ccs_data.parameters.size_max
+    ccs_data.coeff.time_independent["capture_rate"] = capture_rate
     if "MEA" in ccs_data.info.technology_model:
         input_ratios = {}
         for car in ccs_data.info.input_carrier:
@@ -57,24 +59,8 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
         ccs_data.coeff.time_independent["input_ratios"] = input_ratios
     else:
         raise Exception(
-            "Only CCS type MEA is modelled so far. ccs_type in the json file of the technology must include MEA"
-        )
-
-    # Calculate input and output bounds
-    for car in ccs_data.info.input_carrier:
-        ccs_data.bounds["input"][car] = np.column_stack(
-            (
-                np.zeros(shape=(time_steps)),
-                np.ones(shape=(time_steps))
-                * ccs_data.coeff.time_independent["input_ratios"][car],
-            )
-        )
-    for car in ccs_data.info.output_carrier:
-        ccs_data.bounds["output"][car] = np.column_stack(
-            (
-                np.zeros(shape=(time_steps)),
-                np.ones(shape=(time_steps)) * capture_rate,
-            )
+            "Only CCS type MEA is modelled so far. ccs_type in the json file of the "
+            "technology must include MEA"
         )
 
     return ccs_data

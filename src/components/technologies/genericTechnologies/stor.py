@@ -156,7 +156,7 @@ class Stor(Technology):
         """
         super(Stor, self)._calculate_bounds()
 
-        time_steps = len(self.set_t)
+        time_steps = len(self.set_t_performance)
 
         # Output Bounds
         for car in self.info.output_carrier:
@@ -211,9 +211,12 @@ class Stor(Technology):
         c_ti = self.coeff.time_independent
         dynamics = self.coeff.dynamics
         allow_only_one_direction = self.options.other["allow_only_one_direction"]
-        if config["optimization"]["typicaldays"]["N"]["value"] != 0:
+        # sequence_storage = self.sequence
+        if config["optimization"]["typicaldays"]["N"]["value"] == 0:
+            sequence_storage = self.sequence
+        elif config["optimization"]["typicaldays"]["method"]["value"] == 1:
             sequence_storage = data["k_means_specs"]["sequence"]
-        else:
+        elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
             sequence_storage = self.sequence
 
         # Todo: needs to be fixed with averaging algorithm
@@ -261,12 +264,14 @@ class Stor(Technology):
                 # + (eta_in * input[] +1/eta_out * output[]) *
                 # (sum (1-self_discharge)^i for i in [0, nr_timesteps_averaged])
                 #
+                # soc[1] = soc[end] + input[seq] - output[seq]
+
                 return b_tec.var_storage_level[t] == b_tec.var_storage_level[
                     max(set_t_full)
                 ] * (1 - eta_lambda) ** nr_timesteps_averaged - b_tec.var_storage_level[
                     max(set_t_full)
                 ] * ambient_loss_factor[
-                    max(self.set_t) - 1
+                    sequence_storage[t - 1] - 1
                 ] ** nr_timesteps_averaged + (
                     eta_in
                     * self.input[sequence_storage[t - 1], self.info.main_input_carrier]
@@ -311,7 +316,7 @@ class Stor(Technology):
                 )
 
             b_tec.const_cut_bidirectional = pyo.Constraint(
-                self.set_t, rule=init_cut_bidirectional
+                self.set_t_performance, rule=init_cut_bidirectional
             )
 
             def init_input_output(dis, t, ind):
@@ -334,7 +339,7 @@ class Stor(Technology):
                     )
 
             b_tec.dis_input_output = gdp.Disjunct(
-                self.set_t, s_indicators, rule=init_input_output
+                self.set_t_performance, s_indicators, rule=init_input_output
             )
 
             # Bind disjuncts
@@ -342,7 +347,7 @@ class Stor(Technology):
                 return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
             b_tec.disjunction_input_output = gdp.Disjunction(
-                self.set_t, rule=bind_disjunctions
+                self.set_t_performance, rule=bind_disjunctions
             )
 
         # Maximal charging and discharging rates
@@ -352,7 +357,9 @@ class Stor(Technology):
                 self.input[t, self.info.main_input_carrier] <= b_tec.var_capacity_charge
             )
 
-        b_tec.const_max_charge = pyo.Constraint(self.set_t, rule=init_maximal_charge)
+        b_tec.const_max_charge = pyo.Constraint(
+            self.set_t_performance, rule=init_maximal_charge
+        )
 
         def init_maximal_discharge(const, t):
             # output[t] <= dischargeCapacity
@@ -362,7 +369,7 @@ class Stor(Technology):
             )
 
         b_tec.const_max_discharge = pyo.Constraint(
-            self.set_t, rule=init_maximal_discharge
+            self.set_t_performance, rule=init_maximal_discharge
         )
 
         # if the charging / discharging rates are fixed or flexible as a ratio of the energy capacity:
@@ -403,7 +410,7 @@ class Stor(Technology):
                     )
 
                 b_tec.const_energyconsumption_in = pyo.Constraint(
-                    self.set_t,
+                    self.set_t_performance,
                     b_tec.set_energyconsumption_carriers_in,
                     rule=init_energyconsumption_in,
                 )
@@ -426,7 +433,7 @@ class Stor(Technology):
                     )
 
                 b_tec.const_energyconsumption_out = pyo.Constraint(
-                    self.set_t,
+                    self.set_t_performance,
                     b_tec.set_energyconsumption_carriers_out,
                     rule=init_energyconsumption_out,
                 )
@@ -676,7 +683,7 @@ class Stor(Technology):
                         )
 
             b_tec.dis_ramping_operation_on = gdp.Disjunct(
-                self.set_t, s_indicators, rule=init_ramping_operation_on
+                self.set_t_performance, s_indicators, rule=init_ramping_operation_on
             )
 
             # Bind disjuncts
@@ -684,7 +691,7 @@ class Stor(Technology):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
             b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
-                self.set_t, rule=bind_disjunctions
+                self.set_t_performance, rule=bind_disjunctions
             )
 
         else:
@@ -700,7 +707,7 @@ class Stor(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate_input = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate_input
+                self.set_t_performance, rule=init_ramping_down_rate_input
             )
 
             def init_ramping_up_rate_input(const, t):
@@ -717,7 +724,7 @@ class Stor(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate_input = pyo.Constraint(
-                self.set_t, rule=init_ramping_up_rate_input
+                self.set_t_performance, rule=init_ramping_up_rate_input
             )
 
             def init_ramping_down_rate_output(const, t):
@@ -731,7 +738,7 @@ class Stor(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate_output = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate_output
+                self.set_t_performance, rule=init_ramping_down_rate_output
             )
 
             def init_ramping_down_rate_output(const, t):
@@ -748,7 +755,7 @@ class Stor(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate_output = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate_output
+                self.set_t_performance, rule=init_ramping_down_rate_output
             )
 
         return b_tec

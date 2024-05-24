@@ -155,7 +155,7 @@ class HeatPump(Technology):
         """
         super(HeatPump, self)._calculate_bounds()
 
-        time_steps = len(self.set_t)
+        time_steps = len(self.set_t_performance)
 
         if self.options.performance_function_type == 1:
             for c in self.info.output_carrier:
@@ -195,7 +195,7 @@ class HeatPump(Technology):
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
 
-        time_steps = len(self.set_t)
+        time_steps = len(self.set_t_performance)
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -226,7 +226,9 @@ class HeatPump(Technology):
         def init_size_constraint(const, t):
             return self.input[t, "electricity"] <= b_tec.var_size * rated_power
 
-        b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(
+            self.set_t_performance, rule=init_size_constraint
+        )
 
         # RAMPING RATES
         if "ramping_time" in dynamics:
@@ -250,7 +252,9 @@ class HeatPump(Technology):
                 self.output[t, "heat"] == alpha1[t - 1] * self.input[t, "electricity"]
             )
 
-        b_tec.const_input_output = pyo.Constraint(self.set_t, rule=init_input_output)
+        b_tec.const_input_output = pyo.Constraint(
+            self.set_t_performance, rule=init_input_output
+        )
 
         return b_tec
 
@@ -304,7 +308,7 @@ class HeatPump(Technology):
                 dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
         b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
+            self.set_t_performance, s_indicators, rule=init_input_output
         )
 
         # Bind disjuncts
@@ -312,7 +316,7 @@ class HeatPump(Technology):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
         b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t, rule=bind_disjunctions
+            self.set_t_performance, rule=bind_disjunctions
         )
 
         return b_tec
@@ -384,7 +388,7 @@ class HeatPump(Technology):
                 dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
         b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
+            self.set_t_performance, s_indicators, rule=init_input_output
         )
 
         # Bind disjuncts
@@ -392,7 +396,7 @@ class HeatPump(Technology):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
         b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t, rule=bind_disjunctions
+            self.set_t_performance, rule=bind_disjunctions
         )
 
         return b_tec
@@ -461,7 +465,7 @@ class HeatPump(Technology):
                         )
 
             b_tec.dis_ramping_operation_on = gdp.Disjunct(
-                self.set_t, s_indicators, rule=init_ramping_operation_on
+                self.set_t_performance, s_indicators, rule=init_ramping_operation_on
             )
 
             # Bind disjuncts
@@ -469,7 +473,7 @@ class HeatPump(Technology):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
             b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
-                self.set_t, rule=bind_disjunctions
+                self.set_t_performance, rule=bind_disjunctions
             )
 
         else:
@@ -484,7 +488,7 @@ class HeatPump(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate
+                self.set_t_performance, rule=init_ramping_down_rate
             )
 
             def init_ramping_up_rate(const, t):
@@ -500,7 +504,7 @@ class HeatPump(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate = pyo.Constraint(
-                self.set_t, rule=init_ramping_up_rate
+                self.set_t_performance, rule=init_ramping_up_rate
             )
 
         return b_tec

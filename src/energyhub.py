@@ -32,7 +32,7 @@ class EnergyHub:
         """
         Constructor
         """
-        self.data = None
+        self.data = DataHandle()
         self.model = {}
         self.solution = {}
         self.solver = None
@@ -56,9 +56,8 @@ class EnergyHub:
         :param int end_period: end period of the model
         """
         log_event("--- Reading in data ---")
-
-        self.data = DataHandle()
-        self.data.read_input_data(data_path, start_period, end_period)
+        self.data.set_settings(data_path, start_period, end_period)
+        self.data.read_data()
         self._perform_preprocessing_checks()
 
         log_event("--- Reading in data complete ---")

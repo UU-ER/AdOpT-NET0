@@ -101,7 +101,7 @@ class Sink(Technology):
         """
         super(Sink, self)._calculate_bounds()
 
-        time_steps = len(self.set_t)
+        time_steps = len(self.set_t_performance)
 
         # Input Bounds
         for car in self.info.input_carrier:
@@ -196,7 +196,7 @@ class Sink(Technology):
             )
 
         b_tec.const_max_injection = pyo.Constraint(
-            self.set_t, rule=init_maximal_injection
+            self.set_t_performance, rule=init_maximal_injection
         )
 
         # if injection rates are fixed/ flexible:
@@ -227,7 +227,7 @@ class Sink(Technology):
                     )
 
                 b_tec.const_energyconsumption_in = pyo.Constraint(
-                    self.set_t,
+                    self.set_t_performance,
                     b_tec.set_energyconsumption_carriers_in,
                     rule=init_energyconsumption_in,
                 )
@@ -381,7 +381,7 @@ class Sink(Technology):
                 return pyo.Constraint.Skip
 
         b_tec.const_ramping_down_rate_input = pyo.Constraint(
-            self.set_t, rule=init_ramping_down_rate_input
+            self.set_t_performance, rule=init_ramping_down_rate_input
         )
 
         def init_ramping_up_rate_input(const, t):
@@ -396,7 +396,7 @@ class Sink(Technology):
                 return pyo.Constraint.Skip
 
         b_tec.const_ramping_up_rate_input = pyo.Constraint(
-            self.set_t, rule=init_ramping_up_rate_input
+            self.set_t_performance, rule=init_ramping_up_rate_input
         )
 
         return b_tec

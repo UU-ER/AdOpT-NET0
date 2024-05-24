@@ -12,7 +12,7 @@ def test_full_model_flow(request):
     - Nodes: node1, node2
     - Investment Periods: period1
     - Technologies:
-        - node1: existing gas power plant
+        - node1: existing gas power plant, PV
         - node2: new electric boiler
     - Networks:
         - new electricity
@@ -92,3 +92,58 @@ def test_full_model_flow(request):
         assert round(m.var_emissions_net.value, 3) == round(
             m.periods["period1"].node_blocks["node1"].var_import_flow[1, "gas"].value, 3
         )
+
+
+def test_clustering(request):
+
+    path = Path("src/test/case_study_full_pipeline")
+
+    pyhub = EnergyHub()
+    pyhub.read_data(path, start_period=0, end_period=2 * 24)
+    pyhub.construct_model()
+    pyhub.construct_balances()
+    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.solve()
+
+    m = pyhub.model["full"]
+    npv_no_cluster = m.var_npv.value
+
+    methods = [1, 2]
+    N = [2, 1]
+    pyhub = EnergyHub()
+    pyhub.data.set_settings(path)
+    pyhub.data._read_topology()
+    pyhub.data._read_model_config()
+    for method in methods:
+        for n in N:
+            pyhub.data.model_config["optimization"]["typicaldays"]["N"]["value"] = n
+            pyhub.data.model_config["optimization"]["typicaldays"]["method"][
+                "value"
+            ] = method
+            pyhub.data._read_time_series()
+            pyhub.data._read_node_locations()
+            pyhub.data._read_energybalance_options()
+            pyhub.data._read_technology_data()
+            pyhub.data._read_network_data()
+
+            # Clustering/Averaging algorithms
+            if (
+                pyhub.data.model_config["optimization"]["typicaldays"]["N"]["value"]
+                != 0
+            ):
+                pyhub.data._cluster_data()
+            if pyhub.data.model_config["optimization"]["timestaging"]["value"] != 0:
+                pyhub.data._average_data()
+
+            # pyhub.read_data(path, start_period=0, end_period=24 * 3)
+            pyhub.quick_solve()
+
+            if n == 2:
+                tol = 0.0001
+            else:
+                tol = 0.01
+
+            assert (
+                abs(npv_no_cluster - pyhub.model["clustered"].var_npv.value)
+                / npv_no_cluster
+            ) <= tol

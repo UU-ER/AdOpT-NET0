@@ -75,7 +75,12 @@ def get_summary(model, solution, folder_path: Path, model_info: dict) -> dict:
     )
 
     # summary: retrieve / calculate solver status
-    summary_dict["time_total"] = solution.solver(0).wallclock_time
+    try:
+        int(solution.solver(0).wallclock_time)
+        time = solution.solver(0).wallclock_time
+    except:
+        time = 0
+    summary_dict["time_total"] = time
     summary_dict["lb"] = solution.problem(0).lower_bound
     summary_dict["ub"] = solution.problem(0).upper_bound
     summary_dict["absolute gap"] = (

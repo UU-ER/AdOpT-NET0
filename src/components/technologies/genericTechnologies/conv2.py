@@ -107,7 +107,7 @@ class Conv2(Technology):
         """
         super(Conv2, self)._calculate_bounds()
 
-        time_steps = len(self.set_t)
+        time_steps = len(self.set_t_performance)
 
         self.bounds["input"] = self.f.calculate_input_bounds(
             self.options.size_based_on, time_steps
@@ -152,7 +152,9 @@ class Conv2(Technology):
                 <= b_tec.var_size * rated_power
             )
 
-        b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(
+            self.set_t_performance, rule=init_size_constraint
+        )
 
         # Maximum input of carriers
         if "max_input" in c_ti:
@@ -166,7 +168,9 @@ class Conv2(Technology):
                 )
 
             b_tec.const_max_input = pyo.Constraint(
-                self.set_t, b_tec.set_max_input_carriers, rule=init_max_input
+                self.set_t_performance,
+                b_tec.set_max_input_carriers,
+                rule=init_max_input,
             )
 
         # RAMPING RATES
@@ -200,7 +204,7 @@ class Conv2(Technology):
             )
 
         b_tec.const_input_output = pyo.Constraint(
-            self.set_t, b_tec.set_output_carriers, rule=init_input_output
+            self.set_t_performance, b_tec.set_output_carriers, rule=init_input_output
         )
 
         if min_part_load > 0:
@@ -211,7 +215,7 @@ class Conv2(Technology):
                 )
 
             b_tec.const_min_part_load = pyo.Constraint(
-                self.set_t, rule=init_min_part_load
+                self.set_t_performance, rule=init_min_part_load
             )
 
         return b_tec
@@ -325,7 +329,7 @@ class Conv2(Technology):
                 dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
         b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
+            self.set_t_performance, s_indicators, rule=init_input_output
         )
 
         # Bind disjuncts
@@ -333,7 +337,7 @@ class Conv2(Technology):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
         b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t, rule=bind_disjunctions
+            self.set_t_performance, rule=bind_disjunctions
         )
 
         return b_tec
@@ -463,7 +467,7 @@ class Conv2(Technology):
                 dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
         b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
+            self.set_t_performance, s_indicators, rule=init_input_output
         )
 
         # Bind disjuncts
@@ -471,7 +475,7 @@ class Conv2(Technology):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
         b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t, rule=bind_disjunctions
+            self.set_t_performance, rule=bind_disjunctions
         )
 
         return b_tec
@@ -804,7 +808,7 @@ class Conv2(Technology):
                         )
 
             b_tec.dis_ramping_operation_on = gdp.Disjunct(
-                self.set_t, s_indicators, rule=init_ramping_operation_on
+                self.set_t_performance, s_indicators, rule=init_ramping_operation_on
             )
 
             # Bind disjuncts
@@ -812,7 +816,7 @@ class Conv2(Technology):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
             b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
-                self.set_t, rule=bind_disjunctions
+                self.set_t_performance, rule=bind_disjunctions
             )
 
         else:
@@ -827,7 +831,7 @@ class Conv2(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate
+                self.set_t_performance, rule=init_ramping_down_rate
             )
 
             def init_ramping_up_rate(const, t):
@@ -843,7 +847,7 @@ class Conv2(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate = pyo.Constraint(
-                self.set_t, rule=init_ramping_up_rate
+                self.set_t_performance, rule=init_ramping_up_rate
             )
 
         return b_tec

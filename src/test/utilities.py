@@ -284,11 +284,11 @@ def make_data_handle(nr_timesteps: int, topology=None):
     dh._read_energybalance_options = _read_energybalance_options_patch.__get__(dh)
     dh._read_technology_data = _read_technology_data_patch.__get__(dh)
     dh._read_network_data = _read_network_data_data_patch.__get__(dh)
-    dh.read_input_data = read_input_data_patch.__get__(dh)
+    dh.set_settings = read_input_data_patch.__get__(dh)
 
     dh.start_period = 0
     dh.end_period = dh.start_period + nr_timesteps
-    dh.read_input_data()
+    dh.set_settings()
 
     return dh
 
