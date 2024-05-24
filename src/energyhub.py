@@ -521,7 +521,7 @@ class EnergyHub:
         if config["optimization"]["monte_carlo"]["type"]["value"] == 1:
             component_set = config["optimization"]["monte_carlo"]["on_what"]["value"]
         elif config["optimization"]["monte_carlo"]["type"]["value"] == 2:
-            component_set = self.data.monte_carlo_specs["type"]
+            component_set = list(set(self.data.monte_carlo_specs["type"]))
         add_values_to_summary(summary_path, component_set=component_set)
 
     def scale_model(self):
