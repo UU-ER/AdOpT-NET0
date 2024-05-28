@@ -12,6 +12,16 @@ class ModelComponent:
         """
         Initializes component class
 
+        Attributes include:
+
+        - parameters: unfitted parameters from json files
+        - options: component options that are unrelated to the performance of the
+          component
+        - info: component infos, such as carriers, model to use etc.
+        - bounds: (for technologies only) containing bounds on input and output
+         variables that are calculated in technology subclasses
+         - coeff: fitted coefficients
+
         :param dict data: technology/network data
         """
         self.name = data["name"]

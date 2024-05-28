@@ -18,3 +18,4 @@ scandir==1.10.0
 tables==3.9.2
 pre-commit==3.7.0
 black==24.4.0
+tsam==2.3.1
