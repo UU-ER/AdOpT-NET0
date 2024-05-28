@@ -11,30 +11,17 @@ from src.result_management.read_results import add_values_to_summary
 # Todo: logging
 # Todo: make template main file
 
-path = "C:/Users/6145795/Documents/Projects/PyHub/DocumentationTests"
-# dp.create_optimization_templates(path)
-# dp.create_input_data_folder_template(path)
-
-dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-dp.load_climate_data_from_api(path)
-
-pyhub = EnergyHub()
-pyhub.read_data(path, start_period=0, end_period=3)
-pyhub.quick_solve()
-# pyhub.construct_balances()
-# pyhub.solve()
-
-# add_values_to_summary('C:/EHubversions/EHUB-Py/userData/Summary.xlsx')
-
-# dm.create_optimization_templates(path)
-# dm.create_input_data_folder_template(path)
-# data = dm.DataHandle(path)
-
-# print(data.model_config)
-
-# energyhub = EnergyHub(data)
-# energyhub.quick_solve()
+# path = "C:/Users/6145795/Documents/Projects/PyHub/DocumentationTests"
+# # dp.create_optimization_templates(path)
+# # dp.create_input_data_folder_template(path)
+#
+# dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
+# dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
+# dp.load_climate_data_from_api(path)
+#
+# pyhub = EnergyHub()
+# pyhub.read_data(path, start_period=0, end_period=3)
+# pyhub.quick_solve()
 
 
 path = "Z:/PyHub_data/TEST"
