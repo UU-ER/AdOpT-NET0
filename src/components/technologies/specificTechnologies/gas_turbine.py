@@ -1,11 +1,8 @@
-from pyomo.environ import *
-from pyomo.gdp import *
+import pyomo.environ as pyo
+import pyomo.gdp as gdp
 import copy
-from warnings import warn
-import pandas as pd
 import numpy as np
-from pathlib import Path
-from scipy.interpolate import griddata
+import pandas as pd
 
 from ..utilities import FittedPerformance, fit_piecewise_function
 from ..technology import Technology
@@ -79,13 +76,18 @@ class GasTurbine(Technology):
          \sum(Input_{t, car}) = 0
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
+        """
+        Constructor
+
+        :param dict tec_data: technology data
+        """
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
         self.main_car = self.performance_data["main_input_carrier"]
 
-    def fit_technology_performance(self, climate_data, location):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Performs fitting for technology type GasTurbine
 
@@ -186,7 +188,7 @@ class GasTurbine(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for gas turbines
 
@@ -225,12 +227,12 @@ class GasTurbine(Technology):
                 car = "hydrogen"
             return tuple(bounds["input"][car][t - 1, :] * size_max)
 
-        b_tec.var_total_input = Var(
-            self.set_t, within=NonNegativeReals, bounds=init_input_bounds
+        b_tec.var_total_input = pyo.Var(
+            self.set_t, within=pyo.NonNegativeReals, bounds=init_input_bounds
         )
 
-        b_tec.var_units_on = Var(
-            self.set_t, within=NonNegativeIntegers, bounds=(0, size_max)
+        b_tec.var_units_on = pyo.Var(
+            self.set_t, within=pyo.NonNegativeIntegers, bounds=(0, size_max)
         )
 
         # Calculate total input
@@ -239,7 +241,7 @@ class GasTurbine(Technology):
                 self.input[t, car_input] for car_input in b_tec.set_input_carriers
             )
 
-        b_tec.const_total_input = Constraint(self.set_t, rule=init_total_input)
+        b_tec.const_total_input = pyo.Constraint(self.set_t, rule=init_total_input)
 
         # Constrain hydrogen input
         if len(performance_data["input_carrier"]) == 2:
@@ -250,7 +252,7 @@ class GasTurbine(Technology):
                     <= b_tec.var_total_input[t] * max_H2_admixture
                 )
 
-            b_tec.const_h2_input = Constraint(self.set_t, rule=init_h2_input)
+            b_tec.const_h2_input = pyo.Constraint(self.set_t, rule=init_h2_input)
 
         # LINEAR, MINIMAL PARTLOAD
         s_indicators = range(0, 2)
@@ -261,14 +263,14 @@ class GasTurbine(Technology):
                 def init_input_off(const, car):
                     return self.input[t, car] == 0
 
-                dis.const_input = Constraint(
+                dis.const_input = pyo.Constraint(
                     b_tec.set_input_carriers, rule=init_input_off
                 )
 
                 def init_output_off(const, car):
                     return self.output[t, car] == 0
 
-                dis.const_output_off = Constraint(
+                dis.const_output_off = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_off
                 )
 
@@ -284,7 +286,9 @@ class GasTurbine(Technology):
                         * f[t - 1]
                     )
 
-                dis.const_input_output_on_el = Constraint(rule=init_input_output_on_el)
+                dis.const_input_output_on_el = pyo.Constraint(
+                    rule=init_input_output_on_el
+                )
 
                 def init_input_output_on_th(const):
                     return (
@@ -293,20 +297,22 @@ class GasTurbine(Technology):
                         - self.output[t, "electricity"]
                     )
 
-                dis.const_input_output_on_th = Constraint(rule=init_input_output_on_th)
+                dis.const_input_output_on_th = pyo.Constraint(
+                    rule=init_input_output_on_th
+                )
 
                 # min part load relation
                 def init_min_input(const):
                     return b_tec.var_total_input[t] >= in_min * b_tec.var_units_on[t]
 
-                dis.const_min_input = Constraint(rule=init_min_input)
+                dis.const_min_input = pyo.Constraint(rule=init_min_input)
 
                 def init_max_input(const):
                     return b_tec.var_total_input[t] <= in_max * b_tec.var_units_on[t]
 
-                dis.const_max_input = Constraint(rule=init_max_input)
+                dis.const_max_input = pyo.Constraint(rule=init_max_input)
 
-        b_tec.dis_input_output = Disjunct(
+        b_tec.dis_input_output = gdp.Disjunct(
             self.set_t, s_indicators, rule=init_input_output
         )
 
@@ -314,13 +320,15 @@ class GasTurbine(Technology):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
-        b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = gdp.Disjunction(
+            self.set_t, rule=bind_disjunctions
+        )
 
         # Technologies on
         def init_n_on(const, t):
             return b_tec.var_units_on[t] <= b_tec.var_size
 
-        b_tec.const_n_on = Constraint(self.set_t, rule=init_n_on)
+        b_tec.const_n_on = pyo.Constraint(self.set_t, rule=init_n_on)
 
         # RAMPING RATES
         if "ramping_time" in self.performance_data:
@@ -371,7 +379,7 @@ class GasTurbine(Technology):
             def init_ramping_operation_on(dis, t, ind):
                 if t > 1:
                     if ind == 0:  # ramping constrained
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 0
                         )
 
@@ -381,7 +389,7 @@ class GasTurbine(Technology):
                                 for car_input in b_tec.set_input_carriers
                             )
 
-                        dis.const_ramping_down_rate = Constraint(
+                        dis.const_ramping_down_rate = pyo.Constraint(
                             rule=init_ramping_down_rate_operation
                         )
 
@@ -395,21 +403,21 @@ class GasTurbine(Technology):
                                 <= ramping_rate
                             )
 
-                        dis.const_ramping_up_rate = Constraint(
+                        dis.const_ramping_up_rate = pyo.Constraint(
                             rule=init_ramping_up_rate_operation
                         )
 
                     elif ind == 1:  # startup, no ramping constraint
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 1
                         )
 
                     else:  # shutdown, no ramping constraint
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == -1
                         )
 
-            b_tec.dis_ramping_operation_on = Disjunct(
+            b_tec.dis_ramping_operation_on = gdp.Disjunct(
                 self.set_t, s_indicators, rule=init_ramping_operation_on
             )
 
@@ -417,7 +425,7 @@ class GasTurbine(Technology):
             def bind_disjunctions(dis, t):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
-            b_tec.disjunction_ramping_operation_on = Disjunction(
+            b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
                 self.set_t, rule=bind_disjunctions
             )
 
@@ -430,9 +438,9 @@ class GasTurbine(Technology):
                         for car_input in b_tec.set_input_carriers
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_down_rate = Constraint(
+            b_tec.const_ramping_down_rate = pyo.Constraint(
                 self.set_t, rule=init_ramping_down_rate
             )
 
@@ -446,9 +454,9 @@ class GasTurbine(Technology):
                         <= ramping_rate
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_up_rate = Constraint(
+            b_tec.const_ramping_up_rate = pyo.Constraint(
                 self.set_t, rule=init_ramping_up_rate
             )
 

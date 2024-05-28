@@ -1,12 +1,9 @@
-from pyomo.environ import *
-from pyomo.gdp import *
+import pyomo.environ as pyo
+import pyomo.gdp as gdp
 import copy
-from warnings import warn
-import pandas as pd
 import numpy as np
-from pathlib import Path
-from scipy.interpolate import griddata
 import statsmodels.api as sm
+import pandas as pd
 
 from ..utilities import FittedPerformance, fit_piecewise_function, fit_linear_function
 from ..technology import Technology
@@ -32,13 +29,18 @@ class HeatPump(Technology):
     time-dependent performance parameter).
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
+        """
+        Constructor
+
+        :param dict tec_data: technology data
+        """
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance(tec_data)
         self.main_car = self.performance_data["main_input_carrier"]
 
-    def fit_technology_performance(self, climate_data, location):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Performs fitting for technology type HeatPump
 
@@ -179,7 +181,7 @@ class HeatPump(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type HP (Heat Pump)
 
@@ -207,7 +209,7 @@ class HeatPump(Technology):
         def init_size_constraint(const, t):
             return self.input[t, "electricity"] <= b_tec.var_size * rated_power
 
-        b_tec.const_size = Constraint(self.set_t, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
 
         # RAMPING RATES
         if "ramping_time" in self.performance_data:
@@ -230,7 +232,7 @@ class HeatPump(Technology):
                 self.output[t, "heat"] == alpha1[t - 1] * self.input[t, "electricity"]
             )
 
-        b_tec.const_input_output = Constraint(self.set_t, rule=init_input_output)
+        b_tec.const_input_output = pyo.Constraint(self.set_t, rule=init_input_output)
 
         return b_tec
 
@@ -255,12 +257,12 @@ class HeatPump(Technology):
                 def init_input_off(const):
                     return self.input[t, "electricity"] == 0
 
-                dis.const_input = Constraint(rule=init_input_off)
+                dis.const_input = pyo.Constraint(rule=init_input_off)
 
                 def init_output_off(const):
                     return self.output[t, "heat"] == 0
 
-                dis.const_output_off = Constraint(rule=init_output_off)
+                dis.const_output_off = pyo.Constraint(rule=init_output_off)
             else:  # technology on
                 # input-output relation
                 def init_input_output_on(const):
@@ -270,7 +272,7 @@ class HeatPump(Technology):
                         + alpha2[t - 1] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_output_on = Constraint(rule=init_input_output_on)
+                dis.const_input_output_on = pyo.Constraint(rule=init_input_output_on)
 
                 # min part load relation
                 def init_min_partload(const):
@@ -279,9 +281,9 @@ class HeatPump(Technology):
                         >= min_part_load * b_tec.var_size * rated_power
                     )
 
-                dis.const_min_partload = Constraint(rule=init_min_partload)
+                dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(
+        b_tec.dis_input_output = gdp.Disjunct(
             self.set_t, s_indicators, rule=init_input_output
         )
 
@@ -289,7 +291,9 @@ class HeatPump(Technology):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
-        b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = gdp.Disjunction(
+            self.set_t, rule=bind_disjunctions
+        )
 
         return b_tec
 
@@ -314,12 +318,12 @@ class HeatPump(Technology):
                 def init_input_off(const):
                     return self.input[t, "electricity"] == 0
 
-                dis.const_input_off = Constraint(rule=init_input_off)
+                dis.const_input_off = pyo.Constraint(rule=init_input_off)
 
                 def init_output_off(const):
                     return self.output[t, "heat"] == 0
 
-                dis.const_output_off = Constraint(rule=init_output_off)
+                dis.const_output_off = pyo.Constraint(rule=init_output_off)
 
             else:  # piecewise definition
 
@@ -329,7 +333,7 @@ class HeatPump(Technology):
                         >= bp_x[t - 1, ind] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_on1 = Constraint(rule=init_input_on1)
+                dis.const_input_on1 = pyo.Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
                     return (
@@ -337,7 +341,7 @@ class HeatPump(Technology):
                         <= bp_x[t - 1, ind + 1] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_on2 = Constraint(rule=init_input_on2)
+                dis.const_input_on2 = pyo.Constraint(rule=init_input_on2)
 
                 def init_output_on(const):
                     return (
@@ -346,7 +350,7 @@ class HeatPump(Technology):
                         + alpha2[t - 1, ind - 1] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_output_on = Constraint(rule=init_output_on)
+                dis.const_input_output_on = pyo.Constraint(rule=init_output_on)
 
                 # min part load relation
                 def init_min_partload(const):
@@ -355,9 +359,9 @@ class HeatPump(Technology):
                         >= min_part_load * b_tec.var_size * rated_power
                     )
 
-                dis.const_min_partload = Constraint(rule=init_min_partload)
+                dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(
+        b_tec.dis_input_output = gdp.Disjunct(
             self.set_t, s_indicators, rule=init_input_output
         )
 
@@ -365,7 +369,9 @@ class HeatPump(Technology):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
-        b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = gdp.Disjunction(
+            self.set_t, rule=bind_disjunctions
+        )
 
         return b_tec
 
@@ -398,7 +404,7 @@ class HeatPump(Technology):
             def init_ramping_operation_on(dis, t, ind):
                 if t > 1:
                     if ind == 0:  # ramping constrained
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 0
                         )
 
@@ -408,7 +414,7 @@ class HeatPump(Technology):
                                 for car_input in b_tec.set_input_carriers
                             )
 
-                        dis.const_ramping_down_rate = Constraint(
+                        dis.const_ramping_down_rate = pyo.Constraint(
                             rule=init_ramping_down_rate_operation
                         )
 
@@ -422,21 +428,21 @@ class HeatPump(Technology):
                                 <= ramping_rate
                             )
 
-                        dis.const_ramping_up_rate = Constraint(
+                        dis.const_ramping_up_rate = pyo.Constraint(
                             rule=init_ramping_up_rate_operation
                         )
 
                     elif ind == 1:  # startup, no ramping constraint
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 1
                         )
 
                     else:  # shutdown, no ramping constraint
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == -1
                         )
 
-            b_tec.dis_ramping_operation_on = Disjunct(
+            b_tec.dis_ramping_operation_on = gdp.Disjunct(
                 self.set_t, s_indicators, rule=init_ramping_operation_on
             )
 
@@ -444,7 +450,7 @@ class HeatPump(Technology):
             def bind_disjunctions(dis, t):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
-            b_tec.disjunction_ramping_operation_on = Disjunction(
+            b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
                 self.set_t, rule=bind_disjunctions
             )
 
@@ -457,9 +463,9 @@ class HeatPump(Technology):
                         for car_input in b_tec.set_input_carriers
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_down_rate = Constraint(
+            b_tec.const_ramping_down_rate = pyo.Constraint(
                 self.set_t, rule=init_ramping_down_rate
             )
 
@@ -473,9 +479,9 @@ class HeatPump(Technology):
                         <= ramping_rate
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_up_rate = Constraint(
+            b_tec.const_ramping_up_rate = pyo.Constraint(
                 self.set_t, rule=init_ramping_up_rate
             )
 

@@ -53,7 +53,7 @@ def create_climate_data(timesteps: pd.date_range) -> pd.DataFrame:
     return climate_data
 
 
-def create_carrier_data(timesteps):
+def create_carrier_data(timesteps: pd.date_range) -> pd.DataFrame:
     """
     Creates a data frame with carrier data
 
@@ -77,7 +77,7 @@ def create_carrier_data(timesteps):
     return carrier_data
 
 
-def create_input_data_folder_template(base_path: Path | str) -> None:
+def create_input_data_folder_template(base_path: Path | str):
     """
     Creates a folder structure based on the topology contained in the folder
 
@@ -472,7 +472,7 @@ def initialize_configuration_templates() -> dict:
     return configuration_template
 
 
-def create_optimization_templates(path: Path | str) -> None:
+def create_optimization_templates(path: Path | str):
     """
     Creates an examplary topology json file in the specified path.
 

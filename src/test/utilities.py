@@ -22,7 +22,8 @@ def select_random_list_from_list(ls: list) -> list:
     Create a random list form an existing list
 
     :param list ls: list to use
-    :return list: list with random items
+    :return: list with random items
+    :rtype: list
     """
     num_items = random.randint(1, len(ls))
     return random.sample(ls, num_items)
@@ -31,28 +32,33 @@ def select_random_list_from_list(ls: list) -> list:
 def load_json(folder_path: Path) -> dict:
     """
     Loads json to a dict
+
     :param Path folder_path: folder path to save to
-    :return dict:
+    :return: dict read from folder_path
+    :rtype: dict
     """
     with open(folder_path, "r") as json_file:
         return json.load(json_file)
 
 
-def save_json(dict: dict, folder_path: Path) -> None:
+def save_json(d: dict, folder_path: Path):
     """
     Save dict to folder path as json
-    :param dict dict: dict to save
+
+    :param dict d: dict to save
     :param Path folder_path: folder path to save to
     """
     with open(folder_path, "w") as f:
-        json.dump(dict, f, indent=4)
+        json.dump(d, f, indent=4)
 
 
 def get_topology_data(folder_path: Path) -> (list, list, list):
     """
     Gets investment periods, nodes and carriers from path
+
     :param Path folder_path: folder path containing topology
     :return: tuple of lists with investment_period, nodes and carriers
+    :rtype: tuple
     """
     topology = load_json(folder_path / "Topology.json")
     investment_periods = topology["investment_periods"]
@@ -61,9 +67,9 @@ def get_topology_data(folder_path: Path) -> (list, list, list):
     return investment_periods, nodes, carriers
 
 
-def create_basic_case_study(folder_path: Path) -> None:
+def create_basic_case_study(folder_path: Path):
     """
-    Creates a basix case study with
+    Creates a basix case study and saves it to folder_path with
     - two investment periods
     - two nodes
     - one carrier
@@ -81,7 +87,15 @@ def create_basic_case_study(folder_path: Path) -> None:
     save_json(configuration, folder_path / "ConfigModel.json")
 
 
-def make_climate_data(start_date: str, nr_periods: int = 1):
+def make_climate_data(start_date: str, nr_periods: int = 1) -> pd.DataFrame:
+    """
+    Makes climate data with random values
+
+    :param start_date: str in datetime format e.g. 2022-10-03 12:00
+    :param nr_periods: how many periods to use (frequency is always 1h)
+    :return: dataframe with mock climate data
+    :rtype: pd.DataFrame
+    """
     timesteps = pd.date_range(
         start=start_date,
         periods=nr_periods,
@@ -104,7 +118,7 @@ def make_climate_data(start_date: str, nr_periods: int = 1):
 
 def read_topology_patch(self):
     """
-    Reads topology from template
+    Monkey patch topology reading
     """
     self.topology = initialize_topology_templates()
 
@@ -124,8 +138,14 @@ def read_topology_patch(self):
     )
 
 
-def make_data_for_testing(nr_timesteps):
+def make_data_for_testing(nr_timesteps: int) -> dict:
+    """
+    Makes a dict with config and topology used for testing
 
+    :param int nr_timesteps: Number of time steps
+    :return: dict with config and topology
+    :rtype: dict
+    """
     # Create DataHandle and monkey patch it
     dh = DataHandle()
     dh.start_period = 0
@@ -141,6 +161,9 @@ def make_data_for_testing(nr_timesteps):
 
 
 def _read_energybalance_options_patch(self):
+    """
+    Monkey patch energy balance options
+    """
     for investment_period in self.topology["investment_periods"]:
         self.energybalance_options[investment_period] = {}
         for node in self.topology["nodes"]:
@@ -201,6 +224,9 @@ def _read_time_series_patch(self):
 
 
 def _read_technology_data_patch(self):
+    """
+    Monkey patch read technology data
+    """
     technology_data = {}
     for investment_period in self.topology["investment_periods"]:
         technology_data[investment_period] = {}
@@ -211,13 +237,18 @@ def _read_technology_data_patch(self):
 
 
 def _read_network_data_data_patch(self):
+    """
+    Monkey patch read network data
+    """
     self.network_data["full"] = {}
     for investment_period in self.topology["investment_periods"]:
         self.network_data["full"][investment_period] = {}
 
 
 def read_input_data_patch(self):
-
+    """
+    Monkey patch read data
+    """
     self.model_config = initialize_configuration_templates()
     self._read_topology()
     self._read_time_series()
@@ -226,7 +257,7 @@ def read_input_data_patch(self):
     self._read_network_data()
 
 
-def make_data_handle(nr_timesteps, topology=None):
+def make_data_handle(nr_timesteps: int, topology=None):
     """
     Creates a patched datahandle with:
     - nr_timesteps specified
@@ -234,6 +265,10 @@ def make_data_handle(nr_timesteps, topology=None):
     - two investment periods
     - no technologies
     - no networks
+
+    :param int nr_timesteps: number of time steps used
+    :param topology: topology
+    :return: mock DataHandle for testing
     """
 
     # Create DataHandle and monkey patch it
@@ -258,9 +293,15 @@ def make_data_handle(nr_timesteps, topology=None):
     return dh
 
 
-def run_model(
-    model: ConcreteModel, solver, objective: str = "capex_tot"
-) -> TerminationCondition:
+def run_model(model, solver: str, objective: str = "capex_tot"):
+    """
+    Runs a model and returns termination condition
+
+    :param model: pyomo model
+    :param str solver: solver to used
+    :param str objective: objective to optimize
+    :return: termination condition for respective model
+    """
     if objective == "capex_tot":
         model.obj = Objective(expr=model.var_capex_tot, sense=minimize)
     elif objective == "capex":

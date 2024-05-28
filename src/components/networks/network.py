@@ -1,19 +1,17 @@
-import warnings
-
 from ..component import ModelComponent
 from ..utilities import (
     annualize,
     set_discount_rate,
-    read_dict_value,
     perform_disjunct_relaxation,
     determine_variable_scaling,
     determine_constraint_scaling,
 )
+from ...logger import log_event
 
 import pandas as pd
 import copy
-from pyomo.environ import *
-from pyomo.gdp import *
+import pyomo.environ as pyo
+import pyomo.gdp as gdp
 
 
 class Network(ModelComponent):
@@ -142,13 +140,11 @@ class Network(ModelComponent):
 
     """
 
-    def __init__(self, netw_data):
+    def __init__(self, netw_data: dict):
         """
-        Initializes technology class from network name
+        Initializes network class from network data
 
-        The network name needs to correspond to the name of a JSON file in ./data/network_data.
-
-        :param str network: name of technology to read data
+        :param dict netw_data: technology data
         """
         super().__init__(netw_data)
 
@@ -161,7 +157,7 @@ class Network(ModelComponent):
         # Technology Performance
         self.performance_data = netw_data["NetworkPerf"]
         if self.performance_data["energyconsumption"]:
-            self.calculate_energy_consumption()
+            self._calculate_energy_consumption()
 
         self.set_nodes = []
         self.set_t = []
@@ -170,75 +166,27 @@ class Network(ModelComponent):
         if "ScalingFactors" in netw_data:
             self.scaling_factors = netw_data["ScalingFactors"]
 
-    def calculate_energy_consumption(self):
-        """
-        Fits the performance parameters for a network, i.e. the consumption at each node.
-        :param obj network: Dict read from json files with performance data and options for performance fits
-        :param obj climate_data: Climate data
-        :return: dict of performance coefficients used in the model
-        """
-        # Get energy consumption at nodes form file
-        energycons = self.performance_data["energyconsumption"]
-        self.performance_data.pop("energyconsumption")
-
-        for car in energycons:
-            self.energy_consumption[car] = {}
-            if energycons[car]["cons_model"] == 1:
-                self.energy_consumption[car]["send"] = {}
-                self.energy_consumption[car]["send"] = energycons[car]
-                self.energy_consumption[car]["send"].pop("cons_model")
-                self.energy_consumption[car]["receive"] = {}
-                self.energy_consumption[car]["receive"]["k_flow"] = 0
-                self.energy_consumption[car]["receive"]["k_flowDistance"] = 0
-            elif energycons[car]["cons_model"] == 2:
-                temp = energycons[car]
-                self.energy_consumption[car]["send"] = {}
-                self.energy_consumption[car]["send"]["k_flow"] = round(
-                    temp["c"]
-                    * temp["T"]
-                    / temp["eta"]
-                    / temp["LHV"]
-                    * ((temp["p"] / 30) ** ((temp["gam"] - 1) / temp["gam"]) - 1),
-                    4,
-                )
-                self.energy_consumption[car]["send"]["k_flowDistance"] = 0
-                self.energy_consumption[car]["receive"] = {}
-                self.energy_consumption[car]["receive"]["k_flow"] = 0
-                self.energy_consumption[car]["receive"]["k_flowDistance"] = 0
-
-    def calculate_max_size_arc(self):
-        """
-        Calculates the maximum size of each arc, if not specified
-        :return:
-        """
-        if self.existing == 0:
-            if not isinstance(self.size_max_arcs, pd.DataFrame):
-                # Use max size
-                self.size_max_arcs = pd.DataFrame(
-                    self.size_max,
-                    index=self.distance.index,
-                    columns=self.distance.columns,
-                )
-        elif self.existing == 1:
-            # Use initial size
-            self.size_max_arcs = self.size_initial
-
     def construct_netw_model(
-        self, b_netw, data, set_nodes, set_t_full, set_t_clustered
+        self, b_netw, data: dict, set_nodes, set_t_full, set_t_clustered
     ):
-        r"""
+        """
         Adds a network as model block.
 
-        :param EnergyHub energyhub: instance of the energyhub
-        :return: network model
+        :param b_netw: pyomo network block
+        :param dict data: dict containing model information
+        :param set_nodes: pyomo set containing all nodes
+        :param set_t_full: pyomo set containing timesteps
+        :param set_t_clustered: pyomo set containing clustered timesteps
+        :return: pyomo block with network model
         """
-        # Data from energyhub
-        config = data["config"]
+        # LOG
+        log_event(f"\t - Constructing Network {self.name}")
 
+        # Data from energyhub
         self.set_nodes = set_nodes
         self.set_t = set_t_full
 
-        b_netw = self._define_possible_arcs(b_netw, data)
+        b_netw = self._define_possible_arcs(b_netw)
 
         if self.performance_data["bidirectional"] == 1:
             b_netw = self._define_unique_arcs(b_netw)
@@ -279,7 +227,13 @@ class Network(ModelComponent):
             if b_arc.big_m_transformation_required:
                 b_arc = perform_disjunct_relaxation(b_arc)
 
-        b_netw.arc_block = Block(b_netw.set_arcs, rule=arc_block_init)
+            # LOG
+            log_event(
+                f"\t\t - Constructing Arc {node_from} - {node_to} " f"completed",
+                print_it=False,
+            )
+
+        b_netw.arc_block = pyo.Block(b_netw.set_arcs, rule=arc_block_init)
 
         # CONSTRAINTS FOR BIDIRECTIONAL NETWORKS
         if self.performance_data["bidirectional"]:
@@ -294,14 +248,825 @@ class Network(ModelComponent):
         if self.energy_consumption:
             b_netw = self._define_energyconsumption_total(b_netw)
 
+        # LOG
+        log_event(f"\t - Constructing Network {self.name} completed", print_it=False)
+
+        return b_netw
+
+    def _define_possible_arcs(self, b_netw):
+        """
+        Define all possible arcs that have a connection
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        connection = copy.deepcopy(self.connection[:])
+
+        def init_arcs_set(set):
+            for from_node in connection:
+                for to_node in connection[from_node].index:
+                    if connection.at[from_node, to_node] == 1:
+                        yield [from_node, to_node]
+
+        b_netw.set_arcs = pyo.Set(initialize=init_arcs_set)
+
+        def init_nodesIn(set, node):
+            for i, j in b_netw.set_arcs:
+                if j == node:
+                    yield i
+
+        b_netw.set_receives_from = pyo.Set(self.set_nodes, initialize=init_nodesIn)
+
+        def init_nodesOut(set, node):
+            for i, j in b_netw.set_arcs:
+                if i == node:
+                    yield j
+
+        b_netw.set_sends_to = pyo.Set(self.set_nodes, initialize=init_nodesOut)
+
+        return b_netw
+
+    def _define_unique_arcs(self, b_netw):
+        """
+        Define arcs that are unique (one arc per direction)
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        connection = copy.deepcopy(self.connection[:])
+
+        def init_arcs_all(set):
+            for from_node in connection:
+                for to_node in connection[from_node].index:
+                    if connection.at[from_node, to_node] == 1:
+                        connection.at[to_node, from_node] = 0
+                        yield [from_node, to_node]
+
+        b_netw.set_arcs_unique = pyo.Set(initialize=init_arcs_all)
+
+        return b_netw
+
+    def _define_size(self, b_netw):
+        """
+        Defines parameters related to network size.
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        performance_data = self.performance_data
+
+        if "rated_capacity" in performance_data:
+            b_netw.para_rated_capacity = performance_data["rated_capacity"]
+        else:
+            b_netw.para_rated_capacity = 1
+
+        b_netw.para_size_min = pyo.Param(
+            domain=pyo.NonNegativeReals, initialize=self.size_min, mutable=True
+        )
+
+        if self.existing:
+            # Parameters for initial size
+            def init_size_initial(param, node_from, node_to):
+                return self.size_initial.at[node_from, node_to]
+
+            b_netw.para_size_initial = pyo.Param(
+                b_netw.set_arcs,
+                domain=pyo.NonNegativeReals,
+                initialize=init_size_initial,
+            )
+            # Check if sizes in both direction are the same for bidirectional existing networks
+            if performance_data["bidirectional"] == 1:
+                for from_node in self.size_initial:
+                    for to_node in self.size_initial[from_node].index:
+                        assert (
+                            self.size_initial.at[from_node, to_node]
+                            == self.size_initial.at[to_node, from_node]
+                        )
+        return b_netw
+
+    def _define_capex_parameters(self, b_netw, data: dict):
+        """
+        Defines variables and parameters related to technology capex.
+
+        :param b_netw: pyomo network block
+        :param dict data: dict containing model information
+        :return: pyomo network block
+        """
+
+        config = data["config"]
+        economics = self.economics
+
+        # CHECK FOR GLOBAL ECONOMIC OPTIONS
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+
+        # CAPEX
+        annualization_factor = annualize(
+            discount_rate, economics.lifetime, fraction_of_year_modelled
+        )
+
+        b_netw.para_capex_gamma1 = pyo.Param(
+            domain=pyo.Reals,
+            mutable=True,
+            initialize=economics.capex_data["gamma1"] * annualization_factor,
+        )
+        b_netw.para_capex_gamma2 = pyo.Param(
+            domain=pyo.Reals,
+            mutable=True,
+            initialize=economics.capex_data["gamma2"] * annualization_factor,
+        )
+        b_netw.para_capex_gamma3 = pyo.Param(
+            domain=pyo.Reals,
+            mutable=True,
+            initialize=economics.capex_data["gamma3"] * annualization_factor,
+        )
+        b_netw.para_capex_gamma4 = pyo.Param(
+            domain=pyo.Reals,
+            mutable=True,
+            initialize=economics.capex_data["gamma4"] * annualization_factor,
+        )
+
+        b_netw.var_capex = pyo.Var()
+
+        return b_netw
+
+    def _define_opex_parameters(self, b_netw):
+        """
+        Defines OPEX parameters (fixed and variable)
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        economics = self.economics
+
+        b_netw.para_opex_variable = pyo.Param(
+            domain=pyo.Reals, initialize=economics.opex_variable, mutable=True
+        )
+        b_netw.para_opex_fixed = pyo.Param(
+            domain=pyo.Reals, initialize=economics.opex_fixed, mutable=True
+        )
+
+        b_netw.var_opex_variable = pyo.Var(self.set_t)
+        b_netw.var_opex_fixed = pyo.Var()
+        if self.existing:
+            b_netw.para_decommissioning_cost = pyo.Param(
+                domain=pyo.Reals, initialize=economics.decommission_cost, mutable=True
+            )
+
+        return b_netw
+
+    def _define_emission_vars(self, b_netw):
+        """
+        Defines network emissions
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        b_netw.para_loss2emissions = self.performance_data["loss2emissions"]
+        b_netw.para_emissionfactor = self.performance_data["emissionfactor"]
+
+        b_netw.var_netw_emissions_pos = pyo.Var(
+            self.set_t, self.set_nodes, domain=pyo.NonNegativeReals
+        )
+
+        return b_netw
+
+    def _define_network_characteristics(self, b_netw):
+        """
+        Defines transported carrier, losses and minimum transport requirements
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        # Define set of transported carrier
+        b_netw.set_netw_carrier = pyo.Set(initialize=[self.performance_data["carrier"]])
+
+        # Network losses (in % per km and flow)
+        b_netw.para_loss_factor = self.performance_data["loss"]
+
+        # Minimal transport requirements
+        b_netw.para_min_transport = self.performance_data["min_transport"]
+
+        return b_netw
+
+    def _define_inflow_vars(self, b_netw):
+        """
+        Defines network inflow (i.e. sum of inflow to one node)
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        b_netw.var_inflow = pyo.Var(
+            self.set_t,
+            b_netw.set_netw_carrier,
+            self.set_nodes,
+            domain=pyo.NonNegativeReals,
+        )
+        return b_netw
+
+    def _define_outflow_vars(self, b_netw):
+        """
+        Defines network outflow (i.e. sum of outflow to one node)
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        b_netw.var_outflow = pyo.Var(
+            self.set_t,
+            b_netw.set_netw_carrier,
+            self.set_nodes,
+            domain=pyo.NonNegativeReals,
+        )
+        return b_netw
+
+    def _define_energyconsumption_parameters(self, b_netw):
+        """
+        Constructs constraints for network energy consumption
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        # Set of consumed carriers
+        b_netw.set_consumed_carriers = pyo.Set(
+            initialize=list(self.energy_consumption.keys())
+        )
+
+        # Parameters
+        def init_cons_send1(para, car):
+            return self.energy_consumption[car]["send"]["k_flow"]
+
+        b_netw.para_send_kflow = pyo.Param(
+            b_netw.set_consumed_carriers, domain=pyo.Reals, initialize=init_cons_send1
+        )
+
+        def init_cons_send2(para, car):
+            return self.energy_consumption[car]["send"]["k_flowDistance"]
+
+        b_netw.para_send_kflowDistance = pyo.Param(
+            b_netw.set_consumed_carriers, domain=pyo.Reals, initialize=init_cons_send2
+        )
+
+        def init_cons_receive1(para, car):
+            return self.energy_consumption[car]["receive"]["k_flow"]
+
+        b_netw.para_receive_kflow = pyo.Param(
+            b_netw.set_consumed_carriers,
+            domain=pyo.Reals,
+            initialize=init_cons_receive1,
+        )
+
+        def init_cons_receive2(para, car):
+            return self.energy_consumption[car]["receive"]["k_flowDistance"]
+
+        b_netw.para_receive_kflowDistance = pyo.Param(
+            b_netw.set_consumed_carriers,
+            domain=pyo.Reals,
+            initialize=init_cons_receive2,
+        )
+
+        # Consumption at each node
+        b_netw.var_consumption = pyo.Var(
+            self.set_t,
+            b_netw.set_consumed_carriers,
+            self.set_nodes,
+            domain=pyo.NonNegativeReals,
+        )
+
+        return b_netw
+
+    def _calculate_energy_consumption(self):
+        """
+        Fits the performance parameters for a network, i.e. the consumption at each node.
+        """
+        # Get energy consumption at nodes form file
+        energycons = self.performance_data["energyconsumption"]
+        self.performance_data.pop("energyconsumption")
+
+        for car in energycons:
+            self.energy_consumption[car] = {}
+            if energycons[car]["cons_model"] == 1:
+                self.energy_consumption[car]["send"] = {}
+                self.energy_consumption[car]["send"] = energycons[car]
+                self.energy_consumption[car]["send"].pop("cons_model")
+                self.energy_consumption[car]["receive"] = {}
+                self.energy_consumption[car]["receive"]["k_flow"] = 0
+                self.energy_consumption[car]["receive"]["k_flowDistance"] = 0
+            elif energycons[car]["cons_model"] == 2:
+                temp = energycons[car]
+                self.energy_consumption[car]["send"] = {}
+                self.energy_consumption[car]["send"]["k_flow"] = round(
+                    temp["c"]
+                    * temp["T"]
+                    / temp["eta"]
+                    / temp["LHV"]
+                    * ((temp["p"] / 30) ** ((temp["gam"] - 1) / temp["gam"]) - 1),
+                    4,
+                )
+                self.energy_consumption[car]["send"]["k_flowDistance"] = 0
+                self.energy_consumption[car]["receive"] = {}
+                self.energy_consumption[car]["receive"]["k_flow"] = 0
+                self.energy_consumption[car]["receive"]["k_flowDistance"] = 0
+
+    def _calculate_max_size_arc(self):
+        """
+        Calculates the maximum size of each arc, if not specified
+        :return:
+        """
+        if self.existing == 0:
+            if not isinstance(self.size_max_arcs, pd.DataFrame):
+                # Use max size
+                self.size_max_arcs = pd.DataFrame(
+                    self.size_max,
+                    index=self.distance.index,
+                    columns=self.distance.columns,
+                )
+        elif self.existing == 1:
+            # Use initial size
+            self.size_max_arcs = self.size_initial
+
+    def _define_size_arc(self, b_arc, b_netw, node_from, node_to):
+        """
+        Defines the size of an arc
+
+        :param b_arc: pyomo arc block
+        :param b_netw: pyomo network block
+        :param str node_from: node from which arc comes
+        :param str node_to: node to which arc goes
+        :return: pyomo arc block
+        """
+        if self.size_is_int:
+            size_domain = pyo.NonNegativeIntegers
+        else:
+            size_domain = pyo.NonNegativeReals
+
+        b_arc.para_size_max = pyo.Param(
+            domain=size_domain, initialize=self.size_max_arcs.at[node_from, node_to]
+        )
+
+        b_arc.distance = self.distance.at[node_from, node_to]
+
+        if self.existing:
+            # Existing network
+            if not self.decommission:
+                # Decommissioning not possible
+                b_arc.var_size = pyo.Param(
+                    domain=size_domain,
+                    initialize=b_netw.para_size_initial[node_from, node_to],
+                )
+            else:
+                # Decommissioning possible
+                b_arc.var_size = pyo.Var(
+                    domain=size_domain,
+                    bounds=(
+                        b_netw.para_size_min,
+                        b_netw.para_size_initial[node_from, node_to],
+                    ),
+                )
+        else:
+            # New network
+            b_arc.var_size = pyo.Var(
+                domain=size_domain, bounds=(b_netw.para_size_min, b_arc.para_size_max)
+            )
+
+        return b_arc
+
+    def _define_capex_arc(self, b_arc, b_netw, node_from, node_to):
+        """
+        Defines the capex of an arc and corresponding constraints
+
+        :param b_arc: pyomo arc block
+        :param b_netw: pyomo network block
+        :param str node_from: node from which arc comes
+        :param str node_to: node to which arc goes
+        :return: pyomo arc block
+        """
+
+        def calculate_max_capex():
+            max_capex = (
+                b_netw.para_capex_gamma1
+                + b_netw.para_capex_gamma2 * b_arc.para_size_max
+                + b_netw.para_capex_gamma3 * b_arc.distance
+                + b_netw.para_capex_gamma4 * b_arc.para_size_max * b_arc.distance
+            )
+            return (0, max_capex)
+
+        # CAPEX auxilliary (used to calculate theoretical CAPEX)
+        # For new technologies, this is equal to actual CAPEX
+        # For existing technologies it is used to calculate fixed OPEX
+        b_arc.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
+
+        def init_capex(const):
+            return (
+                b_arc.var_capex_aux
+                == b_netw.para_capex_gamma1
+                + b_netw.para_capex_gamma2 * b_arc.var_size
+                + b_netw.para_capex_gamma3 * b_arc.distance
+                + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
+            )
+
+        # CAPEX Variable
+        if self.existing and not self.decommission:
+            b_arc.var_capex = pyo.Param(domain=pyo.NonNegativeReals, initialize=0)
+        else:
+            b_arc.var_capex = pyo.Var(bounds=calculate_max_capex())
+
+        # CAPEX aux:
+        if self.existing and not self.decommission:
+            b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
+        else:
+            b_arc.big_m_transformation_required = 1
+            s_indicators = range(0, 2)
+
+            def init_installation(dis, ind):
+                if ind == 0:  # network not installed
+                    dis.const_capex_aux = pyo.Constraint(expr=b_arc.var_capex_aux == 0)
+                    dis.const_not_installed = pyo.Constraint(expr=b_arc.var_size == 0)
+                else:  # network installed
+                    dis.const_capex_aux = pyo.Constraint(rule=init_capex)
+
+            b_arc.dis_installation = gdp.Disjunct(s_indicators, rule=init_installation)
+
+            def bind_disjunctions(dis):
+                return [b_arc.dis_installation[i] for i in s_indicators]
+
+            b_arc.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
+
+        # CAPEX and CAPEX aux
+        if self.existing and self.decommission:
+            b_arc.const_capex = pyo.Constraint(
+                expr=b_arc.var_capex
+                == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size)
+                * b_netw.para_decommissioning_cost
+            )
+        elif not self.existing:
+            b_arc.const_capex = pyo.Constraint(
+                expr=b_arc.var_capex == b_arc.var_capex_aux
+            )
+
+        return b_arc
+
+    def _define_flow(self, b_arc, b_netw):
+        """
+        Defines the flow through one arc and respective losses
+
+        :param b_arc: pyomo arc block
+        :param b_netw: pyomo network block
+        :return: pyomo arc block
+        """
+
+        b_arc.var_flow = pyo.Var(
+            self.set_t,
+            domain=pyo.NonNegativeReals,
+            bounds=(
+                b_netw.para_size_min * b_netw.para_rated_capacity,
+                b_arc.para_size_max * b_netw.para_rated_capacity,
+            ),
+        )
+        b_arc.var_losses = pyo.Var(
+            self.set_t,
+            domain=pyo.NonNegativeReals,
+            bounds=(
+                b_netw.para_size_min * b_netw.para_rated_capacity,
+                b_arc.para_size_max * b_netw.para_rated_capacity,
+            ),
+        )
+
+        # Losses
+        def init_flowlosses(const, t):
+            return (
+                b_arc.var_losses[t]
+                == b_arc.var_flow[t] * b_netw.para_loss_factor * b_arc.distance
+            )
+
+        b_arc.const_flowlosses = pyo.Constraint(self.set_t, rule=init_flowlosses)
+
+        # Flow-size-constraint
+        def init_size_const_high(const, t):
+            return b_arc.var_flow[t] <= b_arc.var_size * b_netw.para_rated_capacity
+
+        b_arc.const_flow_size_high = pyo.Constraint(
+            self.set_t, rule=init_size_const_high
+        )
+
+        def init_size_const_low(const, t):
+            return (
+                b_arc.var_size * b_netw.para_rated_capacity * b_netw.para_min_transport
+                <= b_arc.var_flow[t]
+            )
+
+        b_arc.const_flow_size_low = pyo.Constraint(self.set_t, rule=init_size_const_low)
+        return b_arc
+
+    def _define_energyconsumption_arc(self, b_arc, b_netw):
+        """
+        Defines the energyconsumption for an arc
+
+        :param b_arc: pyomo arc block
+        :param b_netw: pyomo network block
+        :return: pyomo arc block
+        """
+        b_arc.var_consumption_send = pyo.Var(
+            self.set_t,
+            b_netw.set_consumed_carriers,
+            domain=pyo.NonNegativeReals,
+            bounds=(b_netw.para_size_min, b_arc.para_size_max),
+        )
+        b_arc.var_consumption_receive = pyo.Var(
+            self.set_t,
+            b_netw.set_consumed_carriers,
+            domain=pyo.NonNegativeReals,
+            bounds=(b_netw.para_size_min, b_arc.para_size_max),
+        )
+
+        # Sending node
+        def init_consumption_send(const, t, car):
+            return (
+                b_arc.var_consumption_send[t, car]
+                == b_arc.var_flow[t] * b_netw.para_send_kflow[car]
+                + b_arc.var_flow[t]
+                * b_netw.para_send_kflowDistance[car]
+                * b_arc.distance
+            )
+
+        b_arc.const_consumption_send = pyo.Constraint(
+            self.set_t, b_netw.set_consumed_carriers, rule=init_consumption_send
+        )
+
+        # Receiving node
+        def init_consumption_receive(const, t, car):
+            return (
+                b_arc.var_consumption_receive[t, car]
+                == b_arc.var_flow[t] * b_netw.para_receive_kflow[car]
+                + b_arc.var_flow[t]
+                * b_netw.para_receive_kflowDistance[car]
+                * b_arc.distance
+            )
+
+        b_arc.const_consumption_receive = pyo.Constraint(
+            self.set_t, b_netw.set_consumed_carriers, rule=init_consumption_receive
+        )
+
+        return b_arc
+
+    def _define_opex_arc(self, b_arc, b_netw):
+        """
+        Defines OPEX per Arc
+
+        :param b_arc: pyomo arc block
+        :param b_netw: pyomo network block
+        :return: pyomo arc block
+        """
+        b_arc.var_opex_variable = pyo.Var(self.set_t)
+
+        def init_opex_variable(const, t):
+            return (
+                b_arc.var_opex_variable[t]
+                == b_arc.var_flow[t] * b_netw.para_opex_variable
+            )
+
+        b_arc.const_opex_variable = pyo.Constraint(self.set_t, rule=init_opex_variable)
+        return b_arc
+
+    def _define_emissions_arc(self, b_arc, b_netw):
+        """
+        defines emission per arc
+
+        :param b_arc: pyomo arc block
+        :param b_netw: pyomo network block
+        :return: pyomo arc block
+        """
+        b_arc.var_emissions = pyo.Var(self.set_t)
+
+        def init_arc_emissions(const, t):
+            return (
+                b_arc.var_emissions[t]
+                == b_arc.var_flow[t] * b_netw.para_emissionfactor
+                + b_arc.var_losses[t] * b_netw.para_loss2emissions
+            )
+
+        b_arc.const_arc_emissions = pyo.Constraint(self.set_t, rule=init_arc_emissions)
+
+        return b_arc
+
+    def _define_bidirectional_constraints(self, b_netw):
+        """
+        Defines constraints necessary, in case one arc can transport in two directions.
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        # Size in both direction is the same
+        if self.decommission or not self.existing:
+
+            def init_size_bidirectional(const, node_from, node_to):
+                return (
+                    b_netw.arc_block[node_from, node_to].var_size
+                    == b_netw.arc_block[node_to, node_from].var_size
+                )
+
+            b_netw.const_size_bidirectional = pyo.Constraint(
+                b_netw.set_arcs_unique, rule=init_size_bidirectional
+            )
+
+        s_indicators = range(0, 2)
+
+        # Cut according to Germans work
+        def init_cut_bidirectional(const, t, node_from, node_to):
+            return (
+                b_netw.arc_block[node_from, node_to].var_flow[t]
+                + b_netw.arc_block[node_to, node_from].var_flow[t]
+                <= b_netw.arc_block[node_from, node_to].var_size
+            )
+
+        b_netw.const_cut_bidirectional = pyo.Constraint(
+            self.set_t, b_netw.set_arcs_unique, rule=init_cut_bidirectional
+        )
+
+        # Disjunction
+        if "bidirectional_precise" in self.performance_data:
+            if self.performance_data["bidirectional_precise"] == 1:
+                self.big_m_transformation_required = 1
+
+                def init_bidirectional(dis, t, node_from, node_to, ind):
+                    if ind == 0:
+
+                        def init_bidirectional1(const):
+                            return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
+
+                        dis.const_flow_zero = pyo.Constraint(rule=init_bidirectional1)
+
+                    else:
+
+                        def init_bidirectional2(const):
+                            return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
+
+                        dis.const_flow_zero = pyo.Constraint(rule=init_bidirectional2)
+
+                b_netw.dis_one_direction_only = gdp.Disjunct(
+                    self.set_t,
+                    b_netw.set_arcs_unique,
+                    s_indicators,
+                    rule=init_bidirectional,
+                )
+
+                # Bind disjuncts
+                def bind_disjunctions(dis, t, node_from, node_to):
+                    return [
+                        b_netw.dis_one_direction_only[t, node_from, node_to, i]
+                        for i in s_indicators
+                    ]
+
+                b_netw.disjunction_one_direction_only = gdp.Disjunction(
+                    self.set_t, b_netw.set_arcs_unique, rule=bind_disjunctions
+                )
+
+        return b_netw
+
+    def _define_capex_total(self, b_netw):
+        """
+        Defines total CAPEX of network
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        if self.performance_data["bidirectional"]:
+            arc_set = b_netw.set_arcs_unique
+        else:
+            arc_set = b_netw.set_arcs
+
+        def init_capex(const):
+            return (
+                sum(b_netw.arc_block[arc].var_capex for arc in arc_set)
+                == b_netw.var_capex
+            )
+
+        b_netw.const_capex = pyo.Constraint(rule=init_capex)
+
+        return b_netw
+
+    def _define_opex_total(self, b_netw):
+        """
+        Defines total OPEX of network
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        if self.performance_data["bidirectional"]:
+            arc_set = b_netw.set_arcs_unique
+        else:
+            arc_set = b_netw.set_arcs
+
+        def init_opex_fixed(const):
+            return (
+                b_netw.para_opex_fixed
+                * sum(b_netw.arc_block[arc].var_capex_aux for arc in arc_set)
+                == b_netw.var_opex_fixed
+            )
+
+        b_netw.const_opex_fixed = pyo.Constraint(rule=init_opex_fixed)
+
+        def init_opex_variable(const, t):
+            return (
+                sum(
+                    b_netw.arc_block[arc].var_opex_variable[t]
+                    for arc in b_netw.set_arcs
+                )
+                == b_netw.var_opex_variable[t]
+            )
+
+        b_netw.const_opex_var = pyo.Constraint(self.set_t, rule=init_opex_variable)
+        return b_netw
+
+    def _define_inflow_constraints(self, b_netw):
+        """
+        Connects the arc flows to inflow at each node
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+
+        def init_inflow(const, t, car, node):
+            return b_netw.var_inflow[t, car, node] == sum(
+                b_netw.arc_block[from_node, node].var_flow[t]
+                - b_netw.arc_block[from_node, node].var_losses[t]
+                for from_node in b_netw.set_receives_from[node]
+            )
+
+        b_netw.const_inflow = pyo.Constraint(
+            self.set_t, b_netw.set_netw_carrier, self.set_nodes, rule=init_inflow
+        )
+        return b_netw
+
+    def _define_outflow_constraints(self, b_netw):
+        """
+        Connects the arc flows to outflow at each node
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+
+        def init_outflow(const, t, car, node):
+            return b_netw.var_outflow[t, car, node] == sum(
+                b_netw.arc_block[node, to_node].var_flow[t]
+                for to_node in b_netw.set_sends_to[node]
+            )
+
+        b_netw.const_outflow = pyo.Constraint(
+            self.set_t, b_netw.set_netw_carrier, self.set_nodes, rule=init_outflow
+        )
+        return b_netw
+
+    def _define_emission_constraints(self, b_netw):
+        """
+        Defines Emissions from network
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+
+        def init_netw_emissions(const, t, node):
+            return b_netw.var_netw_emissions_pos[t, node] == sum(
+                b_netw.arc_block[from_node, node].var_emissions[t]
+                for from_node in b_netw.set_receives_from[node]
+            )
+
+        b_netw.const_netw_emissions = pyo.Constraint(
+            self.set_t, self.set_nodes, rule=init_netw_emissions
+        )
+        return b_netw
+
+    def _define_energyconsumption_total(self, b_netw):
+        """
+        Defines network consumption at each node
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+
+        def init_network_consumption(const, t, car, node):
+            return b_netw.var_consumption[t, car, node] == sum(
+                b_netw.arc_block[node, to_node].var_consumption_send[t, car]
+                for to_node in b_netw.set_sends_to[node]
+            ) + sum(
+                b_netw.arc_block[from_node, node].var_consumption_receive[t, car]
+                for from_node in b_netw.set_receives_from[node]
+            )
+
+        b_netw.const_netw_consumption = pyo.Constraint(
+            self.set_t,
+            b_netw.set_consumed_carriers,
+            self.set_nodes,
+            rule=init_network_consumption,
+        )
+
         return b_netw
 
     def write_results_netw_design(self, h5_group, model_block):
         """
-        Function to report results of networks after optimization
+        Function to report network design
 
-        :param model_block: network model block
-        :return: dict results: holds results
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
         """
 
         for arc_name in model_block.set_arcs:
@@ -334,7 +1099,12 @@ class Network(ModelComponent):
             arc_group.create_dataset("total_emissions", data=total_emissions)
 
     def write_results_netw_operation(self, h5_group, model_block):
+        """
+        Function to report network operation
 
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
+        """
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
             str = "".join(arc_name)
@@ -364,9 +1134,14 @@ class Network(ModelComponent):
                         ],
                     )
 
-    def scale_model(self, b_netw, model, config):
+    def scale_model(self, b_netw, model, config: dict):
         """
-        Scales technology model
+        Scales network model
+
+        :param b_netw: pyomo network block
+        :param model: pyomo model
+        :param dict config: config dict containing scaling factors
+        :return: pyomo model
         """
 
         f = self.scaling_factors
@@ -382,712 +1157,3 @@ class Network(ModelComponent):
             model = determine_constraint_scaling(model, b_arc, f, f_global)
 
         return model
-
-    def _define_possible_arcs(self, b_netw, data):
-        """
-        Define all possible arcs that have a connection
-
-        Sets defined:
-        - set_arcs: Set of all arcs having a connection
-        - set_receives_from: Set of nodes for each node specifying receiving from nodes
-        - set_sends_to: Set of nodes for each node specifying sending to nodes
-        """
-        connection = copy.deepcopy(self.connection[:])
-
-        def init_arcs_set(set):
-            for from_node in connection:
-                for to_node in connection[from_node].index:
-                    if connection.at[from_node, to_node] == 1:
-                        yield [from_node, to_node]
-
-        b_netw.set_arcs = Set(initialize=init_arcs_set)
-
-        def init_nodesIn(set, node):
-            for i, j in b_netw.set_arcs:
-                if j == node:
-                    yield i
-
-        b_netw.set_receives_from = Set(self.set_nodes, initialize=init_nodesIn)
-
-        def init_nodesOut(set, node):
-            for i, j in b_netw.set_arcs:
-                if i == node:
-                    yield j
-
-        b_netw.set_sends_to = Set(self.set_nodes, initialize=init_nodesOut)
-
-        return b_netw
-
-    def _define_unique_arcs(self, b_netw):
-        """
-        Define arcs that are unique (one arc per direction)
-        """
-        connection = copy.deepcopy(self.connection[:])
-
-        def init_arcs_all(set):
-            for from_node in connection:
-                for to_node in connection[from_node].index:
-                    if connection.at[from_node, to_node] == 1:
-                        connection.at[to_node, from_node] = 0
-                        yield [from_node, to_node]
-
-        b_netw.set_arcs_unique = Set(initialize=init_arcs_all)
-
-        return b_netw
-
-    def _define_size(self, b_netw):
-        """
-        Defines parameters related to network size.
-
-        Parameters defined:
-        - size min
-        - size max
-        - size initial (for existing technologies)
-        """
-        performance_data = self.performance_data
-
-        if "rated_capacity" in performance_data:
-            b_netw.para_rated_capacity = performance_data["rated_capacity"]
-        else:
-            b_netw.para_rated_capacity = 1
-
-        b_netw.para_size_min = Param(
-            domain=NonNegativeReals, initialize=self.size_min, mutable=True
-        )
-
-        if self.existing:
-            # Parameters for initial size
-            def init_size_initial(param, node_from, node_to):
-                return self.size_initial.at[node_from, node_to]
-
-            b_netw.para_size_initial = Param(
-                b_netw.set_arcs, domain=NonNegativeReals, initialize=init_size_initial
-            )
-            # Check if sizes in both direction are the same for bidirectional existing networks
-            if performance_data["bidirectional"] == 1:
-                for from_node in self.size_initial:
-                    for to_node in self.size_initial[from_node].index:
-                        assert (
-                            self.size_initial.at[from_node, to_node]
-                            == self.size_initial.at[to_node, from_node]
-                        )
-        return b_netw
-
-    def _define_capex_parameters(self, b_netw, data):
-        """
-        Defines variables and parameters related to technology capex.
-
-        Parameters defined:
-        - unit capex
-
-        Variables defined:
-        - total capex for network
-        """
-
-        config = data["config"]
-        economics = self.economics
-
-        # CHECK FOR GLOBAL ECONOMIC OPTIONS
-        discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
-
-        # CAPEX
-        annualization_factor = annualize(
-            discount_rate, economics.lifetime, fraction_of_year_modelled
-        )
-
-        b_netw.para_capex_gamma1 = Param(
-            domain=Reals,
-            mutable=True,
-            initialize=economics.capex_data["gamma1"] * annualization_factor,
-        )
-        b_netw.para_capex_gamma2 = Param(
-            domain=Reals,
-            mutable=True,
-            initialize=economics.capex_data["gamma2"] * annualization_factor,
-        )
-        b_netw.para_capex_gamma3 = Param(
-            domain=Reals,
-            mutable=True,
-            initialize=economics.capex_data["gamma3"] * annualization_factor,
-        )
-        b_netw.para_capex_gamma4 = Param(
-            domain=Reals,
-            mutable=True,
-            initialize=economics.capex_data["gamma4"] * annualization_factor,
-        )
-
-        b_netw.var_capex = Var()
-
-        return b_netw
-
-    def _define_opex_parameters(self, b_netw):
-        """
-        Defines OPEX parameters (fixed and variable)
-
-        Parameters defined:
-        - variable OPEX
-        - fixed OPEX
-
-        Variables defined:
-        - variable OPEX for network
-        - fixed OPEX for network
-        """
-        economics = self.economics
-
-        b_netw.para_opex_variable = Param(
-            domain=Reals, initialize=economics.opex_variable, mutable=True
-        )
-        b_netw.para_opex_fixed = Param(
-            domain=Reals, initialize=economics.opex_fixed, mutable=True
-        )
-
-        b_netw.var_opex_variable = Var(self.set_t)
-        b_netw.var_opex_fixed = Var()
-        if self.existing:
-            b_netw.para_decommissioning_cost = Param(
-                domain=Reals, initialize=economics.decommission_cost, mutable=True
-            )
-
-        return b_netw
-
-    def _define_emission_vars(self, b_netw):
-        """
-        Defines network emissions
-
-        Parameters defined:
-        - loss2emissions
-        - emissionfactor
-        """
-        b_netw.para_loss2emissions = self.performance_data["loss2emissions"]
-        b_netw.para_emissionfactor = self.performance_data["emissionfactor"]
-
-        b_netw.var_netw_emissions_pos = Var(
-            self.set_t, self.set_nodes, domain=NonNegativeReals
-        )
-
-        return b_netw
-
-    def _define_network_characteristics(self, b_netw):
-        """
-        Defines transported carrier, losses and minimum transport requirements
-
-        Sets defined:
-        - carriers transported
-
-        Parameters defined:
-        - loss factor
-        - minimal transport requirements
-        """
-        # Define set of transported carrier
-        b_netw.set_netw_carrier = Set(initialize=[self.performance_data["carrier"]])
-
-        # Network losses (in % per km and flow)
-        b_netw.para_loss_factor = self.performance_data["loss"]
-
-        # Minimal transport requirements
-        b_netw.para_min_transport = self.performance_data["min_transport"]
-
-        return b_netw
-
-    def _define_inflow_vars(self, b_netw):
-        """
-        Defines network inflow (i.e. sum of inflow to one node)
-        """
-        b_netw.var_inflow = Var(
-            self.set_t, b_netw.set_netw_carrier, self.set_nodes, domain=NonNegativeReals
-        )
-        return b_netw
-
-    def _define_outflow_vars(self, b_netw):
-        """
-        Defines network outflow (i.e. sum of outflow to one node)
-        """
-        b_netw.var_outflow = Var(
-            self.set_t, b_netw.set_netw_carrier, self.set_nodes, domain=NonNegativeReals
-        )
-        return b_netw
-
-    def _define_energyconsumption_parameters(self, b_netw):
-        """
-        Constructs constraints for network energy consumption
-        """
-        # Set of consumed carriers
-        b_netw.set_consumed_carriers = Set(
-            initialize=list(self.energy_consumption.keys())
-        )
-
-        # Parameters
-        def init_cons_send1(para, car):
-            return self.energy_consumption[car]["send"]["k_flow"]
-
-        b_netw.para_send_kflow = Param(
-            b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send1
-        )
-
-        def init_cons_send2(para, car):
-            return self.energy_consumption[car]["send"]["k_flowDistance"]
-
-        b_netw.para_send_kflowDistance = Param(
-            b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_send2
-        )
-
-        def init_cons_receive1(para, car):
-            return self.energy_consumption[car]["receive"]["k_flow"]
-
-        b_netw.para_receive_kflow = Param(
-            b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive1
-        )
-
-        def init_cons_receive2(para, car):
-            return self.energy_consumption[car]["receive"]["k_flowDistance"]
-
-        b_netw.para_receive_kflowDistance = Param(
-            b_netw.set_consumed_carriers, domain=Reals, initialize=init_cons_receive2
-        )
-
-        # Consumption at each node
-        b_netw.var_consumption = Var(
-            self.set_t,
-            b_netw.set_consumed_carriers,
-            self.set_nodes,
-            domain=NonNegativeReals,
-        )
-
-        return b_netw
-
-    def _define_size_arc(self, b_arc, b_netw, node_from, node_to):
-        """
-        Defines the size of an arc
-
-        Variables defined:
-        - var_size for each arc
-        """
-        if self.size_is_int:
-            size_domain = NonNegativeIntegers
-        else:
-            size_domain = NonNegativeReals
-
-        b_arc.para_size_max = Param(
-            domain=size_domain, initialize=self.size_max_arcs.at[node_from, node_to]
-        )
-
-        b_arc.distance = self.distance.at[node_from, node_to]
-
-        if self.existing:
-            # Existing network
-            if not self.decommission:
-                # Decommissioning not possible
-                b_arc.var_size = Param(
-                    domain=size_domain,
-                    initialize=b_netw.para_size_initial[node_from, node_to],
-                )
-            else:
-                # Decommissioning possible
-                b_arc.var_size = Var(
-                    domain=size_domain,
-                    bounds=(
-                        b_netw.para_size_min,
-                        b_netw.para_size_initial[node_from, node_to],
-                    ),
-                )
-        else:
-            # New network
-            b_arc.var_size = Var(
-                domain=size_domain, bounds=(b_netw.para_size_min, b_arc.para_size_max)
-            )
-
-        return b_arc
-
-    def _define_capex_arc(self, b_arc, b_netw, node_from, node_to):
-        """
-        Defines the capex of an arc and corresponding constraints
-
-        Variables defined:
-        - var_capex for each arc
-        """
-
-        def calculate_max_capex():
-            max_capex = (
-                b_netw.para_capex_gamma1
-                + b_netw.para_capex_gamma2 * b_arc.para_size_max
-                + b_netw.para_capex_gamma3 * b_arc.distance
-                + b_netw.para_capex_gamma4 * b_arc.para_size_max * b_arc.distance
-            )
-            return (0, max_capex)
-
-        # CAPEX auxilliary (used to calculate theoretical CAPEX)
-        # For new technologies, this is equal to actual CAPEX
-        # For existing technologies it is used to calculate fixed OPEX
-        b_arc.var_capex_aux = Var(bounds=calculate_max_capex())
-
-        def init_capex(const):
-            return (
-                b_arc.var_capex_aux
-                == b_netw.para_capex_gamma1
-                + b_netw.para_capex_gamma2 * b_arc.var_size
-                + b_netw.para_capex_gamma3 * b_arc.distance
-                + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
-            )
-
-        # CAPEX Variable
-        if self.existing and not self.decommission:
-            b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
-        else:
-            b_arc.var_capex = Var(bounds=calculate_max_capex())
-
-        # CAPEX aux:
-        if self.existing and not self.decommission:
-            b_arc.const_capex_aux = Constraint(rule=init_capex)
-        else:
-            b_arc.big_m_transformation_required = 1
-            s_indicators = range(0, 2)
-
-            def init_installation(dis, ind):
-                if ind == 0:  # network not installed
-                    dis.const_capex_aux = Constraint(expr=b_arc.var_capex_aux == 0)
-                    dis.const_not_installed = Constraint(expr=b_arc.var_size == 0)
-                else:  # network installed
-                    dis.const_capex_aux = Constraint(rule=init_capex)
-
-            b_arc.dis_installation = Disjunct(s_indicators, rule=init_installation)
-
-            def bind_disjunctions(dis):
-                return [b_arc.dis_installation[i] for i in s_indicators]
-
-            b_arc.disjunction_installation = Disjunction(rule=bind_disjunctions)
-
-        # CAPEX and CAPEX aux
-        if self.existing and self.decommission:
-            b_arc.const_capex = Constraint(
-                expr=b_arc.var_capex
-                == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size)
-                * b_netw.para_decommissioning_cost
-            )
-        elif not self.existing:
-            b_arc.const_capex = Constraint(expr=b_arc.var_capex == b_arc.var_capex_aux)
-
-        return b_arc
-
-    def _define_flow(self, b_arc, b_netw):
-        """
-        Defines the flow through one arc and respective losses
-        """
-
-        b_arc.var_flow = Var(
-            self.set_t,
-            domain=NonNegativeReals,
-            bounds=(
-                b_netw.para_size_min * b_netw.para_rated_capacity,
-                b_arc.para_size_max * b_netw.para_rated_capacity,
-            ),
-        )
-        b_arc.var_losses = Var(
-            self.set_t,
-            domain=NonNegativeReals,
-            bounds=(
-                b_netw.para_size_min * b_netw.para_rated_capacity,
-                b_arc.para_size_max * b_netw.para_rated_capacity,
-            ),
-        )
-
-        # Losses
-        def init_flowlosses(const, t):
-            return (
-                b_arc.var_losses[t]
-                == b_arc.var_flow[t] * b_netw.para_loss_factor * b_arc.distance
-            )
-
-        b_arc.const_flowlosses = Constraint(self.set_t, rule=init_flowlosses)
-
-        # Flow-size-constraint
-        def init_size_const_high(const, t):
-            return b_arc.var_flow[t] <= b_arc.var_size * b_netw.para_rated_capacity
-
-        b_arc.const_flow_size_high = Constraint(self.set_t, rule=init_size_const_high)
-
-        def init_size_const_low(const, t):
-            return (
-                b_arc.var_size * b_netw.para_rated_capacity * b_netw.para_min_transport
-                <= b_arc.var_flow[t]
-            )
-
-        b_arc.const_flow_size_low = Constraint(self.set_t, rule=init_size_const_low)
-        return b_arc
-
-    def _define_energyconsumption_arc(self, b_arc, b_netw):
-        """
-        Defines the energyconsumption for an arc
-        """
-        b_arc.var_consumption_send = Var(
-            self.set_t,
-            b_netw.set_consumed_carriers,
-            domain=NonNegativeReals,
-            bounds=(b_netw.para_size_min, b_arc.para_size_max),
-        )
-        b_arc.var_consumption_receive = Var(
-            self.set_t,
-            b_netw.set_consumed_carriers,
-            domain=NonNegativeReals,
-            bounds=(b_netw.para_size_min, b_arc.para_size_max),
-        )
-
-        # Sending node
-        def init_consumption_send(const, t, car):
-            return (
-                b_arc.var_consumption_send[t, car]
-                == b_arc.var_flow[t] * b_netw.para_send_kflow[car]
-                + b_arc.var_flow[t]
-                * b_netw.para_send_kflowDistance[car]
-                * b_arc.distance
-            )
-
-        b_arc.const_consumption_send = Constraint(
-            self.set_t, b_netw.set_consumed_carriers, rule=init_consumption_send
-        )
-
-        # Receiving node
-        def init_consumption_receive(const, t, car):
-            return (
-                b_arc.var_consumption_receive[t, car]
-                == b_arc.var_flow[t] * b_netw.para_receive_kflow[car]
-                + b_arc.var_flow[t]
-                * b_netw.para_receive_kflowDistance[car]
-                * b_arc.distance
-            )
-
-        b_arc.const_consumption_receive = Constraint(
-            self.set_t, b_netw.set_consumed_carriers, rule=init_consumption_receive
-        )
-
-        return b_arc
-
-    def _define_opex_arc(self, b_arc, b_netw):
-        """
-        Defines OPEX per Arc
-        """
-        b_arc.var_opex_variable = Var(self.set_t)
-
-        def init_opex_variable(const, t):
-            return (
-                b_arc.var_opex_variable[t]
-                == b_arc.var_flow[t] * b_netw.para_opex_variable
-            )
-
-        b_arc.const_opex_variable = Constraint(self.set_t, rule=init_opex_variable)
-        return b_arc
-
-    def _define_emissions_arc(self, b_arc, b_netw):
-        """
-        defines emission per arc
-        """
-        b_arc.var_emissions = Var(self.set_t)
-
-        def init_arc_emissions(const, t):
-            return (
-                b_arc.var_emissions[t]
-                == b_arc.var_flow[t] * b_netw.para_emissionfactor
-                + b_arc.var_losses[t] * b_netw.para_loss2emissions
-            )
-
-        b_arc.const_arc_emissions = Constraint(self.set_t, rule=init_arc_emissions)
-
-        return b_arc
-
-    def _define_bidirectional_constraints(self, b_netw):
-        """
-        Defines constraints necessary, in case one arc can transport in two directions.
-
-        I.e.:
-        - size is equal in both directions
-        - One directional flow possible only
-        """
-        # Size in both direction is the same
-        if self.decommission or not self.existing:
-
-            def init_size_bidirectional(const, node_from, node_to):
-                return (
-                    b_netw.arc_block[node_from, node_to].var_size
-                    == b_netw.arc_block[node_to, node_from].var_size
-                )
-
-            b_netw.const_size_bidirectional = Constraint(
-                b_netw.set_arcs_unique, rule=init_size_bidirectional
-            )
-
-        s_indicators = range(0, 2)
-
-        # Cut according to Germans work
-        def init_cut_bidirectional(const, t, node_from, node_to):
-            return (
-                b_netw.arc_block[node_from, node_to].var_flow[t]
-                + b_netw.arc_block[node_to, node_from].var_flow[t]
-                <= b_netw.arc_block[node_from, node_to].var_size
-            )
-
-        b_netw.const_cut_bidirectional = Constraint(
-            self.set_t, b_netw.set_arcs_unique, rule=init_cut_bidirectional
-        )
-
-        # Disjunction
-        if "bidirectional_precise" in self.performance_data:
-            if self.performance_data["bidirectional_precise"] == 1:
-                self.big_m_transformation_required = 1
-
-                def init_bidirectional(dis, t, node_from, node_to, ind):
-                    if ind == 0:
-
-                        def init_bidirectional1(const):
-                            return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
-
-                        dis.const_flow_zero = Constraint(rule=init_bidirectional1)
-
-                    else:
-
-                        def init_bidirectional2(const):
-                            return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
-
-                        dis.const_flow_zero = Constraint(rule=init_bidirectional2)
-
-                b_netw.dis_one_direction_only = Disjunct(
-                    self.set_t,
-                    b_netw.set_arcs_unique,
-                    s_indicators,
-                    rule=init_bidirectional,
-                )
-
-                # Bind disjuncts
-                def bind_disjunctions(dis, t, node_from, node_to):
-                    return [
-                        b_netw.dis_one_direction_only[t, node_from, node_to, i]
-                        for i in s_indicators
-                    ]
-
-                b_netw.disjunction_one_direction_only = Disjunction(
-                    self.set_t, b_netw.set_arcs_unique, rule=bind_disjunctions
-                )
-
-        return b_netw
-
-    def _define_capex_total(self, b_netw):
-        """
-        Defines total CAPEX of network
-        """
-        if self.performance_data["bidirectional"]:
-            arc_set = b_netw.set_arcs_unique
-        else:
-            arc_set = b_netw.set_arcs
-
-        def init_capex(const):
-            return (
-                sum(b_netw.arc_block[arc].var_capex for arc in arc_set)
-                == b_netw.var_capex
-            )
-
-        b_netw.const_capex = Constraint(rule=init_capex)
-
-        return b_netw
-
-    def _define_opex_total(self, b_netw):
-        """
-        Defines total OPEX of network
-        """
-        if self.performance_data["bidirectional"]:
-            arc_set = b_netw.set_arcs_unique
-        else:
-            arc_set = b_netw.set_arcs
-
-        def init_opex_fixed(const):
-            return (
-                b_netw.para_opex_fixed
-                * sum(b_netw.arc_block[arc].var_capex_aux for arc in arc_set)
-                == b_netw.var_opex_fixed
-            )
-
-        b_netw.const_opex_fixed = Constraint(rule=init_opex_fixed)
-
-        def init_opex_variable(const, t):
-            return (
-                sum(
-                    b_netw.arc_block[arc].var_opex_variable[t]
-                    for arc in b_netw.set_arcs
-                )
-                == b_netw.var_opex_variable[t]
-            )
-
-        b_netw.const_opex_var = Constraint(self.set_t, rule=init_opex_variable)
-        return b_netw
-
-    def _define_inflow_constraints(self, b_netw):
-        """
-        Connects the arc flows to inflow at each node
-        inflow = sum(arc_block(from,node).flow - arc_block(from,node).losses for from in set_node_receives_from)
-        """
-
-        def init_inflow(const, t, car, node):
-            return b_netw.var_inflow[t, car, node] == sum(
-                b_netw.arc_block[from_node, node].var_flow[t]
-                - b_netw.arc_block[from_node, node].var_losses[t]
-                for from_node in b_netw.set_receives_from[node]
-            )
-
-        b_netw.const_inflow = Constraint(
-            self.set_t, b_netw.set_netw_carrier, self.set_nodes, rule=init_inflow
-        )
-        return b_netw
-
-    def _define_outflow_constraints(self, b_netw):
-        """
-        Connects the arc flows to outflow at each node
-        outflow = sum(arc_block(node,to).flow for from in set_node_sends_to)
-        """
-
-        def init_outflow(const, t, car, node):
-            return b_netw.var_outflow[t, car, node] == sum(
-                b_netw.arc_block[node, to_node].var_flow[t]
-                for to_node in b_netw.set_sends_to[node]
-            )
-
-        b_netw.const_outflow = Constraint(
-            self.set_t, b_netw.set_netw_carrier, self.set_nodes, rule=init_outflow
-        )
-        return b_netw
-
-    def _define_emission_constraints(self, b_netw):
-        """
-        Defines Emissions from network
-        """
-
-        def init_netw_emissions(const, t, node):
-            return b_netw.var_netw_emissions_pos[t, node] == sum(
-                b_netw.arc_block[from_node, node].var_emissions[t]
-                for from_node in b_netw.set_receives_from[node]
-            )
-
-        b_netw.const_netw_emissions = Constraint(
-            self.set_t, self.set_nodes, rule=init_netw_emissions
-        )
-        return b_netw
-
-    def _define_energyconsumption_total(self, b_netw):
-        """
-        Defines network consumption at each node
-        """
-
-        def init_network_consumption(const, t, car, node):
-            return b_netw.var_consumption[t, car, node] == sum(
-                b_netw.arc_block[node, to_node].var_consumption_send[t, car]
-                for to_node in b_netw.set_sends_to[node]
-            ) + sum(
-                b_netw.arc_block[from_node, node].var_consumption_receive[t, car]
-                for from_node in b_netw.set_receives_from[node]
-            )
-
-        b_netw.const_netw_consumption = Constraint(
-            self.set_t,
-            b_netw.set_consumed_carriers,
-            self.set_nodes,
-            rule=init_network_consumption,
-        )
-
-        return b_netw
