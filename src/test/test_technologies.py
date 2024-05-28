@@ -2,15 +2,7 @@ import warnings
 
 import pytest
 from pathlib import Path
-from pyomo.environ import (
-    ConcreteModel,
-    Set,
-    Constraint,
-    Objective,
-    TerminationCondition,
-    SolverFactory,
-    minimize,
-)
+from pyomo.environ import ConcreteModel, Set, Constraint, TerminationCondition
 import json
 import numpy as np
 
@@ -28,13 +20,16 @@ def define_technology(
     load_path: Path,
     perf_type: int = None,
     CAPEX_model: int = None,
-) -> Technology:
+):
     """
     Reads technology data and fits it
 
     :param str tec_name: name of the technology.
     :param int nr_timesteps: Number of timesteps to create climate data for
-    :return Technology tec: Technology class
+    :param Path load_path: Path to load from
+    :param int perf_type: performance function type (for generic conversion tecs)
+    :param int CAPEX_model: capex model (1,2,3,4)
+    :return: Technology class
     """
     # Technology Class Creation
     with open(load_path / (tec_name + ".json")) as json_file:
@@ -64,14 +59,13 @@ def define_technology(
     return tec
 
 
-def construct_tec_model(
-    tec: Technology, nr_timesteps: int, dynamics: int = None
-) -> ConcreteModel:
+def construct_tec_model(tec, nr_timesteps: int, dynamics: int = None):
     """
     Construct a mock technology model for testing
 
     :param Technology tec: Technology object.
     :param int nr_timesteps: Number of timesteps to create climate data for
+    :param int dynamics: if dynamics should be used in mock model
     :return ConcreteModel m: Pyomo Concrete Model
     """
 
@@ -90,9 +84,15 @@ def construct_tec_model(
     return m
 
 
-def generate_output_constraint(
-    model: ConcreteModel, demand: list, output_ratios: dict = None
-) -> ConcreteModel:
+def generate_output_constraint(model, demand: list, output_ratios: dict = None):
+    """
+    Generate an output constraint of a technology model
+
+    :param model: pyomo model
+    :param list demand: list of demand values to use
+    :param output_ratios: output ratios to use
+    :return: pyomo model
+    """
 
     def init_output_constraint(const, t, car):
         if output_ratios:
@@ -115,8 +115,17 @@ def generate_output_constraint(
 
 
 def generate_output_constraint_start_timestep(
-    model: ConcreteModel, demand: float, output_ratios: dict = None
-) -> ConcreteModel:
+    model, demand: float, step: int, output_ratios: dict = None
+):
+    """
+    Generate an output constraint of a technology model for the first timestep
+
+    :param model: pyomo model
+    :param float demand: demand values to use
+    :param int step: timestep to set constraint for
+    :param output_ratios: output ratios to use
+    :return: pyomo model
+    """
 
     def init_output_constraint(const, car):
         if output_ratios:
@@ -125,11 +134,11 @@ def generate_output_constraint_start_timestep(
             else:
                 alpha = output_ratios[car]
             if isinstance(alpha, list):
-                return model.var_output_tot[1, car] >= demand * alpha[0]
+                return model.var_output_tot[step, car] >= demand * alpha[0]
             else:
-                return model.var_output_tot[1, car] == demand * alpha
+                return model.var_output_tot[step, car] == demand * alpha
         else:
-            return model.var_output_tot[1, car] == demand
+            return model.var_output_tot[step, car] == demand
 
     model.test_const_output2 = Constraint(
         model.set_output_carriers, rule=init_output_constraint
@@ -138,34 +147,15 @@ def generate_output_constraint_start_timestep(
     return model
 
 
-def generate_output_constraint_end_timestep(
-    model: ConcreteModel, demand: float, output_ratios: dict = None
-) -> ConcreteModel:
+def generate_var_x_constraint(model, var_x: list):
+    """
+    Adds constraint on var_x of a model
 
-    def init_output_constraint(const, car):
-        if output_ratios:
-            if isinstance(output_ratios.get(car), dict):
-                alpha = output_ratios[car]["alpha1"]
-            else:
-                alpha = output_ratios[car]
-            if isinstance(alpha, list):
-                return model.var_output_tot[len(model.set_t), car] >= demand * alpha[0]
-            else:
-                return model.var_output_tot[len(model.set_t), car] == demand * alpha
-        else:
-            return model.var_output_tot[len(model.set_t), car] == demand
+    :param model: pyomo model
+    :param list var_x: list of values
+    :return: pyomo model
+    """
 
-    model.test_const_output3 = Constraint(
-        model.set_output_carriers, rule=init_output_constraint
-    )
-
-    return model
-
-
-def generate_var_x_constraint(
-    model: ConcreteModel,
-    var_x: list = None,
-) -> ConcreteModel:
     def init_var_x_constraint(const, t):
         return model.var_x[t] == var_x[t - 1]
 
@@ -173,10 +163,15 @@ def generate_var_x_constraint(
     return model
 
 
-def generate_var_y_constraint(
-    model: ConcreteModel,
-    var_y: list = None,
-) -> ConcreteModel:
+def generate_var_y_constraint(model, var_y: list):
+    """
+    Adds constraint on var_y of a model
+
+    :param model: pyomo model
+    :param list var_y: list of values
+    :return: pyomo model
+    """
+
     def init_var_y_constraint(const, t):
         return model.var_y[t] == var_y[t - 1]
 
@@ -184,10 +179,15 @@ def generate_var_y_constraint(
     return model
 
 
-def generate_var_z_constraint(
-    model: ConcreteModel,
-    var_z: list = None,
-) -> ConcreteModel:
+def generate_var_z_constraint(model, var_z: list):
+    """
+    Adds constraint on var_z of a model
+
+    :param model: pyomo model
+    :param list var_z: list of values
+    :return: pyomo model
+    """
+
     def init_var_z_constraint(const, t):
         return model.var_z[t] == var_z[t - 1]
 
@@ -196,8 +196,17 @@ def generate_var_z_constraint(
 
 
 def generate_size_constraint(
-    model: ConcreteModel, size: float = None, equality_constraint: bool = False
-) -> ConcreteModel:
+    model, size: float = None, equality_constraint: bool = False
+):
+    """
+    Adds a constraint on a technology size
+
+    :param model: pyomo model
+    :param float size: value to constrain size to
+    :param equality_constraint: if True, equality constraint, otherwise less-equal
+    :return: pyomo model
+    """
+
     def init_size_constraint(const):
         if equality_constraint:
             return model.var_size == size
@@ -208,55 +217,18 @@ def generate_size_constraint(
     return model
 
 
-def run_with_first_last_step_constraint(
-    model: ConcreteModel,
-    demand: list,
-    output_ratios: dict = None,
-) -> ConcreteModel:
-    """
-    Standard test solve where output >= demand
-
-    :param ConcreteModel model: Pyomo model
-    :return TerminationCondition: Pyomo Termination Condition
-    """
-
-    def init_output_constraint(const, t, car):
-        if t == 1 or t == len(model.set_t):
-            if output_ratios:
-                if isinstance(output_ratios.get(car), dict):
-                    alpha = output_ratios[car]["alpha1"]
-                else:
-                    alpha = output_ratios[car]
-                if isinstance(alpha, list):
-                    return model.var_output_tot[t, car] >= demand[t - 1] * alpha[0]
-                else:
-                    return model.var_output_tot[t, car] == demand[t - 1] * alpha
-            else:
-                return model.var_output_tot[t, car] == demand[t - 1]
-        else:
-            return Constraint.Skip
-
-    model.test_const_output4 = Constraint(
-        model.set_t, model.set_output_carriers, rule=init_output_constraint
-    )
-
-    return model
-
-
-def calculate_piecewise_function(x, bp_x, bp_y):
+def calculate_piecewise_function(x: float, bp_x: list, bp_y: list) -> float:
     """
     Calculate the value of a piecewise function at a given point.
 
     This function evaluates a piecewise linear function at the point x,
     defined by the breakpoints (bp_x) and corresponding values (bp_y).
 
-    Args:
-        x (float): The point at which to evaluate the function.
-        bp_x (list of float): List of breakpoints defining the intervals.
-        bp_y (list of float): List of function values corresponding to the breakpoints.
-
-    Returns:
-        float: The value of the piecewise function at the given point x.
+    :param float x: The point at which to evaluate the function.
+    :param list bp_x: List of breakpoints defining the intervals.
+    :param list bp_y: List of function values corresponding to the breakpoints.
+    :return: The value of the piecewise function at the given point x
+    :rtype: float
     """
     if x <= bp_x[0]:
         return bp_y[0]
@@ -273,7 +245,7 @@ def calculate_piecewise_function(x, bp_x, bp_y):
 @pytest.mark.technologies
 def test_res_pv(request):
     """
-    tests res technology
+    tests pv technology
     """
     time_steps = 1
     technology = "TestTec_ResPhotovoltaic"
@@ -307,7 +279,7 @@ def test_res_pv(request):
 @pytest.mark.technologies
 def test_res_wt(request):
     """
-    tests res technology
+    tests wind turbine technology
     """
     time_steps = 1
     technology = "TestTec_WindTurbine"
@@ -611,7 +583,9 @@ def test_tec_storage(request):
 
 
 def test_tec_sink(request):
-
+    """
+    tests sink technology
+    """
     time_steps = 2
     technology = "TestTec_Sink"
     tec = define_technology(
@@ -807,7 +781,7 @@ def test_dynamics_slow(request):
         model = generate_var_z_constraint(model, var_z)
         model = generate_var_x_constraint(model, var_x)
         model = generate_output_constraint_start_timestep(
-            model, demand=output_start, output_ratios=output_ratios
+            model, demand=output_start, step=1, output_ratios=output_ratios
         )
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
@@ -837,7 +811,9 @@ def test_dynamics_slow(request):
 
         model = generate_var_z_constraint(model, var_z)
         model = generate_var_x_constraint(model, var_x)
-        model = generate_output_constraint_start_timestep(model, demand=output_start)
+        model = generate_output_constraint_start_timestep(
+            model, demand=output_start, step=1
+        )
         termination = run_model(model, request.config.solver)
         assert termination in [
             TerminationCondition.infeasibleOrUnbounded,
@@ -864,8 +840,11 @@ def test_dynamics_slow(request):
 
         model = generate_var_y_constraint(model, var_y)
         model = generate_var_x_constraint(model, var_x)
-        model = generate_output_constraint_end_timestep(
-            model, demand=output_start, output_ratios=output_ratios
+        model = generate_output_constraint_start_timestep(
+            model,
+            demand=output_start,
+            step=len(model.set_t),
+            output_ratios=output_ratios,
         )
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
@@ -895,7 +874,9 @@ def test_dynamics_slow(request):
 
         model = generate_var_y_constraint(model, var_y)
         model = generate_var_x_constraint(model, var_x)
-        model = generate_output_constraint_start_timestep(model, demand=output_start)
+        model = generate_output_constraint_start_timestep(
+            model, demand=output_start, step=1
+        )
         termination = run_model(model, request.config.solver)
         assert termination in [
             TerminationCondition.infeasibleOrUnbounded,
@@ -980,7 +961,7 @@ def test_hydro_open(request):
 
 def test_heat_pump(request):
     """
-    tests Open Hydro
+    tests heat pump
     """
     time_steps = 1
     technology = "TestTec_HeatPump_AirSourced"
@@ -1047,6 +1028,9 @@ def test_gasturbine(request):
 
 
 def test_ccs(request):
+    """
+    tests ccs
+    """
     time_steps = 1
     technology = "TestTec_Conv1_ccs"
     tec = define_technology(

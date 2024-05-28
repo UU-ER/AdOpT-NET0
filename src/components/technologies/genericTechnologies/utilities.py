@@ -9,11 +9,12 @@ from ..utilities import (
 )
 
 
-def fit_performance_generic_tecs(tec_data, time_steps):
+def fit_performance_generic_tecs(tec_data: dict, time_steps: int):
     """
     Fits technology performance according to performance function type
-    :param tec_data: technology data
-    :param time_steps: number of timesteps
+
+    :param dict tec_data: technology data
+    :param int time_steps: number of time steps
     :return: fitting
     """
 
@@ -49,12 +50,11 @@ class FitGenericTecTypeType1(FittedPerformance):
     out = alpha1 * in
     """
 
-    def fit_performance_function(self, performance_data):
+    def fit_performance_function(self, performance_data: dict):
         """
         Fits performance function for input-output data for type 1 technologies
 
-        :param performance_data: performance data
-        :return: coefficients
+        :param dict performance_data: performance data
         """
         x = performance_data["in"]
 
@@ -64,12 +64,12 @@ class FitGenericTecTypeType1(FittedPerformance):
             fit = fit_linear_function(x, y)
             self.coefficients[car]["alpha1"] = sig_figs(fit[0], 6)
 
-    def calculate_input_bounds(self, size_based_on, time_steps):
+    def calculate_input_bounds(self, size_based_on: str, time_steps: int):
         """
         Calculates input bounds for type 1 generic technologies
 
         :param str size_based_on: 'input' or 'output'
-        :return: input bounds
+        :param int time_steps: number of time steps
         """
         if size_based_on == "input":
             for car in self.input_carrier:
@@ -92,12 +92,12 @@ class FitGenericTecTypeType1(FittedPerformance):
         else:
             raise Exception("size_based_on must be either input or output")
 
-    def calculate_output_bounds(self, size_based_on, time_steps):
+    def calculate_output_bounds(self, size_based_on: str, time_steps: int):
         """
         Calculates output bounds for type 1 generic technologies
 
         :param str size_based_on: 'input' or 'output'
-        :return: output bounds
+        :param int time_steps: number of time steps
         """
         if size_based_on == "input":
             for car in self.output_carrier:
@@ -128,12 +128,11 @@ class FitGenericTecTypeType2(FittedPerformance):
     (out - alpha2)/alpha1
     """
 
-    def fit_performance_function(self, performance_data):
+    def fit_performance_function(self, performance_data: dict):
         """
         Fits performance function for input-output data for type 2 technologies
 
-        :param performance_data: performance data
-        :return: coefficients
+        :param dict performance_data: performance data
         """
         x = performance_data["in"]
         x = sm.add_constant(x)
@@ -145,12 +144,12 @@ class FitGenericTecTypeType2(FittedPerformance):
             self.coefficients[car]["alpha1"] = sig_figs(fit[1], 6)
             self.coefficients[car]["alpha2"] = sig_figs(fit[0], 6)
 
-    def calculate_input_bounds(self, size_based_on, time_steps):
+    def calculate_input_bounds(self, size_based_on: str, time_steps: int):
         """
         Calculates input bounds for type 1 generic technologies
 
         :param str size_based_on: 'input' or 'output'
-        :return: input bounds
+        :param int time_steps: number of time steps
         """
         if size_based_on == "input":
             for car in self.input_carrier:
@@ -172,12 +171,12 @@ class FitGenericTecTypeType2(FittedPerformance):
         else:
             raise Exception("size_based_on must be either input or output")
 
-    def calculate_output_bounds(self, size_based_on, time_steps):
+    def calculate_output_bounds(self, size_based_on: str, time_steps: int):
         """
-        Calculates output bounds for type 1 generic technologies
+        Calculates output bounds for type 2 generic technologies
 
         :param str size_based_on: 'input' or 'output'
-        :return: output bounds
+        :param int time_steps: number of time steps
         """
         if size_based_on == "input":
             for car in self.output_carrier:
@@ -208,12 +207,11 @@ class FitGenericTecTypeType34(FittedPerformance):
     out = alpha1[i] * in + alpha2
     """
 
-    def fit_performance_function(self, performance_data):
+    def fit_performance_function(self, performance_data: dict):
         """
         Fits performance function for input-output data for type 2 technologies
 
-        :param performance_data: performance data
-        :return: coefficients
+        :param dict performance_data: performance data
         """
         if "nr_segments_piecewise" in performance_data:
             nr_seg = performance_data["nr_segments_piecewise"]
@@ -223,12 +221,12 @@ class FitGenericTecTypeType34(FittedPerformance):
         y = performance_data["out"]
         self.coefficients = fit_piecewise_function(x, y, nr_seg)
 
-    def calculate_input_bounds(self, size_based_on, time_steps):
+    def calculate_input_bounds(self, size_based_on: str, time_steps: int):
         """
-        Calculates input bounds for type 1 generic technologies
+        Calculates input bounds for type 3/4 generic technologies
 
         :param str size_based_on: 'input' or 'output'
-        :return: input bounds
+        :param int time_steps: number of time steps
         """
         if size_based_on == "input":
             for car in self.input_carrier:
@@ -250,12 +248,12 @@ class FitGenericTecTypeType34(FittedPerformance):
         else:
             raise Exception("size_based_on must be either input or output")
 
-    def calculate_output_bounds(self, size_based_on, time_steps):
+    def calculate_output_bounds(self, size_based_on: str, time_steps: int):
         """
-        Calculates output bounds for type 1 generic technologies
+        Calculates output bounds for type 3/4 generic technologies
 
         :param str size_based_on: 'input' or 'output'
-        :return: output bounds
+        :param int time_steps: number of time steps
         """
         if size_based_on == "input":
             for car in self.output_carrier:

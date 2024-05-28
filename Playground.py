@@ -337,8 +337,8 @@ if execute == 1:
     model.t = RangeSet(1, 2)
 
     # We want to define a constraint 10 < input < Sx with input, S being continous, and x being a binary variable
-    model.s = Var(domain=PositiveReals, bounds=(0, 100))
-    model.input = Var(model.t, domain=PositiveReals, bounds=(0, 100))
+    model.s = Var(within=pyo.PositiveReals, bounds=(0, 100))
+    model.input = Var(model.t, within=pyo.PositiveReals, bounds=(0, 100))
     model.x = Var(domain=Binary)
 
     def on(dis, t):
@@ -382,9 +382,9 @@ if execute == 1:
 
     model.t = RangeSet(1, 2)
 
-    model.s = Var(within=NonNegativeReals, bounds=(0, 100))
-    model.input = Var(model.t, domain=PositiveReals, bounds=(0, 100))
-    model.output = Var(model.t, domain=PositiveReals, bounds=(0, 100))
+    model.s = Var(within=pyo.NonNegativeReals, bounds=(0, 100))
+    model.input = Var(model.t, within=pyo.PositiveReals, bounds=(0, 100))
+    model.output = Var(model.t, within=pyo.PositiveReals, bounds=(0, 100))
 
     # disjunct for technology off
     def calculate_input_output_off(dis, t):

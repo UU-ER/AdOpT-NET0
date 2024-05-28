@@ -1,12 +1,15 @@
 import numpy as np
-from pyomo.environ import *
+import pandas as pd
+import pyomo.environ as pyo
 
 from src.model_construction.utilities import determine_network_energy_consumption
 
 
-def determine_carriers_from_time_series(time_series):
+def determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:
     """
     Determines carriers that are used in time_series
+
+    :param pd.Dataframe time_series: Time series
     """
     carriers = []
     for car in time_series.columns.get_level_values("Carrier"):
@@ -16,9 +19,12 @@ def determine_carriers_from_time_series(time_series):
     return list(set(carriers))
 
 
-def determine_carriers_from_technologies(technology_data):
+def determine_carriers_from_technologies(technology_data: dict) -> list:
     """
     Determines carriers that are used for technologies
+
+    :param dict technology_data: Dict with technology data
+    :return: list of carriers used in technologies
     """
     carriers = []
     for tec in technology_data:
@@ -31,9 +37,12 @@ def determine_carriers_from_technologies(technology_data):
     return list(set(carriers))
 
 
-def determine_carriers_from_networks(network_data):
+def determine_carriers_from_networks(network_data) -> list:
     """
     Determines carriers that are used for networks
+
+    :param dict network_data: Dict with network data
+    :return: list of carriers used in networks
     """
     carriers = []
     for netw in network_data:
@@ -48,7 +57,7 @@ def determine_carriers_from_networks(network_data):
     return list(set(carriers))
 
 
-def construct_node_block(b_node, data, set_t):
+def construct_node_block(b_node, data: dict, set_t_full):
     r"""
     Adds all nodes with respective data to the model
 
@@ -96,8 +105,11 @@ def construct_node_block(b_node, data, set_t):
 
     - Technologies at node
 
-    :param EnergyHub energyhub: instance of the energyhub
-    :return: model
+
+    :param b_node: pyomo block with node model
+    :param dict data: data containing model configuration
+    :param set_t_full: pyomo set containing timesteps
+    :return: pyomo block with node model
     """
 
     # PREPROCESSING
@@ -115,8 +127,8 @@ def construct_node_block(b_node, data, set_t):
     carriers = list(set(carriers))
 
     # SETS
-    b_node.set_technologies = Set(initialize=list(data["technology_data"].keys()))
-    b_node.set_carriers = Set(initialize=list(set(carriers)))
+    b_node.set_technologies = pyo.Set(initialize=list(data["technology_data"].keys()))
+    b_node.set_carriers = pyo.Set(initialize=list(set(carriers)))
 
     # PARAMETERS
     def create_carrier_parameter(key):
@@ -130,15 +142,9 @@ def construct_node_block(b_node, data, set_t):
             """Rule initiating a carrier parameter"""
             return ts[car][key][t - 1]
 
-        if key in ["Import emission factor", "Export emission factor"]:
-            parameter = Param(
-                set_t, b_node.set_carriers, rule=init_carrier_parameter, mutable=False
-            )
-        else:
-            parameter = Param(
-                set_t, b_node.set_carriers, rule=init_carrier_parameter, mutable=True
-            )
-
+        parameter = pyo.Param(
+            set_t_full, b_node.set_carriers, rule=init_carrier_parameter, mutable=False
+        )
         return parameter
 
     def create_carbonprice_parameter(key):
@@ -149,7 +155,9 @@ def construct_node_block(b_node, data, set_t):
             """Rule initiating a carrier parameter"""
             return ts[t - 1]
 
-        parameter = Param(set_t, rule=init_carbonprice_parameter, mutable=False)
+        parameter = pyo.Param(
+            set_t_full, rule=init_carbonprice_parameter, mutable=False
+        )
         return parameter
 
     b_node.para_demand = create_carrier_parameter("Demand")
@@ -171,34 +179,38 @@ def construct_node_block(b_node, data, set_t):
     def init_import_bounds(var, t, car):
         return (0, b_node.para_import_limit[t, car])
 
-    b_node.var_import_flow = Var(set_t, b_node.set_carriers, bounds=init_import_bounds)
+    b_node.var_import_flow = pyo.Var(
+        set_t_full, b_node.set_carriers, bounds=init_import_bounds
+    )
 
     def init_export_bounds(var, t, car):
         return (0, b_node.para_export_limit[t, car])
 
-    b_node.var_export_flow = Var(set_t, b_node.set_carriers, bounds=init_export_bounds)
+    b_node.var_export_flow = pyo.Var(
+        set_t_full, b_node.set_carriers, bounds=init_export_bounds
+    )
 
     if not config["energybalance"]["copperplate"]["value"]:
-        b_node.var_netw_inflow = Var(set_t, b_node.set_carriers)
-        b_node.var_netw_outflow = Var(set_t, b_node.set_carriers)
+        b_node.var_netw_inflow = pyo.Var(set_t_full, b_node.set_carriers)
+        b_node.var_netw_outflow = pyo.Var(set_t_full, b_node.set_carriers)
         network_energy_consumption = determine_network_energy_consumption(
             data["network_data"]
         )
         if network_energy_consumption:
-            b_node.var_netw_consumption = Var(set_t, b_node.set_carriers)
+            b_node.var_netw_consumption = pyo.Var(set_t_full, b_node.set_carriers)
 
     # Generic production profile
-    b_node.var_generic_production = Var(
-        set_t, b_node.set_carriers, within=NonNegativeReals
+    b_node.var_generic_production = pyo.Var(
+        set_t_full, b_node.set_carriers, within=pyo.NonNegativeReals
     )
 
     # Emissions
-    b_node.var_import_emissions_pos = Var(set_t, b_node.set_carriers)
-    b_node.var_import_emissions_neg = Var(set_t, b_node.set_carriers)
-    b_node.var_export_emissions_pos = Var(set_t, b_node.set_carriers)
-    b_node.var_export_emissions_neg = Var(set_t, b_node.set_carriers)
-    b_node.var_car_emissions_pos = Var(set_t, within=NonNegativeReals)
-    b_node.var_car_emissions_neg = Var(set_t, within=NonNegativeReals)
+    b_node.var_import_emissions_pos = pyo.Var(set_t_full, b_node.set_carriers)
+    b_node.var_import_emissions_neg = pyo.Var(set_t_full, b_node.set_carriers)
+    b_node.var_export_emissions_pos = pyo.Var(set_t_full, b_node.set_carriers)
+    b_node.var_export_emissions_neg = pyo.Var(set_t_full, b_node.set_carriers)
+    b_node.var_car_emissions_pos = pyo.Var(set_t_full, within=pyo.NonNegativeReals)
+    b_node.var_car_emissions_neg = pyo.Var(set_t_full, within=pyo.NonNegativeReals)
 
     # CONSTRAINTS
     # Generic production constraint
@@ -214,8 +226,8 @@ def construct_node_block(b_node, data, set_t):
                 >= b_node.var_generic_production[t, car]
             )
 
-    b_node.const_generic_production = Constraint(
-        set_t, b_node.set_carriers, rule=init_generic_production
+    b_node.const_generic_production = pyo.Constraint(
+        set_t_full, b_node.set_carriers, rule=init_generic_production
     )
 
     # Emission constraints
@@ -229,8 +241,8 @@ def construct_node_block(b_node, data, set_t):
         else:
             return 0 == b_node.var_import_emissions_pos[t, car]
 
-    b_node.const_import_emissions_pos = Constraint(
-        set_t, b_node.set_carriers, rule=init_import_emissions_pos
+    b_node.const_import_emissions_pos = pyo.Constraint(
+        set_t_full, b_node.set_carriers, rule=init_import_emissions_pos
     )
 
     def init_export_emissions_pos(const, t, car):
@@ -243,8 +255,8 @@ def construct_node_block(b_node, data, set_t):
         else:
             return 0 == b_node.var_export_emissions_pos[t, car]
 
-    b_node.const_export_emissions_pos = Constraint(
-        set_t, b_node.set_carriers, rule=init_export_emissions_pos
+    b_node.const_export_emissions_pos = pyo.Constraint(
+        set_t_full, b_node.set_carriers, rule=init_export_emissions_pos
     )
 
     def init_import_emissions_neg(const, t, car):
@@ -257,8 +269,8 @@ def construct_node_block(b_node, data, set_t):
         else:
             return 0 == b_node.var_import_emissions_neg[t, car]
 
-    b_node.const_import_emissions_neg = Constraint(
-        set_t, b_node.set_carriers, rule=init_import_emissions_neg
+    b_node.const_import_emissions_neg = pyo.Constraint(
+        set_t_full, b_node.set_carriers, rule=init_import_emissions_neg
     )
 
     def init_export_emissions_neg(const, t, car):
@@ -271,8 +283,8 @@ def construct_node_block(b_node, data, set_t):
         else:
             return 0 == b_node.var_export_emissions_neg[t, car]
 
-    b_node.const_export_emissions_neg = Constraint(
-        set_t, b_node.set_carriers, rule=init_export_emissions_neg
+    b_node.const_export_emissions_neg = pyo.Constraint(
+        set_t_full, b_node.set_carriers, rule=init_export_emissions_neg
     )
 
     def init_car_emissions_pos(const, t):
@@ -285,7 +297,9 @@ def construct_node_block(b_node, data, set_t):
             == b_node.var_car_emissions_pos[t]
         )
 
-    b_node.const_car_emissions_pos = Constraint(set_t, rule=init_car_emissions_pos)
+    b_node.const_car_emissions_pos = pyo.Constraint(
+        set_t_full, rule=init_car_emissions_pos
+    )
 
     def init_car_emissions_neg(const, t):
         return (
@@ -297,6 +311,8 @@ def construct_node_block(b_node, data, set_t):
             == b_node.var_car_emissions_neg[t]
         )
 
-    b_node.const_car_emissions_neg = Constraint(set_t, rule=init_car_emissions_neg)
+    b_node.const_car_emissions_neg = pyo.Constraint(
+        set_t_full, rule=init_car_emissions_neg
+    )
 
     return b_node

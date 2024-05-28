@@ -1,15 +1,17 @@
 import time
+import pyomo.environ as pyo
+from ..logger import log_event
 
-from pyomo.core import TransformationFactory
-from pyomo.environ import *
 
-
-def annualize(r, t, year_fraction):
+def annualize(r: float, t: int, year_fraction: float):
     """
     Calculates annualization factor
-    :param r: interest rate
-    :param t: lifetime
+
+    :param float r: interest rate
+    :param int t: lifetime
+    :param flaot year_fraction: fraction of year modelled
     :return: annualization factor
+    :rtype: float
     """
     if r == 0:
         annualization_factor = 1 / t
@@ -18,7 +20,15 @@ def annualize(r, t, year_fraction):
     return annualization_factor * year_fraction
 
 
-def set_discount_rate(config, economics):
+def set_discount_rate(config: dict, economics):
+    """
+    Sets the discount rate to either global or technology value
+
+    :param dict config: dict containing model information
+    :param economics: Economics class
+    :return: CAPEX model
+    :rtype: float
+    """
     if not config["economic"]["global_discountrate"]["value"] == -1:
         discount_rate = config["economic"]["global_discountrate"]["value"]
     else:
@@ -27,24 +37,31 @@ def set_discount_rate(config, economics):
 
 
 def link_full_resolution_to_clustered(
-    var_clustered, var_full, set_t, sequence, *other_sets
+    var_clustered, var_full, set_t_full, sequence, *other_sets
 ):
     """
     Links two variables (clustered and full)
+
+    :param var_clustered: pyomo variable with clustered resolution
+    :param var_full: pyomo variable with full resolution
+    :param set_t_full: pyomo set containing timesteps
+    :param sequence: order of typical days
+    :param other_sets: other pyomo sets that variables are indexed by
+    :return: pyomo constraint linking var_clustered and var_full
     """
     if not other_sets:
 
         def init_link_full_resolution(const, t):
             return var_full[t] == var_clustered[sequence[t - 1]]
 
-        constraint = Constraint(set_t, rule=init_link_full_resolution)
+        constraint = pyo.Constraint(set_t_full, rule=init_link_full_resolution)
     elif len(other_sets) == 1:
         set1 = other_sets[0]
 
         def init_link_full_resolution(const, t, set1):
             return var_full[t, set1] == var_clustered[sequence[t - 1], set1]
 
-        constraint = Constraint(set_t, set1, rule=init_link_full_resolution)
+        constraint = pyo.Constraint(set_t_full, set1, rule=init_link_full_resolution)
     elif len(other_sets) == 2:
         set1 = other_sets[0]
         set2 = other_sets[1]
@@ -52,7 +69,9 @@ def link_full_resolution_to_clustered(
         def init_link_full_resolution(const, t, set1, set2):
             return var_full[t, set1, set2] == var_clustered[sequence[t - 1], set1, set2]
 
-        constraint = Constraint(set_t, set1, set2, rule=init_link_full_resolution)
+        constraint = pyo.Constraint(
+            set_t_full, set1, set2, rule=init_link_full_resolution
+        )
 
     return constraint
 
@@ -62,7 +81,12 @@ class Economics:
     Class to manage economic data of technologies and networks
     """
 
-    def __init__(self, economics):
+    def __init__(self, economics: dict):
+        """
+        Constructor
+
+        :param dict economics: Dict containing economic data of component
+        """
         if "CAPEX_model" in economics:
             self.capex_model = economics["CAPEX_model"]
         self.capex_data = {}
@@ -84,32 +108,37 @@ class Economics:
         self.decommission_cost = economics["decommission_cost"]
 
 
-def perform_disjunct_relaxation(model_block, method="gdp.bigm"):
+def perform_disjunct_relaxation(model_block, method: str = "gdp.bigm"):
     """
     Performs big-m transformation for respective component
-    :param component: component
+
+    :param component: pyomo component
+    :param str method: method to make transformation with.
     :return: component
     """
-    print("\t\t" + method + " Transformation...")
+    log_event("\t\t\t" + method + " Transformation...")
     start = time.time()
-    xfrm = TransformationFactory(method)
+    xfrm = pyo.TransformationFactory(method)
     xfrm.apply_to(model_block)
-    print(
-        "\t\t"
+    log_event(
+        "\t\t\t"
         + method
         + " Transformation completed in "
         + str(round(time.time() - start))
-        + " s"
+        + " s",
+        print_it=False,
     )
     return model_block
 
 
-def read_dict_value(dict, key):
+def read_dict_value(dict: dict, key: str) -> str | int | float:
     """
-    Reads a value from a dictonary
-    :param dict: dictonary
-    :param key: dict key
+    Reads a value from a dictonary or sets it to 1 if key is not in dict
+
+    :param dict: dict
+    :param key: dict key to check for
     :return:
+    :rtype: str | int | float
     """
     dict_value = 1
 
@@ -120,16 +149,17 @@ def read_dict_value(dict, key):
     return dict_value
 
 
-def determine_variable_scaling(model, model_block, f, f_global):
+def determine_variable_scaling(model, model_block, f: dict, f_global):
     """
     Scale model block variables
 
+    :param model: pyomo model
     :param model_block: pyomo model block
-    :param f: individual scaling factors
+    :param dict f: individual scaling factors
     :param f_global: global scaling factors
     :return: model_block
     """
-    for var in model_block.component_objects(Var, active=True):
+    for var in model_block.component_objects(pyo.Var, active=True):
         var_name = var.name.split(".")[-1]
 
         # check if var is integer
@@ -145,16 +175,17 @@ def determine_variable_scaling(model, model_block, f, f_global):
     return model
 
 
-def determine_constraint_scaling(model, model_block, f, f_global):
+def determine_constraint_scaling(model, model_block, f: dict, f_global):
     """
-    Scale model block variables
+    Scale model block constraints
 
+    :param model: pyomo model
     :param model_block: pyomo model block
-    :param f: individual scaling factors
+    :param dict f: individual scaling factors
     :param f_global: global scaling factors
     :return: model_block
     """
-    for constr in model_block.component_objects(Constraint, active=True):
+    for constr in model_block.component_objects(pyo.Constraint, active=True):
         const_name = constr.name.split(".")[-1]
 
         # Determine global scaling factor

@@ -1,13 +1,11 @@
 import warnings
-
 import pvlib
 from timezonefinder import TimezoneFinder
 import pandas as pd
 from pathlib import Path
-from pyomo.environ import *
+import pyomo.environ as pyo
 from scipy.interpolate import interp1d
 import numpy as np
-
 
 from ..technology import Technology
 from ..utilities import FittedPerformance
@@ -33,13 +31,23 @@ class Res(Technology):
         Output_{t, car} = CapFactor_t * Size
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
+        """
+        Constructor
+
+        :param dict tec_data: technology data
+        """
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance(self.performance_data)
 
-    def fit_technology_performance(self, climate_data, location):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+        """
+        Fits technology performance
 
+        :param pd.Dataframe climate_data: dataframe containing climate data
+        :param dict location: dict containing location details
+        """
         if "Photovoltaic" in self.name:
             if "system_type" in self.performance_data:
                 self._perform_fitting_PV(
@@ -64,9 +72,9 @@ class Res(Technology):
         """
         Calculates capacity factors and specific area requirements for a PV system using pvlib
 
-        :param climate_data: contains information on weather data
-        :param location: contains lon, lat and altitude
-        :param PV_type: (optional) can specify a certain type of module
+        :param pd.Dataframe climate_data: dataframe containing climate data
+        :param dict location: dict containing location details
+        :param PV_type: (optional) can specify a certain type of module, angle, ...
         """
         # Todo: get perfect tilting angle
         if not kwargs.__contains__("system_data"):
@@ -150,22 +158,21 @@ class Res(Technology):
         # Other Data
         self.fitted_performance.other["specific_area"] = specific_area
 
-    def _perform_fitting_ST(self, climate_data):
+    def _perform_fitting_ST(self, climate_data: pd.DataFrame):
         """
         Calculates capacity factors and specific area requirements for a solar thermal system
 
-        :param climate_data: contains information on weather data
-        :return: returns capacity factors and specific area requirements
+        :param pd.Dataframe climate_data: dataframe containing climate data
         """
         # Todo: code this
         print("Not coded yet")
 
-    def _perform_fitting_WT(self, climate_data, hubheight):
+    def _perform_fitting_WT(self, climate_data: pd.DataFrame, hubheight: float):
         """
-        Calculates capacity factors for a wint turbine
+        Calculates capacity factors for a wind turbine
 
-        :param climate_data: contains information on weather data
-        :param hubheight: hubheight of wind turbine
+        :param pd.Dataframe climate_data: dataframe containing climate data
+        :param float hubheight: hubheight of wind turbine
         """
         # Load data for wind turbine type
         # FIXME: find nicer way to do this
@@ -223,15 +230,17 @@ class Res(Technology):
         # Other Data
         self.fitted_performance.rated_power = rated_power / 1000
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type RES (renewable technology)
 
-        :param obj b_tec: technology block
-        :param Energyhub energyhub: energyhub instance
-        :return: technology block
+        :param b_tec: pyomo block with technology model
+        :param dict data: data containing model configuration
+        :param set_t_full: pyomo set containing timesteps
+        :param set_t_clustered: pyomo set containing clustered timesteps
+        :return: pyomo block with technology model
         """
-        super(Res, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
+        super(Res, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
@@ -256,7 +265,7 @@ class Res(Technology):
                     == capfactor[t - 1] * b_tec.var_size * rated_power
                 )
 
-            b_tec.const_input_output = Constraint(
+            b_tec.const_input_output = pyo.Constraint(
                 self.set_t, b_tec.set_output_carriers, rule=init_input_output
             )
 
@@ -268,21 +277,21 @@ class Res(Technology):
                     <= capfactor[t - 1] * b_tec.var_size * rated_power
                 )
 
-            b_tec.const_input_output = Constraint(
+            b_tec.const_input_output = pyo.Constraint(
                 self.set_t, b_tec.set_output_carriers, rule=init_input_output
             )
 
         elif curtailment == 2:  # discrete curtailment
-            b_tec.var_size_on = Var(
+            b_tec.var_size_on = pyo.Var(
                 self.set_t,
-                within=NonNegativeIntegers,
+                within=pyo.NonNegativeIntegers,
                 bounds=(b_tec.para_size_min, b_tec.para_size_max),
             )
 
             def init_curtailed_units(const, t):
                 return b_tec.var_size_on[t] <= b_tec.var_size
 
-            b_tec.const_curtailed_units = Constraint(
+            b_tec.const_curtailed_units = pyo.Constraint(
                 self.set_t, rule=init_curtailed_units
             )
 
@@ -292,20 +301,31 @@ class Res(Technology):
                     == capfactor[t - 1] * b_tec.var_size_on[t] * rated_power
                 )
 
-            b_tec.const_input_output = Constraint(
+            b_tec.const_input_output = pyo.Constraint(
                 self.set_t, b_tec.set_output_carriers, rule=init_input_output
             )
 
         return b_tec
 
     def write_results_tec_design(self, h5_group, model_block):
+        """
+        Function to report technology design
+
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
+        """
 
         super(Res, self).write_results_tec_design(h5_group, model_block)
 
         h5_group.create_dataset("rated_power", data=self.fitted_performance.rated_power)
 
     def write_results_tec_operation(self, h5_group, model_block):
+        """
+        Function to report technology operation
 
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
+        """
         super(Res, self).write_results_tec_operation(h5_group, model_block)
 
         rated_power = self.fitted_performance.rated_power

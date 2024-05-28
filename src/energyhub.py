@@ -1,18 +1,7 @@
 import random
 import warnings
 from pathlib import Path
-from pyomo.environ import (
-    ConcreteModel,
-    Set,
-    Block,
-    Objective,
-    Var,
-    Constraint,
-    TransformationFactory,
-    minimize,
-    Suffix,
-    SolverStatus,
-)
+import pyomo.environ as pyo
 import os
 import time
 import numpy as np
@@ -36,7 +25,7 @@ from .components.technologies.utilities import set_capex_model
 
 
 class EnergyHub:
-    r"""
+    """
     Class to construct and manipulate an energy system model.
 
     When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
@@ -65,7 +54,7 @@ class EnergyHub:
 
     def read_data(
         self, data_path: Path | str, start_period: int = None, end_period: int = None
-    ) -> None:
+    ):
         """
         Reads in data from the specified path. The data is specified as the DataHandle class
         Specifying the start_period and end_period parameter allows to run a shorter time horizon than as specified
@@ -82,6 +71,64 @@ class EnergyHub:
         self._perform_preprocessing_checks()
 
         log_event("--- Reading in data complete ---")
+
+    def _perform_preprocessing_checks(self):
+        """
+        Checks some things, before constructing or solving the model
+        Todo: Document what is done here
+        :return:
+        """
+        config = self.data.model_config
+
+        # Check if save-path exists
+        save_path = Path(config["reporting"]["save_path"]["value"])
+        if not os.path.exists(save_path) or not os.path.isdir(save_path):
+            raise FileNotFoundError(
+                f"The folder '{save_path}' does not exist. Create the folder or change the folder "
+                f"name in the configuration"
+            )
+
+        # check if technologies have dynamic parameters
+        if config["performance"]["dynamics"]["value"]:
+            for node in self.data.topology.nodes:
+                for tec in self.data.technology_data[node]:
+                    if self.data.technology_data[node][tec].technology_model in [
+                        "CONV1",
+                        "CONV2",
+                        "CONV3",
+                    ]:
+                        par_check = [
+                            "max_startups",
+                            "min_uptime",
+                            "min_downtime",
+                            "SU_load",
+                            "SD_load",
+                            "SU_time",
+                            "SD_time",
+                        ]
+                        count = 0
+                        for par in par_check:
+                            if (
+                                par
+                                not in self.data.technology_data[node][
+                                    tec
+                                ].performance_data
+                            ):
+                                raise ValueError(
+                                    f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
+                                    f"json files or switch off the dynamics."
+                                )
+
+        # check if time horizon is not longer than 1 year (in case of single year analysis)
+        # TODO: Do we need multiyear analysis still?
+        # if config["optimization"]["multiyear"]["value"] == 0:
+        #     nr_timesteps_data = len(self.data.topology.timesteps)
+        #     nr_timesteps_year = 8760
+        #     if nr_timesteps_data > nr_timesteps_year:
+        #         raise ValueError(
+        #             f"Time horizon is longer than one year. Enable multiyear analysis if you want to optimize for"
+        #             f"a longer time horizon."
+        #         )
 
     def construct_model(self):
         """
@@ -116,7 +163,7 @@ class EnergyHub:
         aggregation_type = "full"
 
         # TODO: Add clustered, averaged here
-        self.model[aggregation_type] = ConcreteModel()
+        self.model[aggregation_type] = pyo.ConcreteModel()
 
         # GET DATA
         model = self.model[aggregation_type]
@@ -125,13 +172,13 @@ class EnergyHub:
 
         # DEFINE GLOBAL SETS
         # Nodes, Carriers, Technologies, Networks
-        model.set_periods = Set(initialize=topology["investment_periods"])
-        model.set_nodes = Set(initialize=topology["nodes"])
-        model.set_carriers = Set(initialize=topology["carriers"])
+        model.set_periods = pyo.Set(initialize=topology["investment_periods"])
+        model.set_nodes = pyo.Set(initialize=topology["nodes"])
+        model.set_carriers = pyo.Set(initialize=topology["carriers"])
 
         # DEFINE GLOBAL VARIABLES
-        model.var_npv = Var()
-        model.var_emissions_net = Var()
+        model.var_npv = pyo.Var()
+        model.var_emissions_net = pyo.Var()
 
         # INVESTMENT PERIOD BLOCK
         def init_period_block(b_period):
@@ -142,8 +189,6 @@ class EnergyHub:
             data_period = get_data_for_investment_period(
                 self.data, investment_period, aggregation_type
             )
-            log_event(f"--- Constructing Investment Period {investment_period}")
-
             # Add sets, parameters, variables, constraints to block
             b_period = construct_investment_period_block(b_period, data_period)
 
@@ -152,8 +197,6 @@ class EnergyHub:
 
                 def init_network_block(b_netw, netw):
                     """Pyomo rule to initialize a block holding all networks"""
-                    log_event(f"------ Constructing Network {netw}")
-
                     # Add sets, parameters, variables, constraints to block
                     b_netw = construct_network_block(
                         b_netw,
@@ -165,15 +208,13 @@ class EnergyHub:
 
                     return b_netw
 
-                b_period.network_block = Block(
+                b_period.network_block = pyo.Block(
                     b_period.set_networks, rule=init_network_block
                 )
 
             # NODE BLOCK
             def init_node_block(b_node, node):
                 """Pyomo rule to initialize a block holding all nodes"""
-                log_event(f"------ Constructing Node {node}")
-
                 # Get data for node
                 data_node = get_data_for_node(data_period, node)
 
@@ -182,25 +223,23 @@ class EnergyHub:
 
                 # TECHNOLOGY BLOCK
                 def init_technology_block(b_tec, tec):
-                    log_event(f"------ Constructing Technology {tec}")
-
                     b_tec = construct_technology_block(
                         b_tec, data_node, b_period.set_t_full, b_period.set_t_clustered
                     )
 
                     return b_tec
 
-                b_node.tech_blocks_active = Block(
+                b_node.tech_blocks_active = pyo.Block(
                     b_node.set_technologies, rule=init_technology_block
                 )
 
                 return b_node
 
-            b_period.node_blocks = Block(model.set_nodes, rule=init_node_block)
+            b_period.node_blocks = pyo.Block(model.set_nodes, rule=init_node_block)
 
             return b_period
 
-        model.periods = Block(model.set_periods, rule=init_period_block)
+        model.periods = pyo.Block(model.set_periods, rule=init_period_block)
 
         log_event(f"Constructing model completed in {str(round(time.time() - start))}s")
 
@@ -330,7 +369,55 @@ class EnergyHub:
         else:
             self._optimize(objective)
 
-    def add_technology_to_node(self, nodename, technologies):
+    def quick_solve(self):
+        """
+        Quick-solves the model (constructs model and balances and solves model).
+
+        This method lumbs together the following functions for convenience:
+        - :func:`~src.energyhub.construct_model`
+        - :func:`~src.energyhub.construct_balances`
+        - :func:`~src.energyhub.solve`
+        - :func:`~src.energyhub.write_results`
+        """
+        self.construct_model()
+        self.construct_balances()
+        self.solve()
+        self.write_results()
+
+    def write_results(self):
+        config = self.data.model_config
+
+        save_summary_path = Path.joinpath(
+            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
+        )
+
+        model_info = self.last_solve_info
+        # Write H5 File
+        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
+            self.solution.solver.status == pyo.SolverStatus.warning
+        ):
+
+            model = self.model["full"]
+
+            # Fixme: change this for averaging
+
+            summary_dict = write_optimization_results_to_h5(
+                model, self.solution, model_info, self.data
+            )
+
+            # Write Summary
+            if not os.path.exists(save_summary_path):
+                summary_df = pd.DataFrame(data=summary_dict, index=[0])
+                summary_df.to_excel(
+                    save_summary_path, index=False, sheet_name="Summary"
+                )
+            else:
+                summary_existing = pd.read_excel(save_summary_path)
+                pd.concat(
+                    [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
+                ).to_excel(save_summary_path, index=False, sheet_name="Summary")
+
+    def add_technology_to_node(self, nodename: str, technologies: list):
         """
         Fixme: This function does not work
         Adds technologies retrospectively to the model.
@@ -408,7 +495,8 @@ class EnergyHub:
         def init_cost_objective(obj):
             return model.var_npv
 
-        model.objective = Objective(rule=init_cost_objective, sense=minimize)
+        model.objective = pyo.Objective(rule=init_cost_objective, sense=pyo.minimize)
+        log_event("Set objective on cost")
         self._call_solver()
 
     def _optimize_emissions_net(self):
@@ -422,7 +510,10 @@ class EnergyHub:
         def init_emission_net_objective(obj):
             return model.var_emissions_net
 
-        model.objective = Objective(rule=init_emission_net_objective, sense=minimize)
+        model.objective = pyo.Objective(
+            rule=init_emission_net_objective, sense=pyo.minimize
+        )
+        log_event("Set objective on net emissions")
         self._call_solver()
 
     def _optimize_costs_emissionslimit(self):
@@ -438,11 +529,12 @@ class EnergyHub:
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.remove_constraint(model.const_emission_limit)
             model.del_component(model.const_emission_limit)
-        model.const_emission_limit = Constraint(
+        model.const_emission_limit = pyo.Constraint(
             expr=model.var_emissions_net <= emission_limit * 1.001
         )
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
             self.solver.add_constraint(model.const_emission_limit)
+        log_event("Defined constraint on net emissions")
         self._optimize_cost()
 
     def _optimize_costs_minE(self):
@@ -459,7 +551,7 @@ class EnergyHub:
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.remove_constraint(model.const_emission_limit)
             model.del_component(model.const_emission_limit)
-        model.const_emission_limit = Constraint(
+        model.const_emission_limit = pyo.Constraint(
             expr=model.var_emissions_net <= emission_limit * 1.001
         )
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
@@ -535,7 +627,7 @@ class EnergyHub:
         f_global = config["scaling_factors"]["value"]
         model_full = self.model["full"]
 
-        model_full.scaling_factor = Suffix(direction=Suffix.EXPORT)
+        model_full.scaling_factor = pyo.Suffix(direction=pyo.Suffix.EXPORT)
 
         # Scale technologies
         for node in model_full.node_blocks:
@@ -623,9 +715,9 @@ class EnergyHub:
                     model_full.node_blocks[node].const_generic_production
                 ] = f_global.energy_vars
 
-        self.model["scaled"] = TransformationFactory("core.scale_model").create_using(
-            model_full
-        )
+        self.model["scaled"] = pyo.TransformationFactory(
+            "core.scale_model"
+        ).create_using(model_full)
         # self.scaled_model.pprint()
 
     def _call_solver(self):
@@ -680,7 +772,7 @@ class EnergyHub:
             )
 
         if config["scaling"]["scaling_on"]["value"] == 1:
-            TransformationFactory("core.scale_model").propagate_solution(
+            pyo.TransformationFactory("core.scale_model").propagate_solution(
                 model, self.model["full"]
             )
 
@@ -731,6 +823,11 @@ class EnergyHub:
                 ).to_excel(save_summary_path, index=False, sheet_name="Summary")
 
     def _write_solution_diagnostics(self, save_path):
+        """
+        TOdo: check
+        :param save_path:
+        :return:
+        """
         config = self.data.model_config
         model = self.solver._solver_model
         constraint_map = self.solver._pyomo_con_to_solver_con_map
@@ -752,6 +849,56 @@ class EnergyHub:
             with open(f"{save_path}/diag_variable_map.txt", "w") as file:
                 for key, value in variable_map._dict.items():
                     file.write(f"{value[0].name}: {value[1]}\n")
+
+    def _solve_pareto(self):
+        """
+        Optimize the pareto front
+        """
+        model = self.model["full"]
+        config = self.data.model_config
+        pareto_points = config["optimization"]["pareto_points"]["value"]
+
+        # Min Cost
+        self.info_pareto["pareto_point"] = 0
+        self._optimize_cost()
+        emissions_max = model.var_emissions_net.value
+
+        # Min Emissions
+        self.info_pareto["pareto_point"] = pareto_points + 1
+        self._optimize_costs_minE()
+        emissions_min = model.var_emissions_net.value
+
+        # Emission limit
+        self.info_pareto["pareto_point"] = 0
+        emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
+        for pareto_point in range(0, pareto_points):
+            self.info_pareto["pareto_point"] += 1
+            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
+                self.solver.remove_constraint(model.const_emission_limit)
+            model.del_component(model.const_emission_limit)
+            model.const_emission_limit = pyo.Constraint(
+                expr=model.var_emissions_net <= emission_limits[pareto_point] * 1.005
+            )
+            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
+                self.solver.add_constraint(model.const_emission_limit)
+            self._optimize_cost()
+
+    def _solve_monte_carlo(self, objective: str):
+        """
+        Optimizes multiple runs with monte carlo
+
+        :param str objective: objective to optimize
+        """
+        config = self.data.model_config
+        self.info_monte_carlo["monte_carlo_run"] = 0
+
+        for run in range(0, config["optimization"]["monte_carlo"]["N"]["value"]):
+            self.info_monte_carlo["monte_carlo_run"] += 1
+            self._monte_carlo_set_cost_parameters()
+            if run == 0:
+                self._optimize(objective)
+            else:
+                self._call_solver()
 
     def _monte_carlo_set_cost_parameters(self):
         """
@@ -1198,7 +1345,7 @@ class EnergyHub:
         bounds_on = "no_storage"
         self.model_first_stage = self.model
         self.solution_first_stage = copy.deepcopy(self.solution)
-        self.model = ConcreteModel()
+        self.model = pyo.ConcreteModel()
         self.solution = []
         self.data = self.data_storage[0]
         self.construct_model()
@@ -1232,9 +1379,9 @@ class EnergyHub:
                         self.data.technology_data[node][tec].technology_model == "STOR"
                         and bounds_on == "no_storage"
                     ):
-                        return Constraint.Skip
+                        return pyo.Constraint.Skip
                     elif self.data.technology_data[node][tec].existing:
-                        return Constraint.Skip
+                        return pyo.Constraint.Skip
                     else:
                         return (
                             m_avg.node_blocks[node]
@@ -1243,11 +1390,11 @@ class EnergyHub:
                             <= m_full.node_blocks[node].tech_blocks_active[tec].var_size
                         )
 
-                block.size_constraints_tecs = Constraint(
+                block.size_constraints_tecs = pyo.Constraint(
                     m_full.set_technologies[node], rule=size_constraints_tecs_init
                 )
 
-            m_full.size_constraint_tecs = Block(
+            m_full.size_constraint_tecs = pyo.Block(
                 m_full.set_nodes, rule=size_constraint_block_tecs_init
             )
 
@@ -1268,10 +1415,10 @@ class EnergyHub:
                         >= b_netw_avg.arc_block[node_from, node_to].var_size.value
                     )
 
-                block.size_constraints_netw = Constraint(
+                block.size_constraints_netw = pyo.Constraint(
                     b_netw_full.set_arcs, rule=size_constraints_netw_init
                 )
 
-            m_full.size_constraints_netw = Block(
+            m_full.size_constraints_netw = pyo.Block(
                 m_full.set_networks, rule=size_constraint_block_netw_init
             )

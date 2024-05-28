@@ -1,8 +1,13 @@
 from pyomo.environ import SolverFactory
-from .logger import logger
 
 
-def get_gurobi_parameters(solveroptions):
+def get_gurobi_parameters(solveroptions: dict):
+    """
+    Initiates the gurobi solver and defines solver parameters
+
+    :param dict solveroptions: dict with solver parameters
+    :return: Gurobi Solver
+    """
     solver = SolverFactory(solveroptions["solver"]["value"], solver_io="python")
     solver.options["TimeLimit"] = solveroptions["timelim"]["value"] * 3600
     solver.options["MIPGap"] = solveroptions["mipgap"]["value"]
@@ -22,22 +27,13 @@ def get_gurobi_parameters(solveroptions):
     return solver
 
 
-def get_glpk_parameters(solveroptions):
+def get_glpk_parameters(solveroptions: dict):
+    """
+    Initiates the glpk solver and defines solver parameters
+
+    :param dict solveroptions: dict with solver parameters
+    :return: Gurobi Solver
+    """
     solver = SolverFactory("glpk")
 
     return solver
-
-
-def log_event(message: str, print_it: int = 1, level: str = "info") -> None:
-    """
-    Logs and prints a message
-    :param str message: Message to log
-    :param int print_it: [0,1] if message should also be printed
-    :param str level: ['info', 'warning'] which level to log
-    """
-    if level == "info":
-        logger.info(message)
-    elif level == "warning":
-        logger.warning((message))
-    if print_it:
-        print(message)

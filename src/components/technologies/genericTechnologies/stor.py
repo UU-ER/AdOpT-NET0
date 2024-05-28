@@ -1,8 +1,8 @@
-from pyomo.environ import *
-from pyomo.gdp import *
-import copy
-from warnings import warn
+import pyomo.environ as pyo
+import pyomo.gdp as gdp
 import numpy as np
+import pandas as pd
+import h5py
 
 from ..utilities import FittedPerformance
 from ..technology import Technology
@@ -76,19 +76,33 @@ class Stor(Technology):
 
       .. math::
         Input_{t, car} = cons_{car, out} Output_{t}
+
+    - CAPEX is given by two contributions
+
+        .. math::
+        CAPEX_{chargeCapacity} = chargeCapacity * unitCost_{chargeCapacity}
+        CAPEX_{dischargeCapacity} = dischargeCapacity * unitCost_{dischargeCapacity}
+        CAPEX_{storSize} = storSize * unitCost_{storSize}
+
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
+        """
+        Constructor
+
+        :param dict tec_data: technology data
+        """
         super().__init__(tec_data)
 
         self.fitted_performance = FittedPerformance()
         self.flexibility_data = tec_data["Flexibility"]
 
-    def fit_technology_performance(self, climate_data, location):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
-        Fits conversion technology type STOR and returns fitted parameters as a dict
+        Fits conversion technology type STOR and fills in the fitted parameters in a dict
 
-        :param node_data: contains data on demand, climate data, etc.
+        :param pd.Dataframe climate_data: dataframe containing climate data
+        :param dict location: dict containing location details
         """
 
         time_steps = len(climate_data)
@@ -155,16 +169,18 @@ class Stor(Technology):
         # Time dependent coefficents
         self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
-        :param b_tec:
-        :param energyhub:
-        :return: b_tec
+        :param b_tec: pyomo block with technology model
+        :param dict data: data containing model configuration
+        :param set_t_full: pyomo set containing timesteps
+        :param set_t_clustered: pyomo set containing clustered timesteps
+        :return: pyomo block with technology model
         """
 
-        super(Stor, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
+        super(Stor, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
         set_t_full = self.set_t_full
         config = data["config"]
@@ -184,7 +200,7 @@ class Stor(Technology):
         # )
         nr_timesteps_averaged = 1
 
-        # Abdditional parameters
+        # Additional parameters
         eta_in = coeff["eta_in"]
         eta_out = coeff["eta_out"]
         eta_lambda = coeff["lambda"]
@@ -193,16 +209,17 @@ class Stor(Technology):
         ambient_loss_factor = coeff["ambient_loss_factor"]
 
         # Additional decision variables
-        b_tec.var_storage_level = Var(
+        b_tec.var_storage_level = pyo.Var(
             set_t_full,
-            domain=NonNegativeReals,
+            domain=pyo.NonNegativeReals,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
-        b_tec.var_capacity_charge = Var(
-            domain=NonNegativeReals, bounds=(0, b_tec.para_size_max * charge_rate)
+        b_tec.var_capacity_charge = pyo.Var(
+            domain=pyo.NonNegativeReals, bounds=(0, b_tec.para_size_max * charge_rate)
         )
-        b_tec.var_capacity_discharge = Var(
-            domain=NonNegativeReals, bounds=(0, b_tec.para_size_max * discharge_rate)
+        b_tec.var_capacity_discharge = pyo.Var(
+            domain=pyo.NonNegativeReals,
+            bounds=(0, b_tec.para_size_max * discharge_rate),
         )
 
         if self.flexibility_data["power_energy_ratio"] == "flex":
@@ -210,9 +227,10 @@ class Stor(Technology):
 
         # Size constraint
         def init_size_constraint(const, t):
+            # storageLevel <= storSize
             return b_tec.var_storage_level[t] <= b_tec.var_size
 
-        b_tec.const_size = Constraint(set_t_full, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(set_t_full, rule=init_size_constraint)
 
         # Storage level calculation
         if (
@@ -221,7 +239,14 @@ class Stor(Technology):
         ):
 
             def init_storage_level(const, t):
-                if t == 1:  # couple first and last time interval
+                if t == 1:
+                    # TODO document the storage level constraints
+                    # couple first and last time interval: storageLevel[1] ==
+                    # storageLevel[end] * (1-self_discharge)^nr_timesteps_averaged +
+                    # - storageLevel[end] * ambient_loss_factor[end-1]^nr_timesteps_averaged +
+                    # + (eta_in * input[] +1/eta_out * output[]) *
+                    # (sum (1-self_discharge)^i for i in [0, nr_timesteps_averaged])
+                    #
                     return b_tec.var_storage_level[t] == b_tec.var_storage_level[
                         max(set_t_full)
                     ] * (
@@ -236,7 +261,7 @@ class Stor(Technology):
                     ) * sum(
                         (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                     )
-                else:  # all other time intervalls
+                else:  # all other time intervals
                     return b_tec.var_storage_level[t] == b_tec.var_storage_level[
                         t - 1
                     ] * (
@@ -252,7 +277,9 @@ class Stor(Technology):
                         (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                     )
 
-            b_tec.const_storage_level = Constraint(set_t_full, rule=init_storage_level)
+            b_tec.const_storage_level = pyo.Constraint(
+                set_t_full, rule=init_storage_level
+            )
         else:
 
             def init_storage_level(const, t):
@@ -287,22 +314,26 @@ class Stor(Technology):
                         (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                     )
 
-            b_tec.const_storage_level = Constraint(set_t_full, rule=init_storage_level)
+            b_tec.const_storage_level = pyo.Constraint(
+                set_t_full, rule=init_storage_level
+            )
 
         # This makes sure that only either input or output is larger zero.
         if allow_only_one_direction == 1:
             self.big_m_transformation_required = 1
             s_indicators = range(0, 2)
 
-            # Cut according to Germans work
+            # Cut according to Morales-Espana "LP Formulation for Optimal Investment and
+            # Operation of Storage Including Reserves"
             def init_cut_bidirectional(const, t):
+                # output[t]/discharge_rate + input[t]/charge_rate <= storSize
                 return (
                     self.output[t, self.main_car] / discharge_rate
                     + self.input[t, self.main_car] / charge_rate
                     <= b_tec.var_size
                 )
 
-            b_tec.const_cut_bidirectional = Constraint(
+            b_tec.const_cut_bidirectional = pyo.Constraint(
                 self.set_t, rule=init_cut_bidirectional
             )
 
@@ -312,7 +343,7 @@ class Stor(Technology):
                     def init_output_to_zero(const, car_output):
                         return self.output[t, car_output] == 0
 
-                    dis.const_output_to_zero = Constraint(
+                    dis.const_output_to_zero = pyo.Constraint(
                         b_tec.set_output_carriers, rule=init_output_to_zero
                     )
 
@@ -321,11 +352,11 @@ class Stor(Technology):
                     def init_input_to_zero(const, car_input):
                         return self.input[t, car_input] == 0
 
-                    dis.const_input_to_zero = Constraint(
+                    dis.const_input_to_zero = pyo.Constraint(
                         b_tec.set_input_carriers, rule=init_input_to_zero
                     )
 
-            b_tec.dis_input_output = Disjunct(
+            b_tec.dis_input_output = gdp.Disjunct(
                 self.set_t, s_indicators, rule=init_input_output
             )
 
@@ -333,71 +364,85 @@ class Stor(Technology):
             def bind_disjunctions(dis, t):
                 return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
-            b_tec.disjunction_input_output = Disjunction(
+            b_tec.disjunction_input_output = gdp.Disjunction(
                 self.set_t, rule=bind_disjunctions
             )
 
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t):
+            # input[t] <= chargeCapacity
             return self.input[t, self.main_car] <= b_tec.var_capacity_charge
 
-        b_tec.const_max_charge = Constraint(self.set_t, rule=init_maximal_charge)
+        b_tec.const_max_charge = pyo.Constraint(self.set_t, rule=init_maximal_charge)
 
         def init_maximal_discharge(const, t):
+            # output[t] <= dischargeCapacity
             return self.output[t, self.main_car] <= b_tec.var_capacity_discharge
 
-        b_tec.const_max_discharge = Constraint(self.set_t, rule=init_maximal_discharge)
+        b_tec.const_max_discharge = pyo.Constraint(
+            self.set_t, rule=init_maximal_discharge
+        )
 
         # if the charging / discharging rates are fixed or flexible as a ratio of the energy capacity:
         def init_max_capacity_charge(const):
             if self.flexibility_data["power_energy_ratio"] == "fixed":
+                # chargeCapacity == chargeRate * storSize
                 return b_tec.var_capacity_charge == charge_rate * b_tec.var_size
             else:
+                # chargeCapacity <= chargeRate * storSize
                 return b_tec.var_capacity_charge <= charge_rate * b_tec.var_size
 
-        b_tec.const_max_cap_charge = Constraint(rule=init_max_capacity_charge)
+        b_tec.const_max_cap_charge = pyo.Constraint(rule=init_max_capacity_charge)
 
         def init_max_capacity_discharge(const):
             if self.flexibility_data["power_energy_ratio"] == "fixed":
+                # dischargeCapacity == dischargeRate * storSize
                 return b_tec.var_capacity_discharge == discharge_rate * b_tec.var_size
             else:
+                # dischargeCapacity <= dischargeRate * storSize
                 return b_tec.var_capacity_discharge <= discharge_rate * b_tec.var_size
 
-        b_tec.const_max_cap_discharge = Constraint(rule=init_max_capacity_discharge)
+        b_tec.const_max_cap_discharge = pyo.Constraint(rule=init_max_capacity_discharge)
 
         # Energy consumption charging/discharging
         if "energy_consumption" in coeff:
             energy_consumption = coeff["energy_consumption"]
             if "in" in energy_consumption:
-                b_tec.set_energyconsumption_carriers_in = Set(
+                b_tec.set_energyconsumption_carriers_in = pyo.Set(
                     initialize=energy_consumption["in"].keys()
                 )
 
                 def init_energyconsumption_in(const, t, car):
+                    # e.g electricity_cons[t] == input[t] * energy_cons[electricity]
                     return (
                         self.input[t, car]
                         == self.input[t, self.main_car] * energy_consumption["in"][car]
                     )
 
-                b_tec.const_energyconsumption_in = Constraint(
+                b_tec.const_energyconsumption_in = pyo.Constraint(
                     self.set_t,
                     b_tec.set_energyconsumption_carriers_in,
                     rule=init_energyconsumption_in,
                 )
 
             if "out" in energy_consumption:
-                b_tec.set_energyconsumption_carriers_out = Set(
+                b_tec.set_energyconsumption_carriers_out = pyo.Set(
                     initialize=energy_consumption["out"].keys()
                 )
 
                 def init_energyconsumption_out(const, t, car):
+                    # NOTE: even though we call it "energy consumption", this constraint actually
+                    # simulates for example the production of electricity from a salt cavern H2 storage,
+                    # where H2 is stored at e.g. 130bar and released at e.g. 40bar; the pressure difference can be
+                    # used to drive a trubine and create electricity.
+                    # e.g electricity_prod[t] == output[t] * energy_cons[electricity]
                     return (
                         self.output[t, car]
                         == self.output[t, self.main_car]
                         * energy_consumption["out"][car]
                     )
 
-                b_tec.const_energyconsumption_out = Constraint(
+                b_tec.const_energyconsumption_out = pyo.Constraint(
                     self.set_t,
                     b_tec.set_energyconsumption_carriers_out,
                     rule=init_energyconsumption_out,
@@ -410,7 +455,14 @@ class Stor(Technology):
 
         return b_tec
 
-    def _define_stor_capex(self, b_tec, data):
+    def _define_stor_capex(self, b_tec, data: dict):
+        """
+        Construct constraints for the storage CAPEX
+
+        :param b_tec: pyomo block with technology model
+        :param dict data: data containing model configuration
+        :return: pyomo block with technology model
+        """
 
         flexibility = self.flexibility_data
         config = data["config"]
@@ -422,30 +474,34 @@ class Stor(Technology):
         )
 
         # CAPEX PARAMETERS
-        b_tec.para_unit_capex_charging_cap = Param(
-            domain=Reals, initialize=flexibility["capex_charging_power"], mutable=True
+        b_tec.para_unit_capex_charging_cap = pyo.Param(
+            domain=pyo.Reals,
+            initialize=flexibility["capex_charging_power"],
+            mutable=True,
         )
-        b_tec.para_unit_capex_discharging_cap = Param(
-            domain=Reals,
+        b_tec.para_unit_capex_discharging_cap = pyo.Param(
+            domain=pyo.Reals,
             initialize=flexibility["capex_discharging_power"],
             mutable=True,
         )
-        b_tec.para_unit_capex_energy_cap = Param(
-            domain=Reals, initialize=economics.capex_data["unit_capex"], mutable=True
+        b_tec.para_unit_capex_energy_cap = pyo.Param(
+            domain=pyo.Reals,
+            initialize=economics.capex_data["unit_capex"],
+            mutable=True,
         )
 
-        b_tec.para_unit_capex_charging_cap_annual = Param(
-            domain=Reals,
+        b_tec.para_unit_capex_charging_cap_annual = pyo.Param(
+            domain=pyo.Reals,
             initialize=(annualization_factor * b_tec.para_unit_capex_charging_cap),
             mutable=True,
         )
-        b_tec.para_unit_capex_discharging_cap_annual = Param(
-            domain=Reals,
+        b_tec.para_unit_capex_discharging_cap_annual = pyo.Param(
+            domain=pyo.Reals,
             initialize=(annualization_factor * b_tec.para_unit_capex_discharging_cap),
             mutable=True,
         )
-        b_tec.para_unit_capex_energy_cap_annual = Param(
-            domain=Reals,
+        b_tec.para_unit_capex_energy_cap_annual = pyo.Param(
+            domain=pyo.Reals,
             initialize=(annualization_factor * b_tec.para_unit_capex_energy_cap),
             mutable=True,
         )
@@ -465,31 +521,34 @@ class Stor(Technology):
             b_tec.para_unit_capex_energy_cap_annual * b_tec.para_size_max
         )
 
-        b_tec.var_capex_charging_cap = Var(
-            domain=NonNegativeReals, bounds=(0, max_capex_charging_cap)
+        b_tec.var_capex_charging_cap = pyo.Var(
+            domain=pyo.NonNegativeReals, bounds=(0, max_capex_charging_cap)
         )
-        b_tec.var_capex_discharging_cap = Var(
-            domain=NonNegativeReals, bounds=(0, max_capex_discharging_cap)
+        b_tec.var_capex_discharging_cap = pyo.Var(
+            domain=pyo.NonNegativeReals, bounds=(0, max_capex_discharging_cap)
         )
-        b_tec.var_capex_energy_cap = Var(
-            domain=NonNegativeReals, bounds=(0, max_capex_energy_cap)
+        b_tec.var_capex_energy_cap = pyo.Var(
+            domain=pyo.NonNegativeReals, bounds=(0, max_capex_energy_cap)
         )
 
         # CAPEX constraint
-        b_tec.const_capex_charging_cap = Constraint(
+        # CAPEX_chargeCapacity = chargeCapacity * unitCost_chargeCapacity
+        b_tec.const_capex_charging_cap = pyo.Constraint(
             expr=b_tec.var_capacity_charge * b_tec.para_unit_capex_charging_cap_annual
             == b_tec.var_capex_charging_cap
         )
-        b_tec.const_capex_discharging_cap = Constraint(
+        # CAPEX_dischargeCapacity = dischargeCapacity * unitCost_dischargeCapacity
+        b_tec.const_capex_discharging_cap = pyo.Constraint(
             expr=b_tec.var_capacity_discharge
             * b_tec.para_unit_capex_discharging_cap_annual
             == b_tec.var_capex_discharging_cap
         )
-        b_tec.const_capex_energy_cap = Constraint(
+        # CAPEX_storSize = storSize * unitCost_storSize
+        b_tec.const_capex_energy_cap = pyo.Constraint(
             expr=b_tec.var_size * b_tec.para_unit_capex_energy_cap_annual
             == b_tec.var_capex_energy_cap
         )
-        b_tec.const_capex_aux = Constraint(
+        b_tec.const_capex_aux = pyo.Constraint(
             expr=b_tec.var_capex_charging_cap
             + b_tec.var_capex_discharging_cap
             + b_tec.var_capex_energy_cap
@@ -498,22 +557,13 @@ class Stor(Technology):
 
         return b_tec
 
-    def write_results_tec_operation(self, h5_group, model_block):
-        """
-        Function to report results of technologies after optimization
-
-        :param b_tec: technology model block
-        :return: dict results: holds results
-        """
-        super(Stor, self).write_results_tec_operation(h5_group, model_block)
-
-        h5_group.create_dataset(
-            "storage_level",
-            data=[model_block.var_storage_level[t].value for t in self.set_t_full],
-        )
-
     def write_results_tec_design(self, h5_group, model_block):
+        """
+        Function to report technology design
 
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
+        """
         super(Stor, self).write_results_tec_design(h5_group, model_block)
 
         if self.flexibility_data["power_energy_ratio"] == "flex":
@@ -534,12 +584,26 @@ class Stor(Technology):
                 "capex_energy_cap", data=[model_block.var_capex_energy_cap.value]
             )
 
+    def write_results_tec_operation(self, h5_group, model_block):
+        """
+        Function to report technology operation
+
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
+        """
+        super(Stor, self).write_results_tec_operation(h5_group, model_block)
+
+        h5_group.create_dataset(
+            "storage_level",
+            data=[model_block.var_storage_level[t].value for t in self.set_t_full],
+        )
+
     def _define_ramping_rates(self, b_tec):
         """
-        Constraints the inputs for a ramping rate. Implemented for input and output
+        Constraints the inputs for a ramping rate
 
-        :param b_tec: technology model block
-        :return:
+        :param b_tec: pyomo block with technology model
+        :return: pyomo block with technology model
         """
         ramping_time = self.performance_data["ramping_time"]
 
@@ -562,47 +626,50 @@ class Stor(Technology):
 
             def init_ramping_operation_on(dis, t, ind):
                 if t > 1:
-                    if ind == 0:  # ramping constrained
-                        dis.const_ramping_on = Constraint(
+                    if ind == 0:  # ramping constrained x[t] == x[t-1]
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 0
                         )
 
                         def init_ramping_down_rate_operation_in(const):
-                            return -ramping_rate <= sum(
-                                self.input[t, car_input] - self.input[t - 1, car_input]
-                                for car_input in b_tec.set_input_carriers
+                            # -rampingRate <= input[t] - input[t-1]
+                            return (
+                                -ramping_rate
+                                <= self.input[t, self.main_car]
+                                - self.input[t - 1, self.main_car]
                             )
 
-                        dis.const_ramping_down_rate_in = Constraint(
+                        dis.const_ramping_down_rate_in = pyo.Constraint(
                             rule=init_ramping_down_rate_operation_in
                         )
 
                         def init_ramping_up_rate_operation_in(const):
+                            # input[t] - input[t-1] <= rampingRate
                             return (
-                                sum(
-                                    self.input[t, car_input]
-                                    - self.input[t - 1, car_input]
-                                    for car_input in b_tec.set_input_carriers
-                                )
+                                self.input[t, self.main_car]
+                                - self.input[t - 1, self.main_car]
                                 <= ramping_rate
                             )
 
-                        dis.const_ramping_up_rate_in = Constraint(
+                        dis.const_ramping_up_rate_in = pyo.Constraint(
                             rule=init_ramping_up_rate_operation_in
                         )
 
                         def init_ramping_down_rate_operation_out(const):
+                            # -rampingRate <= output[t] - output[t-1]
+
                             return -ramping_rate <= sum(
                                 self.output[t, car_output]
                                 - self.output[t - 1, car_output]
                                 for car_output in b_tec.set_output_carriers
                             )
 
-                        dis.const_ramping_down_rate_out = Constraint(
+                        dis.const_ramping_down_rate_out = pyo.Constraint(
                             rule=init_ramping_down_rate_operation_out
                         )
 
                         def init_ramping_up_rate_operation_out(const):
+                            # output[t] - output[t-1] <= rampingRate
                             return (
                                 sum(
                                     self.output[t, car_output]
@@ -612,21 +679,21 @@ class Stor(Technology):
                                 <= ramping_rate
                             )
 
-                        dis.const_ramping_up_rate_out = Constraint(
+                        dis.const_ramping_up_rate_out = pyo.Constraint(
                             rule=init_ramping_up_rate_operation_out
                         )
 
-                    elif ind == 1:  # startup, no ramping constraint
-                        dis.const_ramping_on = Constraint(
+                    elif ind == 1:  # startup, no ramping constraint x[t] - x[t-1] == 1
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 1
                         )
 
-                    else:  # shutdown, no ramping constraint
-                        dis.const_ramping_on = Constraint(
+                    else:  # shutdown, no ramping constraint x[t] - x[t-1] == -1
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == -1
                         )
 
-            b_tec.dis_ramping_operation_on = Disjunct(
+            b_tec.dis_ramping_operation_on = gdp.Disjunct(
                 self.set_t, s_indicators, rule=init_ramping_operation_on
             )
 
@@ -634,55 +701,57 @@ class Stor(Technology):
             def bind_disjunctions(dis, t):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
-            b_tec.disjunction_ramping_operation_on = Disjunction(
+            b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
                 self.set_t, rule=bind_disjunctions
             )
 
         else:
 
             def init_ramping_down_rate_input(const, t):
+                # -rampingRate <= input[t] - input[t-1]
                 if t > 1:
-                    return -ramping_rate <= sum(
-                        self.input[t, car_input] - self.input[t - 1, car_input]
-                        for car_input in b_tec.set_input_carriers
+                    return (
+                        -ramping_rate
+                        <= self.input[t, self.main_car]
+                        - self.input[t - 1, self.main_car]
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_down_rate_input = Constraint(
+            b_tec.const_ramping_down_rate_input = pyo.Constraint(
                 self.set_t, rule=init_ramping_down_rate_input
             )
 
             def init_ramping_up_rate_input(const, t):
+                # input[t] - input[t-1] <= rampingRate
                 if t > 1:
                     return (
-                        sum(
-                            self.input[t, car_input] - self.input[t - 1, car_input]
-                            for car_input in b_tec.set_input_carriers
-                        )
+                        self.input[t, self.main_car] - self.input[t - 1, self.main_car]
                         <= ramping_rate
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_up_rate_input = Constraint(
+            b_tec.const_ramping_up_rate_input = pyo.Constraint(
                 self.set_t, rule=init_ramping_up_rate_input
             )
 
             def init_ramping_down_rate_output(const, t):
+                # -rampingRate <= output[t] - output[t-1]
                 if t > 1:
                     return -ramping_rate <= sum(
                         self.output[t, car_output] - self.output[t - 1, car_output]
                         for car_output in b_tec.set_ouput_carriers
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_down_rate_output = Constraint(
+            b_tec.const_ramping_down_rate_output = pyo.Constraint(
                 self.set_t, rule=init_ramping_down_rate_output
             )
 
             def init_ramping_down_rate_output(const, t):
+                # output[t] - output[t-1] <= rampingRate
                 if t > 1:
                     return (
                         sum(
@@ -692,9 +761,9 @@ class Stor(Technology):
                         <= ramping_rate
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_up_rate_output = Constraint(
+            b_tec.const_ramping_up_rate_output = pyo.Constraint(
                 self.set_t, rule=init_ramping_down_rate_output
             )
 

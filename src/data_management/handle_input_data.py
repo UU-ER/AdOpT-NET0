@@ -1,12 +1,10 @@
-import pandas as pd
-import copy
 import numpy as np
+import pandas as pd
 from pathlib import Path
 
 from .utilities import *
 from ..components.networks import *
-from ..logger import logger
-from ..utilities import log_event
+from ..logger import log_event
 
 
 class DataHandle:
@@ -33,7 +31,7 @@ class DataHandle:
     :param int, None end_period: end period to use, if None, the last available period is used
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """
         Constructor
         """
@@ -53,7 +51,7 @@ class DataHandle:
 
     def read_input_data(
         self, data_path: Path, start_period: int = None, end_period: int = None
-    ) -> None:
+    ):
         """
         Overarching function to read the data from folder structure contained in data_path
 
@@ -104,7 +102,7 @@ class DataHandle:
         if self.model_config["optimization"]["timestaging"]["value"] != 0:
             self._average_data()
 
-    def _read_topology(self) -> None:
+    def _read_topology(self):
         """
         Reads topology
         """
@@ -133,7 +131,7 @@ class DataHandle:
         # Log success
         log_event("Topology read successfully")
 
-    def _read_model_config(self) -> None:
+    def _read_model_config(self):
         """
         Reads model configuration
         """
@@ -147,7 +145,7 @@ class DataHandle:
             "Model Configuration used: " + json.dumps(self.model_config), print_it=0
         )
 
-    def _read_time_series(self) -> None:
+    def _read_time_series(self):
         """
         Reads all time-series data and shortens time series accordingly
         """
@@ -241,7 +239,7 @@ class DataHandle:
         # Log success
         log_event("Time series read successfully")
 
-    def _read_node_locations(self) -> None:
+    def _read_node_locations(self):
         """
         Reads node locations
         """
@@ -252,7 +250,7 @@ class DataHandle:
         # Log success
         log_event("Node Locations read successfully")
 
-    def _read_energybalance_options(self) -> None:
+    def _read_energybalance_options(self):
         """
         Reads energy balance options
         """
@@ -274,7 +272,7 @@ class DataHandle:
 
         log_event("Energy balance options read successfully")
 
-    def _read_technology_data(self, aggregation_type: str = "full") -> None:
+    def _read_technology_data(self, aggregation_type: str = "full"):
         """
         Reads all technology data and fits it
 
@@ -340,7 +338,7 @@ class DataHandle:
 
         log_event("Technology data read successfully")
 
-    def _read_network_data(self, aggregation_type: str = "full") -> None:
+    def _read_network_data(self, aggregation_type: str = "full"):
         """
         Reads all network data
         """
@@ -395,7 +393,7 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data.calculate_max_size_arc()
+                netw_data._calculate_max_size_arc()
                 self.network_data[aggregation_type][investment_period][
                     network
                 ] = netw_data
@@ -449,7 +447,7 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data.calculate_max_size_arc()
+                netw_data._calculate_max_size_arc()
                 self.network_data[aggregation_type][investment_period][
                     network + "_existing"
                 ] = netw_data
@@ -516,6 +514,8 @@ class DataHandle:
 
         self._read_technology_data(aggregation_type="clustered")
 
+        log_event("Clustered data successfully")
+
     def _average_data(self):
         # Todo: document
         """
@@ -559,3 +559,5 @@ class DataHandle:
 
             # read technology data
             self._read_technology_data(aggregation_type="clustered_averaged")
+
+        log_event("Averaged data successfully")

@@ -1,6 +1,4 @@
 import pandas as pd
-
-from src.components.technologies.utilities import open_json
 import numpy as np
 
 
@@ -17,10 +15,10 @@ def fit_ccs_data(
     mixed-integer linear model of post-combustion carbon capture for reliable use in energy system optimisation
     https://doi.org/10.1016/j.apenergy.2023.120738).
 
+    :param float co2_concentration: CO2 concentration for ccs
     :param dict ccs_data: data of the CCS technology
-    :param dict data: input data
-    :return: technology data updated with the bounds and input ratios for CCS
-    :rtype: dict
+    :param pd.Dataframe climate_data: dataframe containing climate data
+    :return: ccs data updated with the bounds and input ratios for CCS
     """
 
     performance_data = ccs_data["TechnologyPerf"]

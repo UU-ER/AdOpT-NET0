@@ -1,7 +1,7 @@
-from pyomo.environ import *
-from pyomo.gdp import *
-import copy
+import pyomo.environ as pyo
+import pyomo.gdp as gdp
 from warnings import warn
+import pandas as pd
 
 from ..genericTechnologies.utilities import fit_performance_generic_tecs
 from ..technology import Technology
@@ -9,31 +9,41 @@ from ..technology import Technology
 
 class Conv3(Technology):
     """
-    This technology type resembles a technology with different performance functions for the respective output
-    carriers. The performance function is based on the input of the main carrier , i.e.
-    :math:`output_{car} = f_{car}(input_{maincarrier})`.
-    The ratio between all input carriers is fixed.
-    Three different performance function fits are possible.
+    This technology type resembles a technology for which the output can be written as a function of the input,
+    according to different performance functions that can be specified in the JSON files (``performance_function_type``).
+    Four different performance function fits of the technology data (again specified in the JSON file) are possible,
+    and for all the function is based on the input of the main carrier , i.e.,:
+     :math:`output_{car} = f_{car}(input_{maincarrier})`.
+    Note that the ratio between all input carriers is fixed.
 
     **Constraint declarations:**
 
+    For all technologies modelled with CONV3 (regardless of performance function type):
     - Size constraints are formulated on the input.
 
       .. math::
          Input_{t, maincarrier} \leq S
 
-    - The ratios of inputs for all performance function types are fixed and given as:
+    - The ratios of inputs are fixed and given as:
 
       .. math::
         Input_{t, car} = {\\phi}_{car} * Input_{t, maincarrier}
 
-    - ``performance_function_type == 1``: Linear through origin, i.e.:
+    Type 1 is a linear performance function through the origin. However, a minimum part load can be specified,
+    basically meaning that the part of the performance function from the origin to this minimum part load value
+    cannot be met, thus it also cannot be turned off. So, for ``performance_function_type == 1`` the following
+    constraint holds:
 
       .. math::
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
 
-    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
-      technology is in on, it holds:
+    Type 2 is a linear performance function with a minimum part load. In this case, the linear line does not have to
+    be in line with the origin, and the technology can be turned off as well. Thus, the performance is either at the
+    origin (off) or it is at a linear line. Therefore, a big-m transformation is required. So, for
+    ``performance_function_type == 2``, the following constraints hold:
+
+
+    - If the technology is in on, it holds:
 
       .. math::
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier} + {\\alpha}_{2, car}
@@ -41,7 +51,7 @@ class Conv3(Technology):
       .. math::
         Input_{maincarrier} \geq Input_{min} * S
 
-      If the technology is off, input and output is set to 0:
+    - If the technology is off, input and output are set to 0:
 
       .. math::
          Output_{t, car} = 0
@@ -49,25 +59,32 @@ class Conv3(Technology):
       .. math::
          Input_{t, maincarrier} = 0
 
-    - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
-      The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
-      is defined piecewise for the respective number of pieces
+    For ``performance_function_type == 3``, the performance is modelled as a piecewise linear function. Note that this
+    requires a big-m transformation. For this case, the same constraints as for ``performance_function_type == 2`` hold,
+    but for each "piece" (segment) of the performance function (as specified in the JSON file, ``nr_seg``), the alpha_1
+    and alpha_2 change, so the performance function (output = f(input)) is written for each segment separately.
 
+    For ``performance_function_type == 4``, the performance is also modelled as a piecewise linear function. However,
+    this type additionally includes constraints for slow (>1h) startup and shutdown trajectories.
     """
 
-    def __init__(self, tec_data):
+    def __init__(self, tec_data: dict):
+        """
+        Constructor
+
+        :param dict tec_data: technology data
+        """
         super().__init__(tec_data)
 
         self.fitted_performance = None
         self.main_car = self.performance_data["main_input_carrier"]
 
-    def fit_technology_performance(self, climate_data, location):
+    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits conversion technology type 3 and returns fitted parameters as a dict
 
-        :param performance_data: contains X and y data of technology performance
-        :param performance_function_type: options for type of performance function (linear, piecewise,...)
-        :param nr_seg: number of segments on piecewise defined function
+        :param pd.Dataframe climate_data: dataframe containing climate data
+        :param dict location: dict containing location details
         """
 
         if self.performance_data["size_based_on"] == "output":
@@ -86,15 +103,19 @@ class Conv3(Technology):
                     * self.performance_data["input_ratios"][car]
                 )
 
-    def construct_tech_model(self, b_tec, data, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV3
 
-        :param obj b_tec: technology block
-        :param Energyhub energyhub: energyhub instance
-        :return: technology block
+        :param b_tec: pyomo block with technology model
+        :param dict data: data containing model configuration
+        :param set_t_full: pyomo set containing timesteps
+        :param set_t_clustered: pyomo set containing clustered timesteps
+        :return: pyomo block with technology model
         """
-        super(Conv3, self).construct_tech_model(b_tec, data, set_t, set_t_clustered)
+        super(Conv3, self).construct_tech_model(
+            b_tec, data, set_t_full, set_t_clustered
+        )
 
         # DATA OF TECHNOLOGY
         performance_data = self.performance_data
@@ -120,14 +141,14 @@ class Conv3(Technology):
 
             def init_input_input(const, t, car_input):
                 if car_input == self.main_car:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
                 else:
                     return (
                         self.input[t, car_input]
                         == phi[car_input] * self.input[t, self.main_car]
                     )
 
-            b_tec.const_input_input = Constraint(
+            b_tec.const_input_input = pyo.Constraint(
                 self.set_t_full, b_tec.set_input_carriers, rule=init_input_input
             )
         else:
@@ -135,35 +156,35 @@ class Conv3(Technology):
 
             def init_input_input(dis, t, ind):
                 if ind == 0:  # technology off
-                    dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+                    dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
 
                     def init_input_off(const, car_input):
                         if car_input == self.main_car:
-                            return Constraint.Skip
+                            return pyo.Constraint.Skip
                         else:
                             return self.input[t, car_input] == 0
 
-                    dis.const_input_off = Constraint(
+                    dis.const_input_off = pyo.Constraint(
                         b_tec.set_input_carriers, rule=init_input_off
                     )
 
                 else:  # technology on
-                    dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+                    dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
 
                     def init_input_on(const, car_input):
                         if car_input == self.main_car:
-                            return Constraint.Skip
+                            return pyo.Constraint.Skip
                         else:
                             return (
                                 self.input[t, car_input]
                                 == phi[car_input] * self.input[t, self.main_car]
                             )
 
-                    dis.const_input_on = Constraint(
+                    dis.const_input_on = pyo.Constraint(
                         b_tec.set_input_carriers, rule=init_input_on
                     )
 
-            b_tec.dis_input_input = Disjunct(
+            b_tec.dis_input_input = gdp.Disjunct(
                 self.set_t, s_indicators, rule=init_input_input
             )
 
@@ -171,15 +192,15 @@ class Conv3(Technology):
             def bind_disjunctions(dis, t):
                 return [b_tec.dis_input_input[t, i] for i in s_indicators]
 
-            b_tec.disjunction_input_input = Disjunction(
+            b_tec.disjunction_input_input = gdp.Disjunction(
                 self.set_t, rule=bind_disjunctions
             )
 
-        # size constraint based main carrier input
+        # size constraint based on main carrier input
         def init_size_constraint(const, t):
             return self.input[t, self.main_car] <= b_tec.var_size * rated_power
 
-        b_tec.const_size = Constraint(self.set_t, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
 
         # RAMPING RATES
         if "ramping_time" in self.performance_data:
@@ -190,28 +211,35 @@ class Conv3(Technology):
 
     def _performance_function_type_1(self, b_tec):
         """
-        Linear, no minimal partload, through origin
-        :param b_tec: technology block
-        :return: technology block
+        Sets the input-output constraint for a tec based on tec_type CONV3 with performance type 1.
+
+        Type 1 is a linear performance function through the origin. However, a minimum part load can be specified,
+        basically meaning that the part of the performance function from the origin to this minimum part load value
+        cannot be met, thus it also cannot be turned off.
+
+        :param b_tec: pyomo block with technology model
+        :return: pyomo block with technology model
         """
-        # Performance parameter:
+
+        # Performance parameters:
         alpha1 = {}
         for car in self.performance_data["performance"]["out"]:
             alpha1[car] = self.fitted_performance.coefficients[car]["alpha1"]
         rated_power = self.fitted_performance.rated_power
         min_part_load = self.performance_data["min_part_load"]
 
-        # Input-output correlation
+        # Input-output relation
         def init_input_output(const, t, car_output):
             return (
                 self.output[t, car_output]
                 == alpha1[car_output] * self.input[t, self.main_car]
             )
 
-        b_tec.const_input_output = Constraint(
+        b_tec.const_input_output = pyo.Constraint(
             self.set_t, b_tec.set_output_carriers, rule=init_input_output
         )
 
+        # setting the minimum part load constraint if applicable
         if min_part_load > 0:
 
             def init_min_part_load(const, t):
@@ -220,16 +248,24 @@ class Conv3(Technology):
                     <= self.input[t, self.main_car]
                 )
 
-            b_tec.const_min_part_load = Constraint(self.set_t, rule=init_min_part_load)
+            b_tec.const_min_part_load = pyo.Constraint(
+                self.set_t, rule=init_min_part_load
+            )
 
         return b_tec
 
     def _performance_function_type_2(self, b_tec):
         """
-        Linear, minimal partload
-        :param b_tec: technology block
-        :return: technology block
+        Sets the input-output constraint for a tec based on tec_type CONV3 with performance type 2.
+
+        Type 2 is a linear performance function with a minimum part load. In this case, the linear line does not have to
+        be in line with the origin, and the technology can be turned off as well. Thus, the performance is either at the
+        origin (off) or it is at a linear line. Therefore, a big-m transformation is required.
+
+        :param b_tec: pyomo block with technology model
+        :return: pyomo block with technology model
         """
+
         # Transformation required
         self.big_m_transformation_required = 1
 
@@ -252,7 +288,9 @@ class Conv3(Technology):
                 car_standby_power = self.performance_data["standby_power_carrier"]
 
         if not b_tec.find_component("var_x"):
-            b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+            b_tec.var_x = pyo.Var(
+                self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
+            )
 
         if min_part_load == 0:
             warn(
@@ -266,14 +304,14 @@ class Conv3(Technology):
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
 
                 if standby_power == -1:
 
                     def init_input_off(const, car_input):
                         return self.input[t, car_input] == 0
 
-                    dis.const_input = Constraint(
+                    dis.const_input = pyo.Constraint(
                         b_tec.set_input_carriers, rule=init_input_off
                     )
 
@@ -288,20 +326,20 @@ class Conv3(Technology):
                         else:
                             return self.input[t, car_input] == 0
 
-                    dis.const_input = Constraint(
+                    dis.const_input = pyo.Constraint(
                         b_tec.set_input_carriers, rule=init_standby_power
                     )
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
 
-                dis.const_output_off = Constraint(
+                dis.const_output_off = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_off
                 )
 
             else:  # technology on
 
-                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
 
                 # input-output relation
                 def init_input_output_on(const, car_output):
@@ -311,20 +349,20 @@ class Conv3(Technology):
                         + alpha2[car_output] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_output_on = Constraint(
+                dis.const_input_output_on = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_input_output_on
                 )
 
-                # min part load relation
+                # min part load constraint
                 def init_min_partload(const):
                     return (
                         self.input[t, self.main_car]
                         >= min_part_load * b_tec.var_size * rated_power
                     )
 
-                dis.const_min_partload = Constraint(rule=init_min_partload)
+                dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(
+        b_tec.dis_input_output = gdp.Disjunct(
             self.set_t, s_indicators, rule=init_input_output
         )
 
@@ -332,15 +370,21 @@ class Conv3(Technology):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
-        b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = gdp.Disjunction(
+            self.set_t, rule=bind_disjunctions
+        )
 
         return b_tec
 
     def _performance_function_type_3(self, b_tec):
         """
-        Piece-wise linear, minimal partload
-        :param b_tec: technology block
-        :return: technology block
+        Sets the input-output constraint for a tec based on tec_type CONV3 with performance type 3.
+
+        Type 3 is a piecewise linear fit to the performance data, based on the number of segments specified. Note that
+        this requires a big-m transformation. Again, a minimum part load is possible.
+
+        :param b_tec: pyomo block with technology model
+        :return: pyomo block with technology model
         """
         # Transformation required
         self.big_m_transformation_required = 1
@@ -365,21 +409,23 @@ class Conv3(Technology):
                 car_standby_power = self.performance_data["standby_power_carrier"]
 
         if not b_tec.find_component("var_x"):
-            b_tec.var_x = Var(self.set_t_full, domain=NonNegativeReals, bounds=(0, 1))
+            b_tec.var_x = pyo.Var(
+                self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
+            )
 
         s_indicators = range(0, len(bp_x))
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
 
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
 
                 if standby_power == -1:
 
                     def init_input_off(const, car_input):
                         return self.input[t, car_input] == 0
 
-                    dis.const_input_off = Constraint(
+                    dis.const_input_off = pyo.Constraint(
                         b_tec.set_input_carriers, rule=init_input_off
                     )
 
@@ -395,20 +441,20 @@ class Conv3(Technology):
                         else:
                             return self.input[t, car_input] == 0
 
-                    dis.const_input = Constraint(
+                    dis.const_input = pyo.Constraint(
                         b_tec.set_input_carriers, rule=init_standby_power
                     )
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
 
-                dis.const_output_off = Constraint(
+                dis.const_output_off = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_off
                 )
 
             else:  # piecewise definition
 
-                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
 
                 def init_input_on1(const):
                     return (
@@ -416,7 +462,7 @@ class Conv3(Technology):
                         >= bp_x[ind - 1] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_on1 = Constraint(rule=init_input_on1)
+                dis.const_input_on1 = pyo.Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
                     return (
@@ -424,7 +470,7 @@ class Conv3(Technology):
                         <= bp_x[ind] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_on2 = Constraint(rule=init_input_on2)
+                dis.const_input_on2 = pyo.Constraint(rule=init_input_on2)
 
                 def init_output_on(const, car_output):
                     return (
@@ -433,20 +479,20 @@ class Conv3(Technology):
                         + alpha2[car_output][ind - 1] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_output_on = Constraint(
+                dis.const_input_output_on = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_on
                 )
 
-                # min part load relation
+                # min part load constraint
                 def init_min_partload(const):
                     return (
                         self.input[t, self.main_car]
                         >= min_part_load * b_tec.var_size * rated_power
                     )
 
-                dis.const_min_partload = Constraint(rule=init_min_partload)
+                dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
-        b_tec.dis_input_output = Disjunct(
+        b_tec.dis_input_output = gdp.Disjunct(
             self.set_t, s_indicators, rule=init_input_output
         )
 
@@ -454,21 +500,29 @@ class Conv3(Technology):
         def bind_disjunctions(dis, t):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
-        b_tec.disjunction_input_output = Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_input_output = gdp.Disjunction(
+            self.set_t, rule=bind_disjunctions
+        )
 
         return b_tec
 
     def _performance_function_type_4(self, b_tec):
         """
-        Piece-wise linear, minimal partload, includes constraints for slow (>1h) startup and shutdown trajectories.
+        Sets the constraints (input-output and startup/shutdown) for a tec based on tec_type CONV3 with performance
+        type 4.
+
+        Type 4 is also a piecewise linear fit to the performance data, based on the number of segments specified. Note
+        that this requires a big-m transformation. Again, a minimum part load is possible. Additionally, type 4 includes
+        constraints for slow (>1h) startup and shutdown trajectories.
 
         Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L., & Hobbs, B. F. (2017). Hidden
         power system inflexibilities imposed by traditional unit commitment formulations. Applied Energy, 191, 223–238.
         https://doi.org/10.1016/J.APENERGY.2017.01.089
 
-        :param b_tec: technology block
-        :return: technology block
+        :param b_tec: pyomo block with technology model
+        :return: pyomo block with technology model
         """
+
         # Transformation required
         self.big_m_transformation_required = 1
 
@@ -510,7 +564,7 @@ class Conv3(Technology):
 
         def init_SUSD_trajectories(dis, t, ind):
             if ind == 0:  # technology off
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
 
                 def init_y_off(const, i):
                     if t < len(self.set_t_full) - SU_time or i > SU_time - (
@@ -523,7 +577,7 @@ class Conv3(Technology):
                             == 0
                         )
 
-                dis.const_y_off = Constraint(range(1, SU_time + 1), rule=init_y_off)
+                dis.const_y_off = pyo.Constraint(range(1, SU_time + 1), rule=init_y_off)
 
                 def init_z_off(const, j):
                     if j <= t:
@@ -531,24 +585,24 @@ class Conv3(Technology):
                     else:
                         return b_tec.var_z[len(self.set_t_full) + (t - j + 1)] == 0
 
-                dis.const_z_off = Constraint(range(1, SD_time + 1), rule=init_z_off)
+                dis.const_z_off = pyo.Constraint(range(1, SD_time + 1), rule=init_z_off)
 
                 def init_input_off(const, car_input):
                     return self.input[t, car_input] == 0
 
-                dis.const_input_off = Constraint(
+                dis.const_input_off = pyo.Constraint(
                     b_tec.set_input_carriers, rule=init_input_off
                 )
 
                 def init_output_off(const, car_output):
                     return self.output[t, car_output] == 0
 
-                dis.const_output_off = Constraint(
+                dis.const_output_off = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_off
                 )
 
             elif ind in range(1, SU_time + 1):  # technology in startup
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
 
                 def init_y_on(const):
                     if t < len(self.set_t_full) - SU_time or ind > SU_time - (
@@ -561,7 +615,7 @@ class Conv3(Technology):
                             == 1
                         )
 
-                dis.const_y_on = Constraint(rule=init_y_on)
+                dis.const_y_on = pyo.Constraint(rule=init_y_on)
 
                 def init_z_off(const):
                     if t < len(self.set_t_full) - SU_time or ind > SU_time - (
@@ -574,7 +628,7 @@ class Conv3(Technology):
                             == 0
                         )
 
-                dis.const_z_off = Constraint(rule=init_z_off)
+                dis.const_z_off = pyo.Constraint(rule=init_z_off)
 
                 def init_input_SU(cons):
                     return (
@@ -582,7 +636,7 @@ class Conv3(Technology):
                         == b_tec.var_size * SU_trajectory[ind - 1]
                     )
 
-                dis.const_input_SU = Constraint(rule=init_input_SU)
+                dis.const_input_SU = pyo.Constraint(rule=init_input_SU)
 
                 def init_output_SU(const, car_output):
                     return (
@@ -591,7 +645,7 @@ class Conv3(Technology):
                         + alpha2[car_output][0] * b_tec.var_size * rated_power
                     )
 
-                dis.const_output_SU = Constraint(
+                dis.const_output_SU = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_SU
                 )
 
@@ -599,7 +653,7 @@ class Conv3(Technology):
                 SU_time + 1, SU_time + SD_time + 1
             ):  # technology in shutdown
                 ind_SD = ind - SU_time
-                dis.const_x_off = Constraint(expr=b_tec.var_x[t] == 0)
+                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
 
                 def init_z_on(const):
                     if ind_SD <= t:
@@ -607,7 +661,7 @@ class Conv3(Technology):
                     else:
                         return b_tec.var_z[len(self.set_t_full) + (t - ind_SD + 1)] == 1
 
-                dis.const_z_on = Constraint(rule=init_z_on)
+                dis.const_z_on = pyo.Constraint(rule=init_z_on)
 
                 def init_y_off(const):
                     if ind_SD <= t:
@@ -615,7 +669,7 @@ class Conv3(Technology):
                     else:
                         return b_tec.var_y[len(self.set_t_full) + (t - ind_SD + 1)] == 0
 
-                dis.const_y_off = Constraint(rule=init_y_off)
+                dis.const_y_off = pyo.Constraint(rule=init_y_off)
 
                 def init_input_SD(cons):
                     return (
@@ -623,7 +677,7 @@ class Conv3(Technology):
                         == b_tec.var_size * SD_trajectory[ind_SD - 1]
                     )
 
-                dis.const_input_SD = Constraint(rule=init_input_SD)
+                dis.const_input_SD = pyo.Constraint(rule=init_input_SD)
 
                 def init_output_SD(const, car_output):
                     return (
@@ -632,13 +686,13 @@ class Conv3(Technology):
                         + alpha2[car_output][0] * b_tec.var_size * rated_power
                     )
 
-                dis.const_output_SD = Constraint(
+                dis.const_output_SD = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_SD
                 )
 
             elif ind > SU_time + SD_time:
                 ind_bpx = ind - (SU_time + SD_time)
-                dis.const_x_on = Constraint(expr=b_tec.var_x[t] == 1)
+                dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
 
                 def init_input_on1(const):
                     return (
@@ -646,7 +700,7 @@ class Conv3(Technology):
                         >= bp_x[ind_bpx - 1] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_on1 = Constraint(rule=init_input_on1)
+                dis.const_input_on1 = pyo.Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
                     return (
@@ -654,7 +708,7 @@ class Conv3(Technology):
                         <= bp_x[ind_bpx] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_on2 = Constraint(rule=init_input_on2)
+                dis.const_input_on2 = pyo.Constraint(rule=init_input_on2)
 
                 def init_output_on(const, car_output):
                     return (
@@ -664,7 +718,7 @@ class Conv3(Technology):
                         + alpha2[car_output][ind_bpx - 1] * b_tec.var_size * rated_power
                     )
 
-                dis.const_input_output_on = Constraint(
+                dis.const_input_output_on = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_on
                 )
 
@@ -675,16 +729,16 @@ class Conv3(Technology):
                         >= min_part_load * b_tec.var_size * rated_power
                     )
 
-                dis.const_min_partload = Constraint(rule=init_min_partload)
+                dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
-        b_tec.dis_SUSD_trajectory = Disjunct(
+        b_tec.dis_SUSD_trajectory = gdp.Disjunct(
             self.set_t_full, s_indicators, rule=init_SUSD_trajectories
         )
 
         def bind_disjunctions_SUSD(dis, t):
             return [b_tec.dis_SUSD_trajectory[t, k] for k in s_indicators]
 
-        b_tec.disjunction_SUSD_traject = Disjunction(
+        b_tec.disjunction_SUSD_traject = gdp.Disjunction(
             self.set_t_full, rule=bind_disjunctions_SUSD
         )
 
@@ -694,8 +748,8 @@ class Conv3(Technology):
         """
         Constraints the inputs for a ramping rate
 
-        :param b_tec: technology model block
-        :return:
+        :param b_tec: pyomo block with technology model
+        :return: pyomo block with technology model
         """
         ramping_time = self.performance_data["ramping_time"]
 
@@ -720,7 +774,7 @@ class Conv3(Technology):
             def init_ramping_operation_on(dis, t, ind):
                 if t > 1:
                     if ind == 0:  # ramping constrained
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 0
                         )
 
@@ -731,7 +785,7 @@ class Conv3(Technology):
                                 - self.input[t - 1, self.main_car]
                             )
 
-                        dis.const_ramping_down_rate = Constraint(
+                        dis.const_ramping_down_rate = pyo.Constraint(
                             rule=init_ramping_down_rate_operation
                         )
 
@@ -742,21 +796,21 @@ class Conv3(Technology):
                                 <= ramping_rate
                             )
 
-                        dis.const_ramping_up_rate = Constraint(
+                        dis.const_ramping_up_rate = pyo.Constraint(
                             rule=init_ramping_up_rate_operation
                         )
 
                     elif ind == 1:  # startup, no ramping constraint
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == 1
                         )
 
                     else:  # shutdown, no ramping constraint
-                        dis.const_ramping_on = Constraint(
+                        dis.const_ramping_on = pyo.Constraint(
                             expr=b_tec.var_x[t] - b_tec.var_x[t - 1] == -1
                         )
 
-            b_tec.dis_ramping_operation_on = Disjunct(
+            b_tec.dis_ramping_operation_on = gdp.Disjunct(
                 self.set_t, s_indicators, rule=init_ramping_operation_on
             )
 
@@ -764,7 +818,7 @@ class Conv3(Technology):
             def bind_disjunctions(dis, t):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
-            b_tec.disjunction_ramping_operation_on = Disjunction(
+            b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
                 self.set_t, rule=bind_disjunctions
             )
 
@@ -778,9 +832,9 @@ class Conv3(Technology):
                         - self.input[t - 1, self.main_car]
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_down_rate = Constraint(
+            b_tec.const_ramping_down_rate = pyo.Constraint(
                 self.set_t, rule=init_ramping_down_rate
             )
 
@@ -791,9 +845,9 @@ class Conv3(Technology):
                         <= ramping_rate
                     )
                 else:
-                    return Constraint.Skip
+                    return pyo.Constraint.Skip
 
-            b_tec.const_ramping_up_rate = Constraint(
+            b_tec.const_ramping_up_rate = pyo.Constraint(
                 self.set_t, rule=init_ramping_up_rate
             )
 

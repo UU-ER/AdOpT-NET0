@@ -1,5 +1,3 @@
-import pytest
-from pathlib import Path
 from pyomo.environ import (
     ConcreteModel,
     Constraint,
@@ -8,7 +6,6 @@ from pyomo.environ import (
 )
 
 from src.test.utilities import make_data_handle
-from src.components.technologies.technology import Technology
 from src.energyhub import EnergyHub
 from src.model_construction.construct_balances import (
     construct_global_balance,
@@ -21,9 +18,12 @@ from src.model_construction.construct_balances import (
 from src.data_management import DataHandle
 
 
-def construct_model(dh: DataHandle) -> ConcreteModel:
+def construct_model(dh):
     """
-    Constructs a model
+    Constructs a model from DataHandle object
+
+    :param dh: DataHandle
+    :return: pyomo model
     """
 
     ehub = EnergyHub()
@@ -34,7 +34,13 @@ def construct_model(dh: DataHandle) -> ConcreteModel:
     return m
 
 
-def solve_model(m: ConcreteModel) -> TerminationCondition:
+def solve_model(m):
+    """
+    Solves model and returns termination condition
+
+    :param m: pyomo model to solve
+    :return: termination condition
+    """
     solver = SolverFactory("gurobi")
     solution = solver.solve(m)
     termination_condition = solution.solver.termination_condition
@@ -167,7 +173,8 @@ def test_model_emission_balance():
     This testing function contains two subtests:
 
     INFEASIBILITY CASES
-    1) Demand at first node is 1, import is allowed at an import emission factor. Total emissions are set to zero.
+    1) Demand at first node is 1, import is allowed at an import emission factor.
+    Total emissions are set to zero.
 
     FEASIBILITY CASES
     2) Demand at first node is 1, import is allowed at an import emission factor.
@@ -221,12 +228,13 @@ def test_model_emission_balance():
 
 def test_model_cost_balance():
     """
-    Tests the emission balance
+    Tests the cost balance balance
 
     This testing function contains two subtests:
 
     INFEASIBILITY CASES
-    1) Demand at first node is 1, import is allowed at an import price. Total cost is set to zero.
+    1) Demand at first node is 1, import is allowed at an import price. Total cost
+    is set to zero.
 
     FEASIBILITY CASES
     2) Demand at first node is 1, import is allowed at an import price.
