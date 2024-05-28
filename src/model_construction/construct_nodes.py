@@ -131,7 +131,11 @@ def construct_node_block(b_node, data: dict, set_t_full):
     b_node.set_carriers = pyo.Set(initialize=list(set(carriers)))
 
     # PARAMETERS
-    def create_carrier_parameter(key):
+    def create_carrier_parameter(key, par_mutable=None):
+
+        if par_mutable is None:
+            par_mutable = False
+
         # Convert to dict/list for performance
         ts = {}
         for car in b_node.set_carriers:
@@ -143,7 +147,10 @@ def construct_node_block(b_node, data: dict, set_t_full):
             return ts[car][key][t - 1]
 
         parameter = pyo.Param(
-            set_t_full, b_node.set_carriers, rule=init_carrier_parameter, mutable=False
+            set_t_full,
+            b_node.set_carriers,
+            rule=init_carrier_parameter,
+            mutable=par_mutable,
         )
         return parameter
 
@@ -160,10 +167,17 @@ def construct_node_block(b_node, data: dict, set_t_full):
         )
         return parameter
 
+    if config["optimization"]["monte_carlo"]["N"]["value"] != 0:
+        par_mutable = True
+
     b_node.para_demand = create_carrier_parameter("Demand")
     b_node.para_production_profile = create_carrier_parameter("Generic production")
-    b_node.para_import_price = create_carrier_parameter("Import price")
-    b_node.para_export_price = create_carrier_parameter("Export price")
+    b_node.para_import_price = create_carrier_parameter(
+        "Import price", par_mutable=par_mutable
+    )
+    b_node.para_export_price = create_carrier_parameter(
+        "Export price", par_mutable=par_mutable
+    )
     b_node.para_import_limit = create_carrier_parameter("Import limit")
     b_node.para_export_limit = create_carrier_parameter("Export limit")
     b_node.para_import_emissionfactors = create_carrier_parameter(

@@ -1,3 +1,4 @@
+import copy
 import random
 import warnings
 from pathlib import Path
@@ -9,19 +10,17 @@ import pandas as pd
 import sys
 import datetime
 
-from pyomo.gdp import Disjunction, Disjunct
-
 from .data_management import DataHandle
 from .model_construction import *
 from .result_management.read_results import add_values_to_summary
-from .utilities import get_glpk_parameters, get_gurobi_parameters, log_event
+from .utilities import get_glpk_parameters, get_gurobi_parameters
+from .logger import log_event
 from .result_management import *
 from .components.utilities import (
     annualize,
     set_discount_rate,
     perform_disjunct_relaxation,
 )
-from .components.technologies.utilities import set_capex_model
 
 
 class EnergyHub:
@@ -584,7 +583,7 @@ class EnergyHub:
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.remove_constraint(model.const_emission_limit)
             model.del_component(model.const_emission_limit)
-            model.const_emission_limit = Constraint(
+            model.const_emission_limit = pyo.Constraint(
                 expr=model.var_emissions_net <= emission_limits[pareto_point] * 1.005
             )
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
@@ -798,8 +797,8 @@ class EnergyHub:
 
         model_info = self.last_solve_info
         # Write H5 File
-        if (self.solution.solver.status == SolverStatus.ok) or (
-            self.solution.solver.status == SolverStatus.warning
+        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
+            self.solution.solver.status == pyo.SolverStatus.warning
         ):
 
             model = self.model["full"]
@@ -1132,6 +1131,7 @@ class EnergyHub:
         if economics.capex_model == 1:
             big_m_transformation_required = 0
             b_tec.del_component(b_tec.const_capex_aux)
+            b_tec.del_component(b_tec.const_capex)
         elif economics.capex_model == 2:
             big_m_transformation_required = 1
             b_tec.del_component(b_tec.const_capex_aux)
@@ -1200,13 +1200,30 @@ class EnergyHub:
         for arc in b_netw.set_arcs:
             b_arc = b_netw.arc_block[arc]
 
+            def calculate_max_capex():
+                max_capex = (
+                    b_netw.para_capex_gamma1
+                    + b_netw.para_capex_gamma2 * b_arc.para_size_max
+                    + b_netw.para_capex_gamma3 * b_arc.distance
+                    + b_netw.para_capex_gamma4 * b_arc.para_size_max * b_arc.distance
+                )
+                return (0, max_capex)
+
+            bounds = calculate_max_capex()
+            b_arc.var_capex_aux.setlb(bounds[0])
+            b_arc.var_capex_aux.setub(bounds[1])
+            b_arc.var_capex.setlb(bounds[0])
+            b_arc.var_capex.setub(bounds[1])
+
             # Remove constraint (from persistent solver and from model)
             b_arc.del_component(b_arc._pyomo_gdp_bigm_reformulation)
             b_arc.del_component(b_arc.const_capex)
             b_arc.del_component(b_arc.dis_installation)
             b_arc.del_component(b_arc.disjunction_installation)
 
-            b_arc = netw_data._define_capex_arc(b_arc, b_netw, arc[0], arc[1])
+            b_arc = netw_data._define_capex_constraints_arc(
+                b_arc, b_netw, arc[0], arc[1]
+            )
 
             if b_arc.big_m_transformation_required:
                 b_arc = perform_disjunct_relaxation(b_arc)
@@ -1265,7 +1282,7 @@ class EnergyHub:
                 for node in model.set_nodes
             )
 
-        b_period_cost.const_cost_import = Constraint(rule=init_cost_import)
+        b_period_cost.const_cost_import = pyo.Constraint(rule=init_cost_import)
 
     def _monte_carlo_export_prices(self, period, node, car, MC_ranges=None):
         """
@@ -1321,7 +1338,7 @@ class EnergyHub:
                 for node in model.set_nodes
             )
 
-        b_period_cost.const_cost_export = Constraint(rule=init_cost_export)
+        b_period_cost.const_cost_export = pyo.Constraint(rule=init_cost_export)
 
     def _delete_objective(self):
         """

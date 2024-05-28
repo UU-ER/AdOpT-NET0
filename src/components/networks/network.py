@@ -216,7 +216,10 @@ class Network(ModelComponent):
 
             b_arc.big_m_transformation_required = 0
             b_arc = self._define_size_arc(b_arc, b_netw, node_from, node_to)
-            b_arc = self._define_capex_arc(b_arc, b_netw, node_from, node_to)
+            b_arc = self._define_capex_variables_arc(b_arc, b_netw)
+            b_arc = self._define_capex_constraints_arc(
+                b_arc, b_netw, node_from, node_to
+            )
             b_arc = self._define_flow(b_arc, b_netw)
             b_arc = self._define_opex_arc(b_arc, b_netw)
             b_arc = self._define_emissions_arc(b_arc, b_netw)
@@ -353,7 +356,7 @@ class Network(ModelComponent):
 
         return model
 
-    def _define_possible_arcs(self, b_netw, data):
+    def _define_possible_arcs(self, b_netw):
         """
         Define all possible arcs that have a connection
 
@@ -730,14 +733,12 @@ class Network(ModelComponent):
 
         return b_arc
 
-    def _define_capex_arc(self, b_arc, b_netw, node_from, node_to):
+    def _define_capex_variables_arc(self, b_arc, b_netw):
         """
-        Defines the capex of an arc and corresponding constraints
+        Defines the capex variables of an arc
 
         :param b_arc: pyomo arc block
         :param b_netw: pyomo network block
-        :param str node_from: node from which arc comes
-        :param str node_to: node to which arc goes
         :return: pyomo arc block
         """
 
@@ -754,23 +755,24 @@ class Network(ModelComponent):
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
         b_arc.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
-        if hasattr(b_arc, "var_capex_aux"):
-            bounds = calculate_max_capex()
-            b_arc.var_capex_aux.setlb(bounds[0])
-            b_arc.var_capex_aux.setub(bounds[1])
-        else:
-            b_arc.var_capex_aux = Var(bounds=calculate_max_capex())
 
-        # CAPEX Variable
-        if hasattr(b_arc, "var_capex"):
-            bounds = calculate_max_capex()
-            b_arc.var_capex.setlb(bounds[0])
-            b_arc.var_capex.setub(bounds[1])
+        if self.existing and not self.decommission:
+            b_arc.var_capex = pyo.Param(domain=NonNegativeReals, initialize=0)
         else:
-            if self.existing and not self.decommission:
-                b_arc.var_capex = Param(domain=NonNegativeReals, initialize=0)
-            else:
-                b_arc.var_capex = Var(bounds=calculate_max_capex())
+            b_arc.var_capex = pyo.Var(bounds=calculate_max_capex())
+
+        return b_arc
+
+    def _define_capex_constraints_arc(self, b_arc, b_netw, node_from, node_to):
+        """
+        Defines the capex of an arc and corresponding constraints
+
+        :param b_arc: pyomo arc block
+        :param b_netw: pyomo network block
+        :param str node_from: node from which arc comes
+        :param str node_to: node to which arc goes
+        :return: pyomo arc block
+        """
 
         def init_capex(const):
             return (
@@ -780,12 +782,6 @@ class Network(ModelComponent):
                 + b_netw.para_capex_gamma3 * b_arc.distance
                 + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
             )
-
-        # CAPEX Variable
-        if self.existing and not self.decommission:
-            b_arc.var_capex = pyo.Param(domain=pyo.NonNegativeReals, initialize=0)
-        else:
-            b_arc.var_capex = pyo.Var(bounds=calculate_max_capex())
 
         # CAPEX aux:
         if self.existing and not self.decommission:

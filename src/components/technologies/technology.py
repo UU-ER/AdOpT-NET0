@@ -277,7 +277,7 @@ class Technology(ModelComponent):
 
         :param b_tec: pyomo block with technology model
         :param dict data: data containing model configuration
-        :param set_t_full: pyomo set containing timesteps
+        :param set_t: pyomo set containing timesteps
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
@@ -372,10 +372,10 @@ class Technology(ModelComponent):
 
     def _aggregate_input(self, b_tec):
 
-        b_tec.var_input_tot = Var(
+        b_tec.var_input_tot = pyo.Var(
             self.set_t,
             b_tec.set_input_carriers_all,
-            within=NonNegativeReals,
+            within=pyo.NonNegativeReals,
         )
 
         def init_aggregate_input(const, t, car):
@@ -392,7 +392,7 @@ class Technology(ModelComponent):
                 input_ccs = 0
             return input_tec + input_ccs == b_tec.var_input_tot[t, car]
 
-        b_tec.const_input_aggregation = Constraint(
+        b_tec.const_input_aggregation = pyo.Constraint(
             self.set_t, b_tec.set_input_carriers_all, rule=init_aggregate_input
         )
 
@@ -400,10 +400,10 @@ class Technology(ModelComponent):
 
     def _aggregate_output(self, b_tec):
 
-        b_tec.var_output_tot = Var(
+        b_tec.var_output_tot = pyo.Var(
             self.set_t,
             b_tec.set_output_carriers_all,
-            within=NonNegativeReals,
+            within=pyo.NonNegativeReals,
         )
 
         def init_aggregate_output(const, t, car):
@@ -420,7 +420,7 @@ class Technology(ModelComponent):
                 output_ccs = 0
             return output_tec + output_ccs == b_tec.var_output_tot[t, car]
 
-        b_tec.const_output_aggregation = Constraint(
+        b_tec.const_output_aggregation = pyo.Constraint(
             self.set_t, b_tec.set_output_carriers_all, rule=init_aggregate_output
         )
 
@@ -430,9 +430,9 @@ class Technology(ModelComponent):
 
         set_t = self.set_t_full
 
-        b_tec.var_capex_tot = Var()
-        b_tec.var_opex_fixed_tot = Var()
-        b_tec.var_opex_variable_tot = Var(set_t)
+        b_tec.var_capex_tot = pyo.Var()
+        b_tec.var_opex_fixed_tot = pyo.Var()
+        b_tec.var_opex_variable_tot = pyo.Var(set_t)
 
         def init_aggregate_capex(const):
             capex_tec = b_tec.var_capex
@@ -442,7 +442,7 @@ class Technology(ModelComponent):
                 capex_ccs = 0
             return b_tec.var_capex_tot == capex_tec + capex_ccs
 
-        b_tec.const_capex_aggregation = Constraint(rule=init_aggregate_capex)
+        b_tec.const_capex_aggregation = pyo.Constraint(rule=init_aggregate_capex)
 
         def init_aggregate_opex_var(const, t):
             opex_var_tec = b_tec.var_opex_variable[t]
@@ -452,7 +452,7 @@ class Technology(ModelComponent):
                 opex_var_ccs = 0
             return b_tec.var_opex_variable_tot[t] == opex_var_tec + opex_var_ccs
 
-        b_tec.const_opex_var_aggregation = Constraint(
+        b_tec.const_opex_var_aggregation = pyo.Constraint(
             set_t, rule=init_aggregate_opex_var
         )
 
@@ -464,7 +464,9 @@ class Technology(ModelComponent):
                 opex_fixed_ccs = 0
             return b_tec.var_opex_fixed_tot == opex_fixed_tec + opex_fixed_ccs
 
-        b_tec.const_opex_fixed_aggregation = Constraint(rule=init_aggregate_opex_fixed)
+        b_tec.const_opex_fixed_aggregation = pyo.Constraint(
+            rule=init_aggregate_opex_fixed
+        )
 
         return b_tec
 
@@ -736,9 +738,9 @@ class Technology(ModelComponent):
         b_tec.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
 
         if self.existing and not self.decommission:
-            b_tec.var_capex = Param(domain=Reals, initialize=0)
+            b_tec.var_capex = pyo.Param(domain=pyo.Reals, initialize=0)
         else:
-            b_tec.var_capex = Var()
+            b_tec.var_capex = pyo.Var()
 
         return b_tec
 
@@ -771,12 +773,12 @@ class Technology(ModelComponent):
 
         if economics.capex_model == 1:
             b_tec.para_unit_capex = pyo.Param(
-                domain=Reals,
+                domain=pyo.Reals,
                 initialize=economics.capex_data["unit_capex"],
                 mutable=True,
             )
             b_tec.para_unit_capex_annual = pyo.Param(
-                domain=Reals,
+                domain=pyo.Reals,
                 initialize=annualization_factor * economics.capex_data["unit_capex"],
                 mutable=True,
             )
@@ -786,20 +788,22 @@ class Technology(ModelComponent):
             pass
         elif economics.capex_model == 3:
             b_tec.para_unit_capex = pyo.Param(
-                domain=Reals,
+                domain=pyo.Reals,
                 initialize=economics.capex_data["unit_capex"],
                 mutable=True,
             )
             b_tec.para_fix_capex = pyo.Param(
-                domain=Reals, initialize=economics.capex_data["fix_capex"], mutable=True
+                domain=pyo.Reals,
+                initialize=economics.capex_data["fix_capex"],
+                mutable=True,
             )
             b_tec.para_unit_capex_annual = pyo.Param(
-                domain=Reals,
+                domain=pyo.Reals,
                 initialize=annualization_factor * economics.capex_data["unit_capex"],
                 mutable=True,
             )
             b_tec.para_fix_capex_annual = pyo.Param(
-                domain=Reals,
+                domain=pyo.Reals,
                 initialize=annualization_factor * economics.capex_data["fix_capex"],
                 mutable=True,
             )
@@ -809,7 +813,7 @@ class Technology(ModelComponent):
 
         if self.existing and self.decommission:
             b_tec.para_decommissioning_cost = pyo.Param(
-                domain=Reals, initialize=economics.decommission_cost, mutable=True
+                domain=pyo.Reals, initialize=economics.decommission_cost, mutable=True
             )
 
         return b_tec
@@ -828,7 +832,7 @@ class Technology(ModelComponent):
         )
 
         if economics.capex_model == 1:
-            b_tec.const_capex_aux = Constraint(
+            b_tec.const_capex_aux = pyo.Constraint(
                 expr=b_tec.var_size * b_tec.para_unit_capex_annual
                 == b_tec.var_capex_aux
             )
