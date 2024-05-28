@@ -1,4 +1,5 @@
 import random
+import warnings
 from pathlib import Path
 from pyomo.environ import (
     ConcreteModel,
@@ -792,68 +793,113 @@ class EnergyHub:
 
         elif config["optimization"]["monte_carlo"]["type"]["value"] == 2:
             MC_parameters = self.data.monte_carlo_specs
+            processed_names = set()
 
             for index, row in MC_parameters.iterrows():
                 if row["type"] == "Technologies":
-                    MC_technology_row = row
-                    tec = MC_technology_row["name"]
+                    tec = row["name"]
 
-                    for period in model.periods:
-                        for node in model.periods[period].node_blocks:
-                            if tec in (
-                                model.periods[period]
-                                .node_blocks[node]
-                                .tech_blocks_active
-                            ):
-                                if (
-                                    self.data.technology_data["full"][period][node][
-                                        tec
-                                    ].economics.capex_model
-                                    == 1
-                                ):
-                                    self._monte_carlo_technologies(
-                                        period, node, tec, MC_technology_row
-                                    )
+                    # Iterate through periods and nodes in the model
+                    if tec not in processed_names:
+                        for period in model.periods:
+                            for node in model.periods[period].node_blocks:
+                                tech_blocks = (
+                                    model.periods[period]
+                                    .node_blocks[node]
+                                    .tech_blocks_active
+                                )
+
+                                # Check if the technology is active in the current node
+                                if tec in tech_blocks:
+                                    capex_model = self.data.technology_data["full"][
+                                        period
+                                    ][node][tec].economics.capex_model
+
+                                    if capex_model == 1:
+                                        if row["parameter"] == "unit_CAPEX":
+                                            self._monte_carlo_technologies(
+                                                period, node, tec, row
+                                            )
+                                        else:
+                                            new_row = MC_parameters[
+                                                (MC_parameters["name"] == tec)
+                                                & (
+                                                    MC_parameters["parameter"]
+                                                    == "unit_CAPEX"
+                                                )
+                                            ]
+                                            if not new_row.empty:
+                                                self._monte_carlo_technologies(
+                                                    period, node, tec, new_row
+                                                )
+                                            else:
+                                                warnings.warn(
+                                                    f"Parameter unit_CAPEX is not defined for {tec} in MonteCarlo.csv"
+                                                )
+
+                                    else:
+                                        # Find all rows with the same technology name
+                                        MC_technology_rows = MC_parameters[
+                                            (MC_parameters["type"] == "Technologies")
+                                            & (MC_parameters["name"] == tec)
+                                        ]
+                                        self._monte_carlo_technologies(
+                                            period, node, tec, MC_technology_rows
+                                        )
+
+                                    processed_names.add(tec)
+                                    break
                                 else:
-                                    MC_technology_rows = []
-                                    for index, row in MC_parameters.iterrows():
-                                        if row["type"] == "Technologies":
-                                            MC_technology_rows.append(row)
-                                    self._monte_carlo_technologies(
-                                        period, node, tec, MC_technology_rows
+                                    warnings.warn(
+                                        f"Technology {tec} in MonteCarlo.csv is not an active component"
                                     )
 
                 elif row["type"] == "Networks":
-                    MC_network_row = row
-                    netw = MC_network_row["name"]
+                    netw = row["name"]
+                    if netw not in processed_names:
+                        for period in model.periods:
+                            netw_blocks = model.periods[period].network_block
+                            if netw in netw_blocks:
+                                MC_network_rows = MC_parameters[
+                                    (MC_parameters["type"] == "Networks")
+                                    & (MC_parameters["name"] == netw)
+                                ]
 
-                    for period in model.periods:
-                        self._monte_carlo_networks(period, netw, MC_network_row)
+                                self._monte_carlo_networks(
+                                    period, netw, MC_network_rows
+                                )
+
+                                processed_names.add(netw)
+                                break
+                            else:
+                                warnings.warn(
+                                    f"Network {netw} in MonteCarlo.csv is not active component"
+                                )
 
                 elif row["type"] == "Import":
-                    MC_import_row = row
+                    car = row["name"]
 
                     for period in model.periods:
                         for node in model.periods[period].node_blocks:
                             self._monte_carlo_import_prices(
                                 period,
                                 node,
-                                MC_import_row["name"],
-                                MC_import_row,
+                                car,
+                                row,
                             )
                 elif row["type"] == "Export":
-                    MC_export_row = row
+                    car = row["name"]
 
                     for period in model.periods:
                         for node in model.periods[period].node_blocks:
                             self._monte_carlo_export_prices(
                                 period,
                                 node,
-                                MC_export_row["name"],
-                                MC_export_row,
+                                car,
+                                row,
                             )
 
-    def _monte_carlo_technologies(self, period, node, tec, MC_technology_row=None):
+    def _monte_carlo_technologies(self, period, node, tec, MC_ranges=None):
         """
         Changes the capex of technologies
         """
@@ -879,10 +925,13 @@ class EnergyHub:
         if tec_data.economics.capex_model == 1:
             # UNIT CAPEX
             # Update parameter
-            if MC_technology_row is not None:
-                unit_capex = random.uniform(
-                    MC_technology_row["min"], MC_technology_row["max"]
-                )
+            if MC_ranges is not None:
+                if isinstance(MC_ranges, pd.Series):
+                    unit_capex = random.uniform(MC_ranges["min"], MC_ranges["max"])
+                elif isinstance(MC_ranges, pd.DataFrame):
+                    unit_capex = random.uniform(
+                        MC_ranges["min"].iloc[0], MC_ranges["max"].iloc[0]
+                    )
             else:
                 unit_capex = tec_data.economics.capex_data["unit_capex"] * sd_random
 
@@ -895,8 +944,8 @@ class EnergyHub:
             )
 
         elif tec_data.economics.capex_model == 3:
-            if MC_technology_row is not None:
-                for row in MC_technology_row:
+            if MC_ranges is not None:
+                for _, row in MC_ranges.iterrows():
                     if row["parameter"] == "unit_CAPEX":
                         unit_capex = random.uniform(row["min"], row["max"])
                     elif row["parameter"] == "fix_CAPEX":
@@ -955,7 +1004,7 @@ class EnergyHub:
         if big_m_transformation_required:
             b_tec = perform_disjunct_relaxation(b_tec)
 
-    def _monte_carlo_networks(self, period, netw, MC_network_row=None):
+    def _monte_carlo_networks(self, period, netw, MC_ranges=None):
         """
         Changes the capex of networks
         """
@@ -976,23 +1025,16 @@ class EnergyHub:
 
         b_netw = self.model[aggregation_type].periods[period].network_block[netw]
 
-        if MC_network_row is not None:
-            if MC_network_row["parameter"] == "gamma1":
-                b_netw.para_capex_gamma1 = random.uniform(
-                    MC_network_row["min"], MC_network_row["max"]
-                )
-            if MC_network_row["parameter"] == "gamma2":
-                b_netw.para_capex_gamma2 = random.uniform(
-                    MC_network_row["min"], MC_network_row["max"]
-                )
-            if MC_network_row["parameter"] == "gamma3":
-                b_netw.para_capex_gamma3 = random.uniform(
-                    MC_network_row["min"], MC_network_row["max"]
-                )
-            if MC_network_row["parameter"] == "gamma4":
-                b_netw.para_capex_gamma4 = random.uniform(
-                    MC_network_row["min"], MC_network_row["max"]
-                )
+        if MC_ranges is not None:
+            for _, row in MC_ranges.iterrows():
+                if row["parameter"] == "gamma1":
+                    b_netw.para_capex_gamma1 = random.uniform(row["min"], row["max"])
+                elif row["parameter"] == "gamma2":
+                    b_netw.para_capex_gamma2 = random.uniform(row["min"], row["max"])
+                elif row["parameter"] == "gamma3":
+                    b_netw.para_capex_gamma3 = random.uniform(row["min"], row["max"])
+                elif row["parameter"] == "gamma4":
+                    b_netw.para_capex_gamma4 = random.uniform(row["min"], row["max"])
         else:
             # Update cost parameters
             b_netw.para_capex_gamma1 = (
@@ -1022,7 +1064,7 @@ class EnergyHub:
             if b_arc.big_m_transformation_required:
                 b_arc = perform_disjunct_relaxation(b_arc)
 
-    def _monte_carlo_import_prices(self, period, node, car, MC_import_row=None):
+    def _monte_carlo_import_prices(self, period, node, car, MC_ranges=None):
         """
         Changes the import prices
         """
@@ -1042,9 +1084,9 @@ class EnergyHub:
 
         # Update parameter
         for t in set_t:
-            if MC_import_row is not None:
+            if MC_ranges is not None:
                 model.periods[period].node_blocks[node].para_import_price[t, car] = (
-                    random.uniform(MC_import_row["min"], MC_import_row["max"])
+                    random.uniform(MC_ranges["min"], MC_ranges["max"])
                 )
             else:
                 model.periods[period].node_blocks[node].para_import_price[t, car] = (
@@ -1078,7 +1120,7 @@ class EnergyHub:
 
         b_period_cost.const_cost_import = Constraint(rule=init_cost_import)
 
-    def _monte_carlo_export_prices(self, period, node, car, MC_export_row=None):
+    def _monte_carlo_export_prices(self, period, node, car, MC_ranges=None):
         """
         Changes the export prices
         """
@@ -1098,9 +1140,9 @@ class EnergyHub:
 
         # Update parameter
         for t in set_t:
-            if MC_export_row is not None:
+            if MC_ranges is not None:
                 model.periods[period].node_blocks[node].para_export_price[t, car] = (
-                    random.uniform(MC_export_row["min"], MC_export_row["max"])
+                    random.uniform(MC_ranges["min"], MC_ranges["max"])
                 )
             else:
                 model.periods[period].node_blocks[node].para_export_price[t, car] = (

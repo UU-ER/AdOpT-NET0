@@ -435,9 +435,10 @@ class Technology(ModelComponent):
         h5_group.create_dataset(
             "para_unitCAPEX", data=[model_block.para_unit_capex.value]
         )
-        h5_group.create_dataset(
-            "para_fixCAPEX", data=[model_block.para_fix_capex.value]
-        )
+        if hasattr(model_block, "para_fix_capex"):
+            h5_group.create_dataset(
+                "para_fixCAPEX", data=[model_block.para_fix_capex.value]
+            )
 
     def write_results_tec_operation(self, h5_group, model_block):
 
