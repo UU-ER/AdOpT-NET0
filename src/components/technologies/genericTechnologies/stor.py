@@ -633,9 +633,10 @@ class Stor(Technology):
 
                         def init_ramping_down_rate_operation_in(const):
                             # -rampingRate <= input[t] - input[t-1]
-                            return -ramping_rate <= sum(
-                                self.input[t, car_input] - self.input[t - 1, car_input]
-                                for car_input in b_tec.set_input_carriers
+                            return (
+                                -ramping_rate
+                                <= self.input[t, self.main_car]
+                                - self.input[t - 1, self.main_car]
                             )
 
                         dis.const_ramping_down_rate_in = pyo.Constraint(
@@ -645,11 +646,8 @@ class Stor(Technology):
                         def init_ramping_up_rate_operation_in(const):
                             # input[t] - input[t-1] <= rampingRate
                             return (
-                                sum(
-                                    self.input[t, car_input]
-                                    - self.input[t - 1, car_input]
-                                    for car_input in b_tec.set_input_carriers
-                                )
+                                self.input[t, self.main_car]
+                                - self.input[t - 1, self.main_car]
                                 <= ramping_rate
                             )
 
@@ -712,9 +710,10 @@ class Stor(Technology):
             def init_ramping_down_rate_input(const, t):
                 # -rampingRate <= input[t] - input[t-1]
                 if t > 1:
-                    return -ramping_rate <= sum(
-                        self.input[t, car_input] - self.input[t - 1, car_input]
-                        for car_input in b_tec.set_input_carriers
+                    return (
+                        -ramping_rate
+                        <= self.input[t, self.main_car]
+                        - self.input[t - 1, self.main_car]
                     )
                 else:
                     return pyo.Constraint.Skip
@@ -727,10 +726,7 @@ class Stor(Technology):
                 # input[t] - input[t-1] <= rampingRate
                 if t > 1:
                     return (
-                        sum(
-                            self.input[t, car_input] - self.input[t - 1, car_input]
-                            for car_input in b_tec.set_input_carriers
-                        )
+                        self.input[t, self.main_car] - self.input[t - 1, self.main_car]
                         <= ramping_rate
                     )
                 else:
