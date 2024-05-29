@@ -65,20 +65,22 @@ class Conv2(Technology):
         """
         super().__init__(tec_data)
 
-        self.options.emissions_based_on = "input"
-        self.options.size_based_on = "input"
-        self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
+        self.component_options.emissions_based_on = "input"
+        self.component_options.size_based_on = "input"
+        self.component_options.main_input_carrier = tec_data["Performance"][
+            "main_input_carrier"
+        ]
 
         # Initialize fitting class
-        if self.options.performance_function_type == 1:
-            self.fitting_class = FitGenericTecTypeType1(self.info)
-        elif self.options.performance_function_type == 2:
-            self.fitting_class = FitGenericTecTypeType2(self.info)
+        if self.component_options.performance_function_type == 1:
+            self.fitting_class = FitGenericTecTypeType1(self.component_options)
+        elif self.component_options.performance_function_type == 2:
+            self.fitting_class = FitGenericTecTypeType2(self.component_options)
         elif (
-            self.options.performance_function_type == 3
-            or self.options.performance_function_type == 4
+            self.component_options.performance_function_type == 3
+            or self.component_options.performance_function_type == 4
         ):
-            self.fitting_class = FitGenericTecTypeType34(self.info)
+            self.fitting_class = FitGenericTecTypeType34(self.component_options)
         else:
             raise Exception(
                 "performance_function_type must be an integer between 1 and 4"
@@ -93,13 +95,13 @@ class Conv2(Technology):
         """
         super(Conv2, self).fit_technology_performance(climate_data, location)
 
-        if self.options.size_based_on == "output":
+        if self.component_options.size_based_on == "output":
             raise Exception("size_based_on == output for CONV2 not possible.")
 
         # fit coefficients
         self.processed_coeff.time_independent["fit"] = (
             self.fitting_class.fit_performance_function(
-                self.input_parameters.unfitted_data["performance"]
+                self.input_parameters.performance_data["performance"]
             )
         )
 
@@ -112,10 +114,10 @@ class Conv2(Technology):
         time_steps = len(self.set_t_performance)
 
         self.bounds["input"] = self.fitting_class.calculate_input_bounds(
-            self.options.size_based_on, time_steps
+            self.component_options.size_based_on, time_steps
         )
         self.bounds["output"] = self.fitting_class.calculate_output_bounds(
-            self.options.size_based_on, time_steps
+            self.component_options.size_based_on, time_steps
         )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
@@ -137,13 +139,13 @@ class Conv2(Technology):
         dynamics = self.processed_coeff.dynamics
         rated_power = self.input_parameters.rated_power
 
-        if self.options.performance_function_type == 1:
+        if self.component_options.performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
-        elif self.options.performance_function_type == 2:
+        elif self.component_options.performance_function_type == 2:
             b_tec = self._performance_function_type_2(b_tec)
-        elif self.options.performance_function_type == 3:
+        elif self.component_options.performance_function_type == 3:
             b_tec = self._performance_function_type_3(b_tec)
-        elif self.options.performance_function_type == 4:
+        elif self.component_options.performance_function_type == 4:
             b_tec = self._performance_function_type_4(b_tec)
 
         # Size constraints
@@ -244,10 +246,10 @@ class Conv2(Technology):
         standby_power = c_ti["standby_power"]
 
         if standby_power != -1:
-            if self.options.standby_power_carrier == -1:
-                car_standby_power = self.info.main_input_carrier
+            if self.component_options.standby_power_carrier == -1:
+                car_standby_power = self.component_options.main_input_carrier
             else:
-                car_standby_power = self.options.standby_power_carrier
+                car_standby_power = self.component_options.standby_power_carrier
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
@@ -279,7 +281,7 @@ class Conv2(Technology):
                 else:
 
                     def init_standby_power(const, car_input):
-                        if car_input == self.info.main_input_carrier:
+                        if car_input == self.component_options.main_input_carrier:
                             return (
                                 self.input[t, car_standby_power]
                                 == standby_power * b_tec.var_size * rated_power
@@ -367,10 +369,10 @@ class Conv2(Technology):
         standby_power = c_ti["standby_power"]
 
         if standby_power != -1:
-            if self.options.standby_power_carrier == -1:
-                car_standby_power = self.info.main_input_carrier
+            if self.component_options.standby_power_carrier == -1:
+                car_standby_power = self.component_options.main_input_carrier
             else:
-                car_standby_power = self.options.standby_power_carrier
+                car_standby_power = self.component_options.standby_power_carrier
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
@@ -396,7 +398,7 @@ class Conv2(Technology):
                 else:
 
                     def init_standby_power(const, car_input):
-                        if car_input == self.info.main_input_carrier:
+                        if car_input == self.component_options.main_input_carrier:
                             return (
                                 self.input[t, car_standby_power]
                                 == standby_power * b_tec.var_size * rated_power
@@ -761,7 +763,7 @@ class Conv2(Technology):
 
         # Constraints ramping rates
         if (
-            not self.options.performance_function_type == 1
+            not self.component_options.performance_function_type == 1
             and "ramping_const_int" in dynamics
             and dynamics["ramping_const_int"] == 1
         ):

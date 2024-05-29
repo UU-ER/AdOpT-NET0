@@ -85,9 +85,11 @@ class GasTurbine(Technology):
         """
         super().__init__(tec_data)
 
-        self.options.emissions_based_on = "input"
-        self.options.size_based_on = "output"
-        self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
+        self.component_options.emissions_based_on = "input"
+        self.component_options.size_based_on = "output"
+        self.component_options.main_input_carrier = tec_data["Performance"][
+            "main_input_carrier"
+        ]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -112,14 +114,14 @@ class GasTurbine(Technology):
         # Temperature correction factors
         f = np.empty(shape=(time_steps))
         f[T <= 6] = (
-            self.input_parameters.unfitted_data["gamma"][0]
-            * (T[T <= 6] / self.input_parameters.unfitted_data["T_iso"])
-            + self.input_parameters.unfitted_data["delta"][0]
+            self.input_parameters.performance_data["gamma"][0]
+            * (T[T <= 6] / self.input_parameters.performance_data["T_iso"])
+            + self.input_parameters.performance_data["delta"][0]
         )
         f[T > 6] = (
-            self.input_parameters.unfitted_data["gamma"][1]
-            * (T[T > 6] / self.input_parameters.unfitted_data["T_iso"])
-            + self.input_parameters.unfitted_data["delta"][1]
+            self.input_parameters.performance_data["gamma"][1]
+            * (T[T > 6] / self.input_parameters.performance_data["T_iso"])
+            + self.input_parameters.performance_data["delta"][1]
         )
 
         # Derive return
@@ -128,13 +130,15 @@ class GasTurbine(Technology):
         fit["td"]["temperature_correction"] = f.round(5)
 
         fit["ti"] = {}
-        fit["ti"]["alpha"] = round(self.input_parameters.unfitted_data["alpha"], 5)
-        fit["ti"]["beta"] = round(self.input_parameters.unfitted_data["beta"], 5)
-        fit["ti"]["epsilon"] = round(self.input_parameters.unfitted_data["epsilon"], 5)
-        fit["ti"]["in_min"] = round(self.input_parameters.unfitted_data["in_min"], 5)
-        fit["ti"]["in_max"] = round(self.input_parameters.unfitted_data["in_max"], 5)
-        if len(self.info.input_carrier) == 2:
-            fit["ti"]["max_H2_admixture"] = self.input_parameters.unfitted_data[
+        fit["ti"]["alpha"] = round(self.input_parameters.performance_data["alpha"], 5)
+        fit["ti"]["beta"] = round(self.input_parameters.performance_data["beta"], 5)
+        fit["ti"]["epsilon"] = round(
+            self.input_parameters.performance_data["epsilon"], 5
+        )
+        fit["ti"]["in_min"] = round(self.input_parameters.performance_data["in_min"], 5)
+        fit["ti"]["in_max"] = round(self.input_parameters.performance_data["in_max"], 5)
+        if len(self.component_options.input_carrier) == 2:
+            fit["ti"]["max_H2_admixture"] = self.input_parameters.performance_data[
                 "max_H2_admixture"
             ]
         else:
@@ -158,13 +162,13 @@ class GasTurbine(Technology):
 
         # Input bounds
         bounds["input_bounds"] = {}
-        for c in self.info.input_carrier:
+        for c in self.component_options.input_carrier:
             if c == "hydrogen":
                 bounds["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.input_parameters.unfitted_data["in_max"]
+                        * self.input_parameters.performance_data["in_max"]
                         * self.processed_coeff.time_independent["max_H2_admixture"],
                     )
                 )
@@ -173,7 +177,7 @@ class GasTurbine(Technology):
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.input_parameters.unfitted_data["in_max"],
+                        * self.input_parameters.performance_data["in_max"],
                     )
                 )
 
@@ -184,7 +188,7 @@ class GasTurbine(Technology):
                 np.zeros(shape=(time_steps)),
                 self.processed_coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.input_parameters.unfitted_data["in_max"]
+                    self.input_parameters.performance_data["in_max"]
                     * self.processed_coeff.time_independent["alpha"]
                     + self.processed_coeff.time_independent["beta"]
                 ),
@@ -197,7 +201,7 @@ class GasTurbine(Technology):
                 * self.processed_coeff.time_independent["in_max"]
                 - self.processed_coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.input_parameters.unfitted_data["in_max"]
+                    self.input_parameters.performance_data["in_max"]
                     * self.processed_coeff.time_independent["alpha"]
                     + self.processed_coeff.time_independent["beta"]
                 ),
@@ -207,7 +211,7 @@ class GasTurbine(Technology):
         # Output Bounds
         self.bounds["output"] = bounds["output_bounds"]
         # Input Bounds
-        for car in self.info.input_carrier:
+        for car in self.component_options.input_carrier:
             self.bounds["input"][car] = np.column_stack(
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
@@ -246,7 +250,7 @@ class GasTurbine(Technology):
         size_max = self.input_parameters.size_max
 
         def init_input_bounds(bd, t):
-            if len(self.info.input_carrier) == 2:
+            if len(self.component_options.input_carrier) == 2:
                 car = "gas"
             else:
                 car = "hydrogen"
@@ -273,7 +277,7 @@ class GasTurbine(Technology):
         )
 
         # Constrain hydrogen input
-        if len(self.info.input_carrier) == 2:
+        if len(self.component_options.input_carrier) == 2:
 
             def init_h2_input(const, t):
                 return (

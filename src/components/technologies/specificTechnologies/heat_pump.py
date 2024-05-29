@@ -38,8 +38,10 @@ class HeatPump(Technology):
         """
         super().__init__(tec_data)
 
-        self.options.emissions_based_on = "input"
-        self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
+        self.component_options.emissions_based_on = "input"
+        self.component_options.main_input_carrier = tec_data["Performance"][
+            "main_input_carrier"
+        ]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -62,12 +64,12 @@ class HeatPump(Technology):
         T = copy.deepcopy(climate_data["temp_air"])
 
         # Determine T_out
-        if self.input_parameters.unfitted_data["application"] == "radiator_heating":
+        if self.input_parameters.performance_data["application"] == "radiator_heating":
             t_out = 40 - T
-        elif self.input_parameters.unfitted_data["application"] == "floor_heating":
+        elif self.input_parameters.performance_data["application"] == "floor_heating":
             t_out = 30 - 0.5 * T
         else:
-            t_out = self.input_parameters.unfitted_data["T_out"]
+            t_out = self.input_parameters.performance_data["T_out"]
 
         # Determine delta T
         delta_T = t_out - T
@@ -83,11 +85,11 @@ class HeatPump(Technology):
         print("Deriving performance data for Heat Pump...")
 
         if (
-            self.options.performance_function_type == 1
-            or self.options.performance_function_type == 2
+            self.component_options.performance_function_type == 1
+            or self.component_options.performance_function_type == 2
         ):  # Linear performance function
             size_alpha = 1
-        elif self.options.performance_function_type == 3:
+        elif self.component_options.performance_function_type == 3:
             size_alpha = 2
         else:
             raise Exception(
@@ -104,17 +106,17 @@ class HeatPump(Technology):
             if idx % 100 == 1:
                 print("\rComplete: ", round(idx / time_steps, 2) * 100, "%", end="")
 
-            if self.options.performance_function_type == 1:
+            if self.component_options.performance_function_type == 1:
                 x = np.linspace(
-                    self.input_parameters.unfitted_data["min_part_load"], 1, 9
+                    self.input_parameters.performance_data["min_part_load"], 1, 9
                 )
                 y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 coeff = fit_linear_function(x, y)
                 alpha1[idx, :] = coeff[0]
 
-            elif self.options.performance_function_type == 2:
+            elif self.component_options.performance_function_type == 2:
                 x = np.linspace(
-                    self.input_parameters.unfitted_data["min_part_load"], 1, 9
+                    self.input_parameters.performance_data["min_part_load"], 1, 9
                 )
                 y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 x = sm.add_constant(x)
@@ -123,11 +125,11 @@ class HeatPump(Technology):
                 alpha2[idx, :] = coeff[0]
 
             elif (
-                self.options.performance_function_type == 3
+                self.component_options.performance_function_type == 3
             ):  # piecewise performance function
                 y = {}
                 x = np.linspace(
-                    self.input_parameters.unfitted_data["min_part_load"], 1, 9
+                    self.input_parameters.performance_data["min_part_load"], 1, 9
                 )
                 y["out"] = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 time_step_fit = fit_piecewise_function(x, y, 2)
@@ -138,15 +140,17 @@ class HeatPump(Technology):
 
         # Coefficients
         fit["coeff"] = {}
-        if self.options.performance_function_type == 1:
+        if self.component_options.performance_function_type == 1:
             fit["coeff"]["alpha1"] = alpha1.round(5)
 
-        elif self.options.performance_function_type == 2:  # Linear performance function
+        elif (
+            self.component_options.performance_function_type == 2
+        ):  # Linear performance function
             fit["coeff"]["alpha1"] = alpha1.round(5)
             fit["coeff"]["alpha2"] = alpha2.round(5)
 
         elif (
-            self.options.performance_function_type == 3
+            self.component_options.performance_function_type == 3
         ):  # Piecewise performance function
             fit["coeff"]["alpha1"] = alpha1.round(5)
             fit["coeff"]["alpha2"] = alpha2.round(5)
@@ -163,8 +167,8 @@ class HeatPump(Technology):
 
         time_steps = len(self.set_t_performance)
 
-        if self.options.performance_function_type == 1:
-            for c in self.info.output_carrier:
+        if self.component_options.performance_function_type == 1:
+            for c in self.component_options.output_carrier:
                 self.bounds["output"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
@@ -173,8 +177,10 @@ class HeatPump(Technology):
                     )
                 )
 
-        elif self.options.performance_function_type == 2:  # Linear performance function
-            for c in self.info.output_carrier:
+        elif (
+            self.component_options.performance_function_type == 2
+        ):  # Linear performance function
+            for c in self.component_options.output_carrier:
                 self.bounds["output"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
@@ -184,9 +190,9 @@ class HeatPump(Technology):
                 )
 
         elif (
-            self.options.performance_function_type == 3
+            self.component_options.performance_function_type == 3
         ):  # Piecewise performance function
-            for c in self.info.output_carrier:
+            for c in self.component_options.output_carrier:
                 self.bounds["output"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
@@ -196,7 +202,7 @@ class HeatPump(Technology):
                 )
 
         # Input Bounds
-        for car in self.info.input_carrier:
+        for car in self.component_options.input_carrier:
             self.bounds["input"][car] = np.column_stack(
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
@@ -219,12 +225,12 @@ class HeatPump(Technology):
         dynamics = self.processed_coeff.dynamics
         rated_power = self.input_parameters.rated_power
 
-        if self.options.performance_function_type == 1:
+        if self.component_options.performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
-        elif self.options.performance_function_type == 2:
+        elif self.component_options.performance_function_type == 2:
             b_tec = self._performance_function_type_2(b_tec)
             self.big_m_transformation_required = 1
-        elif self.options.performance_function_type == 3:
+        elif self.component_options.performance_function_type == 3:
             b_tec = self._performance_function_type_3(b_tec)
             self.big_m_transformation_required = 1
 

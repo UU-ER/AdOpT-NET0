@@ -48,8 +48,8 @@ def define_technology(
     location["lon"] = 5.5
     location["lat"] = 52.5
     location["alt"] = 0
-    if tec.options.ccs_possible:
-        tec.ccs_data = open_json(tec.options.ccs_type, load_path)
+    if tec.component_options.ccs_possible:
+        tec.ccs_data = open_json(tec.component_options.ccs_type, load_path)
     tec.fit_technology_performance(climate_data, location)
 
     return tec
@@ -335,7 +335,7 @@ def test_conv_perf(request):
             if conv_type == 2 or conv_type == 3:
                 output_ratios = tec.processed_coeff.time_independent["fit"]
             elif conv_type == 4:
-                output_ratios = tec.input_parameters.unfitted_data["output_ratios"]
+                output_ratios = tec.input_parameters.performance_data["output_ratios"]
             else:
                 output_ratios = None
 
@@ -390,7 +390,7 @@ def test_conv_perf(request):
                         )
                 if conv_type == 3:
                     main_car_input = model.var_input_tot[
-                        1, tec.info.main_input_carrier
+                        1, tec.component_options.main_input_carrier
                     ].value
                     for car in model.var_input_tot:
                         car_input = model.var_input_tot[car].value
@@ -470,7 +470,7 @@ def test_conv_perf(request):
                         )
                 if conv_type == 3:
                     main_car_input = model.var_input_tot[
-                        1, tec.info.main_input_carrier
+                        1, tec.component_options.main_input_carrier
                     ].value
                     for car in model.var_input_tot:
                         car_input = model.var_input_tot[car].value
@@ -720,7 +720,7 @@ def test_dynamics_fast(request):
                 )
 
                 # Check standbypower
-                main_car = tec.info.main_input_carrier
+                main_car = tec.component_options.main_input_carrier
                 assert round(model.var_input_tot[2, main_car].value, 4) == round(
                     model.var_size.value
                     * tec.processed_coeff.time_independent["standby_power"],
@@ -809,7 +809,7 @@ def test_dynamics_slow(request):
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
 
-        main_car = tec.info.main_input_carrier
+        main_car = tec.component_options.main_input_carrier
         trajectory = model.var_size.value * min_part_load / (SD_time + 1)
 
         if conv_type < 3:
@@ -872,7 +872,7 @@ def test_dynamics_slow(request):
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
 
-        main_car = tec.info.main_input_carrier
+        main_car = tec.component_options.main_input_carrier
         trajectory = model.var_size.value * min_part_load / (SU_time + 1)
 
         if conv_type < 3:

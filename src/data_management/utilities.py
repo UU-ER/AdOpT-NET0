@@ -234,8 +234,8 @@ def read_tec_data(tec_name: str, load_path: Path):
     tec_data = select_technology(tec_data)
 
     # CCS
-    if tec_data.options.ccs_possible:
-        tec_data.ccs_data = open_json(tec_data.options.ccs_type, load_path)
+    if tec_data.component_options.ccs_possible:
+        tec_data.ccs_data = open_json(tec_data.component_options.ccs_type, load_path)
     return tec_data
 
 

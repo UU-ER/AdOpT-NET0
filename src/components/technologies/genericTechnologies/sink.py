@@ -70,8 +70,10 @@ class Sink(Technology):
         """
         super().__init__(tec_data)
 
-        self.options.emissions_based_on = "input"
-        self.info.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
+        self.component_options.emissions_based_on = "input"
+        self.component_options.main_input_carrier = tec_data["Performance"][
+            "main_input_carrier"
+        ]
         self.flexibility_data = tec_data["Flexibility"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
@@ -91,9 +93,14 @@ class Sink(Technology):
         self.processed_coeff.time_independent["injection_rate_max"] = (
             self.flexibility_data["injection_rate_max"]
         )
-        if "energy_consumption" in self.input_parameters.unfitted_data["performance"]:
+        if (
+            "energy_consumption"
+            in self.input_parameters.performance_data["performance"]
+        ):
             self.processed_coeff.time_independent["energy_consumption"] = (
-                self.input_parameters.unfitted_data["performance"]["energy_consumption"]
+                self.input_parameters.performance_data["performance"][
+                    "energy_consumption"
+                ]
             )
 
     def _calculate_bounds(self):
@@ -105,8 +112,8 @@ class Sink(Technology):
         time_steps = len(self.set_t_performance)
 
         # Input Bounds
-        for car in self.info.input_carrier:
-            if car == self.info.main_input_carrier:
+        for car in self.component_options.input_carrier:
+            if car == self.component_options.main_input_carrier:
                 self.bounds["input"][car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
@@ -117,9 +124,9 @@ class Sink(Technology):
             else:
                 if (
                     "energy_consumption"
-                    in self.input_parameters.unfitted_data["performance"]
+                    in self.input_parameters.performance_data["performance"]
                 ):
-                    energy_consumption = self.input_parameters.unfitted_data[
+                    energy_consumption = self.input_parameters.performance_data[
                         "performance"
                     ]["energy_consumption"]
                     self.bounds["input"][car] = np.column_stack(
@@ -179,14 +186,18 @@ class Sink(Technology):
             if t == 1:
                 return (
                     b_tec.var_storage_level[t]
-                    == self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                    == self.input[
+                        self.sequence[t - 1], self.component_options.main_input_carrier
+                    ]
                 )
             else:
                 # storageLevel[t] <= storageLevel[t-1]+injRate[t]
                 return (
                     b_tec.var_storage_level[t]
                     == b_tec.var_storage_level[t - 1]
-                    + self.input[self.sequence[t - 1], self.info.main_input_carrier]
+                    + self.input[
+                        self.sequence[t - 1], self.component_options.main_input_carrier
+                    ]
                 )
 
         b_tec.const_storage_level = pyo.Constraint(set_t_full, rule=init_storage_level)
@@ -195,7 +206,7 @@ class Sink(Technology):
         def init_maximal_injection(const, t):
             # input[t] <= injectionCapacity
             return (
-                self.input[t, self.info.main_input_carrier]
+                self.input[t, self.component_options.main_input_carrier]
                 <= b_tec.var_injection_capacity
             )
 
@@ -226,7 +237,7 @@ class Sink(Technology):
                     # energyInput[t] = mainInput[t] * energyConsumption
                     return (
                         self.input[t, car]
-                        == self.input[t, self.info.main_input_carrier]
+                        == self.input[t, self.component_options.main_input_carrier]
                         * energy_consumption["in"][car]
                     )
 
@@ -378,8 +389,8 @@ class Sink(Technology):
                 # -rampingRate <= input[t] - input[t-1]
                 return (
                     -ramping_rate
-                    <= self.input[t, self.info.main_input_carrier]
-                    - self.input[t - 1, self.info.main_input_carrier]
+                    <= self.input[t, self.component_options.main_input_carrier]
+                    - self.input[t - 1, self.component_options.main_input_carrier]
                 )
             else:
                 return pyo.Constraint.Skip
@@ -392,8 +403,8 @@ class Sink(Technology):
             if t > 1:
                 # input[t] - input[t-1] <= rampingRate
                 return (
-                    self.input[t, self.info.main_input_carrier]
-                    - self.input[t - 1, self.info.main_input_carrier]
+                    self.input[t, self.component_options.main_input_carrier]
+                    - self.input[t - 1, self.component_options.main_input_carrier]
                     <= ramping_rate
                 )
             else:

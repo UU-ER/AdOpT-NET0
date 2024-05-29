@@ -29,8 +29,7 @@ class ModelComponent:
         self.economics = Economics(data["Economics"])
 
         self.input_parameters = InputParameters(data)
-        self.options = ComponentOptions(data)
-        self.info = ComponentInfo(data)
+        self.component_options = ComponentOptions(data)
         self.bounds = {"input": {}, "output": {}}
         self.processed_coeff = ProcessedCoefficients()
 
@@ -75,7 +74,7 @@ class InputParameters:
     """
 
     def __init__(self, component_data: dict):
-        self.unfitted_data = component_data["Performance"]
+        self.performance_data = component_data["Performance"]
         self.size_min = component_data["size_min"]
         self.size_max = component_data["size_max"]
         self.size_initial = None
@@ -95,8 +94,6 @@ class InputParameters:
 class ComponentOptions:
     """
     Class to hold options for technologies
-
-
     """
 
     def __init__(self, component_data: dict):
@@ -108,6 +105,20 @@ class ComponentOptions:
         self.emissions_based_on = None
 
         # TECHNOLOGY
+        # Technology Model
+        if "tec_type" in component_data:
+            self.technology_model = component_data["tec_type"]
+
+        # Input carrier
+        self.input_carrier = get_attribute_from_dict(
+            component_data["Performance"], "input_carrier", []
+        )
+
+        # Output Carriers
+        self.output_carrier = get_attribute_from_dict(
+            component_data["Performance"], "output_carrier", []
+        )
+
         # Performance Function Type
         self.performance_function_type = get_attribute_from_dict(
             component_data["Performance"], "performance_function_type", None
@@ -129,7 +140,15 @@ class ComponentOptions:
             component_data["Performance"], "standby_power_carrier", -1
         )
 
+        # Determined in child classes
+        self.main_input_carrier = None
+        self.main_output_carrier = None
+
         # NETWORKS
+        # Transported carrier
+        if "carrier" in component_data["Performance"]:
+            self.transported_carrier = component_data["Performance"]["carrier"]
+
         if "bidirectional" in component_data["Performance"]:
             self.bidirectional = component_data["Performance"]["bidirectional"]
             if self.bidirectional:
@@ -145,37 +164,6 @@ class ComponentOptions:
 
         # other technology specific options
         self.other = {}
-
-
-class ComponentInfo:
-    """
-    Class to hold options for technologies
-    """
-
-    def __init__(self, component_data: dict):
-
-        # TECHNOLOGIES
-        if "tec_type" in component_data:
-            self.technology_model = component_data["tec_type"]
-
-        # Input carrier
-        self.input_carrier = get_attribute_from_dict(
-            component_data["Performance"], "input_carrier", []
-        )
-
-        # Output Carriers
-        self.output_carrier = get_attribute_from_dict(
-            component_data["Performance"], "output_carrier", []
-        )
-
-        # NETWORKS
-        # Transported carrier
-        if "carrier" in component_data["Performance"]:
-            self.transported_carrier = component_data["Performance"]["carrier"]
-
-        # Determined in child classes
-        self.main_input_carrier = None
-        self.main_output_carrier = None
 
 
 class ProcessedCoefficients:

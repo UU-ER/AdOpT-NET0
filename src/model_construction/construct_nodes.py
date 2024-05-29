@@ -28,9 +28,9 @@ def determine_carriers_from_technologies(technology_data: dict) -> list:
     """
     carriers = []
     for tec in technology_data:
-        input_carriers = technology_data[tec].info.input_carrier
+        input_carriers = technology_data[tec].component_options.input_carrier
         carriers.extend(input_carriers)
-        output_carriers = technology_data[tec].info.output_carrier
+        output_carriers = technology_data[tec].component_options.output_carrier
         carriers.extend(output_carriers)
 
     return list(set(carriers))
@@ -48,9 +48,9 @@ def determine_carriers_from_networks(network_data) -> list:
         # Todo: This can be further extended to check if node is connected to network
         # Todo: This needs to be written correctly, possibly its buggy, check if energy consumption works
         # Todo: This does not work for copperplate
-        carriers.extend([network_data[netw].info.transported_carrier])
+        carriers.extend([network_data[netw].component_options.transported_carrier])
 
-        if network_data[netw].options.energyconsumption:
+        if network_data[netw].component_options.energyconsumption:
             carriers.extend(network_data[netw].energy_consumption.keys())
 
     return list(set(carriers))

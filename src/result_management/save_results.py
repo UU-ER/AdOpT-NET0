@@ -133,7 +133,11 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
         # SUMMARY [g]: convert dictionary to h5 datasets
         summary = f.create_group("summary")
         for key in summary_dict:
-            summary.create_dataset(key, data=summary_dict[key])
+            if summary_dict[key] is None:
+                value = -1
+            else:
+                value = summary_dict[key]
+            summary.create_dataset(key, data=value)
 
         # TIME AGGREGATION INFORMATION [g]:
         # K-means specs

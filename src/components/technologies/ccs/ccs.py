@@ -57,12 +57,12 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
         ccs_data.input_parameters.size_max
     )
     ccs_data.processed_coeff.time_independent["capture_rate"] = capture_rate
-    if "MEA" in ccs_data.info.technology_model:
+    if "MEA" in ccs_data.component_options.technology_model:
         input_ratios = {}
-        for car in ccs_data.info.input_carrier:
+        for car in ccs_data.component_options.input_carrier:
             input_ratios[car] = (
-                ccs_data.input_parameters.unfitted_data["eta"][car]
-                + ccs_data.input_parameters.unfitted_data["omega"][car]
+                ccs_data.input_parameters.performance_data["eta"][car]
+                + ccs_data.input_parameters.performance_data["omega"][car]
                 * co2_concentration
             ) / (co2_concentration * molar_mass_CO2 * 3.6)
         ccs_data.processed_coeff.time_independent["input_ratios"] = input_ratios

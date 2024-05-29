@@ -39,7 +39,7 @@ class Res(Technology):
         """
         super().__init__(tec_data)
 
-        self.options.emissions_based_on = "output"
+        self.component_options.emissions_based_on = "output"
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -51,11 +51,11 @@ class Res(Technology):
         super(Res, self).fit_technology_performance(climate_data, location)
 
         if "Photovoltaic" in self.name:
-            if "system_type" in self.input_parameters.unfitted_data:
+            if "system_type" in self.input_parameters.performance_data:
                 self._perform_fitting_PV(
                     climate_data,
                     location,
-                    system_data=self.input_parameters.unfitted_data["system_type"],
+                    system_data=self.input_parameters.performance_data["system_type"],
                 )
             else:
                 self._perform_fitting_PV(climate_data, location)
@@ -64,15 +64,15 @@ class Res(Technology):
             self._perform_fitting_ST(climate_data)
 
         elif "WindTurbine" in self.name:
-            if "hubheight" in self.input_parameters.unfitted_data:
-                hubheight = self.input_parameters.unfitted_data["hubheight"]
+            if "hubheight" in self.input_parameters.performance_data:
+                hubheight = self.input_parameters.performance_data["hubheight"]
             else:
                 hubheight = 120
             self._perform_fitting_WT(climate_data, hubheight)
 
         # Options
-        self.options.other["curtailment"] = get_attribute_from_dict(
-            self.input_parameters.unfitted_data, "curtailment", 0
+        self.component_options.other["curtailment"] = get_attribute_from_dict(
+            self.input_parameters.performance_data, "curtailment", 0
         )
 
     def _perform_fitting_PV(self, climate_data: pd.DataFrame, location: dict, **kwargs):
@@ -251,7 +251,7 @@ class Res(Technology):
         # DATA OF TECHNOLOGY
         c_td = self.processed_coeff.time_dependent_used
         rated_power = self.input_parameters.rated_power
-        curtailment = self.options.other["curtailment"]
+        curtailment = self.component_options.other["curtailment"]
 
         # CONSTRAINTS
         if curtailment == 0:  # no curtailment allowed (default)
@@ -344,7 +344,7 @@ class Res(Technology):
 
         h5_group.create_dataset("cap_factor", data=capfactor)
 
-        if self.options.other["curtailment"] == 2:
+        if self.component_options.other["curtailment"] == 2:
             h5_group.create_dataset(
                 "units_on",
                 data=[model_block.var_size_on[t].value for t in self.set_t_performance],

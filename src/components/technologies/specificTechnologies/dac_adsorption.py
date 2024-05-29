@@ -32,8 +32,8 @@ class DacAdsorption(Technology):
         """
         super().__init__(tec_data)
 
-        self.options.emissions_based_on = "output"
-        self.info.main_output_carrier = "CO2captured"
+        self.component_options.emissions_based_on = "output"
+        self.component_options.main_output_carrier = "CO2captured"
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -48,7 +48,7 @@ class DacAdsorption(Technology):
         time_steps = len(climate_data)
 
         # Number of segments
-        nr_segments = self.input_parameters.unfitted_data["nr_segments"]
+        nr_segments = self.input_parameters.performance_data["nr_segments"]
 
         # Read performance data from file
         performance_data = pd.read_csv(
@@ -160,16 +160,16 @@ class DacAdsorption(Technology):
         self.processed_coeff.time_dependent_full["total_in_max"] = total_in_max
 
         self.processed_coeff.time_independent["eta_elth"] = (
-            self.input_parameters.unfitted_data["performance"]["eta_elth"]
+            self.input_parameters.performance_data["performance"]["eta_elth"]
         )
 
         # Options
-        self.options.other["nr_segments"] = self.input_parameters.unfitted_data[
-            "nr_segments"
-        ]
-        self.options.other["ohmic_heating"] = self.input_parameters.unfitted_data[
-            "ohmic_heating"
-        ]
+        self.component_options.other["nr_segments"] = (
+            self.input_parameters.performance_data["nr_segments"]
+        )
+        self.component_options.other["ohmic_heating"] = (
+            self.input_parameters.performance_data["ohmic_heating"]
+        )
 
     def _calculate_bounds(self):
         """
@@ -193,7 +193,7 @@ class DacAdsorption(Technology):
                 np.zeros(shape=(time_steps)),
                 self.processed_coeff.time_dependent_used["el_in_max"]
                 + self.processed_coeff.time_dependent_used["th_in_max"]
-                / self.input_parameters.unfitted_data["performance"]["eta_elth"],
+                / self.input_parameters.performance_data["performance"]["eta_elth"],
             )
         )
         self.bounds["input"]["heat"] = np.column_stack(
@@ -229,8 +229,8 @@ class DacAdsorption(Technology):
         self.big_m_transformation_required = 1
 
         # DATA OF TECHNOLOGY
-        nr_segments = self.options.other["nr_segments"]
-        ohmic_heating = self.options.other["ohmic_heating"]
+        nr_segments = self.component_options.other["nr_segments"]
+        ohmic_heating = self.component_options.other["ohmic_heating"]
 
         bounds = self.bounds
         c_td = self.processed_coeff.time_dependent_used

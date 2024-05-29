@@ -38,7 +38,7 @@ class EnergyHub:
         self.solver = None
         self.last_solve_info = {}
         self.info_pareto = {}
-        self.info_pareto["pareto_point"] = -1
+        self.info_pareto["pareto_point"] = None
         self.info_solving_algorithms = {}
         self.info_solving_algorithms["aggregation_type"] = "Full"
         self.info_solving_algorithms["aggregation_data"] = "Full"
@@ -318,12 +318,10 @@ class EnergyHub:
         - :func:`~src.energyhub.construct_model`
         - :func:`~src.energyhub.construct_balances`
         - :func:`~src.energyhub.solve`
-        - :func:`~src.energyhub.write_results`
         """
         self.construct_model()
         self.construct_balances()
         self.solve()
-        self.write_results()
 
     def write_results(self):
         config = self.data.model_config
@@ -427,7 +425,6 @@ class EnergyHub:
             self.info_solving_algorithms["time_stage"] = 2
             config["optimization"]["timestaging"]["value"] = 0
             self.info_solving_algorithms["objective"] = objective
-            self.write_results()
             self._optimize_time_averaging_second_stage()
 
     def _optimize_cost(self):
@@ -627,6 +624,8 @@ class EnergyHub:
             folder_name = (
                 str(time_stamp) + "_" + config["reporting"]["case_name"]["value"]
             )
+        if self.info_pareto["pareto_point"]:
+            folder_name = folder_name + str(self.info_pareto["pareto_point"])
 
         result_folder_path = create_unique_folder_name(save_path, folder_name)
         create_save_folder(result_folder_path)
@@ -673,6 +672,8 @@ class EnergyHub:
         self.last_solve_info["config"] = config
         self.last_solve_info["result_folder_path"] = result_folder_path
 
+        self.write_results()
+
         print("Solving model completed in " + str(round(time.time() - start)) + " s")
         print("_" * 60)
 
@@ -712,13 +713,13 @@ class EnergyHub:
         config = self.data.model_config
         pareto_points = config["optimization"]["pareto_points"]["value"]
 
-        # Min Cost
-        self.info_pareto["pareto_point"] = 0
+        # Min Cost (last pareto point)
+        self.info_pareto["pareto_point"] = pareto_points + 2
         self._optimize("costs")
         emissions_max = model.var_emissions_net.value
 
-        # Min Emissions
-        self.info_pareto["pareto_point"] = pareto_points + 1
+        # Min Emissions (pareto points 0)
+        self.info_pareto["pareto_point"] = 0
         self._optimize("emissions_net")
         emissions_min = model.var_emissions_net.value
 
@@ -727,8 +728,8 @@ class EnergyHub:
             emissions_min, emissions_max, num=pareto_points + 2
         )
         for pareto_point in reversed(range(0, pareto_points + 1)):
-            log_event(f"Optimizing Pareto point {pareto_point}")
-            self.info_pareto["pareto_point"] = pareto_point
+            log_event(f"Optimizing Pareto point {pareto_point + 1}")
+            self.info_pareto["pareto_point"] = pareto_point + 1
             if pareto_point != pareto_points:
                 # If its not the first point, delete constraint
                 if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
@@ -1168,7 +1169,7 @@ class EnergyHub:
                     if (
                         self.data.technology_data[period][node][
                             tec
-                        ].info.technology_model
+                        ].component_options.technology_model
                         == "STOR"
                         and bounds_on == "no_storage"
                     ):

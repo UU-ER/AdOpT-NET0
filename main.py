@@ -9,7 +9,7 @@ import numpy as np
 # Todo: logging
 
 
-path = "C:/Users/6574114/PycharmProjects/EHUB-Py/test_cases/household"
+path = "C:/Users/6574114/PycharmProjects/EHUB-Py/test_cases/household_autarky"
 # dp.create_optimization_templates(path)
 # dp.create_input_data_folder_template(path)
 #
