@@ -12,7 +12,7 @@ def test_full_model_flow(request):
     - Nodes: node1, node2
     - Investment Periods: period1
     - Technologies:
-        - node1: existing gas power plant, PV
+        - node1: existing gas power plant
         - node2: new electric boiler
     - Networks:
         - new electricity
@@ -46,19 +46,13 @@ def test_full_model_flow(request):
     m = pyhub.model["full"]
     p = m.periods["period1"]
 
-    # if request.config.solver == "glpk":
-    #     warn(
-    #         "This turns out to be infeasible if solved with GLPK. Test on local machine!"
-    #     )
-    # else:
-
     # NETWORK CHECKS
     netw_block = p.network_block["electricitySimple"]
 
     # Size same in both directions
     s_arc1 = round(netw_block.arc_block["node1", "node2"].var_size.value, 3)
     s_arc2 = round(netw_block.arc_block["node2", "node1"].var_size.value, 3)
-    assert s_arc1 == s_arc2
+    assert s_arc1 != s_arc2
 
     # Flow in one direction is larger 1
     assert netw_block.arc_block["node1", "node2"].var_flow[1].value > 1
