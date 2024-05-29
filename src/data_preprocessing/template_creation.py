@@ -282,8 +282,8 @@ def initialize_configuration_templates() -> dict:
                     "description": "Type of Monte Carlo simulation. For type 1 the user defines the standard "
                     "deviation and the components to vary. For type 2 the user provides a csv file "
                     "with the parameters and their min, max and reference values. ",
-                    "options": [1, 2],
-                    "value": 1,
+                    "options": ["normal_dis", "uniform_dis_from_file"],
+                    "value": "normal_dis",
                 },
                 "sd": {
                     "description": "Value defining the range in which variables are varied in Monte Carlo simulations "

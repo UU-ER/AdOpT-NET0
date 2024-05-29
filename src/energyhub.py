@@ -539,9 +539,12 @@ class EnergyHub:
         summary_path = Path.joinpath(
             Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
         )
-        if config["optimization"]["monte_carlo"]["type"]["value"] == 1:
+        if config["optimization"]["monte_carlo"]["type"]["value"] == "normal_dis":
             component_set = config["optimization"]["monte_carlo"]["on_what"]["value"]
-        elif config["optimization"]["monte_carlo"]["type"]["value"] == 2:
+        elif (
+            config["optimization"]["monte_carlo"]["type"]["value"]
+            == "uniform_dis_from_file"
+        ):
             component_set = list(set(self.data.monte_carlo_specs["type"]))
         add_values_to_summary(summary_path, component_set=component_set)
 
@@ -756,7 +759,7 @@ class EnergyHub:
         # use correct resolution
         model = self.model["full"]
 
-        if config["optimization"]["monte_carlo"]["type"]["value"] == 1:
+        if config["optimization"]["monte_carlo"]["type"]["value"] == "normal_dis":
             if (
                 "Technologies"
                 in config["optimization"]["monte_carlo"]["on_what"]["value"]
@@ -785,7 +788,10 @@ class EnergyHub:
                         for car in model.periods[period].node_blocks[node].set_carriers:
                             self._monte_carlo_export_prices(period, node, car)
 
-        elif config["optimization"]["monte_carlo"]["type"]["value"] == 2:
+        elif (
+            config["optimization"]["monte_carlo"]["type"]["value"]
+            == "uniform_dis_from_file"
+        ):
             MC_parameters = self.data.monte_carlo_specs
             processed_names = set()
 
