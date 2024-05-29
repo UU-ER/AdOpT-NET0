@@ -1,5 +1,6 @@
 import time
 import pyomo.environ as pyo
+
 from ..logger import log_event
 
 
@@ -74,38 +75,6 @@ def link_full_resolution_to_clustered(
         )
 
     return constraint
-
-
-class Economics:
-    """
-    Class to manage economic data of technologies and networks
-    """
-
-    def __init__(self, economics: dict):
-        """
-        Constructor
-
-        :param dict economics: Dict containing economic data of component
-        """
-        if "CAPEX_model" in economics:
-            self.capex_model = economics["CAPEX_model"]
-        self.capex_data = {}
-        if "unit_CAPEX" in economics:
-            self.capex_data["unit_capex"] = economics["unit_CAPEX"]
-        if "fix_CAPEX" in economics:
-            self.capex_data["fix_capex"] = economics["fix_CAPEX"]
-        if "piecewise_CAPEX" in economics:
-            self.capex_data["piecewise_capex"] = economics["piecewise_CAPEX"]
-        if "gamma1" in economics:
-            self.capex_data["gamma1"] = economics["gamma1"]
-            self.capex_data["gamma2"] = economics["gamma2"]
-            self.capex_data["gamma3"] = economics["gamma3"]
-            self.capex_data["gamma4"] = economics["gamma4"]
-        self.opex_variable = economics["OPEX_variable"]
-        self.opex_fixed = economics["OPEX_fixed"]
-        self.discount_rate = economics["discount_rate"]
-        self.lifetime = economics["lifetime"]
-        self.decommission_cost = economics["decommission_cost"]
 
 
 def perform_disjunct_relaxation(model_block, method: str = "gdp.bigm"):
@@ -197,3 +166,17 @@ def determine_constraint_scaling(model, model_block, f: dict, f_global):
             model.scaling_factor[constr] = global_scaling_factor
 
     return model
+
+
+def get_attribute_from_dict(d: dict, key: str, value_other) -> str | float:
+    """
+    Takes an attribute from dict, if it doesnt exist replace with value_other
+
+    :param dict d: dictonary
+    :param str key: key to look for in dictonary
+    :param value_other: if key is not in dict, return this value
+    """
+    if key in d:
+        return d[key]
+    else:
+        return value_other

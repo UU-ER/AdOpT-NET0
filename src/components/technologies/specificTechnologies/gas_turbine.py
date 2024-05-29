@@ -4,7 +4,8 @@ import copy
 import numpy as np
 import pandas as pd
 
-from ..utilities import FittedPerformance, fit_piecewise_function
+from ..utilities import fit_piecewise_function
+from ...component import InputParameters
 from ..technology import Technology
 
 
@@ -84,8 +85,11 @@ class GasTurbine(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance()
-        self.main_car = self.performance_data["main_input_carrier"]
+        self.component_options.emissions_based_on = "input"
+        self.component_options.size_based_on = "output"
+        self.component_options.main_input_carrier = tec_data["Performance"][
+            "main_input_carrier"
+        ]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -99,6 +103,8 @@ class GasTurbine(Technology):
         :param climate_data: climate data
         :return:
         """
+        super(GasTurbine, self).fit_technology_performance(climate_data, location)
+
         # Climate data & Number of timesteps
         time_steps = len(climate_data)
 
@@ -108,87 +114,109 @@ class GasTurbine(Technology):
         # Temperature correction factors
         f = np.empty(shape=(time_steps))
         f[T <= 6] = (
-            self.performance_data["gamma"][0]
-            * (T[T <= 6] / self.performance_data["T_iso"])
-            + self.performance_data["delta"][0]
+            self.input_parameters.performance_data["gamma"][0]
+            * (T[T <= 6] / self.input_parameters.performance_data["T_iso"])
+            + self.input_parameters.performance_data["delta"][0]
         )
         f[T > 6] = (
-            self.performance_data["gamma"][1]
-            * (T[T > 6] / self.performance_data["T_iso"])
-            + self.performance_data["delta"][1]
+            self.input_parameters.performance_data["gamma"][1]
+            * (T[T > 6] / self.input_parameters.performance_data["T_iso"])
+            + self.input_parameters.performance_data["delta"][1]
         )
 
         # Derive return
         fit = {}
-        fit["coeff"] = {}
-        fit["coeff"]["f"] = f.round(5)
-        fit["coeff"]["alpha"] = round(self.performance_data["alpha"], 5)
-        fit["coeff"]["beta"] = round(self.performance_data["beta"], 5)
-        fit["coeff"]["epsilon"] = round(self.performance_data["epsilon"], 5)
-        fit["coeff"]["in_min"] = round(self.performance_data["in_min"], 5)
-        fit["coeff"]["in_max"] = round(self.performance_data["in_max"], 5)
-        if len(self.performance_data["input_carrier"]) == 2:
-            fit["coeff"]["max_H2_admixture"] = self.performance_data["max_H2_admixture"]
+        fit["td"] = {}
+        fit["td"]["temperature_correction"] = f.round(5)
+
+        fit["ti"] = {}
+        fit["ti"]["alpha"] = round(self.input_parameters.performance_data["alpha"], 5)
+        fit["ti"]["beta"] = round(self.input_parameters.performance_data["beta"], 5)
+        fit["ti"]["epsilon"] = round(
+            self.input_parameters.performance_data["epsilon"], 5
+        )
+        fit["ti"]["in_min"] = round(self.input_parameters.performance_data["in_min"], 5)
+        fit["ti"]["in_max"] = round(self.input_parameters.performance_data["in_max"], 5)
+        if len(self.component_options.input_carrier) == 2:
+            fit["ti"]["max_H2_admixture"] = self.input_parameters.performance_data[
+                "max_H2_admixture"
+            ]
         else:
-            fit["coeff"]["max_H2_admixture"] = 1
+            fit["ti"]["max_H2_admixture"] = 1
+
+        # Coefficients
+        for par in fit["td"]:
+            self.processed_coeff.time_dependent_full[par] = fit["td"][par]
+        for par in fit["ti"]:
+            self.processed_coeff.time_independent[par] = fit["ti"][par]
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(GasTurbine, self)._calculate_bounds()
+
+        time_steps = len(self.set_t_performance)
+
+        bounds = {}
 
         # Input bounds
-        fit["input_bounds"] = {}
-        for c in self.performance_data["input_carrier"]:
+        bounds["input_bounds"] = {}
+        for c in self.component_options.input_carrier:
             if c == "hydrogen":
-                fit["input_bounds"][c] = np.column_stack(
+                bounds["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.performance_data["in_max"]
-                        * fit["coeff"]["max_H2_admixture"],
+                        * self.input_parameters.performance_data["in_max"]
+                        * self.processed_coeff.time_independent["max_H2_admixture"],
                     )
                 )
             else:
-                fit["input_bounds"][c] = np.column_stack(
+                bounds["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps)) * self.performance_data["in_max"],
+                        np.ones(shape=(time_steps))
+                        * self.input_parameters.performance_data["in_max"],
                     )
                 )
 
         # Output bounds
-        fit["output_bounds"] = {}
-        fit["output_bounds"]["electricity"] = np.column_stack(
+        bounds["output_bounds"] = {}
+        bounds["output_bounds"]["electricity"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                f
+                self.processed_coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.performance_data["in_max"] * fit["coeff"]["alpha"]
-                    + fit["coeff"]["beta"]
+                    self.input_parameters.performance_data["in_max"]
+                    * self.processed_coeff.time_independent["alpha"]
+                    + self.processed_coeff.time_independent["beta"]
                 ),
             )
         )
-        fit["output_bounds"]["heat"] = np.column_stack(
+        bounds["output_bounds"]["heat"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                fit["coeff"]["epsilon"] * fit["coeff"]["in_max"]
-                - f
+                self.processed_coeff.time_independent["epsilon"]
+                * self.processed_coeff.time_independent["in_max"]
+                - self.processed_coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.performance_data["in_max"] * fit["coeff"]["alpha"]
-                    + fit["coeff"]["beta"]
+                    self.input_parameters.performance_data["in_max"]
+                    * self.processed_coeff.time_independent["alpha"]
+                    + self.processed_coeff.time_independent["beta"]
                 ),
             )
         )
 
         # Output Bounds
-        self.fitted_performance.bounds["output"] = fit["output_bounds"]
+        self.bounds["output"] = bounds["output_bounds"]
         # Input Bounds
-        for car in self.performance_data["input_carrier"]:
-            self.fitted_performance.bounds["input"][car] = np.column_stack(
+        for car in self.component_options.input_carrier:
+            self.bounds["input"][car] = np.column_stack(
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
-        # Coefficients
-        self.fitted_performance.coefficients = fit["coeff"]
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
 
-    def construct_tech_model(self, b_tec, data: dict, set_t, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for gas turbines
 
@@ -197,42 +225,45 @@ class GasTurbine(Technology):
         :return: technology block
         """
         super(GasTurbine, self).construct_tech_model(
-            b_tec, data, set_t, set_t_clustered
+            b_tec, data, set_t_full, set_t_clustered
         )
 
         # Transformation required
         self.big_m_transformation_required = 1
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        coeff = self.fitted_performance.coefficients
-        bounds = self.fitted_performance.bounds
+        bounds = self.bounds
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
 
         # Parameter declaration
-        in_min = coeff["in_min"]
-        in_max = coeff["in_max"]
-        max_H2_admixture = coeff["max_H2_admixture"]
-        alpha = coeff["alpha"]
-        beta = coeff["beta"]
-        epsilon = coeff["epsilon"]
-        f = coeff["f"]
+        in_min = coeff_ti["in_min"]
+        in_max = coeff_ti["in_max"]
+        max_H2_admixture = coeff_ti["max_H2_admixture"]
+        alpha = coeff_ti["alpha"]
+        beta = coeff_ti["beta"]
+        epsilon = coeff_ti["epsilon"]
+        temperature_correction = coeff_td["temperature_correction"]
 
         # Additional decision variables
-        size_max = self.size_max
+        size_max = self.input_parameters.size_max
 
         def init_input_bounds(bd, t):
-            if len(performance_data["input_carrier"]) == 2:
+            if len(self.component_options.input_carrier) == 2:
                 car = "gas"
             else:
                 car = "hydrogen"
             return tuple(bounds["input"][car][t - 1, :] * size_max)
 
         b_tec.var_total_input = pyo.Var(
-            self.set_t, within=pyo.NonNegativeReals, bounds=init_input_bounds
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_input_bounds,
         )
 
         b_tec.var_units_on = pyo.Var(
-            self.set_t, within=pyo.NonNegativeIntegers, bounds=(0, size_max)
+            self.set_t_performance, within=pyo.NonNegativeIntegers, bounds=(0, size_max)
         )
 
         # Calculate total input
@@ -241,10 +272,12 @@ class GasTurbine(Technology):
                 self.input[t, car_input] for car_input in b_tec.set_input_carriers
             )
 
-        b_tec.const_total_input = pyo.Constraint(self.set_t, rule=init_total_input)
+        b_tec.const_total_input = pyo.Constraint(
+            self.set_t_performance, rule=init_total_input
+        )
 
         # Constrain hydrogen input
-        if len(performance_data["input_carrier"]) == 2:
+        if len(self.component_options.input_carrier) == 2:
 
             def init_h2_input(const, t):
                 return (
@@ -252,7 +285,9 @@ class GasTurbine(Technology):
                     <= b_tec.var_total_input[t] * max_H2_admixture
                 )
 
-            b_tec.const_h2_input = pyo.Constraint(self.set_t, rule=init_h2_input)
+            b_tec.const_h2_input = pyo.Constraint(
+                self.set_t_performance, rule=init_h2_input
+            )
 
         # LINEAR, MINIMAL PARTLOAD
         s_indicators = range(0, 2)
@@ -283,7 +318,7 @@ class GasTurbine(Technology):
                             alpha * b_tec.var_total_input[t]
                             + beta * b_tec.var_units_on[t]
                         )
-                        * f[t - 1]
+                        * temperature_correction[t - 1]
                     )
 
                 dis.const_input_output_on_el = pyo.Constraint(
@@ -313,7 +348,7 @@ class GasTurbine(Technology):
                 dis.const_max_input = pyo.Constraint(rule=init_max_input)
 
         b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
+            self.set_t_performance, s_indicators, rule=init_input_output
         )
 
         # Bind disjuncts
@@ -321,18 +356,18 @@ class GasTurbine(Technology):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
         b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t, rule=bind_disjunctions
+            self.set_t_performance, rule=bind_disjunctions
         )
 
         # Technologies on
         def init_n_on(const, t):
             return b_tec.var_units_on[t] <= b_tec.var_size
 
-        b_tec.const_n_on = pyo.Constraint(self.set_t, rule=init_n_on)
+        b_tec.const_n_on = pyo.Constraint(self.set_t_performance, rule=init_n_on)
 
         # RAMPING RATES
-        if "ramping_time" in self.performance_data:
-            if not self.performance_data["ramping_time"] == -1:
+        if "ramping_time" in dynamics:
+            if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -347,7 +382,8 @@ class GasTurbine(Technology):
         super(GasTurbine, self).write_results_tec_operation(h5_group, model_block)
 
         h5_group.create_dataset(
-            "modules_on", data=[model_block.var_units_on[t].value for t in self.set_t]
+            "modules_on",
+            data=[model_block.var_units_on[t].value for t in self.set_t_performance],
         )
 
     def _define_ramping_rates(self, b_tec):
@@ -357,22 +393,18 @@ class GasTurbine(Technology):
         :param b_tec: technology model block
         :return:
         """
-        ramping_time = self.performance_data["ramping_time"]
+        dynamics = self.processed_coeff.dynamics
+
+        ramping_time = dynamics["ramping_time"]
 
         # Calculate ramping rates
-        if (
-            "ref_size" in self.performance_data
-            and not self.performance_data["ref_size"] == -1
-        ):
-            ramping_rate = self.performance_data["ref_size"] / ramping_time
+        if "ref_size" in dynamics and not dynamics["ref_size"] == -1:
+            ramping_rate = dynamics["ref_size"] / ramping_time
         else:
             ramping_rate = b_tec.var_size / ramping_time
 
         # Constraints ramping rates
-        if (
-            "ramping_const_int" in self.performance_data
-            and self.performance_data["ramping_const_int"] == 1
-        ):
+        if "ramping_const_int" in dynamics and dynamics["ramping_const_int"] == 1:
 
             s_indicators = range(0, 3)
 
@@ -418,7 +450,7 @@ class GasTurbine(Technology):
                         )
 
             b_tec.dis_ramping_operation_on = gdp.Disjunct(
-                self.set_t, s_indicators, rule=init_ramping_operation_on
+                self.set_t_performance, s_indicators, rule=init_ramping_operation_on
             )
 
             # Bind disjuncts
@@ -426,7 +458,7 @@ class GasTurbine(Technology):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
             b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
-                self.set_t, rule=bind_disjunctions
+                self.set_t_performance, rule=bind_disjunctions
             )
 
         else:
@@ -441,7 +473,7 @@ class GasTurbine(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate
+                self.set_t_performance, rule=init_ramping_down_rate
             )
 
             def init_ramping_up_rate(const, t):
@@ -457,7 +489,7 @@ class GasTurbine(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate = pyo.Constraint(
-                self.set_t, rule=init_ramping_up_rate
+                self.set_t_performance, rule=init_ramping_up_rate
             )
 
         return b_tec

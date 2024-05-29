@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import tsam.timeseriesaggregation as tsam
+import copy
 
 from .utilities import *
 from ..components.networks import *
@@ -48,7 +50,7 @@ class DataHandle:
         self.start_period = None
         self.end_period = None
 
-    def read_input_data(
+    def set_settings(
         self, data_path: Path, start_period: int = None, end_period: int = None
     ):
         """
@@ -82,7 +84,10 @@ class DataHandle:
         # Check consistency
         check_input_data_consistency(data_path)
 
-        # Read all data
+    def read_data(self):
+        """
+        Reads all data from folder
+        """
         self._read_topology()
         self._read_model_config()
         self._read_time_series()
@@ -121,6 +126,18 @@ class DataHandle:
         new_number_timesteps = len(self.topology["time_index"]["full"])
         self.topology["fraction_of_year_modelled"] = (
             new_number_timesteps / original_number_timesteps
+        )
+
+        # Resolution in hours
+        self.topology["resolution_in_h"] = {}
+        self.topology["resolution_in_h"]["full"] = (
+            pd.Timedelta(self.topology["time_index"]["full"].freq).seconds / 3600
+        )
+
+        # Hours per day
+        self.topology["hours_per_day"] = {}
+        self.topology["hours_per_day"]["full"] = int(
+            24 / self.topology["resolution_in_h"]["full"]
         )
 
         # Log success
@@ -267,12 +284,14 @@ class DataHandle:
 
         log_event("Energy balance options read successfully")
 
-    def _read_technology_data(self, aggregation_type: str = "full"):
+    def _read_technology_data(self):
         """
         Reads all technology data and fits it
 
         :param str aggregation_type: specifies the aggregation type and thus the dict key to write the data to
         """
+        # Technology data always fitted based on full resolution
+        aggregation_type = "full"
 
         # Initialize technology_data dict
         technology_data = {}
@@ -302,6 +321,8 @@ class DataHandle:
                         / "node_data"
                         / node
                         / "technology_data",
+                    )
+                    tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
                         ]["global"],
@@ -318,31 +339,33 @@ class DataHandle:
                         / "node_data"
                         / node
                         / "technology_data",
+                    )
+                    tec_data.existing = 1
+                    tec_data.input_parameters.size_initial = technologies_at_node[
+                        "existing"
+                    ][technology]
+                    tec_data.fit_technology_performance(
                         self.time_series[aggregation_type][investment_period][node][
                             "ClimateData"
                         ]["global"],
                         self.node_locations.loc[node, :],
                     )
-                    tec_data.existing = 1
-                    tec_data.size_initial = technologies_at_node["existing"][technology]
                     technology_data[investment_period][node][
                         technology + "_existing"
                     ] = tec_data
 
-        self.technology_data[aggregation_type] = technology_data
+        self.technology_data = technology_data
 
         log_event("Technology data read successfully")
 
-    def _read_network_data(self, aggregation_type: str = "full"):
+    def _read_network_data(self):
         """
         Reads all network data
         """
-        # Initialize network_data dict
-        self.network_data[aggregation_type] = {}
 
         # Loop through all investment_periods and nodes
         for investment_period in self.topology["investment_periods"]:
-            self.network_data[aggregation_type][investment_period] = {}
+            self.network_data[investment_period] = {}
 
             # Get all networks in period
             with open(
@@ -388,10 +411,8 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data._calculate_max_size_arc()
-                self.network_data[aggregation_type][investment_period][
-                    network
-                ] = netw_data
+                netw_data.fit_network_performance()
+                self.network_data[investment_period][network] = netw_data
 
             # Existing networks
             for network in networks["existing"]:
@@ -442,111 +463,201 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data._calculate_max_size_arc()
-                self.network_data[aggregation_type][investment_period][
-                    network + "_existing"
-                ] = netw_data
+                netw_data.fit_network_performance()
+
+                self.network_data[investment_period][network + "_existing"] = netw_data
 
         log_event("Network data read successfully")
 
+    def _collect_full_res_data(self, investment_period: str) -> pd.DataFrame:
+        """
+        Collects data from time_series and technology performances and writes it to a
+        single dataframe
+
+        time_series (demand, import, export, carbon prices,...) are stored in a
+        different location then time dependent technology performances. to aggregate
+        all time series, they need to be merged into a single dataframe.
+
+        :param str investment_period: investment period to collect data for
+        :return: single data frame with all time dependent data
+        """
+        time_series = self.time_series["full"].loc[:, investment_period]
+        time_series = pd.concat(
+            {"time_series": time_series}, names=["type_series"], axis=1
+        )
+
+        # Get time dependent technology parameters
+        tec_series = {}
+        for node in self.technology_data[investment_period]:
+            for tec in self.technology_data[investment_period][node]:
+                tec_data = self.technology_data[investment_period][node][tec]
+                coeff_td = tec_data.processed_coeff.time_dependent_full
+                for series in coeff_td:
+                    if coeff_td[series].ndim > 1:
+                        count = 0
+                        for c in coeff_td[series].T:
+                            tec_series[(node, tec, series, count)] = c
+                            count += 1
+                    else:
+                        tec_series[(node, tec, series, "")] = coeff_td[series]
+
+        # Make sure dataframe is correctly formatted
+        if tec_series:
+            tec_series = pd.DataFrame(tec_series)
+            tec_series.columns.set_names(
+                ["Node", "Key1", "Carrier", "Key2"], inplace=True
+            )
+        else:
+            tec_series = pd.DataFrame(columns=["Node", "Key1", "Carrier", "Key2"])
+
+        tec_series = pd.concat(
+            {"tec_series": tec_series}, names=["type_series"], axis=1
+        )
+        tec_series.index = time_series.index
+
+        # full matrix
+        return pd.concat([time_series, tec_series], axis=1)
+
+    def _write_aggregated_data_to_technologies(
+        self, investment_period: str, tec_series: pd.DataFrame, aggregation_type: str
+    ):
+        """
+        Writes aggregated technology performances to technology classes.
+
+        After time aggregation this function writes the aggregated technology data
+        back to the time dependent coefficients of the technologies.
+
+        :param str investment_period: investment period to use
+        :param pd.DataFrame tec_series: aggregated technology series
+        """
+        for node in self.technology_data[investment_period]:
+            for tec in self.technology_data[investment_period][node]:
+                tec_data = self.technology_data[investment_period][node][tec]
+                if tec_data.processed_coeff.time_dependent_full:
+                    time_dependent_coeff = tec_series[node][tec]
+                    coeff_td = {}
+                    for series in time_dependent_coeff.columns.get_level_values(0):
+                        coeff_td[series] = time_dependent_coeff[series].values
+                    if aggregation_type == "clustered":
+                        tec_data.processed_coeff.time_dependent_clustered = coeff_td
+                    elif aggregation_type == "averaged":
+                        tec_data.processed_coeff.time_dependent_averaged = coeff_td
+
     def _cluster_data(self):
-        # Todo: document
+        """
+        Cluster full resolution input data
+
+        Uses the package tsam to cluster all time-dependent input data (time series
+        and time dependent technology performance).
+        """
         nr_clusters = self.model_config["optimization"]["typicaldays"]["N"]["value"]
-        nr_time_intervals_per_day = 24
-        nr_days_full_resolution = (
-            max(self.topology["time_index"]["full"])
-            - min(self.topology["time_index"]["full"])
-        ).days + 1
+        hours_per_day = self.topology["hours_per_day"]["full"]
 
-        self.topology["time_index"]["clustered"] = range(
-            0, nr_clusters * nr_time_intervals_per_day
-        )
+        self.topology["time_index"]["clustered"] = range(0, nr_clusters * hours_per_day)
 
-        full_resolution = self.time_series["full"]
-
-        self.k_means_specs["sequence"] = {}
-        self.k_means_specs["typical_day"] = {}
-        self.k_means_specs["factors"] = {}
-        clustered_data = {}
+        clustered_resolution = {}
         for investment_period in self.topology["investment_periods"]:
-            full_res_data_matrix = compile_full_resolution_matrix(
-                full_resolution.loc[:, investment_period], nr_time_intervals_per_day
+            self.k_means_specs[investment_period] = {}
+            self.k_means_specs[investment_period]["sequence"] = []
+            self.k_means_specs[investment_period]["factors"] = []
+
+            full_res_data_matrix = self._collect_full_res_data(investment_period)
+
+            # Cluster to typical days
+            aggregation = tsam.TimeSeriesAggregation(
+                full_res_data_matrix,
+                noTypicalPeriods=nr_clusters,
+                hoursPerPeriod=hours_per_day,
+                noSegments=hours_per_day,
+                clusterMethod="k_means",
             )
 
-            # Perform clustering
-            clustered_data[investment_period], day_labels = perform_k_means(
-                full_res_data_matrix, nr_clusters
-            )
-            # Get order of typical days
-            self.k_means_specs["sequence"][investment_period] = compile_sequence(
-                day_labels,
-                nr_clusters,
-                nr_days_full_resolution,
-                nr_time_intervals_per_day,
-            )
-            # Match typical day to actual day
-            self.k_means_specs["typical_day"][investment_period] = np.repeat(
-                day_labels, nr_time_intervals_per_day
-            )
-            # Create factors, indicating how many times an hour occurs
-            self.k_means_specs["factors"] = get_day_factors(
-                self.k_means_specs["sequence"][investment_period]
-            )
-        clustered_data = pd.concat(
-            clustered_data.values(), axis=1, keys=clustered_data.keys()
-        )
-        clustered_data.columns.set_names(
-            ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2", "Timestep"],
-            inplace=True,
-        )
-        self.time_series["clustered"] = clustered_data
+            typPeriods = aggregation.createTypicalPeriods()
 
-        self._read_technology_data(aggregation_type="clustered")
+            # Determine help variables
+            cluster_order = aggregation._clusterOrder
+            cluster_no_occ = aggregation._clusterPeriodNoOccur
+            clustered_index = typPeriods.index
+            clustered_index = clustered_index.set_names(["Day", "Hour"])
+            clustered_index = clustered_index.to_frame().reset_index(drop=True)
+            clustered_index = clustered_index["Day"].reset_index()
+            clustered_index["index"] = clustered_index["index"] + 1
+
+            # Determine Sequence
+            for d in cluster_order:
+                self.k_means_specs[investment_period]["sequence"].extend(
+                    (clustered_index[clustered_index["Day"] == d]["index"].to_list())
+                )
+
+            # Determine Factors (how many times does a clustered hour occur)
+            self.k_means_specs[investment_period]["factors"] = (
+                clustered_index["Day"].map(cluster_no_occ).to_list()
+            )
+
+            # Write time series
+            typPeriods = typPeriods.reset_index()
+            clustered_resolution[investment_period] = typPeriods["time_series"]
+
+            # Write technology performance
+            self._write_aggregated_data_to_technologies(
+                investment_period, typPeriods["tec_series"], "clustered"
+            )
+
+        self.time_series["clustered"] = pd.concat(
+            clustered_resolution, names=["InvestmentPeriod"], axis=1
+        )
 
         log_event("Clustered data successfully")
 
     def _average_data(self):
-        # Todo: document
         """
-        Averages all nodal and global data
+        Averages full resolution input data
 
-        :param data_full_resolution: Data full resolution
-        :param nr_timesteps_averaged: How many time-steps should be averaged?
+        Uses the package tsam to average all time-dependent input data (time series
+        and time dependent technology performance).
         """
-
-        # Adjust time index
         nr_timesteps_averaged = self.model_config["optimization"]["timestaging"][
             "value"
         ]
-        time_resolution_averaged = str(nr_timesteps_averaged) + "h"
-        self.topology["time_index"]["averaged"] = pd.date_range(
-            start=self.topology["start_date"],
-            end=self.topology["end_date"],
-            freq=time_resolution_averaged,
+        nr_timesteps_full = len(self.topology["time_index"]["full"])
+        resolution_full = self.topology["resolution_in_h"]["full"]
+        hours_per_day = self.topology["hours_per_day"]["full"]
+
+        self.topology["time_index"]["averaged"] = range(
+            0, int(nr_timesteps_full / nr_timesteps_averaged)
         )
 
-        # Averaging data
-        if self.model_config["optimization"]["typicaldays"]["N"]["value"] == 0:
-            full_res_data_matrix = self.time_series["full"]
-            self.time_series["averaged"] = average_timeseries_data(
+        averaged_resolution = {}
+        for investment_period in self.topology["investment_periods"]:
+            self.averaged_specs[investment_period] = {}
+            self.averaged_specs[investment_period][
+                "nr_timesteps_averaged"
+            ] = nr_timesteps_averaged
+
+            full_res_data_matrix = self._collect_full_res_data(investment_period)
+
+            # Cluster to typical days
+            aggregation = tsam.TimeSeriesAggregation(
                 full_res_data_matrix,
-                nr_timesteps_averaged,
-                self.topology["time_index"]["averaged"],
+                noTypicalPeriods=int(nr_timesteps_full / nr_timesteps_averaged),
+                hoursPerPeriod=1,
+                noSegments=1,
+                resolution=resolution_full,
+                clusterMethod="averaging",
             )
 
-            # read technology data
-            self._read_technology_data(aggregation_type="averaged")
+            typPeriods = aggregation.createTypicalPeriods()
 
-        else:
-            clustered_data_matrix = self.time_series["clustered"]
-            clustered_days = self.model_config["optimization"]["typicaldays"]["N"][
-                "value"
-            ]
-            self.time_series["clustered_averaged"] = average_timeseries_data_clustered(
-                clustered_data_matrix, nr_timesteps_averaged, clustered_days
+            typPeriods.index = self.topology["time_index"]["averaged"]
+            averaged_resolution[investment_period] = typPeriods["time_series"]
+
+            # Write technology performance
+            self._write_aggregated_data_to_technologies(
+                investment_period, typPeriods["tec_series"], "averaged"
             )
 
-            # read technology data
-            self._read_technology_data(aggregation_type="clustered_averaged")
+        self.time_series["averaged"] = pd.concat(
+            averaged_resolution, names=["InvestmentPeriod"], axis=1
+        )
 
         log_event("Averaged data successfully")

@@ -3,7 +3,7 @@ import pyomo.gdp as gdp
 import numpy as np
 import pandas as pd
 
-from ..utilities import FittedPerformance
+from ...component import InputParameters
 from ..technology import Technology
 
 
@@ -53,33 +53,49 @@ class Conv4(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance(self.performance_data)
-
-        self.main_car = self.performance_data["main_output_carrier"]
+        self.component_options.emissions_based_on = "output"
+        self.component_options.main_output_carrier = tec_data["Performance"][
+            "main_output_carrier"
+        ]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits conversion technology type 4 and returns fitted parameters as a dict
 
-        The performance data for a specific location (node) as specified in the JSON (containing X,Y data of tech
-        performance) is fitted.
-
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(Conv4, self).fit_technology_performance(climate_data, location)
 
-        self.fitted_performance.bounds["output"][
-            self.performance_data["main_output_carrier"]
+        # Coefficients
+        phi = {}
+        for car in self.input_parameters.performance_data["output_ratios"]:
+            phi[car] = self.input_parameters.performance_data["output_ratios"][car]
+        self.processed_coeff.time_independent["phi"] = phi
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Conv4, self)._calculate_bounds()
+
+        time_steps = len(self.set_t_performance)
+
+        # Output Bounds
+        self.bounds["output"][
+            self.input_parameters.performance_data["main_output_carrier"]
         ] = np.column_stack(
-            (np.zeros(shape=(len(climate_data))), np.ones(shape=(len(climate_data))))
+            (
+                np.zeros(shape=(time_steps)),
+                np.ones(shape=(time_steps)),
+            )
         )
-        for car in self.fitted_performance.output_carrier:
-            if not car == self.performance_data["main_output_carrier"]:
-                self.fitted_performance.bounds["output"][car] = (
-                    self.fitted_performance.bounds["output"][
-                        self.performance_data["main_output_carrier"]
-                    ]
-                    * self.performance_data["output_ratios"][car]
+
+        for car in self.component_options.output_carrier:
+            if not car == self.component_options.main_output_carrier:
+                self.bounds["output"][car] = (
+                    self.bounds["output"][self.component_options.main_output_carrier]
+                    * self.input_parameters.performance_data["output_ratios"][car]
                 )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
@@ -97,37 +113,40 @@ class Conv4(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        rated_power = self.fitted_performance.rated_power
-        performance_function_type = performance_data["performance_function_type"]
-        phi = {}
-        for car in self.performance_data["output_ratios"]:
-            phi[car] = self.performance_data["output_ratios"][car]
+        coeff_ti = self.processed_coeff.time_independent
+        rated_power = self.input_parameters.rated_power
+        phi = coeff_ti["phi"]
 
         # add additional constraints for performance type 2 (min. part load)
-        if performance_function_type == 2:
+        if self.component_options.performance_function_type == 2:
             b_tec = self._performance_function_type_2(b_tec)
 
         # Size constraints
         # constraint on output ratios
         def init_output_output(const, t, car_output):
-            if car_output == self.main_car:
+            if car_output == self.component_options.main_output_carrier:
                 return pyo.Constraint.Skip
             else:
                 return (
                     self.output[t, car_output]
-                    == phi[car_output] * self.output[t, self.main_car]
+                    == phi[car_output]
+                    * self.output[t, self.component_options.main_output_carrier]
                 )
 
         b_tec.const_output_output = pyo.Constraint(
-            self.set_t, b_tec.set_output_carriers, rule=init_output_output
+            self.set_t_performance, b_tec.set_output_carriers, rule=init_output_output
         )
 
         # size constraint based on main carrier output
         def init_size_constraint(const, t):
-            return self.output[t, self.main_car] <= b_tec.var_size * rated_power
+            return (
+                self.output[t, self.component_options.main_output_carrier]
+                <= b_tec.var_size * rated_power
+            )
 
-        b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(
+            self.set_t_performance, rule=init_size_constraint
+        )
 
         return b_tec
 
@@ -145,8 +164,9 @@ class Conv4(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
+        rated_power = self.input_parameters.rated_power
+        coeff_ti = self.processed_coeff.time_independent
+        min_part_load = coeff_ti["min_part_load"]
 
         # define disjuncts
         s_indicators = range(0, 2)
@@ -165,18 +185,22 @@ class Conv4(Technology):
 
                 def init_min_partload(const):
                     return (
-                        self.output[t, self.main_car]
+                        self.output[t, self.component_options.main_output_carrier]
                         >= min_part_load * b_tec.var_size * rated_power
                     )
 
                 dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
-        b_tec.dis_output = gdp.Disjunct(self.set_t, s_indicators, rule=init_output)
+        b_tec.dis_output = gdp.Disjunct(
+            self.set_t_performance, s_indicators, rule=init_output
+        )
 
         # Bind disjuncts
         def bind_disjunctions(dis, t):
             return [b_tec.dis_output[t, i] for i in s_indicators]
 
-        b_tec.disjunction_output = gdp.Disjunction(self.set_t, rule=bind_disjunctions)
+        b_tec.disjunction_output = gdp.Disjunction(
+            self.set_t_performance, rule=bind_disjunctions
+        )
 
         return b_tec

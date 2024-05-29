@@ -15,7 +15,7 @@
     "lifetime": 50,
     "decommission_cost": 0
   },
-  "NetworkPerf": {
+  "Performance": {
     "carrier": "CO2captured",
     "bidirectional": 0,
     "loss": 1.25E-7,

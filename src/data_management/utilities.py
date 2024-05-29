@@ -219,9 +219,7 @@ def select_technology(tec_data: dict):
         return HydroOpen(tec_data)
 
 
-def read_tec_data(
-    tec_name: str, load_path: Path, climate_data: pd.DataFrame, location: dict
-):
+def read_tec_data(tec_name: str, load_path: Path):
     """
     Loads the technology data from load_path and preprocesses it.
 
@@ -234,15 +232,10 @@ def read_tec_data(
     tec_data = open_json(tec_name, load_path)
     tec_data["name"] = tec_name
     tec_data = select_technology(tec_data)
-    tec_data.fit_technology_performance(climate_data, location)
-    if tec_data.ccs:
-        ccs_data = open_json(tec_data.performance_data["ccs"]["ccs_type"], load_path)
-        tec_data.ccs_data = fit_ccs_data(
-            tec_data.performance_data["ccs"]["co2_concentration"],
-            ccs_data,
-            climate_data,
-        )
 
+    # CCS
+    if tec_data.component_options.ccs_possible:
+        tec_data.ccs_data = open_json(tec_data.component_options.ccs_type, load_path)
     return tec_data
 
 
@@ -396,5 +389,18 @@ def check_input_data_consistency(path: Path):
                     check_node_path / "carrier_data" / (carrier + ".csv"),
                     f"Data for carrier {carrier} is missing in {check_node_path}",
                 )
+
+    # Read config
+    with open(path / "ConfigModel.json") as json_file:
+        config = json.load(json_file)
+
+    # Check that averaging and k-means is not used at same time
+    if (config["optimization"]["typicaldays"]["N"]["value"] != 0) and (
+        config["optimization"]["timestaging"]["value"] != 0
+    ):
+        raise Exception(
+            "Using time step averaging and k-means clustering at the same"
+            " time is not allowed"
+        )
 
     log_event("Input data folder has been checked successfully - no errors occurred.")

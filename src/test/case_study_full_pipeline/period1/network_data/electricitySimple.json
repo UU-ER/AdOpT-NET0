@@ -15,9 +15,9 @@
     "lifetime": 1,
     "decommission_cost": 0
   },
-  "NetworkPerf": {
+  "Performance": {
     "carrier": "electricity",
-    "bidirectional": 1,
+    "bidirectional": 0,
     "loss": 0,
     "min_transport": 0,
     "loss2emissions": 0,

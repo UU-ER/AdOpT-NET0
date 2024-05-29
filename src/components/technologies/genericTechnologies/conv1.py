@@ -4,7 +4,7 @@ import pyomo.gdp as gdp
 import copy
 from warnings import warn
 
-from ..genericTechnologies.utilities import fit_performance_generic_tecs
+from ..genericTechnologies import fitting_classes as f
 from ..technology import Technology
 
 
@@ -68,8 +68,26 @@ class Conv1(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = None
-        self.main_car = self.performance_data["main_input_carrier"]
+        self.component_options.emissions_based_on = "input"
+        self.component_options.size_based_on = tec_data["size_based_on"]
+        self.component_options.main_input_carrier = tec_data["Performance"][
+            "main_input_carrier"
+        ]
+
+        # Initialize fitting class
+        if self.component_options.performance_function_type == 1:
+            self.fitting_class = f.FitGenericTecTypeType1(self.component_options)
+        elif self.component_options.performance_function_type == 2:
+            self.fitting_class = f.FitGenericTecTypeType2(self.component_options)
+        elif (
+            self.component_options.performance_function_type == 3
+            or self.component_options.performance_function_type == 4
+        ):
+            self.fitting_class = f.FitGenericTecTypeType34(self.component_options)
+        else:
+            raise Exception(
+                "performance_function_type must be an integer between 1 and 4"
+            )
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -78,13 +96,35 @@ class Conv1(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(Conv1, self).fit_technology_performance(climate_data, location)
 
-        # reshape performance_data for CONV1
-        temp = copy.deepcopy(self.performance_data["performance"]["out"])
-        self.performance_data["performance"]["out"] = {}
-        self.performance_data["performance"]["out"]["out"] = temp
-        self.fitted_performance = fit_performance_generic_tecs(
-            self.performance_data, time_steps=len(climate_data)
+        # reshape parameters for CONV1
+        temp = copy.deepcopy(
+            self.input_parameters.performance_data["performance"]["out"]
+        )
+        self.input_parameters.performance_data["performance"]["out"] = {}
+        self.input_parameters.performance_data["performance"]["out"]["out"] = temp
+
+        # fit coefficients
+        self.processed_coeff.time_independent["fit"] = (
+            self.fitting_class.fit_performance_function(
+                self.input_parameters.performance_data["performance"]
+            )
+        )
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Conv1, self)._calculate_bounds()
+
+        time_steps = len(self.set_t_performance)
+
+        self.bounds["input"] = self.fitting_class.calculate_input_bounds(
+            self.component_options.size_based_on, time_steps
+        )
+        self.bounds["output"] = self.fitting_class.calculate_output_bounds(
+            self.component_options.size_based_on, time_steps
         )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
@@ -102,25 +142,24 @@ class Conv1(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        rated_power = self.fitted_performance.rated_power
-        size_based_on = performance_data["size_based_on"]
-        performance_function_type = performance_data["performance_function_type"]
+        coeff_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
+        rated_power = self.input_parameters.rated_power
 
         # Technology Constraints
-        if performance_function_type == 1:
+        if self.component_options.performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
-        elif performance_function_type == 2:
+        elif self.component_options.performance_function_type == 2:
             b_tec = self._performance_function_type_2(b_tec)
-        elif performance_function_type == 3:
+        elif self.component_options.performance_function_type == 3:
             b_tec = self._performance_function_type_3(b_tec)
-        elif performance_function_type == 4:
+        elif self.component_options.performance_function_type == 4:
             b_tec = self._performance_function_type_4(b_tec)
 
         # Size constraints
         # size constraint based on sum of input/output
         def init_size_constraint(const, t):
-            if size_based_on == "input":
+            if self.component_options.size_based_on == "input":
                 return (
                     sum(
                         self.input[t, car_input]
@@ -128,7 +167,7 @@ class Conv1(Technology):
                     )
                     <= b_tec.var_size * rated_power
                 )
-            elif size_based_on == "output":
+            elif self.component_options.size_based_on == "output":
                 return (
                     sum(
                         self.output[t, car_output]
@@ -137,26 +176,30 @@ class Conv1(Technology):
                     <= b_tec.var_size * rated_power
                 )
 
-        b_tec.const_size = pyo.Constraint(self.set_t, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(
+            self.set_t_performance, rule=init_size_constraint
+        )
 
         # Maximum input of carriers
-        if "max_input" in performance_data:
+        if "max_input" in coeff_ti:
             b_tec.set_max_input_carriers = pyo.Set(
-                initialize=list(performance_data["max_input"].keys())
+                initialize=list(coeff_ti["max_input"].keys())
             )
 
             def init_max_input(const, t, car):
-                return self.input[t, car] <= performance_data["max_input"][car] * sum(
+                return self.input[t, car] <= coeff_ti["max_input"][car] * sum(
                     self.input[t, car_input] for car_input in b_tec.set_input_carriers
                 )
 
             b_tec.const_max_input = pyo.Constraint(
-                self.set_t, b_tec.set_max_input_carriers, rule=init_max_input
+                self.set_t_performance,
+                b_tec.set_max_input_carriers,
+                rule=init_max_input,
             )
 
         # RAMPING RATES
-        if "ramping_time" in self.performance_data:
-            if not self.performance_data["ramping_time"] == -1:
+        if "ramping_time" in dynamics:
+            if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
@@ -169,9 +212,10 @@ class Conv1(Technology):
         :return: pyomo block with technology model
         """
         # Performance parameter:
-        alpha1 = self.fitted_performance.coefficients["out"]["alpha1"]
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
+        rated_power = self.input_parameters.rated_power
+        coeff_ti = self.processed_coeff.time_independent
+        alpha1 = coeff_ti["fit"]["out"]["alpha1"]
+        min_part_load = coeff_ti["min_part_load"]
 
         # Input-output correlation
         def init_input_output(const, t):
@@ -181,7 +225,9 @@ class Conv1(Technology):
                 self.input[t, car_input] for car_input in b_tec.set_input_carriers
             )
 
-        b_tec.const_input_output = pyo.Constraint(self.set_t, rule=init_input_output)
+        b_tec.const_input_output = pyo.Constraint(
+            self.set_t_performance, rule=init_input_output
+        )
 
         if min_part_load > 0:
 
@@ -191,7 +237,7 @@ class Conv1(Technology):
                 )
 
             b_tec.const_min_part_load = pyo.Constraint(
-                self.set_t, rule=init_min_part_load
+                self.set_t_performance, rule=init_min_part_load
             )
 
         return b_tec
@@ -207,19 +253,18 @@ class Conv1(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        alpha1 = self.fitted_performance.coefficients["out"]["alpha1"]
-        alpha2 = self.fitted_performance.coefficients["out"]["alpha2"]
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
-        standby_power = self.performance_data["standby_power"]
+        rated_power = self.input_parameters.rated_power
+        coeff_ti = self.processed_coeff.time_independent
+        alpha1 = coeff_ti["fit"]["out"]["alpha1"]
+        alpha2 = coeff_ti["fit"]["out"]["alpha2"]
+        min_part_load = coeff_ti["min_part_load"]
+        standby_power = coeff_ti["standby_power"]
 
         if standby_power != -1:
-            if (
-                "standby_power_carrier" not in self.performance_data
-            ) or self.performance_data["standby_power_carrier"] == -1:
-                car_standby_power = self.main_car
+            if self.component_options.standby_power_carrier == -1:
+                car_standby_power = self.component_options.main_input_carrier
             else:
-                car_standby_power = self.performance_data["standby_power_carrier"]
+                car_standby_power = self.component_options.standby_power_carrier
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
@@ -251,7 +296,7 @@ class Conv1(Technology):
                 else:
 
                     def init_standby_power(const, car_input):
-                        if car_input == self.main_car:
+                        if car_input == self.component_options.main_input_carrier:
                             return (
                                 self.input[t, car_standby_power]
                                 == standby_power * b_tec.var_size * rated_power
@@ -305,7 +350,7 @@ class Conv1(Technology):
                 dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
         b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
+            self.set_t_performance, s_indicators, rule=init_input_output
         )
 
         # Bind disjuncts
@@ -313,7 +358,7 @@ class Conv1(Technology):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
         b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t, rule=bind_disjunctions
+            self.set_t_performance, rule=bind_disjunctions
         )
 
         return b_tec
@@ -329,20 +374,19 @@ class Conv1(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        alpha1 = self.fitted_performance.coefficients["out"]["alpha1"]
-        alpha2 = self.fitted_performance.coefficients["out"]["alpha2"]
-        bp_x = self.fitted_performance.coefficients["out"]["bp_x"]
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
-        standby_power = self.performance_data["standby_power"]
+        rated_power = self.input_parameters.rated_power
+        coeff_ti = self.processed_coeff.time_independent
+        alpha1 = coeff_ti["fit"]["out"]["alpha1"]
+        alpha2 = coeff_ti["fit"]["out"]["alpha2"]
+        bp_x = coeff_ti["fit"]["out"]["bp_x"]
+        min_part_load = coeff_ti["min_part_load"]
+        standby_power = coeff_ti["standby_power"]
 
         if standby_power != -1:
-            if (
-                "standby_power_carrier" not in self.performance_data
-            ) or self.performance_data["standby_power_carrier"] == -1:
-                car_standby_power = self.main_car
+            if self.component_options.standby_power_carrier == -1:
+                car_standby_power = self.component_options.main_input_carrier
             else:
-                car_standby_power = self.performance_data["standby_power_carrier"]
+                car_standby_power = self.component_options.standby_power_carrier
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
@@ -367,7 +411,7 @@ class Conv1(Technology):
                 else:
 
                     def init_standby_power(const, car_input):
-                        if car_input == self.main_car:
+                        if car_input == self.component_options.main_input_carrier:
                             return (
                                 self.input[t, car_standby_power]
                                 == standby_power * b_tec.var_size * rated_power
@@ -441,7 +485,7 @@ class Conv1(Technology):
                 dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
 
         b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t, s_indicators, rule=init_input_output
+            self.set_t_performance, s_indicators, rule=init_input_output
         )
 
         # Bind disjuncts
@@ -449,7 +493,7 @@ class Conv1(Technology):
             return [b_tec.dis_input_output[t, i] for i in s_indicators]
 
         b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t, rule=bind_disjunctions
+            self.set_t_performance, rule=bind_disjunctions
         )
 
         return b_tec
@@ -469,13 +513,15 @@ class Conv1(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        SU_time = self.performance_data["SU_time"]
-        SD_time = self.performance_data["SD_time"]
-        alpha1 = self.fitted_performance.coefficients["out"]["alpha1"]
-        alpha2 = self.fitted_performance.coefficients["out"]["alpha2"]
-        bp_x = self.fitted_performance.coefficients["out"]["bp_x"]
-        rated_power = self.fitted_performance.rated_power
-        min_part_load = self.performance_data["min_part_load"]
+        rated_power = self.input_parameters.rated_power
+        coeff_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
+        alpha1 = coeff_ti["fit"]["out"]["alpha1"]
+        alpha2 = coeff_ti["fit"]["out"]["alpha2"]
+        bp_x = coeff_ti["fit"]["out"]["bp_x"]
+        min_part_load = coeff_ti["min_part_load"]
+        SU_time = dynamics["SU_time"]
+        SD_time = dynamics["SD_time"]
 
         if SU_time <= 0 and SD_time <= 0:
             warn(
@@ -719,22 +765,21 @@ class Conv1(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        ramping_time = self.performance_data["ramping_time"]
+        dynamics = self.processed_coeff.dynamics
+
+        ramping_time = dynamics["ramping_time"]
 
         # Calculate ramping rates
-        if (
-            "ref_size" in self.performance_data
-            and not self.performance_data["ref_size"] == -1
-        ):
-            ramping_rate = self.performance_data["ref_size"] / ramping_time
+        if "ref_size" in dynamics and not dynamics["ref_size"] == -1:
+            ramping_rate = dynamics["ref_size"] / ramping_time
         else:
             ramping_rate = b_tec.var_size / ramping_time
 
         # Constraints ramping rates
         if (
-            not self.performance_data["performance_function_type"] == 1
-            and "ramping_const_int" in self.performance_data
-            and self.performance_data["ramping_const_int"] == 1
+            not self.component_options.performance_function_type == 1
+            and "ramping_const_int" in dynamics
+            and dynamics["ramping_const_int"] == 1
         ):
 
             s_indicators = range(0, 3)
@@ -781,7 +826,7 @@ class Conv1(Technology):
                         )
 
             b_tec.dis_ramping_operation_on = gdp.Disjunct(
-                self.set_t, s_indicators, rule=init_ramping_operation_on
+                self.set_t_performance, s_indicators, rule=init_ramping_operation_on
             )
 
             # Bind disjuncts
@@ -789,7 +834,7 @@ class Conv1(Technology):
                 return [b_tec.dis_ramping_operation_on[t, i] for i in s_indicators]
 
             b_tec.disjunction_ramping_operation_on = gdp.Disjunction(
-                self.set_t, rule=bind_disjunctions
+                self.set_t_performance, rule=bind_disjunctions
             )
 
         else:
@@ -804,7 +849,7 @@ class Conv1(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate = pyo.Constraint(
-                self.set_t, rule=init_ramping_down_rate
+                self.set_t_performance, rule=init_ramping_down_rate
             )
 
             def init_ramping_up_rate(const, t):
@@ -820,7 +865,7 @@ class Conv1(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate = pyo.Constraint(
-                self.set_t, rule=init_ramping_up_rate
+                self.set_t_performance, rule=init_ramping_up_rate
             )
 
         return b_tec

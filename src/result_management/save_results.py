@@ -4,6 +4,7 @@ import os
 
 from pyomo.environ import ConcreteModel
 from ..logger import log_event
+from ..utilities import get_set_t
 
 
 def get_summary(model, solution, folder_path: Path, model_info: dict) -> dict:
@@ -74,7 +75,12 @@ def get_summary(model, solution, folder_path: Path, model_info: dict) -> dict:
     )
 
     # summary: retrieve / calculate solver status
-    summary_dict["time_total"] = solution.solver(0).wallclock_time
+    try:
+        int(solution.solver(0).wallclock_time)
+        time = solution.solver(0).wallclock_time
+    except:
+        time = 0
+    summary_dict["time_total"] = time
     summary_dict["lb"] = solution.problem(0).lower_bound
     summary_dict["ub"] = solution.problem(0).upper_bound
     summary_dict["absolute gap"] = (
@@ -127,14 +133,27 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
         # SUMMARY [g]: convert dictionary to h5 datasets
         summary = f.create_group("summary")
         for key in summary_dict:
-            summary.create_dataset(key, data=summary_dict[key])
+            if summary_dict[key] is None:
+                value = -1
+            else:
+                value = summary_dict[key]
+            summary.create_dataset(key, data=value)
+
+        # TIME AGGREGATION INFORMATION [g]:
+        # K-means specs
+        k_means_specs = f.create_group("k_means_specs")
+        for investment_period in data.k_means_specs:
+            k_means_specs_period = k_means_specs.create_group(investment_period)
+            for key in data.k_means_specs[investment_period]:
+                k_means_specs_period.create_dataset(
+                    key, data=data.k_means_specs[investment_period][key]
+                )
 
         # Topology Information
         topology = f.create_group("topology")
         topology.create_dataset("nodes", data=list(model.set_nodes))
+        topology.create_dataset("periods", data=list(model.set_periods))
         topology.create_dataset("carriers", data=list(model.set_carriers))
-
-        aggregation_type = "full"
 
         # TIME-INDEPENDENT RESULTS (design) [g]
         g_design = f.create_group("design")
@@ -146,15 +165,15 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
             g_period_netw_design = networks_design.create_group(period)
 
             b_period = model.periods[period]
-            set_t = b_period.set_t_full
+            set_t = get_set_t(config, b_period)
 
             if not config["energybalance"]["copperplate"]["value"]:
                 for netw_name in b_period.set_networks:
                     netw_specific_group = g_period_netw_design.create_group(netw_name)
                     b_netw = b_period.network_block[netw_name]
-                    data.network_data[aggregation_type][period][
-                        netw_name
-                    ].write_results_netw_design(netw_specific_group, b_netw)
+                    data.network_data[period][netw_name].write_results_netw_design(
+                        netw_specific_group, b_netw
+                    )
 
         # TIME-INDEPENDENT RESULTS: NODES [g]
         nodes_design = g_design.create_group("nodes")
@@ -169,7 +188,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                 for tec_name in b_node.set_technologies:
                     tec_group = node_specific_group.create_group(tec_name)
                     b_tec = b_node.tech_blocks_active[tec_name]
-                    data.technology_data[aggregation_type][period][node_name][
+                    data.technology_data[period][node_name][
                         tec_name
                     ].write_results_tec_design(tec_group, b_tec)
 
@@ -188,9 +207,9 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                         netw_name
                     )
                     b_netw = b_period.network_block[netw_name]
-                    data.network_data[aggregation_type][period][
-                        netw_name
-                    ].write_results_netw_operation(netw_specific_group, b_netw)
+                    data.network_data[period][netw_name].write_results_netw_operation(
+                        netw_specific_group, b_netw
+                    )
 
         # TECHNOLOGY OPERATION [g] > within: node > specific technology [g]
         tec_operation_group = operation.create_group("technology_operation")
@@ -204,7 +223,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                 for tec_name in b_node.set_technologies:
                     tec_group = node_specific_group.create_group(tec_name)
                     b_tec = b_node.tech_blocks_active[tec_name]
-                    data.technology_data[aggregation_type][period][node_name][
+                    data.technology_data[period][node_name][
                         tec_name
                     ].write_results_tec_operation(tec_group, b_tec)
 

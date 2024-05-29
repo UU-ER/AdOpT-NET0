@@ -9,7 +9,7 @@ import numpy as np
 # Todo: logging
 
 
-path = "C:/Users/6574114/PycharmProjects/EHUB-Py/test_cases/Monte Carlo"
+path = "C:/Users/6574114/PycharmProjects/EHUB-Py/test_cases/household_autarky"
 # dp.create_optimization_templates(path)
 # dp.create_input_data_folder_template(path)
 #
@@ -18,7 +18,7 @@ path = "C:/Users/6574114/PycharmProjects/EHUB-Py/test_cases/Monte Carlo"
 # dp.load_climate_data_from_api(path)
 
 pyhub = EnergyHub()
-pyhub.read_data(path, start_period=0, end_period=3)
+pyhub.read_data(path, start_period=0, end_period=24 * 3)
 pyhub.quick_solve()
 # pyhub.construct_balances()
 # pyhub.solve()

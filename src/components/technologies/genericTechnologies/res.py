@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 import numpy as np
 
 from ..technology import Technology
-from ..utilities import FittedPerformance
+from ...utilities import get_attribute_from_dict
 
 
 class Res(Technology):
@@ -39,7 +39,7 @@ class Res(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance(self.performance_data)
+        self.component_options.emissions_based_on = "output"
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -48,12 +48,14 @@ class Res(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(Res, self).fit_technology_performance(climate_data, location)
+
         if "Photovoltaic" in self.name:
-            if "system_type" in self.performance_data:
+            if "system_type" in self.input_parameters.performance_data:
                 self._perform_fitting_PV(
                     climate_data,
                     location,
-                    system_data=self.performance_data["system_type"],
+                    system_data=self.input_parameters.performance_data["system_type"],
                 )
             else:
                 self._perform_fitting_PV(climate_data, location)
@@ -62,11 +64,16 @@ class Res(Technology):
             self._perform_fitting_ST(climate_data)
 
         elif "WindTurbine" in self.name:
-            if "hubheight" in self.performance_data:
-                hubheight = self.performance_data["hubheight"]
+            if "hubheight" in self.input_parameters.performance_data:
+                hubheight = self.input_parameters.performance_data["hubheight"]
             else:
                 hubheight = 120
             self._perform_fitting_WT(climate_data, hubheight)
+
+        # Options
+        self.component_options.other["curtailment"] = get_attribute_from_dict(
+            self.input_parameters.performance_data, "curtailment", 0
+        )
 
     def _perform_fitting_PV(self, climate_data: pd.DataFrame, location: dict, **kwargs):
         """
@@ -144,19 +151,11 @@ class Res(Technology):
         power = pv_model.results.ac.p_mp
         capacity_factor = power / peakpower
 
-        # Calculate output bounds
-        lower_output_bound = np.zeros(shape=(len(climate_data)))
-        upper_output_bound = capacity_factor.to_numpy()
-        output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
-
-        # Output Bounds
-        self.fitted_performance.bounds["output"]["electricity"] = output_bounds
         # Coefficients
-        self.fitted_performance.coefficients["capfactor"] = round(capacity_factor, 3)
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
-        # Other Data
-        self.fitted_performance.other["specific_area"] = specific_area
+        self.processed_coeff.time_dependent_full["capfactor"] = round(
+            capacity_factor, 3
+        )
+        self.processed_coeff.time_independent["specific_area"] = specific_area
 
     def _perform_fitting_ST(self, climate_data: pd.DataFrame):
         """
@@ -216,19 +215,26 @@ class Res(Technology):
         ws[ws < 0] = 0
         capacity_factor = f(ws) / rated_power
 
-        # Calculate output bounds
-        lower_output_bound = np.zeros(shape=(len(climate_data)))
-        upper_output_bound = capacity_factor[0]
-        output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
-
-        # Output Bounds
-        self.fitted_performance.bounds["output"]["electricity"] = output_bounds
         # Coefficients
-        self.fitted_performance.coefficients["capfactor"] = capacity_factor[0].round(3)
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 1
-        # Other Data
-        self.fitted_performance.rated_power = rated_power / 1000
+        self.processed_coeff.time_dependent_full["capfactor"] = capacity_factor[
+            0
+        ].round(3)
+        # Rated Power
+        self.input_parameters.rated_power = rated_power / 1000
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Res, self)._calculate_bounds()
+
+        time_steps = len(self.set_t_performance)
+
+        # Output bounds
+        lower_output_bound = np.zeros(shape=(time_steps))
+        upper_output_bound = self.processed_coeff.time_dependent_used["capfactor"]
+        output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
+        self.bounds["output"]["electricity"] = output_bounds
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -243,18 +249,9 @@ class Res(Technology):
         super(Res, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
         # DATA OF TECHNOLOGY
-        performance_data = self.performance_data
-        coeff = self.fitted_performance.coefficients
-        rated_power = self.fitted_performance.rated_power
-
-        if "curtailment" in performance_data:
-            curtailment = performance_data["curtailment"]
-        else:
-            curtailment = 0
-
-        # PARAMETERS
-        # Set capacity factors
-        capfactor = coeff["capfactor"]
+        coeff_td = self.processed_coeff.time_dependent_used
+        rated_power = self.input_parameters.rated_power
+        curtailment = self.component_options.other["curtailment"]
 
         # CONSTRAINTS
         if curtailment == 0:  # no curtailment allowed (default)
@@ -262,11 +259,13 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    == capfactor[t - 1] * b_tec.var_size * rated_power
+                    == coeff_td["capfactor"][t - 1] * b_tec.var_size * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(
-                self.set_t, b_tec.set_output_carriers, rule=init_input_output
+                self.set_t_performance,
+                b_tec.set_output_carriers,
+                rule=init_input_output,
             )
 
         elif curtailment == 1:  # continuous curtailment
@@ -274,16 +273,18 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    <= capfactor[t - 1] * b_tec.var_size * rated_power
+                    <= coeff_td["capfactor"][t - 1] * b_tec.var_size * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(
-                self.set_t, b_tec.set_output_carriers, rule=init_input_output
+                self.set_t_performance,
+                b_tec.set_output_carriers,
+                rule=init_input_output,
             )
 
         elif curtailment == 2:  # discrete curtailment
             b_tec.var_size_on = pyo.Var(
-                self.set_t,
+                self.set_t_performance,
                 within=pyo.NonNegativeIntegers,
                 bounds=(b_tec.para_size_min, b_tec.para_size_max),
             )
@@ -292,17 +293,19 @@ class Res(Technology):
                 return b_tec.var_size_on[t] <= b_tec.var_size
 
             b_tec.const_curtailed_units = pyo.Constraint(
-                self.set_t, rule=init_curtailed_units
+                self.set_t_performance, rule=init_curtailed_units
             )
 
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    == capfactor[t - 1] * b_tec.var_size_on[t] * rated_power
+                    == coeff_td["capfactor"][t - 1] * b_tec.var_size_on[t] * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(
-                self.set_t, b_tec.set_output_carriers, rule=init_input_output
+                self.set_t_performance,
+                b_tec.set_output_carriers,
+                rule=init_input_output,
             )
 
         return b_tec
@@ -317,7 +320,7 @@ class Res(Technology):
 
         super(Res, self).write_results_tec_design(h5_group, model_block)
 
-        h5_group.create_dataset("rated_power", data=self.fitted_performance.rated_power)
+        h5_group.create_dataset("rated_power", data=self.input_parameters.rated_power)
 
     def write_results_tec_operation(self, h5_group, model_block):
         """
@@ -328,24 +331,23 @@ class Res(Technology):
         """
         super(Res, self).write_results_tec_operation(h5_group, model_block)
 
-        rated_power = self.fitted_performance.rated_power
-        capfactor = self.fitted_performance.coefficients["capfactor"]
+        rated_power = self.input_parameters.rated_power
+        capfactor = self.processed_coeff.time_dependent_used["capfactor"]
 
         h5_group.create_dataset(
             "max_out",
             data=[
                 capfactor[t - 1] * model_block.var_size.value * rated_power
-                for t in self.set_t
+                for t in self.set_t_performance
             ],
         )
 
-        h5_group.create_dataset(
-            "cap_factor", data=self.fitted_performance.coefficients["capfactor"]
-        )
+        h5_group.create_dataset("cap_factor", data=capfactor)
 
-        if self.performance_data["curtailment"] == 2:
+        if self.component_options.other["curtailment"] == 2:
             h5_group.create_dataset(
-                "units_on", data=[model_block.var_size_on[t].value for t in self.set_t]
+                "units_on",
+                data=[model_block.var_size_on[t].value for t in self.set_t_performance],
             )
 
         for car in model_block.set_output_carriers:
@@ -354,6 +356,6 @@ class Res(Technology):
                 data=[
                     capfactor[t - 1] * model_block.var_size.value * rated_power
                     - model_block.var_output[t, car].value
-                    for t in self.set_t
+                    for t in self.set_t_performance
                 ],
             )

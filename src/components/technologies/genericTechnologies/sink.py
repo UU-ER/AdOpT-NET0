@@ -3,9 +3,9 @@ import pyomo.environ as pyo
 import h5py
 import numpy as np
 
-from ..utilities import FittedPerformance
 from ..technology import Technology
 from src.components.utilities import annualize, set_discount_rate
+from ...component import InputParameters
 
 
 class Sink(Technology):
@@ -70,7 +70,10 @@ class Sink(Technology):
         """
         super().__init__(tec_data)
 
-        self.fitted_performance = FittedPerformance()
+        self.component_options.emissions_based_on = "input"
+        self.component_options.main_input_carrier = tec_data["Performance"][
+            "main_input_carrier"
+        ]
         self.flexibility_data = tec_data["Flexibility"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
@@ -80,16 +83,38 @@ class Sink(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
+        super(Sink, self).fit_technology_performance(climate_data, location)
 
-        time_steps = len(climate_data)
+        # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
+        # to account for charging and discharging capacity costs.
+        if self.flexibility_data["injection_capacity_is_decision_var"]:
+            self.economics.capex_model = 4
 
-        # Main carrier (carrier to be stored)
-        self.main_car = self.performance_data["main_input_carrier"]
+        self.processed_coeff.time_independent["injection_rate_max"] = (
+            self.flexibility_data["injection_rate_max"]
+        )
+        if (
+            "energy_consumption"
+            in self.input_parameters.performance_data["performance"]
+        ):
+            self.processed_coeff.time_independent["energy_consumption"] = (
+                self.input_parameters.performance_data["performance"][
+                    "energy_consumption"
+                ]
+            )
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(Sink, self)._calculate_bounds()
+
+        time_steps = len(self.set_t_performance)
 
         # Input Bounds
-        for car in self.performance_data["input_carrier"]:
-            if car == self.performance_data["main_input_carrier"]:
-                self.fitted_performance.bounds["input"][car] = np.column_stack(
+        for car in self.component_options.input_carrier:
+            if car == self.component_options.main_input_carrier:
+                self.bounds["input"][car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
@@ -97,11 +122,14 @@ class Sink(Technology):
                     )
                 )
             else:
-                if "energy_consumption" in self.performance_data["performance"]:
-                    energy_consumption = self.performance_data["performance"][
-                        "energy_consumption"
-                    ]
-                    self.fitted_performance.bounds["input"][car] = np.column_stack(
+                if (
+                    "energy_consumption"
+                    in self.input_parameters.performance_data["performance"]
+                ):
+                    energy_consumption = self.input_parameters.performance_data[
+                        "performance"
+                    ]["energy_consumption"]
+                    self.bounds["input"][car] = np.column_stack(
                         (
                             np.zeros(shape=(time_steps)),
                             np.ones(shape=(time_steps))
@@ -109,14 +137,6 @@ class Sink(Technology):
                             * energy_consumption["in"][car],
                         )
                     )
-
-        # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
-        # to account for charging and discharging capacity costs.
-        if self.flexibility_data["injection_capacity_is_decision_var"]:
-            self.economics.capex_model = 4
-
-        # Time dependent coefficents
-        self.fitted_performance.time_dependent_coefficients = 0
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -135,6 +155,8 @@ class Sink(Technology):
 
         # DATA OF TECHNOLOGY
         config = data["config"]
+        coeff_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
 
         # Sotrage level and injection capacity decision variables
         b_tec.var_storage_level = pyo.Var(
@@ -144,7 +166,7 @@ class Sink(Technology):
         )
         b_tec.var_injection_capacity = pyo.Var(
             domain=pyo.NonNegativeReals,
-            bounds=(0, self.flexibility_data["injection_rate_max"]),
+            bounds=(0, coeff_ti["injection_rate_max"]),
         )
 
         if self.flexibility_data["injection_capacity_is_decision_var"]:
@@ -158,78 +180,54 @@ class Sink(Technology):
         b_tec.const_size = pyo.Constraint(set_t_full, rule=init_size_constraint)
 
         # Constraint storage level
-        if (
-            config["optimization"]["typicaldays"]["N"]["value"] != 0
-            and not self.modelled_with_full_res
-        ):
 
-            def init_storage_level(const, t):
-                # storageLevel[1] <= injRate[1]
-                if t == 1:
-                    return (
-                        b_tec.var_storage_level[t]
-                        == self.input[self.sequence[t - 1], self.main_car]
-                    )
-                else:
-                    # storageLevel[t] <= storageLevel[t-1]+injRate[t]
-                    return (
-                        b_tec.var_storage_level[t]
-                        == b_tec.var_storage_level[t - 1]
-                        + self.input[self.sequence[t - 1], self.main_car]
-                    )
+        def init_storage_level(const, t):
+            # storageLevel[1] <= injRate[1]
+            if t == 1:
+                return (
+                    b_tec.var_storage_level[t]
+                    == self.input[
+                        self.sequence[t - 1], self.component_options.main_input_carrier
+                    ]
+                )
+            else:
+                # storageLevel[t] <= storageLevel[t-1]+injRate[t]
+                return (
+                    b_tec.var_storage_level[t]
+                    == b_tec.var_storage_level[t - 1]
+                    + self.input[
+                        self.sequence[t - 1], self.component_options.main_input_carrier
+                    ]
+                )
 
-            b_tec.const_storage_level = pyo.Constraint(
-                set_t_full, rule=init_storage_level
-            )
-
-        else:
-
-            def init_storage_level(const, t):
-                # storageLevel[1] <= injRate[1]
-                if t == 1:
-                    return b_tec.var_storage_level[t] == self.input[t, self.main_car]
-                else:
-                    # storageLevel[t] <= storageLevel[t-1]+injRate[t]
-                    return (
-                        b_tec.var_storage_level[t]
-                        == b_tec.var_storage_level[t - 1] + self.input[t, self.main_car]
-                    )
-
-            b_tec.const_storage_level = pyo.Constraint(
-                set_t_full, rule=init_storage_level
-            )
+        b_tec.const_storage_level = pyo.Constraint(set_t_full, rule=init_storage_level)
 
         # Maximal injection rate
         def init_maximal_injection(const, t):
             # input[t] <= injectionCapacity
-            return self.input[t, self.main_car] <= b_tec.var_injection_capacity
+            return (
+                self.input[t, self.component_options.main_input_carrier]
+                <= b_tec.var_injection_capacity
+            )
 
         b_tec.const_max_injection = pyo.Constraint(
-            self.set_t, rule=init_maximal_injection
+            self.set_t_performance, rule=init_maximal_injection
         )
 
         # if injection rates are fixed/ flexible:
         def init_max_capacity_injection(const):
             if self.flexibility_data["injection_capacity_is_decision_var"]:
                 # injectionCapacity <= injectionRateMax
-                return (
-                    b_tec.var_injection_capacity
-                    <= self.flexibility_data["injection_rate_max"]
-                )
+                return b_tec.var_injection_capacity <= coeff_ti["injection_rate_max"]
             else:
                 # injectionCapacity == injectionRateMax
-                return (
-                    b_tec.var_injection_capacity
-                    == self.flexibility_data["injection_rate_max"]
-                )
+                return b_tec.var_injection_capacity == coeff_ti["injection_rate_max"]
 
         b_tec.const_max_injection_cap = pyo.Constraint(rule=init_max_capacity_injection)
 
         # Energy consumption for injection
-        if "energy_consumption" in self.performance_data["performance"]:
-            energy_consumption = self.performance_data["performance"][
-                "energy_consumption"
-            ]
+        if "energy_consumption" in coeff_ti:
+            energy_consumption = coeff_ti["energy_consumption"]
             if "in" in energy_consumption:
                 b_tec.set_energyconsumption_carriers_in = pyo.Set(
                     initialize=energy_consumption["in"].keys()
@@ -239,23 +237,24 @@ class Sink(Technology):
                     # energyInput[t] = mainInput[t] * energyConsumption
                     return (
                         self.input[t, car]
-                        == self.input[t, self.main_car] * energy_consumption["in"][car]
+                        == self.input[t, self.component_options.main_input_carrier]
+                        * energy_consumption["in"][car]
                     )
 
                 b_tec.const_energyconsumption_in = pyo.Constraint(
-                    self.set_t,
+                    self.set_t_performance,
                     b_tec.set_energyconsumption_carriers_in,
                     rule=init_energyconsumption_in,
                 )
 
         # RAMPING RATES
-        if "ramping_rate" in self.performance_data:
-            if not self.performance_data["ramping_rate"] == -1:
+        if "ramping_time" in dynamics:
+            if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec)
 
         return b_tec
 
-    def _define_sink_capex(sels, b_tec, data: dict):
+    def _define_sink_capex(self, b_tec, data: dict):
         """
 
         Construct CAPEX of SINK constraints
@@ -267,7 +266,6 @@ class Sink(Technology):
         :return: pyomo block with technology model
         """
 
-        flexibility = self.flexibility_data
         config = data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
@@ -275,6 +273,8 @@ class Sink(Technology):
         annualization_factor = annualize(
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
+        flexibility = self.flexibility_data
+        coeff_ti = self.processed_coeff.time_independent
 
         # CAPEX PARAMETERS
         b_tec.para_unit_capex_injection_cap = pyo.Param(
@@ -301,8 +301,7 @@ class Sink(Technology):
 
         # BOUNDS
         max_capex_injection_cap = (
-            b_tec.para_unit_capex_injection_cap_annual
-            * flexibility["injection_rate_max"]
+            b_tec.para_unit_capex_injection_cap_annual * coeff_ti["injection_rate_max"]
         )
         max_capex_stor_size = (
             b_tec.para_unit_capex_stor_size_annual * b_tec.para_size_max
@@ -375,34 +374,44 @@ class Sink(Technology):
         :param Block b_tec: technology model block
         :return: technology Block with the constraints for the dynamic behaviour
         """
-        ramping_rate = self.performance_data["ramping_rate"]
+        dynamics = self.processed_coeff.dynamics
+
+        ramping_time = dynamics["ramping_time"]
+
+        # Calculate ramping rates
+        if "ref_size" in dynamics and not dynamics["ref_size"] == -1:
+            ramping_rate = dynamics["ref_size"] / ramping_time
+        else:
+            ramping_rate = b_tec.var_size / ramping_time
 
         def init_ramping_down_rate_input(const, t):
             if t > 1:
                 # -rampingRate <= input[t] - input[t-1]
                 return (
                     -ramping_rate
-                    <= self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+                    <= self.input[t, self.component_options.main_input_carrier]
+                    - self.input[t - 1, self.component_options.main_input_carrier]
                 )
             else:
                 return pyo.Constraint.Skip
 
         b_tec.const_ramping_down_rate_input = pyo.Constraint(
-            self.set_t, rule=init_ramping_down_rate_input
+            self.set_t_performance, rule=init_ramping_down_rate_input
         )
 
         def init_ramping_up_rate_input(const, t):
             if t > 1:
                 # input[t] - input[t-1] <= rampingRate
                 return (
-                    self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+                    self.input[t, self.component_options.main_input_carrier]
+                    - self.input[t - 1, self.component_options.main_input_carrier]
                     <= ramping_rate
                 )
             else:
                 return pyo.Constraint.Skip
 
         b_tec.const_ramping_up_rate_input = pyo.Constraint(
-            self.set_t, rule=init_ramping_up_rate_input
+            self.set_t_performance, rule=init_ramping_up_rate_input
         )
 
         return b_tec
