@@ -233,18 +233,18 @@ class GasTurbine(Technology):
 
         # DATA OF TECHNOLOGY
         bounds = self.bounds
-        c_td = self.processed_coeff.time_dependent_used
-        c_ti = self.processed_coeff.time_independent
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
 
         # Parameter declaration
-        in_min = c_ti["in_min"]
-        in_max = c_ti["in_max"]
-        max_H2_admixture = c_ti["max_H2_admixture"]
-        alpha = c_ti["alpha"]
-        beta = c_ti["beta"]
-        epsilon = c_ti["epsilon"]
-        temperature_correction = c_td["temperature_correction"]
+        in_min = coeff_ti["in_min"]
+        in_max = coeff_ti["in_max"]
+        max_H2_admixture = coeff_ti["max_H2_admixture"]
+        alpha = coeff_ti["alpha"]
+        beta = coeff_ti["beta"]
+        epsilon = coeff_ti["epsilon"]
+        temperature_correction = coeff_td["temperature_correction"]
 
         # Additional decision variables
         size_max = self.input_parameters.size_max

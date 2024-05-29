@@ -233,16 +233,16 @@ class DacAdsorption(Technology):
         ohmic_heating = self.component_options.other["ohmic_heating"]
 
         bounds = self.bounds
-        c_td = self.processed_coeff.time_dependent_used
-        c_ti = self.processed_coeff.time_independent
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
 
-        alpha = c_td["alpha"]
-        beta = c_td["beta"]
-        b_point = c_td["b"]
-        gamma = c_td["gamma"]
-        delta = c_td["delta"]
-        a_point = c_td["a"]
-        eta_elth = c_ti["eta_elth"]
+        alpha = coeff_td["alpha"]
+        beta = coeff_td["beta"]
+        b_point = coeff_td["b"]
+        gamma = coeff_td["gamma"]
+        delta = coeff_td["delta"]
+        a_point = coeff_td["a"]
+        eta_elth = coeff_ti["eta_elth"]
 
         # Additional sets
         b_tec.set_pieces = pyo.RangeSet(1, nr_segments)

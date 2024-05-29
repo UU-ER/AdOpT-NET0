@@ -219,8 +219,8 @@ class Stor(Technology):
         config = data["config"]
 
         # DATA OF TECHNOLOGY
-        c_td = self.processed_coeff.time_dependent_used
-        c_ti = self.processed_coeff.time_independent
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
         allow_only_one_direction = self.component_options.other[
             "allow_only_one_direction"
@@ -239,12 +239,12 @@ class Stor(Technology):
             nr_timesteps_averaged = 1
 
         # Additional parameters
-        eta_in = c_ti["eta_in"]
-        eta_out = c_ti["eta_out"]
-        eta_lambda = c_ti["lambda"]
-        charge_rate = c_ti["charge_rate"]
-        discharge_rate = c_ti["discharge_rate"]
-        ambient_loss_factor = c_td["ambient_loss_factor"]
+        eta_in = coeff_ti["eta_in"]
+        eta_out = coeff_ti["eta_out"]
+        eta_lambda = coeff_ti["lambda"]
+        charge_rate = coeff_ti["charge_rate"]
+        discharge_rate = coeff_ti["discharge_rate"]
+        ambient_loss_factor = coeff_td["ambient_loss_factor"]
 
         # Additional decision variables
         b_tec.var_storage_level = pyo.Var(
@@ -425,8 +425,8 @@ class Stor(Technology):
         b_tec.const_max_cap_discharge = pyo.Constraint(rule=init_max_capacity_discharge)
 
         # Energy consumption charging/discharging
-        if "energy_consumption" in c_ti:
-            energy_consumption = c_ti["energy_consumption"]
+        if "energy_consumption" in coeff_ti:
+            energy_consumption = coeff_ti["energy_consumption"]
             if "in" in energy_consumption:
                 b_tec.set_energyconsumption_carriers_in = pyo.Set(
                     initialize=energy_consumption["in"].keys()
@@ -493,7 +493,7 @@ class Stor(Technology):
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
         flexibility = self.flexibility_data
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
 
         # CAPEX PARAMETERS
         b_tec.para_unit_capex_charging_cap = pyo.Param(
@@ -531,12 +531,12 @@ class Stor(Technology):
         # BOUNDS
         max_capex_charging_cap = (
             b_tec.para_unit_capex_charging_cap_annual
-            * c_ti["charge_rate"]
+            * coeff_ti["charge_rate"]
             * b_tec.para_size_max
         )
         max_capex_discharging_cap = (
             b_tec.para_unit_capex_discharging_cap_annual
-            * c_ti["discharge_rate"]
+            * coeff_ti["discharge_rate"]
             * b_tec.para_size_max
         )
         max_capex_energy_cap = (

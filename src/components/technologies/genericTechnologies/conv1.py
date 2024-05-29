@@ -142,7 +142,7 @@ class Conv1(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
         rated_power = self.input_parameters.rated_power
 
@@ -181,13 +181,13 @@ class Conv1(Technology):
         )
 
         # Maximum input of carriers
-        if "max_input" in c_ti:
+        if "max_input" in coeff_ti:
             b_tec.set_max_input_carriers = pyo.Set(
-                initialize=list(c_ti["max_input"].keys())
+                initialize=list(coeff_ti["max_input"].keys())
             )
 
             def init_max_input(const, t, car):
-                return self.input[t, car] <= c_ti["max_input"][car] * sum(
+                return self.input[t, car] <= coeff_ti["max_input"][car] * sum(
                     self.input[t, car_input] for car_input in b_tec.set_input_carriers
                 )
 
@@ -213,9 +213,9 @@ class Conv1(Technology):
         """
         # Performance parameter:
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
-        alpha1 = c_ti["fit"]["out"]["alpha1"]
-        min_part_load = c_ti["min_part_load"]
+        coeff_ti = self.processed_coeff.time_independent
+        alpha1 = coeff_ti["fit"]["out"]["alpha1"]
+        min_part_load = coeff_ti["min_part_load"]
 
         # Input-output correlation
         def init_input_output(const, t):
@@ -254,11 +254,11 @@ class Conv1(Technology):
 
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
-        alpha1 = c_ti["fit"]["out"]["alpha1"]
-        alpha2 = c_ti["fit"]["out"]["alpha2"]
-        min_part_load = c_ti["min_part_load"]
-        standby_power = c_ti["standby_power"]
+        coeff_ti = self.processed_coeff.time_independent
+        alpha1 = coeff_ti["fit"]["out"]["alpha1"]
+        alpha2 = coeff_ti["fit"]["out"]["alpha2"]
+        min_part_load = coeff_ti["min_part_load"]
+        standby_power = coeff_ti["standby_power"]
 
         if standby_power != -1:
             if self.component_options.standby_power_carrier == -1:
@@ -375,12 +375,12 @@ class Conv1(Technology):
 
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
-        alpha1 = c_ti["fit"]["out"]["alpha1"]
-        alpha2 = c_ti["fit"]["out"]["alpha2"]
-        bp_x = c_ti["fit"]["out"]["bp_x"]
-        min_part_load = c_ti["min_part_load"]
-        standby_power = c_ti["standby_power"]
+        coeff_ti = self.processed_coeff.time_independent
+        alpha1 = coeff_ti["fit"]["out"]["alpha1"]
+        alpha2 = coeff_ti["fit"]["out"]["alpha2"]
+        bp_x = coeff_ti["fit"]["out"]["bp_x"]
+        min_part_load = coeff_ti["min_part_load"]
+        standby_power = coeff_ti["standby_power"]
 
         if standby_power != -1:
             if self.component_options.standby_power_carrier == -1:
@@ -514,12 +514,12 @@ class Conv1(Technology):
 
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
-        alpha1 = c_ti["fit"]["out"]["alpha1"]
-        alpha2 = c_ti["fit"]["out"]["alpha2"]
-        bp_x = c_ti["fit"]["out"]["bp_x"]
-        min_part_load = c_ti["min_part_load"]
+        alpha1 = coeff_ti["fit"]["out"]["alpha1"]
+        alpha2 = coeff_ti["fit"]["out"]["alpha2"]
+        bp_x = coeff_ti["fit"]["out"]["bp_x"]
+        min_part_load = coeff_ti["min_part_load"]
         SU_time = dynamics["SU_time"]
         SD_time = dynamics["SD_time"]
 

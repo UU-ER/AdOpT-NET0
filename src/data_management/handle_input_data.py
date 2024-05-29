@@ -489,15 +489,15 @@ class DataHandle:
         for node in self.technology_data[investment_period]:
             for tec in self.technology_data[investment_period][node]:
                 tec_data = self.technology_data[investment_period][node][tec]
-                c_td = tec_data.processed_coeff.time_dependent_full
-                for series in c_td:
-                    if c_td[series].ndim > 1:
+                coeff_td = tec_data.processed_coeff.time_dependent_full
+                for series in coeff_td:
+                    if coeff_td[series].ndim > 1:
                         count = 0
-                        for c in c_td[series].T:
+                        for c in coeff_td[series].T:
                             tec_series[(node, tec, series, count)] = c
                             count += 1
                     else:
-                        tec_series[(node, tec, series, "")] = c_td[series]
+                        tec_series[(node, tec, series, "")] = coeff_td[series]
 
         # Make sure dataframe is correctly formatted
         if tec_series:
@@ -533,13 +533,13 @@ class DataHandle:
                 tec_data = self.technology_data[investment_period][node][tec]
                 if tec_data.processed_coeff.time_dependent_full:
                     time_dependent_coeff = tec_series[node][tec]
-                    c_td = {}
+                    coeff_td = {}
                     for series in time_dependent_coeff.columns.get_level_values(0):
-                        c_td[series] = time_dependent_coeff[series].values
+                        coeff_td[series] = time_dependent_coeff[series].values
                     if aggregation_type == "clustered":
-                        tec_data.processed_coeff.time_dependent_clustered = c_td
+                        tec_data.processed_coeff.time_dependent_clustered = coeff_td
                     elif aggregation_type == "averaged":
-                        tec_data.processed_coeff.time_dependent_averaged = c_td
+                        tec_data.processed_coeff.time_dependent_averaged = coeff_td
 
     def _cluster_data(self):
         """

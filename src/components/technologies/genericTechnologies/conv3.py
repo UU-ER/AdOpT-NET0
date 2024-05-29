@@ -164,7 +164,7 @@ class Conv3(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
         rated_power = self.input_parameters.rated_power
 
@@ -179,8 +179,8 @@ class Conv3(Technology):
 
         # Size constraints
         # constraint on input ratios
-        standby_power = c_ti["standby_power"]
-        phi = c_ti["phi"]
+        standby_power = coeff_ti["standby_power"]
+        phi = coeff_ti["phi"]
 
         if standby_power == -1:
 
@@ -277,11 +277,11 @@ class Conv3(Technology):
 
         # Performance parameters:
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         alpha1 = {}
-        for car in c_ti["fit"]:
-            alpha1[car] = c_ti["fit"][car]["alpha1"]
-        min_part_load = c_ti["min_part_load"]
+        for car in coeff_ti["fit"]:
+            alpha1[car] = coeff_ti["fit"][car]["alpha1"]
+        min_part_load = coeff_ti["min_part_load"]
 
         # Input-output relation
         def init_input_output(const, t, car_output):
@@ -327,14 +327,14 @@ class Conv3(Technology):
 
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         alpha1 = {}
         alpha2 = {}
-        for car in c_ti["fit"]:
-            alpha1[car] = c_ti["fit"][car]["alpha1"]
-            alpha2[car] = c_ti["fit"][car]["alpha2"]
-        min_part_load = c_ti["min_part_load"]
-        standby_power = c_ti["standby_power"]
+        for car in coeff_ti["fit"]:
+            alpha1[car] = coeff_ti["fit"][car]["alpha1"]
+            alpha2[car] = coeff_ti["fit"][car]["alpha2"]
+        min_part_load = coeff_ti["min_part_load"]
+        standby_power = coeff_ti["standby_power"]
 
         # Performance Parameters
 
@@ -449,15 +449,15 @@ class Conv3(Technology):
 
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         alpha1 = {}
         alpha2 = {}
-        for car in c_ti["fit"]:
-            bp_x = c_ti["fit"][car]["bp_x"]
-            alpha1[car] = c_ti["fit"][car]["alpha1"]
-            alpha2[car] = c_ti["fit"][car]["alpha2"]
-        min_part_load = c_ti["min_part_load"]
-        standby_power = c_ti["standby_power"]
+        for car in coeff_ti["fit"]:
+            bp_x = coeff_ti["fit"][car]["bp_x"]
+            alpha1[car] = coeff_ti["fit"][car]["alpha1"]
+            alpha2[car] = coeff_ti["fit"][car]["alpha2"]
+        min_part_load = coeff_ti["min_part_load"]
+        standby_power = coeff_ti["standby_power"]
 
         if standby_power != -1:
             if self.component_options.standby_power_carrier == -1:
@@ -586,15 +586,15 @@ class Conv3(Technology):
 
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
         alpha1 = {}
         alpha2 = {}
-        for car in c_ti["fit"]:
-            bp_x = c_ti["fit"][car]["bp_x"]
-            alpha1[car] = c_ti["fit"][car]["alpha1"]
-            alpha2[car] = c_ti["fit"][car]["alpha2"]
-        min_part_load = c_ti["min_part_load"]
+        for car in coeff_ti["fit"]:
+            bp_x = coeff_ti["fit"][car]["bp_x"]
+            alpha1[car] = coeff_ti["fit"][car]["alpha1"]
+            alpha2[car] = coeff_ti["fit"][car]["alpha2"]
+        min_part_load = coeff_ti["min_part_load"]
         SU_time = dynamics["SU_time"]
         SD_time = dynamics["SD_time"]
 

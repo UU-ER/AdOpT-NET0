@@ -155,7 +155,7 @@ class Sink(Technology):
 
         # DATA OF TECHNOLOGY
         config = data["config"]
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
 
         # Sotrage level and injection capacity decision variables
@@ -166,7 +166,7 @@ class Sink(Technology):
         )
         b_tec.var_injection_capacity = pyo.Var(
             domain=pyo.NonNegativeReals,
-            bounds=(0, c_ti["injection_rate_max"]),
+            bounds=(0, coeff_ti["injection_rate_max"]),
         )
 
         if self.flexibility_data["injection_capacity_is_decision_var"]:
@@ -218,16 +218,16 @@ class Sink(Technology):
         def init_max_capacity_injection(const):
             if self.flexibility_data["injection_capacity_is_decision_var"]:
                 # injectionCapacity <= injectionRateMax
-                return b_tec.var_injection_capacity <= c_ti["injection_rate_max"]
+                return b_tec.var_injection_capacity <= coeff_ti["injection_rate_max"]
             else:
                 # injectionCapacity == injectionRateMax
-                return b_tec.var_injection_capacity == c_ti["injection_rate_max"]
+                return b_tec.var_injection_capacity == coeff_ti["injection_rate_max"]
 
         b_tec.const_max_injection_cap = pyo.Constraint(rule=init_max_capacity_injection)
 
         # Energy consumption for injection
-        if "energy_consumption" in c_ti:
-            energy_consumption = c_ti["energy_consumption"]
+        if "energy_consumption" in coeff_ti:
+            energy_consumption = coeff_ti["energy_consumption"]
             if "in" in energy_consumption:
                 b_tec.set_energyconsumption_carriers_in = pyo.Set(
                     initialize=energy_consumption["in"].keys()
@@ -274,7 +274,7 @@ class Sink(Technology):
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
         flexibility = self.flexibility_data
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
 
         # CAPEX PARAMETERS
         b_tec.para_unit_capex_injection_cap = pyo.Param(
@@ -301,7 +301,7 @@ class Sink(Technology):
 
         # BOUNDS
         max_capex_injection_cap = (
-            b_tec.para_unit_capex_injection_cap_annual * c_ti["injection_rate_max"]
+            b_tec.para_unit_capex_injection_cap_annual * coeff_ti["injection_rate_max"]
         )
         max_capex_stor_size = (
             b_tec.para_unit_capex_stor_size_annual * b_tec.para_size_max

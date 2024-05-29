@@ -181,20 +181,20 @@ class HydroOpen(Technology):
         config = data["config"]
 
         # DATA OF TECHNOLOGY
-        c_td = self.processed_coeff.time_dependent_used
-        c_ti = self.processed_coeff.time_independent
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
         allow_only_one_direction = self.component_options.other[
             "allow_only_one_direction"
         ]
 
-        eta_in = c_ti["eta_in"]
-        eta_out = c_ti["eta_out"]
-        eta_lambda = c_ti["lambda"]
-        charge_max = c_ti["charge_max"]
-        discharge_max = c_ti["discharge_max"]
-        spilling_max = c_ti["spilling_max"]
-        hydro_natural_inflow = c_td["hydro_inflow"]
+        eta_in = coeff_ti["eta_in"]
+        eta_out = coeff_ti["eta_out"]
+        eta_lambda = coeff_ti["lambda"]
+        charge_max = coeff_ti["charge_max"]
+        discharge_max = coeff_ti["discharge_max"]
+        spilling_max = coeff_ti["spilling_max"]
+        hydro_natural_inflow = coeff_td["hydro_inflow"]
 
         if config["optimization"]["timestaging"]["value"] != 0:
             nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
@@ -343,7 +343,7 @@ class HydroOpen(Technology):
         if self.component_options.other["maximum_discharge_time_discrete"]:
 
             def init_maximal_discharge2(const, t, car):
-                return self.output[t, car] <= c_td["hydro_maximum_discharge"][t - 1]
+                return self.output[t, car] <= coeff_td["hydro_maximum_discharge"][t - 1]
 
             b_tec.const_max_discharge2 = pyo.Constraint(
                 self.set_t_performance,

@@ -113,9 +113,9 @@ class Conv4(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
         rated_power = self.input_parameters.rated_power
-        phi = c_ti["phi"]
+        phi = coeff_ti["phi"]
 
         # add additional constraints for performance type 2 (min. part load)
         if self.component_options.performance_function_type == 2:
@@ -165,8 +165,8 @@ class Conv4(Technology):
 
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
-        min_part_load = c_ti["min_part_load"]
+        coeff_ti = self.processed_coeff.time_independent
+        min_part_load = coeff_ti["min_part_load"]
 
         # define disjuncts
         s_indicators = range(0, 2)

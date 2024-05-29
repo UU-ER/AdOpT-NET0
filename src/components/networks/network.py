@@ -370,16 +370,16 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
 
         b_netw.para_size_min = pyo.Param(
-            domain=pyo.NonNegativeReals, initialize=c_ti["size_min"], mutable=True
+            domain=pyo.NonNegativeReals, initialize=coeff_ti["size_min"], mutable=True
         )
 
         if self.existing:
             # Parameters for initial size
             def init_size_initial(param, node_from, node_to):
-                return c_ti["size_initial"].at[node_from, node_to]
+                return coeff_ti["size_initial"].at[node_from, node_to]
 
             b_netw.para_size_initial = pyo.Param(
                 b_netw.set_arcs,
@@ -388,11 +388,11 @@ class Network(ModelComponent):
             )
             # Check if sizes in both direction are the same for bidirectional existing networks
             if self.component_options.bidirectional:
-                for from_node in c_ti["size_initial"]:
-                    for to_node in c_ti["size_initial"][from_node].index:
+                for from_node in coeff_ti["size_initial"]:
+                    for to_node in coeff_ti["size_initial"][from_node].index:
                         assert (
-                            c_ti["size_initial"].at[from_node, to_node]
-                            == c_ti["size_initial"].at[to_node, from_node]
+                            coeff_ti["size_initial"].at[from_node, to_node]
+                            == coeff_ti["size_initial"].at[to_node, from_node]
                         )
         return b_netw
 
@@ -621,7 +621,7 @@ class Network(ModelComponent):
         :param str node_to: node to which arc goes
         :return: pyomo arc block
         """
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
 
         if self.component_options.size_is_int:
             size_domain = pyo.NonNegativeIntegers
@@ -629,7 +629,8 @@ class Network(ModelComponent):
             size_domain = pyo.NonNegativeReals
 
         b_arc.para_size_max = pyo.Param(
-            domain=size_domain, initialize=c_ti["size_max_arcs"].at[node_from, node_to]
+            domain=size_domain,
+            initialize=coeff_ti["size_max_arcs"].at[node_from, node_to],
         )
 
         b_arc.distance = self.distance.at[node_from, node_to]
@@ -743,7 +744,7 @@ class Network(ModelComponent):
         :return: pyomo arc block
         """
         rated_capacity = self.input_parameters.rated_power
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
 
         b_arc.var_flow = pyo.Var(
             self.set_t,
@@ -765,7 +766,8 @@ class Network(ModelComponent):
         # Losses
         def init_flowlosses(const, t):
             return (
-                b_arc.var_losses[t] == b_arc.var_flow[t] * c_ti["loss"] * b_arc.distance
+                b_arc.var_losses[t]
+                == b_arc.var_flow[t] * coeff_ti["loss"] * b_arc.distance
             )
 
         b_arc.const_flowlosses = pyo.Constraint(self.set_t, rule=init_flowlosses)
@@ -780,7 +782,7 @@ class Network(ModelComponent):
 
         def init_size_const_low(const, t):
             return (
-                b_arc.var_size * rated_capacity * c_ti["min_transport"]
+                b_arc.var_size * rated_capacity * coeff_ti["min_transport"]
                 <= b_arc.var_flow[t]
             )
 
@@ -865,15 +867,15 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
 
         b_arc.var_emissions = pyo.Var(self.set_t)
 
         def init_arc_emissions(const, t):
             return (
                 b_arc.var_emissions[t]
-                == b_arc.var_flow[t] * c_ti["emissionfactor"]
-                + b_arc.var_losses[t] * c_ti["loss2emissions"]
+                == b_arc.var_flow[t] * coeff_ti["emissionfactor"]
+                + b_arc.var_losses[t] * coeff_ti["loss2emissions"]
             )
 
         b_arc.const_arc_emissions = pyo.Constraint(self.set_t, rule=init_arc_emissions)
@@ -1099,7 +1101,7 @@ class Network(ModelComponent):
         :param model_block: pyomo network block
         :param h5_group: h5 group to write to
         """
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
@@ -1123,9 +1125,10 @@ class Network(ModelComponent):
                 "total_flow", data=sum(arc.var_flow[t].value for t in self.set_t)
             )
             total_emissions = (
-                sum(arc.var_flow[t].value for t in self.set_t) * c_ti["emissionfactor"]
+                sum(arc.var_flow[t].value for t in self.set_t)
+                * coeff_ti["emissionfactor"]
                 + sum(arc.var_losses[t].value for t in self.set_t)
-                * c_ti["loss2emissions"]
+                * coeff_ti["loss2emissions"]
             )
             arc_group.create_dataset("total_emissions", data=total_emissions)
 

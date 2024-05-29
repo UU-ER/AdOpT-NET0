@@ -576,7 +576,7 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        c_ti = self.processed_coeff.time_independent
+        coeff_ti = self.processed_coeff.time_independent
 
         if self.component_options.size_is_int:
             size_domain = pyo.NonNegativeIntegers
@@ -584,15 +584,15 @@ class Technology(ModelComponent):
             size_domain = pyo.NonNegativeReals
 
         b_tec.para_size_min = pyo.Param(
-            domain=pyo.NonNegativeReals, initialize=c_ti["size_min"], mutable=True
+            domain=pyo.NonNegativeReals, initialize=coeff_ti["size_min"], mutable=True
         )
         b_tec.para_size_max = pyo.Param(
-            domain=pyo.NonNegativeReals, initialize=c_ti["size_max"], mutable=True
+            domain=pyo.NonNegativeReals, initialize=coeff_ti["size_max"], mutable=True
         )
 
         if self.existing:
             b_tec.para_size_initial = pyo.Param(
-                within=size_domain, initialize=c_ti["size_initial"]
+                within=size_domain, initialize=coeff_ti["size_initial"]
             )
 
         if self.existing and not self.component_options.decommission:
@@ -1305,10 +1305,10 @@ class Technology(ModelComponent):
         :param dict data: dict containing model information
         :return: pyomo block with technology model
         """
-        c_ti = self.ccs_component.processed_coeff.time_independent
+        coeff_ti = self.ccs_component.processed_coeff.time_independent
 
         emissions_based_on = self.component_options.emissions_based_on
-        capture_rate = c_ti["capture_rate"]
+        capture_rate = coeff_ti["capture_rate"]
 
         # LOG
         log_event(f"\t - Adding CCS to Technology {self.name}")
@@ -1329,7 +1329,7 @@ class Technology(ModelComponent):
         def init_input_bounds(bounds, t, car):
             return tuple(
                 self.ccs_component.bounds["input"][car][self.sequence[t - 1] - 1, :]
-                * c_ti["size_max"]
+                * coeff_ti["size_max"]
             )
 
         b_tec.var_input_ccs = pyo.Var(
@@ -1342,7 +1342,7 @@ class Technology(ModelComponent):
         def init_output_bounds(bounds, t, car):
             return tuple(
                 self.ccs_component.bounds["output"][car][self.sequence[t - 1] - 1, :]
-                * c_ti["size_max"]
+                * coeff_ti["size_max"]
             )
 
         b_tec.var_output_ccs = pyo.Var(
@@ -1377,7 +1377,7 @@ class Technology(ModelComponent):
         def init_input_ccs(const, t, car):
             return (
                 b_tec.var_input_ccs[t, car]
-                == c_ti["input_ratios"][car]
+                == coeff_ti["input_ratios"][car]
                 * b_tec.var_output_ccs[t, "CO2captured"]
                 / capture_rate
             )

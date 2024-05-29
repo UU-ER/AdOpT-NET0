@@ -249,7 +249,7 @@ class Res(Technology):
         super(Res, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
         # DATA OF TECHNOLOGY
-        c_td = self.processed_coeff.time_dependent_used
+        coeff_td = self.processed_coeff.time_dependent_used
         rated_power = self.input_parameters.rated_power
         curtailment = self.component_options.other["curtailment"]
 
@@ -259,7 +259,7 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    == c_td["capfactor"][t - 1] * b_tec.var_size * rated_power
+                    == coeff_td["capfactor"][t - 1] * b_tec.var_size * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(
@@ -273,7 +273,7 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    <= c_td["capfactor"][t - 1] * b_tec.var_size * rated_power
+                    <= coeff_td["capfactor"][t - 1] * b_tec.var_size * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(
@@ -299,7 +299,7 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    == c_td["capfactor"][t - 1] * b_tec.var_size_on[t] * rated_power
+                    == coeff_td["capfactor"][t - 1] * b_tec.var_size_on[t] * rated_power
                 )
 
             b_tec.const_input_output = pyo.Constraint(

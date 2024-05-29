@@ -256,8 +256,8 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.processed_coeff.time_dependent_used
-        alpha1 = c_td["alpha1"]
+        coeff_td = self.processed_coeff.time_dependent_used
+        alpha1 = coeff_td["alpha1"]
 
         def init_input_output(const, t):
             return (
@@ -277,11 +277,11 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.processed_coeff.time_dependent_used
-        c_ti = self.processed_coeff.time_independent
-        alpha1 = c_td["alpha1"]
-        alpha2 = c_td["alpha2"]
-        min_part_load = c_ti["min_part_load"]
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
+        alpha1 = coeff_td["alpha1"]
+        alpha2 = coeff_td["alpha2"]
+        min_part_load = coeff_ti["min_part_load"]
         rated_power = self.input_parameters.rated_power
 
         # define disjuncts for on/off
@@ -340,12 +340,12 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.processed_coeff.time_dependent_used
-        c_ti = self.processed_coeff.time_independent
-        alpha1 = c_td["alpha1"]
-        alpha2 = c_td["alpha2"]
-        bp_x = c_td["bp_x"]
-        min_part_load = c_ti["min_part_load"]
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
+        alpha1 = coeff_td["alpha1"]
+        alpha2 = coeff_td["alpha2"]
+        bp_x = coeff_td["bp_x"]
+        min_part_load = coeff_ti["min_part_load"]
         rated_power = self.input_parameters.rated_power
 
         s_indicators = range(0, 2)
