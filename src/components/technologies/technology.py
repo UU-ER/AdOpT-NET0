@@ -264,31 +264,29 @@ class Technology(ModelComponent):
         """
         Fits technology performance (bounds and coefficients).
 
-        This function is overwritten in the technology child classes
-
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
-        unfitted_coeff = self.input_parameters
+        input_parameters = self.input_parameters
         time_independent = {}
 
         # Size
-        time_independent["size_min"] = unfitted_coeff.size_min
+        time_independent["size_min"] = input_parameters.size_min
         if not self.existing:
-            time_independent["size_max"] = unfitted_coeff.size_max
+            time_independent["size_max"] = input_parameters.size_max
         else:
-            time_independent["size_max"] = unfitted_coeff.size_initial
-            time_independent["size_initial"] = unfitted_coeff.size_initial
+            time_independent["size_max"] = input_parameters.size_initial
+            time_independent["size_initial"] = input_parameters.size_initial
 
         # Emissions
-        time_independent["emission_factor"] = unfitted_coeff.performance_data[
+        time_independent["emission_factor"] = input_parameters.performance_data[
             "emission_factor"
         ]
 
         # Other
-        time_independent["rated_power"] = unfitted_coeff.rated_power
-        time_independent["min_part_load"] = unfitted_coeff.min_part_load
-        time_independent["standby_power"] = unfitted_coeff.standby_power
+        time_independent["rated_power"] = input_parameters.rated_power
+        time_independent["min_part_load"] = input_parameters.min_part_load
+        time_independent["standby_power"] = input_parameters.standby_power
 
         # Dynamics
         dynamics = {}
@@ -306,8 +304,8 @@ class Technology(ModelComponent):
             "max_startups",
         ]
         for p in dynamics_parameter:
-            if p in unfitted_coeff.performance_data:
-                dynamics[p] = unfitted_coeff.performance_data[p]
+            if p in input_parameters.performance_data:
+                dynamics[p] = input_parameters.performance_data[p]
 
         # Write to self
         self.processed_coeff.time_independent = time_independent

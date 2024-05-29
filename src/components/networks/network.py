@@ -169,16 +169,16 @@ class Network(ModelComponent):
         """
         Fits network performance (bounds and coefficients).
         """
-        unfitted_coeff = self.input_parameters
+        input_parameters = self.input_parameters
         time_independent = {}
 
         # Size
-        time_independent["size_min"] = unfitted_coeff.size_min
+        time_independent["size_min"] = input_parameters.size_min
         if not self.existing:
-            time_independent["size_max"] = unfitted_coeff.size_max
+            time_independent["size_max"] = input_parameters.size_max
         else:
-            time_independent["size_max"] = unfitted_coeff.size_initial
-            time_independent["size_initial"] = unfitted_coeff.size_initial
+            time_independent["size_max"] = input_parameters.size_initial
+            time_independent["size_initial"] = input_parameters.size_initial
 
         if self.existing == 0:
             if not isinstance(self.size_max_arcs, pd.DataFrame):
@@ -195,19 +195,19 @@ class Network(ModelComponent):
             time_independent["size_max_arcs"] = time_independent["size_initial"]
 
         # Emissions
-        time_independent["loss2emissions"] = unfitted_coeff.performance_data[
+        time_independent["loss2emissions"] = input_parameters.performance_data[
             "loss2emissions"
         ]
-        time_independent["emissionfactor"] = unfitted_coeff.performance_data[
+        time_independent["emissionfactor"] = input_parameters.performance_data[
             "emissionfactor"
         ]
 
         # Other
-        time_independent["rated_power"] = unfitted_coeff.rated_power
-        time_independent["min_transport"] = unfitted_coeff.performance_data[
+        time_independent["rated_power"] = input_parameters.rated_power
+        time_independent["min_transport"] = input_parameters.performance_data[
             "min_transport"
         ]
-        time_independent["loss"] = unfitted_coeff.performance_data["loss"]
+        time_independent["loss"] = input_parameters.performance_data["loss"]
 
         # Write to self
         self.processed_coeff.time_independent = time_independent

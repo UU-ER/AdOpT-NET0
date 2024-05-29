@@ -290,7 +290,9 @@ class DataHandle:
 
         :param str aggregation_type: specifies the aggregation type and thus the dict key to write the data to
         """
+        # Technology data always fitted based on full resolution
         aggregation_type = "full"
+
         # Initialize technology_data dict
         technology_data = {}
 

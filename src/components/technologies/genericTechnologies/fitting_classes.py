@@ -10,12 +10,12 @@ from ..utilities import (
 
 class FitGenericTecTypeType1:
     """
-    Subclass to fit performance of type1 performance functions (linear, through origin)
+    Class to fit performance of type1 performance functions (linear, through origin)
     out = alpha1 * in
     """
 
-    def __init__(self, info):
-        self.info = info
+    def __init__(self, params):
+        self.input_parameters = params
         self.coeff = {}
         self.bounds = {}
 
@@ -45,12 +45,12 @@ class FitGenericTecTypeType1:
         input_bounds = {}
 
         if size_based_on == "input":
-            for car in self.info.input_carrier:
+            for car in self.input_parameters.input_carrier:
                 input_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
         elif size_based_on == "output":
-            for car in self.info.input_carrier:
+            for car in self.input_parameters.input_carrier:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -76,7 +76,7 @@ class FitGenericTecTypeType1:
         output_bounds = {}
 
         if size_based_on == "input":
-            for car in self.info.output_carrier:
+            for car in self.input_parameters.output_carrier:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -88,7 +88,7 @@ class FitGenericTecTypeType1:
                     )
                 )
         elif size_based_on == "output":
-            for car in self.info.output_carrier:
+            for car in self.input_parameters.output_carrier:
                 output_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
@@ -100,13 +100,13 @@ class FitGenericTecTypeType1:
 
 class FitGenericTecTypeType2:
     """
-    Subclass to fit performance of type1 performance functions (linear, with min partload)
+    Class to fit performance of type1 performance functions (linear, with min partload)
     out = alpha1 * in + alpha2
     (out - alpha2)/alpha1
     """
 
-    def __init__(self, info):
-        self.info = info
+    def __init__(self, params):
+        self.input_parameters = params
         self.coeff = {}
         self.bounds = {}
 
@@ -138,12 +138,12 @@ class FitGenericTecTypeType2:
         input_bounds = {}
 
         if size_based_on == "input":
-            for car in self.info.input_carrier:
+            for car in self.input_parameters.input_carrier:
                 input_bounds[car] = np.column_stack(
                     (np.zeros(shape=time_steps), np.ones(shape=time_steps))
                 )
         elif size_based_on == "output":
-            for car in self.info.input_carrier:
+            for car in self.input_parameters.input_carrier:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -169,7 +169,7 @@ class FitGenericTecTypeType2:
         output_bounds = {}
 
         if size_based_on == "input":
-            for car in self.info.output_carrier:
+            for car in self.input_parameters.output_carrier:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -182,7 +182,7 @@ class FitGenericTecTypeType2:
                     )
                 )
         elif size_based_on == "output":
-            for car in self.info.output_carrier:
+            for car in self.input_parameters.output_carrier:
                 output_bounds[car] = np.column_stack(
                     (np.zeros(shape=time_steps), np.ones(shape=time_steps))
                 )
@@ -194,12 +194,12 @@ class FitGenericTecTypeType2:
 
 class FitGenericTecTypeType34:
     """
-    Subclass to fit performance of type3 performance functions (piecewise linear, with min partload)
+    Class to fit performance of type3 performance functions (piecewise linear, with min partload)
     out = alpha1[i] * in + alpha2
     """
 
-    def __init__(self, info):
-        self.info = info
+    def __init__(self, params):
+        self.input_parameters = params
         self.coeff = {}
         self.bounds = {}
 
@@ -229,12 +229,12 @@ class FitGenericTecTypeType34:
         input_bounds = {}
 
         if size_based_on == "input":
-            for car in self.info.input_carrier:
+            for car in self.input_parameters.input_carrier:
                 input_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
         elif size_based_on == "output":
-            for car in self.info.input_carrier:
+            for car in self.input_parameters.input_carrier:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -260,7 +260,7 @@ class FitGenericTecTypeType34:
         output_bounds = {}
 
         if size_based_on == "input":
-            for car in self.info.output_carrier:
+            for car in self.input_parameters.output_carrier:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -273,7 +273,7 @@ class FitGenericTecTypeType34:
                     )
                 )
         elif size_based_on == "output":
-            for car in self.info.output_carrier:
+            for car in self.input_parameters.output_carrier:
                 output_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
