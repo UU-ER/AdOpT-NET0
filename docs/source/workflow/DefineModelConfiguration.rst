@@ -8,12 +8,18 @@ of all global modelling settings (e.g., objective, high-level algorithms, energy
 and solver configurations. In the table in the Model Configuration overview below you can see all settings that can be
 specified, and a description, the options that can be chosen and the default value from the template for each setting.
 
-In the model configuration, you can also specify options to reduce the complexity of the model, such as time-staging,
+In the model configuration file you can select a specific type of analysis, such as a Pareto or Monte Carlo analysis. For
+background information on these analyses, see the following pages:
+- :ref:`Pareto analysis<pareto>`
+- :ref:`Monte Carlo analysis<monte_carlo>`
+
+Furthermore, you can specify options to reduce the complexity of the model, such as time-staging,
 clustering or scaling. For background information on the algorithms, see the following pages:
 
-- :ref:`Time staging algorithm<time_averaging>`.
-- :ref:`Clustering algorithm<clustering>`.
-- :ref:`Scaling<scaling>`.
+- :ref:`Time staging algorithm<time_averaging>`
+- :ref:`Clustering algorithm<clustering>`
+- :ref:`Scaling<scaling>`
+
 
 
 Model Configuration Overview
