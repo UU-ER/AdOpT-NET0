@@ -242,64 +242,6 @@ class EnergyHub:
 
         log_event(f"Constructing model completed in {str(round(time.time() - start))}s")
 
-    def _perform_preprocessing_checks(self):
-        """
-        Checks some things, before constructing or solving the model
-        Todo: Document what is done here
-        :return:
-        """
-        config = self.data.model_config
-
-        # Check if save-path exists
-        save_path = Path(config["reporting"]["save_path"]["value"])
-        if not os.path.exists(save_path) or not os.path.isdir(save_path):
-            raise FileNotFoundError(
-                f"The folder '{save_path}' does not exist. Create the folder or change the folder "
-                f"name in the configuration"
-            )
-
-        # check if technologies have dynamic parameters
-        if config["performance"]["dynamics"]["value"]:
-            for node in self.data.topology.nodes:
-                for tec in self.data.technology_data[node]:
-                    if self.data.technology_data[node][tec].technology_model in [
-                        "CONV1",
-                        "CONV2",
-                        "CONV3",
-                    ]:
-                        par_check = [
-                            "max_startups",
-                            "min_uptime",
-                            "min_downtime",
-                            "SU_load",
-                            "SD_load",
-                            "SU_time",
-                            "SD_time",
-                        ]
-                        count = 0
-                        for par in par_check:
-                            if (
-                                par
-                                not in self.data.technology_data[node][
-                                    tec
-                                ].performance_data
-                            ):
-                                raise ValueError(
-                                    f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
-                                    f"json files or switch off the dynamics."
-                                )
-
-        # check if time horizon is not longer than 1 year (in case of single year analysis)
-        # TODO: Do we need multiyear analysis still?
-        # if config["optimization"]["multiyear"]["value"] == 0:
-        #     nr_timesteps_data = len(self.data.topology.timesteps)
-        #     nr_timesteps_year = 8760
-        #     if nr_timesteps_data > nr_timesteps_year:
-        #         raise ValueError(
-        #             f"Time horizon is longer than one year. Enable multiyear analysis if you want to optimize for"
-        #             f"a longer time horizon."
-        #         )
-
     def quick_solve(self):
         """
         Quick-solves the model (constructs model and balances and solves model).
@@ -367,21 +309,6 @@ class EnergyHub:
             self._solve_pareto()
         else:
             self._optimize(objective)
-
-    def quick_solve(self):
-        """
-        Quick-solves the model (constructs model and balances and solves model).
-
-        This method lumbs together the following functions for convenience:
-        - :func:`~src.energyhub.construct_model`
-        - :func:`~src.energyhub.construct_balances`
-        - :func:`~src.energyhub.solve`
-        - :func:`~src.energyhub.write_results`
-        """
-        self.construct_model()
-        self.construct_balances()
-        self.solve()
-        self.write_results()
 
     def write_results(self):
         config = self.data.model_config
@@ -590,9 +517,11 @@ class EnergyHub:
                 self.solver.add_constraint(model.const_emission_limit)
             self._optimize_cost()
 
-    def _solve_monte_carlo(self, objective):
+    def _solve_monte_carlo(self, objective: str):
         """
         Optimizes multiple runs with monte carlo
+
+        :param str objective: objective to optimize
         """
         config = self.data.model_config
         self.info_monte_carlo["monte_carlo_run"] = 0
@@ -781,45 +710,14 @@ class EnergyHub:
         self.solution.write()
 
         self.last_solve_info["pareto_point"] = self.info_pareto["pareto_point"]
-        self.last_solve_info["monte_carlo_run"] = 0
+        self.last_solve_info["monte_carlo_run"] = self.info_monte_carlo[
+            "monte_carlo_run"
+        ]
         self.last_solve_info["config"] = config
         self.last_solve_info["result_folder_path"] = result_folder_path
 
         print("Solving model completed in " + str(round(time.time() - start)) + " s")
         print("_" * 60)
-
-    def write_results(self):
-        config = self.data.model_config
-
-        save_summary_path = Path.joinpath(
-            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
-        )
-
-        model_info = self.last_solve_info
-        # Write H5 File
-        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
-            self.solution.solver.status == pyo.SolverStatus.warning
-        ):
-
-            model = self.model["full"]
-
-            # Fixme: change this for averaging and kmeans
-
-            summary_dict = write_optimization_results_to_h5(
-                model, self.solution, model_info, self.data
-            )
-
-            # Write Summary
-            if not os.path.exists(save_summary_path):
-                summary_df = pd.DataFrame(data=summary_dict, index=[0])
-                summary_df.to_excel(
-                    save_summary_path, index=False, sheet_name="Summary"
-                )
-            else:
-                summary_existing = pd.read_excel(save_summary_path)
-                pd.concat(
-                    [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
-                ).to_excel(save_summary_path, index=False, sheet_name="Summary")
 
     def _write_solution_diagnostics(self, save_path):
         """
@@ -848,56 +746,6 @@ class EnergyHub:
             with open(f"{save_path}/diag_variable_map.txt", "w") as file:
                 for key, value in variable_map._dict.items():
                     file.write(f"{value[0].name}: {value[1]}\n")
-
-    def _solve_pareto(self):
-        """
-        Optimize the pareto front
-        """
-        model = self.model["full"]
-        config = self.data.model_config
-        pareto_points = config["optimization"]["pareto_points"]["value"]
-
-        # Min Cost
-        self.info_pareto["pareto_point"] = 0
-        self._optimize_cost()
-        emissions_max = model.var_emissions_net.value
-
-        # Min Emissions
-        self.info_pareto["pareto_point"] = pareto_points + 1
-        self._optimize_costs_minE()
-        emissions_min = model.var_emissions_net.value
-
-        # Emission limit
-        self.info_pareto["pareto_point"] = 0
-        emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
-        for pareto_point in range(0, pareto_points):
-            self.info_pareto["pareto_point"] += 1
-            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-                self.solver.remove_constraint(model.const_emission_limit)
-            model.del_component(model.const_emission_limit)
-            model.const_emission_limit = pyo.Constraint(
-                expr=model.var_emissions_net <= emission_limits[pareto_point] * 1.005
-            )
-            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-                self.solver.add_constraint(model.const_emission_limit)
-            self._optimize_cost()
-
-    def _solve_monte_carlo(self, objective: str):
-        """
-        Optimizes multiple runs with monte carlo
-
-        :param str objective: objective to optimize
-        """
-        config = self.data.model_config
-        self.info_monte_carlo["monte_carlo_run"] = 0
-
-        for run in range(0, config["optimization"]["monte_carlo"]["N"]["value"]):
-            self.info_monte_carlo["monte_carlo_run"] += 1
-            self._monte_carlo_set_cost_parameters()
-            if run == 0:
-                self._optimize(objective)
-            else:
-                self._call_solver()
 
     def _monte_carlo_set_cost_parameters(self):
         """

@@ -300,7 +300,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                     )
                     car_group.create_dataset(
                         "demand",
-                        data=[node_data.para_demand[t, car].value for t in set_t],
+                        data=[node_data.para_demand[t, car] for t in set_t],
                     )
 
     return summary_dict

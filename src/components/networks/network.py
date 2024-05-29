@@ -258,10 +258,10 @@ class Network(ModelComponent):
 
     def write_results_netw_design(self, h5_group, model_block):
         """
-        Function to report results of networks after optimization
+        Function to report network design
 
-        :param model_block: network model block
-        :return: dict results: holds results
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
         """
 
         h5_group.create_dataset(
@@ -307,6 +307,12 @@ class Network(ModelComponent):
             arc_group.create_dataset("total_emissions", data=total_emissions)
 
     def write_results_netw_operation(self, h5_group, model_block):
+        """
+        Function to report network operation
+
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
+        """
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
@@ -339,7 +345,12 @@ class Network(ModelComponent):
 
     def scale_model(self, b_netw, model, config):
         """
-        Scales technology model
+        Scales network model
+
+        :param b_netw: pyomo network block
+        :param model: pyomo model
+        :param dict config: config dict containing scaling factors
+        :return: pyomo model
         """
 
         f = self.scaling_factors
@@ -1173,100 +1184,3 @@ class Network(ModelComponent):
         )
 
         return b_netw
-
-    def write_results_netw_design(self, h5_group, model_block):
-        """
-        Function to report network design
-
-        :param model_block: pyomo network block
-        :param h5_group: h5 group to write to
-        """
-
-        for arc_name in model_block.set_arcs:
-            arc = model_block.arc_block[arc_name]
-            str = "".join(arc_name)
-            arc_group = h5_group.create_group(str)
-
-            arc_group.create_dataset("network", data=self.name)
-            arc_group.create_dataset("fromNode", data=arc_name[0])
-            arc_group.create_dataset("toNode", data=arc_name[1])
-            arc_group.create_dataset("size", data=arc.var_size.value)
-            arc_group.create_dataset("capex", data=arc.var_capex.value)
-            arc_group.create_dataset(
-                "opex_fixed",
-                data=[model_block.para_opex_fixed.value * arc.var_capex_aux.value],
-            )
-            arc_group.create_dataset(
-                "opex_variable",
-                data=sum(arc.var_opex_variable[t].value for t in self.set_t),
-            )
-            arc_group.create_dataset(
-                "total_flow", data=sum(arc.var_flow[t].value for t in self.set_t)
-            )
-            total_emissions = (
-                sum(arc.var_flow[t].value for t in self.set_t)
-                * model_block.para_emissionfactor
-                + sum(arc.var_losses[t].value for t in self.set_t)
-                * model_block.para_loss2emissions
-            )
-            arc_group.create_dataset("total_emissions", data=total_emissions)
-
-    def write_results_netw_operation(self, h5_group, model_block):
-        """
-        Function to report network operation
-
-        :param model_block: pyomo network block
-        :param h5_group: h5 group to write to
-        """
-        for arc_name in model_block.set_arcs:
-            arc = model_block.arc_block[arc_name]
-            str = "".join(arc_name)
-            arc_group = h5_group.create_group(str)
-
-            arc_group.create_dataset(
-                "flow", data=[arc.var_flow[t].value for t in self.set_t]
-            )
-            arc_group.create_dataset(
-                "losses", data=[arc.var_losses[t].value for t in self.set_t]
-            )
-
-            if arc.find_component("var_consumption_send"):
-                for car in model_block.set_consumed_carriers:
-
-                    arc_group.create_dataset(
-                        "consumption_send" + car,
-                        data=[
-                            arc.var_consumption_send[t, car].value for t in self.set_t
-                        ],
-                    )
-                    arc_group.create_dataset(
-                        "consumption_receive" + car,
-                        data=[
-                            arc.var_consumption_receive[t, car].value
-                            for t in self.set_t
-                        ],
-                    )
-
-    def scale_model(self, b_netw, model, config: dict):
-        """
-        Scales network model
-
-        :param b_netw: pyomo network block
-        :param model: pyomo model
-        :param dict config: config dict containing scaling factors
-        :return: pyomo model
-        """
-
-        f = self.scaling_factors
-        f_global = config["scaling_factors"]
-
-        model = determine_variable_scaling(model, b_netw, f, f_global)
-        model = determine_constraint_scaling(model, b_netw, f, f_global)
-
-        for arc in b_netw.arc_block:
-            b_arc = b_netw.arc_block[arc]
-
-            model = determine_variable_scaling(model, b_arc, f, f_global)
-            model = determine_constraint_scaling(model, b_arc, f, f_global)
-
-        return model

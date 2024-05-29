@@ -370,112 +370,12 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def _aggregate_input(self, b_tec):
-
-        b_tec.var_input_tot = pyo.Var(
-            self.set_t,
-            b_tec.set_input_carriers_all,
-            within=pyo.NonNegativeReals,
-        )
-
-        def init_aggregate_input(const, t, car):
-            input_tec = (
-                b_tec.var_input[t, car] if car in b_tec.set_input_carriers else 0
-            )
-            if self.ccs:
-                input_ccs = (
-                    b_tec.var_input_ccs[t, car]
-                    if car in b_tec.set_input_carriers_ccs
-                    else 0
-                )
-            else:
-                input_ccs = 0
-            return input_tec + input_ccs == b_tec.var_input_tot[t, car]
-
-        b_tec.const_input_aggregation = pyo.Constraint(
-            self.set_t, b_tec.set_input_carriers_all, rule=init_aggregate_input
-        )
-
-        return b_tec
-
-    def _aggregate_output(self, b_tec):
-
-        b_tec.var_output_tot = pyo.Var(
-            self.set_t,
-            b_tec.set_output_carriers_all,
-            within=pyo.NonNegativeReals,
-        )
-
-        def init_aggregate_output(const, t, car):
-            output_tec = (
-                b_tec.var_output[t, car] if car in b_tec.set_output_carriers else 0
-            )
-            if self.ccs:
-                output_ccs = (
-                    b_tec.var_output_ccs[t, car]
-                    if car in b_tec.set_output_carriers_ccs
-                    else 0
-                )
-            else:
-                output_ccs = 0
-            return output_tec + output_ccs == b_tec.var_output_tot[t, car]
-
-        b_tec.const_output_aggregation = pyo.Constraint(
-            self.set_t, b_tec.set_output_carriers_all, rule=init_aggregate_output
-        )
-
-        return b_tec
-
-    def _aggregate_cost(self, b_tec):
-
-        set_t = self.set_t_full
-
-        b_tec.var_capex_tot = pyo.Var()
-        b_tec.var_opex_fixed_tot = pyo.Var()
-        b_tec.var_opex_variable_tot = pyo.Var(set_t)
-
-        def init_aggregate_capex(const):
-            capex_tec = b_tec.var_capex
-            if self.ccs:
-                capex_ccs = b_tec.var_capex_ccs
-            else:
-                capex_ccs = 0
-            return b_tec.var_capex_tot == capex_tec + capex_ccs
-
-        b_tec.const_capex_aggregation = pyo.Constraint(rule=init_aggregate_capex)
-
-        def init_aggregate_opex_var(const, t):
-            opex_var_tec = b_tec.var_opex_variable[t]
-            if self.ccs:
-                opex_var_ccs = b_tec.var_opex_variable_ccs[t]
-            else:
-                opex_var_ccs = 0
-            return b_tec.var_opex_variable_tot[t] == opex_var_tec + opex_var_ccs
-
-        b_tec.const_opex_var_aggregation = pyo.Constraint(
-            set_t, rule=init_aggregate_opex_var
-        )
-
-        def init_aggregate_opex_fixed(const):
-            opex_fixed_tec = b_tec.var_opex_fixed
-            if self.ccs:
-                opex_fixed_ccs = b_tec.var_opex_fixed_ccs
-            else:
-                opex_fixed_ccs = 0
-            return b_tec.var_opex_fixed_tot == opex_fixed_tec + opex_fixed_ccs
-
-        b_tec.const_opex_fixed_aggregation = pyo.Constraint(
-            rule=init_aggregate_opex_fixed
-        )
-
-        return b_tec
-
     def write_results_tec_design(self, h5_group, model_block):
         """
-        Function to report results of technologies after optimization
+        Function to report technology design
 
-        :param model_block: technology model block
-        :return: dict results: holds results
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
         """
 
         h5_group.create_dataset("technology", data=[self.name])
@@ -518,6 +418,12 @@ class Technology(ModelComponent):
             )
 
     def write_results_tec_operation(self, h5_group, model_block):
+        """
+        Function to report technology operation
+
+        :param model_block: pyomo network block
+        :param h5_group: h5 group to write to
+        """
 
         for car in model_block.set_input_carriers_all:
             if model_block.find_component("var_input"):
@@ -583,19 +489,6 @@ class Technology(ModelComponent):
                         for t in self.set_t_full
                     ],
                 )
-
-    def scale_model(self, b_tec, model, config):
-        """
-        Scales technology model
-        """
-
-        f = self.scaling_factors
-        f_global = config.scaling_factors
-
-        model = determine_variable_scaling(model, b_tec, f, f_global)
-        model = determine_constraint_scaling(model, b_tec, f, f_global)
-
-        return model
 
     def _define_input_carriers(self, b_tec):
         """
@@ -879,9 +772,8 @@ class Technology(ModelComponent):
 
         # CAPEX
         if self.existing and not self.decommission:
-            b_tec.var_capex = pyo.Param(domain=pyo.Reals, initialize=0)
+            pass
         else:
-            b_tec.var_capex = pyo.Var()
             if self.existing:
                 b_tec.para_decommissioning_cost = pyo.Param(
                     domain=pyo.Reals,
@@ -1352,116 +1244,6 @@ class Technology(ModelComponent):
         )
 
         return b_tec
-
-    def write_results_tec_design(self, h5_group, model_block):
-        """
-        Function to report technology design
-
-        :param model_block: pyomo network block
-        :param h5_group: h5 group to write to
-        """
-        h5_group.create_dataset("technology", data=[self.name])
-        h5_group.create_dataset("size", data=[model_block.var_size.value])
-        h5_group.create_dataset("existing", data=[self.existing])
-        h5_group.create_dataset("capex_tot", data=[model_block.var_capex_tot.value])
-        h5_group.create_dataset(
-            "opex_variable",
-            data=[sum(model_block.var_opex_variable[t].value for t in self.set_t_full)],
-        )
-        h5_group.create_dataset(
-            "opex_fixed_tot", data=[model_block.var_opex_fixed_tot.value]
-        )
-        h5_group.create_dataset(
-            "emissions_pos",
-            data=[
-                sum(model_block.var_tec_emissions_pos[t].value for t in self.set_t_full)
-            ],
-        )
-        h5_group.create_dataset(
-            "emissions_neg",
-            data=[
-                sum(model_block.var_tec_emissions_neg[t].value for t in self.set_t_full)
-            ],
-        )
-        if "ccs" in self.performance_data and self.performance_data["ccs"]["possible"]:
-            h5_group.create_dataset("size_ccs", data=[model_block.var_size_ccs.value])
-            h5_group.create_dataset("capex_tec", data=[model_block.var_capex.value])
-            h5_group.create_dataset("capex_ccs", data=[model_block.var_capex_ccs.value])
-            h5_group.create_dataset(
-                "opex_fixed_ccs", data=[model_block.var_opex_fixed_ccs.value]
-            )
-
-    def write_results_tec_operation(self, h5_group, model_block):
-        """
-        Function to report technology operation
-
-        :param model_block: pyomo network block
-        :param h5_group: h5 group to write to
-        """
-        for car in model_block.set_input_carriers_all:
-            if model_block.find_component("var_input"):
-                h5_group.create_dataset(
-                    f"{car}_input",
-                    data=[
-                        model_block.var_input_tot[t, car].value for t in self.set_t_full
-                    ],
-                )
-        for car in model_block.set_output_carriers_all:
-            h5_group.create_dataset(
-                f"{car}_output",
-                data=[
-                    model_block.var_output_tot[t, car].value for t in self.set_t_full
-                ],
-            )
-        h5_group.create_dataset(
-            "emissions_pos",
-            data=[model_block.var_tec_emissions_pos[t].value for t in self.set_t_full],
-        )
-        h5_group.create_dataset(
-            "emissions_neg",
-            data=[model_block.var_tec_emissions_neg[t].value for t in self.set_t_full],
-        )
-        if model_block.find_component("var_x"):
-            h5_group.create_dataset(
-                "var_x",
-                data=[
-                    0 if x is None else x
-                    for x in [model_block.var_x[t].value for t in self.set_t_full]
-                ],
-            )
-        if model_block.find_component("var_y"):
-            h5_group.create_dataset(
-                "var_y",
-                data=[
-                    0 if x is None else x
-                    for x in [model_block.var_y[t].value for t in self.set_t_full]
-                ],
-            )
-        if model_block.find_component("var_z"):
-            h5_group.create_dataset(
-                "var_z",
-                data=[
-                    0 if x is None else x
-                    for x in [model_block.var_z[t].value for t in self.set_t_full]
-                ],
-            )
-
-        if model_block.find_component("set_input_carriers_ccs"):
-            for car in model_block.set_input_carriers_ccs:
-                h5_group.create_dataset(
-                    f"{car}_var_input_ccs",
-                    data=[
-                        model_block.var_input_ccs[t, car].value for t in self.set_t_full
-                    ],
-                )
-            for car in model_block.set_output_carriers_ccs:
-                h5_group.create_dataset(
-                    f"{car}_var_output_ccs",
-                    data=[
-                        model_block.var_output_ccs[t, car].value
-                        for t in self.set_t_full
-                    ],
-                )
 
     def scale_model(self, b_tec, model, config):
         """

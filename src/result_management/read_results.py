@@ -118,15 +118,18 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
                                     "para_fixCAPEX",
                                 ]
                                 for para in parameters:
-                                    output_name = f"{period}/{node}/{tec}/{para}"
-                                    try:
+                                    if para == "para_fixCAPEX":
+                                        try:
+                                            tec_output = df.loc[period, node, tec, para]
+                                        except KeyError:
+                                            continue
+                                    else:
                                         tec_output = df.loc[period, node, tec, para]
-                                        if case not in output_dict:
-                                            output_dict[case] = {}
-                                        if output_name not in output_dict[case]:
-                                            output_dict[case][output_name] = tec_output
-                                    except KeyError:
-                                        pass
+                                    output_name = f"{period}/{node}/{tec}/{para}"
+                                    if case not in output_dict:
+                                        output_dict[case] = {}
+                                    if output_name not in output_dict[case]:
+                                        output_dict[case][output_name] = tec_output
 
                 if "Networks" in component_set:
                     df = extract_datasets_from_h5group(
@@ -142,122 +145,105 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
                             ]
                             for para in parameters1:
                                 output_name = f"{period}/{netw}/{para}"
-                                try:
-                                    netw_output = df.loc[period, netw, para]
-                                    if case not in output_dict:
-                                        output_dict[case] = {}
-                                    if output_name not in output_dict[case]:
-                                        output_dict[case][output_name] = (
-                                            netw_output.iloc[0]
-                                        )
-                                except KeyError:
-                                    pass
+                                netw_output = df.loc[period, netw, para]
+                                if case not in output_dict:
+                                    output_dict[case] = {}
+                                if output_name not in output_dict[case]:
+                                    output_dict[case][output_name] = netw_output.iloc[0]
                             for arc in df.index.levels[2]:
-                                parameters2 = ["size", "capex"]
-                                for para in parameters2:
-                                    output_name = f"{period}/{netw}/{arc}/{para}"
-                                    try:
+                                if "gamma" not in arc:
+                                    parameters2 = ["size", "capex"]
+                                    for para in parameters2:
+                                        output_name = f"{period}/{netw}/{arc}/{para}"
                                         arc_output = df.loc[period, netw, arc, para]
                                         if case not in output_dict:
                                             output_dict[case] = {}
                                         if output_name not in output_dict[case]:
                                             output_dict[case][output_name] = arc_output
-                                    except KeyError:
-                                        pass
 
                 if "Import" in component_set:
                     df = extract_datasets_from_h5group(
                         hdf_file["operation/energy_balance"]
                     )
                     for period in df.columns.levels[0]:
-                        for node in df.columns.levels[1]:
-                            for car in df.columns.levels[2]:
+                        for node in df[period].columns.levels[0]:
+                            cars_at_node = (
+                                df[period, node].columns.droplevel([1]).unique()
+                            )
+                            for car in cars_at_node:
                                 parameters = ["import", "import_price"]
                                 for para in parameters:
-                                    try:
-                                        car_output = df[period, node, car, para]
-                                        if para == "import":
-                                            car_output = sum(car_output)
-                                            output_name = (
-                                                f"{period}/{node}/{car}/{para}_tot"
-                                            )
-                                            if case not in output_dict:
-                                                output_dict[case] = {}
-                                            if output_name not in output_dict[case]:
-                                                output_dict[case][
-                                                    output_name
-                                                ] = car_output
-                                        elif para == "import_price":
-                                            car_output_mean = np.mean(car_output)
-                                            car_output_std = np.std(car_output)
-                                            output_name_mean = (
-                                                f"{period}/{node}/{car}/{para}_mean"
-                                            )
-                                            output_name_std = (
-                                                f"{period}/{node}/{car}/{para}_std"
-                                            )
-                                            if case not in output_dict:
-                                                output_dict[case] = {}
-                                            if (
+                                    car_output = df[period, node, car, para]
+                                    if para == "import":
+                                        car_output = sum(car_output)
+                                        output_name = (
+                                            f"{period}/{node}/{car}/{para}_tot"
+                                        )
+                                        if case not in output_dict:
+                                            output_dict[case] = {}
+                                        if output_name not in output_dict[case]:
+                                            output_dict[case][output_name] = car_output
+                                    elif para == "import_price":
+                                        car_output_mean = np.mean(car_output)
+                                        car_output_std = np.std(car_output)
+                                        output_name_mean = (
+                                            f"{period}/{node}/{car}/{para}_mean"
+                                        )
+                                        output_name_std = (
+                                            f"{period}/{node}/{car}/{para}_std"
+                                        )
+                                        if case not in output_dict:
+                                            output_dict[case] = {}
+                                        if output_name_mean not in output_dict[case]:
+                                            output_dict[case][
                                                 output_name_mean
-                                                not in output_dict[case]
-                                            ):
-                                                output_dict[case][
-                                                    output_name_mean
-                                                ] = car_output_mean
-                                            if output_name_std not in output_dict[case]:
-                                                output_dict[case][
-                                                    output_name_std
-                                                ] = car_output_std
-                                    except KeyError:
-                                        pass
+                                            ] = car_output_mean
+                                        if output_name_std not in output_dict[case]:
+                                            output_dict[case][
+                                                output_name_std
+                                            ] = car_output_std
 
                 if "Export" in component_set:
                     df = extract_datasets_from_h5group(
                         hdf_file["operation/energy_balance"]
                     )
                     for period in df.columns.levels[0]:
-                        for node in df.columns.levels[1]:
-                            for car in df.columns.levels[2]:
+                        for node in df[period].columns.levels[0]:
+                            cars_at_node = (
+                                df[period, node].columns.droplevel([1]).unique()
+                            )
+                            for car in cars_at_node:
                                 parameters = ["export", "export_price"]
                                 for para in parameters:
-                                    try:
-                                        car_output = df[period, node, car, para]
-                                        if para == "export":
-                                            car_output = sum(car_output)
-                                            output_name = (
-                                                f"{period}/{node}/{car}/{para}_tot"
-                                            )
-                                            if case not in output_dict:
-                                                output_dict[case] = {}
-                                            if output_name not in output_dict[case]:
-                                                output_dict[case][
-                                                    output_name
-                                                ] = car_output
-                                        elif para == "export_price":
-                                            car_output_mean = np.mean(car_output)
-                                            car_output_std = np.std(car_output)
-                                            output_name_mean = (
-                                                f"{period}/{node}/{car}/{para}_mean"
-                                            )
-                                            output_name_std = (
-                                                f"{period}/{node}/{car}/{para}_std"
-                                            )
-                                            if case not in output_dict:
-                                                output_dict[case] = {}
-                                            if (
+                                    car_output = df[period, node, car, para]
+                                    if para == "export":
+                                        car_output = sum(car_output)
+                                        output_name = (
+                                            f"{period}/{node}/{car}/{para}_tot"
+                                        )
+                                        if case not in output_dict:
+                                            output_dict[case] = {}
+                                        if output_name not in output_dict[case]:
+                                            output_dict[case][output_name] = car_output
+                                    elif para == "export_price":
+                                        car_output_mean = np.mean(car_output)
+                                        car_output_std = np.std(car_output)
+                                        output_name_mean = (
+                                            f"{period}/{node}/{car}/{para}_mean"
+                                        )
+                                        output_name_std = (
+                                            f"{period}/{node}/{car}/{para}_std"
+                                        )
+                                        if case not in output_dict:
+                                            output_dict[case] = {}
+                                        if output_name_mean not in output_dict[case]:
+                                            output_dict[case][
                                                 output_name_mean
-                                                not in output_dict[case]
-                                            ):
-                                                output_dict[case][
-                                                    output_name_mean
-                                                ] = car_output_mean
-                                            if output_name_std not in output_dict[case]:
-                                                output_dict[case][
-                                                    output_name_std
-                                                ] = car_output_std
-                                    except KeyError:
-                                        pass
+                                            ] = car_output_mean
+                                        if output_name_std not in output_dict[case]:
+                                            output_dict[case][
+                                                output_name_std
+                                            ] = car_output_std
 
     # Add new columns to summary_results
     output_df = pd.DataFrame(output_dict).T
