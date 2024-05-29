@@ -7,7 +7,7 @@ from pathlib import Path
 from scipy.interpolate import griddata
 
 from ..utilities import fit_piecewise_function
-from ...utilities import Parameters
+from ...component import InputParameters
 from ..technology import Technology
 
 
@@ -48,7 +48,7 @@ class DacAdsorption(Technology):
         time_steps = len(climate_data)
 
         # Number of segments
-        nr_segments = self.parameters.unfitted_data["nr_segments"]
+        nr_segments = self.input_parameters.unfitted_data["nr_segments"]
 
         # Read performance data from file
         performance_data = pd.read_csv(
@@ -148,24 +148,26 @@ class DacAdsorption(Technology):
         print("Complete: ", 100, "%")
 
         # Coefficients
-        self.coeff.time_dependent_full["alpha"] = alpha
-        self.coeff.time_dependent_full["beta"] = beta
-        self.coeff.time_dependent_full["b"] = b
-        self.coeff.time_dependent_full["gamma"] = gamma
-        self.coeff.time_dependent_full["delta"] = delta
-        self.coeff.time_dependent_full["a"] = a
-        self.coeff.time_dependent_full["out_max"] = out_max
-        self.coeff.time_dependent_full["el_in_max"] = el_in_max
-        self.coeff.time_dependent_full["th_in_max"] = th_in_max
-        self.coeff.time_dependent_full["total_in_max"] = total_in_max
+        self.processed_coeff.time_dependent_full["alpha"] = alpha
+        self.processed_coeff.time_dependent_full["beta"] = beta
+        self.processed_coeff.time_dependent_full["b"] = b
+        self.processed_coeff.time_dependent_full["gamma"] = gamma
+        self.processed_coeff.time_dependent_full["delta"] = delta
+        self.processed_coeff.time_dependent_full["a"] = a
+        self.processed_coeff.time_dependent_full["out_max"] = out_max
+        self.processed_coeff.time_dependent_full["el_in_max"] = el_in_max
+        self.processed_coeff.time_dependent_full["th_in_max"] = th_in_max
+        self.processed_coeff.time_dependent_full["total_in_max"] = total_in_max
 
-        self.coeff.time_independent["eta_elth"] = self.parameters.unfitted_data[
-            "performance"
-        ]["eta_elth"]
+        self.processed_coeff.time_independent["eta_elth"] = (
+            self.input_parameters.unfitted_data["performance"]["eta_elth"]
+        )
 
         # Options
-        self.options.other["nr_segments"] = self.parameters.unfitted_data["nr_segments"]
-        self.options.other["ohmic_heating"] = self.parameters.unfitted_data[
+        self.options.other["nr_segments"] = self.input_parameters.unfitted_data[
+            "nr_segments"
+        ]
+        self.options.other["ohmic_heating"] = self.input_parameters.unfitted_data[
             "ohmic_heating"
         ]
 
@@ -179,25 +181,31 @@ class DacAdsorption(Technology):
 
         # Output Bounds
         self.bounds["output"]["CO2captured"] = np.column_stack(
-            (np.zeros(shape=(time_steps)), self.coeff.time_dependent_used["out_max"])
+            (
+                np.zeros(shape=(time_steps)),
+                self.processed_coeff.time_dependent_used["out_max"],
+            )
         )
 
         # Input Bounds
         self.bounds["input"]["electricity"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                self.coeff.time_dependent_used["el_in_max"]
-                + self.coeff.time_dependent_used["th_in_max"]
-                / self.parameters.unfitted_data["performance"]["eta_elth"],
+                self.processed_coeff.time_dependent_used["el_in_max"]
+                + self.processed_coeff.time_dependent_used["th_in_max"]
+                / self.input_parameters.unfitted_data["performance"]["eta_elth"],
             )
         )
         self.bounds["input"]["heat"] = np.column_stack(
-            (np.zeros(shape=(time_steps)), self.coeff.time_dependent_used["th_in_max"])
+            (
+                np.zeros(shape=(time_steps)),
+                self.processed_coeff.time_dependent_used["th_in_max"],
+            )
         )
         self.bounds["input"]["total"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                self.coeff.time_dependent_used["total_in_max"],
+                self.processed_coeff.time_dependent_used["total_in_max"],
             )
         )
 
@@ -225,8 +233,8 @@ class DacAdsorption(Technology):
         ohmic_heating = self.options.other["ohmic_heating"]
 
         bounds = self.bounds
-        c_td = self.coeff.time_dependent_used
-        c_ti = self.coeff.time_independent
+        c_td = self.processed_coeff.time_dependent_used
+        c_ti = self.processed_coeff.time_independent
 
         alpha = c_td["alpha"]
         beta = c_td["beta"]

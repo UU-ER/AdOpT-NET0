@@ -12,6 +12,10 @@
             ],
             "value": "costs"
         },
+        "emission_limit": {
+                "description": "emission limit to be enforced if objective function is costs_emissionlimit",
+                "value": 1
+        },
         "monte_carlo": {
             "N": {
                 "description": "Number of Monte Carlo simulations (0 = off).",
@@ -46,7 +50,7 @@
         },
         "pareto_points": {
             "description": "Number of Pareto points.",
-            "value": 5
+            "value": 1
         },
         "timestaging": {
             "description": "Defines number of timesteps that are averaged (0 = off).",
@@ -63,6 +67,11 @@
                     2
                 ],
                 "value": 2
+            },
+            "technologies_with_full_res": {
+                "description": "If method 2 is chosen, list determines which technologies are modelled at full resolution. Should be at least all storage technologies.",
+                "options": [],
+                "value": ["RES", "STOR", "Hydro_Open"]
             }
         },
         "multiyear": {

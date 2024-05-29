@@ -4,11 +4,7 @@ import pyomo.gdp as gdp
 import copy
 from warnings import warn
 
-from ..genericTechnologies.utilities import (
-    FitGenericTecTypeType1,
-    FitGenericTecTypeType2,
-    FitGenericTecTypeType34,
-)
+from ..genericTechnologies import fitting_classes as f
 from ..technology import Technology
 
 
@@ -78,14 +74,14 @@ class Conv1(Technology):
 
         # Initialize fitting class
         if self.options.performance_function_type == 1:
-            self.f = FitGenericTecTypeType1(self.info)
+            self.fitting_class = f.FitGenericTecTypeType1(self.info)
         elif self.options.performance_function_type == 2:
-            self.f = FitGenericTecTypeType2(self.info)
+            self.fitting_class = f.FitGenericTecTypeType2(self.info)
         elif (
             self.options.performance_function_type == 3
             or self.options.performance_function_type == 4
         ):
-            self.f = FitGenericTecTypeType34(self.info)
+            self.fitting_class = f.FitGenericTecTypeType34(self.info)
         else:
             raise Exception(
                 "performance_function_type must be an integer between 1 and 4"
@@ -101,13 +97,15 @@ class Conv1(Technology):
         super(Conv1, self).fit_technology_performance(climate_data, location)
 
         # reshape parameters for CONV1
-        temp = copy.deepcopy(self.parameters.unfitted_data["performance"]["out"])
-        self.parameters.unfitted_data["performance"]["out"] = {}
-        self.parameters.unfitted_data["performance"]["out"]["out"] = temp
+        temp = copy.deepcopy(self.input_parameters.unfitted_data["performance"]["out"])
+        self.input_parameters.unfitted_data["performance"]["out"] = {}
+        self.input_parameters.unfitted_data["performance"]["out"]["out"] = temp
 
         # fit coefficients
-        self.coeff.time_independent["fit"] = self.f.fit_performance_function(
-            self.parameters.unfitted_data["performance"]
+        self.processed_coeff.time_independent["fit"] = (
+            self.fitting_class.fit_performance_function(
+                self.input_parameters.unfitted_data["performance"]
+            )
         )
 
     def _calculate_bounds(self):
@@ -118,10 +116,10 @@ class Conv1(Technology):
 
         time_steps = len(self.set_t_performance)
 
-        self.bounds["input"] = self.f.calculate_input_bounds(
+        self.bounds["input"] = self.fitting_class.calculate_input_bounds(
             self.options.size_based_on, time_steps
         )
-        self.bounds["output"] = self.f.calculate_output_bounds(
+        self.bounds["output"] = self.fitting_class.calculate_output_bounds(
             self.options.size_based_on, time_steps
         )
 
@@ -140,9 +138,9 @@ class Conv1(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        c_ti = self.coeff.time_independent
-        dynamics = self.coeff.dynamics
-        rated_power = self.parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
+        rated_power = self.input_parameters.rated_power
 
         # Technology Constraints
         if self.options.performance_function_type == 1:
@@ -210,8 +208,8 @@ class Conv1(Technology):
         :return: pyomo block with technology model
         """
         # Performance parameter:
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
         alpha1 = c_ti["fit"]["out"]["alpha1"]
         min_part_load = c_ti["min_part_load"]
 
@@ -251,8 +249,8 @@ class Conv1(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
         alpha1 = c_ti["fit"]["out"]["alpha1"]
         alpha2 = c_ti["fit"]["out"]["alpha2"]
         min_part_load = c_ti["min_part_load"]
@@ -372,8 +370,8 @@ class Conv1(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
         alpha1 = c_ti["fit"]["out"]["alpha1"]
         alpha2 = c_ti["fit"]["out"]["alpha2"]
         bp_x = c_ti["fit"]["out"]["bp_x"]
@@ -511,9 +509,9 @@ class Conv1(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
-        dynamics = self.coeff.dynamics
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
         alpha1 = c_ti["fit"]["out"]["alpha1"]
         alpha2 = c_ti["fit"]["out"]["alpha2"]
         bp_x = c_ti["fit"]["out"]["bp_x"]
@@ -763,7 +761,7 @@ class Conv1(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         ramping_time = dynamics["ramping_time"]
 

@@ -4,14 +4,13 @@ from warnings import warn
 import numpy as np
 import pandas as pd
 
-from ..component import ModelComponent
+from ..component import ModelComponent, ProcessedCoefficients
 from ..utilities import (
     annualize,
     set_discount_rate,
     link_full_resolution_to_clustered,
     determine_variable_scaling,
     determine_constraint_scaling,
-    Coefficients,
 )
 from .utilities import set_capex_model
 from ...logger import log_event
@@ -270,7 +269,7 @@ class Technology(ModelComponent):
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
-        unfitted_coeff = self.parameters
+        unfitted_coeff = self.input_parameters
         time_independent = {}
 
         # Size
@@ -311,12 +310,12 @@ class Technology(ModelComponent):
                 dynamics[p] = unfitted_coeff.unfitted_data[p]
 
         # Write to self
-        self.coeff.time_independent = time_independent
-        self.coeff.dynamics = dynamics
+        self.processed_coeff.time_independent = time_independent
+        self.processed_coeff.dynamics = dynamics
 
         # CCS
         if self.options.ccs_possible:
-            co2_concentration = self.parameters.unfitted_data["ccs"][
+            co2_concentration = self.input_parameters.unfitted_data["ccs"][
                 "co2_concentration"
             ]
             self.ccs_data["name"] = "CCS"
@@ -343,7 +342,9 @@ class Technology(ModelComponent):
                 (
                     np.zeros(shape=(time_steps)),
                     np.ones(shape=(time_steps))
-                    * self.ccs_component.coeff.time_independent["input_ratios"][car],
+                    * self.ccs_component.processed_coeff.time_independent[
+                        "input_ratios"
+                    ][car],
                 )
             )
         for car in self.ccs_component.info.output_carrier:
@@ -351,7 +352,9 @@ class Technology(ModelComponent):
                 (
                     np.zeros(shape=(time_steps)),
                     np.ones(shape=(time_steps))
-                    * self.ccs_component.coeff.time_independent["capture_rate"],
+                    * self.ccs_component.processed_coeff.time_independent[
+                        "capture_rate"
+                    ],
                 )
             )
 
@@ -375,7 +378,9 @@ class Technology(ModelComponent):
         self.set_t_full = set_t_full
 
         # MODELING TYPICAL DAYS
-        technologies_modelled_with_full_res = ["RES", "STOR", "Hydro_Open"]
+        technologies_modelled_with_full_res = config["optimization"]["typicaldays"][
+            "technologies_with_full_res"
+        ]["value"]
 
         if config["optimization"]["typicaldays"]["N"]["value"] == 0:
             # everything with full resolution
@@ -412,11 +417,17 @@ class Technology(ModelComponent):
         # Coefficients
         if self.options.modelled_with_full_res:
             if config["optimization"]["timestaging"]["value"] == 0:
-                self.coeff.time_dependent_used = self.coeff.time_dependent_full
+                self.processed_coeff.time_dependent_used = (
+                    self.processed_coeff.time_dependent_full
+                )
             else:
-                self.coeff.time_dependent_used = self.coeff.time_dependent_averaged
+                self.processed_coeff.time_dependent_used = (
+                    self.processed_coeff.time_dependent_averaged
+                )
         else:
-            self.coeff.time_dependent_used = self.coeff.time_dependent_clustered
+            self.processed_coeff.time_dependent_used = (
+                self.processed_coeff.time_dependent_clustered
+            )
 
         # CALCULATE BOUNDS
         self._calculate_bounds()
@@ -460,12 +471,12 @@ class Technology(ModelComponent):
             log_event(f"\t - Adding CCS to Technology {self.name}")
             self._calculate_ccs_bounds()
             if self.options.modelled_with_full_res:
-                self.ccs_component.coeff.time_dependent_used = (
-                    self.ccs_component.coeff.time_dependent_full
+                self.ccs_component.processed_coeff.time_dependent_used = (
+                    self.ccs_component.processed_coeff.time_dependent_full
                 )
             else:
-                self.ccs_component.coeff.time_dependent_used = (
-                    self.ccs_component.coeff.time_dependent_clustered
+                self.ccs_component.processed_coeff.time_dependent_used = (
+                    self.ccs_component.processed_coeff.time_dependent_clustered
                 )
             b_tec = self._define_ccs_performance(b_tec, data)
             b_tec = self._define_ccs_emissions(b_tec)
@@ -552,7 +563,7 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        c_ti = self.coeff.time_independent
+        c_ti = self.processed_coeff.time_independent
 
         if self.options.size_is_int:
             size_domain = pyo.NonNegativeIntegers
@@ -746,7 +757,7 @@ class Technology(ModelComponent):
         :return: pyomo block with technology model
         """
         # Technology related data
-        c = self.coeff.time_independent
+        c = self.processed_coeff.time_independent
 
         def init_input_bounds(bounds, t, car):
             return tuple(
@@ -773,7 +784,7 @@ class Technology(ModelComponent):
         :return: pyomo block with technology model
         """
         # Technology related data
-        c = self.coeff.time_independent
+        c = self.processed_coeff.time_independent
 
         def init_output_bounds(bounds, t, car):
             return tuple(
@@ -845,7 +856,7 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        c = self.coeff.time_independent
+        c = self.processed_coeff.time_independent
         technology_model = self.info.technology_model
         emissions_based_on = self.options.emissions_based_on
 
@@ -949,7 +960,7 @@ class Technology(ModelComponent):
         :param dict data: dict containing model information
         :return: pyomo block with technology model
         """
-        c = self.coeff.time_independent
+        c = self.processed_coeff.time_independent
 
         if not (self.info.technology_model == "RES") and not (
             self.info.technology_model == "CONV4"
@@ -1275,7 +1286,7 @@ class Technology(ModelComponent):
         :param dict data: dict containing model information
         :return: pyomo block with technology model
         """
-        c_ti = self.ccs_component.coeff.time_independent
+        c_ti = self.ccs_component.processed_coeff.time_independent
 
         emissions_based_on = self.options.emissions_based_on
         capture_rate = c_ti["capture_rate"]
@@ -1286,7 +1297,8 @@ class Technology(ModelComponent):
         # TODO: maybe make the full set of all carriers as a intersection between this set and the others?
         # Emission Factor
         b_tec.para_tec_emissionfactor = pyo.Param(
-            domain=pyo.Reals, initialize=self.coeff.time_independent["emission_factor"]
+            domain=pyo.Reals,
+            initialize=self.processed_coeff.time_independent["emission_factor"],
         )
         b_tec.var_tec_emissions_pos = pyo.Var(
             self.set_t_global, within=pyo.NonNegativeReals
@@ -1412,12 +1424,12 @@ class Technology(ModelComponent):
         # Initialize the size of CCS as in _define_size (size given in mass flow of CO2 entering the CCS object)
         b_tec.para_size_min_ccs = pyo.Param(
             domain=pyo.NonNegativeReals,
-            initialize=self.ccs_component.parameters.size_min,
+            initialize=self.ccs_component.input_parameters.size_min,
             mutable=True,
         )
         b_tec.para_size_max_ccs = pyo.Param(
             domain=pyo.NonNegativeReals,
-            initialize=self.ccs_component.parameters.size_max,
+            initialize=self.ccs_component.input_parameters.size_max,
             mutable=True,
         )
 
@@ -1466,7 +1478,7 @@ class Technology(ModelComponent):
 
         def calculate_max_capex_ccs():
             max_capex = (
-                self.ccs_component.parameters.size_max
+                self.ccs_component.input_parameters.size_max
                 * b_tec.para_unit_capex_annual_ccs
                 + b_tec.para_fix_capex_annual_ccs
             )
@@ -1556,7 +1568,7 @@ class Technology(ModelComponent):
         if config["optimization"]["typicaldays"]["N"]["value"] != 0:
             raise Exception("time aggregation with dynamics is not implemented")
 
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
         SU_load = dynamics["SU_load"]
         SD_load = dynamics["SD_load"]
         min_uptime = dynamics["min_uptime"]
@@ -1590,7 +1602,7 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         # New variables
         b_tec.var_x = pyo.Var(
@@ -1693,7 +1705,7 @@ class Technology(ModelComponent):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         # Check for default values
         para_names = ["SU_load", "SD_load"]
@@ -1710,7 +1722,7 @@ class Technology(ModelComponent):
         SU_load = dynamics["SU_load"]
         SD_load = dynamics["SD_load"]
         main_car = self.info.main_input_carrier
-        rated_power = self.parameters.rated_power
+        rated_power = self.input_parameters.rated_power
 
         # SU load limit
         s_indicators = range(0, 2)

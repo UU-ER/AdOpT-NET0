@@ -3,7 +3,7 @@ import pyomo.gdp as gdp
 import numpy as np
 import pandas as pd
 
-from ...utilities import Parameters
+from ...component import InputParameters
 from ..technology import Technology
 
 
@@ -67,9 +67,9 @@ class Conv4(Technology):
 
         # Coefficients
         phi = {}
-        for car in self.parameters.unfitted_data["output_ratios"]:
-            phi[car] = self.parameters.unfitted_data["output_ratios"][car]
-        self.coeff.time_independent["phi"] = phi
+        for car in self.input_parameters.unfitted_data["output_ratios"]:
+            phi[car] = self.input_parameters.unfitted_data["output_ratios"][car]
+        self.processed_coeff.time_independent["phi"] = phi
 
     def _calculate_bounds(self):
         """
@@ -80,12 +80,12 @@ class Conv4(Technology):
         time_steps = len(self.set_t_performance)
 
         # Output Bounds
-        self.bounds["output"][self.parameters.unfitted_data["main_output_carrier"]] = (
-            np.column_stack(
-                (
-                    np.zeros(shape=(time_steps)),
-                    np.ones(shape=(time_steps)),
-                )
+        self.bounds["output"][
+            self.input_parameters.unfitted_data["main_output_carrier"]
+        ] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                np.ones(shape=(time_steps)),
             )
         )
 
@@ -93,7 +93,7 @@ class Conv4(Technology):
             if not car == self.info.main_output_carrier:
                 self.bounds["output"][car] = (
                     self.bounds["output"][self.info.main_output_carrier]
-                    * self.parameters.unfitted_data["output_ratios"][car]
+                    * self.input_parameters.unfitted_data["output_ratios"][car]
                 )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
@@ -111,8 +111,8 @@ class Conv4(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        c_ti = self.coeff.time_independent
-        rated_power = self.parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
+        rated_power = self.input_parameters.rated_power
         phi = c_ti["phi"]
 
         # add additional constraints for performance type 2 (min. part load)
@@ -161,8 +161,8 @@ class Conv4(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
         min_part_load = c_ti["min_part_load"]
 
         # define disjuncts

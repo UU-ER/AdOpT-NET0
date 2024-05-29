@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from ..utilities import fit_piecewise_function
-from ...utilities import Parameters
+from ...component import InputParameters
 from ..technology import Technology
 
 
@@ -112,14 +112,14 @@ class GasTurbine(Technology):
         # Temperature correction factors
         f = np.empty(shape=(time_steps))
         f[T <= 6] = (
-            self.parameters.unfitted_data["gamma"][0]
-            * (T[T <= 6] / self.parameters.unfitted_data["T_iso"])
-            + self.parameters.unfitted_data["delta"][0]
+            self.input_parameters.unfitted_data["gamma"][0]
+            * (T[T <= 6] / self.input_parameters.unfitted_data["T_iso"])
+            + self.input_parameters.unfitted_data["delta"][0]
         )
         f[T > 6] = (
-            self.parameters.unfitted_data["gamma"][1]
-            * (T[T > 6] / self.parameters.unfitted_data["T_iso"])
-            + self.parameters.unfitted_data["delta"][1]
+            self.input_parameters.unfitted_data["gamma"][1]
+            * (T[T > 6] / self.input_parameters.unfitted_data["T_iso"])
+            + self.input_parameters.unfitted_data["delta"][1]
         )
 
         # Derive return
@@ -128,13 +128,13 @@ class GasTurbine(Technology):
         fit["td"]["temperature_correction"] = f.round(5)
 
         fit["ti"] = {}
-        fit["ti"]["alpha"] = round(self.parameters.unfitted_data["alpha"], 5)
-        fit["ti"]["beta"] = round(self.parameters.unfitted_data["beta"], 5)
-        fit["ti"]["epsilon"] = round(self.parameters.unfitted_data["epsilon"], 5)
-        fit["ti"]["in_min"] = round(self.parameters.unfitted_data["in_min"], 5)
-        fit["ti"]["in_max"] = round(self.parameters.unfitted_data["in_max"], 5)
+        fit["ti"]["alpha"] = round(self.input_parameters.unfitted_data["alpha"], 5)
+        fit["ti"]["beta"] = round(self.input_parameters.unfitted_data["beta"], 5)
+        fit["ti"]["epsilon"] = round(self.input_parameters.unfitted_data["epsilon"], 5)
+        fit["ti"]["in_min"] = round(self.input_parameters.unfitted_data["in_min"], 5)
+        fit["ti"]["in_max"] = round(self.input_parameters.unfitted_data["in_max"], 5)
         if len(self.info.input_carrier) == 2:
-            fit["ti"]["max_H2_admixture"] = self.parameters.unfitted_data[
+            fit["ti"]["max_H2_admixture"] = self.input_parameters.unfitted_data[
                 "max_H2_admixture"
             ]
         else:
@@ -142,9 +142,9 @@ class GasTurbine(Technology):
 
         # Coefficients
         for par in fit["td"]:
-            self.coeff.time_dependent_full[par] = fit["td"][par]
+            self.processed_coeff.time_dependent_full[par] = fit["td"][par]
         for par in fit["ti"]:
-            self.coeff.time_independent[par] = fit["ti"][par]
+            self.processed_coeff.time_independent[par] = fit["ti"][par]
 
     def _calculate_bounds(self):
         """
@@ -164,8 +164,8 @@ class GasTurbine(Technology):
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.parameters.unfitted_data["in_max"]
-                        * self.coeff.time_independent["max_H2_admixture"],
+                        * self.input_parameters.unfitted_data["in_max"]
+                        * self.processed_coeff.time_independent["max_H2_admixture"],
                     )
                 )
             else:
@@ -173,7 +173,7 @@ class GasTurbine(Technology):
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.parameters.unfitted_data["in_max"],
+                        * self.input_parameters.unfitted_data["in_max"],
                     )
                 )
 
@@ -182,24 +182,24 @@ class GasTurbine(Technology):
         bounds["output_bounds"]["electricity"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                self.coeff.time_dependent_used["temperature_correction"]
+                self.processed_coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.parameters.unfitted_data["in_max"]
-                    * self.coeff.time_independent["alpha"]
-                    + self.coeff.time_independent["beta"]
+                    self.input_parameters.unfitted_data["in_max"]
+                    * self.processed_coeff.time_independent["alpha"]
+                    + self.processed_coeff.time_independent["beta"]
                 ),
             )
         )
         bounds["output_bounds"]["heat"] = np.column_stack(
             (
                 np.zeros(shape=(time_steps)),
-                self.coeff.time_independent["epsilon"]
-                * self.coeff.time_independent["in_max"]
-                - self.coeff.time_dependent_used["temperature_correction"]
+                self.processed_coeff.time_independent["epsilon"]
+                * self.processed_coeff.time_independent["in_max"]
+                - self.processed_coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.parameters.unfitted_data["in_max"]
-                    * self.coeff.time_independent["alpha"]
-                    + self.coeff.time_independent["beta"]
+                    self.input_parameters.unfitted_data["in_max"]
+                    * self.processed_coeff.time_independent["alpha"]
+                    + self.processed_coeff.time_independent["beta"]
                 ),
             )
         )
@@ -229,9 +229,9 @@ class GasTurbine(Technology):
 
         # DATA OF TECHNOLOGY
         bounds = self.bounds
-        c_td = self.coeff.time_dependent_used
-        c_ti = self.coeff.time_independent
-        dynamics = self.coeff.dynamics
+        c_td = self.processed_coeff.time_dependent_used
+        c_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
 
         # Parameter declaration
         in_min = c_ti["in_min"]
@@ -243,7 +243,7 @@ class GasTurbine(Technology):
         temperature_correction = c_td["temperature_correction"]
 
         # Additional decision variables
-        size_max = self.parameters.size_max
+        size_max = self.input_parameters.size_max
 
         def init_input_bounds(bd, t):
             if len(self.info.input_carrier) == 2:
@@ -389,7 +389,7 @@ class GasTurbine(Technology):
         :param b_tec: technology model block
         :return:
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         ramping_time = dynamics["ramping_time"]
 

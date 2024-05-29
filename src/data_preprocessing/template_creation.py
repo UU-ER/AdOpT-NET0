@@ -273,6 +273,11 @@ def initialize_configuration_templates() -> dict:
                 ],
                 "value": "costs",
             },
+            "emission_limit": {
+                "description": "emission limit to be enforced if objective function "
+                "is costs_emissionlimit",
+                "value": 0,
+            },
             "monte_carlo": {
                 "N": {
                     "description": "Number of Monte Carlo simulations (0 = off).",
@@ -319,6 +324,13 @@ def initialize_configuration_templates() -> dict:
                     "description": "Determine method used for modeling technologies with typical days.",
                     "options": [1, 2],
                     "value": 2,
+                },
+                "technologies_with_full_res": {
+                    "description": "If method 2 is chosen, list determines which "
+                    "technologies are modelled at full resolution. "
+                    "Should be at least all storage technologies.",
+                    "options": [],
+                    "value": ["RES", "STOR", "Hydro_Open"],
                 },
             },
             "multiyear": {

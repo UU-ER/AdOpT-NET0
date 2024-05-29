@@ -4,7 +4,7 @@ from warnings import warn
 import pandas as pd
 
 
-from ..genericTechnologies.utilities import (
+from ..genericTechnologies.fitting_classes import (
     FitGenericTecTypeType1,
     FitGenericTecTypeType2,
     FitGenericTecTypeType34,
@@ -87,14 +87,14 @@ class Conv3(Technology):
 
         # Initialize fitting class
         if self.options.performance_function_type == 1:
-            self.f = FitGenericTecTypeType1(self.info)
+            self.fitting_class = FitGenericTecTypeType1(self.info)
         elif self.options.performance_function_type == 2:
-            self.f = FitGenericTecTypeType2(self.info)
+            self.fitting_class = FitGenericTecTypeType2(self.info)
         elif (
             self.options.performance_function_type == 3
             or self.options.performance_function_type == 4
         ):
-            self.f = FitGenericTecTypeType34(self.info)
+            self.fitting_class = FitGenericTecTypeType34(self.info)
         else:
             raise Exception(
                 "performance_function_type must be an integer between 1 and 4"
@@ -113,14 +113,16 @@ class Conv3(Technology):
             raise Exception("size_based_on == output for CONV3 not possible.")
 
         # fit coefficients
-        self.coeff.time_independent["fit"] = self.f.fit_performance_function(
-            self.parameters.unfitted_data["performance"]
+        self.processed_coeff.time_independent["fit"] = (
+            self.fitting_class.fit_performance_function(
+                self.input_parameters.unfitted_data["performance"]
+            )
         )
 
         phi = {}
-        for car in self.parameters.unfitted_data["input_ratios"]:
-            phi[car] = self.parameters.unfitted_data["input_ratios"][car]
-        self.coeff.time_independent["phi"] = phi
+        for car in self.input_parameters.unfitted_data["input_ratios"]:
+            phi[car] = self.input_parameters.unfitted_data["input_ratios"][car]
+        self.processed_coeff.time_independent["phi"] = phi
 
     def _calculate_bounds(self):
         """
@@ -130,10 +132,10 @@ class Conv3(Technology):
 
         time_steps = len(self.set_t_performance)
 
-        self.bounds["input"] = self.f.calculate_input_bounds(
+        self.bounds["input"] = self.fitting_class.calculate_input_bounds(
             self.options.size_based_on, time_steps
         )
-        self.bounds["output"] = self.f.calculate_output_bounds(
+        self.bounds["output"] = self.fitting_class.calculate_output_bounds(
             self.options.size_based_on, time_steps
         )
 
@@ -142,7 +144,7 @@ class Conv3(Technology):
             if not car == self.info.main_input_carrier:
                 self.bounds["input"][car] = (
                     self.bounds["input"][self.info.main_input_carrier]
-                    * self.parameters.unfitted_data["input_ratios"][car]
+                    * self.input_parameters.unfitted_data["input_ratios"][car]
                 )
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
@@ -160,9 +162,9 @@ class Conv3(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        c_ti = self.coeff.time_independent
-        dynamics = self.coeff.dynamics
-        rated_power = self.parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
+        rated_power = self.input_parameters.rated_power
 
         if self.options.performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
@@ -269,8 +271,8 @@ class Conv3(Technology):
         """
 
         # Performance parameters:
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
         alpha1 = {}
         for car in c_ti["fit"]:
             alpha1[car] = c_ti["fit"][car]["alpha1"]
@@ -318,8 +320,8 @@ class Conv3(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
         alpha1 = {}
         alpha2 = {}
         for car in c_ti["fit"]:
@@ -440,8 +442,8 @@ class Conv3(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
         alpha1 = {}
         alpha2 = {}
         for car in c_ti["fit"]:
@@ -577,9 +579,9 @@ class Conv3(Technology):
         self.big_m_transformation_required = 1
 
         # Performance Parameters
-        rated_power = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
-        dynamics = self.coeff.dynamics
+        rated_power = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
         alpha1 = {}
         alpha2 = {}
         for car in c_ti["fit"]:
@@ -805,7 +807,7 @@ class Conv3(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         ramping_time = dynamics["ramping_time"]
 

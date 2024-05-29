@@ -169,7 +169,7 @@ class Network(ModelComponent):
         """
         Fits network performance (bounds and coefficients).
         """
-        unfitted_coeff = self.parameters
+        unfitted_coeff = self.input_parameters
         time_independent = {}
 
         # Size
@@ -210,7 +210,7 @@ class Network(ModelComponent):
         time_independent["loss"] = unfitted_coeff.unfitted_data["loss"]
 
         # Write to self
-        self.coeff.time_independent = time_independent
+        self.processed_coeff.time_independent = time_independent
 
     def construct_netw_model(
         self, b_netw, data: dict, set_nodes, set_t_full, set_t_clustered
@@ -370,7 +370,7 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
-        c_ti = self.coeff.time_independent
+        c_ti = self.processed_coeff.time_independent
 
         b_netw.para_size_min = pyo.Param(
             domain=pyo.NonNegativeReals, initialize=c_ti["size_min"], mutable=True
@@ -582,7 +582,7 @@ class Network(ModelComponent):
         Fits the performance parameters for a network, i.e. the consumption at each node.
         """
         # Get energy consumption at nodes form file
-        energycons = self.parameters.unfitted_data["energyconsumption"]
+        energycons = self.input_parameters.unfitted_data["energyconsumption"]
 
         for car in energycons:
             self.energy_consumption[car] = {}
@@ -619,7 +619,7 @@ class Network(ModelComponent):
         :param str node_to: node to which arc goes
         :return: pyomo arc block
         """
-        c_ti = self.coeff.time_independent
+        c_ti = self.processed_coeff.time_independent
 
         if self.options.size_is_int:
             size_domain = pyo.NonNegativeIntegers
@@ -740,8 +740,8 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
-        rated_capacity = self.parameters.rated_power
-        c_ti = self.coeff.time_independent
+        rated_capacity = self.input_parameters.rated_power
+        c_ti = self.processed_coeff.time_independent
 
         b_arc.var_flow = pyo.Var(
             self.set_t,
@@ -863,7 +863,7 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
-        c_ti = self.coeff.time_independent
+        c_ti = self.processed_coeff.time_independent
 
         b_arc.var_emissions = pyo.Var(self.set_t)
 
@@ -1097,7 +1097,7 @@ class Network(ModelComponent):
         :param model_block: pyomo network block
         :param h5_group: h5 group to write to
         """
-        c_ti = self.coeff.time_independent
+        c_ti = self.processed_coeff.time_independent
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]

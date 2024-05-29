@@ -103,7 +103,7 @@ class EnergyHub:
                                 par
                                 not in self.data.technology_data[node][
                                     tec
-                                ].coeff.dynamics
+                                ].processed_coeff.dynamics
                             ):
                                 raise ValueError(
                                     f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
@@ -476,7 +476,7 @@ class EnergyHub:
                 self.solver.remove_constraint(model.const_emission_limit)
             model.del_component(model.const_emission_limit)
         model.const_emission_limit = pyo.Constraint(
-            expr=model.var_emissions_net <= emission_limit * 1.001
+            expr=model.var_emissions_net <= emission_limit
         )
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
             self.solver.add_constraint(model.const_emission_limit)
@@ -723,13 +723,17 @@ class EnergyHub:
         emissions_min = model.var_emissions_net.value
 
         # Emission limit
-        self.info_pareto["pareto_point"] = 0
-        emission_limits = np.linspace(emissions_min, emissions_max, num=pareto_points)
-        for pareto_point in range(0, pareto_points):
-            self.info_pareto["pareto_point"] += 1
-            if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
-                self.solver.remove_constraint(model.const_emission_limit)
-            model.del_component(model.const_emission_limit)
+        emission_limits = np.linspace(
+            emissions_min, emissions_max, num=pareto_points + 2
+        )
+        for pareto_point in reversed(range(0, pareto_points + 1)):
+            log_event(f"Optimizing Pareto point {pareto_point}")
+            self.info_pareto["pareto_point"] = pareto_point
+            if pareto_point != pareto_points:
+                # If its not the first point, delete constraint
+                if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
+                    self.solver.remove_constraint(model.const_emission_limit)
+                model.del_component(model.const_emission_limit)
             model.const_emission_limit = pyo.Constraint(
                 expr=model.var_emissions_net <= emission_limits[pareto_point] * 1.005
             )

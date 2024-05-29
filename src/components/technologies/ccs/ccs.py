@@ -42,21 +42,30 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     molar_mass_CO2 = 44.01
 
     # Recalculate min/max size to have it in t/hCO2_in
-    ccs_data.parameters.size_min = ccs_data.parameters.size_min * co2_concentration
-    ccs_data.parameters.size_max = ccs_data.parameters.size_max * co2_concentration
+    ccs_data.input_parameters.size_min = (
+        ccs_data.input_parameters.size_min * co2_concentration
+    )
+    ccs_data.input_parameters.size_max = (
+        ccs_data.input_parameters.size_max * co2_concentration
+    )
 
     # Calculate input ratios
-    ccs_data.coeff.time_independent["size_min"] = ccs_data.parameters.size_min
-    ccs_data.coeff.time_independent["size_max"] = ccs_data.parameters.size_max
-    ccs_data.coeff.time_independent["capture_rate"] = capture_rate
+    ccs_data.processed_coeff.time_independent["size_min"] = (
+        ccs_data.input_parameters.size_min
+    )
+    ccs_data.processed_coeff.time_independent["size_max"] = (
+        ccs_data.input_parameters.size_max
+    )
+    ccs_data.processed_coeff.time_independent["capture_rate"] = capture_rate
     if "MEA" in ccs_data.info.technology_model:
         input_ratios = {}
         for car in ccs_data.info.input_carrier:
             input_ratios[car] = (
-                ccs_data.parameters.unfitted_data["eta"][car]
-                + ccs_data.parameters.unfitted_data["omega"][car] * co2_concentration
+                ccs_data.input_parameters.unfitted_data["eta"][car]
+                + ccs_data.input_parameters.unfitted_data["omega"][car]
+                * co2_concentration
             ) / (co2_concentration * molar_mass_CO2 * 3.6)
-        ccs_data.coeff.time_independent["input_ratios"] = input_ratios
+        ccs_data.processed_coeff.time_independent["input_ratios"] = input_ratios
     else:
         raise Exception(
             "Only CCS type MEA is modelled so far. ccs_type in the json file of the "

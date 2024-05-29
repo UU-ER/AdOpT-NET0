@@ -51,11 +51,11 @@ class Res(Technology):
         super(Res, self).fit_technology_performance(climate_data, location)
 
         if "Photovoltaic" in self.name:
-            if "system_type" in self.parameters.unfitted_data:
+            if "system_type" in self.input_parameters.unfitted_data:
                 self._perform_fitting_PV(
                     climate_data,
                     location,
-                    system_data=self.parameters.unfitted_data["system_type"],
+                    system_data=self.input_parameters.unfitted_data["system_type"],
                 )
             else:
                 self._perform_fitting_PV(climate_data, location)
@@ -64,15 +64,15 @@ class Res(Technology):
             self._perform_fitting_ST(climate_data)
 
         elif "WindTurbine" in self.name:
-            if "hubheight" in self.parameters.unfitted_data:
-                hubheight = self.parameters.unfitted_data["hubheight"]
+            if "hubheight" in self.input_parameters.unfitted_data:
+                hubheight = self.input_parameters.unfitted_data["hubheight"]
             else:
                 hubheight = 120
             self._perform_fitting_WT(climate_data, hubheight)
 
         # Options
         self.options.other["curtailment"] = get_attribute_from_dict(
-            self.parameters.unfitted_data, "curtailment", 0
+            self.input_parameters.unfitted_data, "curtailment", 0
         )
 
     def _perform_fitting_PV(self, climate_data: pd.DataFrame, location: dict, **kwargs):
@@ -152,8 +152,10 @@ class Res(Technology):
         capacity_factor = power / peakpower
 
         # Coefficients
-        self.coeff.time_dependent_full["capfactor"] = round(capacity_factor, 3)
-        self.coeff.time_independent["specific_area"] = specific_area
+        self.processed_coeff.time_dependent_full["capfactor"] = round(
+            capacity_factor, 3
+        )
+        self.processed_coeff.time_independent["specific_area"] = specific_area
 
     def _perform_fitting_ST(self, climate_data: pd.DataFrame):
         """
@@ -214,9 +216,11 @@ class Res(Technology):
         capacity_factor = f(ws) / rated_power
 
         # Coefficients
-        self.coeff.time_dependent_full["capfactor"] = capacity_factor[0].round(3)
+        self.processed_coeff.time_dependent_full["capfactor"] = capacity_factor[
+            0
+        ].round(3)
         # Rated Power
-        self.parameters.rated_power = rated_power / 1000
+        self.input_parameters.rated_power = rated_power / 1000
 
     def _calculate_bounds(self):
         """
@@ -228,7 +232,7 @@ class Res(Technology):
 
         # Output bounds
         lower_output_bound = np.zeros(shape=(time_steps))
-        upper_output_bound = self.coeff.time_dependent_used["capfactor"]
+        upper_output_bound = self.processed_coeff.time_dependent_used["capfactor"]
         output_bounds = np.column_stack((lower_output_bound, upper_output_bound))
         self.bounds["output"]["electricity"] = output_bounds
 
@@ -245,8 +249,8 @@ class Res(Technology):
         super(Res, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
         # DATA OF TECHNOLOGY
-        c_td = self.coeff.time_dependent_used
-        rated_power = self.parameters.rated_power
+        c_td = self.processed_coeff.time_dependent_used
+        rated_power = self.input_parameters.rated_power
         curtailment = self.options.other["curtailment"]
 
         # CONSTRAINTS
@@ -316,7 +320,7 @@ class Res(Technology):
 
         super(Res, self).write_results_tec_design(h5_group, model_block)
 
-        h5_group.create_dataset("rated_power", data=self.parameters.rated_power)
+        h5_group.create_dataset("rated_power", data=self.input_parameters.rated_power)
 
     def write_results_tec_operation(self, h5_group, model_block):
         """
@@ -327,8 +331,8 @@ class Res(Technology):
         """
         super(Res, self).write_results_tec_operation(h5_group, model_block)
 
-        rated_power = self.parameters.rated_power
-        capfactor = self.coeff.time_dependent_used["capfactor"]
+        rated_power = self.input_parameters.rated_power
+        capfactor = self.processed_coeff.time_dependent_used["capfactor"]
 
         h5_group.create_dataset(
             "max_out",

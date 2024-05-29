@@ -81,14 +81,14 @@ class HydroOpen(Technology):
         super(HydroOpen, self).fit_technology_performance(climate_data, location)
 
         # Coefficients
-        for par in self.parameters.unfitted_data["performance"]:
-            self.coeff.time_independent[par] = self.parameters.unfitted_data[
-                "performance"
-            ][par]
+        for par in self.input_parameters.unfitted_data["performance"]:
+            self.processed_coeff.time_independent[par] = (
+                self.input_parameters.unfitted_data["performance"][par]
+            )
 
         # Natural inflow
         if self.name + "_inflow" in climate_data:
-            self.coeff.time_dependent_full["hydro_inflow"] = climate_data[
+            self.processed_coeff.time_dependent_full["hydro_inflow"] = climate_data[
                 self.name + "_inflow"
             ]
         else:
@@ -99,9 +99,9 @@ class HydroOpen(Technology):
             )
 
         # Maximum discharge
-        if self.parameters.unfitted_data["maximum_discharge_time_discrete"]:
+        if self.input_parameters.unfitted_data["maximum_discharge_time_discrete"]:
             if self.name + "_maximum_discharge" in climate_data:
-                self.coeff.time_dependent_full["hydro_maximum_discharge"] = (
+                self.processed_coeff.time_dependent_full["hydro_maximum_discharge"] = (
                     climate_data[self.name + "_maximum_discharge"]
                 )
             else:
@@ -112,16 +112,16 @@ class HydroOpen(Technology):
 
         # Options
         self.options.other["allow_only_one_direction"] = get_attribute_from_dict(
-            self.parameters.unfitted_data, "allow_only_one_direction", 0
+            self.input_parameters.unfitted_data, "allow_only_one_direction", 0
         )
         self.options.other["can_pump"] = get_attribute_from_dict(
-            self.parameters.unfitted_data, "can_pump", 1
+            self.input_parameters.unfitted_data, "can_pump", 1
         )
         self.options.other["bidirectional_precise"] = get_attribute_from_dict(
-            self.parameters.unfitted_data, "bidirectional_precise", 1
+            self.input_parameters.unfitted_data, "bidirectional_precise", 1
         )
         self.options.other["maximum_discharge_time_discrete"] = get_attribute_from_dict(
-            self.parameters.unfitted_data, "maximum_discharge_time_discrete", 1
+            self.input_parameters.unfitted_data, "maximum_discharge_time_discrete", 1
         )
 
     def _calculate_bounds(self):
@@ -138,7 +138,9 @@ class HydroOpen(Technology):
                 (
                     np.zeros(shape=(time_steps)),
                     np.ones(shape=(time_steps))
-                    * self.parameters.unfitted_data["performance"]["discharge_max"],
+                    * self.input_parameters.unfitted_data["performance"][
+                        "discharge_max"
+                    ],
                 )
             )
 
@@ -148,7 +150,7 @@ class HydroOpen(Technology):
                 (
                     np.zeros(shape=(time_steps)),
                     np.ones(shape=(time_steps))
-                    * self.parameters.unfitted_data["performance"]["charge_max"],
+                    * self.input_parameters.unfitted_data["performance"]["charge_max"],
                 )
             )
 
@@ -169,9 +171,9 @@ class HydroOpen(Technology):
         config = data["config"]
 
         # DATA OF TECHNOLOGY
-        c_td = self.coeff.time_dependent_used
-        c_ti = self.coeff.time_independent
-        dynamics = self.coeff.dynamics
+        c_td = self.processed_coeff.time_dependent_used
+        c_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
         allow_only_one_direction = self.options.other["allow_only_one_direction"]
 
         eta_in = c_ti["eta_in"]
@@ -381,7 +383,7 @@ class HydroOpen(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         ramping_time = dynamics["ramping_time"]
 

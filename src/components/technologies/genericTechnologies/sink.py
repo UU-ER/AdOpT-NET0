@@ -4,7 +4,8 @@ import h5py
 import numpy as np
 
 from ..technology import Technology
-from src.components.utilities import annualize, set_discount_rate, Parameters
+from src.components.utilities import annualize, set_discount_rate
+from ...component import InputParameters
 
 
 class Sink(Technology):
@@ -87,12 +88,12 @@ class Sink(Technology):
         if self.flexibility_data["injection_capacity_is_decision_var"]:
             self.economics.capex_model = 4
 
-        self.coeff.time_independent["injection_rate_max"] = self.flexibility_data[
-            "injection_rate_max"
-        ]
-        if "energy_consumption" in self.parameters.unfitted_data["performance"]:
-            self.coeff.time_independent["energy_consumption"] = (
-                self.parameters.unfitted_data["performance"]["energy_consumption"]
+        self.processed_coeff.time_independent["injection_rate_max"] = (
+            self.flexibility_data["injection_rate_max"]
+        )
+        if "energy_consumption" in self.input_parameters.unfitted_data["performance"]:
+            self.processed_coeff.time_independent["energy_consumption"] = (
+                self.input_parameters.unfitted_data["performance"]["energy_consumption"]
             )
 
     def _calculate_bounds(self):
@@ -114,10 +115,13 @@ class Sink(Technology):
                     )
                 )
             else:
-                if "energy_consumption" in self.parameters.unfitted_data["performance"]:
-                    energy_consumption = self.parameters.unfitted_data["performance"][
-                        "energy_consumption"
-                    ]
+                if (
+                    "energy_consumption"
+                    in self.input_parameters.unfitted_data["performance"]
+                ):
+                    energy_consumption = self.input_parameters.unfitted_data[
+                        "performance"
+                    ]["energy_consumption"]
                     self.bounds["input"][car] = np.column_stack(
                         (
                             np.zeros(shape=(time_steps)),
@@ -144,8 +148,8 @@ class Sink(Technology):
 
         # DATA OF TECHNOLOGY
         config = data["config"]
-        c_ti = self.coeff.time_independent
-        dynamics = self.coeff.dynamics
+        c_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
 
         # Sotrage level and injection capacity decision variables
         b_tec.var_storage_level = pyo.Var(
@@ -259,7 +263,7 @@ class Sink(Technology):
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
         flexibility = self.flexibility_data
-        c_ti = self.coeff.time_independent
+        c_ti = self.processed_coeff.time_independent
 
         # CAPEX PARAMETERS
         b_tec.para_unit_capex_injection_cap = pyo.Param(
@@ -359,7 +363,7 @@ class Sink(Technology):
         :param Block b_tec: technology model block
         :return: technology Block with the constraints for the dynamic behaviour
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         ramping_time = dynamics["ramping_time"]
 

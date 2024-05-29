@@ -121,33 +121,33 @@ class Stor(Technology):
             )
 
         # Coefficients
-        theta = self.parameters.unfitted_data["performance"]["theta"]
+        theta = self.input_parameters.unfitted_data["performance"]["theta"]
         ambient_loss_factor = (65 - climate_data["temp_air"]) / (90 - 65) * theta
 
-        self.coeff.time_dependent_full["ambient_loss_factor"] = (
+        self.processed_coeff.time_dependent_full["ambient_loss_factor"] = (
             ambient_loss_factor.to_numpy()
         )
 
-        for par in self.parameters.unfitted_data["performance"]:
+        for par in self.input_parameters.unfitted_data["performance"]:
             if not par == "theta":
-                self.coeff.time_independent[par] = self.parameters.unfitted_data[
-                    "performance"
-                ][par]
+                self.processed_coeff.time_independent[par] = (
+                    self.input_parameters.unfitted_data["performance"][par]
+                )
 
-        self.coeff.time_independent["charge_rate"] = self.flexibility_data[
+        self.processed_coeff.time_independent["charge_rate"] = self.flexibility_data[
             "charge_rate"
         ]
-        self.coeff.time_independent["discharge_rate"] = self.flexibility_data[
+        self.processed_coeff.time_independent["discharge_rate"] = self.flexibility_data[
             "discharge_rate"
         ]
-        if "energy_consumption" in self.parameters.unfitted_data["performance"]:
-            self.coeff.time_independent["energy_consumption"] = (
-                self.parameters.unfitted_data["performance"]["energy_consumption"]
+        if "energy_consumption" in self.input_parameters.unfitted_data["performance"]:
+            self.processed_coeff.time_independent["energy_consumption"] = (
+                self.input_parameters.unfitted_data["performance"]["energy_consumption"]
             )
 
         # Options
         self.options.other["allow_only_one_direction"] = get_attribute_from_dict(
-            self.parameters.unfitted_data, "allow_only_one_direction", 0
+            self.input_parameters.unfitted_data, "allow_only_one_direction", 0
         )
 
     def _calculate_bounds(self):
@@ -178,10 +178,13 @@ class Stor(Technology):
                     )
                 )
             else:
-                if "energy_consumption" in self.parameters.unfitted_data["performance"]:
-                    energy_consumption = self.parameters.unfitted_data["performance"][
-                        "energy_consumption"
-                    ]
+                if (
+                    "energy_consumption"
+                    in self.input_parameters.unfitted_data["performance"]
+                ):
+                    energy_consumption = self.input_parameters.unfitted_data[
+                        "performance"
+                    ]["energy_consumption"]
                     self.bounds["input"][car] = np.column_stack(
                         (
                             np.zeros(shape=(time_steps)),
@@ -207,9 +210,9 @@ class Stor(Technology):
         config = data["config"]
 
         # DATA OF TECHNOLOGY
-        c_td = self.coeff.time_dependent_used
-        c_ti = self.coeff.time_independent
-        dynamics = self.coeff.dynamics
+        c_td = self.processed_coeff.time_dependent_used
+        c_ti = self.processed_coeff.time_independent
+        dynamics = self.processed_coeff.dynamics
         allow_only_one_direction = self.options.other["allow_only_one_direction"]
         # sequence_storage = self.sequence
         if config["optimization"]["typicaldays"]["N"]["value"] == 0:
@@ -464,7 +467,7 @@ class Stor(Technology):
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
         flexibility = self.flexibility_data
-        c_ti = self.coeff.time_independent
+        c_ti = self.processed_coeff.time_independent
 
         # CAPEX PARAMETERS
         b_tec.para_unit_capex_charging_cap = pyo.Param(
@@ -598,7 +601,7 @@ class Stor(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         ramping_time = dynamics["ramping_time"]
 

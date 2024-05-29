@@ -6,7 +6,7 @@ import statsmodels.api as sm
 import pandas as pd
 
 from ..utilities import fit_piecewise_function, fit_linear_function
-from ...utilities import Parameters
+from ...component import InputParameters
 from ..technology import Technology
 
 
@@ -62,12 +62,12 @@ class HeatPump(Technology):
         T = copy.deepcopy(climate_data["temp_air"])
 
         # Determine T_out
-        if self.parameters.unfitted_data["application"] == "radiator_heating":
+        if self.input_parameters.unfitted_data["application"] == "radiator_heating":
             t_out = 40 - T
-        elif self.parameters.unfitted_data["application"] == "floor_heating":
+        elif self.input_parameters.unfitted_data["application"] == "floor_heating":
             t_out = 30 - 0.5 * T
         else:
-            t_out = self.parameters.unfitted_data["T_out"]
+            t_out = self.input_parameters.unfitted_data["T_out"]
 
         # Determine delta T
         delta_T = t_out - T
@@ -105,13 +105,17 @@ class HeatPump(Technology):
                 print("\rComplete: ", round(idx / time_steps, 2) * 100, "%", end="")
 
             if self.options.performance_function_type == 1:
-                x = np.linspace(self.parameters.unfitted_data["min_part_load"], 1, 9)
+                x = np.linspace(
+                    self.input_parameters.unfitted_data["min_part_load"], 1, 9
+                )
                 y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 coeff = fit_linear_function(x, y)
                 alpha1[idx, :] = coeff[0]
 
             elif self.options.performance_function_type == 2:
-                x = np.linspace(self.parameters.unfitted_data["min_part_load"], 1, 9)
+                x = np.linspace(
+                    self.input_parameters.unfitted_data["min_part_load"], 1, 9
+                )
                 y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 x = sm.add_constant(x)
                 coeff = fit_linear_function(x, y)
@@ -122,7 +126,9 @@ class HeatPump(Technology):
                 self.options.performance_function_type == 3
             ):  # piecewise performance function
                 y = {}
-                x = np.linspace(self.parameters.unfitted_data["min_part_load"], 1, 9)
+                x = np.linspace(
+                    self.input_parameters.unfitted_data["min_part_load"], 1, 9
+                )
                 y["out"] = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 time_step_fit = fit_piecewise_function(x, y, 2)
                 alpha1[idx, :] = time_step_fit["out"]["alpha1"]
@@ -147,7 +153,7 @@ class HeatPump(Technology):
             fit["coeff"]["bp_x"] = bp_x.round(5)
 
         # Coefficients
-        self.coeff.time_dependent_full = fit["coeff"]
+        self.processed_coeff.time_dependent_full = fit["coeff"]
 
     def _calculate_bounds(self):
         """
@@ -163,7 +169,7 @@ class HeatPump(Technology):
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.coeff.time_dependent_used["alpha1"][:, 0],
+                        * self.processed_coeff.time_dependent_used["alpha1"][:, 0],
                     )
                 )
 
@@ -172,8 +178,8 @@ class HeatPump(Technology):
                 self.bounds["output"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        self.coeff.time_dependent_used["alpha1"][:, -1]
-                        + self.coeff.time_dependent_used["alpha2"][:, -1],
+                        self.processed_coeff.time_dependent_used["alpha1"][:, -1]
+                        + self.processed_coeff.time_dependent_used["alpha2"][:, -1],
                     )
                 )
 
@@ -184,8 +190,8 @@ class HeatPump(Technology):
                 self.bounds["output"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        self.coeff.time_dependent_used["alpha1"][:, -1]
-                        + self.coeff.time_dependent_used["alpha2"][:, -1],
+                        self.processed_coeff.time_dependent_used["alpha1"][:, -1]
+                        + self.processed_coeff.time_dependent_used["alpha2"][:, -1],
                     )
                 )
 
@@ -210,8 +216,8 @@ class HeatPump(Technology):
         )
 
         # DATA OF TECHNOLOGY
-        dynamics = self.coeff.dynamics
-        rated_power = self.parameters.rated_power
+        dynamics = self.processed_coeff.dynamics
+        rated_power = self.input_parameters.rated_power
 
         if self.options.performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
@@ -244,7 +250,7 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.coeff.time_dependent_used
+        c_td = self.processed_coeff.time_dependent_used
         alpha1 = c_td["alpha1"]
 
         def init_input_output(const, t):
@@ -265,12 +271,12 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.coeff.time_dependent_used
-        c_ti = self.coeff.time_independent
+        c_td = self.processed_coeff.time_dependent_used
+        c_ti = self.processed_coeff.time_independent
         alpha1 = c_td["alpha1"]
         alpha2 = c_td["alpha2"]
         min_part_load = c_ti["min_part_load"]
-        rated_power = self.parameters.rated_power
+        rated_power = self.input_parameters.rated_power
 
         # define disjuncts for on/off
         s_indicators = range(0, 2)
@@ -328,13 +334,13 @@ class HeatPump(Technology):
         :return: technology block
         """
         # Get performance parameters
-        c_td = self.coeff.time_dependent_used
-        c_ti = self.coeff.time_independent
+        c_td = self.processed_coeff.time_dependent_used
+        c_ti = self.processed_coeff.time_independent
         alpha1 = c_td["alpha1"]
         alpha2 = c_td["alpha2"]
         bp_x = c_td["bp_x"]
         min_part_load = c_ti["min_part_load"]
-        rated_power = self.parameters.rated_power
+        rated_power = self.input_parameters.rated_power
 
         s_indicators = range(0, 2)
 
@@ -408,7 +414,7 @@ class HeatPump(Technology):
         :param b_tec: technology model block
         :return:
         """
-        dynamics = self.coeff.dynamics
+        dynamics = self.processed_coeff.dynamics
 
         ramping_time = dynamics["ramping_time"]
 

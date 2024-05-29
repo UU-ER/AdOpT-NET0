@@ -147,7 +147,7 @@ def test_clustering_algo(request):
 
 def test_average_algo(request):
     """
-    Tests method 1 and two of the clustering algorithm
+    Tests two stage averaging algorithm
     """
 
     path = Path("src/test/case_study_full_pipeline")
@@ -188,3 +188,28 @@ def test_average_algo(request):
     assert (
         abs(npv_no_cluster - pyhub.model["averaged"].var_npv.value) / npv_no_cluster
     ) <= 0.1
+
+
+def test_objective_functions(request):
+    """
+    Tests the following objective functions:
+
+    - pareto
+    - emissions_net
+    - min emissions at min cost
+    - min cost at emission limit
+    """
+
+    path = Path("src/test/case_study_full_pipeline")
+
+    pyhub = EnergyHub()
+    pyhub.read_data(path, start_period=0, end_period=1)
+    pyhub.construct_model()
+    pyhub.construct_balances()
+    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub._define_solver_settings()
+
+    pyhub._optimize_emissions_net()
+    pyhub._optimize_costs_minE()
+    pyhub._optimize_costs_emissionslimit()
+    pyhub._solve_pareto()
