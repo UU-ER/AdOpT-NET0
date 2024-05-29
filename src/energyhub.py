@@ -71,6 +71,7 @@ class EnergyHub:
         :return:
         """
         config = self.data.model_config
+        topology = self.data.topology
 
         # Check if save-path exists
         save_path = Path(config["reporting"]["save_path"]["value"])
@@ -79,6 +80,41 @@ class EnergyHub:
                 f"The folder '{save_path}' does not exist. Create the folder or change the folder "
                 f"name in the configuration"
             )
+
+        # Dynamics and time aggregation algorithms
+        if config["optimization"]["typicaldays"]["N"]["value"] != 0:
+            if config["performance"]["dynamics"]["value"]:
+                raise Exception(
+                    "Dynamics and clustering with typical days is not " "allowed"
+                )
+            for period in topology["investment_periods"]:
+                for node in topology["nodes"]:
+                    for tec_name in self.data.technology_data[period][node]:
+                        tec = self.data.technology_data[period][node][tec_name]
+                        if ("ramping_time" in tec.processed_coeff.dynamics) and (
+                            tec.processed_coeff.dynamics["ramping_time"] != -1
+                        ):
+                            raise Exception(
+                                f"Ramping Rate for technology {tec_name} "
+                                f"needs to be -1 when clustering with typical days "
+                            )
+
+        if config["optimization"]["timestaging"]["value"] != 0:
+            if config["performance"]["dynamics"]["value"]:
+                raise Exception(
+                    "Dynamics and two-stage averaging algorithm is not " "allowed"
+                )
+            for period in topology["investment_periods"]:
+                for node in topology["nodes"]:
+                    for tec_name in self.data.technology_data[period][node]:
+                        tec = self.data.technology_data[period][node][tec_name]
+                        if ("ramping_time" in tec.processed_coeff.dynamics) and (
+                            tec.processed_coeff.dynamics["ramping_time"] != -1
+                        ):
+                            raise Exception(
+                                f"Ramping Rate for technology {tec_name} "
+                                f"needs to be -1 when two-stage averaging algorithm is used"
+                            )
 
         # check if technologies have dynamic parameters
         if config["performance"]["dynamics"]["value"]:
@@ -713,30 +749,31 @@ class EnergyHub:
         config = self.data.model_config
         pareto_points = config["optimization"]["pareto_points"]["value"]
 
-        # Min Cost (last pareto point)
-        self.info_pareto["pareto_point"] = pareto_points + 2
-        self._optimize("costs")
-        emissions_max = model.var_emissions_net.value
-
-        # Min Emissions (pareto points 0)
-        self.info_pareto["pareto_point"] = 0
-        self._optimize("emissions_net")
+        # Min Emissions
+        self.info_pareto["pareto_point"] = pareto_points
+        self._optimize_costs_minE()
         emissions_min = model.var_emissions_net.value
 
+        # Min Cost
+        self.info_pareto["pareto_point"] = 1
+        self._optimize_cost()
+        emissions_max = model.var_emissions_net.value
+
         # Emission limit
-        emission_limits = np.linspace(
-            emissions_min, emissions_max, num=pareto_points + 2
-        )
-        for pareto_point in reversed(range(0, pareto_points + 1)):
-            log_event(f"Optimizing Pareto point {pareto_point + 1}")
-            self.info_pareto["pareto_point"] = pareto_point + 1
-            if pareto_point != pareto_points:
+        emission_limits = np.linspace(emissions_max, emissions_min, num=pareto_points)[
+            1:-1
+        ]
+
+        for limit in range(0, len(emission_limits)):
+            self.info_pareto["pareto_point"] += 1
+            log_event(f"Optimizing Pareto point {limit}")
+            if limit != 0:
                 # If its not the first point, delete constraint
                 if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                     self.solver.remove_constraint(model.const_emission_limit)
                 model.del_component(model.const_emission_limit)
             model.const_emission_limit = pyo.Constraint(
-                expr=model.var_emissions_net <= emission_limits[pareto_point] * 1.005
+                expr=model.var_emissions_net <= emission_limits[limit] * 1.005
             )
             if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
                 self.solver.add_constraint(model.const_emission_limit)
