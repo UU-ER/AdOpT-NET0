@@ -273,7 +273,10 @@ class Network(ModelComponent):
 
             b_arc.big_m_transformation_required = 0
             b_arc = self._define_size_arc(b_arc, b_netw, node_from, node_to)
-            b_arc = self._define_capex_arc(b_arc, b_netw, node_from, node_to)
+            b_arc = self._define_capex_variables_arc(b_arc, b_netw)
+            b_arc = self._define_capex_constraints_arc(
+                b_arc, b_netw, node_from, node_to
+            )
             b_arc = self._define_flow(b_arc, b_netw)
             b_arc = self._define_opex_arc(b_arc, b_netw)
             b_arc = self._define_emissions_arc(b_arc, b_netw)
@@ -660,14 +663,12 @@ class Network(ModelComponent):
 
         return b_arc
 
-    def _define_capex_arc(self, b_arc, b_netw, node_from, node_to):
+    def _define_capex_variables_arc(self, b_arc, b_netw):
         """
-        Defines the capex of an arc and corresponding constraints
+        Defines the capex variables of an arc
 
         :param b_arc: pyomo arc block
         :param b_netw: pyomo network block
-        :param str node_from: node from which arc comes
-        :param str node_to: node to which arc goes
         :return: pyomo arc block
         """
 
@@ -685,6 +686,24 @@ class Network(ModelComponent):
         # For existing technologies it is used to calculate fixed OPEX
         b_arc.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
 
+        if self.existing and not self.component_options.decommission:
+            b_arc.var_capex = pyo.Param(domain=NonNegativeReals, initialize=0)
+        else:
+            b_arc.var_capex = pyo.Var(bounds=calculate_max_capex())
+
+        return b_arc
+
+    def _define_capex_constraints_arc(self, b_arc, b_netw, node_from, node_to):
+        """
+        Defines the capex of an arc and corresponding constraints
+
+        :param b_arc: pyomo arc block
+        :param b_netw: pyomo network block
+        :param str node_from: node from which arc comes
+        :param str node_to: node to which arc goes
+        :return: pyomo arc block
+        """
+
         def init_capex(const):
             return (
                 b_arc.var_capex_aux
@@ -693,12 +712,6 @@ class Network(ModelComponent):
                 + b_netw.para_capex_gamma3 * b_arc.distance
                 + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
             )
-
-        # CAPEX Variable
-        if self.existing and not self.component_options.decommission:
-            b_arc.var_capex = pyo.Param(domain=pyo.NonNegativeReals, initialize=0)
-        else:
-            b_arc.var_capex = pyo.Var(bounds=calculate_max_capex())
 
         # CAPEX aux:
         if self.existing and not self.component_options.decommission:
@@ -1102,6 +1115,19 @@ class Network(ModelComponent):
         :param h5_group: h5 group to write to
         """
         coeff_ti = self.processed_coeff.time_independent
+
+        h5_group.create_dataset(
+            "para_capex_gamma1", data=model_block.para_capex_gamma1.value
+        )
+        h5_group.create_dataset(
+            "para_capex_gamma2", data=model_block.para_capex_gamma2.value
+        )
+        h5_group.create_dataset(
+            "para_capex_gamma3", data=model_block.para_capex_gamma3.value
+        )
+        h5_group.create_dataset(
+            "para_capex_gamma4", data=model_block.para_capex_gamma4.value
+        )
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
