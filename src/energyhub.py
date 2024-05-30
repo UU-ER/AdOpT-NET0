@@ -826,7 +826,7 @@ class EnergyHub:
             == "uniform_dis_from_file"
         ):
             component_set = list(set(self.data.monte_carlo_specs["type"]))
-        # add_values_to_summary(summary_path, component_set=component_set)
+        add_values_to_summary(summary_path, component_set=component_set)
 
     def _monte_carlo_set_cost_parameters(self):
         """
