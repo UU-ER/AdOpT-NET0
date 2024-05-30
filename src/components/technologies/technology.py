@@ -4,7 +4,7 @@ from warnings import warn
 import numpy as np
 import pandas as pd
 
-from ..component import ModelComponent, ProcessedCoefficients
+from ..component import ModelComponent
 from ..utilities import (
     annualize,
     set_discount_rate,
@@ -437,7 +437,9 @@ class Technology(ModelComponent):
         b_tec = self._define_input_carriers(b_tec)
         b_tec = self._define_output_carriers(b_tec)
         b_tec = self._define_size(b_tec)
-        b_tec = self._define_capex(b_tec, data)
+        b_tec = self._define_capex_parameters(b_tec, data)
+        b_tec = self._define_capex_variables(b_tec, data)
+        b_tec = self._define_capex_constraints(b_tec, data)
         b_tec = self._define_input(b_tec, data)
         b_tec = self._define_output(b_tec, data)
 
@@ -606,9 +608,9 @@ class Technology(ModelComponent):
 
         return b_tec
 
-    def _define_capex(self, b_tec, data: dict):
+    def _define_capex_variables(self, b_tec, data: dict):
         """
-        Defines variables and parameters related to technology capex.
+        Defines variables related to technology capex.
 
         :param b_tec: pyomo block with technology model
         :param dict data: dict containing model information
@@ -626,21 +628,21 @@ class Technology(ModelComponent):
         capex_model = set_capex_model(config, economics)
 
         def calculate_max_capex():
-            if self.economics.capex_model == 1:
+            if capex_model == 1:
                 max_capex = (
                     b_tec.para_size_max
                     * economics.capex_data["unit_capex"]
                     * annualization_factor
                 )
                 bounds = (0, max_capex)
-            elif self.economics.capex_model == 2:
+            elif capex_model == 2:
                 max_capex = (
                     b_tec.para_size_max
                     * max(economics.capex_data["piecewise_capex"]["bp_y"])
                     * annualization_factor
                 )
                 bounds = (0, max_capex)
-            elif self.economics.capex_model == 3:
+            elif capex_model == 3:
                 max_capex = (
                     b_tec.para_size_max * economics.capex_data["unit_capex"]
                     + economics.capex_data["fix_capex"]
@@ -655,6 +657,42 @@ class Technology(ModelComponent):
         # For existing technologies it is used to calculate fixed OPEX
         b_tec.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
 
+        if self.existing and not self.component_options.decommission:
+            b_tec.var_capex = pyo.Param(domain=pyo.Reals, initialize=0)
+        else:
+            b_tec.var_capex = pyo.Var()
+
+        return b_tec
+
+    def _define_capex_parameters(self, b_tec, data):
+        """
+        Defines the capex parameters
+
+        For capex model 1:
+        - para_unit_capex
+        - para_unit_capex_annual
+
+        For capex model 2: defined with constraints
+        For capex model 3:
+        - para_unit_capex
+        - para_fix_capex
+        - para_unit_capex_annual
+        - para_fix_capex_annual
+
+        :param b_tec:
+        :param data:
+        :return:
+        """
+        config = data["config"]
+        economics = self.economics
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        annualization_factor = annualize(
+            discount_rate, economics.lifetime, fraction_of_year_modelled
+        )
+
+        capex_model = set_capex_model(config, economics)
+
         if capex_model == 1:
             b_tec.para_unit_capex = pyo.Param(
                 domain=pyo.Reals,
@@ -667,27 +705,9 @@ class Technology(ModelComponent):
                 mutable=True,
             )
 
-            """capex_aux = size * capex_unit_annual"""
-            b_tec.const_capex_aux = pyo.Constraint(
-                expr=b_tec.var_size * b_tec.para_unit_capex_annual
-                == b_tec.var_capex_aux
-            )
-
         elif capex_model == 2:
-            bp_x = economics.capex_data["piecewise_capex"]["bp_x"]
-            bp_y_annual = [
-                y * annualization_factor
-                for y in economics.capex_data["piecewise_capex"]["bp_y"]
-            ]
-            self.big_m_transformation_required = 1
-            b_tec.const_capex_aux = pyo.Piecewise(
-                b_tec.var_capex_aux,
-                b_tec.var_size,
-                pw_pts=bp_x,
-                pw_constr_type="EQ",
-                f_rule=bp_y_annual,
-                pw_repn="SOS2",
-            )
+            # This is defined in the constraints
+            pass
         elif capex_model == 3:
             b_tec.para_unit_capex = pyo.Param(
                 domain=pyo.Reals,
@@ -709,8 +729,52 @@ class Technology(ModelComponent):
                 initialize=annualization_factor * economics.capex_data["fix_capex"],
                 mutable=True,
             )
+        else:
+            # Defined in the technology subclass
+            pass
 
-            # capex unit commitment constraint
+        if self.existing and self.component_options.decommission:
+            b_tec.para_decommissioning_cost = pyo.Param(
+                domain=pyo.Reals, initialize=economics.decommission_cost, mutable=True
+            )
+
+        return b_tec
+
+    def _define_capex_constraints(self, b_tec, data):
+        """
+        Defines constraints related to capex.
+        """
+        config = data["config"]
+        economics = self.economics
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        annualization_factor = annualize(
+            discount_rate, economics.lifetime, fraction_of_year_modelled
+        )
+
+        capex_model = set_capex_model(config, economics)
+
+        if capex_model == 1:
+            b_tec.const_capex_aux = pyo.Constraint(
+                expr=b_tec.var_size * b_tec.para_unit_capex_annual
+                == b_tec.var_capex_aux
+            )
+        elif capex_model == 2:
+            self.big_m_transformation_required = 1
+            bp_x = economics.capex_data["piecewise_capex"]["bp_x"]
+            bp_y_annual = [
+                y * annualization_factor
+                for y in economics.capex_data["piecewise_capex"]["bp_y"]
+            ]
+            b_tec.const_capex_aux = pyo.Piecewise(
+                b_tec.var_capex_aux,
+                b_tec.var_size,
+                pw_pts=bp_x,
+                pw_constr_type="EQ",
+                f_rule=bp_y_annual,
+                pw_repn="SOS2",
+            )
+        elif capex_model == 3:
             self.big_m_transformation_required = 1
             s_indicators = range(0, 2)
 
@@ -738,9 +802,8 @@ class Technology(ModelComponent):
 
         # CAPEX
         if self.existing and not self.component_options.decommission:
-            b_tec.var_capex = pyo.Param(domain=pyo.Reals, initialize=0)
+            pass
         else:
-            b_tec.var_capex = pyo.Var()
             if self.existing:
                 b_tec.para_decommissioning_cost = pyo.Param(
                     domain=pyo.Reals,
