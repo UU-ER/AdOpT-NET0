@@ -1255,6 +1255,14 @@ class Technology(ModelComponent):
                 "opex_fixed_ccs", data=[model_block.var_opex_fixed_ccs.value]
             )
 
+        h5_group.create_dataset(
+            "para_unitCAPEX", data=[model_block.para_unit_capex.value]
+        )
+        if hasattr(model_block, "para_fix_capex"):
+            h5_group.create_dataset(
+                "para_fixCAPEX", data=[model_block.para_fix_capex.value]
+            )
+
     def write_results_tec_operation(self, h5_group, model_block):
         """
         Function to report technology operation
@@ -1262,6 +1270,7 @@ class Technology(ModelComponent):
         :param model_block: pyomo network block
         :param h5_group: h5 group to write to
         """
+
         for car in model_block.set_input_carriers_all:
             if model_block.find_component("var_input"):
                 h5_group.create_dataset(
