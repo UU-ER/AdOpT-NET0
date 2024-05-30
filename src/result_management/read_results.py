@@ -255,7 +255,7 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
 
     # Reset the index to ensure time_stamp is a column
     summary_results = summary_results.reset_index().rename(
-        columns={"index": "time_stamp"}
+        columns={"index": "folder_name"}
     )
 
     # Save the updated summary_results to the Excel file
