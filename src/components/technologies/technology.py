@@ -656,10 +656,7 @@ class Technology(ModelComponent):
         # For existing technologies it is used to calculate fixed OPEX
         b_tec.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
 
-        if self.existing and not self.component_options.decommission:
-            b_tec.var_capex = pyo.Param(domain=pyo.Reals, initialize=0)
-        else:
-            b_tec.var_capex = pyo.Var()
+        b_tec.var_capex = pyo.Var()
 
         return b_tec
 
@@ -800,10 +797,9 @@ class Technology(ModelComponent):
             pass
 
         # CAPEX
-        if self.existing and not self.component_options.decommission:
-            pass
-        else:
-            if self.existing:
+        if self.existing:
+            if self.component_options.decommission:
+                # technology can be decommissioned
                 b_tec.para_decommissioning_cost = pyo.Param(
                     domain=pyo.Reals,
                     initialize=economics.decommission_cost,
@@ -815,9 +811,12 @@ class Technology(ModelComponent):
                     * b_tec.para_decommissioning_cost
                 )
             else:
-                b_tec.const_capex = pyo.Constraint(
-                    expr=b_tec.var_capex == b_tec.var_capex_aux
-                )
+                # technology cannot be decommissioned
+                b_tec.const_capex = pyo.Constraint(expr=b_tec.var_capex == 0)
+        else:
+            b_tec.const_capex = pyo.Constraint(
+                expr=b_tec.var_capex == b_tec.var_capex_aux
+            )
 
         return b_tec
 

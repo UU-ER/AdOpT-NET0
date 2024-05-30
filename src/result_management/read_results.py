@@ -67,7 +67,7 @@ def extract_dataset_from_h5(dataset) -> list:
     return data
 
 
-def add_values_to_summary(summary_path: Path or str, component_set: list = None):
+def add_values_to_summary(summary_path: Path, component_set: list = None):
     """
     Collect values of input cost parameters and relevant variables from HDF5 files and add them to the summary Excel file.
 
@@ -78,11 +78,7 @@ def add_values_to_summary(summary_path: Path or str, component_set: list = None)
     """
 
     if component_set is None:
-        component_set = {"Technologies", "Networks", "Import", "Export"}
-
-    # Ensure summary_path is a Path object
-    if not isinstance(summary_path, Path):
-        summary_path = Path(summary_path)
+        component_set = ["Technologies", "Networks", "Import", "Export"]
 
     summary_results = pd.read_excel(summary_path)
 

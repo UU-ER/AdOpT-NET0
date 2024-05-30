@@ -303,7 +303,7 @@ def initialize_configuration_templates() -> dict:
                         "Import",
                         "Export",
                     ],
-                    "value": "Technologies",
+                    "value": ["Technologies"],
                 },
             },
             "pareto_points": {"description": "Number of Pareto points.", "value": 5},
