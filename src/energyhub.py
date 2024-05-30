@@ -707,6 +707,7 @@ class EnergyHub:
         self.last_solve_info["monte_carlo_run"] = 0
         self.last_solve_info["config"] = config
         self.last_solve_info["result_folder_path"] = result_folder_path
+        self.last_solve_info["time_stage"] = self.info_solving_algorithms["time_stage"]
 
         self.write_results()
 
