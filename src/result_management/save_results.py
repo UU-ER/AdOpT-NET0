@@ -118,6 +118,20 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
     :return: a dictionary containing the most important model results (i.e., summary_dict)
     :rtype: dict
     """
+
+    def read_value_from_parameter(para) -> list:
+        """
+        Reads parameter values from a pyomo parameter
+
+        :param para: pyomo parameter
+        :return: values as a list
+        :rtype: list
+        """
+        if para.mutable:
+            return [para[t, car].value for t in set_t]
+        else:
+            return [para[t, car] for t in set_t]
+
     config = model_info["config"]
     folder_path = model_info["result_folder_path"]
 
@@ -301,9 +315,10 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                         "import",
                         data=[node_data.var_import_flow[t, car].value for t in set_t],
                     )
+
                     car_group.create_dataset(
                         "import_price",
-                        data=[node_data.para_import_price[t, car].value for t in set_t],
+                        data=read_value_from_parameter(node_data.para_import_price),
                     )
                     car_group.create_dataset(
                         "export",
@@ -311,7 +326,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                     )
                     car_group.create_dataset(
                         "export_price",
-                        data=[node_data.para_export_price[t, car].value for t in set_t],
+                        data=read_value_from_parameter(node_data.para_export_price),
                     )
                     car_group.create_dataset(
                         "demand", data=[node_data.para_demand[t, car] for t in set_t]

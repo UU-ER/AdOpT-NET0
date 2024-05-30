@@ -1,6 +1,5 @@
 import pyomo.gdp as gdp
 import pyomo.environ as pyo
-from warnings import warn
 import numpy as np
 import pandas as pd
 
@@ -502,14 +501,14 @@ class Technology(ModelComponent):
             ):
                 b_tec = self._define_dynamics(b_tec, data)
             else:
-                warn(
+                log_event(
                     "Modeling dynamic constraints not enabled for technology type"
                     + self.name
                 )
         else:
             if self.component_options.performance_function_type == 4:
                 self.component_options.performance_function_type = 3
-                warn(
+                log_event(
                     "Switching dynamics off for performance function type 4, type changed to 3 for "
                     + self.name
                 )
@@ -1709,7 +1708,7 @@ class Technology(ModelComponent):
         for para in para_names:
             if dynamics[para] < 0:
                 dynamics[para] = 0
-                warn(
+                log_event(
                     "Using SU/SD logic constraints, parameter "
                     + str(para)
                     + " set to default value 0"
@@ -1718,7 +1717,7 @@ class Technology(ModelComponent):
         for para in para_names:
             if dynamics[para] < 0:
                 dynamics[para] = 1
-                warn(
+                log_event(
                     "Using SU/SD logic constraints, parameter "
                     + str(para)
                     + " set to default value 1"
@@ -1801,7 +1800,7 @@ class Technology(ModelComponent):
         for para in para_names:
             if dynamics[para] < 0:
                 dynamics[para] = 1
-                warn(
+                log_event(
                     "Using SU/SD load constraints, parameter"
                     + str(para)
                     + "set to default value 1"
