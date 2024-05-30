@@ -99,14 +99,15 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
     for case in paths:
         path = Path(case)
         hdf_file_path = path / "optimization_results.h5"
+        output_dict[case] = {}
         if hdf_file_path.exists():
             with h5py.File(hdf_file_path, "r") as hdf_file:
 
                 if "Technologies" in component_set:
-                    df = extract_datasets_from_h5group(hdf_file["design/nodes"]).sum()
-                    for period in df.index.levels[0]:
-                        for node in df.index.levels[1]:
-                            for tec in df.index.levels[2]:
+                    df = extract_datasets_from_h5group(hdf_file["design/nodes"])
+                    for period in df.columns.levels[0]:
+                        for node in df.columns.levels[1]:
+                            for tec in df.columns.levels[2]:
                                 parameters = [
                                     "size",
                                     "capex_tot",
@@ -114,48 +115,44 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                     "para_fixCAPEX",
                                 ]
                                 for para in parameters:
-                                    if para == "para_fixCAPEX":
-                                        try:
-                                            tec_output = df.loc[period, node, tec, para]
-                                        except KeyError:
-                                            continue
-                                    else:
-                                        tec_output = df.loc[period, node, tec, para]
+                                    if (period, node, tec, para) in df.columns:
+                                        tec_output = df[(period, node, tec, para)].iloc[
+                                            0
+                                        ]
                                     output_name = f"{period}/{node}/{tec}/{para}"
-                                    if case not in output_dict:
-                                        output_dict[case] = {}
                                     if output_name not in output_dict[case]:
                                         output_dict[case][output_name] = tec_output
 
                 if "Networks" in component_set:
-                    df = extract_datasets_from_h5group(
-                        hdf_file["design/networks"]
-                    ).sum()
-                    for period in df.index.levels[0]:
-                        for netw in df.index.levels[1]:
-                            parameters1 = [
-                                "para_capex_gamma1",
-                                "para_capex_gamma2",
-                                "para_capex_gamma3",
-                                "para_capex_gamma4",
-                            ]
-                            for para in parameters1:
-                                output_name = f"{period}/{netw}/{para}"
-                                netw_output = df.loc[period, netw, para]
-                                if case not in output_dict:
-                                    output_dict[case] = {}
-                                if output_name not in output_dict[case]:
-                                    output_dict[case][output_name] = netw_output.iloc[0]
-                            for arc in df.index.levels[2]:
-                                if "gamma" not in arc:
-                                    parameters2 = ["size", "capex"]
-                                    for para in parameters2:
-                                        output_name = f"{period}/{netw}/{arc}/{para}"
-                                        arc_output = df.loc[period, netw, arc, para]
-                                        if case not in output_dict:
-                                            output_dict[case] = {}
-                                        if output_name not in output_dict[case]:
-                                            output_dict[case][output_name] = arc_output
+                    df = extract_datasets_from_h5group(hdf_file["design/networks"])
+                    if not df.empty:
+                        for period in df.columns.levels[0]:
+                            for netw in df.columns.levels[1]:
+                                parameters1 = [
+                                    "para_capex_gamma1",
+                                    "para_capex_gamma2",
+                                    "para_capex_gamma3",
+                                    "para_capex_gamma4",
+                                ]
+                                for para in parameters1:
+                                    output_name = f"{period}/{netw}/{para}"
+                                    netw_output = df.loc[period, netw, para]
+                                    if output_name not in output_dict[case]:
+                                        output_dict[case][output_name] = (
+                                            netw_output.iloc[0]
+                                        )
+                                for arc in df.index.levels[2]:
+                                    if "gamma" not in arc:
+                                        parameters2 = ["size", "capex"]
+                                        for para in parameters2:
+                                            output_name = (
+                                                f"{period}/{netw}/{arc}/{para}"
+                                            )
+                                            arc_output = df.loc[period, netw, arc, para]
+                                            if output_name not in output_dict[case]:
+                                                output_dict[case][
+                                                    output_name
+                                                ] = arc_output
 
                 if "Import" in component_set:
                     df = extract_datasets_from_h5group(
@@ -175,8 +172,6 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                         output_name = (
                                             f"{period}/{node}/{car}/{para}_tot"
                                         )
-                                        if case not in output_dict:
-                                            output_dict[case] = {}
                                         if output_name not in output_dict[case]:
                                             output_dict[case][output_name] = car_output
                                     elif para == "import_price":
@@ -188,8 +183,6 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                         output_name_std = (
                                             f"{period}/{node}/{car}/{para}_std"
                                         )
-                                        if case not in output_dict:
-                                            output_dict[case] = {}
                                         if output_name_mean not in output_dict[case]:
                                             output_dict[case][
                                                 output_name_mean
@@ -217,8 +210,6 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                         output_name = (
                                             f"{period}/{node}/{car}/{para}_tot"
                                         )
-                                        if case not in output_dict:
-                                            output_dict[case] = {}
                                         if output_name not in output_dict[case]:
                                             output_dict[case][output_name] = car_output
                                     elif para == "export_price":
@@ -230,8 +221,6 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                         output_name_std = (
                                             f"{period}/{node}/{car}/{para}_std"
                                         )
-                                        if case not in output_dict:
-                                            output_dict[case] = {}
                                         if output_name_mean not in output_dict[case]:
                                             output_dict[case][
                                                 output_name_mean

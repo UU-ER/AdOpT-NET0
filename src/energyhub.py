@@ -1080,7 +1080,7 @@ class EnergyHub:
         sd = config["optimization"]["monte_carlo"]["sd"]["value"]
         sd_random = np.random.normal(1, sd)
 
-        netw_data = self.data.network_data[aggregation_model][period][netw]
+        netw_data = self.data.network_data[period][netw]
         economics = netw_data.economics
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = self.data.topology["fraction_of_year_modelled"]
@@ -1186,7 +1186,7 @@ class EnergyHub:
                             # Update parameter
                             model.periods[period].node_blocks[node].para_import_price[
                                 t, car
-                            ] = (import_prices[t - 1] * random_factor)
+                            ] = (import_prices.iloc[t - 1] * random_factor)
 
     def _monte_carlo_import_constraints(self):
         """
@@ -1243,7 +1243,7 @@ class EnergyHub:
                             # Update parameter
                             model.periods[period].node_blocks[node].para_export_price[
                                 t, car
-                            ] = (export_prices[t - 1] * random_factor)
+                            ] = (export_prices.iloc[t - 1] * random_factor)
 
     def _monte_carlo_export_constraints(self):
         """
