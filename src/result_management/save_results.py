@@ -94,10 +94,10 @@ def get_summary(model, solution, folder_path: Path, model_info: dict) -> dict:
     ]
     summary_dict["pareto_point"] = model_info["pareto_point"]
     summary_dict["monte_carlo_run"] = model_info["monte_carlo_run"]
+    summary_dict["time_stage"] = model_info["time_stage"]
 
-    # Fixme: averaging algorithm
-    # time_stage = get_time_stage(energyhub)
-    # summary_dict["time_stage"] = time_stage
+    summary_dict["case"] = model_info["config"]["reporting"]["case_name"]["value"]
+
     summary_dict["time_stamp"] = str(folder_path)
 
     return summary_dict
@@ -118,6 +118,20 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
     :return: a dictionary containing the most important model results (i.e., summary_dict)
     :rtype: dict
     """
+
+    def read_value_from_parameter(para) -> list:
+        """
+        Reads parameter values from a pyomo parameter
+
+        :param para: pyomo parameter
+        :return: values as a list
+        :rtype: list
+        """
+        if para.mutable:
+            return [para[t, car].value for t in set_t]
+        else:
+            return [para[t, car] for t in set_t]
+
     config = model_info["config"]
     folder_path = model_info["result_folder_path"]
 
@@ -301,9 +315,18 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                         "import",
                         data=[node_data.var_import_flow[t, car].value for t in set_t],
                     )
+
+                    car_group.create_dataset(
+                        "import_price",
+                        data=read_value_from_parameter(node_data.para_import_price),
+                    )
                     car_group.create_dataset(
                         "export",
                         data=[node_data.var_export_flow[t, car].value for t in set_t],
+                    )
+                    car_group.create_dataset(
+                        "export_price",
+                        data=read_value_from_parameter(node_data.para_export_price),
                     )
                     car_group.create_dataset(
                         "demand", data=[node_data.para_demand[t, car] for t in set_t]
