@@ -116,12 +116,10 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                 ]
                                 for para in parameters:
                                     if (period, node, tec, para) in df.columns:
-                                        tec_output = df[(period, node, tec, para)].iloc[
-                                            0
-                                        ]
-                                    output_name = f"{period}/{node}/{tec}/{para}"
-                                    if output_name not in output_dict[case]:
-                                        output_dict[case][output_name] = tec_output
+                                        tec_output = df[period, node, tec, para].iloc[0]
+                                        output_name = f"{period}/{node}/{tec}/{para}"
+                                        if output_name not in output_dict[case]:
+                                            output_dict[case][output_name] = tec_output
 
                 if "Networks" in component_set:
                     df = extract_datasets_from_h5group(hdf_file["design/networks"])
@@ -136,19 +134,19 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                 ]
                                 for para in parameters1:
                                     output_name = f"{period}/{netw}/{para}"
-                                    netw_output = df.loc[period, netw, para]
+                                    netw_output = df[period, netw, para].iloc[0, 0]
                                     if output_name not in output_dict[case]:
-                                        output_dict[case][output_name] = (
-                                            netw_output.iloc[0]
-                                        )
-                                for arc in df.index.levels[2]:
+                                        output_dict[case][output_name] = netw_output
+                                for arc in df.columns.levels[2]:
                                     if "gamma" not in arc:
                                         parameters2 = ["size", "capex"]
                                         for para in parameters2:
                                             output_name = (
                                                 f"{period}/{netw}/{arc}/{para}"
                                             )
-                                            arc_output = df.loc[period, netw, arc, para]
+                                            arc_output = df[
+                                                period, netw, arc, para
+                                            ].iloc[0]
                                             if output_name not in output_dict[case]:
                                                 output_dict[case][
                                                     output_name
