@@ -47,10 +47,11 @@ def set_capex_model(config: dict, economics) -> int:
     :return: CAPEX model
     :rtype: int
     """
-    if config["economic"]["global_simple_capex_model"]["value"]:
-        capex_model = 1
-    else:
-        capex_model = economics.capex_model
+    capex_model = economics.capex_model
+    if capex_model != 4:
+        if config["economic"]["global_simple_capex_model"]["value"]:
+            capex_model = 1
+
     return capex_model
 
 

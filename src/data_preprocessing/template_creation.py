@@ -287,8 +287,8 @@ def initialize_configuration_templates() -> dict:
                     "description": "Type of Monte Carlo simulation. For type 1 the user defines the standard "
                     "deviation and the components to vary. For type 2 the user provides a csv file "
                     "with the parameters and their min, max and reference values. ",
-                    "options": [1, 2],
-                    "value": 1,
+                    "options": ["normal_dis", "uniform_dis_from_file"],
+                    "value": "normal_dis",
                 },
                 "sd": {
                     "description": "Value defining the range in which variables are varied in Monte Carlo simulations "
@@ -300,14 +300,10 @@ def initialize_configuration_templates() -> dict:
                     "options": [
                         "Technologies",
                         "Networks",
-                        "ImportPrices",
-                        "ExportPrices",
+                        "Import",
+                        "Export",
                     ],
-                    "value": "Technologies",
-                },
-                "csv_path": {
-                    "description": "Path to the CSV file containing the optimization parameters.",
-                    "value": None,
+                    "value": ["Technologies"],
                 },
             },
             "pareto_points": {"description": "Number of Pareto points.", "value": 5},
@@ -504,11 +500,13 @@ def create_optimization_templates(path: Path | str):
 
 def create_montecarlo_template_csv(base_path: Path | str):
     """
-    Creates a template CSV file for the monte carlo parameters and saves it to the given path.
+    Creates a template CSV file for the monte carlo parameters and saves it to the given path. The monte carlo can
+    only be performed on economic parameters.
 
-    The file should be filled by specifying the type ('technology', 'network', 'import', 'export'), the name (specific technology or
-    network name, carrier in case of import or export), and the parameter ('CAPEX' for technology and network and
-    'price' or 'limit' for import and export).
+    The file should be filled by specifying the type ("Technologies", "Networks", "Import", "Export"), the name (
+    specific technology or network name, carrier in case of import or export), and the parameter ('unit_CAPEX' or
+    'fix_CAPEX' for technology, 'gamma1' 'gamma2' 'gamma3' or 'gamma4' for network and 'price' for import
+    and export).
 
     :param str/Path path: path to folder to create Topology.json
     """

@@ -69,3 +69,18 @@ def get_hour_factors(config: dict, data, period: str) -> list:
         return data.k_means_specs[period]["factors"]
     elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
         return [1] * len(data.topology["time_index"]["full"])
+
+
+def get_nr_timesteps_averaged(config: dict) -> int:
+    """
+    Returns the correct number of timesteps averaged
+
+    :param dict config: config dict
+    :return: nr_timesteps_averaged
+    """
+    if config["optimization"]["timestaging"]["value"] != 0:
+        nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
+    else:
+        nr_timesteps_averaged = 1
+
+    return nr_timesteps_averaged
