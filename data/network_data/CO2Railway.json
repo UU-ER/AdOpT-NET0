@@ -34,13 +34,13 @@
       }
     }
   },
-      "Units": {
+  "Units": {
     "size": "t/h",
     "input_carrier": {
       "electricity": "MW"
     },
     "transport_carrier": {
-      "CO2captured": "tonne/hr"
+      "CO2captured": "t/h"
     }
   }
 }

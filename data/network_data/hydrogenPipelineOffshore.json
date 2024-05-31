@@ -34,7 +34,7 @@
       }
     }
   },
-        "Units": {
+  "Units": {
     "size": "MW",
     "transport_carrier": {
       "hydrogen": "MW"
