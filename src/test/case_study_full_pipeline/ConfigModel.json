@@ -24,10 +24,9 @@
             "type": {
                 "description": "Type of Monte Carlo simulation. For type 1 the user defines the standard deviation and the components to vary. For type 2 the user provides a csv file with the parameters and their min, max and reference values. ",
                 "options": [
-                    1,
-                    2
+                   "normal_dis", "uniform_dis_from_file"
                 ],
-                "value": 1
+                "value": "normal_dis"
             },
             "sd": {
                 "description": "Value defining the range in which variables are varied in Monte Carlo simulations (defined as the standard deviation of the original value).",
@@ -38,14 +37,10 @@
                 "options": [
                     "Technologies",
                     "Networks",
-                    "ImportPrices",
-                    "ExportPrices"
+                    "Import",
+                    "Export"
                 ],
-                "value": "Technologies"
-            },
-            "csv_path": {
-                "description": "Path to the CSV file containing the optimization parameters.",
-                "value": null
+                "value": ["Technologies", "Networks", "Import", "Export"]
             }
         },
         "pareto_points": {

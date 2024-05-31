@@ -8,6 +8,8 @@ from .construct_balances import (
     construct_network_constraints,
     delete_all_balances,
     construct_global_balance,
+    construct_export_costs,
+    construct_import_costs,
 )
 from .construct_nodes import construct_node_block
 from .construct_investment_period import construct_investment_period_block

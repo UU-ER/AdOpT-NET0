@@ -1,6 +1,6 @@
 import pyomo.environ as pyo
 
-from src.utilities import get_set_t, get_hour_factors
+from src.utilities import get_set_t, get_hour_factors, get_nr_timesteps_averaged
 
 
 def delete_all_balances(model):
@@ -321,10 +321,7 @@ def construct_emission_balance(model, data):
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
         hour_factors = get_hour_factors(config, data, period)
-        if config["optimization"]["timestaging"]["value"] != 0:
-            nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
-        else:
-            nr_timesteps_averaged = 1
+        nr_timesteps_averaged = get_nr_timesteps_averaged(config)
 
         # calculate total emissions from technologies, networks and importing/exporting carriers
         def init_emissions_pos(const):
@@ -415,6 +412,56 @@ def construct_emission_balance(model, data):
     return model
 
 
+def construct_import_costs(b_period, data, period):
+    config = data.model_config
+
+    set_t = get_set_t(config, b_period)
+    hour_factors = get_hour_factors(config, data, period)
+    nr_timesteps_averaged = get_nr_timesteps_averaged(config)
+
+    def init_cost_import(const):
+        return b_period.var_cost_imports == sum(
+            sum(
+                sum(
+                    b_period.node_blocks[node].var_import_flow[t, car]
+                    * b_period.node_blocks[node].para_import_price[t, car]
+                    * nr_timesteps_averaged
+                    * hour_factors[t - 1]
+                    for car in b_period.node_blocks[node].set_carriers
+                )
+                for t in set_t
+            )
+            for node in b_period.node_blocks
+        )
+
+    return pyo.Constraint(rule=init_cost_import)
+
+
+def construct_export_costs(b_period, data, period):
+    config = data.model_config
+
+    set_t = get_set_t(config, b_period)
+    hour_factors = get_hour_factors(config, data, period)
+    nr_timesteps_averaged = get_nr_timesteps_averaged(config)
+
+    def init_cost_export(const):
+        return b_period.var_cost_exports == -sum(
+            sum(
+                sum(
+                    b_period.node_blocks[node].var_export_flow[t, car]
+                    * b_period.node_blocks[node].para_export_price[t, car]
+                    * nr_timesteps_averaged
+                    * hour_factors[t - 1]
+                    for car in b_period.node_blocks[node].set_carriers
+                )
+                for t in set_t
+            )
+            for node in b_period.node_blocks
+        )
+
+    return pyo.Constraint(rule=init_cost_export)
+
+
 def construct_system_cost(model, data):
     """
     Calculates total system costs in three steps.
@@ -433,10 +480,7 @@ def construct_system_cost(model, data):
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
         hour_factors = get_hour_factors(config, data, period)
-        if config["optimization"]["timestaging"]["value"] != 0:
-            nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
-        else:
-            nr_timesteps_averaged = 1
+        nr_timesteps_averaged = get_nr_timesteps_averaged(config)
 
         # Capex Tecs
         def init_cost_capex_tecs(const):
@@ -535,41 +579,9 @@ def construct_system_cost(model, data):
 
         b_period_cost.const_cost_netws = pyo.Constraint(rule=init_cost_netw)
 
-        # Total import cost
-        def init_cost_import(const):
-            return b_period.var_cost_imports == sum(
-                sum(
-                    sum(
-                        b_period.node_blocks[node].var_import_flow[t, car]
-                        * b_period.node_blocks[node].para_import_price[t, car]
-                        * nr_timesteps_averaged
-                        * hour_factors[t - 1]
-                        for car in b_period.node_blocks[node].set_carriers
-                    )
-                    for t in set_t
-                )
-                for node in model.set_nodes
-            )
-
-        b_period_cost.const_cost_import = pyo.Constraint(rule=init_cost_import)
-
-        # Total export cost
-        def init_cost_export(const):
-            return b_period.var_cost_exports == -sum(
-                sum(
-                    sum(
-                        b_period.node_blocks[node].var_export_flow[t, car]
-                        * b_period.node_blocks[node].para_export_price[t, car]
-                        * nr_timesteps_averaged
-                        * hour_factors[t - 1]
-                        for car in b_period.node_blocks[node].set_carriers
-                    )
-                    for t in set_t
-                )
-                for node in model.set_nodes
-            )
-
-        b_period_cost.const_cost_export = pyo.Constraint(rule=init_cost_export)
+        # Total import/export cost
+        b_period_cost.const_cost_import = construct_import_costs(b_period, data, period)
+        b_period_cost.const_cost_export = construct_export_costs(b_period, data, period)
 
         # Total violation cost
         def init_violation_cost(const):

@@ -8,12 +8,18 @@ of all global modelling settings (e.g., objective, high-level algorithms, energy
 and solver configurations. In the table in the Model Configuration overview below you can see all settings that can be
 specified, and a description, the options that can be chosen and the default value from the template for each setting.
 
-In the model configuration, you can also specify options to reduce the complexity of the model, such as time-staging,
+In the model configuration file you can select a specific type of analysis, such as a Pareto or Monte Carlo analysis. For
+background information on these analyses, see the following pages:
+- :ref:`Pareto analysis<pareto>`
+- :ref:`Monte Carlo analysis<monte_carlo>`
+
+Furthermore, you can specify options to reduce the complexity of the model, such as time-staging,
 clustering or scaling. For background information on the algorithms, see the following pages:
 
-- :ref:`Time staging algorithm<time_averaging>`.
-- :ref:`Clustering algorithm<clustering>`.
-- :ref:`Scaling<scaling>`.
+- :ref:`Time staging algorithm<time_averaging>`
+- :ref:`Clustering algorithm<clustering>`
+- :ref:`Scaling<scaling>`
+
 
 
 Model Configuration Overview
@@ -25,9 +31,9 @@ Model Configuration Overview
 
    "optimization", "objective", "String specifying the objective/type of optimization.", "'costs', 'emissions_pos', 'emissions_net', 'emissions_minC', 'costs_emissionlimit', 'pareto'", "costs"
    "optimization", "monte_carlo.N", "Number of Monte Carlo simulations (0 = off).", "", 0
-   "optimization", "monte_carlo.type", "Type of Monte Carlo simulation. For type 1 the user defines the standard deviation and the components to vary. For type 2 the user provides a csv file with the parameters and their min, max and reference values. ", "1, 2", 1
+   "optimization", "monte_carlo.type", "Type of Monte Carlo simulation. For type 1 the user defines the standard deviation and the components to vary. For type 2 the user provides a csv file with the parameters and their min, max and reference values. ", "normal_dis, uniform_dis_from_file", normal_dis
    "optimization", "monte_carlo.sd", "Value defining the range in which variables are varied in Monte Carlo simulations (defined as the standard deviation of the original value).", "", 0.2
-   "optimization", "monte_carlo.on_what", "List: Defines component to vary.", "'Technologies', 'Networks', 'ImportPrices', 'ExportPrices'", "Technologies"
+   "optimization", "monte_carlo.on_what", "List: Defines component to vary.", "'Technologies', 'Networks', 'Import', 'Export'", "Technologies"
    "optimization", "monte_carlo.csv_path", "Path to the CSV file containing the optimization parameters.", "", None
    "optimization", "pareto_points", "Number of Pareto points.", "", 5
    "optimization", "timestaging", "Defines number of timesteps that are averaged (0 = off).", "", 0
