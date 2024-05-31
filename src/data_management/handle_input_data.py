@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import tsam.timeseriesaggregation as tsam
-import copy
 
 from .utilities import *
 from ..components.networks import *
@@ -47,6 +46,7 @@ class DataHandle:
         self.model_config = {}
         self.k_means_specs = {}
         self.averaged_specs = {}
+        self.monte_carlo_specs = {}
         self.start_period = None
         self.end_period = None
 
@@ -95,6 +95,10 @@ class DataHandle:
         self._read_energybalance_options()
         self._read_technology_data()
         self._read_network_data()
+
+        # Monte Carlo
+        if self.model_config["optimization"]["monte_carlo"]["N"]["value"] > 0:
+            self._read_monte_carlo()
 
         # Clustering/Averaging algorithms
         if self.model_config["optimization"]["typicaldays"]["N"]["value"] != 0:
@@ -288,10 +292,10 @@ class DataHandle:
         """
         Reads all technology data and fits it
 
-        :param str aggregation_type: specifies the aggregation type and thus the dict key to write the data to
+        :param str aggregation_model: specifies the aggregation type and thus the dict key to write the data to
         """
         # Technology data always fitted based on full resolution
-        aggregation_type = "full"
+        aggregation_model = "full"
 
         # Initialize technology_data dict
         technology_data = {}
@@ -323,7 +327,7 @@ class DataHandle:
                         / "technology_data",
                     )
                     tec_data.fit_technology_performance(
-                        self.time_series[aggregation_type][investment_period][node][
+                        self.time_series[aggregation_model][investment_period][node][
                             "ClimateData"
                         ]["global"],
                         self.node_locations.loc[node, :],
@@ -345,7 +349,7 @@ class DataHandle:
                         "existing"
                     ][technology]
                     tec_data.fit_technology_performance(
-                        self.time_series[aggregation_type][investment_period][node][
+                        self.time_series[aggregation_model][investment_period][node][
                             "ClimateData"
                         ]["global"],
                         self.node_locations.loc[node, :],
@@ -469,6 +473,16 @@ class DataHandle:
 
         log_event("Network data read successfully")
 
+    def _read_monte_carlo(self):
+        """
+        Reads monte carlo data
+        """
+        if (
+            self.model_config["optimization"]["monte_carlo"]["type"]["value"]
+            == "uniform_dis_from_file"
+        ):
+            self.monte_carlo_specs = pd.read_csv(self.data_path / "MonteCarlo.csv")
+
     def _collect_full_res_data(self, investment_period: str) -> pd.DataFrame:
         """
         Collects data from time_series and technology performances and writes it to a
@@ -519,7 +533,7 @@ class DataHandle:
         return pd.concat([time_series, tec_series], axis=1)
 
     def _write_aggregated_data_to_technologies(
-        self, investment_period: str, tec_series: pd.DataFrame, aggregation_type: str
+        self, investment_period: str, tec_series: pd.DataFrame, aggregation_model: str
     ):
         """
         Writes aggregated technology performances to technology classes.
@@ -538,9 +552,9 @@ class DataHandle:
                     coeff_td = {}
                     for series in time_dependent_coeff.columns.get_level_values(0):
                         coeff_td[series] = time_dependent_coeff[series].values
-                    if aggregation_type == "clustered":
+                    if aggregation_model == "clustered":
                         tec_data.processed_coeff.time_dependent_clustered = coeff_td
-                    elif aggregation_type == "averaged":
+                    elif aggregation_model == "averaged":
                         tec_data.processed_coeff.time_dependent_averaged = coeff_td
 
     def _cluster_data(self):

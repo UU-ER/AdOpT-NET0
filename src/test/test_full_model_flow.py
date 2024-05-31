@@ -1,6 +1,8 @@
 from pathlib import Path
 from warnings import warn
 
+from pyomo.opt import TerminationCondition
+
 from src.energyhub import EnergyHub
 
 
@@ -213,3 +215,36 @@ def test_objective_functions(request):
     pyhub._optimize_costs_minE()
     pyhub._optimize_costs_emissionslimit()
     pyhub._solve_pareto()
+
+
+def test_monte_carlo(request):
+    """
+    Tests monte carlo analysis
+    """
+
+    path = Path("src/test/case_study_full_pipeline")
+
+    pyhub = EnergyHub()
+    pyhub.read_data(path, start_period=0, end_period=2)
+
+    # Monte Carlo type normal
+    pyhub.data.model_config["optimization"]["monte_carlo"]["N"]["value"] = 2
+
+    pyhub.construct_model()
+    pyhub.construct_balances()
+    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.solve()
+
+    termination = pyhub.solution.solver.termination_condition
+    assert termination == TerminationCondition.optimal
+
+    # Solve for Monte Carlo type uniform
+    pyhub.data.model_config["optimization"]["monte_carlo"]["type"][
+        "value"
+    ] = "uniform_dis_from_file"
+    pyhub.data._read_monte_carlo()
+
+    pyhub.solve()
+
+    termination = pyhub.solution.solver.termination_condition
+    assert termination == TerminationCondition.optimal
