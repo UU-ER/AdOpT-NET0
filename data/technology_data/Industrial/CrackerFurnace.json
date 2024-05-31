@@ -65,6 +65,7 @@
     "SD_load": -1,
     "max_startups": -1
   },
+  "DOI": "Data is published in: https://doi.org/10.1021/acs.iecr.3c02226",
   "Units": {
     "size": "tonne/hr",
     "input_carrier": {
