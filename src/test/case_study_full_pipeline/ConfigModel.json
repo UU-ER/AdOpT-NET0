@@ -40,11 +40,7 @@
                     "Import",
                     "Export"
                 ],
-                "value": "Technologies"
-            },
-            "csv_path": {
-                "description": "Path to the CSV file containing the optimization parameters.",
-                "value": null
+                "value": ["Technologies", "Networks", "Import", "Export"]
             }
         },
         "pareto_points": {
