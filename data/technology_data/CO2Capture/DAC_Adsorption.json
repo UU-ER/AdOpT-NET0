@@ -36,6 +36,7 @@
       "eta_elth": 0.97
     }
   },
+  "DOI": "Data is published in: https://doi.org/10.1021/acs.iecr.2c00681",
   "Units": {
     "size": "MW",
     "input_carrier": {
