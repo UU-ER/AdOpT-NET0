@@ -108,13 +108,30 @@ class EnergyHub:
                 for node in topology["nodes"]:
                     for tec_name in self.data.technology_data[period][node]:
                         tec = self.data.technology_data[period][node][tec_name]
-                        if ("ramping_time" in tec.processed_coeff.dynamics) and (
-                            tec.processed_coeff.dynamics["ramping_time"] != -1
+                        if (
+                            config["optimization"]["typicaldays"]["method"]["value"]
+                            == 1
                         ):
-                            raise Exception(
-                                f"Ramping Rate for technology {tec_name} "
-                                f"needs to be -1 when clustering with typical days "
-                            )
+                            if ("ramping_time" in tec.processed_coeff.dynamics) and (
+                                tec.processed_coeff.dynamics["ramping_time"] != -1
+                            ):
+                                raise Exception(
+                                    f"Ramping Rate for technology {tec_name} "
+                                    f"needs to be -1 when clustering with typical days for method 1"
+                                )
+                        elif (
+                            config["optimization"]["typicaldays"]["method"]["value"]
+                            == 2
+                        ):
+                            if (
+                                "ramping_const_int" in tec.processed_coeff.dynamics
+                            ) and (
+                                tec.processed_coeff.dynamics["ramping_const_int"] != -1
+                            ):
+                                raise Exception(
+                                    f"Ramping constraint with integers (ramping_const_int) for technology {tec_name} "
+                                    f"needs to be -1 when clustering with typical days for method 2"
+                                )
 
         if config["optimization"]["timestaging"]["value"] != 0:
             if config["performance"]["dynamics"]["value"]:

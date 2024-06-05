@@ -337,7 +337,7 @@ class Res(Technology):
         h5_group.create_dataset(
             "max_out",
             data=[
-                capfactor[t - 1] * model_block.var_size.value * rated_power
+                capfactor.iloc[t - 1] * model_block.var_size.value * rated_power
                 for t in self.set_t_performance
             ],
         )
@@ -354,7 +354,7 @@ class Res(Technology):
             h5_group.create_dataset(
                 "curtailment_" + car,
                 data=[
-                    capfactor[t - 1] * model_block.var_size.value * rated_power
+                    capfactor.iloc[t - 1] * model_block.var_size.value * rated_power
                     - model_block.var_output[t, car].value
                     for t in self.set_t_performance
                 ],

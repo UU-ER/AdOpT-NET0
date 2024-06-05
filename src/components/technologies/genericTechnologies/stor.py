@@ -9,6 +9,7 @@ from src.components.utilities import (
     annualize,
     set_discount_rate,
     get_attribute_from_dict,
+    link_full_resolution_to_clustered,
 )
 
 
@@ -472,7 +473,7 @@ class Stor(Technology):
         # RAMPING RATES
         if "ramping_time" in dynamics:
             if not dynamics["ramping_time"] == -1:
-                b_tec = self._define_ramping_rates(b_tec)
+                b_tec = self._define_ramping_rates(b_tec, data)
 
         return b_tec
 
@@ -620,7 +621,7 @@ class Stor(Technology):
             data=[model_block.var_storage_level[t].value for t in self.set_t_full],
         )
 
-    def _define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec, data):
         """
         Constraints the inputs for a ramping rate
 
@@ -653,8 +654,12 @@ class Stor(Technology):
                             # -rampingRate <= input[t] - input[t-1]
                             return (
                                 -ramping_rate
-                                <= self.input[t, self.main_car]
-                                - self.input[t - 1, self.main_car]
+                                <= self.input[
+                                    t, self.component_options.main_input_carrier
+                                ]
+                                - self.input[
+                                    t - 1, self.component_options.main_input_carrier
+                                ]
                             )
 
                         dis.const_ramping_down_rate_in = pyo.Constraint(
@@ -664,8 +669,10 @@ class Stor(Technology):
                         def init_ramping_up_rate_operation_in(const):
                             # input[t] - input[t-1] <= rampingRate
                             return (
-                                self.input[t, self.main_car]
-                                - self.input[t - 1, self.main_car]
+                                self.input[t, self.component_options.main_input_carrier]
+                                - self.input[
+                                    t - 1, self.component_options.main_input_carrier
+                                ]
                                 <= ramping_rate
                             )
 
@@ -724,41 +731,109 @@ class Stor(Technology):
             )
 
         else:
+            if data["config"]["optimization"]["typicaldays"]["N"]["value"] == -1:
+                input_aux = self.input
+                output_aux = self.output
+                set_t = self.set_t_performance
+            else:
+                # init bounds at full res
+                bounds_RR_full = {
+                    "input": self.fitting_class.calculate_input_bounds(
+                        self.component_options.size_based_on, len(self.set_t_full)
+                    ),
+                    "output": self.fitting_class.calculate_output_bounds(
+                        self.component_options.size_based_on, len(self.set_t_full)
+                    ),
+                }
 
+                # create input and output variable for full res
+                def init_input_bounds(bounds, t, car):
+                    return tuple(
+                        bounds_RR_full["input"][car][t - 1, :]
+                        * self.processed_coeff.time_independent["size_max"]
+                        * self.processed_coeff.time_independent["rated_power"]
+                    )
+
+                def init_output_bounds(bounds, t, car):
+                    return tuple(
+                        bounds_RR_full["output"][car][t - 1, :]
+                        * self.processed_coeff.time_independent["size_max"]
+                        * self.processed_coeff.time_independent["rated_power"]
+                    )
+
+                b_tec.var_input_RR_full = pyo.Var(
+                    self.set_t_full,
+                    b_tec.set_input_carriers,
+                    within=pyo.NonNegativeReals,
+                    bounds=init_input_bounds,
+                )
+                b_tec.var_output_RR_full = pyo.Var(
+                    self.set_t_full,
+                    b_tec.set_output_carriers,
+                    within=pyo.NonNegativeReals,
+                    bounds=init_output_bounds,
+                )
+
+                b_tec.const_link_full_resolution_RR_input = (
+                    link_full_resolution_to_clustered(
+                        self.input,
+                        b_tec.var_input_RR_full,
+                        self.set_t_full,
+                        self.sequence,
+                        b_tec.set_input_carriers,
+                    )
+                )
+
+                b_tec.const_link_full_resolution_RR_output = (
+                    link_full_resolution_to_clustered(
+                        self.output,
+                        b_tec.var_output_RR_full,
+                        self.set_t_full,
+                        self.sequence,
+                        b_tec.set_output_carriers,
+                    )
+                )
+
+                input_aux = b_tec.var_input_RR_full
+                output_aux = b_tec.var_output_RR_full
+                set_t = self.set_t_full
+
+            # Ramping constraint without integers
             def init_ramping_down_rate_input(const, t):
                 # -rampingRate <= input[t] - input[t-1]
                 if t > 1:
                     return (
                         -ramping_rate
-                        <= self.input[t, self.main_car]
-                        - self.input[t - 1, self.main_car]
+                        <= input_aux[t, self.component_options.main_input_carrier]
+                        - input_aux[t - 1, self.component_options.main_input_carrier]
                     )
                 else:
                     return pyo.Constraint.Skip
 
-            b_tec.const_ramping_down_rate_input = pyo.Constraint(
-                self.set_t_performance, rule=init_ramping_down_rate_input
+            b_tec.const_ramping_down_rate = pyo.Constraint(
+                set_t, rule=init_ramping_down_rate_input
             )
 
             def init_ramping_up_rate_input(const, t):
                 # input[t] - input[t-1] <= rampingRate
                 if t > 1:
                     return (
-                        self.input[t, self.main_car] - self.input[t - 1, self.main_car]
+                        input_aux[t, self.component_options.main_input_carrier]
+                        - input_aux[t - 1, self.component_options.main_input_carrier]
                         <= ramping_rate
                     )
                 else:
                     return pyo.Constraint.Skip
 
-            b_tec.const_ramping_up_rate_input = pyo.Constraint(
-                self.set_t_performance, rule=init_ramping_up_rate_input
+            b_tec.const_ramping_up_rate = pyo.Constraint(
+                set_t, rule=init_ramping_up_rate_input
             )
 
             def init_ramping_down_rate_output(const, t):
                 # -rampingRate <= output[t] - output[t-1]
                 if t > 1:
                     return -ramping_rate <= sum(
-                        self.output[t, car_output] - self.output[t - 1, car_output]
+                        output_aux[t, car_output] - output_aux[t - 1, car_output]
                         for car_output in b_tec.set_ouput_carriers
                     )
                 else:
@@ -773,7 +848,7 @@ class Stor(Technology):
                 if t > 1:
                     return (
                         sum(
-                            self.output[t, car_output] - self.output[t - 1, car_output]
+                            output_aux[t, car_output] - output_aux[t - 1, car_output]
                             for car_output in b_tec.set_ouput_carriers
                         )
                         <= ramping_rate
