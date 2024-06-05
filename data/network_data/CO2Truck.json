@@ -33,5 +33,14 @@
         "LHV": 0.001
       }
     }
+  },
+  "Units": {
+    "size": "t/h",
+    "input_carrier": {
+      "electricity": "MW"
+    },
+    "transport_carrier": {
+      "CO2captured": "t/h"
+    }
   }
 }
