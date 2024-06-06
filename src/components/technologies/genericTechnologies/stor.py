@@ -249,7 +249,7 @@ class Stor(Technology):
 
         # Additional decision variables
         b_tec.var_storage_level = pyo.Var(
-            set_t_full,
+            self.set_t_full,
             domain=pyo.NonNegativeReals,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
@@ -269,7 +269,7 @@ class Stor(Technology):
             # storageLevel <= storSize
             return b_tec.var_storage_level[t] <= b_tec.var_size
 
-        b_tec.const_size = pyo.Constraint(set_t_full, rule=init_size_constraint)
+        b_tec.const_size = pyo.Constraint(self.set_t_full, rule=init_size_constraint)
 
         # Storage level calculation
         def init_storage_level(const, t):
@@ -284,9 +284,9 @@ class Stor(Technology):
                 # soc[1] = soc[end] + input[seq] - output[seq]
 
                 return b_tec.var_storage_level[t] == b_tec.var_storage_level[
-                    max(set_t_full)
+                    max(self.set_t_full)
                 ] * (1 - eta_lambda) ** nr_timesteps_averaged - b_tec.var_storage_level[
-                    max(set_t_full)
+                    max(self.set_t_full)
                 ] * ambient_loss_factor[
                     sequence_storage[t - 1] - 1
                 ] ** nr_timesteps_averaged + (
@@ -327,7 +327,9 @@ class Stor(Technology):
                     (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
                 )
 
-        b_tec.const_storage_level = pyo.Constraint(set_t_full, rule=init_storage_level)
+        b_tec.const_storage_level = pyo.Constraint(
+            self.set_t_full, rule=init_storage_level
+        )
 
         # This makes sure that only either input or output is larger zero.
         if allow_only_one_direction == 1:
