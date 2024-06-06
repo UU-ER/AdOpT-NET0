@@ -871,7 +871,7 @@ class Conv2(Technology):
                 )
 
                 input_aux_rr = b_tec.var_input_RR_full
-                set_t = self.set_t_full
+                set_t_rr = self.set_t_full
 
             # Ramping constraint without integers
             def init_ramping_down_rate(const, t):
@@ -884,7 +884,7 @@ class Conv2(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate = pyo.Constraint(
-                set_t, rule=init_ramping_down_rate
+                set_t_rr, rule=init_ramping_down_rate
             )
 
             def init_ramping_up_rate(const, t):
@@ -900,7 +900,7 @@ class Conv2(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate = pyo.Constraint(
-                set_t, rule=init_ramping_up_rate
+                set_t_rr, rule=init_ramping_up_rate
             )
 
         return b_tec
