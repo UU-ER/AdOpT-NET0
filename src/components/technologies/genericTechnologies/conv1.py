@@ -840,8 +840,8 @@ class Conv1(Technology):
 
         else:
             if data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
-                input_aux = self.input
-                set_t = self.set_t_performance
+                input_aux_rr = self.input
+                set_t_rr = self.set_t_performance
             else:
                 if (
                     data["config"]["optimization"]["typicaldays"]["method"]["value"]
@@ -855,7 +855,7 @@ class Conv1(Technology):
                     sequence = self.sequence
 
                 # init bounds at full res
-                bounds_RR_full = {
+                bounds_rr_full = {
                     "input": self.fitting_class.calculate_input_bounds(
                         self.component_options.size_based_on, len(self.set_t_full)
                     )
@@ -864,7 +864,7 @@ class Conv1(Technology):
                 # create input variable for full res
                 def init_input_bounds(bounds, t, car):
                     return tuple(
-                        bounds_RR_full["input"][car][t - 1, :]
+                        bounds_rr_full["input"][car][t - 1, :]
                         * self.processed_coeff.time_independent["size_max"]
                         * self.processed_coeff.time_independent["rated_power"]
                     )
@@ -884,14 +884,14 @@ class Conv1(Technology):
                     b_tec.set_input_carriers,
                 )
 
-                input_aux = b_tec.var_input_RR_full
+                input_aux_rr = b_tec.var_input_RR_full
                 set_t = self.set_t_full
 
             # Ramping constraint without integers
             def init_ramping_down_rate(const, t):
                 if t > 1:
                     return -ramping_rate <= sum(
-                        input_aux[t, car_input] - input_aux[t - 1, car_input]
+                        input_aux_rr[t, car_input] - input_aux_rr[t - 1, car_input]
                         for car_input in b_tec.set_input_carriers
                     )
                 else:
@@ -905,7 +905,7 @@ class Conv1(Technology):
                 if t > 1:
                     return (
                         sum(
-                            input_aux[t, car_input] - input_aux[t - 1, car_input]
+                            input_aux_rr[t, car_input] - input_aux_rr[t - 1, car_input]
                             for car_input in b_tec.set_input_carriers
                         )
                         <= ramping_rate

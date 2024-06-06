@@ -893,7 +893,7 @@ class Conv3(Technology):
         else:
             if data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
                 input_aux = self.input
-                set_t = self.set_t_performance
+                set_t_rr = self.set_t_performance
             else:
                 if (
                     data["config"]["optimization"]["typicaldays"]["method"]["value"]
@@ -907,7 +907,7 @@ class Conv3(Technology):
                     sequence = self.sequence
 
                 # init bounds at full res
-                bounds_RR_full = {
+                bounds_rr_full = {
                     "input": self.fitting_class.calculate_input_bounds(
                         self.component_options.size_based_on, len(self.set_t_full)
                     )
@@ -916,7 +916,7 @@ class Conv3(Technology):
                 # create input variable for full res
                 def init_input_bounds(bounds, t, car):
                     return tuple(
-                        bounds_RR_full["input"][car][t - 1, :]
+                        bounds_rr_full["input"][car][t - 1, :]
                         * self.processed_coeff.time_independent["size_max"]
                         * self.processed_coeff.time_independent["rated_power"]
                     )
@@ -937,7 +937,7 @@ class Conv3(Technology):
                 )
 
                 input_aux = b_tec.var_input_RR_full
-                set_t = self.set_t_full
+                set_t_rr = self.set_t_full
 
             # Ramping constraint without integers
             def init_ramping_down_rate(const, t):
@@ -951,7 +951,7 @@ class Conv3(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate = pyo.Constraint(
-                set_t, rule=init_ramping_down_rate
+                set_t_rr, rule=init_ramping_down_rate
             )
 
             def init_ramping_up_rate(const, t):
@@ -965,7 +965,7 @@ class Conv3(Technology):
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate = pyo.Constraint(
-                set_t, rule=init_ramping_up_rate
+                set_t_rr, rule=init_ramping_up_rate
             )
 
         return b_tec

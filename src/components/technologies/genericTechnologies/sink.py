@@ -389,8 +389,8 @@ class Sink(Technology):
             ramping_rate = b_tec.var_size / ramping_time
 
         if data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
-            input_aux = self.input
-            set_t = self.set_t_performance
+            input_aux_rr = self.input
+            set_t_rr = self.set_t_performance
         else:
             if data["config"]["optimization"]["typicaldays"]["method"]["value"] == 1:
                 sequence = data["k_means_specs"]["sequence"]
@@ -398,7 +398,7 @@ class Sink(Technology):
                 sequence = self.sequence
 
             # init bounds at full res
-            bounds_RR_full = {
+            bounds_rr_full = {
                 "input": self.fitting_class.calculate_input_bounds(
                     self.component_options.size_based_on, len(self.set_t_full)
                 )
@@ -407,7 +407,7 @@ class Sink(Technology):
             # create input variable for full res
             def init_input_bounds(bounds, t, car):
                 return tuple(
-                    bounds_RR_full["input"][car][t - 1, :]
+                    bounds_rr_full["input"][car][t - 1, :]
                     * self.processed_coeff.time_independent["size_max"]
                     * self.processed_coeff.time_independent["rated_power"]
                 )
@@ -427,34 +427,36 @@ class Sink(Technology):
                 b_tec.set_input_carriers,
             )
 
-            input_aux = b_tec.var_input_RR_full
-            set_t = self.set_t_full
+            input_aux_rr = b_tec.var_input_RR_full
+            set_t_rr = self.set_t_full
 
         # Ramping constraint without integers
         def init_ramping_down_rate(const, t):
             if t > 1:
                 return (
                     -ramping_rate
-                    <= input_aux[t, self.component_options.main_input_carrier]
-                    - input_aux[t - 1, self.component_options.main_input_carrier]
+                    <= input_aux_rr[t, self.component_options.main_input_carrier]
+                    - input_aux_rr[t - 1, self.component_options.main_input_carrier]
                 )
             else:
                 return pyo.Constraint.Skip
 
         b_tec.const_ramping_down_rate = pyo.Constraint(
-            set_t, rule=init_ramping_down_rate
+            set_t_rr, rule=init_ramping_down_rate
         )
 
         def init_ramping_up_rate(const, t):
             if t > 1:
                 return (
-                    input_aux[t, self.component_options.main_input_carrier]
-                    - input_aux[t - 1, self.component_options.main_input_carrier]
+                    input_aux_rr[t, self.component_options.main_input_carrier]
+                    - input_aux_rr[t - 1, self.component_options.main_input_carrier]
                     <= ramping_rate
                 )
             else:
                 return pyo.Constraint.Skip
 
-        b_tec.const_ramping_up_rate = pyo.Constraint(set_t, rule=init_ramping_up_rate)
+        b_tec.const_ramping_up_rate = pyo.Constraint(
+            set_t_rr, rule=init_ramping_up_rate
+        )
 
         return b_tec

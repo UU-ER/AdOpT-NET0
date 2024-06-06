@@ -732,12 +732,12 @@ class Stor(Technology):
 
         else:
             if data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
-                input_aux = self.input
-                output_aux = self.output
-                set_t = self.set_t_performance
+                input_aux_rr = self.input
+                output_aux_rr = self.output
+                set_t_rr = self.set_t_performance
             else:
                 # init bounds at full res
-                bounds_RR_full = {
+                bounds_rr_full = {
                     "input": self.fitting_class.calculate_input_bounds(
                         self.component_options.size_based_on, len(self.set_t_full)
                     ),
@@ -749,14 +749,14 @@ class Stor(Technology):
                 # create input and output variable for full res
                 def init_input_bounds(bounds, t, car):
                     return tuple(
-                        bounds_RR_full["input"][car][t - 1, :]
+                        bounds_rr_full["input"][car][t - 1, :]
                         * self.processed_coeff.time_independent["size_max"]
                         * self.processed_coeff.time_independent["rated_power"]
                     )
 
                 def init_output_bounds(bounds, t, car):
                     return tuple(
-                        bounds_RR_full["output"][car][t - 1, :]
+                        bounds_rr_full["output"][car][t - 1, :]
                         * self.processed_coeff.time_independent["size_max"]
                         * self.processed_coeff.time_independent["rated_power"]
                     )
@@ -794,9 +794,9 @@ class Stor(Technology):
                     )
                 )
 
-                input_aux = b_tec.var_input_RR_full
-                output_aux = b_tec.var_output_RR_full
-                set_t = self.set_t_full
+                input_aux_rr = b_tec.var_input_RR_full
+                output_aux_rr = b_tec.var_output_RR_full
+                set_t_rr = self.set_t_full
 
             # Ramping constraint without integers
             def init_ramping_down_rate_input(const, t):
@@ -804,36 +804,36 @@ class Stor(Technology):
                 if t > 1:
                     return (
                         -ramping_rate
-                        <= input_aux[t, self.component_options.main_input_carrier]
-                        - input_aux[t - 1, self.component_options.main_input_carrier]
+                        <= input_aux_rr[t, self.component_options.main_input_carrier]
+                        - input_aux_rr[t - 1, self.component_options.main_input_carrier]
                     )
                 else:
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_down_rate = pyo.Constraint(
-                set_t, rule=init_ramping_down_rate_input
+                set_t_rr, rule=init_ramping_down_rate_input
             )
 
             def init_ramping_up_rate_input(const, t):
                 # input[t] - input[t-1] <= rampingRate
                 if t > 1:
                     return (
-                        input_aux[t, self.component_options.main_input_carrier]
-                        - input_aux[t - 1, self.component_options.main_input_carrier]
+                        input_aux_rr[t, self.component_options.main_input_carrier]
+                        - input_aux_rr[t - 1, self.component_options.main_input_carrier]
                         <= ramping_rate
                     )
                 else:
                     return pyo.Constraint.Skip
 
             b_tec.const_ramping_up_rate = pyo.Constraint(
-                set_t, rule=init_ramping_up_rate_input
+                set_t_rr, rule=init_ramping_up_rate_input
             )
 
             def init_ramping_down_rate_output(const, t):
                 # -rampingRate <= output[t] - output[t-1]
                 if t > 1:
                     return -ramping_rate <= sum(
-                        output_aux[t, car_output] - output_aux[t - 1, car_output]
+                        output_aux_rr[t, car_output] - output_aux_rr[t - 1, car_output]
                         for car_output in b_tec.set_ouput_carriers
                     )
                 else:
@@ -848,7 +848,8 @@ class Stor(Technology):
                 if t > 1:
                     return (
                         sum(
-                            output_aux[t, car_output] - output_aux[t - 1, car_output]
+                            output_aux_rr[t, car_output]
+                            - output_aux_rr[t - 1, car_output]
                             for car_output in b_tec.set_ouput_carriers
                         )
                         <= ramping_rate
