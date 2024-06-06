@@ -23,5 +23,11 @@
     "loss2emissions": 0,
     "emissionfactor": 0,
     "energyconsumption": []
+  },
+  "Units": {
+    "size": "MW",
+    "transport_carrier": {
+      "hydrogen": "MW"
+    }
   }
 }

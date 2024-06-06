@@ -521,13 +521,12 @@ class DataHandle:
             tec_series.columns.set_names(
                 ["Node", "Key1", "Carrier", "Key2"], inplace=True
             )
+            tec_series = pd.concat(
+                {"tec_series": tec_series}, names=["type_series"], axis=1
+            )
+            tec_series.index = time_series.index
         else:
-            tec_series = pd.DataFrame(columns=["Node", "Key1", "Carrier", "Key2"])
-
-        tec_series = pd.concat(
-            {"tec_series": tec_series}, names=["type_series"], axis=1
-        )
-        tec_series.index = time_series.index
+            tec_series = pd.DataFrame()
 
         # full matrix
         return pd.concat([time_series, tec_series], axis=1)
@@ -613,9 +612,10 @@ class DataHandle:
             clustered_resolution[investment_period] = typPeriods["time_series"]
 
             # Write technology performance
-            self._write_aggregated_data_to_technologies(
-                investment_period, typPeriods["tec_series"], "clustered"
-            )
+            if "tec_series" in typPeriods:
+                self._write_aggregated_data_to_technologies(
+                    investment_period, typPeriods["tec_series"], "clustered"
+                )
 
         self.time_series["clustered"] = pd.concat(
             clustered_resolution, names=["InvestmentPeriod"], axis=1
@@ -666,9 +666,10 @@ class DataHandle:
             averaged_resolution[investment_period] = typPeriods["time_series"]
 
             # Write technology performance
-            self._write_aggregated_data_to_technologies(
-                investment_period, typPeriods["tec_series"], "averaged"
-            )
+            if "tec_series" in typPeriods:
+                self._write_aggregated_data_to_technologies(
+                    investment_period, typPeriods["tec_series"], "averaged"
+                )
 
         self.time_series["averaged"] = pd.concat(
             averaged_resolution, names=["InvestmentPeriod"], axis=1

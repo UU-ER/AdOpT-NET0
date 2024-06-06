@@ -34,5 +34,11 @@
         "k_flowDistance": 0.05
       }
     }
+  },
+  "Units": {
+    "size": "MW",
+    "transport_carrier": {
+      "hydrogen": "MW"
+    }
   }
 }
