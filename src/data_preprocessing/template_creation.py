@@ -489,12 +489,22 @@ def create_optimization_templates(path: Path | str):
     if isinstance(path, str):
         path = Path(path)
 
+    topology_file = path / "Topology.json"
+    config_file = path / "ConfigModel.json"
+
+    # Check if the files already exist
+    if topology_file.exists() or config_file.exists():
+        print(
+            f"Files already exist: {topology_file if topology_file.exists() else ''} {config_file if config_file.exists() else ''}"
+        )
+        return
+
     topology_template = initialize_topology_templates()
     configuration_template = initialize_configuration_templates()
 
-    with open(path / "Topology.json", "w") as f:
+    with open(topology_file, "w") as f:
         json.dump(topology_template, f, indent=4)
-    with open(path / "ConfigModel.json", "w") as f:
+    with open(config_file, "w") as f:
         json.dump(configuration_template, f, indent=4)
 
 
@@ -513,6 +523,13 @@ def create_montecarlo_template_csv(base_path: Path | str):
     if isinstance(base_path, str):
         base_path = Path(base_path)
 
+    montecarlo_file = base_path / "MonteCarlo.csv"
+
+    # Check if the file already exists
+    if montecarlo_file.exists():
+        print(f"File already exists: {montecarlo_file}")
+        return
+
     data = {
         "type": [None],
         "name": [None],
@@ -523,4 +540,4 @@ def create_montecarlo_template_csv(base_path: Path | str):
     }
     df = pd.DataFrame(data)
 
-    df.to_csv(base_path / "MonteCarlo.csv", sep=";", index=False)
+    df.to_csv(montecarlo_file, sep=";", index=False)
