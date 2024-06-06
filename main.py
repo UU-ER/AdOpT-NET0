@@ -1,47 +1,31 @@
 # from src.model_configuration import ModelConfiguration
 from pathlib import Path
-
 import src.data_preprocessing as dp
 from src.energyhub import EnergyHub
-import numpy as np
-
 from src.result_management.read_results import add_values_to_summary
 
-# Todo: save logging to a different place
-# Todo: make sure create template functions dont overwrite stuff
-# Todo: make it possible to add technology blocks retrospectively
-# Todo: logging
+# Specify the path to your input data
+path = "specify path to input data"
 
-#
-# path = "C:/Users/6145795/Documents/Projects/PyHub/DocumentationTests"
-# # dp.create_optimization_templates(path)
-# # dp.create_input_data_folder_template(path)
-#
-# dp.copy_technology_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-# dp.copy_network_data(path, "C:/Users/6574114/Documents/Research/EHUB-Py")
-# dp.load_climate_data_from_api(path)
-#
-# pyhub = EnergyHub()
-# pyhub.read_data(path, start_period=0, end_period=3)
-# pyhub.quick_solve()
-# # pyhub.construct_balances()
-# # pyhub.solve()
+# Create template files (comment these lines if already defined)
+dp.create_optimization_templates(path)
+dp.create_montecarlo_template_csv(path)
 
-# Julias part of the main file
-# path = "C:/EHubversions/EHUB-Py/inputdata/TEST"
+# Create folder structure (comment these lines if already defined)
+dp.create_input_data_folder_template(path)
 
-# dp.create_optimization_templates(path)
-# dp.create_montecarlo_template_csv(path)
-# dp.create_input_data_folder_template(path)
+# Copy technology and network data into folder (comment these lines if already defined)
+dp.copy_technology_data(path, "path to tec data")
+dp.copy_network_data(path, "path to network data")
 
-# dp.copy_technology_data(path, "C:/EHubversions/EHUB-Py/data")
-# dp.copy_network_data(path, "C:/EHubversions/EHUB-Py/data")
-# dp.load_climate_data_from_api(path)
-# dp.fill_carrier_data(path, value=100, columns=['Import price', 'Import limit'], carriers=['electricity'], nodes=['node2'])
-# dp.fill_carrier_data(path, value=0, carriers=['electricity'])
+# Read climate data and fill carried data (comment these lines if already defined)
+dp.load_climate_data_from_api(path)
+dp.fill_carrier_data(path, value=0)
 
-# pyhub = EnergyHub()
-# pyhub.read_data(path, start_period=1, end_period=24*3)
-# pyhub.quick_solve()
+# Construct and solve the model
+pyhub = EnergyHub()
+pyhub.read_data(path)
+pyhub.quick_solve()
 
-# add_values_to_summary(Path("C:/EHubversions/EHUB-Py/userData/Summary.xlsx"))
+# Add values of (part of) the parameters and variables to the summary file
+add_values_to_summary(Path("path to summary file"))
