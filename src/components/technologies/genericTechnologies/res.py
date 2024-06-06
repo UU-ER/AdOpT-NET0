@@ -52,13 +52,13 @@ class Res(Technology):
 
         if "Photovoltaic" in self.name:
             if "system_type" in self.input_parameters.performance_data:
-                self._perform_fitting_PV(
+                self._perform_fitting_pv(
                     climate_data,
                     location,
                     system_data=self.input_parameters.performance_data["system_type"],
                 )
             else:
-                self._perform_fitting_PV(climate_data, location)
+                self._perform_fitting_pv(climate_data, location)
 
         elif "SolarThermal" in self.name:
             self._perform_fitting_ST(climate_data)
@@ -68,14 +68,14 @@ class Res(Technology):
                 hubheight = self.input_parameters.performance_data["hubheight"]
             else:
                 hubheight = 120
-            self._perform_fitting_WT(climate_data, hubheight)
+            self._perform_fitting_wt(climate_data, hubheight)
 
         # Options
         self.component_options.other["curtailment"] = get_attribute_from_dict(
             self.input_parameters.performance_data, "curtailment", 0
         )
 
-    def _perform_fitting_PV(self, climate_data: pd.DataFrame, location: dict, **kwargs):
+    def _perform_fitting_pv(self, climate_data: pd.DataFrame, location: dict, **kwargs):
         """
         Calculates capacity factors and specific area requirements for a PV system using pvlib
 
@@ -166,7 +166,7 @@ class Res(Technology):
         # Todo: code this
         print("Not coded yet")
 
-    def _perform_fitting_WT(self, climate_data: pd.DataFrame, hubheight: float):
+    def _perform_fitting_wt(self, climate_data: pd.DataFrame, hubheight: float):
         """
         Calculates capacity factors for a wind turbine
 
@@ -175,15 +175,15 @@ class Res(Technology):
         """
         # Load data for wind turbine type
         # FIXME: find nicer way to do this
-        WT_path = Path(__file__).parent.parent.parent.parent.parent
-        WT_data_path = WT_path / "data/technology_data/RES/WT_data/WT_data.csv"
-        WT_data = pd.read_csv(WT_data_path, delimiter=";")
+        wt_path = Path(__file__).parent.parent.parent.parent.parent
+        wt_data_path = wt_path / "data/technology_data/RES/WT_data/WT_data.csv"
+        wt_data = pd.read_csv(wt_data_path, delimiter=";")
 
         # match WT with data
-        if self.name in WT_data["TurbineName"]:
-            WT_data = WT_data[WT_data["TurbineName"] == self.name]
+        if self.name in wt_data["TurbineName"]:
+            wt_data = wt_data[wt_data["TurbineName"] == self.name]
         else:
-            WT_data = WT_data[WT_data["TurbineName"] == "WindTurbine_Onshore_1500"]
+            wt_data = wt_data[wt_data["TurbineName"] == "WindTurbine_Onshore_1500"]
             warnings.warn(
                 "TurbineName not in csv, standard WindTurbine_Onshore_1500 selected."
             )
@@ -206,9 +206,9 @@ class Res(Technology):
             ws = ws * (hubheight / 10) ** alpha
 
         # Make power curve
-        rated_power = WT_data.iloc[0]["RatedPowerkW"]
+        rated_power = wt_data.iloc[0]["RatedPowerkW"]
         x = np.linspace(0, 35, 71)
-        y = WT_data.iloc[:, 13:84]
+        y = wt_data.iloc[:, 13:84]
         y = y.to_numpy()
 
         f = interp1d(x, y)

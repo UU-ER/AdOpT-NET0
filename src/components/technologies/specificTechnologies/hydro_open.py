@@ -3,7 +3,7 @@ import pyomo.gdp as gdp
 import numpy as np
 import pandas as pd
 
-from ...utilities import get_attribute_from_dict
+from ...utilities import get_attribute_from_dict, link_full_resolution_to_clustered
 from ..technology import Technology
 
 
@@ -362,7 +362,7 @@ class HydroOpen(Technology):
         # RAMPING RATES
         if "ramping_time" in dynamics:
             if not dynamics["ramping_time"] == -1:
-                b_tec = self._define_ramping_rates(b_tec)
+                b_tec = self._define_ramping_rates(b_tec, data)
 
         return b_tec
 
@@ -388,7 +388,7 @@ class HydroOpen(Technology):
                 ],
             )
 
-    def _define_ramping_rates(self, b_tec):
+    def _define_ramping_rates(self, b_tec, data):
         """
         Constraints the inputs for a ramping rate
 
@@ -492,40 +492,109 @@ class HydroOpen(Technology):
             )
 
         else:
+            if data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
+                input_aux_rr = self.input
+                output_aux_rr = self.output
+                set_t_rr = self.set_t_performance
+            else:
+                # init bounds at full res
+                bounds_rr_full = {
+                    "input": self.fitting_class.calculate_input_bounds(
+                        self.component_options.size_based_on, len(self.set_t_full)
+                    ),
+                    "output": self.fitting_class.calculate_output_bounds(
+                        self.component_options.size_based_on, len(self.set_t_full)
+                    ),
+                }
 
+                # create input and output variable for full res
+                def init_input_bounds(bounds, t, car):
+                    return tuple(
+                        bounds_rr_full["input"][car][t - 1, :]
+                        * self.processed_coeff.time_independent["size_max"]
+                        * self.processed_coeff.time_independent["rated_power"]
+                    )
+
+                def init_output_bounds(bounds, t, car):
+                    return tuple(
+                        bounds_rr_full["output"][car][t - 1, :]
+                        * self.processed_coeff.time_independent["size_max"]
+                        * self.processed_coeff.time_independent["rated_power"]
+                    )
+
+                b_tec.var_input_rr_full = pyo.Var(
+                    self.set_t_full,
+                    b_tec.set_input_carriers,
+                    within=pyo.NonNegativeReals,
+                    bounds=init_input_bounds,
+                )
+                b_tec.var_output_rr_full = pyo.Var(
+                    self.set_t_full,
+                    b_tec.set_output_carriers,
+                    within=pyo.NonNegativeReals,
+                    bounds=init_output_bounds,
+                )
+
+                b_tec.const_link_full_resolution_rr_input = (
+                    link_full_resolution_to_clustered(
+                        self.input,
+                        b_tec.var_input_rr_full,
+                        self.set_t_full,
+                        self.sequence,
+                        b_tec.set_input_carriers,
+                    )
+                )
+
+                b_tec.const_link_full_resolution_rr_output = (
+                    link_full_resolution_to_clustered(
+                        self.output,
+                        b_tec.var_output_rr_full,
+                        self.set_t_full,
+                        sequence_storage,
+                        b_tec.set_output_carriers,
+                    )
+                )
+
+                input_aux_rr = b_tec.var_input_rr_full
+                output_aux_rr = b_tec.var_output_rr_full
+                set_t_rr = self.set_t_full
+
+            # Ramping constraint without integers
             def init_ramping_down_rate_input(const, t):
+                # -rampingRate <= input[t] - input[t-1]
                 if t > 1:
-                    return -ramping_rate <= sum(
-                        self.input[t, car_input] - self.input[t - 1, car_input]
-                        for car_input in b_tec.set_input_carriers
+                    return (
+                        -ramping_rate
+                        <= input_aux_rr[t, self.component_options.main_input_carrier]
+                        - input_aux_rr[t - 1, self.component_options.main_input_carrier]
                     )
                 else:
                     return pyo.Constraint.Skip
 
-            b_tec.const_ramping_down_rate_input = pyo.Constraint(
-                self.set_t_performance, rule=init_ramping_down_rate_input
+            b_tec.const_ramping_down_rate = pyo.Constraint(
+                set_t_rr, rule=init_ramping_down_rate_input
             )
 
             def init_ramping_up_rate_input(const, t):
+                # input[t] - input[t-1] <= rampingRate
                 if t > 1:
                     return (
-                        sum(
-                            self.input[t, car_input] - self.input[t - 1, car_input]
-                            for car_input in b_tec.set_input_carriers
-                        )
+                        input_aux_rr[t, self.component_options.main_input_carrier]
+                        - input_aux_rr[t - 1, self.component_options.main_input_carrier]
                         <= ramping_rate
                     )
                 else:
                     return pyo.Constraint.Skip
 
-            b_tec.const_ramping_up_rate_input = pyo.Constraint(
-                self.set_t_performance, rule=init_ramping_up_rate_input
+            b_tec.const_ramping_up_rate = pyo.Constraint(
+                set_t_rr, rule=init_ramping_up_rate_input
             )
 
             def init_ramping_down_rate_output(const, t):
+                # -rampingRate <= output[t] - output[t-1]
                 if t > 1:
                     return -ramping_rate <= sum(
-                        self.output[t, car_output] - self.output[t - 1, car_output]
+                        output_aux_rr[t, car_output] - output_aux_rr[t - 1, car_output]
                         for car_output in b_tec.set_ouput_carriers
                     )
                 else:
@@ -536,10 +605,12 @@ class HydroOpen(Technology):
             )
 
             def init_ramping_down_rate_output(const, t):
+                # output[t] - output[t-1] <= rampingRate
                 if t > 1:
                     return (
                         sum(
-                            self.output[t, car_output] - self.output[t - 1, car_output]
+                            output_aux_rr[t, car_output]
+                            - output_aux_rr[t - 1, car_output]
                             for car_output in b_tec.set_ouput_carriers
                         )
                         <= ramping_rate
