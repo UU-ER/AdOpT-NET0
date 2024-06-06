@@ -522,41 +522,41 @@ class HydroOpen(Technology):
                         * self.processed_coeff.time_independent["rated_power"]
                     )
 
-                b_tec.var_input_RR_full = pyo.Var(
+                b_tec.var_input_rr_full = pyo.Var(
                     self.set_t_full,
                     b_tec.set_input_carriers,
                     within=pyo.NonNegativeReals,
                     bounds=init_input_bounds,
                 )
-                b_tec.var_output_RR_full = pyo.Var(
+                b_tec.var_output_rr_full = pyo.Var(
                     self.set_t_full,
                     b_tec.set_output_carriers,
                     within=pyo.NonNegativeReals,
                     bounds=init_output_bounds,
                 )
 
-                b_tec.const_link_full_resolution_RR_input = (
+                b_tec.const_link_full_resolution_rr_input = (
                     link_full_resolution_to_clustered(
                         self.input,
-                        b_tec.var_input_RR_full,
+                        b_tec.var_input_rr_full,
                         self.set_t_full,
                         self.sequence,
                         b_tec.set_input_carriers,
                     )
                 )
 
-                b_tec.const_link_full_resolution_RR_output = (
+                b_tec.const_link_full_resolution_rr_output = (
                     link_full_resolution_to_clustered(
                         self.output,
-                        b_tec.var_output_RR_full,
+                        b_tec.var_output_rr_full,
                         self.set_t_full,
                         sequence_storage,
                         b_tec.set_output_carriers,
                     )
                 )
 
-                input_aux_rr = b_tec.var_input_RR_full
-                output_aux_rr = b_tec.var_output_RR_full
+                input_aux_rr = b_tec.var_input_rr_full
+                output_aux_rr = b_tec.var_output_rr_full
                 set_t_rr = self.set_t_full
 
             # Ramping constraint without integers

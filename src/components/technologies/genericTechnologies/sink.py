@@ -412,22 +412,22 @@ class Sink(Technology):
                     * self.processed_coeff.time_independent["rated_power"]
                 )
 
-            b_tec.var_input_RR_full = pyo.Var(
+            b_tec.var_input_rr_full = pyo.Var(
                 self.set_t_full,
                 b_tec.set_input_carriers,
                 within=pyo.NonNegativeReals,
                 bounds=init_input_bounds,
             )
 
-            b_tec.const_link_full_resolution_RR = link_full_resolution_to_clustered(
+            b_tec.const_link_full_resolution_rr = link_full_resolution_to_clustered(
                 self.input,
-                b_tec.var_input_RR_full,
+                b_tec.var_input_rr_full,
                 self.set_t_full,
                 sequence,
                 b_tec.set_input_carriers,
             )
 
-            input_aux_rr = b_tec.var_input_RR_full
+            input_aux_rr = b_tec.var_input_rr_full
             set_t_rr = self.set_t_full
 
         # Ramping constraint without integers

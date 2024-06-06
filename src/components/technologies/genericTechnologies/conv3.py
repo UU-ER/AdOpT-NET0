@@ -892,7 +892,7 @@ class Conv3(Technology):
 
         else:
             if data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
-                input_aux = self.input
+                input_aux_rr = self.input
                 set_t_rr = self.set_t_performance
             else:
                 if (
@@ -921,22 +921,22 @@ class Conv3(Technology):
                         * self.processed_coeff.time_independent["rated_power"]
                     )
 
-                b_tec.var_input_RR_full = pyo.Var(
+                b_tec.var_input_rr_full = pyo.Var(
                     self.set_t_full,
                     b_tec.set_input_carriers,
                     within=pyo.NonNegativeReals,
                     bounds=init_input_bounds,
                 )
 
-                b_tec.const_link_full_resolution_RR = link_full_resolution_to_clustered(
+                b_tec.const_link_full_resolution_rr = link_full_resolution_to_clustered(
                     self.input,
-                    b_tec.var_input_RR_full,
+                    b_tec.var_input_rr_full,
                     self.set_t_full,
                     sequence,
                     b_tec.set_input_carriers,
                 )
 
-                input_aux = b_tec.var_input_RR_full
+                input_aux_rr = b_tec.var_input_rr_full
                 set_t_rr = self.set_t_full
 
             # Ramping constraint without integers
@@ -944,8 +944,8 @@ class Conv3(Technology):
                 if t > 1:
                     return (
                         -ramping_rate
-                        <= input_aux[t, self.component_options.main_input_carrier]
-                        - input_aux[t - 1, self.component_options.main_input_carrier]
+                        <= input_aux_rr[t, self.component_options.main_input_carrier]
+                        - input_aux_rr[t - 1, self.component_options.main_input_carrier]
                     )
                 else:
                     return pyo.Constraint.Skip
@@ -957,8 +957,8 @@ class Conv3(Technology):
             def init_ramping_up_rate(const, t):
                 if t > 1:
                     return (
-                        input_aux[t, self.component_options.main_input_carrier]
-                        - input_aux[t - 1, self.component_options.main_input_carrier]
+                        input_aux_rr[t, self.component_options.main_input_carrier]
+                        - input_aux_rr[t - 1, self.component_options.main_input_carrier]
                         <= ramping_rate
                     )
                 else:
