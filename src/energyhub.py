@@ -111,15 +111,7 @@ class EnergyHub:
                         if (
                             config["optimization"]["typicaldays"]["method"]["value"]
                             == 1
-                        ):
-                            if ("ramping_time" in tec.processed_coeff.dynamics) and (
-                                tec.processed_coeff.dynamics["ramping_time"] != -1
-                            ):
-                                raise Exception(
-                                    f"Ramping Rate for technology {tec_name} "
-                                    f"needs to be -1 when clustering with typical days for method 1"
-                                )
-                        elif (
+                        ) or (
                             config["optimization"]["typicaldays"]["method"]["value"]
                             == 2
                         ):

@@ -388,10 +388,15 @@ class Sink(Technology):
         else:
             ramping_rate = b_tec.var_size / ramping_time
 
-        if data["config"]["optimization"]["typicaldays"]["N"]["value"] == -1:
+        if data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
             input_aux = self.input
             set_t = self.set_t_performance
         else:
+            if data["config"]["optimization"]["typicaldays"]["method"]["value"] == 1:
+                sequence = data["k_means_specs"]["sequence"]
+            elif data["config"]["optimization"]["typicaldays"]["method"]["value"] == 2:
+                sequence = self.sequence
+
             # init bounds at full res
             bounds_RR_full = {
                 "input": self.fitting_class.calculate_input_bounds(
@@ -418,7 +423,7 @@ class Sink(Technology):
                 self.input,
                 b_tec.var_input_RR_full,
                 self.set_t_full,
-                self.sequence,
+                sequence,
                 b_tec.set_input_carriers,
             )
 

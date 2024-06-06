@@ -473,7 +473,7 @@ class Stor(Technology):
         # RAMPING RATES
         if "ramping_time" in dynamics:
             if not dynamics["ramping_time"] == -1:
-                b_tec = self._define_ramping_rates(b_tec, data)
+                b_tec = self._define_ramping_rates(b_tec, data, sequence_storage)
 
         return b_tec
 
@@ -621,7 +621,7 @@ class Stor(Technology):
             data=[model_block.var_storage_level[t].value for t in self.set_t_full],
         )
 
-    def _define_ramping_rates(self, b_tec, data):
+    def _define_ramping_rates(self, b_tec, data, sequence_storage):
         """
         Constraints the inputs for a ramping rate
 
@@ -731,7 +731,7 @@ class Stor(Technology):
             )
 
         else:
-            if data["config"]["optimization"]["typicaldays"]["N"]["value"] == -1:
+            if data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
                 input_aux = self.input
                 output_aux = self.output
                 set_t = self.set_t_performance
@@ -789,7 +789,7 @@ class Stor(Technology):
                         self.output,
                         b_tec.var_output_RR_full,
                         self.set_t_full,
-                        self.sequence,
+                        sequence_storage,
                         b_tec.set_output_carriers,
                     )
                 )
