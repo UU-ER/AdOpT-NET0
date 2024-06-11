@@ -3,7 +3,7 @@ import logging
 # Configure logger
 logging.basicConfig(
     level=logging.INFO,
-    filename="example.log",
+    filename="full_log.log",
     encoding="utf-8",
     format="%(levelname)s:%(message)s",
 )
