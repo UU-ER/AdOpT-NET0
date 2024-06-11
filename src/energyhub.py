@@ -384,10 +384,21 @@ class EnergyHub:
         )
 
         model_info = self.last_solve_info
-        # Write H5 File
+
+        write_results = False
         if (self.solution.solver.status == pyo.SolverStatus.ok) or (
             self.solution.solver.status == pyo.SolverStatus.warning
         ):
+            write_results = True
+        if self.solution.solver.termination_condition in [
+            pyo.TerminationCondition.infeasibleOrUnbounded,
+            pyo.TerminationCondition.infeasible,
+            pyo.TerminationCondition.unbounded,
+        ]:
+            write_results = False
+
+        if write_results:
+            # Write H5 File
 
             model = self.model[self.info_solving_algorithms["aggregation_model"]]
 
