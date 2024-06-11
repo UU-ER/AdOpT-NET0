@@ -243,7 +243,7 @@ def initialize_topology_templates() -> dict:
     topology_template = {
         "nodes": ["node1", "node2"],
         "carriers": ["electricity", "hydrogen"],
-        "investment_periods": ["period1", "period2"],
+        "investment_periods": ["period1"],
         "start_date": "2022-01-01 00:00",
         "end_date": "2022-12-31 23:00",
         "resolution": "1h",
