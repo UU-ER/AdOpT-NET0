@@ -503,14 +503,16 @@ class Technology(ModelComponent):
             else:
                 log_event(
                     "Modeling dynamic constraints not enabled for technology type"
-                    + self.name
+                    + self.name,
+                    level="warning",
                 )
         else:
             if self.component_options.performance_function_type == 4:
                 self.component_options.performance_function_type = 3
                 log_event(
                     "Switching dynamics off for performance function type 4, type changed to 3 for "
-                    + self.name
+                    + self.name,
+                    level="warning",
                 )
 
         # AGGREGATE ALL VARIABLES
@@ -1710,7 +1712,8 @@ class Technology(ModelComponent):
                 log_event(
                     "Using SU/SD logic constraints, parameter "
                     + str(para)
-                    + " set to default value 0"
+                    + " set to default value 0",
+                    level="warning",
                 )
         para_names = ["min_uptime", "min_downtime"]
         for para in para_names:
@@ -1719,7 +1722,8 @@ class Technology(ModelComponent):
                 log_event(
                     "Using SU/SD logic constraints, parameter "
                     + str(para)
-                    + " set to default value 1"
+                    + " set to default value 1",
+                    level="warning",
                 )
 
         # Collect parameters
@@ -1802,7 +1806,8 @@ class Technology(ModelComponent):
                 log_event(
                     "Using SU/SD load constraints, parameter"
                     + str(para)
-                    + "set to default value 1"
+                    + "set to default value 1",
+                    level="warning",
                 )
 
         # Collect parameters

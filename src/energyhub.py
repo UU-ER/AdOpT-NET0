@@ -9,11 +9,11 @@ import sys
 import datetime
 
 from .utilities import get_set_t
-from .data_management import DataHandle
+from .data_management import DataHandle, read_tec_data
 from .model_construction import *
 from .result_management.read_results import add_values_to_summary
 from .utilities import get_glpk_parameters, get_gurobi_parameters
-from .logger import log_event
+from .logger import log_event, logger
 from .result_management import *
 from .components.utilities import (
     annualize,
@@ -384,10 +384,21 @@ class EnergyHub:
         )
 
         model_info = self.last_solve_info
-        # Write H5 File
+
+        write_results = False
         if (self.solution.solver.status == pyo.SolverStatus.ok) or (
             self.solution.solver.status == pyo.SolverStatus.warning
         ):
+            write_results = True
+        if self.solution.solver.termination_condition in [
+            pyo.TerminationCondition.infeasibleOrUnbounded,
+            pyo.TerminationCondition.infeasible,
+            pyo.TerminationCondition.unbounded,
+        ]:
+            write_results = False
+
+        if write_results:
+            # Write H5 File
 
             model = self.model[self.info_solving_algorithms["aggregation_model"]]
 
@@ -409,20 +420,105 @@ class EnergyHub:
                     [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
                 ).to_excel(save_summary_path, index=False, sheet_name="Summary")
 
-    def add_technology_to_node(self, nodename: str, technologies: list):
+    def add_technology(self, investment_period: str, node: str, technologies: list):
         """
-        Fixme: This function does not work
         Adds technologies retrospectively to the model.
 
-        After adding a technology to a node, the energy and emission balance need to be re-constructed, as well as the
-        costs recalculated. To solve the model, :func:`~construct_balances` and then solve again.
+        After adding a technology to a node, all balances need to be re-constructed,
+        To solve the model again run, :func:`~construct_balances` and then
+        :func:`~solve`.
 
-        :param str nodename: name of node for which technology is installed
-        :param list technologies: list of technologies that should be added to nodename
+        :param str investment_period: name of investment period for which technology is added
+        :param str node: name of node for which technology is added
+        :param list technologies: list of technologies that should be added
         :return None:
         """
-        self.data.read_single_technology_data(nodename, technologies)
-        add_technology(self, nodename, technologies)
+        model = self.model[self.info_solving_algorithms["aggregation_model"]]
+
+        # Make sure that no aggregation algorithm is used
+        config = self.data.model_config
+        if (config["optimization"]["typicaldays"]["N"]["value"] != 0) or (
+            config["optimization"]["timestaging"]["value"] != 0
+        ):
+            raise Exception(
+                "You cannot add a technolgy retrospectively if using time aggragation algorithms"
+            )
+
+        # Read technology data
+        data_node = {
+            "technology_data": {},
+            "config": config,
+            "topology": self.data.topology,
+        }
+        for technology in technologies:
+            # read in technology data
+            tec_data = read_tec_data(
+                technology,
+                self.data.data_path
+                / investment_period
+                / "node_data"
+                / node
+                / "technology_data",
+            )
+            # fit technology data
+            tec_data.fit_technology_performance(
+                self.data.time_series["full"][investment_period][node]["ClimateData"][
+                    "global"
+                ],
+                self.data.node_locations.loc[node, :],
+            )
+            # add technology data to data handle
+            self.data.technology_data[investment_period][node][technology] = tec_data
+            data_node["technology_data"][technology] = tec_data
+
+        # Add technology to node
+        b_period = model.periods[investment_period]
+        b_node = b_period.node_blocks[node]
+
+        # Create new technology block containing all new technologies
+        def init_technology_block(b_tec, tec):
+            b_tec = construct_technology_block(
+                b_tec, data_node, b_period.set_t_full, b_period.set_t_clustered
+            )
+
+            return b_tec
+
+        b_node.tech_blocks_new = pyo.Block(technologies, rule=init_technology_block)
+
+        # If it exists, carry over active tech blocks to temporary block
+        if b_node.find_component("tech_blocks_active"):
+            b_node.tech_blocks_existing = pyo.Block(b_node.set_technologies)
+            for tec in b_node.set_technologies:
+                b_node.tech_blocks_existing[tec].transfer_attributes_from(
+                    b_node.tech_blocks_active[tec]
+                )
+            b_node.del_component(b_node.tech_blocks_active)
+        if b_node.find_component("tech_blocks_active_index"):
+            b_node.del_component(b_node.tech_blocks_active_index)
+
+        # Create a block containing all active technologies at node
+        if not set(technologies).issubset(b_node.set_technologies):
+            b_node.set_technologies.add(technologies)
+
+        def init_active_technology_blocks(bl, tec):
+            if tec in technologies:
+                bl.transfer_attributes_from(b_node.tech_blocks_new[tec])
+            else:
+                bl.transfer_attributes_from(b_node.tech_blocks_existing[tec])
+
+        b_node.tech_blocks_active = pyo.Block(
+            b_node.set_technologies, rule=init_active_technology_blocks
+        )
+
+        # Delete all auxiliary blocks
+        if b_node.find_component("tech_blocks_new"):
+            b_node.del_component(b_node.tech_blocks_new)
+        if b_node.find_component("tech_blocks_new_index"):
+            b_node.del_component(b_node.tech_blocks_new_index)
+        if b_node.find_component("tech_blocks_existing"):
+            b_node.del_component(b_node.tech_blocks_existing)
+        if b_node.find_component("tech_blocks_existing_index"):
+            b_node.del_component(b_node.tech_blocks_existing_index)
 
     def _define_solver_settings(self):
         """
@@ -695,7 +791,7 @@ class EnergyHub:
             self.solution = self.solver.solve(
                 model,
                 tee=True,
-                logfile=str(Path(result_folder_path / "log.txt")),
+                logfile=str(Path(result_folder_path / "solver_log.txt")),
                 keepfiles=True,
             )
         else:
@@ -703,7 +799,7 @@ class EnergyHub:
                 model,
                 tee=True,
                 warmstart=True,
-                logfile=str(Path(result_folder_path / "log.txt")),
+                logfile=str(Path(result_folder_path / "solver_log.txt")),
                 keepfiles=True,
             )
 
@@ -907,7 +1003,8 @@ class EnergyHub:
                                                 )
                                             else:
                                                 log_event(
-                                                    f"Parameter unit_CAPEX is not defined for {tec} in MonteCarlo.csv"
+                                                    f"Parameter unit_CAPEX is not defined for {tec} in MonteCarlo.csv",
+                                                    level="warning",
                                                 )
 
                                     else:
@@ -924,7 +1021,8 @@ class EnergyHub:
                                     break
                                 else:
                                     log_event(
-                                        f"Technology {tec} in MonteCarlo.csv is not an active component"
+                                        f"Technology {tec} in MonteCarlo.csv is not an active component",
+                                        level="warning",
                                     )
 
                 elif row["type"] == "Networks":
@@ -946,7 +1044,8 @@ class EnergyHub:
                                 break
                             else:
                                 log_event(
-                                    f"Network {netw} in MonteCarlo.csv is not active component"
+                                    f"Network {netw} in MonteCarlo.csv is not active component",
+                                    level="warning",
                                 )
 
                 elif row["type"] == "Import":
@@ -1065,7 +1164,8 @@ class EnergyHub:
 
         else:
             log_event(
-                "monte carlo for capex models other than 1 and 3 is not implemented"
+                "monte carlo for capex models other than 1 and 3 is not implemented",
+                level="warning",
             )
 
     def _monte_carlo_networks(self, period, netw, MC_ranges=None):

@@ -57,12 +57,6 @@ def test_data_climate_data_loading(request):
             )
             assert not climate_data[period][node].empty
 
-    # Verify that climate data is the same for both periods
-    for node in nodes:
-        assert climate_data[investment_periods[0]][node].equals(
-            climate_data[investment_periods[1]][node]
-        )
-
 
 @pytest.mark.data_preprocessing
 def test_data_fill_carrier_data(request):

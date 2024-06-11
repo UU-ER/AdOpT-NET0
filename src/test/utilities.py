@@ -67,26 +67,6 @@ def get_topology_data(folder_path: Path) -> (list, list, list):
     return investment_periods, nodes, carriers
 
 
-def create_basic_case_study(folder_path: Path):
-    """
-    Creates a basix case study and saves it to folder_path with
-    - two investment periods
-    - two nodes
-    - one carrier
-    - no technologies
-    - no networks
-    :param Path folder_path: folder path containing topology
-    """
-    topology = initialize_topology_templates()
-    configuration = initialize_configuration_templates()
-
-    topology["carriers"] = ["electricity"]
-    configuration["solveroptions"]["solver"]["value"] = "glpk"
-
-    save_json(topology, folder_path / "Topology.json")
-    save_json(configuration, folder_path / "ConfigModel.json")
-
-
 def make_climate_data(start_date: str, nr_periods: int = 1) -> pd.DataFrame:
     """
     Makes climate data with random values
