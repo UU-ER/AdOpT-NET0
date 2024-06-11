@@ -261,7 +261,6 @@ def import_jrc_climate_data(
     """
     # get time zone
     tf = TimezoneFinder()
-    tz = tf.timezone_at(lng=lon, lat=lat)
 
     # Specify year import, lon, lat
     if year == "typical_year":

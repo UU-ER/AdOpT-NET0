@@ -1,5 +1,5 @@
 import logging
-from pyomo.core import Constraint, Var, value
+from pyomo.core import Constraint, value
 
 
 def get_infeasibile_constraints(m, tolerance=1e-3):
@@ -19,7 +19,7 @@ def get_infeasibile_constraints(m, tolerance=1e-3):
         body_value = value(constr.body, exception=False)
         infeasible = 0
         infeasibility = 0
-        if not body_value is None:
+        if body_value is not None:
             if constr.has_lb():
                 lb = value(constr.lower, exception=False)
                 if lb is None:

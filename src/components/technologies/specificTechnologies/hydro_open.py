@@ -9,11 +9,23 @@ from ..technology import Technology
 
 class HydroOpen(Technology):
     """
-    Resembles a pumped hydro plant with additional natural inflows (defined in climate data)
+    Open pumped hydro technology
 
-    Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
+    Resembles a pumped hydro plant with additional natural inflows (defined in
+    climate data). Note that this technology only works for one carrier, and thus the
+    carrier index is dropped in the below notation.
 
-    **Parameter declarations:**
+    **Variable declarations:**
+
+    - Storage level in :math:`t`: :math:`E_t`
+
+    - Charging in :math:`t`: :math:`Input_{t}`
+
+    - Discharging in :math:`t`: :math:`Output_{t}`
+
+    **Constraint declarations:**
+
+    The following constants are used:
 
     - :math:`{\\eta}_{in}`: Charging efficiency
 
@@ -27,15 +39,6 @@ class HydroOpen(Technology):
 
     - :math:`Natural_Inflow{t}`: Natural water inflow in time slice (can be negative, i.e. being an outflow)
 
-    **Variable declarations:**
-
-    - Storage level in :math:`t`: :math:`E_t`
-
-    - Charging in :math:`t`: :math:`Input_{t}`
-
-    - Discharging in :math:`t`: :math:`Output_{t}`
-
-    **Constraint declarations:**
 
     - Maximal charging and discharging:
 
@@ -57,6 +60,15 @@ class HydroOpen(Technology):
 
     - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
       step (otherwise, simultanous charging and discharging can lead to unwanted 'waste' of energy/material).
+
+    - Additionally, ramping rates of the technology can be constraint (for input and
+      output).
+
+      .. math::
+         -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar}
+
+      .. math::
+         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car})
 
     """
 

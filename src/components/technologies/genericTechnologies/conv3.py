@@ -15,11 +15,14 @@ from ...utilities import link_full_resolution_to_clustered
 
 class Conv3(Technology):
     """
-    This technology type resembles a technology for which the output can be written as a function of the input,
-    according to different performance functions that can be specified in the JSON files (``performance_function_type``).
-    Four different performance function fits of the technology data (again specified in the JSON file) are possible,
-    and for all the function is based on the input of the main carrier , i.e.,:
-     :math:`output_{car} = f_{car}(input_{maincarrier})`.
+    Technology with no input/output substitution
+
+    This technology type resembles a technology for which the output can be written
+    as a function of the input, according to different performance functions that
+    can be specified in the JSON files (``performance_function_type``).
+    Four different performance function fits of the technology data (again specified
+    in the JSON file) are possible, and for all the function is based on the input
+    of the main carrier , i.e.,: :math:`output_{car} = f_{car}(input_{maincarrier})`.
     Note that the ratio between all input carriers is fixed.
 
     **Constraint declarations:**
@@ -35,21 +38,21 @@ class Conv3(Technology):
       .. math::
         Input_{t, car} = {\\phi}_{car} * Input_{t, maincarrier}
 
-    Type 1 is a linear performance function through the origin. However, a minimum part load can be specified,
-    basically meaning that the part of the performance function from the origin to this minimum part load value
-    cannot be met, thus it also cannot be turned off. So, for ``performance_function_type == 1`` the following
-    constraint holds:
+      If the technology is turned off, all inputs are set to zero.
+
+    - ``performance_function_type == 1``: Linear through origin. Note that if
+      min_part_load is larger 0, the technology cannot be turned off.
 
       .. math::
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
 
-    Type 2 is a linear performance function with a minimum part load. In this case, the linear line does not have to
-    be in line with the origin, and the technology can be turned off as well. Thus, the performance is either at the
-    origin (off) or it is at a linear line. Therefore, a big-m transformation is required. So, for
-    ``performance_function_type == 2``, the following constraints hold:
+      .. math::
+        \min_part_load * S \leq {\\alpha}_1 Input_{t, maincarrier}
 
+    - ``performance_function_type == 2``: Linear with minimal partload. If the
+      technology is in on, it holds:
 
-    - If the technology is in on, it holds:
+      If the technology is in on, it holds:
 
       .. math::
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier} + {\\alpha}_{2, car}
@@ -65,13 +68,23 @@ class Conv3(Technology):
       .. math::
          Input_{t, maincarrier} = 0
 
-    For ``performance_function_type == 3``, the performance is modelled as a piecewise linear function. Note that this
-    requires a big-m transformation. For this case, the same constraints as for ``performance_function_type == 2`` hold,
-    but for each "piece" (segment) of the performance function (as specified in the JSON file, ``nr_seg``), the alpha_1
-    and alpha_2 change, so the performance function (output = f(input)) is written for each segment separately.
+    - ``performance_function_type == 3``: Piecewise linear performance function (
+      makes big-m transformation required). The same constraints as for
+      ``performance_function_type == 2`` with the exception that the performance
+      function is defined piecewise for the respective number of pieces.
 
-    For ``performance_function_type == 4``, the performance is also modelled as a piecewise linear function. However,
-    this type additionally includes constraints for slow (>1h) startup and shutdown trajectories.
+    - ``performance_function_type == 4``:Piece-wise linear, minimal partload,
+      includes constraints for slow (>1h) startup and shutdown trajectories.
+      Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L.,
+      & Hobbs, B. F. (2017). Hidden power system inflexibilities imposed by
+      traditional unit commitment formulations. Applied Energy, 191, 223–238.
+      https://doi.org/10.1016/J.APENERGY.2017.01.089
+
+    - Additionally, ramping rates of the technology can be constraint.
+
+      .. math::
+         -rampingrate \leq Input_{t, main-car} - Input_{t-1, car}
+
     """
 
     def __init__(self, tec_data: dict):
@@ -105,7 +118,7 @@ class Conv3(Technology):
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
-        Fits conversion technology type 3 and returns fitted parameters as a dict
+        Fits conversion technology type 3
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
@@ -168,6 +181,8 @@ class Conv3(Technology):
         coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
         rated_power = self.input_parameters.rated_power
+
+        self.big_m_transformation_required = 1
 
         if self.component_options.performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
@@ -266,11 +281,7 @@ class Conv3(Technology):
 
     def _performance_function_type_1(self, b_tec):
         """
-        Sets the input-output constraint for a tec based on tec_type CONV3 with performance type 1.
-
-        Type 1 is a linear performance function through the origin. However, a minimum part load can be specified,
-        basically meaning that the part of the performance function from the origin to this minimum part load value
-        cannot be met, thus it also cannot be turned off.
+        Linear, through origin, min partload possible
 
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
@@ -313,19 +324,11 @@ class Conv3(Technology):
 
     def _performance_function_type_2(self, b_tec):
         """
-        Sets the input-output constraint for a tec based on tec_type CONV3 with performance type 2.
-
-        Type 2 is a linear performance function with a minimum part load. In this case, the linear line does not have to
-        be in line with the origin, and the technology can be turned off as well. Thus, the performance is either at the
-        origin (off) or it is at a linear line. Therefore, a big-m transformation is required.
+        Linear, minimal partload
 
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-
-        # Transformation required
-        self.big_m_transformation_required = 1
-
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
         coeff_ti = self.processed_coeff.time_independent
@@ -445,9 +448,6 @@ class Conv3(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        # Transformation required
-        self.big_m_transformation_required = 1
-
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
         coeff_ti = self.processed_coeff.time_independent
@@ -581,10 +581,6 @@ class Conv3(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-
-        # Transformation required
-        self.big_m_transformation_required = 1
-
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
         coeff_ti = self.processed_coeff.time_independent
@@ -691,7 +687,7 @@ class Conv3(Technology):
 
                 dis.const_z_off = pyo.Constraint(rule=init_z_off)
 
-                def init_input_SU(cons):
+                def init_input_SU(const):
                     return (
                         self.input[t, self.component_options.main_input_carrier]
                         == b_tec.var_size * SU_trajectory[ind - 1]
@@ -733,7 +729,7 @@ class Conv3(Technology):
 
                 dis.const_y_off = pyo.Constraint(rule=init_y_off)
 
-                def init_input_SD(cons):
+                def init_input_SD(const):
                     return (
                         self.input[t, self.component_options.main_input_carrier]
                         == b_tec.var_size * SD_trajectory[ind_SD - 1]

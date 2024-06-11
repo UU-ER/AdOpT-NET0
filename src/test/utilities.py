@@ -3,8 +3,8 @@ import random
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from pyomo.core import ConcreteModel, Objective, minimize
-from pyomo.opt import TerminationCondition, SolverFactory
+from pyomo.core import Objective, minimize
+from pyomo.opt import SolverFactory
 
 from src.data_preprocessing import (
     initialize_configuration_templates,

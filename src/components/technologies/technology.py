@@ -20,16 +20,17 @@ class Technology(ModelComponent):
     """
     Class to read and manage data for technologies
 
-    This class is parent class to all generic and specific technologies. It creates the variables, parameters,
-    constraints and sets of a technology.
+    This class is parent class to all generic and specific technologies. It creates
+    the variables, parameters, constraints and sets of a technology.
 
-    This function is extented in the generic/specific technology classes. It adds Sets, Parameters, Variables and
-    Constraints that are common for all technologies
-    The following description is true for new technologies. For existing technologies a few adaptions are made
-    (see below).
-    When CCS is available, we add heat and electricity to the input carriers Set and CO2captured to the output
-    carriers Set. Moreover, we create extra Parameters and Variables equivalent to the ones created for the
-    technology, but specific for CCS. In addition, we create Variables that are the sum of the input, output,
+    This function is extented in the generic/specific technology classes. It adds Sets,
+    Parameters, Variables and Constraints that are common for all technologies. The
+    following description is true for new technologies. For existing technologies a
+    few adaptions are made (see below).
+    When CCS is available, we add heat and electricity to the input carriers Set and
+    CO2captured to the output carriers Set. Moreover, we create extra Parameters and
+    Variables equivalent to the ones created for the technology, but specific for
+    CCS. In addition, we create Variables that are the sum of the input, output,
     CAPEX and OPEX of the technology and of CCS. We calculate the emissions of the
     technology discounting already
     what is being captured by the CCS.

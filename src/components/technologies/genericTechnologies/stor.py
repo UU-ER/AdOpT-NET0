@@ -2,7 +2,6 @@ import pyomo.environ as pyo
 import pyomo.gdp as gdp
 import numpy as np
 import pandas as pd
-import h5py
 
 from ..technology import Technology
 from src.components.utilities import (
@@ -15,10 +14,22 @@ from src.components.utilities import (
 
 class Stor(Technology):
     """
+    Storage Technology
+
     This model resembles a storage technology.
     Note that this technology only works for one carrier, and thus the carrier index is dropped in the below notation.
 
-    **Parameter declarations:**
+    **Variable declarations:**
+
+    - ``var_storage_level``: Storage level in :math:`t`: :math:`E_t`
+
+    - ``var_capacity_charge``: Charging capacity
+
+    - ``var_capacity_discharge``: Discharging capacity
+
+    **Constraint declarations:**
+
+    The following constants are used:
 
     - :math:`{\\eta}_{in}`: Charging efficiency
 
@@ -28,19 +39,14 @@ class Stor(Technology):
 
     - :math:`{\\lambda_2(\\Theta)}`: Self-Discharging coefficient (dependent on environment)
 
-    - :math:`Input_{max}`: Maximal charging capacity in one time-slice
+    - :math:`Input_{max}`: Maximal charging capacity
 
-    - :math:`Output_{max}`: Maximal discharging capacity in one time-slice
+    - :math:`Output_{max}`: Maximal discharging capacity
 
-    **Variable declarations:**
+    - Size constraint:
 
-    - Storage level in :math:`t`: :math:`E_t`
-
-    - Charging in in :math:`t`: :math:`Input_{t}`
-
-    - Discharging in in :math:`t`: :math:`Output_{t}`
-
-    **Constraint declarations:**
+      .. math::
+        E_{t} \leq S
 
     - Maximal charging and discharging:
 
@@ -50,28 +56,28 @@ class Stor(Technology):
       .. math::
         Output_{t} \leq Output_{max}
 
-    - Size constraint:
-
-      .. math::
-        E_{t} \leq S
-
     - Storage level calculation:
 
       .. math::
         E_{t} = E_{t-1} * (1 - \\lambda_1) - \\lambda_2(\\Theta) * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
 
-    - If ``allow_only_one_direction == 1``, then only input or output can be unequal to zero in each respective time
-      step (otherwise, simultaneous charging and discharging can lead to unwanted 'waste' of energy/material).
+    - If ``allow_only_one_direction == 1``, then only input or output can be unequal
+      to zero in each respective time step (otherwise, simultaneous charging and
+      discharging can lead to unwanted 'waste' of energy/material).
 
-     - If in ``Flexibility`` the ``power_energy_ratio == fixed``, then the capacity of the charging and discharging power is fixed as a ratio of the energy capacity. Thus,
+     - If in ``Flexibility`` the ``power_energy_ratio == fixed``, then the capacity of
+      the charging and discharging power is fixed as a ratio of the energy capacity.
+      Thus:
 
       .. math::
         Input_{max} = \gamma_{charging} * S
 
-    - If in 'Flexibility' the "power_energy_ratio == flex" (flexible), then the capacity of the charging and discharging power is a variable in the optimization. In this case, the charging and discharging rates specified in the json file are the maximum installed
-        capacities as a ratio of the energy capacity. The model will optimize the charging and discharging capacities,
-        based on the incorporation of these components in the CAPEX function.
-
+    - If in 'Flexibility' the "power_energy_ratio == flex" (flexible), then the
+      capacity of the charging and discharging power is a variable in the
+      optimization. In this case, the charging and discharging rates specified in the
+      json file are the maximum installed capacities as a ratio of the energy
+      capacity. The model will optimize the charging and discharging capacities,
+      based on the incorporation of these components in the CAPEX function.
 
     - If an energy consumption for charging or dis-charging process is given, the respective carrier input is:
 
@@ -87,6 +93,16 @@ class Stor(Technology):
         CAPEX_{chargeCapacity} = chargeCapacity * unitCost_{chargeCapacity}
         CAPEX_{dischargeCapacity} = dischargeCapacity * unitCost_{dischargeCapacity}
         CAPEX_{storSize} = storSize * unitCost_{storSize}
+
+    - Additionally, ramping rates of the technology can be constraint (for input and
+      output).
+
+      .. math::
+         -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar}
+
+      .. math::
+         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car})
+
 
     """
 
@@ -266,7 +282,6 @@ class Stor(Technology):
 
         # Size constraint
         def init_size_constraint(const, t):
-            # storageLevel <= storSize
             return b_tec.var_storage_level[t] <= b_tec.var_size
 
         b_tec.const_size = pyo.Constraint(self.set_t_full, rule=init_size_constraint)
@@ -385,7 +400,6 @@ class Stor(Technology):
 
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t):
-            # input[t] <= chargeCapacity
             return (
                 self.input[t, self.component_options.main_input_carrier]
                 <= b_tec.var_capacity_charge
@@ -396,7 +410,6 @@ class Stor(Technology):
         )
 
         def init_maximal_discharge(const, t):
-            # output[t] <= dischargeCapacity
             return (
                 self.output[t, self.component_options.main_input_carrier]
                 <= b_tec.var_capacity_discharge
@@ -409,10 +422,8 @@ class Stor(Technology):
         # if the charging / discharging rates are fixed or flexible as a ratio of the energy capacity:
         def init_max_capacity_charge(const):
             if self.flexibility_data["power_energy_ratio"] == "fixed":
-                # chargeCapacity == chargeRate * storSize
                 return b_tec.var_capacity_charge == charge_rate * b_tec.var_size
             else:
-                # chargeCapacity <= chargeRate * storSize
                 return b_tec.var_capacity_charge <= charge_rate * b_tec.var_size
 
         b_tec.const_max_cap_charge = pyo.Constraint(rule=init_max_capacity_charge)

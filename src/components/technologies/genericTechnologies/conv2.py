@@ -14,9 +14,12 @@ from ...utilities import link_full_resolution_to_clustered
 
 class Conv2(Technology):
     """
-    This technology type resembles a technology with full input substitution, but different performance functions
-    for the respective output carriers, i.e. :math:`output_{car} = f_{car}(\sum(inputs))`
-    Three different performance function fits are possible.
+    Technology with full input substitution
+
+    This technology type resembles a technology with full input substitution,
+    but different performance functions for the respective output carriers,
+    i.e. :math:`output_{car} = f_{car}(\sum(inputs))`. Three different performance
+    function fits are possible.
 
     **Constraint declarations:**
 
@@ -36,6 +39,9 @@ class Conv2(Technology):
       .. math::
         Output_{t, car} == {\\alpha}_{1, car} \sum(Input_{t, car})
 
+      .. math::
+        \min_part_load * S \leq {\\alpha}_1 \sum(Input_{t, car})
+
     - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
       technology is in on, it holds:
 
@@ -53,9 +59,29 @@ class Conv2(Technology):
       .. math::
          \sum(Input_{t, car}) = 0
 
-    - ``performance_function_type == 3``: Piecewise linear performance function (makes big-m transformation required).
-      The same constraints as for ``performance_function_type == 2`` with the exception that the performance function
-      is defined piecewise for the respective number of pieces
+      If the technology has a standby-power, the input of the standy-by power carrier
+      is:
+
+      .. math::
+         Input_{t, standby-carrier} = standbypower * S
+
+    - ``performance_function_type == 3``: Piecewise linear performance function (
+      makes big-m transformation required). The same constraints as for
+      ``performance_function_type == 2`` with the exception that the performance
+      function is defined piecewise for the respective number of pieces.
+
+    - ``performance_function_type == 4``:Piece-wise linear, minimal partload,
+      includes constraints for slow (>1h) startup and shutdown trajectories.
+      Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L.,
+      & Hobbs, B. F. (2017). Hidden power system inflexibilities imposed by
+      traditional unit commitment formulations. Applied Energy, 191, 223–238.
+      https://doi.org/10.1016/J.APENERGY.2017.01.089
+
+    - Additionally, ramping rates of the technology can be constraint.
+
+      .. math::
+         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car})
+
     """
 
     def __init__(self, tec_data: dict):
@@ -89,7 +115,7 @@ class Conv2(Technology):
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
-        Fits conversion technology type 2 and returns fitted parameters as a dict
+        Fits conversion technology type 2
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
@@ -489,10 +515,6 @@ class Conv2(Technology):
         """
         Piece-wise linear, minimal partload, includes constraints for slow (>1h) startup and shutdown trajectories.
 
-        Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L., & Hobbs, B. F. (2017). Hidden
-        power system inflexibilities imposed by traditional unit commitment formulations. Applied Energy, 191, 223–238.
-        https://doi.org/10.1016/J.APENERGY.2017.01.089
-
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
@@ -653,7 +675,7 @@ class Conv2(Technology):
 
                 dis.const_y_off = pyo.Constraint(rule=init_y_off)
 
-                def init_input_SD(cons):
+                def init_input_SD(const):
                     return (
                         sum(
                             self.input[t, car_input]

@@ -130,7 +130,7 @@ class FitGenericTecTypeType2:
 
     def calculate_input_bounds(self, size_based_on: str, time_steps: int):
         """
-        Calculates input bounds for type 1 generic technologies
+        Calculates input bounds for type 2 generic technologies
 
         :param str size_based_on: 'input' or 'output'
         :param int time_steps: number of time steps
@@ -205,7 +205,7 @@ class FitGenericTecTypeType34:
 
     def fit_performance_function(self, performance_data: dict):
         """
-        Fits performance function for input-output data for type 2 technologies
+        Fits performance function for input-output data for type 3/4 technologies
 
         :param dict performance_data: performance data
         """

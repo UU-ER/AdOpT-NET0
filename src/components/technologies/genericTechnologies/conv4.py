@@ -9,8 +9,11 @@ from ..technology import Technology
 
 class Conv4(Technology):
     """
-    This technology type resembles a technology with fixed output ratios and no inputs, i.e., :math:`output_{car} \leq S`.
-    This technology is useful for modelling a technology for which you do not care about the inputs, i.e., you do not
+    Technology with no inputs
+
+    This technology type resembles a technology with fixed output ratios  and no
+    inputs, i.e., :math:`output_{car} \leq S`. This technology is useful for
+    modelling a technology for which you do not care about the inputs, i.e., you do not
     wish to construct and solve an energy balance for the input carriers.
     Two different performance function fits are possible.
 
@@ -28,18 +31,18 @@ class Conv4(Technology):
       .. math::
         Output_{t, car} = {\\phi}_{car} * Output_{t, maincarrier}
 
-    For type 1, there are no further constraints on the performance of the technology. So, for
-    ``performance_function_type == 1`` only the above constraints hold.
+    - ``performance_function_type == 1``: No further constraints on the performance
+      of the technology.
 
-    For type 2, a minimum part load can be specified (requiring a big-m transformation for the solving). So, for
-    ``performance_function_type == 2``, the following constraints hold:
+    - ``performance_function_type == 2``: A minimum part load can be specified (
+    requiring a big-m transformation for the solving). The following constraints hold:
 
-    - When the technology is on:
+      When the technology is on:
 
       .. math::
         Output_{maincarrier} \geq Output_{min} * S
 
-    - When the technology is off, output is set to 0:
+      When the technology is off, output is set to 0:
 
       .. math::
          Output_{t, car} = 0
@@ -60,7 +63,7 @@ class Conv4(Technology):
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
-        Fits conversion technology type 4 and returns fitted parameters as a dict
+        Fits conversion technology type 4
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
@@ -152,10 +155,8 @@ class Conv4(Technology):
 
     def _performance_function_type_2(self, b_tec):
         """
-        Sets the minimum part load constraint for a tec based on tec_type CONV4 with performance type 2.
-
-        Type 2 is a performance including a minimum part load. The technology can either be switched off, or it has to
-        operate beyond the minimum part load point.
+        Sets the minimum part load constraint for a tec based on tec_type CONV4 with
+        performance type 2.
 
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
