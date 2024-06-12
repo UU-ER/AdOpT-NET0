@@ -289,7 +289,6 @@ class Stor(Technology):
         # Storage level calculation
         def init_storage_level(const, t):
             if t == 1:
-                # TODO document the storage level constraints
                 # couple first and last time interval: storageLevel[1] ==
                 # storageLevel[end] * (1-self_discharge)^nr_timesteps_averaged +
                 # - storageLevel[end] * ambient_loss_factor[end-1]^nr_timesteps_averaged +

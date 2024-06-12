@@ -5,9 +5,9 @@ from ..logger import log_event
 def construct_investment_period_block(b_period, data: dict):
     """
     SETS
-    - set_networks
-    - set_t_full
-    - set_t_clustered
+    - set_networks: Set of networks for investment period
+    - set_t_full: full set_t
+    - set_t_clustered: clustered set_t (can be equal to set_t_full)
 
     VARIABLES
 

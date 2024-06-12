@@ -5,7 +5,7 @@ import pyomo.environ as pyo
 from src.model_construction.utilities import determine_network_energy_consumption
 
 
-def determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:
+def _determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:
     """
     Determines carriers that are used in time_series
 
@@ -19,7 +19,7 @@ def determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:
     return list(set(carriers))
 
 
-def determine_carriers_from_technologies(technology_data: dict) -> list:
+def _determine_carriers_from_technologies(technology_data: dict) -> list:
     """
     Determines carriers that are used for technologies
 
@@ -36,7 +36,7 @@ def determine_carriers_from_technologies(technology_data: dict) -> list:
     return list(set(carriers))
 
 
-def determine_carriers_from_networks(network_data) -> list:
+def _determine_carriers_from_networks(network_data) -> list:
     """
     Determines carriers that are used for networks
 
@@ -47,7 +47,6 @@ def determine_carriers_from_networks(network_data) -> list:
     for netw in network_data:
         # Todo: This can be further extended to check if node is connected to network
         # Todo: This needs to be written correctly, possibly its buggy, check if energy consumption works
-        # Todo: This does not work for copperplate
         carriers.extend([network_data[netw].component_options.transported_carrier])
 
         if network_data[netw].component_options.energyconsumption:
@@ -57,53 +56,58 @@ def determine_carriers_from_networks(network_data) -> list:
 
 
 def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
-    r"""
+    """
     Adds all nodes with respective data to the model
 
-    This function initializes parameters and decision variables for all considered nodes. It also adds all technologies\
-    that are installed at the node (see :func:`~add_technologies`). For each node, it adds one block indexed by the \
-    set of all nodes. As such, the function constructs:
-
-    node blocks, indexed by :math:`N` > technology blocks, indexed by :math:`Tec_n, n \in N`
+    This function initializes parameters and decision variables for all considered
+    nodes.
 
     **Set declarations:**
 
-    - Set for all technologies :math:`S_n` at respective node :math:`n` : :math:`S_n, n \in N` (this is a duplicate \
-      of a set already initialized in ``self.model.set_technologies``).
+    - set_technologies: Set for all technologies at respective node
+    - set_carriers: Set of carriers used at node (this is a subset of all carriers)
 
     **Parameter declarations:**
 
-    - Demand for each time step
-    - Import Prices for each time step
-    - Export Prices for each time step
-    - Import Limits for each time step
-    - Export Limits for each time step
-    - Emission Factors for each time step
+    - para_demand: Demand for each time step and carrier
+    - para_production_profile: Maximal generic production profile for each time step
+      and carrier
+    - para_import_price: Import Prices for each time step and carrier
+    - para_export_price: Export Prices for each time step and carrier
+    - para_import_limit: Import Limits for each time step and carrier
+    - para_export_limit: Export Limits for each time step and carrier
+    - para_import_emissionfactors: Emission factors of imports for each time step and
+      carrier
+    - para_export_emissionfactors: Emission factors of exports for each time step and
+      carrier
+    - para_carbon_subsidy: Carbon subsidy for negative emissions
+    - para_carbon_tax: Carbon tax for positive emissions
 
     **Variable declarations:**
 
-    - Import Flow for each time step
-    - Export Flow for each time step
-    - Network Inflow for each time step
-    - Network Outflow for each time step
-    - Cost at node (includes technology costs (CAPEX, OPEX) and import/export costs), see constraint declarations
+    - var_import_flow: Import Flow for each time step and carrier
+    - var_export_flow: Export Flow for each time step and carrier
+    - var_netw_inflow: Network Inflow for each time step and carrier
+    - var_netw_outflow: Network Outflow for each time step and carrier
+    - var_netw_consumption: Network consumption (if present)
+    - var_generic_production: Actual generic production
+    - var_import_emissions_pos: Positive emissions from imports
+    - var_import_emissions_neg: Negative emissions from imports
+    - var_export_emissions_pos: Positive emissions from exports
+    - var_export_emissions_neg: Negative emissions from exports
+    - var_car_emissions_pos: Sum of positive emissions
+    - var_car_emissions_neg: Sum of negative emissions
 
     **Constraint declarations**
 
-    - Cost at node:
-
-    .. math::
-        C_n = \
-        \sum_{tec \in Tec_n} CAPEX_{tec} + \
-        \sum_{tec \in Tec_n} OPEXfix_{tec} + \
-        \sum_{tec \in Tec_n} \sum_{t \in T} OPEXvar_{t, tec} + \\
-        \sum_{car \in Car} \sum_{t \in T} import_{t, car} pImport_{t, car} - \
-        \sum_{car \in Car} \sum_{t \in T} export_{t, car} pExport_{t, car}
-
-    **Block declarations:**
-
-    - Technologies at node
-
+    - Generic production: Equal to the parameter if curtailment is not possible,
+      otherwise less-or-equal
+    - Calculate import emissions (positive and negative): emissions = import *
+      emissions-factor
+    - Calculate export emissions (positive and negative): emissions = export *
+      emissions-factor
+    - Calculate carrier emissions as a sum of positive/negative import and export
+      emissions
 
     :param b_node: pyomo block with node model
     :param dict data: data containing model configuration
@@ -119,18 +123,18 @@ def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
     # Determine carriers used at node
     carriers = []
     carriers.extend(
-        determine_carriers_from_time_series(data["time_series"]["CarrierData"])
+        _determine_carriers_from_time_series(data["time_series"]["CarrierData"])
     )
-    carriers.extend(determine_carriers_from_technologies(data["technology_data"]))
+    carriers.extend(_determine_carriers_from_technologies(data["technology_data"]))
     if not config["energybalance"]["copperplate"]["value"]:
-        carriers.extend(determine_carriers_from_networks(data["network_data"]))
+        carriers.extend(_determine_carriers_from_networks(data["network_data"]))
     carriers = list(set(carriers))
 
     # SETS
     b_node.set_technologies = pyo.Set(initialize=list(data["technology_data"].keys()))
     b_node.set_carriers = pyo.Set(initialize=list(set(carriers)))
 
-    # Reduced time horizon
+    # Time aggregation
     config = data["config"]
     if config["optimization"]["typicaldays"]["N"]["value"] == 0:
         set_t = set_t_full

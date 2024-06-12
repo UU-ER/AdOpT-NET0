@@ -5,6 +5,8 @@ from src.utilities import get_set_t, get_hour_factors, get_nr_timesteps_averaged
 
 def delete_all_balances(model):
     """
+    Deletes all balances (required if they need to be reconstructed)
+
     :param model: pyomo model
     :return: pyomo model
     """
@@ -13,31 +15,32 @@ def delete_all_balances(model):
         model.del_component(model.block_network_constraints)
     if model.find_component("const_energybalance"):
         model.del_component(model.const_energybalance)
-    if model.find_component("const_violation"):
-        model.del_component(model.const_violation)
-    if model.find_component("var_violation"):
-        model.del_component(model.var_violation)
-    if model.find_component("var_cost_violation"):
-        model.del_component(model.var_cost_violation)
     if model.find_component("const_emissions_tot"):
         model.del_component(model.const_emissions_tot)
         model.del_component(model.const_emissions_neg)
         model.del_component(model.const_emissions_net)
-    if model.find_component("const_netw_cost"):
-        model.del_component(model.const_netw_cost)
-    if model.find_component("const_node_cost"):
-        model.del_component(model.const_node_cost)
-        model.del_component(model.const_revenue_carbon)
-        model.del_component(model.const_cost_carbon)
-        model.del_component(model.const_cost)
+    if model.find_component("block_costbalance"):
+        model.del_component(model.block_costbalance)
+    if model.find_component("const_npv"):
+        model.del_component(model.const_npv)
+    if model.find_component("const_emissions"):
+        model.del_component(model.const_emissions)
 
     return model
 
 
-def construct_network_constraints(model, config):
-    """Construct the network constraints to calculate nodal in- and outflow and energy balance
+def construct_network_constraints(model, config: dict):
+    """
+    Construct the network constraints to calculate nodal in- and outflow
+
+    .. math::
+        outflowToNetwork = \sum(outflow \forall arcs at node)
+
+    .. math::
+        inflowFromNetwork = \sum(inflow \forall arcs at node)\\
 
     :param model: pyomo model
+    :param dict config: dict containing model information
     :return: pyomo model
     """
 
@@ -104,7 +107,7 @@ def construct_network_constraints(model, config):
 
 def construct_nodal_energybalance(model, config: dict):
     """
-    Calculates the energy balance for each node and carrier as:
+    Calculates the energy balance for each node and carrier
 
     .. math::
         outputFromTechnologies - inputToTechnologies + \\
@@ -112,7 +115,7 @@ def construct_nodal_energybalance(model, config: dict):
         imports - exports = demand - genericProductionProfile
 
     :param model: pyomo model
-    :param dict config: config dict containing scaling factors
+    :param dict config: dict containing model information
     :return: pyomo model
     """
 
@@ -191,15 +194,14 @@ def construct_nodal_energybalance(model, config: dict):
 
 def construct_global_energybalance(model, config):
     """
-    Calculates the energy balance for each node and carrier as:
+    Calculates the global energy balance for each carrier summed over all nodes
 
     .. math::
         outputFromTechnologies - inputToTechnologies + \\
-        inflowFromNetwork - outflowToNetwork + \\
         imports - exports = demand - genericProductionProfile
 
     :param model: pyomo model
-    :param dict config: config dict containing scaling factors
+    :param dict config: dict containing model information
     :return: pyomo model
     """
 
@@ -309,7 +311,18 @@ def construct_global_energybalance(model, config):
 
 def construct_emission_balance(model, data):
     """
-    Calculates the total and the net CO_2 balance.
+    Calculates the total postive and negative emissions as well as the net emissions
+
+    .. math::
+        E_{pos, tot} = E_{pos, technologies} + E_{pos, carriers} + E_{pos,
+        networks}
+
+    .. math::
+        E_{neg, tot} = E_{neg, technologies} + E_{neg, carriers}
+
+    .. math::
+        E_{net} = E_{pos, tot} - E_{neg, tot}
+
 
     :param model: pyomo model
     :param data: DataHandle
@@ -412,7 +425,18 @@ def construct_emission_balance(model, data):
     return model
 
 
-def construct_import_costs(b_period, data, period):
+def construct_import_costs(b_period, data, period: str):
+    """
+    Calculates the total import costs for an investment period
+
+    .. math::
+        C_{import} = \sum(p_{t, import} * F_{t, import})
+
+    :param b_period: pyomo block for period
+    :param data: DataHandle
+    :param str period: investment period to calculate import cost for
+    :return: pyomo constraint
+    """
     config = data.model_config
 
     set_t = get_set_t(config, b_period)
@@ -438,6 +462,17 @@ def construct_import_costs(b_period, data, period):
 
 
 def construct_export_costs(b_period, data, period):
+    """
+    Calculates the total export costs for an investment period
+
+    .. math::
+        C_{export} = \sum(p_{t, export} * F_{t, export})
+
+    :param b_period: pyomo block for period
+    :param data: DataHandle
+    :param str period: investment period to calculate export cost for
+    :return: pyomo constraint
+    """
     config = data.model_config
 
     set_t = get_set_t(config, b_period)
@@ -464,14 +499,23 @@ def construct_export_costs(b_period, data, period):
 
 def construct_system_cost(model, data):
     """
-    Calculates total system costs in three steps.
+    Aggregates costs per investment period
 
-    - Calculates cost at all nodes as the sum of technology costs, import costs and export revenues
-    - Calculates cost of all networks
-    - Adds up cost of networks and node costs
+    - Total capex of technologies
+    - Total capex of networks
+    - Total opex of technologies
+    - Total opex of networks
+    - Total cost of technologies (sum of opex and capex)
+    - Total cost of networks (sum of opex and capex)
+    - Total import costs
+    - Total export costs
+    - Total costs from violations of the energy balance
+    - Carbon costs and revenues
+    - Total cost per investment period as a sum of technology, network, import,
+      export, violation and carbon costs
 
     :param model: pyomo model
-    :param dict config: config dict containing scaling factors
+    :param dict config: dict containing model information
     :return: pyomo model
     """
     config = data.model_config
@@ -701,11 +745,11 @@ def construct_system_cost(model, data):
 
 def construct_global_balance(model):
     """
+    Calculates total npv and total emissions over all investment periods
     :param model: pyomo model
     :return: pyomo model
     """
 
-    # TODO: Account for discount rate
     def init_npv(const):
         return (
             sum(model.periods[period].var_cost_total for period in model.set_periods)
