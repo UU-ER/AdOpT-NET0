@@ -39,7 +39,7 @@ class HeatPump(Technology):
     Ramping rates of the technology can be constraint.
 
     .. math::
-      -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car})
+      -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq rampingrate
 
     """
 

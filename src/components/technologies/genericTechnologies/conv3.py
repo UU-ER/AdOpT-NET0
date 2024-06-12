@@ -83,7 +83,7 @@ class Conv3(Technology):
     - Additionally, ramping rates of the technology can be constraint.
 
       .. math::
-         -rampingrate \leq Input_{t, main-car} - Input_{t-1, car}
+         -rampingrate \leq Input_{t, main-car} - Input_{t-1, car} \leq rampingrate
 
     """
 

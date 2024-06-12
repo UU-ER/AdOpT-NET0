@@ -19,7 +19,7 @@ class Conv1(Technology):
 
     **Constraint declarations:**
 
-    - Size constraints can be formulated on the input or th output.
+    - Size constraints can be formulated on the input or output.
       For size_based_on == 'input' it holds:
 
       .. math::
@@ -38,7 +38,7 @@ class Conv1(Technology):
         Input_{t, car} <= max_in_{car} * \sum(Input_{t, car})
 
     - ``performance_function_type == 1``: Linear through origin. Note that if
-      min_part_load is larger 0, the technology cannot be turned off.
+      min_part_load is larger than 0, the technology cannot be turned off.
 
       .. math::
         \sum(Output_{t, car}) == {\\alpha}_1 \sum(Input_{t, car})
@@ -84,7 +84,7 @@ class Conv1(Technology):
     - Additionally, ramping rates of the technology can be constraint.
 
       .. math::
-         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car})
+         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq rampingrate
 
     """
 

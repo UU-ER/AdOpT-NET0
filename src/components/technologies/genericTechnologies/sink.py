@@ -63,7 +63,7 @@ class Sink(Technology):
       output).
 
       .. math::
-         -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar}
+         -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar} \leq rampingrate
 
     """
 
