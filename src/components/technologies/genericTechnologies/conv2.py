@@ -254,7 +254,7 @@ class Conv2(Technology):
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
-                self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
+                self.set_t_performance, domain=pyo.NonNegativeReals, bounds=(0, 1)
             )
 
         if min_part_load == 0:
@@ -377,7 +377,7 @@ class Conv2(Technology):
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
-                self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
+                self.set_t_performance, domain=pyo.NonNegativeReals, bounds=(0, 1)
             )
 
         s_indicators = range(0, len(bp_x))
