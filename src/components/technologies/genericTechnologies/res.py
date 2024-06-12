@@ -155,12 +155,10 @@ class Res(Technology):
 
         # Calculate cap factors
         power = pv_model.results.ac.p_mp
-        capacity_factor = power / peakpower
+        capacity_factor = round(power / peakpower, 3)
 
         # Coefficients
-        self.processed_coeff.time_dependent_full["capfactor"] = round(
-            capacity_factor, 3
-        )
+        self.processed_coeff.time_dependent_full["capfactor"] = capacity_factor.values
         self.processed_coeff.time_independent["specific_area"] = specific_area
 
     def _perform_fitting_ST(self, climate_data: pd.DataFrame):

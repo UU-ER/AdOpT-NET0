@@ -211,9 +211,14 @@ class Conv3(Technology):
                     )
 
             b_tec.const_input_input = pyo.Constraint(
-                self.set_t_full, b_tec.set_input_carriers, rule=init_input_input
+                self.set_t_performance, b_tec.set_input_carriers, rule=init_input_input
             )
         else:
+            if self.component_options.standby_power_carrier == -1:
+                car_standby_power = self.component_options.main_input_carrier
+            else:
+                car_standby_power = self.component_options.standby_power_carrier
+
             s_indicators = range(0, 2)
 
             def init_input_input(dis, t, ind):
@@ -221,7 +226,7 @@ class Conv3(Technology):
                     dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
 
                     def init_input_off(const, car_input):
-                        if car_input == self.component_options.main_input_carrier:
+                        if car_input == car_standby_power:
                             return pyo.Constraint.Skip
                         else:
                             return self.input[t, car_input] == 0
@@ -234,15 +239,12 @@ class Conv3(Technology):
                     dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
 
                     def init_input_on(const, car_input):
-                        if car_input == self.component_options.main_input_carrier:
+                        if car_input == car_standby_power:
                             return pyo.Constraint.Skip
                         else:
                             return (
                                 self.input[t, car_input]
-                                == phi[car_input]
-                                * self.input[
-                                    t, self.component_options.main_input_carrier
-                                ]
+                                == phi[car_input] * self.input[t, car_standby_power]
                             )
 
                     dis.const_input_on = pyo.Constraint(
@@ -350,7 +352,7 @@ class Conv3(Technology):
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
-                self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
+                self.set_t_performance, domain=pyo.NonNegativeReals, bounds=(0, 1)
             )
 
         if min_part_load == 0:
@@ -468,7 +470,7 @@ class Conv3(Technology):
 
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
-                self.set_t_full, domain=pyo.NonNegativeReals, bounds=(0, 1)
+                self.set_t_performance, domain=pyo.NonNegativeReals, bounds=(0, 1)
             )
 
         s_indicators = range(0, len(bp_x))
