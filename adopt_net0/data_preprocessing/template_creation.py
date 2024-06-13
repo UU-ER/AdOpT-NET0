@@ -1,0 +1,543 @@
+import json
+from pathlib import Path
+import numpy as np
+import pandas as pd
+
+
+def create_empty_network_matrix(nodes: list) -> pd.DataFrame:
+    """
+    Function creates matrix for defined nodes.
+
+    :param list nodes: list of nodes to create matrices from
+    :return: pandas data frame with nodes
+    """
+    # construct matrix
+    matrix = pd.DataFrame(
+        data=np.full((len(nodes), len(nodes)), 0), index=nodes, columns=nodes
+    )
+    return matrix
+
+
+def create_carbon_cost_data(timesteps: pd.date_range) -> pd.DataFrame:
+    """
+    Creates a data frame with carbon cost data
+
+    :param pd.date_range timesteps: timesteps used as index
+    :return: Data frame with columns: "price", "subsidy"
+    :rtype: pd.DataFrame
+    """
+    carbon_cost = pd.DataFrame(index=timesteps, columns=["price", "subsidy"])
+    return carbon_cost
+
+
+def create_climate_data(timesteps: pd.date_range) -> pd.DataFrame:
+    """
+    Creates a data frame with climate data
+
+    :param pd.date_range timesteps: timesteps used as index
+    :return: Data frame with two columns "ghi", "dni", "dhi", "temp_air", "rh", "ws10", "TECHNOLOGYNAME_hydro_inflow"
+    :rtype: pd.DataFrame
+    """
+    climate_data = pd.DataFrame(
+        index=timesteps,
+        columns=[
+            "ghi",
+            "dni",
+            "dhi",
+            "temp_air",
+            "rh",
+            "ws10",
+            "TECHNOLOGYNAME_hydro_inflow",
+        ],
+    )
+    return climate_data
+
+
+def create_carrier_data(timesteps: pd.date_range) -> pd.DataFrame:
+    """
+    Creates a data frame with carrier data
+
+    :param pd.date_range timesteps: timesteps used as index
+    :return: Data frame with two columns "Demand", "Import limit", "Export limit", "Import price", "Export price", "Import emission factor", "Export emission factor", "Generic production",
+    :rtype: pd.DataFrame
+    """
+    carrier_data = pd.DataFrame(
+        index=timesteps,
+        columns=[
+            "Demand",
+            "Import limit",
+            "Export limit",
+            "Import price",
+            "Export price",
+            "Import emission factor",
+            "Export emission factor",
+            "Generic production",
+        ],
+    )
+    return carrier_data
+
+
+def create_input_data_folder_template(base_path: Path | str):
+    """
+    Creates a folder structure based on the topology contained in the folder
+
+    This function creates the input data folder structure required to organize the input data to the model.
+    Note that the folder needs to already exist with a Topology.json file in it that specifies the nodes, carriers,
+    timesteps, investment periods and the length of the investment period.
+
+    You can create an examplary json template with the function `func:create_topology_template`
+
+    :param str, Path base_path: path to folder
+    """
+    # Convert to Path
+    if isinstance(base_path, str):
+        base_path = Path(base_path)
+
+    # Read Topology.json
+    with open(base_path / "Topology.json") as json_file:
+        topology = json.load(json_file)
+
+    timesteps = pd.date_range(
+        start=topology["start_date"],
+        end=topology["end_date"],
+        freq=topology["resolution"],
+    )
+
+    # Template jsons:
+    networks = {"existing": [], "new": []}
+    technologies = {"existing": {}, "new": []}
+    energy_balance_options = {
+        carrier: {"curtailment_possible": 0} for carrier in topology["carriers"]
+    }
+
+    # Template csvs
+    carrier_data = create_carrier_data(timesteps)
+    climate_data = create_climate_data(timesteps)
+    carbon_cost = create_carbon_cost_data(timesteps)
+
+    node_locations = pd.DataFrame(
+        index=topology["nodes"], columns=["lon", "lat", "alt"]
+    )
+
+    # Make folder structure
+    node_locations.to_csv(base_path / "NodeLocations.csv", sep=";")
+    for investment_period in topology["investment_periods"]:
+        (base_path / investment_period).mkdir(parents=True, exist_ok=True)
+
+        # Networks
+        with open(base_path / investment_period / "Networks.json", "w") as f:
+            json.dump(networks, f, indent=4)
+        (base_path / investment_period / "network_data").mkdir(
+            parents=True, exist_ok=True
+        )
+        (base_path / investment_period / "network_topology").mkdir(
+            parents=True, exist_ok=True
+        )
+        (base_path / investment_period / "network_topology" / "new").mkdir(
+            parents=True, exist_ok=True
+        )
+        (base_path / investment_period / "network_topology" / "existing").mkdir(
+            parents=True, exist_ok=True
+        )
+        empty_network_matrix = create_empty_network_matrix(topology["nodes"])
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "new"
+            / "connection.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path / investment_period / "network_topology" / "new" / "distance.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "new"
+            / "size_max_arcs.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "existing"
+            / "size.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "existing"
+            / "distance.csv",
+            sep=";",
+        )
+        empty_network_matrix.to_csv(
+            base_path
+            / investment_period
+            / "network_topology"
+            / "existing"
+            / "connection.csv",
+            sep=";",
+        )
+
+        # Node data
+        (base_path / investment_period / "node_data").mkdir(parents=True, exist_ok=True)
+        for node in topology["nodes"]:
+            (base_path / investment_period / "node_data" / node / "carrier_data").mkdir(
+                parents=True, exist_ok=True
+            )
+            with open(
+                base_path
+                / investment_period
+                / "node_data"
+                / node
+                / "Technologies.json",
+                "w",
+            ) as f:
+                json.dump(technologies, f, indent=4)
+            with open(
+                base_path
+                / investment_period
+                / "node_data"
+                / node
+                / "carrier_data"
+                / "EnergybalanceOptions.json",
+                "w",
+            ) as f:
+                json.dump(energy_balance_options, f, indent=4)
+            for carrier in topology["carriers"]:
+                carrier_data.to_csv(
+                    base_path
+                    / investment_period
+                    / "node_data"
+                    / node
+                    / "carrier_data"
+                    / f"{carrier}.csv",
+                    sep=";",
+                )
+            climate_data.to_csv(
+                base_path / investment_period / "node_data" / node / "ClimateData.csv",
+                sep=";",
+            )
+            carbon_cost.to_csv(
+                base_path / investment_period / "node_data" / node / "CarbonCost.csv",
+                sep=";",
+            )
+            (
+                base_path / investment_period / "node_data" / node / "technology_data"
+            ).mkdir(parents=True, exist_ok=True)
+
+
+def initialize_topology_templates() -> dict:
+    """
+    Creates a topology template and returns it as a dict
+
+    :return: topology_template
+    :rtype: dict
+    """
+    topology_template = {
+        "nodes": ["node1", "node2"],
+        "carriers": ["electricity", "hydrogen"],
+        "investment_periods": ["period1"],
+        "start_date": "2022-01-01 00:00",
+        "end_date": "2022-12-31 23:00",
+        "resolution": "1h",
+        "investment_period_length": 1,
+    }
+    return topology_template
+
+
+def initialize_configuration_templates() -> dict:
+    """
+    Creates a configuration template and returns it as a dict
+
+    :return: configuration_template
+    :rtype: dict
+    """
+    configuration_template = {
+        "optimization": {
+            "objective": {
+                "description": "String specifying the objective/type of optimization.",
+                "options": [
+                    "costs",
+                    "emissions_pos",
+                    "emissions_net",
+                    "emissions_minC",
+                    "costs_emissionlimit",
+                    "pareto",
+                ],
+                "value": "costs",
+            },
+            "emission_limit": {
+                "description": "emission limit to be enforced if objective function "
+                "is costs_emissionlimit",
+                "value": 0,
+            },
+            "monte_carlo": {
+                "N": {
+                    "description": "Number of Monte Carlo simulations (0 = off).",
+                    "value": 0,
+                },
+                "type": {
+                    "description": "Type of Monte Carlo simulation. For type 1 the user defines the standard "
+                    "deviation and the components to vary. For type 2 the user provides a csv file "
+                    "with the parameters and their min, max and reference values. ",
+                    "options": ["normal_dis", "uniform_dis_from_file"],
+                    "value": "normal_dis",
+                },
+                "sd": {
+                    "description": "Value defining the range in which variables are varied in Monte Carlo simulations "
+                    "(defined as the standard deviation of the original value).",
+                    "value": 0.2,
+                },
+                "on_what": {
+                    "description": "List: Defines component to vary.",
+                    "options": [
+                        "Technologies",
+                        "Networks",
+                        "Import",
+                        "Export",
+                    ],
+                    "value": ["Technologies"],
+                },
+            },
+            "pareto_points": {"description": "Number of Pareto points.", "value": 5},
+            "timestaging": {
+                "description": "Defines number of timesteps that are averaged (0 = off).",
+                "value": 0,
+            },
+            "typicaldays": {
+                "N": {
+                    "description": "Determines number of typical days (0 = off).",
+                    "value": 0,
+                },
+                "method": {
+                    "description": "Determine method used for modeling technologies with typical days.",
+                    "options": [1, 2],
+                    "value": 2,
+                },
+                "technologies_with_full_res": {
+                    "description": "If method 2 is chosen, list determines which "
+                    "technologies are modelled at full resolution. "
+                    "Should be at least all storage technologies.",
+                    "options": [],
+                    "value": ["RES", "STOR", "Hydro_Open"],
+                },
+            },
+            "multiyear": {
+                "description": "Enable multiyear analysis, if turned off max time horizon is 1 year.",
+                "options": [0, 1],
+                "value": 0,
+            },
+        },
+        "solveroptions": {
+            "solver": {
+                "description": "String specifying the solver used.",
+                "value": "gurobi",
+            },
+            "mipgap": {"description": "Value to define MIP gap.", "value": 0.001},
+            "timelim": {
+                "description": "Value to define time limit in hours.",
+                "value": 10,
+            },
+            "threads": {
+                "description": "Value to define number of threads (default is maximum available).",
+                "value": 0,
+            },
+            "mipfocus": {
+                "description": "Modifies high level solution strategy.",
+                "options": [0, 1, 2, 3],
+                "value": 0,
+            },
+            "nodefilestart": {
+                "description": "Parameter to decide when nodes are compressed and written to disk.",
+                "value": 60,
+            },
+            "method": {
+                "description": "Defines algorithm used to solve continuous models.",
+                "options": [-1, 0, 1, 2, 3, 4, 5],
+                "value": -1,
+            },
+            "heuristics": {
+                "description": "Parameter to determine amount of time spent in MIP heuristics.",
+                "value": 0.05,
+            },
+            "presolve": {
+                "description": "Controls the presolve level.",
+                "options": [-1, 0, 1, 2],
+                "value": -1,
+            },
+            "branchdir": {
+                "description": "Determines which child node is explored first in the branch-and-cut.",
+                "options": [-1, 0, 1],
+                "value": 0,
+            },
+            "lpwarmstart": {
+                "description": "Controls whether and how warm start information is used for LP.",
+                "options": [0, 1, 2],
+                "value": 0,
+            },
+            "intfeastol": {
+                "description": "Value that determines the integer feasibility tolerance.",
+                "value": 1e-05,
+            },
+            "feastol": {
+                "description": "Value that determines feasibility for all constraints.",
+                "value": 1e-06,
+            },
+            "numericfocus": {
+                "description": "Degree of which Gurobi tries to detect and manage numeric issues.",
+                "options": [0, 1, 2, 3],
+                "value": 0,
+            },
+            "cuts": {
+                "description": "Setting defining the aggressiveness of the global cut.",
+                "options": [-1, 0, 1, 2, 3],
+                "value": -1,
+            },
+        },
+        "reporting": {
+            "save_detailed": {
+                "description": "Setting to select how the results are saved. When turned off only the summary is saved.",
+                "options": [0, 1],
+                "value": 1,
+            },
+            "save_summary_path": {
+                "description": "Path to save the summary file path to.",
+                "value": "./userData/",
+            },
+            "save_path": {
+                "description": "Option to define the save path.",
+                "value": "./userData/",
+            },
+            "case_name": {
+                "description": "Option to define a case study name that is added to the results folder name.",
+                "value": -1,
+            },
+            "write_solution_diagnostics": {
+                "description": "If 1, writes solution quality, if 2 also writes pyomo to Gurobi variable map and constraint map to file.",
+                "options": [0, 1, 2],
+                "value": 0,
+            },
+        },
+        "energybalance": {
+            "violation": {
+                "description": "Determines the energy balance violation price (-1 is no violation allowed).",
+                "value": -1,
+            },
+            "copperplate": {
+                "description": "Determines if a copperplate approach is used.",
+                "options": [0, 1],
+                "value": 0,
+            },
+        },
+        "economic": {
+            "global_discountrate": {
+                "description": "Determines if and which global discount rate is used. This holds for the CAPEX of all technologies and networks.",
+                "value": -1,
+            },
+            "global_simple_capex_model": {
+                "description": "Determines if the CAPEX model of technologies is set to 1 for all technologies.",
+                "options": [0, 1],
+                "value": 0,
+            },
+        },
+        "performance": {
+            "dynamics": {
+                "description": "Determines if dynamics are used.",
+                "options": [0, 1],
+                "value": 0,
+            }
+        },
+        "scaling": {
+            "scaling_on": {
+                "description": "Determines if the model is scaled. If 1, it uses global and component specific scaling factors.",
+                "options": [0, 1],
+                "value": 0,
+            },
+            "scaling_factors": {
+                "energy_vars": {
+                    "description": "Scaling factor used for all energy variables.",
+                    "value": 0.001,
+                },
+                "cost_vars": {
+                    "description": "Scaling factor used for all cost variables.",
+                    "value": 0.001,
+                },
+                "objective": {
+                    "description": "Scaling factor used for the objective function.",
+                    "value": 1,
+                },
+            },
+        },
+    }
+
+    return configuration_template
+
+
+def create_optimization_templates(path: Path | str):
+    """
+    Creates an examplary topology json file in the specified path.
+
+    :param str/Path path: path to folder to create Topology.json
+    """
+    if isinstance(path, str):
+        path = Path(path)
+
+    topology_file = path / "Topology.json"
+    config_file = path / "ConfigModel.json"
+
+    # Check if the files already exist
+    if topology_file.exists() or config_file.exists():
+        print(
+            f"Files already exist: {topology_file if topology_file.exists() else ''} {config_file if config_file.exists() else ''}"
+        )
+        return
+
+    topology_template = initialize_topology_templates()
+    configuration_template = initialize_configuration_templates()
+
+    with open(topology_file, "w") as f:
+        json.dump(topology_template, f, indent=4)
+    with open(config_file, "w") as f:
+        json.dump(configuration_template, f, indent=4)
+
+
+def create_montecarlo_template_csv(base_path: Path | str):
+    """
+    Creates a template CSV file for the monte carlo parameters and saves it to the given path. The monte carlo can
+    only be performed on economic parameters.
+
+    The file should be filled by specifying the type ("Technologies", "Networks", "Import", "Export"), the name (
+    specific technology or network name, carrier in case of import or export), and the parameter ('unit_CAPEX' or
+    'fix_CAPEX' for technology, 'gamma1' 'gamma2' 'gamma3' or 'gamma4' for network and 'price' for import
+    and export).
+
+    :param str/Path path: path to folder to create Topology.json
+    """
+    if isinstance(base_path, str):
+        base_path = Path(base_path)
+
+    montecarlo_file = base_path / "MonteCarlo.csv"
+
+    # Check if the file already exists
+    if montecarlo_file.exists():
+        print(f"File already exists: {montecarlo_file}")
+        return
+
+    data = {
+        "type": [None],
+        "name": [None],
+        "parameter": [None],
+        "min": [None],
+        "ref": [None],
+        "max": [None],
+    }
+    df = pd.DataFrame(data)
+
+    df.to_csv(montecarlo_file, sep=";", index=False)

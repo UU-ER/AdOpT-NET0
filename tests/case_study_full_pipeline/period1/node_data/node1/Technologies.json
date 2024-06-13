@@ -1,0 +1,5 @@
+{
+    "existing": {
+	"TestTec_GasTurbine_simple": 10},
+    "new": ["TestTec_WindTurbine"]
+}

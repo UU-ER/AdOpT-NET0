@@ -15,7 +15,7 @@
     "lifetime": 10,
     "decommission_cost": 0
   },
-  "NetworkPerf": {
+  "Performance": {
     "carrier": "hydrogen",
     "bidirectional": 0,
     "loss": 1.25E-7,
@@ -33,6 +33,12 @@
         "k_flow": 0.05,
         "k_flowDistance": 0.05
       }
+    }
+  },
+  "Units": {
+    "size": "MW",
+    "transport_carrier": {
+      "hydrogen": "MW"
     }
   }
 }

@@ -19,7 +19,7 @@
     "lifetime": 25,
     "decommission_cost": 0
   },
-  "TechnologyPerf": {
+  "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 2,
     "input_carrier": [
@@ -43,7 +43,9 @@
         ]
       }
     },
-    "ramping_rate": -1,
+    "ramping_time": -1,
+    "ref_size": -1,
+    "ramping_const_int": -1,
     "standby_power": -1,
     "min_uptime": -1,
     "min_downtime": -1,

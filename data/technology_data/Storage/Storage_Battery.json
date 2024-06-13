@@ -5,7 +5,7 @@
   "size_is_int": 0,
   "decommission": 0,
   "Economics": {
-    "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MWh or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
     "CAPEX_model": 1,
     "unit_CAPEX": 500000,
     "fix_CAPEX": 0,
@@ -19,7 +19,7 @@
     "lifetime": 10,
     "decommission_cost": 0
   },
-  "TechnologyPerf": {
+  "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "electricity"
@@ -34,10 +34,16 @@
       "eta_in": 0.96,
       "eta_out": 0.96,
       "lambda": 0.001,
-      "theta": 0,
-      "charge_max": 0.3,
-      "discharge_max": 0.3
+      "theta": 0
     }
+  },
+  "Flexibility": {
+    "comment": "determines the flexibility of the power capacity compared to the energy capacity",
+    "power_energy_ratio": "fixed",
+    "charge_rate": 0.3,
+    "discharge_rate": 0.3,
+    "capex_charging_power": 0,
+    "capex_discharging_power": 0
   },
   "Units": {
     "size": "MWh",

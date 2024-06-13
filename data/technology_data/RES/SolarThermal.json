@@ -15,7 +15,7 @@
     "lifetime": 30,
     "decommission_cost": 0
   },
-  "TechnologyPerf": {
+  "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "output_carrier": [
       "heat"

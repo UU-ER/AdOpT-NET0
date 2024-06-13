@@ -19,15 +19,15 @@
     "lifetime": 25,
     "decommission_cost": 0
   },
-  "TechnologyPerf": {
+  "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
       "electricity",
       "heat"
     ],
-    "main_output_carrier": "CO2",
+    "main_output_carrier": "CO2captured",
     "output_carrier": [
-      "CO2"
+      "CO2captured"
     ],
     "nr_segments": 2,
     "ohmic_heating": 1,
@@ -36,6 +36,7 @@
       "eta_elth": 0.97
     }
   },
+  "DOI": "Data is published in: https://doi.org/10.1021/acs.iecr.2c00681",
   "Units": {
     "size": "MW",
     "input_carrier": {
@@ -43,7 +44,7 @@
       "heat": "MW"
     },
     "output_carrier": {
-      "CO2": "tonne/hr"
+      "CO2captured": "tonne/hr"
     }
   }
 }

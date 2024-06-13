@@ -15,7 +15,7 @@
     "lifetime": 30,
     "decommission_cost": 0
   },
-  "NetworkPerf": {
+  "Performance": {
     "carrier": "hydrogen",
     "bidirectional": 0,
     "loss": 1.25E-7,
@@ -32,6 +32,12 @@
         "gam": 1.405,
         "LHV": 33.32
       }
+    }
+  },
+  "Units": {
+    "size": "MW",
+    "transport_carrier": {
+      "hydrogen": "MW"
     }
   }
 }

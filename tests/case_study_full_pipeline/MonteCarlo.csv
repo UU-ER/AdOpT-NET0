@@ -1,0 +1,6 @@
+type,name,parameter,min,ref,max
+Technologies,TestTec_WindTurbine,unit_CAPEX,50000,115000,200000
+Networks,electricitySimple,gamma4,10,2.00E+01,2.00E+03
+Networks,electricitySimple,gamma1,280,300,320
+Export,electricity,price,2,4,6
+Import,electricity,price,10,15,20

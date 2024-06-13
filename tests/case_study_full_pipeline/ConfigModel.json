@@ -1,0 +1,280 @@
+{
+    "optimization": {
+        "objective": {
+            "description": "String specifying the objective/type of optimization.",
+            "options": [
+                "costs",
+                "emissions_pos",
+                "emissions_net",
+                "emissions_minC",
+                "costs_emissionlimit",
+                "pareto"
+            ],
+            "value": "costs"
+        },
+        "emission_limit": {
+                "description": "emission limit to be enforced if objective function is costs_emissionlimit",
+                "value": 1
+        },
+        "monte_carlo": {
+            "N": {
+                "description": "Number of Monte Carlo simulations (0 = off).",
+                "value": 0
+            },
+            "type": {
+                "description": "Type of Monte Carlo simulation. For type 1 the user defines the standard deviation and the components to vary. For type 2 the user provides a csv file with the parameters and their min, max and reference values. ",
+                "options": [
+                   "normal_dis", "uniform_dis_from_file"
+                ],
+                "value": "normal_dis"
+            },
+            "sd": {
+                "description": "Value defining the range in which variables are varied in Monte Carlo simulations (defined as the standard deviation of the original value).",
+                "value": 0.2
+            },
+            "on_what": {
+                "description": "List: Defines component to vary.",
+                "options": [
+                    "Technologies",
+                    "Networks",
+                    "Import",
+                    "Export"
+                ],
+                "value": ["Technologies", "Networks", "Import", "Export"]
+            }
+        },
+        "pareto_points": {
+            "description": "Number of Pareto points.",
+            "value": 1
+        },
+        "timestaging": {
+            "description": "Defines number of timesteps that are averaged (0 = off).",
+            "value": 0
+        },
+        "typicaldays": {
+            "N": {
+                "description": "Determines number of typical days (0 = off).",
+                "value": 0
+            },
+            "method": {
+                "description": "Determine method used for modeling technologies with typical days.",
+                "options": [
+                    2
+                ],
+                "value": 2
+            },
+            "technologies_with_full_res": {
+                "description": "If method 2 is chosen, list determines which technologies are modelled at full resolution. Should be at least all storage technologies.",
+                "options": [],
+                "value": ["RES", "STOR", "Hydro_Open"]
+            }
+        },
+        "multiyear": {
+            "description": "Enable multiyear analysis, if turned off max time horizon is 1 year.",
+            "options": [
+                0,
+                1
+            ],
+            "value": 0
+        }
+    },
+    "solveroptions": {
+        "solver": {
+            "description": "String specifying the solver used.",
+            "value": "glpk"
+        },
+        "mipgap": {
+            "description": "Value to define MIP gap.",
+            "value": 0.001
+        },
+        "timelim": {
+            "description": "Value to define time limit in hours.",
+            "value": 10
+        },
+        "threads": {
+            "description": "Value to define number of threads (default is maximum available).",
+            "value": 0
+        },
+        "mipfocus": {
+            "description": "Modifies high level solution strategy.",
+            "options": [
+                0,
+                1,
+                2,
+                3
+            ],
+            "value": 0
+        },
+        "nodefilestart": {
+            "description": "Parameter to decide when nodes are compressed and written to disk.",
+            "value": 60
+        },
+        "method": {
+            "description": "Defines algorithm used to solve continuous models.",
+            "options": [
+                -1,
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "value": -1
+        },
+        "heuristics": {
+            "description": "Parameter to determine amount of time spent in MIP heuristics.",
+            "value": 0.05
+        },
+        "presolve": {
+            "description": "Controls the presolve level.",
+            "options": [
+                -1,
+                0,
+                1,
+                2
+            ],
+            "value": -1
+        },
+        "branchdir": {
+            "description": "Determines which child node is explored first in the branch-and-cut.",
+            "options": [
+                -1,
+                0,
+                1
+            ],
+            "value": 0
+        },
+        "lpwarmstart": {
+            "description": "Controls whether and how warm start information is used for LP.",
+            "options": [
+                0,
+                1,
+                2
+            ],
+            "value": 0
+        },
+        "intfeastol": {
+            "description": "Value that determines the integer feasibility tolerance.",
+            "value": 1e-05
+        },
+        "feastol": {
+            "description": "Value that determines feasibility for all constraints.",
+            "value": 1e-06
+        },
+        "numericfocus": {
+            "description": "Degree of which Gurobi tries to detect and manage numeric issues.",
+            "options": [
+                0,
+                1,
+                2,
+                3
+            ],
+            "value": 0
+        },
+        "cuts": {
+            "description": "Setting defining the aggressiveness of the global cut.",
+            "options": [
+                -1,
+                0,
+                1,
+                2,
+                3
+            ],
+            "value": -1
+        }
+    },
+    "reporting": {
+        "save_detailed": {
+            "description": "Setting to select how the results are saved. When turned off only the summary is saved.",
+            "options": [
+                0,
+                1
+            ],
+            "value": 1
+        },
+        "save_summary_path": {
+            "description": "Path to save the summary file path to.",
+            "value": ""
+        },
+        "save_path": {
+            "description": "Option to define the save path.",
+            "value": ""
+        },
+        "case_name": {
+            "description": "Option to define a case study name that is added to the results folder name.",
+            "value": -1
+        },
+        "write_solution_diagnostics": {
+            "description": "If 1, writes solution quality, if 2 also writes pyomo to Gurobi variable map and constraint map to file.",
+            "options": [
+                0,
+                1,
+                2
+            ],
+            "value": 0
+        }
+    },
+    "energybalance": {
+        "violation": {
+            "description": "Determines the energy balance violation price (-1 is no violation allowed).",
+            "value": 100
+        },
+        "copperplate": {
+            "description": "Determines if a copperplate approach is used.",
+            "options": [
+                0,
+                1
+            ],
+            "value": 0
+        }
+    },
+    "economic": {
+        "global_discountrate": {
+            "description": "Determines if and which global discount rate is used. This holds for the CAPEX of all technologies and networks.",
+            "value": -1
+        },
+        "global_simple_capex_model": {
+            "description": "Determines if the CAPEX model of technologies is set to 1 for all technologies.",
+            "options": [
+                0,
+                1
+            ],
+            "value": 0
+        }
+    },
+    "performance": {
+        "dynamics": {
+            "description": "Determines if dynamics are used.",
+            "options": [
+                0,
+                1
+            ],
+            "value": 0
+        }
+    },
+    "scaling": {
+        "scaling_on": {
+            "description": "Determines if the model is scaled. If 1, it uses global and component specific scaling factors.",
+            "options": [
+                0,
+                1
+            ],
+            "value": 0
+        },
+        "scaling_factors": {
+            "energy_vars": {
+                "description": "Scaling factor used for all energy variables.",
+                "value": 0.001
+            },
+            "cost_vars": {
+                "description": "Scaling factor used for all cost variables.",
+                "value": 0.001
+            },
+            "objective": {
+                "description": "Scaling factor used for the objective function.",
+                "value": 1
+            }
+        }
+    }
+}

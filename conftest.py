@@ -1,51 +1,71 @@
 import pytest
 import os
-from create_test_data import *
 from pathlib import Path
 import shutil
 
+import adopt_net0.data_preprocessing as dp
+
+
+def pytest_configure(config):
+    """
+    Creates global data used in tests
+
+    Creates global data used in tests. Contains:
+
+    - data_folder_path: Directory storing temporary test data (deleted after testing)
+    - result_folder_path: Directory storing temporary result data (deleted after
+      testing)
+    - case_study_folder_path: Directory storing temporary case study data (deleted
+      after testing)
+    - technology_data_folder_path: Directory containing technology data
+    - network_data_folder_path: Directory containing network data
+    - root_folder_path: root directory
+    - solver: Solver to use during testing
+
+    :param config: Configuration for pytest
+    """
+    config.data_folder_path = Path("adopt_net0/test/test_data")
+    config.result_folder_path = Path("adopt_net0/test/test_results")
+    config.case_study_folder_path = Path("adopt_net0/test/test_case")
+    config.technology_data_folder_path = Path("tests/technology_data")
+    config.network_data_folder_path = Path("tests/network_data")
+    config.root_folder_path = Path(".")
+    config.solver = "glpk"
+
 
 @pytest.fixture(autouse=True)
-def setup_before_tests():
+def setup_before_tests(request):
     """
-    Fixture to create the test data before running all tests
+    Fixture to make test directories and clean-up after test
+
+    Creates directories required for testing and deletes these directories after
+    testing.
+
+    :param request: request containing settings for testing
     """
-    # Create Folder
-    data_folder_path = Path("./src/test/test_data")
-    result_folder_path = Path("./src/test/results")
+    # Create Folders
+    data_folder_path = request.config.data_folder_path
+    result_folder_path = request.config.data_folder_path
+    case_study_folder_path = request.config.case_study_folder_path
 
     if not os.path.exists(data_folder_path):
         os.makedirs(data_folder_path)
     if not os.path.exists(result_folder_path):
         os.makedirs(result_folder_path)
+    if not os.path.exists(case_study_folder_path):
+        os.makedirs(case_study_folder_path)
 
-    # Create Test Data
-    create_data_test_data_handle()
-    create_data_model1()
-    create_data_model2()
-    create_data_emissionbalance1()
-    create_data_emissionbalance2()
-    create_data_technology_type1_PV()
-    create_data_technology_type1_WT()
-    create_data_technology_CONV()
-    create_data_technology_dynamics()
-    create_data_network()
-    create_data_addtechnology()
-    create_data_technologySTOR()
-    create_data_time_algorithms()
-    create_data_optimization_types()
-    create_data_existing_technologies()
-    create_data_existing_networks()
-    create_test_data_dac()
-    create_data_technologyOpen_Hydro()
-    create_data_carbon_tax()
-    create_data_carbon_subsidy()
+    # Create case study folders for preprocessing
+    dp.create_optimization_templates(case_study_folder_path)
+    dp.create_input_data_folder_template(case_study_folder_path)
 
     # Yield control back to the test functions
     yield
 
-    # Clean up after testing
+    # Clean up after testing (deletes folders again)
     if os.path.exists(data_folder_path) and os.path.isdir(data_folder_path):
         shutil.rmtree(data_folder_path)
     if os.path.exists(result_folder_path) and os.path.isdir(result_folder_path):
         shutil.rmtree(result_folder_path)
+    if os.path.exists(case_study_folder_path) and os.path.isdir(case_study_folder_path):
+        shutil.rmtree(case_study_folder_path)
