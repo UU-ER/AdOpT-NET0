@@ -1,7 +1,7 @@
 .. _workflow:
 
 =====================================
-Simple Modelling Workflow
+Simple Modeling Workflow
 =====================================
 This workflow documentation will guide you through all the steps that are required to prepare the model for your
 application. In short, these steps are as follows:
@@ -220,12 +220,12 @@ wish for the optimization (this also includes specifying the path for your outpu
 Optimize the model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now, you can call an instance of the EnergyHub class, read in all the data, construct
+Now, you can call an instance of the ModelHub class, read in all the data, construct
 the model and solve the model as follows:
 
 .. testcode::
 
-    modelname = EnergyHub()
+    modelname = ModelHub()
     modelname.read_data(path, start_period=None, end_period=None)
     modelname.construct_model()
     modelname.quick_solve()
@@ -269,7 +269,8 @@ optimality, or took longer than expected for the complexity of your system, you 
 Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For a simple means to get a grip on your results, you can :ref:`start the streamlit visualisation<workflow_manage-visualization>`.
+For a simple means to get a grip on your results, you can :ref:`start the streamlit
+visualization<workflow_manage-visualization>`.
 From there, you can also download CSV files with your result data. Alternatively, you
 can :ref:`export<workflow_manage-results>`
 datasets from your .h5 files to Excel.

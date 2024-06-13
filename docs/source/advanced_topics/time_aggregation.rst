@@ -50,7 +50,7 @@ Computers & Chemical Engineering, 107816.
 `doi.org/10.1016/J.COMPCHEMENG.2022.107816 <https://doi.org/10.1016/J.COMPCHEMENG.2022
 .107816>`_.
 
-The algorithm is implemented as a method of the DataHandle class and the EnergyHub
+The algorithm is implemented as a method of the DataHandle class and the ModelHub
 class. For using this method in your solve, adjust the value for the "timestaging"
 setting in ``ConfigModel.json``, accordingly. For example:
 

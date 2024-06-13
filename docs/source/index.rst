@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to EnergyHub's documentation!
+Welcome to AdOpT-NET0 documentation!
 =====================================
 Energyhub is a Python Library for bottom-up multi energy system modelling. It can model conversion technologies and
 networks for any carrier and optimize the design and operation of your energy system.

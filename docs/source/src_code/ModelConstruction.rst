@@ -4,18 +4,20 @@
 Model Construction
 ====================
 
-The model is constructed by calling the ``EnergyHub.construct_model()`` method. This method clearly illustrates the
+The model is constructed by calling the ``ModelHub.construct_model()`` method. This
+method clearly illustrates the
 structure of the model. There are sets of investment periods, nodes and carriers based on the ``topology.json``. Then,
 a block is created for each investment period (all investment periods in the set), each network, each node, and for each technologies. The
-methods for the block creation are called by the aforementioned ``EnergyHub.construct_model()`` method from the
+methods for the block creation are called by the aforementioned
+``ModelHub.construct_model()`` method from the
 ``.\src\model_construction`` directory (with a separate module for each block type).
 
 Then, these blocks are all linked through :ref:`cost, emissions and energy / material balances<src-code_balances>` by
-calling the ``EnergyHub.construct_balances()`` method (again retrieved from the ``.\src\model_construction`` directory).
+calling the ``ModelHub.construct_balances()`` method (again retrieved from the ``.\src\model_construction`` directory).
 
-Finally, the model can be solved using ``EnergyHub.solve()``.
+Finally, the model can be solved using ``ModelHub.solve()``.
 
-Note: the three steps above are combined in the ``EnergyHub.quick_solve()`` method to quickly construct and solve the
+Note: the three steps above are combined in the ``ModelHub.quick_solve()`` method to quickly construct and solve the
 model at once. All of the methods are documented :ref:`here <energyhub_class>`.
 
 
