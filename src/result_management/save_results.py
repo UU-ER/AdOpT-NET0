@@ -24,7 +24,6 @@ def get_summary(model, solution, folder_path: Path, model_info: dict) -> dict:
     summary_dict = {}
 
     # summary: retrieve / calculate cost variables
-    # Fixme: algorithms
     summary_dict["total_npv"] = model.var_npv.value
     summary_dict["cost_capex_tecs"] = sum(
         model.periods[period].var_cost_capex_tecs.value for period in model.set_periods

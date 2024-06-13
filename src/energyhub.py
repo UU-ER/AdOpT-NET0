@@ -29,11 +29,15 @@ class EnergyHub:
     When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
     class:
 
-    - self.logger: Logger
     - self.data: Data container
     - self.model: Model container
     - self.solution: Solution container
     - self.solver: Solver container
+    - self.last_solve_info: Information on last solution that is written to the summary(
+      pareto point, time stage,...)
+    - self.info_pareto: Current pareto point (if used)
+    - self.info_solving_algorithms: Information on time aggregation algorithms
+    - self.info_monte_carlo: Information on monte carlo runs
     """
 
     def __init__(self):
@@ -58,9 +62,9 @@ class EnergyHub:
         self, data_path: Path | str, start_period: int = None, end_period: int = None
     ):
         """
-        Reads in data from the specified path. The data is specified as the DataHandle class
-        Specifying the start_period and end_period parameter allows to run a shorter time horizon than as specified
-        in the topology (e.g. for testing)
+        Reads in data from the specified path. The data is specified as the DataHandle
+        class. Specifying the start_period and end_period parameter allows to run a
+        time horizon than as specified in the topology (e.g. for testing)
 
         :param Path, str data_path: Path of folder structure to read data from
         :param int start_period: starting period of the model
@@ -75,7 +79,7 @@ class EnergyHub:
 
     def _perform_preprocessing_checks(self):
         """
-        Checks some things, before constructing or solving the model
+        Checks consistency of input data, before constructing or solving the model
 
         - Save path must exist
         - monte carlo and pareto cannot be used at the same time
@@ -93,6 +97,7 @@ class EnergyHub:
                 f"name in the configuration"
             )
 
+        # Monte carlo and pareto
         if (config["optimization"]["objective"]["value"] == "pareto") and (
             config["optimization"]["monte_carlo"]["N"]["value"] > 0
         ):
@@ -162,17 +167,6 @@ class EnergyHub:
                                     f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
                                     f"json files or switch off the dynamics."
                                 )
-
-        # check if time horizon is not longer than 1 year (in case of single year analysis)
-        # TODO: Do we need multiyear analysis still?
-        # if config["optimization"]["multiyear"]["value"] == 0:
-        #     nr_timesteps_data = len(self.data.topology.timesteps)
-        #     nr_timesteps_year = 8760
-        #     if nr_timesteps_data > nr_timesteps_year:
-        #         raise ValueError(
-        #             f"Time horizon is longer than one year. Enable multiyear analysis if you want to optimize for"
-        #             f"a longer time horizon."
-        #         )
 
     def construct_model(self):
         """
@@ -314,9 +308,6 @@ class EnergyHub:
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
-
-        Links all components with the constructing the energybalance (:func:`~add_energybalance`),
-        the total cost (:func:`~add_system_costs`) and the emission balance (:func:`~add_emissionbalance`)
         """
         log_event("Constructing balances...")
         start = time.time()
@@ -344,10 +335,6 @@ class EnergyHub:
     def solve(self):
         """
         Defines objective and solves model
-
-        The objective is minimized and can be chosen as total annualized costs ('costs'), total annual net emissions
-        ('emissions_net'), total positive emissions ('emissions_pos') and annual emissions at minimal cost
-        ('emissions_minC'). This needs to be set in the configuration file respectively.
         """
         config = self.data.model_config
 
@@ -358,7 +345,6 @@ class EnergyHub:
         if config["optimization"]["monte_carlo"]["N"]["value"]:
             self._solve_monte_carlo(objective)
         elif objective == "pareto":
-            # Todo: does not work yet
             self._solve_pareto()
         else:
             self._optimize(objective)
@@ -377,6 +363,10 @@ class EnergyHub:
         self.solve()
 
     def write_results(self):
+        """
+        Writes optimization results of a model run to folder
+        """
+        # Write H5 File
         config = self.data.model_config
 
         save_summary_path = Path.joinpath(
@@ -385,40 +375,21 @@ class EnergyHub:
 
         model_info = self.last_solve_info
 
-        write_results = False
-        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
-            self.solution.solver.status == pyo.SolverStatus.warning
-        ):
-            write_results = True
-        if self.solution.solver.termination_condition in [
-            pyo.TerminationCondition.infeasibleOrUnbounded,
-            pyo.TerminationCondition.infeasible,
-            pyo.TerminationCondition.unbounded,
-        ]:
-            write_results = False
+        model = self.model[self.info_solving_algorithms["aggregation_model"]]
 
-        if write_results:
-            # Write H5 File
+        summary_dict = write_optimization_results_to_h5(
+            model, self.solution, model_info, self.data
+        )
 
-            model = self.model[self.info_solving_algorithms["aggregation_model"]]
-
-            # Fixme: change this for averaging
-
-            summary_dict = write_optimization_results_to_h5(
-                model, self.solution, model_info, self.data
-            )
-
-            # Write Summary
-            if not os.path.exists(save_summary_path):
-                summary_df = pd.DataFrame(data=summary_dict, index=[0])
-                summary_df.to_excel(
-                    save_summary_path, index=False, sheet_name="Summary"
-                )
-            else:
-                summary_existing = pd.read_excel(save_summary_path)
-                pd.concat(
-                    [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
-                ).to_excel(save_summary_path, index=False, sheet_name="Summary")
+        # Write Summary
+        if not os.path.exists(save_summary_path):
+            summary_df = pd.DataFrame(data=summary_dict, index=[0])
+            summary_df.to_excel(save_summary_path, index=False, sheet_name="Summary")
+        else:
+            summary_existing = pd.read_excel(save_summary_path)
+            pd.concat(
+                [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
+            ).to_excel(save_summary_path, index=False, sheet_name="Summary")
 
     def add_technology(self, investment_period: str, node: str, technologies: list):
         """
@@ -541,7 +512,6 @@ class EnergyHub:
             self.solver = get_gurobi_parameters(config["solveroptions"])
 
         elif config["solveroptions"]["solver"]["value"] == "glpk":
-            # Todo: put solver parameters of glpk in function
             self.solver = get_glpk_parameters(config["solveroptions"])
 
         # For persistent solver, set model instance
@@ -649,8 +619,9 @@ class EnergyHub:
 
     def scale_model(self):
         """
-        Creates a scaled model in self.scaled_model using the scale factors specified in the json files for technologies
-        and networks as well as the global scaling factors specified. See also the documentation on model scaling.
+        Creates a scaled model using the scale factors specified in the json files
+        for technologies and networks as well as the global scaling factors
+        specified. See also the documentation on model scaling.
         """
         config = self.data.model_config
 
@@ -748,7 +719,6 @@ class EnergyHub:
         self.model["scaled"] = pyo.TransformationFactory(
             "core.scale_model"
         ).create_using(model_full)
-        # self.scaled_model.pprint()
 
     def _call_solver(self):
         """
@@ -822,14 +792,30 @@ class EnergyHub:
         self.last_solve_info["time_stage"] = self.info_solving_algorithms["time_stage"]
 
         # Write results to path
-        self.write_results()
+        # Determine if results should be written
+        write_results = False
+        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
+            self.solution.solver.status == pyo.SolverStatus.warning
+        ):
+            write_results = True
+        if self.solution.solver.termination_condition in [
+            pyo.TerminationCondition.infeasibleOrUnbounded,
+            pyo.TerminationCondition.infeasible,
+            pyo.TerminationCondition.unbounded,
+        ]:
+            write_results = False
+
+        if write_results:
+            self.write_results()
 
         print("Solving model completed in " + str(round(time.time() - start)) + " s")
         print("_" * 60)
 
     def _write_solution_diagnostics(self, save_path):
         """
-        TOdo: check
+        Can write solution quality, constraint map and variable map to file. Options
+        are specified in the configuration.
+
         :param save_path:
         :return:
         """
@@ -926,7 +912,7 @@ class EnergyHub:
 
     def _monte_carlo_set_cost_parameters(self):
         """
-        Performs monte carlo analysis on cost parameters.
+        Changes cost parameters for monte carlo analysis.
         """
         config = self.data.model_config
 
@@ -1378,6 +1364,7 @@ class EnergyHub:
         """
         Optimizes the second stage of the time_averaging algorithm
         """
+        # Todo: make it possible to chose (config)
         bounds_on = "no_storage"
         self.construct_model()
         self.construct_balances()
@@ -1388,8 +1375,8 @@ class EnergyHub:
         """
         Formulates lower bound on technology and network sizes.
 
-        It is possible to exclude storage technologies or networks by specifying bounds_on. Not this function is called
-        from the method solve_model.
+        It is possible to exclude storage technologies or networks by specifying
+        bounds_on.
 
         :param bounds_on: can be 'all', 'only_technologies', 'only_networks', 'no_storage'
         """

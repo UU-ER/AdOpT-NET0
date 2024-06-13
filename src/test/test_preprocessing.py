@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 
-from src.data_preprocessing import *
+import src.data_preprocessing as dp
 from src.data_management.utilities import check_input_data_consistency
 from src.test.utilities import (
     select_random_list_from_list,
@@ -22,8 +22,8 @@ def test_create_input_data_folder(request):
     - create_empty_network_matrix
     """
     data_folder_path = request.config.data_folder_path
-    create_optimization_templates(data_folder_path)
-    create_input_data_folder_template(data_folder_path)
+    dp.create_optimization_templates(data_folder_path)
+    dp.create_input_data_folder_template(data_folder_path)
 
 
 @pytest.mark.data_preprocessing
@@ -37,7 +37,7 @@ def test_data_climate_data_loading(request):
     case_study_folder_path = request.config.case_study_folder_path
 
     # Write it to file
-    load_climate_data_from_api(case_study_folder_path)
+    dp.load_climate_data_from_api(case_study_folder_path)
 
     # Get periods and nodes:
     investment_periods, nodes, carriers = get_topology_data(case_study_folder_path)
@@ -80,7 +80,7 @@ def test_data_fill_carrier_data(request):
     ]
     series_to_fill = select_random_list_from_list(fill_options)
 
-    fill_carrier_data(
+    dp.fill_carrier_data(
         case_study_folder_path, 1, columns=series_to_fill, carriers=carriers_to_fill
     )
 
@@ -135,7 +135,7 @@ def test_copy_technology_data(request):
             save_json(technologies, path)
 
     # Copy to folder
-    copy_technology_data(case_study_folder_path, technology_data_folder_path)
+    dp.copy_technology_data(case_study_folder_path, technology_data_folder_path)
 
     # Check it jsons are there
     check_input_data_consistency(case_study_folder_path)

@@ -13,17 +13,22 @@ from ...utilities import get_attribute_from_dict
 
 class Res(Technology):
     """
-    Resembles a renewable technology with no input. The capacity factors of the technology are determined for each
-    individual technology type.
+    Renewable technology with capacity factor (has no input)
 
-    **Parameter declarations:**
+    Resembles a renewable technology with no input. The capacity factors of the
+    technology are determined for each individual technology type.
 
-    - Capacity Factor of technology for each time step.
+    So far the following renewable technologies are possible:
+
+    - Photovoltaic (based on irradiance in climate data and PV lib)
+
+    - Wind turbines (based on wind speed and power curves provided)
 
     **Constraint declarations:**
 
-    - Output of technology. The output can be curtailed in three different ways. For ``curtailment == 0``, there is
-      no curtailment possible. For ``curtailment == 1``, the curtailment is continuous. For ``curtailment == 2``,
+    - Output of technology. The output can be curtailed in three different ways.
+      For ``curtailment == 0``, there is no curtailment possible. For ``curtailment
+      == 1``, the curtailment is continuous. For ``curtailment == 2``,
       the size needs to be an integer, and the technology can only be curtailed discretely, i.e. by turning full
       modules off. For ``curtailment == 0`` (default), it holds:
 
@@ -83,7 +88,6 @@ class Res(Technology):
         :param dict location: dict containing location details
         :param PV_type: (optional) can specify a certain type of module, angle, ...
         """
-        # Todo: get perfect tilting angle
         if not kwargs.__contains__("system_data"):
             system_data = dict()
             system_data["tilt"] = 18
@@ -93,11 +97,13 @@ class Res(Technology):
         else:
             system_data = kwargs["system_data"]
 
-        def define_pv_system(location, system_data):
+        def define_pv_system(location: dict, system_data: dict):
             """
             defines the pv system
-            :param location: location information (latitude, longitude, altitude, time zone)
-            :param system_data: contains data on tilt, surface_azimuth, module_name, inverter efficiency
+            :param dict location: location information (latitude, longitude, altitude,
+            time zone)
+            :param dict system_data: contains data on tilt, surface_azimuth,
+            module_name, inverter efficiency
             :return: returns PV model chain, peak power, specific area requirements
             """
             module_database = pvlib.pvsystem.retrieve_sam("CECMod")
@@ -162,17 +168,18 @@ class Res(Technology):
         :param pd.Dataframe climate_data: dataframe containing climate data
         """
         # Todo: code this
-        print("Not coded yet")
+        pass
 
     def _perform_fitting_wt(self, climate_data: pd.DataFrame, hubheight: float):
         """
         Calculates capacity factors for a wind turbine
 
+        The power curves are located in ``data/technology_data/RES/WT_data``
+
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param float hubheight: hubheight of wind turbine
         """
         # Load data for wind turbine type
-        # FIXME: find nicer way to do this
         wt_path = Path(__file__).parent.parent.parent.parent.parent
         wt_data_path = wt_path / "data/technology_data/RES/WT_data/WT_data.csv"
         wt_data = pd.read_csv(wt_data_path, delimiter=";")

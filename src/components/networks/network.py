@@ -18,71 +18,84 @@ class Network(ModelComponent):
     """
     Class to read and manage data for networks
 
-    For each connection between nodes, an arc is created, with its respective cost, flows, losses and \
-    consumption at nodes.
+    For each connection between nodes, an arc is created, with its respective cost,
+    flows, losses and  consumption at nodes.
 
-    Networks that can be used in two directions (e.g. electricity cables), are called bidirectional and are \
-    treated respectively with their size and costs. Other networks, e.g. pipelines, require two installations \
-    to be able to transport in two directions. As such their CAPEX is double.
+    Networks that can be used in two directions (e.g. electricity cables), are called
+    bidirectional and are treated respectively with their size and costs. Other
+    networks, e.g. pipelines, require two installations to be able to transport in
+    two directions. As such their CAPEX is double and their size in both directions
+    can be different.
 
     **Set declarations:**
 
-    - Set of network carrier (i.e. only one carrier, that is transported in the network)
-    - Set of all arcs (from_node, to_node)
-    - In case the network is bidirectional: Set of unique arcs (i.e. for each pair of arcs, one unique entry)
+    - ``set_netw_carrier``: Set of network carrier (i.e. only one carrier, that is
+      transported in the network)
+    - ``set_arcs``: Set of all arcs (from_node, to_node)
+    - ``set_arcs_unique``: In case the network is bidirectional: Set of unique arcs (i.e.
+      for each pair of arcs, one unique entry)
     - Furthermore for each node:
 
-        * A set of nodes it receives from
-        * A set of nodes it sends to
+        * ``set_receives_from``: A set of nodes the node receives from
+        * ``set_sends_to``: A set of nodes the node sends to
+
+    - ``set_consumed_carriers``: In case the network has an energy consumption
 
     **Parameter declarations:**
 
-    - Min Size (for each arc)
-    - Max Size (for each arc)
-    - :math:`{\gamma}_1, {\gamma}_2, {\gamma}_3, {\gamma}_4` for CAPEX calculation  \
-      (annualized from given data on up-front CAPEX, lifetime and discount rate)
-    - Variable OPEX
-    - Fixed OPEX
-    - Network losses (in % per km and flow) :math:`{\mu}`
-    - Minimum transport (% of rated capacity)
-    - Parameters for energy consumption at receiving and sending node
+    - ``para_size_min``: Min Size (for each arc)
+    - ``para_size_max``: Max Size (for each arc)
+    - ``para_size_initial``, var_size, var_capex: for existing networks
+    - ``para_capex_gamma``: :math:`{\gamma}_1, {\gamma}_2, {\gamma}_3, {\gamma}_4` for
+      CAPEX calculation (annualized from given data on up-front CAPEX, lifetime and
+      discount rate)
+    - ``para_opex_variable``: Variable OPEX
+    - ``para_opex_fixed``: Fixed OPEX
+    - ``para_decommissioning_cost``: decommissioning costs for existing networks
+    - ``para_send_kflow``, ``para_send_kflowDistance``, ``para_receive_kflow``,
+      ``para_receive_kflowDistance``, Parameters for energy consumption at
+      receiving and sending node
 
     **Variable declarations:**
 
-    - CAPEX: ``var_capex``
-    - Variable OPEX: ``var_opex_variable``
-    - Fixed OPEX: ``var_opex_fixed``
+    - ``var_capex``: CAPEX
+    - ``var_opex_variable``: Variable OPEX
+    - ``var_opex_fixed``: Fixed OPEX
     - Furthermore for each node:
 
-        * Inflow to node (as a sum of all inflows from other nodes): ``var_inflow``
-        * Outflow from node (as a sum of all outflows toother nodes): ``var_outflow``
-        * Consumption of other carriers (e.g. electricity required for compression of a gas): ``var_consumption``
+        * ``var_netw_emissions_pos``: positive emissins at node
+        * ``var_inflow``: Inflow to node (as a sum of all inflows from other nodes)
+        * ``var_outflow``: Outflow from node (as a sum of all outflows toother nodes)
+        * ``var_consumption``: Consumption of other carriers (e.g. electricity
+          required for compression of a gas)
 
     **Arc Block declaration**
 
-    Each arc represents a connection between two nodes, and is thus indexed by (node_from, node_to). For each arc,
-    the following components are defined. Each variable is indexed by the timestep :math:`t` (here left out
-    for convinience).
+    Each arc represents a connection between two nodes, and is thus indexed by (
+    node_from, node_to). For each arc, the following components are defined. Each
+    variable is indexed by the timestep :math:`t` (here left out for convenience).
 
     - Decision Variables:
 
-        * Size :math:`S`
-        * Flow :math:`flow`
-        * Losses :math:`loss`
-        * CAPEX: :math:`CAPEX`
-        * Variable :math:`OPEXvariable`
-        * Fixed :math:`OPEXfixed`
+        * ``var_size``: Size :math:`S`
+        * ``var_flow``: Flow :math:`flow`
+        * ``var_losses``: Losses :math:`loss`
+        * ``var_capex``, ``var_capex_aux`` CAPEX: :math:`CAPEX`
+        * ``var_opex_variable``: Variable :math:`OPEXvariable`
+        * ``var_emissions``: emissions from transport/losses
         * If consumption at nodes exists for network:
 
-          * Consumption at sending node :math:`Consumption_{nodeFrom}`
-          * Consumption at receiving node :math:`Consumption_{nodeTo}`
+          * ``var_consumption_send``: Consumption at sending node :math:`Consumption_{
+            nodeFrom}`
+          * ``var_consumption_receive``: Consumption at receiving node
+            :math:`Consumption_{nodeTo}`
 
     - Constraint definitions
 
         * Flow losses:
 
           .. math::
-            loss = flow * {\mu}
+            loss = flow * {\mu} * D
 
         * Flow constraints:
 
@@ -97,7 +110,10 @@ class Network(ModelComponent):
           .. math::
             Consumption_{nodeTo} = flow * k_{1, receive} + flow * distance * k_{2, receive}
 
-        * CAPEX of respective arc. The CAPEX is calculated as follows:
+        * CAPEX of respective arc. The CAPEX is calculated as follows (for new
+          networks). Note that for existing networks, the CAPEX is zero, but the
+          fixed OPEX is calculated as a fraction of a hypothetical CAPEX
+          based on the existing size.
 
           .. math::
             CAPEX_{arc} = {\gamma}_1 + {\gamma}_2 * S + {\gamma}_3 * distance + {\gamma}_4 * S * distance
@@ -107,11 +123,17 @@ class Network(ModelComponent):
           .. math::
             OPEXvariable_{arc} = CAPEX_{arc} * opex_{variable}
 
-    **Constraint declarations**
-    This part calculates variables for all respective nodes and enforces constraints for bi-directional networks.
+        * Emissions:
 
-    - If network is bi-directional, the sizes in both directions are equal, and only one direction of flow is
-      possible in each time step:
+          .. math::
+            emissions = flow * f_{emissions} + loss * f_{loss2emission}
+
+    **Constraint declarations**
+    This part calculates variables for all respective nodes and enforces constraints
+    for bi-directional networks.
+
+    - If network is bi-directional, the sizes in both directions are equal, and only
+      one direction of flow is possible in each time step:
 
       .. math::
         S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}\forall unique arcs
@@ -119,14 +141,15 @@ class Network(ModelComponent):
       .. math::
         flow_{nodeFrom, nodeTo} = 0 \lor flow_{nodeTo, nodeFrom} = 0
 
-    - CAPEX calculation of whole network as a sum of CAPEX of all arcs. For bi-directional networks, each arc
-      is only considered once, regardless of the direction of the arc.
+    - CAPEX calculation of whole network as a sum of CAPEX of all arcs. For
+      bi-directional networks, each arc is only considered once, regardless of the
+      direction of the arc.
 
     - OPEX fix, as fraction of total CAPEX
 
     - OPEX variable as a sum of variable OPEX for each arc
 
-    - Total network costs as the sum of OPEX and CAPEX
+    - Total emissions as the sum of all arc emissions
 
     - Total inflow and outflow as a sum for each node:
 
@@ -216,7 +239,7 @@ class Network(ModelComponent):
         self, b_netw, data: dict, set_nodes, set_t_full, set_t_clustered
     ):
         """
-        Adds a network as model block.
+        Constructs a network as model block.
 
         :param b_netw: pyomo network block
         :param dict data: dict containing model information
@@ -261,14 +284,7 @@ class Network(ModelComponent):
 
         def arc_block_init(b_arc, node_from, node_to):
             """
-            Establish each arc as a block
-
-            INDEXED BY: (from, to)
-            - size
-            - flow
-            - losses
-            - consumption at from node
-            - consumption at to node
+            Constructs each arc as a block
             """
 
             b_arc.big_m_transformation_required = 0
@@ -401,7 +417,7 @@ class Network(ModelComponent):
 
     def _define_capex_parameters(self, b_netw, data: dict):
         """
-        Defines variables and parameters related to technology capex.
+        Defines parameters related to technology capex.
 
         :param b_netw: pyomo network block
         :param dict data: dict containing model information
@@ -499,7 +515,7 @@ class Network(ModelComponent):
 
     def _define_inflow_vars(self, b_netw):
         """
-        Defines network inflow (i.e. sum of inflow to one node)
+        Defines network inflow variable (i.e. sum of inflow to one node)
 
         :param b_netw: pyomo network block
         :return: pyomo network block
@@ -514,7 +530,7 @@ class Network(ModelComponent):
 
     def _define_outflow_vars(self, b_netw):
         """
-        Defines network outflow (i.e. sum of outflow to one node)
+        Defines network outflow variable (i.e. sum of outflow to one node)
 
         :param b_netw: pyomo network block
         :return: pyomo network block
@@ -614,7 +630,7 @@ class Network(ModelComponent):
                 self.energy_consumption[car]["receive"]["k_flow"] = 0
                 self.energy_consumption[car]["receive"]["k_flowDistance"] = 0
 
-    def _define_size_arc(self, b_arc, b_netw, node_from, node_to):
+    def _define_size_arc(self, b_arc, b_netw, node_from: str, node_to: str):
         """
         Defines the size of an arc
 
@@ -687,7 +703,7 @@ class Network(ModelComponent):
         b_arc.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
 
         if self.existing and not self.component_options.decommission:
-            b_arc.var_capex = pyo.Param(domain=NonNegativeReals, initialize=0)
+            b_arc.var_capex = pyo.Param(domain=pyo.NonNegativeReals, initialize=0)
         else:
             b_arc.var_capex = pyo.Var(bounds=calculate_max_capex())
 
@@ -1064,7 +1080,7 @@ class Network(ModelComponent):
 
     def _define_emission_constraints(self, b_netw):
         """
-        Defines Emissions from network
+        Defines emissions from network
 
         :param b_netw: pyomo network block
         :return: pyomo network block

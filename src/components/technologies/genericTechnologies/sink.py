@@ -14,39 +14,34 @@ from ...component import InputParameters
 
 class Sink(Technology):
     """
+    Permanent storage technology (has no output)
+
     This model resembles a permanent storage technology (sink). It takes energy and a main carrier (e.g. CO2 etc)
     as inputs, and it has no output.
 
-    **Parameter declarations:**
-
-    - Min Size
-    - Max Size
-    - Unit CAPEX storage size (annualized from given data on up-front CAPEX, lifetime and discount rate)
-    - Unit CAPEX injection capacity (annualized from given data on up-front CAPEX, lifetime and discount rate)
-
     **Variable declarations:**
 
-    - Storage level in :math:`t`: :math:`E_t`
-    - Injection capacity
-    - CAPEX storage size
-    - CAPEX injection capacity
+    - ``var_storage_level``: Storage level in :math:`t`: :math:`E_t`
+
+    - ``var_injection_capacity``: Injection capacity :math: `injCapacity`
 
     **Constraint declarations:**
+
+    - Size constraint:
+
+      .. math::
+        E_{t} \leq S
 
     - Maximal injection rate:
 
       .. math::
-        Input_{t} \leq injCapacity
+        Input_{t, maincar} \leq injCapacity
 
     - Maximal injection capacity:
 
       .. math::
         injCapacity \leq injRateMax
 
-    - Size constraint:
-
-      .. math::
-        E_{t} \leq storageSize
 
     - Storage level calculation:
 
@@ -63,6 +58,12 @@ class Sink(Technology):
         .. math::
             CAPEX_{storSize} = Size_{storSize} * UnitCost_{storSize}
             CAPEX_{injCapacity} = injCapacity * UnitCost_{injCapacity}
+
+    - Additionally, ramping rates of the technology can be constraint (for input and
+      output).
+
+      .. math::
+         -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar} \leq rampingrate
 
     """
 

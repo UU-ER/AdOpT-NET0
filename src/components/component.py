@@ -13,13 +13,17 @@ class ModelComponent:
 
         Attributes include:
 
-        - parameters: unfitted parameters from json files
-        - options: component options that are unrelated to the performance of the
-          component
-        - info: component infos, such as carriers, model to use etc.
+        - name: technology name
+        - existing: if component is existing or not
+        - size_initial: if existing, initial size
+        - economics: contains economic data
+        - input_parameters: unfitted parameters from json files
+        - component_options: component options that are unrelated to the performance
+          of the component
         - bounds: (for technologies only) containing bounds on input and output
-         variables that are calculated in technology subclasses
-         - coeff: fitted coefficients
+           variables that are calculated in technology subclasses
+        - processed_coeff: fitted/processed coefficients
+        - big_m_transformation_required: flag to use for disjunctive programming
 
         :param dict data: technology/network data
         """
@@ -38,7 +42,9 @@ class ModelComponent:
 
 class Economics:
     """
-    Class to manage economic data of technologies and networks
+    Class to manage economic data of technologies and networks.
+
+    Contains capex and opex data
     """
 
     def __init__(self, economics: dict):
@@ -70,7 +76,7 @@ class Economics:
 
 class InputParameters:
     """
-    Class to hold fitted performance of technologies
+    Class to hold unfitted/unprocessed performance of technologies and networks
     """
 
     def __init__(self, component_data: dict):
@@ -93,7 +99,7 @@ class InputParameters:
 
 class ComponentOptions:
     """
-    Class to hold options for technologies
+    Class to hold options for technologies and networks
     """
 
     def __init__(self, component_data: dict):
@@ -168,7 +174,7 @@ class ComponentOptions:
 
 class ProcessedCoefficients:
     """
-    defines a simple class for fitted coefficients
+    Defines a simple class for fitted/processed coefficients
     """
 
     def __init__(self):

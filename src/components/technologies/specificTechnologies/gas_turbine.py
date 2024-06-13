@@ -4,24 +4,34 @@ import copy
 import numpy as np
 import pandas as pd
 
-from ..utilities import fit_piecewise_function
-from ...component import InputParameters
 from ..technology import Technology
 from ...utilities import link_full_resolution_to_clustered
 
 
 class GasTurbine(Technology):
     """
+    Gas turbine
+
     Resembles gas turbines of different sizes.
-    Hydrogen and Natural Gas Turbines are possible at four different sizes, as indicated by the file names
-    of the data. Performance data and the model is taken from Weimann, L., Ellerker, M., Kramer, G. J., &
-    Gazzani, M. (2019). Modeling gas turbines in multi-energy systems: A linear model accounting for part-load
-    operation, fuel, temperature, and sizing effects. International Conference on Applied Energy.
-    https://doi.org/10.46855/energy-proceedings-5280
+    Hydrogen and Natural Gas Turbines are possible at four different sizes,
+    as indicated by the file names of the data. Performance data and the model is
+    taken from Weimann, L., Ellerker, M., Kramer, G. J., & Gazzani, M. (2019).
+    Modeling gas turbines in multi-energy systems: A linear model accounting for
+    part-load operation, fuel, temperature, and sizing effects. International
+    Conference on Applied Energy. https://doi.org/10.46855/energy-proceedings-5280
 
-    A small adaption is made: Natural gas turbines can co-fire hydrogen up to 5% of the energy content
+    A small adaption is made: Natural gas turbines can co-fire hydrogen up to 5% of
+    the energy content
 
-    **Parameter declarations:**
+    **Variable declarations:**
+
+    - Total fuel input in :math:`t`: :math:`Input_{tot, t}`
+
+    - Number of turbines on in :math:`t`: :math:`N_{on,t}`
+
+    **Constraint declarations:**
+
+    The following constants are used:
 
     - :math:`Input_{min}`: Minimal input per turbine
 
@@ -36,14 +46,6 @@ class GasTurbine(Technology):
     - :math:`{\\epsilon}`: Performance parameter for heat output
 
     - :math:`f({\\Theta})`: Ambient temperature correction factor
-
-    **Variable declarations:**
-
-    - Total fuel input in :math:`t`: :math:`Input_{tot, t}`
-
-    - Number of turbines on in :math:`t`: :math:`N_{on,t}`
-
-    **Constraint declarations:**
 
     - Input calculation (For hydrogen turbines, :math:`Input_{NG, t}` is zero, and the second constraint is removed):
 
@@ -76,6 +78,12 @@ class GasTurbine(Technology):
 
       .. math::
          \sum(Input_{t, car}) = 0
+
+    - Additionally, ramping rates of the technology can be constraint.
+
+      .. math::
+         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq rampingrate
+
     """
 
     def __init__(self, tec_data: dict):
@@ -95,10 +103,6 @@ class GasTurbine(Technology):
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Performs fitting for technology type GasTurbine
-
-        The equations and data are based on Weimann, L., Ellerker, M., Kramer, G. J., & Gazzani, M. (2019). Modeling gas
-        turbines in multi-energy systems: A linear model accounting for part-load operation, fuel, temperature,
-        and sizing effects. International Conference on Applied Energy. https://doi.org/10.46855/energy-proceedings-5280
 
         :param tec_data: technology data
         :param climate_data: climate data
@@ -221,9 +225,11 @@ class GasTurbine(Technology):
         """
         Adds constraints to technology blocks for gas turbines
 
-        :param obj b_tec: technology block
-        :param Energyhub energyhub: energyhub instance
-        :return: technology block
+        :param b_tec: pyomo block with technology model
+        :param dict data: data containing model configuration
+        :param set_t_full: pyomo set containing timesteps
+        :param set_t_clustered: pyomo set containing clustered timesteps
+        :return: pyomo block with technology model
         """
         super(GasTurbine, self).construct_tech_model(
             b_tec, data, set_t_full, set_t_clustered
@@ -250,7 +256,7 @@ class GasTurbine(Technology):
         # Additional decision variables
         size_max = self.input_parameters.size_max
 
-        def init_input_bounds(bd, t):
+        def init_input_bounds(bds, t):
             if len(self.component_options.input_carrier) == 2:
                 car = "gas"
             else:
