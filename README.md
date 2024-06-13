@@ -1,5 +1,7 @@
 [![Documentation Status](https://readthedocs.org/projects/adopt-net0/badge/?version=latest)](https://adopt-net0.readthedocs.io/en/latest/?badge=latest)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+![Testing](https://github.com/UU-ER/AdOpT-NET0/actions/workflows/testing.yml/badge.svg?branch=main)
+
 
 To get started you need to follow the subsequent steps:
 - Make sure you have Python installed on your computer (it needs to be version 3.12!)
