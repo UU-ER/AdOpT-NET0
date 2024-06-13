@@ -248,3 +248,17 @@ def test_monte_carlo(request):
 
     termination = pyhub.solution.solver.termination_condition
     assert termination == TerminationCondition.optimal
+
+
+def test_scaling(request):
+    """
+    Tests model scaling
+    """
+    path = Path("src/test/case_study_full_pipeline")
+
+    pyhub = EnergyHub()
+    pyhub.read_data(path, start_period=0, end_period=1)
+    pyhub.construct_model()
+    pyhub.construct_balances()
+    pyhub.data.model_config["scaling"]["scaling_on"]["value"] = 1
+    pyhub.solve()

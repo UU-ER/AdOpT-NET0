@@ -625,96 +625,159 @@ class EnergyHub:
         """
         config = self.data.model_config
 
-        f_global = config["scaling_factors"]["value"]
+        f_global = config["scaling"]["scaling_factors"]
         model_full = self.model[self.info_solving_algorithms["aggregation_model"]]
 
         model_full.scaling_factor = pyo.Suffix(direction=pyo.Suffix.EXPORT)
 
         # Scale technologies
-        for node in model_full.node_blocks:
-            for tec in model_full.node_blocks[node].tech_blocks_active:
-                b_tec = model_full.node_blocks[node].tech_blocks_active[tec]
-                model_full = self.data.technology_data[node][tec].scale_model(
-                    b_tec, model_full, config
+        for period in model_full.periods:
+            b_period = model_full.periods[period]
+            # Scale technologies
+            for node in b_period.node_blocks:
+                for tec in b_period.node_blocks[node].tech_blocks_active:
+                    b_tec = b_period.node_blocks[node].tech_blocks_active[tec]
+                    model_full = self.data.technology_data[period][node][
+                        tec
+                    ].scale_model(b_tec, model_full, config)
+
+            # Scale networks
+            for netw in b_period.network_block:
+                b_netw = b_period.network_block[netw]
+                model_full = self.data.network_data[period][netw].scale_model(
+                    b_netw, model_full, config
                 )
 
-        # Scale networks
-        for netw in model_full.network_block:
-            b_netw = model_full.network_block[netw]
-            model_full = self.data.network_data[netw].scale_model(
-                b_netw, model_full, config
+            # Scale period
+            if f_global["energy_vars"]["value"] >= 0:
+                # Network constraints
+                model_full.scaling_factor[
+                    model_full.block_network_constraints[period].const_netw_inflow
+                ] = f_global["energy_vars"]["value"]
+                model_full.scaling_factor[
+                    model_full.block_network_constraints[period].const_netw_outflow
+                ] = f_global["energy_vars"]["value"]
+                model_full.scaling_factor[
+                    model_full.block_network_constraints[period].const_netw_consumption
+                ] = f_global["energy_vars"]["value"]
+
+                # Energy balance
+                model_full.scaling_factor[
+                    model_full.block_energybalance[period].const_energybalance
+                ] = f_global["energy_vars"]["value"]
+
+            # Costs balance
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_capex_tecs
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_capex_netw
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_opex_tecs
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_opex_netw
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_cost_tecs
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_cost_netws
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_cost_import
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_cost_export
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_violation_cost
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_revenue_carbon
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_cost_carbon
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+            model_full.scaling_factor[
+                model_full.block_costbalance[period].const_cost
+            ] = (f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"])
+
+            # Period Variables
+            model_full.scaling_factor[b_period.var_cost_capex_tecs] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_capex_netws] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_opex_tecs] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_opex_netws] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_tecs] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_netws] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_imports] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_exports] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_violation] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_carbon_revenue] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_carbon_cost] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+            )
+            model_full.scaling_factor[b_period.var_cost_total] = (
+                f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
             )
 
+            for node in b_period.node_blocks:
+                b_node = b_period.node_blocks[node]
+                model_full.scaling_factor[b_node.var_import_flow] = f_global[
+                    "energy_vars"
+                ]["value"]
+                model_full.scaling_factor[b_node.var_export_flow] = f_global[
+                    "energy_vars"
+                ]["value"]
+                model_full.scaling_factor[b_node.var_netw_inflow] = f_global[
+                    "energy_vars"
+                ]["value"]
+                model_full.scaling_factor[b_node.var_netw_outflow] = f_global[
+                    "energy_vars"
+                ]["value"]
+                if b_node.find_component("var_netw_consumption"):
+                    model_full.scaling_factor[b_node.var_netw_consumption] = f_global[
+                        "energy_vars"
+                    ]["value"]
+                model_full.scaling_factor[b_node.var_generic_production] = f_global[
+                    "energy_vars"
+                ]["value"]
+                model_full.scaling_factor[b_node.const_generic_production] = f_global[
+                    "energy_vars"
+                ]["value"]
+                model_full.scaling_factor[b_node.var_import_flow] = f_global[
+                    "energy_vars"
+                ]["value"]
+
+        # Global cost balance
+        model_full.scaling_factor[model_full.const_npv] = (
+            f_global["cost_vars"]["value"] * f_global["energy_vars"]["value"]
+        )
         # Scale objective
         model_full.scaling_factor[model_full.objective] = (
-            f_global.objective * f_global.cost_vars
+            f_global["objective"]["value"] * f_global["cost_vars"]["value"]
         )
-
-        # Scale globals
-        if f_global.energy_vars >= 0:
-            model_full.scaling_factor[model_full.const_energybalance] = (
-                f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.const_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.const_node_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.const_netw_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.const_revenue_carbon] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.const_cost_carbon] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-
-            model_full.scaling_factor[model_full.var_node_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.var_netw_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.var_cost_total] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.var_carbon_revenue] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-            model_full.scaling_factor[model_full.var_carbon_cost] = (
-                f_global.cost_vars * f_global.energy_vars
-            )
-
-            for node in model_full.node_blocks:
-                model_full.scaling_factor[
-                    model_full.node_blocks[node].var_import_flow
-                ] = f_global.energy_vars
-                model_full.scaling_factor[
-                    model_full.node_blocks[node].var_export_flow
-                ] = f_global.energy_vars
-
-                model_full.scaling_factor[
-                    model_full.node_blocks[node].var_netw_inflow
-                ] = f_global.energy_vars
-                model_full.scaling_factor[
-                    model_full.node_blocks[node].const_netw_inflow
-                ] = f_global.energy_vars
-
-                model_full.scaling_factor[
-                    model_full.node_blocks[node].var_netw_outflow
-                ] = f_global.energy_vars
-                model_full.scaling_factor[
-                    model_full.node_blocks[node].const_netw_outflow
-                ] = f_global.energy_vars
-
-                model_full.scaling_factor[
-                    model_full.node_blocks[node].var_generic_production
-                ] = f_global.energy_vars
-                model_full.scaling_factor[
-                    model_full.node_blocks[node].const_generic_production
-                ] = f_global.energy_vars
 
         self.model["scaled"] = pyo.TransformationFactory(
             "core.scale_model"
