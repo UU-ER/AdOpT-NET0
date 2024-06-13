@@ -14,10 +14,10 @@ mathjax_path = (
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "EnergyHub"
-copyright = "2023, Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk"
+project = "AdOpT-Net0"
+copyright = "2023, Jan F. Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk"
 author = "Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk"
-release = "0.1"
+release = "0.1.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

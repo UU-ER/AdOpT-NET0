@@ -3,7 +3,7 @@ from warnings import warn
 
 from pyomo.opt import TerminationCondition
 
-from adopt_net0.energyhub import EnergyHub
+from adopt_net0.modelhub import ModelHub
 
 
 def test_full_model_flow(request):
@@ -38,7 +38,7 @@ def test_full_model_flow(request):
     """
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = EnergyHub()
+    pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=1)
     pyhub.construct_model()
     pyhub.construct_balances()
@@ -97,7 +97,7 @@ def test_clustering_algo(request):
 
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = EnergyHub()
+    pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=2 * 24)
     pyhub.construct_model()
     pyhub.construct_balances()
@@ -109,7 +109,7 @@ def test_clustering_algo(request):
 
     methods = [1, 2]
     N = [2, 1]
-    pyhub = EnergyHub()
+    pyhub = ModelHub()
     pyhub.data.set_settings(path)
     pyhub.data._read_topology()
     pyhub.data._read_model_config()
@@ -154,7 +154,7 @@ def test_average_algo(request):
 
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = EnergyHub()
+    pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=2 * 24)
     pyhub.construct_model()
     pyhub.construct_balances()
@@ -164,7 +164,7 @@ def test_average_algo(request):
     m = pyhub.model["full"]
     npv_no_cluster = m.var_npv.value
 
-    pyhub = EnergyHub()
+    pyhub = ModelHub()
     pyhub.data.set_settings(path)
     pyhub.data._read_topology()
     pyhub.data._read_model_config()
@@ -204,7 +204,7 @@ def test_objective_functions(request):
 
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = EnergyHub()
+    pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=1)
     pyhub.construct_model()
     pyhub.construct_balances()
@@ -224,7 +224,7 @@ def test_monte_carlo(request):
 
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = EnergyHub()
+    pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=2)
 
     # Monte Carlo type normal

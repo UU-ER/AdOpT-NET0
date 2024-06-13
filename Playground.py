@@ -9,13 +9,13 @@ from pathlib import Path
 import pandas as pd
 from timezonefinder import TimezoneFinder
 import adopt_net0.data_management as dm
-from adopt_net0.energyhub import EnergyHub
+from adopt_net0.modelhub import ModelHub
 from scipy.interpolate import griddata
 
 # from netCDF4 import Dataset
 
 import adopt_net0.data_management as dm
-from adopt_net0.energyhub import EnergyHub as ehub
+from adopt_net0.modelhub import ModelHub as ehub
 import adopt_net0.model_construction as mc
 from adopt_net0.model_configuration import ModelConfiguration
 from adopt_net0.diagnostics import get_infeasibile_constraints
@@ -120,7 +120,7 @@ if execute == 1:
     configuration.performance.dynamics = 1
 
     # Solve model
-    energyhub = EnergyHub(data, configuration)
+    energyhub = ModelHub(data, configuration)
     energyhub.quick_solve()
 
     print("finish")
@@ -159,7 +159,7 @@ if execute == 1:
     # configuration.energybalance.violation = -1
     # configuration.energybalance.copperplate = 0
 
-    energyhub = EnergyHub(data, configuration)
+    energyhub = ModelHub(data, configuration)
     # Solve model
     energyhub.quick_solve()
     print("finish")
@@ -219,7 +219,7 @@ if execute == 1:
     configuration = ModelConfiguration()
     configuration.optimization.timestaging = 4
 
-    energyhub = EnergyHub(data, configuration)
+    energyhub = ModelHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
 
@@ -270,7 +270,7 @@ if execute == 1:
     nr_days_cluster = 5
     clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
 
-    energyhub_clustered = EnergyHub(clustered_data, configuration)
+    energyhub_clustered = ModelHub(clustered_data, configuration)
     energyhub_clustered.construct_model()
     energyhub_clustered.construct_balances()
 
@@ -280,7 +280,7 @@ if execute == 1:
     results1.save_summary_to_excel(Path("./userData"), "results_clustered")
 
     # SOLVE WITH FULL RESOLUTION
-    energyhub = EnergyHub(data, configuration)
+    energyhub = ModelHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
 

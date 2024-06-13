@@ -246,7 +246,7 @@ def import_jrc_climate_data(
     """
     Reads in climate data for a full year from `JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_.
 
-    The returned dataframe is consistent with the energyhub format requirements.
+    The returned dataframe is consistent with the modelhub format requirements.
 
     :param float lon: longitude of node - the api will read data for this location
     :param float lat: latitude of node - the api will read data for this location

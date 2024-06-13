@@ -22,12 +22,12 @@ from .components.utilities import (
 )
 
 
-class EnergyHub:
+class ModelHub:
     """
     Class to construct and manipulate an energy system model.
 
-    When constructing an instance, it reads data to the instance and initializes all attributes of the EnergyHub
-    class:
+    When constructing an instance, it reads data to the instance and initializes all
+    attributes of the ModelHub class:
 
     - self.data: Data container
     - self.model: Model container
@@ -354,9 +354,9 @@ class EnergyHub:
         Quick-solves the model (constructs model and balances and solves model).
 
         This method lumbs together the following functions for convenience:
-        - :func:`~adopt_net0.energyhub.construct_model`
-        - :func:`~adopt_net0.energyhub.construct_balances`
-        - :func:`~adopt_net0.energyhub.solve`
+        - :func:`~adopt_net0.modelhub.construct_model`
+        - :func:`~adopt_net0.modelhub.construct_balances`
+        - :func:`~adopt_net0.modelhub.solve`
         """
         self.construct_model()
         self.construct_balances()

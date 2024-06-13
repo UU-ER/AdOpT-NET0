@@ -6,7 +6,7 @@ from pyomo.environ import (
 )
 
 from tests.utilities import make_data_handle
-from adopt_net0.energyhub import EnergyHub
+from adopt_net0.modelhub import ModelHub
 from adopt_net0.model_construction.construct_balances import (
     construct_global_balance,
     construct_global_energybalance,
@@ -26,7 +26,7 @@ def construct_model(dh):
     :return: pyomo model
     """
 
-    ehub = EnergyHub()
+    ehub = ModelHub()
     ehub.data = dh
     ehub.construct_model()
     m = ehub.model["full"]
