@@ -254,9 +254,9 @@ def test_scaling(request):
     """
     Tests model scaling
     """
-    path = Path("src/test/case_study_full_pipeline")
+    path = Path("tests/case_study_full_pipeline")
 
-    pyhub = EnergyHub()
+    pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=1)
     pyhub.construct_model()
     pyhub.construct_balances()
