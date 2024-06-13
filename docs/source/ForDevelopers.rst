@@ -37,7 +37,7 @@ For the Pyomo classes we use:
 | unit        | u            |
 +-------------+--------------+
 
-Other names that are regularly used in the EnergyHub are:
+Other names that are regularly used in AdOpT-NET0 are:
 
 +-------------+--------------+
 | Type        | Code         |
@@ -103,7 +103,8 @@ As such, the documentation of a function can look like this:
 
 Testing new features
 ----------------------
-The energyhub comes with a test suite, located in ``.\src\test``. For new features, try to implement a \
+AdOpT-NET0 comes with a test suite, located in ``.\src\test``. For new features, try to
+implement a \
 test function in one a respective module (or create a new module). All tests can be executed by \
 running ``coverage run -m pytest`` from the terminal.
 To check the code coverage of the test, run ``coverage report`` after the test.

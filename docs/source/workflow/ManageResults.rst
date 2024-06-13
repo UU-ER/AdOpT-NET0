@@ -1,6 +1,7 @@
 .. _workflow_manage-results:
 
-Manage results
+=====================================
+8 Manage results
 =====================================
 
 After your model has solved, the results are automatically saved as HDF5 files. For an exact overview of the structure of
@@ -17,10 +18,19 @@ If you want to export more results to Excel, you can do so after the optimizatio
 
 .. testcode::
 
-    file_path = './userData/20240206140357/optimization_results.h5'
+    file_path = 'pathtoh5file/optimization_results.h5'
     save_path = 'pathtosaveresults'
     print_h5_tree(file_path)
     with h5py.File(file_path, 'r') as hdf_file:
         data = extract_datasets_form_h5(hdf_file["operation/energy_balance/offshore"])
         data.to_excel(save_path)
         print(data)
+
+.. _workflow_manage-visualization:
+
+Visualization
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Provided an h5 file was saved, the data can be visualized on a visualization platform. You can access this platform
+by going to https://resultvisualization.streamlit.app/. Further instructions are on the web page.
+
+Note: from the visualization platform, the results can also be downloaded in csv format.

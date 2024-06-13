@@ -1,8 +1,8 @@
-# from src.model_configuration import ModelConfiguration
+# from adopt_net0.model_configuration import ModelConfiguration
 from pathlib import Path
-import src.data_preprocessing as dp
-from src.energyhub import EnergyHub
-from src.result_management.read_results import add_values_to_summary
+import adopt_net0.data_preprocessing as dp
+from adopt_net0.modelhub import ModelHub
+from adopt_net0.result_management.read_results import add_values_to_summary
 
 # Specify the path to your input data
 path = "specify path to input data"
@@ -23,7 +23,7 @@ dp.load_climate_data_from_api(path)
 dp.fill_carrier_data(path, value=0)
 
 # Construct and solve the model
-pyhub = EnergyHub()
+pyhub = ModelHub()
 pyhub.read_data(path)
 pyhub.quick_solve()
 

@@ -1,10 +1,11 @@
 .. _src-code_result_management:
 
+=====================================
 Result Management
 =====================================
 
 Export to h5
-^^^^^^^^^^^^^^^^
+---------------
 
 Results obtained from the model (in case it is solved) are exported by default to an h5 file as specified in
 ``Configuration.reporting.save_path``. Additionally, a summary is written to an excel file specified in
@@ -80,18 +81,9 @@ Export to Excel
 ^^^^^^^^^^^^^^^^
 
 We do not provide a direct export to excel/csv files from the model interface, however, you can read results
-from the h5 file previously exported. For this, two functions are provided in ``src.result_management.read_results``.
-The two functions are documented below.
+from the h5 file previously exported. For this, several functions are provided in ``src
+.result_management.read_results``.
 
 .. automodule:: src.result_management.read_results
     :members:
-
-.. _results_visualization:
-
-Visualization
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Provided an h5 file was saved, the data can be visualized on a visualization platform. You can access this platform
-by going to https://resultvisualization.streamlit.app/. Further instructions are on the web page.
-
-Note: from the visualization platform, the results can also be downloaded in csv format.
 

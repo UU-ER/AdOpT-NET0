@@ -8,17 +8,17 @@ import json
 from pathlib import Path
 import pandas as pd
 from timezonefinder import TimezoneFinder
-import src.data_management as dm
-from src.energyhub import EnergyHub
+import adopt_net0.data_management as dm
+from adopt_net0.modelhub import ModelHub
 from scipy.interpolate import griddata
 
 # from netCDF4 import Dataset
 
-import src.data_management as dm
-from src.energyhub import EnergyHub as ehub
-import src.model_construction as mc
-from src.model_configuration import ModelConfiguration
-from src.diagnostics import get_infeasibile_constraints
+import adopt_net0.data_management as dm
+from adopt_net0.modelhub import ModelHub as ehub
+import adopt_net0.model_construction as mc
+from adopt_net0.model_configuration import ModelConfiguration
+from adopt_net0.diagnostics import get_infeasibile_constraints
 
 execute = 0
 
@@ -95,8 +95,8 @@ if execute == 1:
 execute = 1
 
 if execute == 1:
-    # data = dm.load_object(r'./src/test/test_data/technology_CONV1_2.p')
-    data = dm.load_object(r"./src/test/test_data/technology_dynamics_CONV1_2.p")
+    # data = dm.load_object(r'./adopt_net0/test/test_data/technology_CONV1_2.p')
+    data = dm.load_object(r"./adopt_net0/test/test_data/technology_dynamics_CONV1_2.p")
     tecname = "testCONV1_2"
 
     # change test technology dynamic parameters
@@ -120,7 +120,7 @@ if execute == 1:
     configuration.performance.dynamics = 1
 
     # Solve model
-    energyhub = EnergyHub(data, configuration)
+    energyhub = ModelHub(data, configuration)
     energyhub.quick_solve()
 
     print("finish")
@@ -159,7 +159,7 @@ if execute == 1:
     # configuration.energybalance.violation = -1
     # configuration.energybalance.copperplate = 0
 
-    energyhub = EnergyHub(data, configuration)
+    energyhub = ModelHub(data, configuration)
     # Solve model
     energyhub.quick_solve()
     print("finish")
@@ -195,8 +195,12 @@ if execute == 1:
     )
 
     # CLIMATE DATA
-    data.read_climate_data_from_file("test_node1", r"./src/test/climate_data_test.p")
-    data.read_climate_data_from_file("test_node2", r"./src/test/climate_data_test.p")
+    data.read_climate_data_from_file(
+        "test_node1", r"./adopt_net0/test/climate_data_test.p"
+    )
+    data.read_climate_data_from_file(
+        "test_node2", r"./adopt_net0/test/climate_data_test.p"
+    )
 
     # DEMAND
     electricity_demand = np.ones(len(topology.timesteps)) * 100
@@ -215,7 +219,7 @@ if execute == 1:
     configuration = ModelConfiguration()
     configuration.optimization.timestaging = 4
 
-    energyhub = EnergyHub(data, configuration)
+    energyhub = ModelHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
 
@@ -266,7 +270,7 @@ if execute == 1:
     nr_days_cluster = 5
     clustered_data = dm.ClusteredDataHandle(data, nr_days_cluster)
 
-    energyhub_clustered = EnergyHub(clustered_data, configuration)
+    energyhub_clustered = ModelHub(clustered_data, configuration)
     energyhub_clustered.construct_model()
     energyhub_clustered.construct_balances()
 
@@ -276,7 +280,7 @@ if execute == 1:
     results1.save_summary_to_excel(Path("./userData"), "results_clustered")
 
     # SOLVE WITH FULL RESOLUTION
-    energyhub = EnergyHub(data, configuration)
+    energyhub = ModelHub(data, configuration)
     energyhub.construct_model()
     energyhub.construct_balances()
 
