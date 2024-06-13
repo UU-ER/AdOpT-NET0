@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 
 from ..technology import Technology
-from src.components.utilities import (
+from ....components.utilities import (
     annualize,
     set_discount_rate,
     link_full_resolution_to_clustered,

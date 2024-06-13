@@ -1,9 +1,9 @@
 import pytest
 import pandas as pd
 
-import src.data_preprocessing as dp
-from src.data_management.utilities import check_input_data_consistency
-from src.test.utilities import (
+import adopt_net0.data_preprocessing as dp
+from adopt_net0.data_management.utilities import check_input_data_consistency
+from adopt_net0.test.utilities import (
     select_random_list_from_list,
     load_json,
     save_json,

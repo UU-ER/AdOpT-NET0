@@ -6,12 +6,12 @@ import numpy as np
 from pyomo.core import Objective, minimize
 from pyomo.opt import SolverFactory
 
-from src.data_preprocessing import (
+from adopt_net0.data_preprocessing import (
     initialize_configuration_templates,
     initialize_topology_templates,
 )
-from src.data_management import DataHandle
-from src.data_preprocessing.template_creation import (
+from adopt_net0.data_management import DataHandle
+from adopt_net0.data_preprocessing.template_creation import (
     create_carrier_data,
     create_carbon_cost_data,
 )

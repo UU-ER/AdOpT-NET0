@@ -1,6 +1,6 @@
 import pyomo.environ as pyo
 
-from src.utilities import get_set_t, get_hour_factors, get_nr_timesteps_averaged
+from ..utilities import get_set_t, get_hour_factors, get_nr_timesteps_averaged
 
 
 def delete_all_balances(model):

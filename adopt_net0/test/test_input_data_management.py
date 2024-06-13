@@ -1,6 +1,6 @@
 import pytest
 
-from src.data_management import DataHandle
+from adopt_net0.data_management import DataHandle
 
 
 @pytest.mark.data_management

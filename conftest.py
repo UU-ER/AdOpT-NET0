@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import shutil
 
-import src.data_preprocessing as dp
+import adopt_net0.data_preprocessing as dp
 
 
 def pytest_configure(config):
@@ -24,11 +24,11 @@ def pytest_configure(config):
 
     :param config: Configuration for pytest
     """
-    config.data_folder_path = Path("./src/test/test_data")
-    config.result_folder_path = Path("./src/test/test_results")
-    config.case_study_folder_path = Path("./src/test/test_case")
-    config.technology_data_folder_path = Path("./src/test/technology_data")
-    config.network_data_folder_path = Path("./src/test/network_data")
+    config.data_folder_path = Path("adopt_net0/test/test_data")
+    config.result_folder_path = Path("adopt_net0/test/test_results")
+    config.case_study_folder_path = Path("adopt_net0/test/test_case")
+    config.technology_data_folder_path = Path("adopt_net0/test/technology_data")
+    config.network_data_folder_path = Path("adopt_net0/test/network_data")
     config.root_folder_path = Path(".")
     config.solver = "glpk"
 

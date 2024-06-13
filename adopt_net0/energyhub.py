@@ -354,9 +354,9 @@ class EnergyHub:
         Quick-solves the model (constructs model and balances and solves model).
 
         This method lumbs together the following functions for convenience:
-        - :func:`~src.energyhub.construct_model`
-        - :func:`~src.energyhub.construct_balances`
-        - :func:`~src.energyhub.solve`
+        - :func:`~adopt_net0.energyhub.construct_model`
+        - :func:`~adopt_net0.energyhub.construct_balances`
+        - :func:`~adopt_net0.energyhub.solve`
         """
         self.construct_model()
         self.construct_balances()

@@ -5,9 +5,9 @@ from pyomo.environ import (
     SolverFactory,
 )
 
-from src.test.utilities import make_data_handle
-from src.energyhub import EnergyHub
-from src.model_construction.construct_balances import (
+from adopt_net0.test.utilities import make_data_handle
+from adopt_net0.energyhub import EnergyHub
+from adopt_net0.model_construction.construct_balances import (
     construct_global_balance,
     construct_global_energybalance,
     construct_emission_balance,
@@ -15,7 +15,7 @@ from src.model_construction.construct_balances import (
     construct_network_constraints,
     construct_system_cost,
 )
-from src.data_management import DataHandle
+from adopt_net0.data_management import DataHandle
 
 
 def construct_model(dh):

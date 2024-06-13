@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pyomo.environ as pyo
 
-from src.model_construction.utilities import determine_network_energy_consumption
+from ..model_construction.utilities import determine_network_energy_consumption
 
 
 def _determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:

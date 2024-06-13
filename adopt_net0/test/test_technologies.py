@@ -6,11 +6,15 @@ from pyomo.environ import ConcreteModel, Set, Constraint, TerminationCondition
 import json
 import numpy as np
 
-from src.test.utilities import make_climate_data, make_data_for_testing, run_model
-from src.components.technologies.technology import Technology
-from src.data_management.utilities import open_json, select_technology
-from src.components.utilities import annualize
-from src.components.utilities import perform_disjunct_relaxation
+from adopt_net0.test.utilities import (
+    make_climate_data,
+    make_data_for_testing,
+    run_model,
+)
+from adopt_net0.components.technologies.technology import Technology
+from adopt_net0.data_management.utilities import open_json, select_technology
+from adopt_net0.components.utilities import annualize
+from adopt_net0.components.utilities import perform_disjunct_relaxation
 
 
 def define_technology(
