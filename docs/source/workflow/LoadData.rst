@@ -1,6 +1,6 @@
 .. _workflow_load-data:
 
-Load Input Data
+4 Load Input Data
 =====================================
 
 Now that you have the :ref:`correct folder structure and templates for the data <workflow_create-data-templates>`,
@@ -16,7 +16,7 @@ system by setting:
       in the corresponding folder ("existing" or "new") in the network_topology folder. To these folders, you should
       copy the CSV files ``connection.csv``, ``distance.csv`` and ``size_max_arcs.csv`` from the corresponding folder
       ("existing" or "new"). You then define the topology for all of your networks by filling in these files (as
-      illustrated in an elaborate example :ref:`here`<workflow_example-usage>`) in their respective folders. Note that
+      illustrated in an elaborate example :ref:`here<workflow_example-usage>`) in their respective folders. Note that
       for new networks the ``size_max_arcs.csv`` contains an upper limit, the actual size is determined by the optimization.
     - Finally, you can adjust the network data in the json files of the specific network types, either (1) in the model
       repository, before :ref:`copying these<load-data_from-model>` to the network_data folder in your input data folder,
@@ -33,10 +33,11 @@ system by setting:
       Note that option (1) is more efficient if you want the technology data to be the same at each node and in each investment period,
       while option (2) is more convenient if you want it to change per node and/or investment period.
 
-#. For the carriers, whether or not curtailment of general production is possible in ``EnergybalanceOptions.JSON``.
+#. For the carriers, whether or not curtailment of generic production is possible in
+   ``EnergybalanceOptions.JSON``.
 
-After the complete system topology and system characteristics are finalised, the final data can be loaded into the input
-data folder. This remaining data covers:
+After the complete system topology and system characteristics are finalised, time
+dependent data can be loaded into the input data folder. This remaining data covers:
 
 - Carbon costs: Prices of carbon emissions and/or subsidies for emission reductions. These are defined for each investment
   period and node.
@@ -48,26 +49,32 @@ data folder. This remaining data covers:
 
 All this data is time-dependent, so you need to specify data for all time steps of your model run.
 
-There are four options for loading data:
+All data can be simply changed directly in the csv file. For example, you can copy a
+demand profile from a national database (if your nodes are countries) into the correct
+column in the csv. Additionally, we provide a couple of functions to make defining
+the time dependent data more convenient:
 
-#. :ref:`From API<load-data_from-api>`: for climate data.
-#. :ref:`From model<load-data_from-model>`: for technologies and networks, you can copy the required JSON files into the technology_data and network_data folders, respectively.
-#. :ref:`Specifying a fixed value<load-data_fixed-value>`: for carriers and carbon costs, if the values do not change over time.
-#. :ref:`Specifying a profile<load-data_profile>`: for carriers and carbon costs, if the values do change over time.
+- For climate data, you can use the API to a :ref:`JRC database for onshore
+  locations in Europe<load-data_from-api>`
+- For all other time series, you can :ref:`specify a fixed
+  value<load-data_fixed-value>`, if the values do not change over time.
 
 A detailed description of these different methods can be found in the sections below. Note: all methods related to
-loading in data can be found in the ``data_loading.py`` module in the ``data_preprocessing`` directory.
+loading in data can be found in the ``data_loading.py`` module in the ``data_preparation`` directory.
 
 .. _load-data_from-api:
 
-From API
+Climate data from API
 ^^^^^^^^^^^^^^^^
-For importing climate data from the JRC PVGIS database, the method :func:`load_climate_data_from_api` can be used, passing
+For importing climate data from the `JRC PVGIS database
+<https://joint-research-centre.ec.europa
+.eu/photovoltaic-geographical-information-system-pvgis_en>`_, the method
+:func:`load_climate_data_from_api` can be used, passing
 your :ref:`input data folder path<workflow_create-data-templates>`. This imports the climate data for each node,
 accounting for the location of the nodes as specified in ``NodeLocations.csv``. If no location is specified, it takes the
 default coordinates (52.5, 5.5) with an altitude of 10m.
 
-.. automodule:: src.data_preprocessing.data_loading
+.. automodule:: src.data_preparation.data_loading
     :members: load_climate_data_from_api
     :exclude-members:
 
@@ -76,20 +83,6 @@ based on the technology type "OpenHydro" (see :ref:`here<technologies>`). For th
 column name with the technology in your system, e.g., "PumpedHydro_Open" and :ref:`load a profile<load-data_profile>`
 for water flow into the reservoir.
 
-.. _load-data_from-model:
-
-From model
-^^^^^^^^^^^^^^^^
-For the technologies and networks, you can copy the JSON files in automatically using the :func:`copy_technology_data` and
-:func:`copy_network_data` methods below. Note: the method automatically checks which technologies and networks it has to copy
-from the model repository by reading in the ``Technology.JSON`` and ``Network.JSON`` files, respectively. Thus, make sure
-to use the naming conventions as in the JSON files in the model repository.
-
-
-.. automodule:: src.data_preprocessing.data_loading
-    :members: copy_technology_data, copy_network_data
-    :exclude-members:
-
 .. _load-data_fixed-value:
 
 Specifying a fixed value
@@ -97,14 +90,20 @@ Specifying a fixed value
 
 For carrier data, you can use the :func:`fill_carrier_data` method if your value does not vary over time.
 
-.. automodule:: src.data_preprocessing.data_loading
+.. automodule:: src.data_preparation.data_loading
     :members: fill_carrier_data
     :exclude-members:
 
-.. _load-data_profile:
+.. _load-data_from-model:
 
-Specifying a profile
-^^^^^^^^^^^^^^^^^^^^^
-If the carrier data values do change over time (e.g., you want to have a demand profile resembling actual load) you have
-to manually specify the profiles in the carrier csv files in your input data folder. For example, you can copy a demand
-profile from a national database (if your nodes are countries) into the correct column in the csv.
+Copy technology and network data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For the technologies and networks, you can copy the JSON files automatically using the :func:`copy_technology_data` and
+:func:`copy_network_data` methods below. Note: the method automatically checks which technologies and networks it has to copy
+from the model repository by reading in the ``Technology.JSON`` and ``Network.JSON`` files, respectively. Thus, make sure
+to use the naming conventions as in the JSON files in the model repository.
+
+.. automodule:: src.data_preparation.data_loading
+    :members: copy_technology_data, copy_network_data
+    :exclude-members:
+

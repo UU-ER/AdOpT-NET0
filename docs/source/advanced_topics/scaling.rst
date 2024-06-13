@@ -1,5 +1,6 @@
 ..   _scaling:
 
+=====================================
 Model Scaling
 =====================================
 Scaling is a crucial aspect in the context of Mixed-Integer Linear Programming (MILP) models, as it significantly

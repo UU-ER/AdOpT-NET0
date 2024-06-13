@@ -7,14 +7,8 @@ Welcome to EnergyHub's documentation!
 =====================================
 Energyhub is a Python Library for bottom-up multi energy system modelling. It can model conversion technologies and
 networks for any carrier and optimize the design and operation of your energy system.
-
-The documentation is divided into four parts:
-
-#. A :ref:`workflow for (first-time) users<workflow>`;
-#. The :ref:`documentation of the source code<src-code>` for users and developers.
-#. A :ref:`guide for developers<developers-guide>`.
-#. Some example :ref:`case studies<case-studies>` for usage.
-
+We recommend to start with the :ref:`installation<installation>` and the
+:ref:`workflow for (first-time) users<workflow>`.
 
 Table of Content
 ==================
@@ -22,7 +16,9 @@ Table of Content
 .. toctree::
    :maxdepth: 2
 
-   Workflow
+   Installation
+   ModellingWorkflow
+   AdvancedTopics
    SourceCode
    ForDevelopers
    CaseStudies

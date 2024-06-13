@@ -1,21 +1,24 @@
 .. _workflow:
 
-Users Workflow
+=====================================
+Simple Modelling Workflow
 =====================================
 This workflow documentation will guide you through all the steps that are required to prepare the model for your
 application. In short, these steps are as follows:
 
-- Set up a working directory of your case study for all input data preprocessing.
+- Set up a working directory of your case study for all input data.
 - Create the templates for the system topology and the model configuration.
 - Define your system topology and model configuration.
 - Create the folder structure and templates for the input data files.
 - Load and define input data (e.g., weather data, technology performance, demand data, etc.).
 - Construct and solve the model and, possibly, incorporate options to lower the complexity of the model.
-- Check the model diagnostics.
+- If something unexpected happens: check the model diagnostics.
 - Obtain and interpret the optimization results.
 
 An elaborate example of how to set up the model accordingly can be found :ref:`below <workflow_example-usage>`. To
-understand what happens behind the scenes, please take a look :ref:`here<src-code>`. For a more detailed description of
+understand what happens behind the scenes, please take a look at
+the :ref:`Source Code Documentation<src-code>`.
+For a more detailed description of
 each of the aforementioned steps, see the following pages:
 
 .. toctree::
@@ -33,7 +36,10 @@ each of the aforementioned steps, see the following pages:
 ..  _workflow_example-usage:
 
 Example Usage
-^^^^^^^^^^^^^^^^
+================
+
+Set up working directory and create templates (topology and model configuration)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To get started with your optimization, you first need to obtain the templates in which you can define the system
 topology and the model configuration, as explained :ref:`here<workflow_create-model-templates>`. We specify a path to
@@ -42,11 +48,14 @@ our working directory and run the following code:
 
 .. testcode::
 
-    import src.data_preprocessing as dp
+    import src.data_preparation as dp
 
     path = "path_to_your_input_data_folder"
 
     dp.create_optimization_templates(path)
+
+Define System Topology
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Next, you can define your system topology in the topology.JSON file. For this example, the topology is as follows:
 
@@ -60,6 +69,8 @@ Next, you can define your system topology in the topology.JSON file. For this ex
     "resolution": "1h",
     "investment_period_length": 1
 
+Create folder structure for input data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Now, you can run the following command (the path is the same as before) to obtain the input data folder structure:
 
@@ -67,10 +78,17 @@ Now, you can run the following command (the path is the same as before) to obtai
 
     dp.create_input_data_folder_template(path)
 
+Define input data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Node Locations** 
+
 Then, it is time to further specify the system (i.e., node locations, technologies, networks) and collect all input data
 required for your optimization. We start by specifying the geographic locations in terms of longitude, latitude and
 altitude, of our two nodes ("onshore" and "offshore") in the ``NodeLocations.csv``. Note: longitude and latitude should
 be written in decimal degrees, and altitude in metres.
+
+**Networks** 
 
 Next, for each investment period we specify the network types and their topology. For network types, the names should be
 the same as the JSON file names in ``.\data\network_data``. For our example, let's say that there are no networks currently
@@ -132,6 +150,8 @@ copying to your own folder.
 
 Next, for each node we specify the technology types, their input data, the carrier data, climate data and carbon costs.
 
+**Climate Data** 
+
 Climate data can easily be retrieved for all nodes and investment periods at once, by running the following command, as
 explained :ref:`here<workflow_load-data>`:
 
@@ -143,6 +163,8 @@ Note: the only exception to this is the hydro_inflow data. If your system contai
 technology type "Hydro_Open" (see :ref:`here<technologies>`), you should specify this manually. For this, replace the
 "TECHNOLOGYNAME" in the column name with the technology in your system, e.g., "PumpedHydro_Open" and load a profile for
 water flow into the reservoir.
+
+**Technologies**
 
 For technologies, same as for networks, you specify the existing and new technologies in ``Technologies.JSON``, using
 the same names as the JSON file names in ``.\data\technology_data``. For our example, we allow for the installment of a
@@ -171,10 +193,16 @@ Note: if you want to have the same technology data for all investment periods an
 in the JSON in the model repository before copying to your own folder. For existing technologies, you can decide if they
 can be decommissioned and at what cost in the respective technology's JSON file as well.
 
-In ``CarbonCost.csv``, you can specify carbon costs and subsidies for carbon reduction. In the "carrier_data" folder,
-the demand, import/export limits, prices and emission factors, and generic production can be specified per carrier for
-that node and investment period. In the same folder, you can specify if curtailment of this general production is
-possible in ``EnergybalanceOptions.JSON`` (0 = not possible; 1 = possible). For all this data, you can either set a
+**Carbon Prices** 
+
+In ``CarbonCost.csv``, you can specify carbon costs and subsidies for carbon reduction.
+
+*Carrier Data (Demand, import/export limits,...*
+In the "carrier_data" folder, the demand, import/export limits, prices and emission
+factors, and generic production can be specified per carrier for
+that node and investment period. In the same folder, you can specify if curtailment
+of this generic production is possible in ``EnergybalanceOptions.JSON`` (0 = not
+possible; 1 = possible). For all this data, you can either set a
 fixed value for all time steps, or you can manually upload a profile for that parameter over time. For the former option,
 you can run the following piece of code, in this example to set the onshore electricity demand to 10MW for all time steps:
 
@@ -184,9 +212,16 @@ you can run the following piece of code, in this example to set the onshore elec
 
 Note that data for carriers and nodes not specified will be set to zero.
 
+**Model Configuration** 
+
 Now that you have completely set up your system and defined all input data, you can set the model configuration as you
-wish for the optimization (this also includes specifying the path for your outputs) in ``ConfigModel.JSON``. Now, you
-can call an instance of the EnergyHub class, read in all the data, construct the model and solve the model as follows:
+wish for the optimization (this also includes specifying the path for your outputs) in ``ConfigModel.JSON``.
+
+Optimize the model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Now, you can call an instance of the EnergyHub class, read in all the data, construct
+the model and solve the model as follows:
 
 .. testcode::
 
@@ -224,10 +259,17 @@ how to use the k-means algorithm (by setting N=50 in ``ConfigModel.JSON``):
     modelname.construct_model()
     modelname.quick_solve()
 
+Diagnostics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 If your model solved to optimality, you can continue with checking out your results. If your model did not solve to
 optimality, or took longer than expected for the complexity of your system, you can take a look at the
 :ref:`model diagnostics<model_diagnostics>`.
 
-For a simple means to get a grip on your results, you can :ref:`start the streamlit visualisation<results_visualization>`.
-From there, you can also download CSV files with your result data. Alternatively, you can :ref:`export<export_excel>'
+Results
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For a simple means to get a grip on your results, you can :ref:`start the streamlit visualisation<workflow_manage-visualization>`.
+From there, you can also download CSV files with your result data. Alternatively, you
+can :ref:`export<workflow_manage-results>`
 datasets from your .h5 files to Excel.

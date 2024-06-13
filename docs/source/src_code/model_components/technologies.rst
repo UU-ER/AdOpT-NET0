@@ -30,6 +30,20 @@ technologies that are currently modelled, and the technology classes / types use
 :ref:`below <technologies_list>`.
 
 
+..  _technologies_list:
+
+List of Technologies
+----------------------
+
+All technologies that are modelled are listed below, as well as their respective technology models (i.e.,
+types of technologies that follow similar constraints, which are explained :ref:`here<technologies>`).
+
+.. csv-table::
+   :file: generated_tech_list.csv
+   :header-rows: 1
+   :delim: ;
+
+
 Technology Class
 -------------------------------------------------------------
 As mentioned, the technology class is a subclass of the ModelComponent class. In general, all technology subclasses
@@ -87,16 +101,3 @@ Carbon Capture and Storage Technologies
 ----------------------------------------------
 
 Explanation of CCS & Sink
-
-..  _technologies_list:
-
-List of Technologies
-----------------------
-
-All technologies that are modelled are listed below, as well as their respective technology models (i.e.,
-types of technologies that follow similar constraints, which are explained :ref:`here<technologies>`).
-
-.. csv-table::
-   :file: generated_tech_list.csv
-   :header-rows: 1
-   :delim: ;

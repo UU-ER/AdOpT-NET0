@@ -8,9 +8,6 @@ no subclasses of specific network models. An overview of all networks that are c
 :ref:`below <network_list>`. A network is defined as the set of all arcs (i.e., connections between nodes) of a
 specific network type (e.g., "electricitySimple").
 
-.. automodule:: src.components.networks.network
-    :members: Network
-
 ..  _network_list:
 
 List of Networks
@@ -22,3 +19,6 @@ All networks that are modelled are listed below.
    :file: generated_netw_list.csv
    :header-rows: 1
    :delim: ;
+
+.. automodule:: src.components.networks.network
+    :members: Network

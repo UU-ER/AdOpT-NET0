@@ -1,6 +1,7 @@
 .. _workflow_solve-model:
 
-Solve Model
+=====================================
+6 Solve Model
 =====================================
 After model construction, the model can be solved with the :func:`quick_solve` method of the :ref:`EnergyHub class<energyhub_class>`.
 This method automatically construct the model (i.e., constructing balances, nodes, technologies and networks) and
