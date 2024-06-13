@@ -1221,7 +1221,7 @@ class Network(ModelComponent):
         """
 
         f = self.scaling_factors
-        f_global = config["scaling_factors"]
+        f_global = config["scaling"]["scaling_factors"]
 
         model = determine_variable_scaling(model, b_netw, f, f_global)
         model = determine_constraint_scaling(model, b_netw, f, f_global)
