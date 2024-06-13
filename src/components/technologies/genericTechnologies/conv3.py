@@ -182,8 +182,6 @@ class Conv3(Technology):
         dynamics = self.processed_coeff.dynamics
         rated_power = self.input_parameters.rated_power
 
-        self.big_m_transformation_required = 1
-
         if self.component_options.performance_function_type == 1:
             b_tec = self._performance_function_type_1(b_tec)
         elif self.component_options.performance_function_type == 2:
@@ -214,6 +212,9 @@ class Conv3(Technology):
                 self.set_t_performance, b_tec.set_input_carriers, rule=init_input_input
             )
         else:
+
+            self.big_m_transformation_required = 1
+
             if self.component_options.standby_power_carrier == -1:
                 car_standby_power = self.component_options.main_input_carrier
             else:
@@ -331,6 +332,10 @@ class Conv3(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
+
+        # Transformation required
+        self.big_m_transformation_required = 1
+
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
         coeff_ti = self.processed_coeff.time_independent
@@ -450,6 +455,9 @@ class Conv3(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
+        # Transformation required
+        self.big_m_transformation_required = 1
+
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
         coeff_ti = self.processed_coeff.time_independent
@@ -583,6 +591,10 @@ class Conv3(Technology):
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
+
+        # Transformation required
+        self.big_m_transformation_required = 1
+
         # Performance Parameters
         rated_power = self.input_parameters.rated_power
         coeff_ti = self.processed_coeff.time_independent
