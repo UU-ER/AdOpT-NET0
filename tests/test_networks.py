@@ -3,7 +3,7 @@ import json
 import pyomo.environ as pyo
 
 from adopt_net0.components.networks import Network
-from adopt_net0.test.utilities import make_data_for_testing, run_model
+from tests.utilities import make_data_for_testing, run_model
 from adopt_net0.data_preprocessing.template_creation import create_empty_network_matrix
 from adopt_net0.components.utilities import perform_disjunct_relaxation
 

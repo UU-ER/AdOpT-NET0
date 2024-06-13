@@ -6,7 +6,7 @@ from pyomo.environ import ConcreteModel, Set, Constraint, TerminationCondition
 import json
 import numpy as np
 
-from adopt_net0.test.utilities import (
+from tests.utilities import (
     make_climate_data,
     make_data_for_testing,
     run_model,

@@ -36,7 +36,7 @@ def test_full_model_flow(request):
     - total cost
     - total emissions
     """
-    path = Path("adopt_net0/test/case_study_full_pipeline")
+    path = Path("tests/case_study_full_pipeline")
 
     pyhub = EnergyHub()
     pyhub.read_data(path, start_period=0, end_period=1)
@@ -95,7 +95,7 @@ def test_clustering_algo(request):
     Tests method 1 and two of the clustering algorithm
     """
 
-    path = Path("adopt_net0/test/case_study_full_pipeline")
+    path = Path("tests/case_study_full_pipeline")
 
     pyhub = EnergyHub()
     pyhub.read_data(path, start_period=0, end_period=2 * 24)
@@ -152,7 +152,7 @@ def test_average_algo(request):
     Tests two stage averaging algorithm
     """
 
-    path = Path("adopt_net0/test/case_study_full_pipeline")
+    path = Path("tests/case_study_full_pipeline")
 
     pyhub = EnergyHub()
     pyhub.read_data(path, start_period=0, end_period=2 * 24)
@@ -202,7 +202,7 @@ def test_objective_functions(request):
     - min cost at emission limit
     """
 
-    path = Path("adopt_net0/test/case_study_full_pipeline")
+    path = Path("tests/case_study_full_pipeline")
 
     pyhub = EnergyHub()
     pyhub.read_data(path, start_period=0, end_period=1)
@@ -222,7 +222,7 @@ def test_monte_carlo(request):
     Tests monte carlo analysis
     """
 
-    path = Path("adopt_net0/test/case_study_full_pipeline")
+    path = Path("tests/case_study_full_pipeline")
 
     pyhub = EnergyHub()
     pyhub.read_data(path, start_period=0, end_period=2)
