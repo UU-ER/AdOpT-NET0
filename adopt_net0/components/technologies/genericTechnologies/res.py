@@ -142,6 +142,16 @@ class Res(Technology):
         lat = location["lat"]
         alt = location["alt"]
 
+        if (
+            (np.isnan(location["lon"]))
+            or (np.isnan(location["lat"]))
+            or (np.isnan(location["alt"]))
+        ):
+            raise Exception(
+                "To use Photovoltaic technology you need to specify a "
+                "location in the NodeLocations.csv file"
+            )
+
         # Get location
         tf = TimezoneFinder()
         tz = tf.timezone_at(lng=lon, lat=lat)
