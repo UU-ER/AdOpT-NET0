@@ -15,7 +15,7 @@ include = ["adopt_net0/**"]
 
 [project]
 name = "adopt_net0"
-version = "0.1.14"
+version = "0.1.16"
 authors = [
   {name="Jan F. Wiegner", email="j.f.wiegner@uu.nl"},
   {name="Julia Tiggeloven", email="j.l.tiggeloven@uu.nl"},
