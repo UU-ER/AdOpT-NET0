@@ -18,15 +18,15 @@ calling the ``ModelHub.construct_balances()`` method (again retrieved from the `
 Finally, the model can be solved using ``ModelHub.solve()``.
 
 Note: the three steps above are combined in the ``ModelHub.quick_solve()`` method to quickly construct and solve the
-model at once. All of the methods are documented :ref:`here <energyhub_class>`.
+model at once. All of the methods are documented :ref:`here <modelhub_class>`.
 
 
-..  _energyhub_class:
+..  _modelhub_class:
 
 Energy Hub Class
 ================
 
-.. automodule:: src.energyhub
+.. automodule:: adopt_net0.modelhub
     :members:
     :exclude-members: calculate_occurance_per_hour
 
@@ -44,15 +44,15 @@ are used. There are multiple (nested) blocks present:
 
     - ``b_node``: a block per investment period holding all nodes as specified in
       your ``topology.json`` file. The rule
-      to construct this is held in ``src.model_construction.construct_nodes.py``:
+      to construct this is held in ``adopt_net0.model_construction.construct_nodes.py``:
 
         - ``b_tec``: a block per node holding all technologies as specified in your
           ``technology.json`` file for that node.
-          These are added to the respective nodes through the ``src.model_construction.construct_technology.py`` module.
+          These are added to the respective nodes through the ``adopt_net0.model_construction.construct_technology.py`` module.
 
     - ``b_netw``: a block per investment period holding all networks as specified in
       your ``network.json`` file. The
-      rule to construct this is held in ``src.model_construction.construct_networks.py``:
+      rule to construct this is held in ``adopt_net0.model_construction.construct_networks.py``:
 
 
 Block Construction
@@ -60,24 +60,24 @@ Block Construction
 
 The aforementioned blocks are constructed based on the rules in their respective modules. These are:
 
-For investment periods, contained in the ``src.model_construction.construct_investment_period.py`` module:
+For investment periods, contained in the ``adopt_net0.model_construction.construct_investment_period.py`` module:
 
-    .. automodule:: src.model_construction.construct_investment_period
+    .. automodule:: adopt_net0.model_construction.construct_investment_period
         :members:
 
-For nodes, from the ``src.model_construction.construct_nodes.py`` module:
+For nodes, from the ``adopt_net0.model_construction.construct_nodes.py`` module:
 
-    .. automodule:: src.model_construction.construct_nodes
+    .. automodule:: adopt_net0.model_construction.construct_nodes
         :members: construct_node_block
 
-For technologies, contained in the ``src.model_construction.construct_technology.py`` module.
+For technologies, contained in the ``adopt_net0.model_construction.construct_technology.py`` module.
 
-    .. automodule:: src.model_construction.construct_technology
+    .. automodule:: adopt_net0.model_construction.construct_technology
         :members:
 
-For networks, contained in the ``src.model_construction.construct_networks.py`` module.
+For networks, contained in the ``adopt_net0.model_construction.construct_networks.py`` module.
 
-    .. automodule:: src.model_construction.construct_networks
+    .. automodule:: adopt_net0.model_construction.construct_networks
         :members:
 
 ..  _src-code_balances:
@@ -93,7 +93,7 @@ Violation of balances is only possible if specifically allowed for in the config
 The module ``.\src\model_construction\construct_balances`` contains the rules to construct these balances. These
 functions are called after the nodes and networks have been initialized, i.e. after the blocks have been constructed.
 
-.. automodule:: src.model_construction.construct_balances
+.. automodule:: adopt_net0.model_construction.construct_balances
     :members:
 
 
