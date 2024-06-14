@@ -1,10 +1,12 @@
 .. _workflow:
+=====================================
+Worked examples
+=====================================
 
-=====================================
-Simple Modeling Workflow
-=====================================
-This workflow documentation will guide you through all the steps that are required to prepare the model for your
-application. In short, these steps are as follows:
+In short
+----------------------
+This workflow documentation will guide you through all the steps that are required to
+prepare the model for your application. In short, these steps are as follows:
 
 - Create an empty working directory of your case study for all input data.
 - Create the templates for the system topology and the model configuration.
@@ -73,7 +75,7 @@ application. In short, these steps are as follows:
 - If something unexpected happens: check the model diagnostics.
 - Obtain and interpret the optimization results.
 
-An elaborate example of how to set up the model accordingly can be found :ref:`below <workflow_example-usage>`. To
+An elaborate example of how to set up the model accordingly can be found below. To
 understand what happens behind the scenes, please take a look at
 the :ref:`Source Code Documentation<src-code>`.
 For a more detailed description of each of the aforementioned steps, see the
@@ -93,8 +95,8 @@ following pages:
 
 ..  _workflow_example-usage:
 
-Example Usage
-================
+Detailed example
+----------------------
 
 Set up working directory and create templates (topology and model configuration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -118,14 +120,13 @@ Define System Topology
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Next, you can define your system topology in the topology.JSON file (see
-documentation :ref:``. For this
-example, the topology is as follows:
+documentation :ref:``. For this example, the topology is as follows:
 
 .. code-block:: console
 
     "nodes": "onshore", "offshore"
     "carriers": "electricity", "heat", "gas"
-    "investment_periods": "year1", "year2"
+    "investment_periods": "period1"
     "start_date": "2022-01-01 00:00",
     "end_date": "2022-12-31 23:00",
     "resolution": "1h",
@@ -134,16 +135,21 @@ example, the topology is as follows:
 Create folder structure for input data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now, you can run the following command (the path is the same as before) to obtain the input data folder structure:
+Now, you can run the following command (the path is the same as before) to obtain the
+input data folder structure required:
 
 .. testcode::
 
     adopt.create_input_data_folder_template(input_data_path)
 
+You can look at the folder structure in the respective directory.
 
 
 Define input data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Now it is time to specify the input data. You can do that either by directly
+manipulating the files in the input data directory or with code. This package comes
+with a number of help functions to assist.
 
 **Node Locations** 
 
