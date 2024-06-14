@@ -3,10 +3,10 @@ name: Develop
 on:
   pull_request:
     branches:
-      - 'testing-ci'
+      - 'develop'
   push:
     branches:
-      - 'testing-ci'
+      - 'develop'
 
 jobs:
   autoformatting:
