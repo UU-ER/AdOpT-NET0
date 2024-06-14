@@ -6,7 +6,7 @@ After you have defined your system topology, you can now create the folder struc
 optimization based on the specified topology. For this, you call the :func:`create_input_data_folder_template` method,
 passing your input data folder path (which must be the same folder path as for the :ref:`Model Templates<workflow_create-model-templates>`).
 
-.. automodule:: src.data_preparation.template_creation
+.. automodule:: adopt_net0.data_preprocessing.template_creation
     :members: create_input_data_folder_template
     :exclude-members:
 

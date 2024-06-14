@@ -7,7 +7,7 @@ In order to set up your model, you start by creating a new folder for your case 
 main module (``main.py``), you specify the path to this folder and pass it through the :func:`create_optimization_templates`
 method.
 
-.. automodule:: src.data_preparation.template_creation
+.. automodule:: adopt_net0.data_preprocessing.template_creation
     :members: create_optimization_templates
     :exclude-members:
 

@@ -142,6 +142,16 @@ class Res(Technology):
         lat = location["lat"]
         alt = location["alt"]
 
+        if (
+            (np.isnan(location["lon"]))
+            or (np.isnan(location["lat"]))
+            or (np.isnan(location["alt"]))
+        ):
+            raise Exception(
+                "To use Photovoltaic technology you need to specify a "
+                "location in the NodeLocations.csv file"
+            )
+
         # Get location
         tf = TimezoneFinder()
         tz = tf.timezone_at(lng=lon, lat=lat)
@@ -180,7 +190,7 @@ class Res(Technology):
         :param float hubheight: hubheight of wind turbine
         """
         # Load data for wind turbine type
-        wt_path = Path(__file__).parent.parent.parent.parent.parent
+        wt_path = Path(__file__).parent.parent.parent.parent
         wt_data_path = wt_path / "data/technology_data/RES/WT_data/WT_data.csv"
         wt_data = pd.read_csv(wt_data_path, delimiter=";")
 

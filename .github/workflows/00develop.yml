@@ -1,0 +1,16 @@
+name: Develop
+
+on:
+  pull_request:
+    branches:
+      - 'develop'
+
+jobs:
+  autoformatting:
+    uses: ./.github/workflows/autoformatting.yml
+  testing:
+    needs: autoformatting
+    uses: ./.github/workflows/testing.yml
+
+
+

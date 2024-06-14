@@ -20,5 +20,5 @@ All networks that are modelled are listed below.
    :header-rows: 1
    :delim: ;
 
-.. automodule:: src.components.networks.network
+.. automodule:: adopt_net0.components.networks.network
     :members: Network

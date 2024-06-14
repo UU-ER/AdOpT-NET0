@@ -74,7 +74,7 @@ your :ref:`input data folder path<workflow_create-data-templates>`. This imports
 accounting for the location of the nodes as specified in ``NodeLocations.csv``. If no location is specified, it takes the
 default coordinates (52.5, 5.5) with an altitude of 10m.
 
-.. automodule:: src.data_preparation.data_loading
+.. automodule:: adopt_net0.data_preprocessing.data_loading
     :members: load_climate_data_from_api
     :exclude-members:
 
@@ -90,7 +90,7 @@ Specifying a fixed value
 
 For carrier data, you can use the :func:`fill_carrier_data` method if your value does not vary over time.
 
-.. automodule:: src.data_preparation.data_loading
+.. automodule:: adopt_net0.data_preprocessing.data_loading
     :members: fill_carrier_data
     :exclude-members:
 
@@ -103,7 +103,7 @@ For the technologies and networks, you can copy the JSON files automatically usi
 from the model repository by reading in the ``Technology.JSON`` and ``Network.JSON`` files, respectively. Thus, make sure
 to use the naming conventions as in the JSON files in the model repository.
 
-.. automodule:: src.data_preparation.data_loading
+.. automodule:: adopt_net0.data_preprocessing.data_loading
     :members: copy_technology_data, copy_network_data
     :exclude-members:
 

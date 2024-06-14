@@ -1,0 +1,16 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  autoformatting:
+    uses: ./.github/workflows/autoformatting.yml
+  testing:
+    needs: autoformatting
+    uses: ./.github/workflows/testing.yml
+  publish:
+    needs: testing
+    uses: ./.github/workflows/uploadpypi.yml

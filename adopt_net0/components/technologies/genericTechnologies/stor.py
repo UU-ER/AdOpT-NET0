@@ -66,11 +66,11 @@ class Stor(Technology):
       discharging can lead to unwanted 'waste' of energy/material).
 
      - If in ``Flexibility`` the ``power_energy_ratio == fixed``, then the capacity of
-      the charging and discharging power is fixed as a ratio of the energy capacity.
-      Thus:
+       the charging and discharging power is fixed as a ratio of the energy capacity.
+       Thus:
 
-      .. math::
-        Input_{max} = \gamma_{charging} * S
+       .. math::
+         Input_{max} = \gamma_{charging} * S
 
     - If in 'Flexibility' the "power_energy_ratio == flex" (flexible), then the
       capacity of the charging and discharging power is a variable in the
@@ -89,7 +89,7 @@ class Stor(Technology):
 
     - CAPEX is given by two contributions
 
-        .. math::
+      .. math::
         CAPEX_{chargeCapacity} = chargeCapacity * unitCost_{chargeCapacity}
         CAPEX_{dischargeCapacity} = dischargeCapacity * unitCost_{dischargeCapacity}
         CAPEX_{storSize} = storSize * unitCost_{storSize}

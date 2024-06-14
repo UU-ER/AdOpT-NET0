@@ -1,4 +1,5 @@
 import os, sys, json
+from pathlib import Path
 
 sys.path.insert(0, os.path.abspath("../.."))
 mathjax_path = (
@@ -75,10 +76,7 @@ def generate_component_list(directory):
 
 
 # specify path to technology json files relative to current folder (not user-dependent)
-current_dir = os.path.abspath(os.path.dirname(__file__))
-target_dir = os.path.abspath(
-    os.path.join(current_dir, "..", "..", "data/technology_data")
-)
+target_dir = Path(__file__).parent.parent.parent / "adopt_net0/data/technology_data"
 tech_list = generate_component_list(target_dir)
 
 with open("src_code/model_components/generated_tech_list.csv", "w") as f:
@@ -87,7 +85,7 @@ with open("src_code/model_components/generated_tech_list.csv", "w") as f:
         f.write(f"{tech[0]}; {tech[1]}\n")
 
 # specify path to network json files relative to current folder (not user-dependent)
-target_dir = os.path.abspath(os.path.join(current_dir, "..", "..", "data/network_data"))
+target_dir = Path(__file__).parent.parent.parent / "adopt_net0/data/network_data"
 netw_list = generate_component_list(target_dir)
 
 
