@@ -180,7 +180,7 @@ class Res(Technology):
         :param float hubheight: hubheight of wind turbine
         """
         # Load data for wind turbine type
-        wt_path = Path(__file__).parent.parent.parent.parent.parent
+        wt_path = Path(__file__).parent.parent.parent.parent
         wt_data_path = wt_path / "data/technology_data/RES/WT_data/WT_data.csv"
         wt_data = pd.read_csv(wt_data_path, delimiter=";")
 
