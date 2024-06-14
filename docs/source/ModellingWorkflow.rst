@@ -304,8 +304,10 @@ Note that data for carriers and nodes not specified will be set to zero.
 
 **Model Configuration** 
 
-Now that you have completely set up your system and defined all input data, you can set the model configuration as you
-wish for the optimization (this also includes specifying the path for your outputs) in ``ConfigModel.JSON``.
+Now that you have completely set up your system and defined all input data, you can
+set the model configuration as you wish for the optimization (this also includes
+specifying the path for your outputs) in ``ConfigModel.JSON``. Make sure that the
+result folder path in ``reporting/save_path`` refers to an existing folder.
 
 Optimize the model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -357,6 +359,7 @@ optimality, or took longer than expected for the complexity of your system, you 
 Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The results are in the folder that you specified in the model configuration folder.
 For a simple means to get a grip on your results, you can :ref:`start the streamlit
 visualization<workflow_manage-visualization>`.
 From there, you can also download CSV files with your result data. Alternatively, you
