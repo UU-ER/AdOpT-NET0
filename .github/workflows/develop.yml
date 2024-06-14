@@ -1,0 +1,16 @@
+name: Develop
+
+on:
+  pull_request:
+    branches:
+      - 'testing-ci'
+  push:
+    branches:
+      - 'testing-ci'
+
+jobs:
+#  testing:
+#    uses: ./.github/workflows/testing.yml
+  autoformatting:
+    uses: ./.github/workflows/autoformatting.yml
+
