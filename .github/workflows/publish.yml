@@ -1,9 +1,6 @@
-name: Develop
+name: Publish
 
 on:
-  pull_request:
-    branches:
-      - 'main'
   push:
     branches:
       - 'main'
