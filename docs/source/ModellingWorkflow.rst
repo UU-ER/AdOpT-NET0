@@ -48,11 +48,13 @@ our working directory and run the following code:
 
 .. testcode::
 
-    import src.data_preparation as dp
+    import adopt_net0 as adopt
 
     path = "path_to_your_input_data_folder"
 
-    dp.create_optimization_templates(path)
+    adopt.create_optimization_templates(path)
+
+
 
 Define System Topology
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,7 +78,9 @@ Now, you can run the following command (the path is the same as before) to obtai
 
 .. testcode::
 
-    dp.create_input_data_folder_template(path)
+    adopt.create_input_data_folder_template(input_data_path)
+
+
 
 Define input data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -90,10 +94,18 @@ be written in decimal degrees, and altitude in metres.
 
 **Networks** 
 
-Next, for each investment period we specify the network types and their topology. For network types, the names should be
-the same as the JSON file names in ``.\data\network_data``. For our example, let's say that there are no networks currently
-in place, but an offshore electricity cable may be installed between our two nodes. In ``Networks.JSON``, this can be
-specified as follows:
+Next, for each investment period we specify the network types and their topology. For
+network types, the names should be the same as the JSON file names that are copied to
+the directory. You can either define your own network or use on of the existing ones.
+You can show all available networks by running in the console:
+
+.. testcode::
+
+    adopt.show_available_networks()
+
+For our example, let's say that there are no networks currently in
+place, but an offshore electricity cable may be installed between our two nodes. In
+``Networks.JSON``, this can be specified as follows:
 
 .. code-block:: console
 
@@ -135,13 +147,13 @@ You should read it as "from row, to column". Networks can only exist between nod
 always consists of 0s.
 
 In order to read in the required data for our "electricityOffshore" network, the JSON file of that network type has to
-be copied from the model repository (``.\data\network_data``) into the "network_data" folder in your input data folder.
+be either copied into the "network_data" folder in your input data folder or made from scratch (based on the template).
 You can do this manually, but if you have many different network types in your system, you can do it by running the
 following code:
 
 .. testcode::
 
-    dp.copy_network_data(path, "path_to_model_repository")
+    adopt.copy_network_data(input_data_path)
 
 Again, the path is the same as before, and it will automatically copy all networks that are specified in ``Networks.JSON``.
 In the network's specific JSON file, you can specify the cost data, lifetime, losses, etc. Note: if you want to have the
@@ -157,7 +169,7 @@ explained :ref:`here<workflow_load-data>`:
 
 .. testcode::
 
-    dp.load_climate_data_from_api(path)
+    adopt.load_climate_data_from_api(input_data_path)
 
 Note: the only exception to this is the hydro_inflow data. If your system contains any technologies based on the
 technology type "Hydro_Open" (see :ref:`here<technologies>`), you should specify this manually. For this, replace the
@@ -167,7 +179,15 @@ water flow into the reservoir.
 **Technologies**
 
 For technologies, same as for networks, you specify the existing and new technologies in ``Technologies.JSON``, using
-the same names as the JSON file names in ``.\data\technology_data``. For our example, we allow for the installment of a
+the same names as the JSON file names. You can show all available technologies by
+running in the console:
+
+.. testcode::
+
+    adopt.show_available_technologies()
+
+
+For our example, we allow for the installment of a
 battery, solar PV and a natural gas-fired furnace in the onshore node. Besides, we add two existing technologies and
 their respective sizes, as follows:
 
@@ -179,13 +199,14 @@ their respective sizes, as follows:
 Note: For wind turbines, the capacity of one turbine is specified in the name (1500 W), and the size is an integer. Here,
 we thus have two 1.5MW wind turbines installed (totalling to 3MW), and 2.4MW of solar PV.
 
-In order to read in the required data for our four different technologies, the JSON files thereof have to be copied from
-the model repository (``.\data\technology_data``) into the "technology_data" folder in your input data folder. This can
-be done by running the following code:
+In order to read in the required data for our four different technologies, the JSON
+files thereof have to be copied  into the "technology_data" folder in your input data
+folder. This can be done by running the following code (alternatively a new json file
+for a new technology can be specified):
 
 .. testcode::
 
-    dp.copy_technology_data(path, "path_to_model_repository")
+    adopt.copy_technology_data(input_data_path)
 
 Again, the path is the same as before, and it will automatically copy all technologies that are specified in
 ``Technologies.JSON``. In the technologies' specific JSON files, you can specify the cost data, lifetime, losses, etc.
@@ -208,7 +229,7 @@ you can run the following piece of code, in this example to set the onshore elec
 
 .. testcode::
 
-    dp.fill_carrier_data(path, 10, columns='Demand', carriers='electricity', nodes='onshore', investment_periods=['year1', 'year2'])
+    adopt.fill_carrier_data(path, 10, columns='Demand', carriers='electricity', nodes='onshore', investment_periods=['year1', 'year2'])
 
 Note that data for carriers and nodes not specified will be set to zero.
 
@@ -225,10 +246,10 @@ the model and solve the model as follows:
 
 .. testcode::
 
-    modelname = ModelHub()
-    modelname.read_data(path, start_period=None, end_period=None)
-    modelname.construct_model()
-    modelname.quick_solve()
+    m = ModelHub()
+    m.read_data(path, start_period=None, end_period=None)
+    m.construct_model()
+    m.quick_solve()
 
 Note: the start and end period are the time steps you wish to solve the model for (if you do not want to solve over the
 complete time horizon as specified in the topology), in which 0 is the first time step in your time horizon.
@@ -255,9 +276,9 @@ how to use the k-means algorithm (by setting N=50 in ``ConfigModel.JSON``):
 
 .. testcode::
 
-    modelname.read_data(path, start_period=None, end_period=None)
-    modelname.construct_model()
-    modelname.quick_solve()
+    m.read_data(path, start_period=None, end_period=None)
+    m.construct_model()
+    m.quick_solve()
 
 Diagnostics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

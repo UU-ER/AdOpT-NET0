@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import os
 
 
 def create_empty_network_matrix(nodes: list) -> pd.DataFrame:
@@ -541,3 +542,29 @@ def create_montecarlo_template_csv(base_path: Path | str):
     df = pd.DataFrame(data)
 
     df.to_csv(montecarlo_file, sep=";", index=False)
+
+
+def show_available_networks():
+    """
+    Prints all available networks
+    """
+    tec_data_path = Path(
+        os.path.join(os.path.dirname(__file__) + "/../data/network_data")
+    )
+
+    for root, dirs, files in os.walk(tec_data_path.resolve()):
+        for file in files:
+            print(file[:-5])
+
+
+def show_available_technologies():
+    """
+    Prints all available technologies
+    """
+    tec_data_path = Path(
+        os.path.join(os.path.dirname(__file__) + "/../data/technology_data")
+    )
+
+    for root, dirs, files in os.walk(tec_data_path.resolve()):
+        for file in files:
+            print(file[:-5])
