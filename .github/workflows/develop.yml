@@ -9,8 +9,11 @@ on:
       - 'testing-ci'
 
 jobs:
-#  testing:
-#    uses: ./.github/workflows/testing.yml
   autoformatting:
     uses: ./.github/workflows/autoformatting.yml
+  testing:
+    needs: autoformatting
+    uses: ./.github/workflows/testing.yml
+
+
 
