@@ -11,6 +11,4 @@ jobs:
   testing:
     needs: autoformatting
     uses: ./.github/workflows/testing.yml
-  deploy:
-    needs: testing
-    uses: ./.github/workflows/deploy.yml
+

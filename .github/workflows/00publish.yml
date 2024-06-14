@@ -11,6 +11,6 @@ jobs:
   testing:
     needs: autoformatting
     uses: ./.github/workflows/testing.yml
-  deploy:
+  publish:
     needs: testing
-    uses: ./.github/workflows/deploy.yml
+    uses: ./.github/workflows/uploadpypi.yml
