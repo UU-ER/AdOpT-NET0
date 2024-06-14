@@ -144,7 +144,7 @@ def fill_carrier_data(
                 existing_data.to_csv(output_file, index=False, sep=";")
 
 
-def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
+def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path = None):
     """
     Copies technology JSON files to the node folder for each node and investment period.
 
@@ -152,14 +152,20 @@ def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
     each investment period. It then searches for the corresponding JSON files in the specified `tec_data_path`
     folder (and its subfolders) using the technology names and copies them to the output folder.
 
-    :param str folder_path: Path to the folder containing the case study data.
-    :param str tec_data_path: Path to the folder containing the technology data.
+    :param str | Path folder_path: Path to the folder containing the case study data.
+    :param str | Path tec_data_path: Path to the folder containing the technology data.
     """
     # Convert to Path
     if isinstance(folder_path, str):
         folder_path = Path(folder_path)
-    if isinstance(tec_data_path, str):
-        tec_data_path = Path(tec_data_path)
+
+    if tec_data_path is None:
+        tec_data_path = Path(
+            os.path.join(os.path.dirname(__file__) + "/../data/technology_data")
+        )
+    else:
+        if isinstance(tec_data_path, str):
+            tec_data_path = Path(tec_data_path)
 
     # Reads the topology JSON file
     json_file_path = folder_path / "Topology.json"
@@ -188,23 +194,30 @@ def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path):
                     warnings.warn(f"Technology {tec_name} not found")
 
 
-def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path):
+def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path = None):
     """
     Copies network JSON files to the network_data folder for each investment period.
 
     This function reads the topology JSON file to determine the existing and new networks for
     each investment period. It then searches for the corresponding JSON files in the specified `ntw_data_path`
-    folder (and its subfolders) using the technology names and copies them to the output folder.
+    folder (and its subfolders) using the network names and copies them to folder_path.
 
-    :param str folder_path: Path to the folder containing the case study data.
-    :param str ntw_data_path: Path to the folder containing the network data.
+    :param str | Path folder_path: Path to the folder containing the case study data.
+    :param str | Path ntw_data_path: Path to the folder containing the network data (if left
+    empty, standard folder is used).
     :return: None
     """
     # Convert to Path
     if isinstance(folder_path, str):
         folder_path = Path(folder_path)
-    if isinstance(ntw_data_path, str):
-        ntw_data_path = Path(ntw_data_path)
+
+    if ntw_data_path is None:
+        ntw_data_path = Path(
+            os.path.join(os.path.dirname(__file__) + "/../data/network_data")
+        )
+    else:
+        if isinstance(ntw_data_path, str):
+            ntw_data_path = Path(ntw_data_path)
 
     # Reads the topology JSON file
     json_file_path = folder_path / "Topology.json"

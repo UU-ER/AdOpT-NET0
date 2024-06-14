@@ -445,7 +445,7 @@ if execute == 1:
 
     # Read performance data from file
     performance_data = pd.read_csv(
-        "data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt",
+        "adopt_net0/data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt",
         sep=",",
     )
     performance_data = performance_data.rename(
