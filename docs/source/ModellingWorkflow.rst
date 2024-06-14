@@ -59,7 +59,9 @@ our working directory and run the following code:
 Define System Topology
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Next, you can define your system topology in the topology.JSON file. For this example, the topology is as follows:
+Next, you can define your system topology in the topology.JSON file (see
+documentation :ref:``. For this
+example, the topology is as follows:
 
 .. code-block:: console
 
