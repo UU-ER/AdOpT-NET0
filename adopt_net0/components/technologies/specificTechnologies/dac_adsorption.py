@@ -7,7 +7,6 @@ from pathlib import Path
 from scipy.interpolate import griddata
 
 from ..utilities import fit_piecewise_function
-from ...component import InputParameters
 from ..technology import Technology
 
 
@@ -52,12 +51,13 @@ class DacAdsorption(Technology):
         nr_segments = self.input_parameters.performance_data["nr_segments"]
 
         # Read performance data from file
-        performance_data = pd.read_csv(
-            Path(
-                "./data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt"
-            ),
-            sep=",",
+        performance_data_path = Path(__file__).parent.parent.parent.parent
+        performance_data_path = (
+            performance_data_path
+            / "data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt"
         )
+
+        performance_data = pd.read_csv(performance_data_path, sep=",")
         performance_data = performance_data.rename(
             columns={"T": "temp_air", "RH": "humidity"}
         )

@@ -50,28 +50,28 @@ As mentioned, the technology class is a subclass of the ModelComponent class. In
 share the equations of this class, though some exceptions are there for specific technologies (the subclass then
 overwrites the class method).
 
-.. automodule:: src.components.technologies.technology
+.. automodule:: adopt_net0.components.technologies.technology
     :members: Technology
 
 
 Generic Technologies
 --------------------------------
-.. automodule:: src.components.technologies.genericTechnologies.res
+.. automodule:: adopt_net0.components.technologies.genericTechnologies.res
     :members: Res
 
-.. automodule:: src.components.technologies.genericTechnologies.conv1
+.. automodule:: adopt_net0.components.technologies.genericTechnologies.conv1
     :members: Conv1
 
-.. automodule:: src.components.technologies.genericTechnologies.conv2
+.. automodule:: adopt_net0.components.technologies.genericTechnologies.conv2
     :members: Conv2
 
-.. automodule:: src.components.technologies.genericTechnologies.conv3
+.. automodule:: adopt_net0.components.technologies.genericTechnologies.conv3
     :members: Conv3
 
-.. automodule:: src.components.technologies.genericTechnologies.conv4
+.. automodule:: adopt_net0.components.technologies.genericTechnologies.conv4
     :members: Conv4
 
-.. automodule:: src.components.technologies.genericTechnologies.stor
+.. automodule:: adopt_net0.components.technologies.genericTechnologies.stor
     :members: Stor
 
 Specific Technologies
@@ -79,22 +79,22 @@ Specific Technologies
 
 **Solid Sorbent Direct Air Capture**
 
-.. automodule:: src.components.technologies.specificTechnologies.dac_adsorption
+.. automodule:: adopt_net0.components.technologies.specificTechnologies.dac_adsorption
     :members: DacAdsorption
 
 **Heat Pump**
 
-.. automodule:: src.components.technologies.specificTechnologies.heat_pump
+.. automodule:: adopt_net0.components.technologies.specificTechnologies.heat_pump
     :members: HeatPump
 
 **Gas Turbine**
 
-.. automodule:: src.components.technologies.specificTechnologies.gas_turbine
+.. automodule:: adopt_net0.components.technologies.specificTechnologies.gas_turbine
     :members: GasTurbine
 
 **Hydro Open**
 
-.. automodule:: src.components.technologies.specificTechnologies.hydro_open
+.. automodule:: adopt_net0.components.technologies.specificTechnologies.hydro_open
     :members: HydroOpen
 
 Carbon Capture and Storage Technologies

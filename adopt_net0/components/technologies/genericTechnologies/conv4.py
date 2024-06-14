@@ -35,7 +35,7 @@ class Conv4(Technology):
       of the technology.
 
     - ``performance_function_type == 2``: A minimum part load can be specified (
-    requiring a big-m transformation for the solving). The following constraints hold:
+      requiring a big-m transformation for the solving). The following constraints hold:
 
       When the technology is on:
 

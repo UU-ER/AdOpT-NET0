@@ -1,25 +1,85 @@
 .. _workflow:
-
 =====================================
-Simple Modeling Workflow
+Worked examples
 =====================================
-This workflow documentation will guide you through all the steps that are required to prepare the model for your
-application. In short, these steps are as follows:
 
-- Set up a working directory of your case study for all input data.
+In short
+----------------------
+This workflow documentation will guide you through all the steps that are required to
+prepare the model for your application. In short, these steps are as follows:
+
+- Create an empty working directory of your case study for all input data.
 - Create the templates for the system topology and the model configuration.
+
+    .. testcode::
+
+        import adopt_net0 as adopt
+        import json
+        from pathlib import Path
+
+        input_data_path = "path_to_your_input_data_folder"
+        adopt.create_optimization_templates(input_data_path)
+
 - Define your system topology and model configuration.
+
+    .. testcode::
+
+        with open(input_data_path / "Topology.json", "r") as json_file:
+            topology = json.load(json_file)
+        # Nodes
+        topology["nodes"] = ["node1"]
+        # Carriers:
+        topology["carriers"] = ["electricity"]
+        # Investment periods:
+        topology["investment_periods"] = ["period1"]
+        # Save json template
+        with open(input_data_path / "Topology.json", "w") as json_file:
+            json.dump(topology, json_file, indent=4)
+
 - Create the folder structure and templates for the input data files.
+
+    .. testcode::
+
+        adopt.create_input_data_folder_template(input_data_path)
+
 - Load and define input data (e.g., weather data, technology performance, demand data, etc.).
+
+    .. testcode::
+
+        # Define new technologies
+        with open(input_data_path / "period1" / "node_data" / "node1" / "Technologies.json", "r") as json_file:
+            technologies = json.load(json_file)
+        technologies["new"] = ["Photovoltaic", "Storage_Battery"]
+        with open(input_data_path / "period1" / "node_data" / "node1" / "Technologies.json", "w") as json_file:
+            json.dump(technologies, json_file, indent=4)
+
+        # Copy over technology files
+        adopt.copy_technology_data(input_data_path)
+
+        # Define climate data
+        adopt.load_climate_data_from_api(input_data_path)
+
+        # Define demand
+        adopt.fill_carrier_data(input_data_path, value=0.01, columns=['Demand'], carriers=['electricity'], nodes=['node1'])
+        adopt.fill_carrier_data(input_data_path, value=100, columns=['Import price'], carriers=['electricity'], nodes=['node1'])
+        adopt.fill_carrier_data(input_data_path, value=1, columns=['Import limit'], carriers=['electricity'], nodes=['node1'])
+
 - Construct and solve the model and, possibly, incorporate options to lower the complexity of the model.
+
+    .. testcode::
+
+        m = adopt.ModelHub()
+        m.read_data(input_data_path, start_period=None, end_period=None)
+        m.quick_solve()
+
 - If something unexpected happens: check the model diagnostics.
 - Obtain and interpret the optimization results.
 
-An elaborate example of how to set up the model accordingly can be found :ref:`below <workflow_example-usage>`. To
+An elaborate example of how to set up the model accordingly can be found below. To
 understand what happens behind the scenes, please take a look at
 the :ref:`Source Code Documentation<src-code>`.
-For a more detailed description of
-each of the aforementioned steps, see the following pages:
+For a more detailed description of each of the aforementioned steps, see the
+following pages:
 
 .. toctree::
     :maxdepth: 1
@@ -35,8 +95,8 @@ each of the aforementioned steps, see the following pages:
 
 ..  _workflow_example-usage:
 
-Example Usage
-================
+Detailed example
+----------------------
 
 Set up working directory and create templates (topology and model configuration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -60,14 +120,13 @@ Define System Topology
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Next, you can define your system topology in the topology.JSON file (see
-documentation :ref:``. For this
-example, the topology is as follows:
+documentation :ref:``. For this example, the topology is as follows:
 
 .. code-block:: console
 
     "nodes": "onshore", "offshore"
     "carriers": "electricity", "heat", "gas"
-    "investment_periods": "year1", "year2"
+    "investment_periods": "period1"
     "start_date": "2022-01-01 00:00",
     "end_date": "2022-12-31 23:00",
     "resolution": "1h",
@@ -76,16 +135,21 @@ example, the topology is as follows:
 Create folder structure for input data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now, you can run the following command (the path is the same as before) to obtain the input data folder structure:
+Now, you can run the following command (the path is the same as before) to obtain the
+input data folder structure required:
 
 .. testcode::
 
     adopt.create_input_data_folder_template(input_data_path)
 
+You can look at the folder structure in the respective directory.
 
 
 Define input data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Now it is time to specify the input data. You can do that either by directly
+manipulating the files in the input data directory or with code. This package comes
+with a number of help functions to assist.
 
 **Node Locations** 
 
@@ -167,7 +231,8 @@ Next, for each node we specify the technology types, their input data, the carri
 **Climate Data** 
 
 Climate data can easily be retrieved for all nodes and investment periods at once, by running the following command, as
-explained :ref:`here<workflow_load-data>`:
+explained :ref:`here<workflow_load-data>`. The routine copies the climate data
+directly into the respective csv file in the input data folder structure.
 
 .. testcode::
 
@@ -220,25 +285,29 @@ can be decommissioned and at what cost in the respective technology's JSON file 
 
 In ``CarbonCost.csv``, you can specify carbon costs and subsidies for carbon reduction.
 
-*Carrier Data (Demand, import/export limits,...*
+**Carrier Data (Demand, import/export limits,...**
+
 In the "carrier_data" folder, the demand, import/export limits, prices and emission
 factors, and generic production can be specified per carrier for
 that node and investment period. In the same folder, you can specify if curtailment
 of this generic production is possible in ``EnergybalanceOptions.JSON`` (0 = not
 possible; 1 = possible). For all this data, you can either set a
-fixed value for all time steps, or you can manually upload a profile for that parameter over time. For the former option,
-you can run the following piece of code, in this example to set the onshore electricity demand to 10MW for all time steps:
+fixed value for all time steps, or you can manually upload a profile for that
+parameter over time. For the former option, you can run the following piece of code,
+in this example to set the onshore electricity demand to 10MW for all time steps:
 
 .. testcode::
 
-    adopt.fill_carrier_data(path, 10, columns='Demand', carriers='electricity', nodes='onshore', investment_periods=['year1', 'year2'])
+    adopt.fill_carrier_data(path, 10, columns=["Demand"], carriers=["electricity"], nodes=["onshore"], investment_periods=['period1'])
 
 Note that data for carriers and nodes not specified will be set to zero.
 
 **Model Configuration** 
 
-Now that you have completely set up your system and defined all input data, you can set the model configuration as you
-wish for the optimization (this also includes specifying the path for your outputs) in ``ConfigModel.JSON``.
+Now that you have completely set up your system and defined all input data, you can
+set the model configuration as you wish for the optimization (this also includes
+specifying the path for your outputs) in ``ConfigModel.JSON``. Make sure that the
+result folder path in ``reporting/save_path`` refers to an existing folder.
 
 Optimize the model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -248,9 +317,8 @@ the model and solve the model as follows:
 
 .. testcode::
 
-    m = ModelHub()
+    m = adopt.ModelHub()
     m.read_data(path, start_period=None, end_period=None)
-    m.construct_model()
     m.quick_solve()
 
 Note: the start and end period are the time steps you wish to solve the model for (if you do not want to solve over the
@@ -279,7 +347,6 @@ how to use the k-means algorithm (by setting N=50 in ``ConfigModel.JSON``):
 .. testcode::
 
     m.read_data(path, start_period=None, end_period=None)
-    m.construct_model()
     m.quick_solve()
 
 Diagnostics
@@ -292,6 +359,7 @@ optimality, or took longer than expected for the complexity of your system, you 
 Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The results are in the folder that you specified in the model configuration folder.
 For a simple means to get a grip on your results, you can :ref:`start the streamlit
 visualization<workflow_manage-visualization>`.
 From there, you can also download CSV files with your result data. Alternatively, you

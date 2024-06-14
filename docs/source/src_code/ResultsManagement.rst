@@ -13,7 +13,7 @@ Results obtained from the model (in case it is solved) are exported by default t
 as a new row. Documentation on the h5py library and how to handle h5 files can be found
 `here <https://docs.h5py.org/en/stable/index.html#>`_
 
-.. automodule:: src.result_management.save_results
+.. automodule:: adopt_net0.result_management.save_results
     :members:
 
 The structure (object tree) of the resulting HDF5 file is as follows:
@@ -84,6 +84,6 @@ We do not provide a direct export to excel/csv files from the model interface, h
 from the h5 file previously exported. For this, several functions are provided in ``src
 .result_management.read_results``.
 
-.. automodule:: src.result_management.read_results
+.. automodule:: adopt_net0.result_management.read_results
     :members:
 

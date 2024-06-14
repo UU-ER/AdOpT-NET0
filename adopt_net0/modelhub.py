@@ -93,8 +93,9 @@ class ModelHub:
         save_path = Path(config["reporting"]["save_path"]["value"])
         if not os.path.exists(save_path) or not os.path.isdir(save_path):
             raise FileNotFoundError(
-                f"The folder '{save_path}' does not exist. Create the folder or change the folder "
-                f"name in the configuration"
+                f"The folder you want to save your results to ('{save_path}') does not "
+                f"exist. Create the folder or change the folder "
+                f"name in the ModelConfig"
             )
 
         # Monte carlo and pareto
