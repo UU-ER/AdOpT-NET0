@@ -11,7 +11,7 @@ design and operation of a multi energy system.
 ## Installation
 The package can be installed with pip:
 
-```pip install pypsa```
+```pip install adopt_net0```
 
 ## Usage and documentation
 The documentation and minimal examples of how to use the package can be found 
