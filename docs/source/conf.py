@@ -84,7 +84,7 @@ def flatten_dict(d, parent_key=()):
 config_rows = flatten_dict(config_dict)
 
 # Write the flattened data to CSV
-with open("config.csv", "w", newline="", encoding="utf-8") as csvfile:
+with open("advanced_topics/config.csv", "w", newline="", encoding="utf-8") as csvfile:
     csv_writer = csv.writer(csvfile)
     # Write rows
     csv_writer.writerows(config_rows)
