@@ -18,7 +18,7 @@ jobs:
         echo $RELEASE_VERSION
         echo ${{ env.RELEASE_VERSION }}
     - name: Create VERSION file
-      run: echo "${{ env.RELEASE_VERSION }}" > VERSION
+      run: echo "VERSION = ${{ env.RELEASE_VERSION }}" > VERSION
     - name: Check VERSION file
       run: cat VERSION
 
