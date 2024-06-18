@@ -13,7 +13,7 @@ jobs:
 
     - name: Create VERSION file
       run: |
-        version_without_v=${env.RELEASE_VERSION#v}
+        version_without_v=$(echo $env.RELEASE_VERSION | sed 's/^v//')
         echo "$version_without_v" > VERSION
     - name: Check VERSION file
       run: cat VERSION
