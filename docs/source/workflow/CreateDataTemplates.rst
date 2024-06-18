@@ -1,16 +1,18 @@
 .. _workflow_create-data-templates:
 
-3 Creating Input Data Templates
+Creating Input Data Templates
 =====================================
-After you have defined your system topology, you can now create the folder structure and the templates for the
-optimization based on the specified topology. For this, you call the :func:`create_input_data_folder_template` method,
-passing your input data folder path (which must be the same folder path as for the :ref:`Model Templates<workflow_create-model-templates>`).
+After you have defined your system topology, you can now create the folder structure
+and the templates for the optimization based on the specified topology. For this,
+you call the :func:`create_input_data_folder_template` method, passing your input
+data folder path (which must be the same folder path as for the
+:ref:`Model Templates<workflow_create-model-templates>`). This creates a folder
+structure in the specified path with respective empty input data files.
 
-.. automodule:: adopt_net0.data_preprocessing.template_creation
-    :members: create_input_data_folder_template
-    :exclude-members:
+.. testcode::
 
-This yields a CSV file ``NodeLocations`` and an input data folder for each investment period and each node.
+    adopt.create_input_data_folder_template(input_data_path)
+
 
 Note: See a complete documentation of all template creation functions in the
 :ref:`source code documentation<src-code_data-preparation>`.
@@ -47,3 +49,7 @@ Your directory should now contain the following files:
                 - A ``carrier_name.csv`` file for each carrier.
                 - ``EnergybalanceOptions.JSON``
             - A folder called ``technology_data``
+
+.. automodule:: adopt_net0.data_preprocessing.template_creation
+    :members: create_input_data_folder_template
+    :exclude-members:

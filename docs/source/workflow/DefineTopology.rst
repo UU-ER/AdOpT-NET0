@@ -1,6 +1,6 @@
 .. _workflow_define-topology:
 
-2 Defining System Topology
+Defining System Topology
 =====================================
 
 In the ``Topology.JSON`` file, the system topology can be defined. The system topology describes:
@@ -22,4 +22,5 @@ In the ``Topology.JSON`` file, the system topology can be defined. The system to
 #. **The investment period length**: Here you can specify the length of one
    investment period (in years). This is a future feature, for now only single-period
    analysis is possible.
+
 

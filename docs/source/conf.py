@@ -16,8 +16,11 @@ mathjax_path = (
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "EnergyHub"
-copyright = "2023, Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk"
-author = "Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk"
+copyright = (
+    "2023, Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk, "
+    "Matteo Gazzani"
+)
+author = "Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk, Matteo Gazzani"
 release = "0.1"
 
 # -- General configuration ---------------------------------------------------
