@@ -45,7 +45,7 @@ class Technology(ModelComponent):
     - set_input_carriers_ccs: Set of CCS input carriers
     - set_output_carriers_ccs: Set of CCS output carriers
 
-    ** Set declarations for time aggregation
+    ** Set declarations for time aggregation:**
 
     Three sets are declared for each technology. These are required for time
     averaging algorithms:
@@ -165,13 +165,13 @@ class Technology(ModelComponent):
       and CCS. In case there is no CCS, input_ccs is zero:
 
         .. math::
-            input_{t, car} + input_{CCS}_{t, car} = input_{tot}_{t, car}
+            input_{t, car} + input_{CCS, t, car} = input_{tot, t, car}
 
     - Output aggregation: aggregates total output from technology
       and CCS. In case there is no CCS, output_ccs is zero:
 
         .. math::
-            output_{t, car} + output_{CCS}_{t, car} = output_{tot}_{t, car}
+            output_{t, car} + output_{CCS, t, car} = output_{tot, t, car}
 
     - Capex aggregation: aggregates capex of technology
       and CCS. In case there is no CCS, capex_ccs is zero:
@@ -202,9 +202,9 @@ class Technology(ModelComponent):
     - Input carriers are given by:
 
     .. math::
-        input_{CCS}_{car} <= inputRatio_{carrier} * output_{CCS}/captureRate
+        input_{CCS, car} <= inputRatio_{carrier} * output_{CCS}/captureRate
     .. math::
-        input_{tot}_{car} = inputTec_{car} + input_{CCS}_{car}
+        input_{tot, car} = inputTec_{car} + input_{CCS, car}
 
     - CO2 captured output is constrained by:
 
@@ -214,7 +214,7 @@ class Technology(ModelComponent):
     - The total output are given by:
 
     .. math::
-        output_{tot}_{car} = outputTec_{car} + output_{CCS}_{car}
+        output_{tot, car} = outputTec_{car} + output_{CCS, car}
 
     - Emissions of the technology are:
 

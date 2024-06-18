@@ -87,8 +87,8 @@ class Stor(Technology):
       .. math::
         Input_{t, car} = cons_{car, out} Output_{t}
 
-    - CAPEX is given by three contributions, the capex of the charging capacity, the capex of the discharging capacity,
-      and the capex of the energy capacity (i.e., the size of the storage).
+    - CAPEX is given by three contributions, the CAPEX of the charging capacity, the CAPEX of the discharging capacity,
+      and the CAPEX of the energy capacity (i.e., the size of the storage).
 
       .. math::
         CAPEX_{chargeCapacity} = chargeCapacity * unitCost_{chargeCapacity}

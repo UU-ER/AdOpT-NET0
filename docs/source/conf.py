@@ -43,14 +43,14 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
 add_module_names = False
 
 # -- create table with configuration settings for documentation --------------------
 
 # Import the function that created the dictionary
-print("Importing method from template_creation.py")
-from src.data_preparation.template_creation import initialize_configuration_templates
+from adopt_net0.data_preprocessing.template_creation import (
+    initialize_configuration_templates,
+)
 
 # Call the function to get the configuration dictionary
 config_dict = initialize_configuration_templates()
@@ -84,17 +84,13 @@ def flatten_dict(d, parent_key=()):
 config_rows = flatten_dict(config_dict)
 
 # Write the flattened data to CSV
-print("Create csv file with configuration settings")
 with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
     csv_writer = csv.writer(csvfile)
     # Write rows
     csv_writer.writerows(config_rows)
-print(f"Data has been written to csv")
 
 
 # -- create list of technologies and networks for documentation ---------------------
-
-
 def generate_component_list(directory):
     component_ls = []
 
@@ -115,10 +111,11 @@ def generate_component_list(directory):
             with open(file_path, "r") as f:
                 data = json.load(f)
 
-            if "tec_type" in data:
-                tec_type = data.get("tec_type", "")
-                component_ls.append((name, tec_type))
-            else:
+            if "technology" in str(directory):
+                if "tec_type" in data:
+                    tec_type = data.get("tec_type", "")
+                    component_ls.append((name, tec_type))
+            elif "network" in str(directory):
                 component_ls.append(name)
 
     return component_ls
