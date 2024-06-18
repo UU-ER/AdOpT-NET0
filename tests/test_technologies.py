@@ -1063,7 +1063,7 @@ def test_gasturbine(request):
 
 def test_ccs(request):
     """
-    tests ccs
+    tests CCS
     """
     time_steps = 1
     technology = "TestTec_Conv1_ccs"

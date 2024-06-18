@@ -29,6 +29,9 @@ All technology types listed above are modelled as subclasses of the :class:`Tech
 technologies that are currently modelled, and the technology classes / types used to model them, can be found
 :ref:`below <technologies_list>`.
 
+Additionally, you can attach a post combustion CCS to any technology (see :ref:`here
+<ccs_docu>`)
+
 
 ..  _technologies_list:
 
@@ -97,7 +100,9 @@ Specific Technologies
 .. automodule:: adopt_net0.components.technologies.specificTechnologies.hydro_open
     :members: HydroOpen
 
-Carbon Capture and Storage Technologies
-----------------------------------------------
+..  _ccs_docu:
+
+Carbon Capture
+----------------------
 
 Explanation of CCS & Sink

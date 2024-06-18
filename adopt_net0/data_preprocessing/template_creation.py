@@ -11,6 +11,7 @@ def create_empty_network_matrix(nodes: list) -> pd.DataFrame:
 
     :param list nodes: list of nodes to create matrices from
     :return: pandas data frame with nodes
+    :rtype: pd.DataFrame
     """
     # construct matrix
     matrix = pd.DataFrame(
@@ -483,7 +484,8 @@ def initialize_configuration_templates() -> dict:
 
 def create_optimization_templates(path: Path | str):
     """
-    Creates an examplary topology json file in the specified path.
+    Creates an examplary topology and model configuration json file in the specified
+    path.
 
     :param str/Path path: path to folder to create Topology.json
     """

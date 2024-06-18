@@ -2,7 +2,7 @@ import logging
 from pyomo.core import Constraint, value
 
 
-def get_infeasibile_constraints(m, tolerance=1e-3):
+def get_infeasible_constraints(m, tolerance=1e-3):
     """
     Gets violated constraints of a pyomo model and send them to the logger
 
