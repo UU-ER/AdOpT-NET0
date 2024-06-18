@@ -14,7 +14,7 @@ jobs:
     - name: Create VERSION file
       run: |
         version=${GITHUB_REF#refs/*/}
-        echo "__version__ = "${version//v/}"" > version.py
+        echo "__version__ = \"${version//v/}\"" > version.py
     - name: Check VERSION file
       run: cat version.py
 
