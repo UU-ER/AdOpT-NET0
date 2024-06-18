@@ -15,36 +15,45 @@ jobs:
       with:
         python-version: "3.x"
 
-    - name: Get the current release version
-      id: get_version
+    - name: Print result
       run: |
-        TAG=${{ steps.last_release.outputs.tag_name }}
-        echo "TAG: $TAG" # Debug: print the tag
-        VERSION=$(echo $TAG | sed 's/^v//')
-        echo "VERSION: $VERSION" # Debug: print the version
-        echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
-
-    - name: Check environment variables
-      run: env
-
-    - name: Create VERSION file
-      run: echo "${{ env.RELEASE_VERSION }}" > VERSION
-
-    - name: Check VERSION file
-      run: cat VERSION
-
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build
-
-    - name: Build a binary wheel and a source tarball
-      run: python -m build
-    - name: Store the distribution packages
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
+        echo "id: ${{ steps.last_release.outputs.id }}"
+        echo "name: ${{ steps.last_release.outputs.name }}"
+        echo "tag_name: ${{ steps.last_release.outputs.tag_name }}"
+        echo "created_at: ${{ steps.last_release.outputs.created_atd }}"
+        echo "draft: ${{ steps.last_release.outputs.draft }}"
+        echo "prerelease: ${{ steps.last_release.outputs.prerelease }}"
+#
+#    - name: Get the current release version
+#      id: get_version
+#      run: |
+#        TAG=${{ steps.last_release.outputs.tag_name }}
+#        echo "TAG: $TAG" # Debug: print the tag
+#        VERSION=$(echo $TAG | sed 's/^v//')
+#        echo "VERSION: $VERSION" # Debug: print the version
+#        echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+#
+#    - name: Check environment variables
+#      run: env
+#
+#    - name: Create VERSION file
+#      run: echo "${{ env.RELEASE_VERSION }}" > VERSION
+#
+#    - name: Check VERSION file
+#      run: cat VERSION
+#
+#    - name: Install Dependencies
+#      run: |
+#        python -m pip install --upgrade pip
+#        pip install build
+#
+#    - name: Build a binary wheel and a source tarball
+#      run: python -m build
+#    - name: Store the distribution packages
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: python-package-distributions
+#        path: dist/
 #
 #  publish-to-testpypi:
 #    name: Upload release to PyPI
