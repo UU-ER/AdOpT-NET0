@@ -13,7 +13,7 @@ jobs:
 
     - name: Create VERSION file
       run: |
-        version=${env.RELEASE_VERSION}
+        version=${{env.RELEASE_VERSION}}
         version="{version//v/}"
         echo "$version" > VERSION
     - name: Check VERSION file
