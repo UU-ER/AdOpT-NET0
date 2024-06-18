@@ -1,1 +1,1 @@
-from .check_infeasibilities import get_infeasibile_constraints
+from .check_infeasibilities import get_infeasible_constraints
