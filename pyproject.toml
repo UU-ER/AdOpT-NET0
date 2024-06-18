@@ -13,14 +13,18 @@ packages = ["adopt_net0"]
 [tool.hatch.build]
 include = ["adopt_net0/**"]
 
+[tool.hatch.version]
+path = "VERSION"
+
 [project]
 name = "adopt_net0"
-version = "0.1.17"
+dynamic = ["version"]
 authors = [
   {name="Jan F. Wiegner", email="j.f.wiegner@uu.nl"},
   {name="Julia Tiggeloven", email="j.l.tiggeloven@uu.nl"},
   {name="Luca Bertoni", email="l.bertoni@uu.nl"},
   {name="Inge Ossentjuk", email="i.m.ossentjuk@uu.nl"},
+  {name="Matteo Gazzani", email="m.gazzani@uu.nl"},
 ]
 description = "A python package for multi energy system modelling"
 readme = "README.md"
