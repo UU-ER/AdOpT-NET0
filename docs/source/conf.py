@@ -1,4 +1,4 @@
-import os, sys, json
+import os, sys, json, csv
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath("../.."))
@@ -45,6 +45,52 @@ exclude_patterns = []
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 add_module_names = False
+
+# -- create table with configuration settings for documentation --------------------
+
+# Import the function that created the dictionary
+print("Importing method from template_creation.py")
+from src.data_preparation.template_creation import initialize_configuration_templates
+
+# Call the function to get the configuration dictionary
+config_dict = initialize_configuration_templates()
+
+# Define the path to the csv file
+output_path = os.path.join(os.path.dirname(__file__), "config.csv")
+
+
+# method to flatten the nested dictionary to a list of tuples
+def flatten_dict(d, parent_key=()):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + (k,)
+        if isinstance(v, dict):
+            if "description" in v or "options" in v or "value" in v:
+                description = v.get("description", "")
+                options = v.get("options", "")
+                value = v.get("value", "")
+                # Check the depth of the parent_key
+                if len(new_key) < 3:
+                    new_key += ("",)
+                items.append(new_key + (description, options, value))
+            else:
+                items.extend(flatten_dict(v, new_key))
+        else:
+            items.append(new_key + (v,))
+    return items
+
+
+# Flatten the config_dict into a list of tuples
+config_rows = flatten_dict(config_dict)
+
+# Write the flattened data to CSV
+print("Create csv file with configuration settings")
+with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+    csv_writer = csv.writer(csvfile)
+    # Write rows
+    csv_writer.writerows(config_rows)
+print(f"Data has been written to csv")
+
 
 # -- create list of technologies and networks for documentation ---------------------
 

@@ -90,7 +90,7 @@ and carrier (i.e., energy and/or material) balances. All carriers must be in bal
 Violation of balances is only possible if specifically allowed for in the configuration (see
 :ref:`here <workflow_model-configuration>`).
 
-The module ``.\src\model_construction\construct_balances`` contains the rules to construct these balances. These
+The module ``.\adopt_net0\model_construction\construct_balances`` contains the rules to construct these balances. These
 functions are called after the nodes and networks have been initialized, i.e. after the blocks have been constructed.
 
 .. automodule:: adopt_net0.model_construction.construct_balances

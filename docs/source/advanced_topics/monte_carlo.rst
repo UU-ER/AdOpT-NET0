@@ -14,6 +14,10 @@ sampling methods:
    perform the analysis on.
 
 2. **Uniform Distribution Sampling**: Parameters are varied based on a uniform distribution between minimum and maximum
-   values provided by the user in the ``MonteCarlo.csv`` file in the input data folder. The path to this folder is provided
-   by the used in the ``ConfigModel.json`` file.
+   values provided by the user in a ``MonteCarlo.csv`` file. In order to create this file, you pass the path to the
+   input data folder through the :func:`create_montecarlo_template_csv` method in the main module (``main.py``) (similar
+   to creating :ref:`the model templates<workflow_create-model-templates>` or the :ref:`data templates<workflow_create-data-templates>`.
+   For documentation of this :func:`create_montecarlo_template_csv` function, see the :ref:`source code documentation<src-code_data-preparation>`.
+
+
 

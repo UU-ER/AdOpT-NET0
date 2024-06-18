@@ -87,11 +87,16 @@ class Stor(Technology):
       .. math::
         Input_{t, car} = cons_{car, out} Output_{t}
 
-    - CAPEX is given by two contributions
+    - CAPEX is given by three contributions, the capex of the charging capacity, the capex of the discharging capacity,
+      and the capex of the energy capacity (i.e., the size of the storage).
 
       .. math::
         CAPEX_{chargeCapacity} = chargeCapacity * unitCost_{chargeCapacity}
+
+      .. math::
         CAPEX_{dischargeCapacity} = dischargeCapacity * unitCost_{dischargeCapacity}
+
+      .. math::
         CAPEX_{storSize} = storSize * unitCost_{storSize}
 
     - Additionally, ramping rates of the technology can be constraint (for input and
