@@ -15,7 +15,6 @@ include = ["adopt_net0/**"]
 
 [tool.hatch.version]
 path = "VERSION"
-pattern = "VERSION = <version>'"
 
 [project]
 name = "adopt_net0"
