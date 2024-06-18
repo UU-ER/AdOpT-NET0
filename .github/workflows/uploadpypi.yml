@@ -14,10 +14,9 @@ jobs:
     - name: Create VERSION file
       run: |
         version=${{env.RELEASE_VERSION}}
-        version="${version//v/}"
-        echo "$version" > VERSION
+        echo "$version" > version.py
     - name: Check VERSION file
-      run: cat VERSION
+      run: cat version.py
 
     - name: Set up Python
       uses: actions/setup-python@v5

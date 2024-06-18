@@ -14,7 +14,7 @@ packages = ["adopt_net0"]
 include = ["adopt_net0/**"]
 
 [tool.hatch.version]
-path = "VERSION"
+path = "version.py"
 
 [project]
 name = "adopt_net0"
