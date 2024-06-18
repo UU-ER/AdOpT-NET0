@@ -15,7 +15,7 @@ mathjax_path = (
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "EnergyHub"
+project = "AdOpT-NET0"
 copyright = (
     "2023, Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk, "
     "Matteo Gazzani"
@@ -84,7 +84,7 @@ def flatten_dict(d, parent_key=()):
 config_rows = flatten_dict(config_dict)
 
 # Write the flattened data to CSV
-with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+with open("config.csv", "w", newline="", encoding="utf-8") as csvfile:
     csv_writer = csv.writer(csvfile)
     # Write rows
     csv_writer.writerows(config_rows)
