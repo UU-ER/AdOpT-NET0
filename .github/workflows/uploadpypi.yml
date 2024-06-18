@@ -10,6 +10,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Create VERSION file
+      run: |
+        version=${GITHUB_REF#refs/*/}
+        echo "__version__ = \"${version//v/}\"" > version.py
+    - name: Check VERSION file
+      run: cat version.py
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
