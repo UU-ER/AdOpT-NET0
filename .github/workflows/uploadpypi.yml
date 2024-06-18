@@ -13,8 +13,9 @@ jobs:
 
     - name: Create VERSION file
       run: |
-        version_without_v=$(echo $env.RELEASE_VERSION | sed 's/^v//')
-        echo "$version_without_v" > VERSION
+        version=${env.RELEASE_VERSION}
+        version="{version//v/}"
+        echo "$version" > VERSION
     - name: Check VERSION file
       run: cat VERSION
 
