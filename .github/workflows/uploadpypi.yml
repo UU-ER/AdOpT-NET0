@@ -13,7 +13,7 @@ jobs:
 
     - name: Create VERSION file
       run: |
-        version=${{env.RELEASE_VERSION}}
+        version=${GITHUB_REF#refs/*/}
         echo "$version" > version.py
     - name: Check VERSION file
       run: cat version.py
