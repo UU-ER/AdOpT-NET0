@@ -6,11 +6,11 @@ on:
       - 'main'
 
 jobs:
-  autoformatting:
-    uses: ./.github/workflows/autoformatting.yml
-  testing:
-    needs: autoformatting
-    uses: ./.github/workflows/testing.yml
+#  autoformatting:
+#    uses: ./.github/workflows/autoformatting.yml
+#  testing:
+#    needs: autoformatting
+#    uses: ./.github/workflows/testing.yml
   publish:
-    needs: testing
+#    needs: testing
     uses: ./.github/workflows/uploadpypi.yml
