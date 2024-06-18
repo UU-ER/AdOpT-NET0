@@ -34,10 +34,10 @@ def construct_network_constraints(model, config: dict):
     Construct the network constraints to calculate nodal in- and outflow
 
     .. math::
-        outflowToNetwork = \sum(outflow \forall arcs at node)
+      outflowToNetwork = \sum(outflow \forall arcs at node)
 
     .. math::
-        inflowFromNetwork = \sum(inflow \forall arcs at node)\\
+      inflowFromNetwork = \sum(inflow \forall arcs at node)\\
 
     :param model: pyomo model
     :param dict config: dict containing model information

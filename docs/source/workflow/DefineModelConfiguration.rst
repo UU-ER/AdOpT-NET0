@@ -1,7 +1,7 @@
 .. _workflow_model-configuration:
 
 ===========================
-5 Define Model Configuration
+Define Model Configuration
 ===========================
 
 The ``ModelConfig.JSON`` is used to define and change the standard modeling configuration. The model configuration consists

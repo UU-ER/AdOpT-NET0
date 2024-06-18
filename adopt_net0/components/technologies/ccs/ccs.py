@@ -14,10 +14,10 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     mixed-integer linear model of post-combustion carbon capture for reliable use in energy system optimisation
     https://doi.org/10.1016/j.apenergy.2023.120738).
 
-    :param float co2_concentration: CO2 concentration for ccs
+    :param float co2_concentration: CO2 concentration for CCS
     :param dict ccs_coeff: data of the CCS technology
     :param pd.Dataframe climate_data: dataframe containing climate data
-    :return: ccs data updated with the bounds and input ratios for CCS
+    :return: CCS data updated with the bounds and input ratios for CCS
     """
     # Recalculate unit_capex
     molar_mass_CO2 = 44.01

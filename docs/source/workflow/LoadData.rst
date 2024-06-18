@@ -1,40 +1,109 @@
 .. _workflow_load-data:
 
-4 Load Input Data
+Define Input Data
 =====================================
 
 Now that you have the :ref:`correct folder structure and templates for the data <workflow_create-data-templates>`,
-you can start to fill the templates and folders with data. First, you need to further define your energy
+you can start to fill the templates and folders with data. First, you need to further
+define your energy
 system by setting:
 
-#. The geographical coordinates of your nodes in ``NodeLocations.csv``.
+#. The geographical coordinates of your nodes in ``NodeLocations.csv`` in terms of
+   longitude, latitude and altitude. Note: longitude and latitude should
+   be written in decimal degrees, and altitude in metres.
 
 #. The networks in ``Networks.JSON`` for each investment period, where we distinguish between new (to be installed)
    networks and existing networks, using the network names as in ``.\data\network_data`` (a list of these can be found
-   :ref:`here <network_list>`).
-    - Then, for each of the networks that you specify, an input data folder with that network name should be added
-      in the corresponding folder ("existing" or "new") in the network_topology folder. To these folders, you should
-      copy the CSV files ``connection.csv``, ``distance.csv`` and ``size_max_arcs.csv`` from the corresponding folder
-      ("existing" or "new"). You then define the topology for all of your networks by filling in these files (as
-      illustrated in an elaborate example :ref:`here<workflow_example-usage>`) in their respective folders. Note that
-      for new networks the ``size_max_arcs.csv`` contains an upper limit, the actual size is determined by the optimization.
-    - Finally, you can adjust the network data in the json files of the specific network types, either (1) in the model
-      repository, before :ref:`copying these<load-data_from-model>` to the network_data folder in your input data folder,
-      or (2) in the network_data folder in your input data folder, after :ref:`copying them from the model repository <load-data_from-model>`.
-      Note that option (1) is more efficient if you want the network data to be the same at each investment period,
-      while option (2) is more convenient if you want it to change per investment period.
+   :ref:`here <network_list>`) or by:
 
-#. The technologies in ``Technologies.JSON`` for each investment period and each node, where we distinguish between new
-   (to be installed) technologies and existing technologies using the technology names as in ``.\data\technology_data``
-   (a list of these can be found :ref:`here <technologies_list>`).
-    - Then, you can adjust the technology data in the json files of the specific technology types, either (1) in the model
-      repository, before :ref:`copying these<load-data_from-model>` to the technology_data folder in your input data folder,
-      or (2) in the technology_data folder in your input data folder, after :ref:`copying them from the model repository <load-data_from-model>`.
-      Note that option (1) is more efficient if you want the technology data to be the same at each node and in each investment period,
-      while option (2) is more convenient if you want it to change per node and/or investment period.
+   .. testcode::
+
+     adopt.show_available_networks()
+
+   Specify the networks in the json file like this:
+
+   .. code-block:: console
+
+     "existing": [],
+     "new": ['electricityOffshore']
+
+   - Then, for each of the networks that you specify, an input data folder with that
+     network name should be added  in the corresponding folder ("existing" or
+     "new") in the network_topology folder. To these folders, you should
+     copy the CSV files ``connection.csv``, ``distance.csv`` and ``size_max_arcs
+     .csv`` from the corresponding folder ("existing" or "new"). You then define the
+     topology for all of your networks by filling in these files (as
+     illustrated in an elaborate example :ref:`here<workflow_example-usage>`) in
+     their respective folders. Note that for new networks the ``size_max_arcs.csv``
+     contains an upper limit, the actual size is determined by the optimization.
+
+
+     .. code-block:: console
+
+         Connection: Example - Unidirectional (offshore to onshore only)
+                                 onshore    offshore
+             onshore             0          0
+             offshore            1          0
+
+         Connection: Example - Bidirectional
+                                 onshore    offshore
+             onshore             0          1
+             offshore            1          0
+
+         Distance [km]:
+                                 onshore    offshore
+             onshore             0          100
+             offshore            100        0
+
+         Maximum size [MW]:
+                                 onshore    offshore
+             onshore             0          20
+             offshore            20         0
+
+     Note: all these files are matrices with the columns and the rows being the nodes
+     you specified in the initial topology. You should read it as "from row, to
+     column". Networks can only exist between nodes, so the diagonal of this matrix
+     always consists of 0s.
+
+   - In order to read in the required data for our "electricityOffshore" network, the JSON file of that network type has to
+     be either copied into the "network_data" folder in your input data folder or
+     made from scratch (based on the template). You can do this manually, but if you
+     have many different network types in your system, you can do it by running the
+     following code (see also :ref:`here<load-data_from-model>`):
+
+     .. testcode::
+
+         adopt.copy_network_data(input_data_path)
+
+#. The technologies in ``Technologies.JSON`` for each investment period and each
+   node, where we distinguish between new (to be installed) technologies and
+   existing technologies. A list of these can be found :ref:`here
+   <technologies_list>`) or by running:
+
+   .. testcode::
+
+       adopt.show_available_technologies()
+
+   Specify the technologies used in this model e.g. as:
+
+   .. code-block:: console
+
+       "existing": ['WindTurbine_Onshore_1500': 2, 'Photovoltaic': 2.4],
+       "new": ['Storage_Battery', 'Photovoltaic', 'Furnace_NG']
+
+   Note: For wind turbines, the capacity of one turbine is specified in the name
+   (1500 W), and the size is an integer. Here, we thus have two 1.5MW wind turbines
+   installed (totalling to 3MW), and 2.4MW of solar PV.
+
+    - Similar to the network data, we can now copy the required technology data files
+      by running (see also :ref:`here<load-data_from-model>`):
+
+     .. testcode::
+
+         adopt.copy_technology_data(input_data_path)
 
 #. For the carriers, whether or not curtailment of generic production is possible in
-   ``EnergybalanceOptions.JSON``.
+   ``EnergybalanceOptions.JSON`` (0 = not possible; 1 = possible).
 
 After the complete system topology and system characteristics are finalised, time
 dependent data can be loaded into the input data folder. This remaining data covers:
@@ -55,12 +124,19 @@ column in the csv. Additionally, we provide a couple of functions to make defini
 the time dependent data more convenient:
 
 - For climate data, you can use the API to a :ref:`JRC database for onshore
-  locations in Europe<load-data_from-api>`
-- For all other time series, you can :ref:`specify a fixed
-  value<load-data_fixed-value>`, if the values do not change over time.
+  locations in Europe<load-data_from-api>`. E.g.:
 
-A detailed description of these different methods can be found in the sections below. Note: all methods related to
-loading in data can be found in the ``data_loading.py`` module in the ``data_preparation`` directory.
+  .. testcode::
+
+      adopt.load_climate_data_from_api(input_data_path)
+
+- For all other time series, you can :ref:`specify a fixed
+  value<load-data_fixed-value>`, if the values do not change over time. E.g.:
+
+  .. testcode::
+
+      adopt.fill_carrier_data(path, 10, columns=["Demand"], carriers=["electricity"], nodes=["onshore"], investment_periods=['period1'])
+
 
 .. _load-data_from-api:
 

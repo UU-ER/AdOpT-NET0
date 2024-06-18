@@ -42,10 +42,10 @@ class Technology(ModelComponent):
 
     If ccs is possible:
 
-    - set_input_carriers_ccs: Set of ccs input carriers
-    - set_output_carriers_ccs: Set of ccs output carriers
+    - set_input_carriers_ccs: Set of CCS input carriers
+    - set_output_carriers_ccs: Set of CCS output carriers
 
-    ** Set declarations for time aggregation
+    ** Set declarations for time aggregation:**
 
     Three sets are declared for each technology. These are required for time
     averaging algorithms:
@@ -93,28 +93,28 @@ class Technology(ModelComponent):
     - var_input: input to the technology, defined for each input carrier and time slice
     - var_output: output of the technology, defined for each output carrier and time
       slice
-    - var_input_tot: input aggregation of technology and ccs input
-    - var_output_tot: output aggregation of technology and ccs output
+    - var_input_tot: input aggregation of technology and CCS input
+    - var_output_tot: output aggregation of technology and CCS output
     - var_capex: annualized investment of the technology
     - var_opex_variable: variable operation costs, defined for each time slice
     - var_opex_fixed: fixed operational costs
-    - var_capex_tot: aggregation of technology and ccs capex
+    - var_capex_tot: aggregation of technology and CCS capex
     - var_capex_aux: auxiliary variable to calculate the fixed opex of existing technologies
-    - var_opex_variable_tot: aggregation of technology and ccs opex variable, defined for
+    - var_opex_variable_tot: aggregation of technology and CCS opex variable, defined for
       each time slice
-    - var_opex_fixed_tot: aggregation of technology and ccs opex fixed
+    - var_opex_fixed_tot: aggregation of technology and CCS opex fixed
     - var_tec_emissions_pos: positive emissions, defined per time slice
     - var_tec_emissions_neg: negative emissions, defined per time slice
 
     If ccs is possible:
 
-    - var_size_ccs: Size of ccs
-    - var_input_ccs: input to the ccs component, defined for each ccs input carrier and
+    - var_size_ccs: Size of CCS
+    - var_input_ccs: input to the CCS component, defined for each CCS input carrier and
       time slice
-    - var_output_ccs: output from the ccs component, defined for each ccs output carrier
+    - var_output_ccs: output from the CCS component, defined for each CCS output carrier
       and time slice
-    - var_capex_ccs: annualized investment of ccs
-    - var_capex_aux_ccs: auxiliary variable to calculate the fixed opex of existing ccs
+    - var_capex_ccs: annualized investment of CCS
+    - var_capex_aux_ccs: auxiliary variable to calculate the fixed opex of existing CCS
     - var_opex_variable_ccs: variable operation costs, defined for each time slice
     - var_opex_fixed_ccs: fixed operational costs
 
@@ -162,34 +162,34 @@ class Technology(ModelComponent):
             opexfix = capex * opex_{fix}
 
     - Input aggregation: aggregates total input from technology
-      and ccs. In case there is no ccs, input_ccs is zero:
+      and CCS. In case there is no CCS, input_ccs is zero:
 
         .. math::
-            input_{t, car} + input_ccs_{t, car} = input_tot_{t, car}
+            input_{t, car} + input_{CCS, t, car} = input_{tot, t, car}
 
     - Output aggregation: aggregates total output from technology
-      and ccs. In case there is no ccs, output_ccs is zero:
+      and CCS. In case there is no CCS, output_ccs is zero:
 
         .. math::
-            output_{t, car} + output_ccs_{t, car} = output_tot_{t, car}
+            output_{t, car} + output_{CCS, t, car} = output_{tot, t, car}
 
     - Capex aggregation: aggregates capex of technology
-      and ccs. In case there is no ccs, capex_ccs is zero:
+      and CCS. In case there is no CCS, capex_ccs is zero:
 
         .. math::
-            capex + capex_{ccs} = capex_{tot}
+            capex + capex_{CCS} = capex_{tot}
 
     - Opex variable aggregation: aggregates opex variable of technology
-      and ccs. In case there is no ccs, var_opex_variable_ccs is zero:
+      and CCS. In case there is no CCS, var_opex_variable_ccs is zero:
 
         .. math::
-            opex_{variable, t} + opex_{variable,ccs, t} =  opex_{variable,tot, t}
+            opex_{variable, t} + opex_{variable,CCS, t} =  opex_{variable,tot, t}
 
     - Opex fixed aggregation: aggregates opex fixed of technology
-      and ccs. In case there is no ccs, opex_fixed_ccs is zero:
+      and CCS. In case there is no CCS, opex_fixed_ccs is zero:
 
         .. math::
-            opex_{fixed} + opex_{fixed,ccs} =  opex_{fixed,tot}
+            opex_{fixed} + opex_{fixed,CCS} =  opex_{fixed,tot}
 
     - Emissions: depending if they are based on input or output and depending if
       emission factor is negative or positive
@@ -202,35 +202,38 @@ class Technology(ModelComponent):
     - Input carriers are given by:
 
     .. math::
-        input_CCS_{car} <= inputRatio_{carrier} * output_CCS/captureRate
-        input_tot_{car} = inputTec_{car} + input_CCS_{car}
+        input_{CCS, car} <= inputRatio_{carrier} * output_{CCS}/captureRate
+    .. math::
+        input_{tot, car} = inputTec_{car} + input_{CCS, car}
 
     - CO2 captured output is constrained by:
 
     .. math::
-        output_CCS <= input(output)_{tec} * emissionFactor * captureRate
+        output_{CCS} <= input(output)_{tec} * emissionFactor * captureRate
 
     - The total output are given by:
 
     .. math::
-        output_tot_{car} = outputTec_{car} + output_CCS_{car}
+        output_{tot, car} = outputTec_{car} + output_{CCS, car}
 
-    - Emissions of the technolgy are:
+    - Emissions of the technology are:
 
     .. math::
-        emissions_{tec} = input(output)_{tec} * emissionFactor - output_CCS
+        emissions_{tec} = input(output)_{tec} * emissionFactor - output_{CCS}
 
     - CAPEX is given by
 
     .. math::
-        CAPEX_CCS = Size_CCS * UnitCost_CCS + FixCost_CCS
-        CAPEX_tot = CAPEX_CCS + CAPEX_{tec}
+        CAPEX_{CCS} = Size_{CCS} * UnitCost_{CCS} + FixCost_{CCS}
+    .. math::
+        CAPEX_{tot} = CAPEX_{CCS} + CAPEX_{tec}
 
     - Fixed OPEX: defined as a fraction of annual CAPEX:
 
     .. math::
-        OPEXfix_CCS = CAPEX_CCS * opex_CCS
-        OPEX_tot = OPEX_CCS + OPEX_{tec}
+        OPEXfix_{CCS} = CAPEX_{CCS} * opex_{CCS}
+    .. math::
+        OPEX_{tot} = OPEX_{CCS} + OPEX_{tec}
     """
 
     def __init__(self, tec_data: dict):
@@ -330,7 +333,7 @@ class Technology(ModelComponent):
 
     def _calculate_ccs_bounds(self):
         """
-        Calculates bounds of ccs
+        Calculates bounds of CCS
         """
         time_steps = len(self.set_t_performance)
 
@@ -1093,7 +1096,7 @@ class Technology(ModelComponent):
 
     def _aggregate_input(self, b_tec):
         """
-        Aggregates ccs and technology input
+        Aggregates CCS and technology input
 
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
@@ -1128,7 +1131,7 @@ class Technology(ModelComponent):
 
     def _aggregate_output(self, b_tec):
         """
-        Aggregates ccs and technology output
+        Aggregates CCS and technology output
 
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
@@ -1162,7 +1165,7 @@ class Technology(ModelComponent):
 
     def _aggregate_cost(self, b_tec):
         """
-        Aggregates ccs and technology cost
+        Aggregates CCS and technology cost
 
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
@@ -1533,7 +1536,7 @@ class Technology(ModelComponent):
 
     def _define_ccs_costs(self, b_tec, data: dict):
         """
-        Defines ccs costs
+        Defines CCS costs
 
         :param b_tec: pyomo block with technology model
         :param dict data: dict containing model information

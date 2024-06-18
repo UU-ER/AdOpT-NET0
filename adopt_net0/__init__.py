@@ -4,5 +4,5 @@ from .result_management import (
     extract_dataset_from_h5,
     extract_datasets_from_h5group,
 )
-from .diagnostics import get_infeasibile_constraints
+from .diagnostics import get_infeasible_constraints
 from .data_preprocessing import *
