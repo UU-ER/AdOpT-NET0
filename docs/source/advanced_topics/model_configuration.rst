@@ -9,6 +9,6 @@ along with a description of each setting, the options that can be chosen for the
 the default/currently chosen option.
 
 .. csv-table:: Model Configuration Settings
-   :file: ..\config.csv
+   :file: config.csv
    :header: "Category", "Setting", "Sub-setting", "Description", "Options", "Value"
    :widths: 15, 15, 15, 40, 20, 10
