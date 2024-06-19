@@ -13,9 +13,12 @@ packages = ["adopt_net0"]
 [tool.hatch.build]
 include = ["adopt_net0/**"]
 
+[tool.hatch.version]
+path = "version.py"
+
 [project]
 name = "adopt_net0"
-version = "0.1.17"
+dynamic = ["version"]
 authors = [
   {name="Jan F. Wiegner", email="j.f.wiegner@uu.nl"},
   {name="Julia Tiggeloven", email="j.l.tiggeloven@uu.nl"},

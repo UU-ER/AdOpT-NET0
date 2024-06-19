@@ -18,7 +18,7 @@ import adopt_net0.data_management as dm
 from adopt_net0.modelhub import ModelHub as ehub
 import adopt_net0.model_construction as mc
 from adopt_net0.model_configuration import ModelConfiguration
-from adopt_net0.diagnostics import get_infeasibile_constraints
+from adopt_net0.diagnostics import get_infeasible_constraints
 
 execute = 0
 
@@ -35,7 +35,7 @@ if execute == 1:
     m.obj = Objective(expr=1000 * m.a + 2000 * m.b)
 
     m.pprint()
-    get_infeasibile_constraints(m)
+    get_infeasible_constraints(m)
 
     solver = SolverFactory("gurobi")
     solution = solver.solve(m, tee=True)

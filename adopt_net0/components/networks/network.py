@@ -133,10 +133,11 @@ class Network(ModelComponent):
     for bi-directional networks.
 
     - If network is bi-directional, the sizes in both directions are equal, and only
-      one direction of flow is possible in each time step:
+      one direction of flow is possible in each time step. This constraint is
+      formulated for each unique arc:
 
       .. math::
-        S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}\forall unique arcs
+        S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}
 
       .. math::
         flow_{nodeFrom, nodeTo} = 0 \lor flow_{nodeTo, nodeFrom} = 0

@@ -141,7 +141,7 @@ the time dependent data more convenient:
 .. _load-data_from-api:
 
 Climate data from API
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 For importing climate data from the `JRC PVGIS database
 <https://joint-research-centre.ec.europa
 .eu/photovoltaic-geographical-information-system-pvgis_en>`_, the method
@@ -162,7 +162,7 @@ for water flow into the reservoir.
 .. _load-data_fixed-value:
 
 Specifying a fixed value
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For carrier data, you can use the :func:`fill_carrier_data` method if your value does not vary over time.
 
