@@ -30,16 +30,22 @@ bibliography: paper.bib
 
 # Summary
 
-AdOpT-NET0 is a software designed to enable users to build and optimize energy
-systems for a sustainable future. Energy system optimization models, like AdOpT-NET0,
-are crucial in shaping our transition to a net-zero future by enhancing the efficiency
-and sustainability of energy systems to reduce costs and emissions and to transition
-towards cleaner, renewable energy sources.
+AdOpT-NET0 (Advanced Optimization Tool for Networks and Energy Technologies) is a software designed to optimize of multi energy systems. Multi energy systems hereby refer to energy systems where multiple energy carriers, conversion and storage technologies as well as means of transports can interact. These systems are highly complex, but also offer synergies to reduce costs and the environmental impact. With the integration of renewable energy resources, the interplay of traditionally separated sectors (e.g. the heating sector, the industrial sector and the power sectors) becomes increasingly important and hence models to simulate and optimize such systems are paramount.
+AdOpT-NET0 provides a highly flexible framework to optimize the design and operation of
+multi energy systems. AdOpT-NET0 thereby is a comprehensive
+tool to model and optimize a wide range of multi energy systems, from individual
+technologies to industrial clusters, regions, or multiple countries. Figure 1 hereby
+provides an overview of the covered dimensions of AdOpT-NET0.
+
+![MES_dimensions.jpg](MES_dimensions.jpg)
+
 AdOpT-NET0 has a comprehensive approach, as it can consider multiple energy and material
-flows and analyze their production, distribution, and consumption patterns. One of its
-standout features is its high level of technological detail, offering an extensive set
-of technologies and networks to find the optimal combination for desired outcomes such
-as cost savings or emission reductions. Its mathematical formulation supports flexible
+flows and analyze their production, distribution, and consumption patterns. Compared to
+other multi-energy system models, one of AdOpT-NET0's
+distinguishing features is its high level of technological detail. This allows highly
+realistic evaluations of individual technologies.
+
+Its mathematical formulation supports flexible
 spatial, temporal, and technological resolutions. To deal with infeasible computation
 times, several complexity reduction algorithms can be adopted. As a result, AdOpT-NET0
 is adaptable for various case studies, ranging from detailed technology optimization to
@@ -62,7 +68,6 @@ data visualization capabilities ensure that users can easily interpret results a
 informed decisions to advance towards a net-zero future.
 
 # Statement of need
-
 
 # Acknowledgements
 
