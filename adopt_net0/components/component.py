@@ -83,7 +83,6 @@ class InputParameters:
         self.performance_data = component_data["Performance"]
         self.size_min = component_data["size_min"]
         self.size_max = component_data["size_max"]
-        self.size_initial = None
         self.rated_power = 1
 
         self.rated_power = get_attribute_from_dict(

@@ -201,8 +201,8 @@ class Network(ModelComponent):
         if not self.existing:
             time_independent["size_max"] = input_parameters.size_max
         else:
-            time_independent["size_max"] = input_parameters.size_initial
-            time_independent["size_initial"] = input_parameters.size_initial
+            time_independent["size_max"] = self.size_initial
+            time_independent["size_initial"] = self.size_initial
 
         if self.existing == 0:
             if not isinstance(self.size_max_arcs, pd.DataFrame):
@@ -688,6 +688,7 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
+        rated_capacity = self.input_parameters.rated_power
 
         def calculate_max_capex():
             max_capex = (
@@ -720,6 +721,7 @@ class Network(ModelComponent):
         :param str node_to: node to which arc goes
         :return: pyomo arc block
         """
+        rated_capacity = self.input_parameters.rated_power
 
         def init_capex(const):
             return (
@@ -827,17 +829,19 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
+        rated_capacity = self.input_parameters.rated_power
+
         b_arc.var_consumption_send = pyo.Var(
             self.set_t,
             b_netw.set_consumed_carriers,
             domain=pyo.NonNegativeReals,
-            bounds=(b_netw.para_size_min, b_arc.para_size_max),
+            bounds=(b_netw.para_size_min, b_arc.para_size_max * rated_capacity),
         )
         b_arc.var_consumption_receive = pyo.Var(
             self.set_t,
             b_netw.set_consumed_carriers,
             domain=pyo.NonNegativeReals,
-            bounds=(b_netw.para_size_min, b_arc.para_size_max),
+            bounds=(b_netw.para_size_min, b_arc.para_size_max * rated_capacity),
         )
 
         # Sending node
@@ -919,6 +923,8 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
+        rated_capacity = self.input_parameters.rated_power
+
         # Size in both direction is the same
         if self.component_options.decommission or not self.existing:
 
@@ -939,7 +945,7 @@ class Network(ModelComponent):
             return (
                 b_netw.arc_block[node_from, node_to].var_flow[t]
                 + b_netw.arc_block[node_to, node_from].var_flow[t]
-                <= b_netw.arc_block[node_from, node_to].var_size
+                <= b_netw.arc_block[node_from, node_to].var_size * rated_capacity
             )
 
         b_netw.const_cut_bidirectional = pyo.Constraint(

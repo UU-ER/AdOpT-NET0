@@ -1,7 +1,7 @@
 {
   "tec_type": "HeatPump_GroundSourced",
   "size_is_int": 0,
-  "size_min": 0.02,
+  "size_min": 0,
   "size_max": 2,
   "decommission": 0,
   "Economics": {
@@ -31,7 +31,7 @@
   },
   "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 3,
+    "performance_function_type": 1,
     "input_carrier": [
       "electricity"
     ],

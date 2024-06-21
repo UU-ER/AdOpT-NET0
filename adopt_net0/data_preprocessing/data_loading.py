@@ -122,12 +122,16 @@ def fill_carrier_data(
         "Generic production",
     ]
 
-    for period in (investment_periods if investment_periods else topology["investment_periods"]):
+    for period in (
+        investment_periods if investment_periods else topology["investment_periods"]
+    ):
         for node_name in nodes if nodes else topology["nodes"]:
             for car in carriers if carriers else topology["carriers"]:
 
                 # Write data to CSV file
-                output_folder = folder_path / period / "node_data" / node_name / "carrier_data"
+                output_folder = (
+                    folder_path / period / "node_data" / node_name / "carrier_data"
+                )
                 filename = car + ".csv"
                 output_file = output_folder / filename
                 existing_data = pd.read_csv(output_file, sep=";")
@@ -138,12 +142,18 @@ def fill_carrier_data(
                         if column in value_or_data.columns:
                             existing_data[column] = value_or_data[column].values
                         else:
-                            raise ValueError(f"Column {column} not found in the provided DataFrame")
+                            raise ValueError(
+                                f"Column {column} not found in the provided DataFrame"
+                            )
                     else:
-                        existing_data[column] = value_or_data * np.ones(len(existing_data))
+                        existing_data[column] = value_or_data * np.ones(
+                            len(existing_data)
+                        )
 
                 # Save the updated data back to the CSV file
-                output_file.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+                output_file.parent.mkdir(
+                    parents=True, exist_ok=True
+                )  # Ensure directory exists
                 existing_data.to_csv(output_file, index=False, sep=";")
 
 

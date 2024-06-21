@@ -405,16 +405,26 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data.size_max_arcs = pd.read_csv(
+
+                if os.path.isfile(
                     self.data_path
                     / investment_period
                     / "network_topology"
                     / "new"
                     / network
-                    / "size_max_arcs.csv",
-                    sep=";",
-                    index_col=0,
-                )
+                    / "size_max_arcs.csv"
+                ):
+                    netw_data.size_max_arcs = pd.read_csv(
+                        self.data_path
+                        / investment_period
+                        / "network_topology"
+                        / "new"
+                        / network
+                        / "size_max_arcs.csv",
+                        sep=";",
+                        index_col=0,
+                    )
+
                 netw_data.fit_network_performance()
                 self.network_data[investment_period][network] = netw_data
 
@@ -457,16 +467,7 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data.size_max_arcs = pd.read_csv(
-                    self.data_path
-                    / investment_period
-                    / "network_topology"
-                    / "existing"
-                    / network
-                    / "size_max_arcs.csv",
-                    sep=";",
-                    index_col=0,
-                )
+
                 netw_data.fit_network_performance()
 
                 self.network_data[investment_period][network + "_existing"] = netw_data
