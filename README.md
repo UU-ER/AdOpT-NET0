@@ -14,8 +14,7 @@ following in a shell:
 
 ```pip install adopt_net0```
 
-Additionally, you need a [solver installed, that is supported by pyomo]
-(https://pyomo.readthedocs.io/en/stable/solving_pyomo_models.html#supported-solvers)
+Additionally, you need a [solver installed, that is supported by pyomo](https://pyomo.readthedocs.io/en/stable/solving_pyomo_models.html#supported-solvers)
 (we recommend gurobi, which has a free academic licence).
 
 Note for mac users: The export of the optimization results require a working
