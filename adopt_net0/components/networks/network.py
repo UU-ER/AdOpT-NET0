@@ -1139,24 +1139,23 @@ class Network(ModelComponent):
         """
         coeff_ti = self.processed_coeff.time_independent
 
-        # h5_group.create_dataset(
-        #     "para_capex_gamma1", data=model_block.para_capex_gamma1.value
-        # )
-        # h5_group.create_dataset(
-        #     "para_capex_gamma2", data=model_block.para_capex_gamma2.value
-        # )
-        # h5_group.create_dataset(
-        #     "para_capex_gamma3", data=model_block.para_capex_gamma3.value
-        # )
-        # h5_group.create_dataset(
-        #     "para_capex_gamma4", data=model_block.para_capex_gamma4.value
-        # )
-
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
             str = "".join(arc_name)
             arc_group = h5_group.create_group(str)
 
+            arc_group.create_dataset(
+                "para_capex_gamma1", data=model_block.para_capex_gamma1.value
+            )
+            arc_group.create_dataset(
+                "para_capex_gamma2", data=model_block.para_capex_gamma2.value
+            )
+            arc_group.create_dataset(
+                "para_capex_gamma3", data=model_block.para_capex_gamma3.value
+            )
+            arc_group.create_dataset(
+                "para_capex_gamma4", data=model_block.para_capex_gamma4.value
+            )
             arc_group.create_dataset("network", data=self.name)
             arc_group.create_dataset("fromNode", data=arc_name[0])
             arc_group.create_dataset("toNode", data=arc_name[1])
