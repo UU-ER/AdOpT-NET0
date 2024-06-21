@@ -201,8 +201,8 @@ class Network(ModelComponent):
         if not self.existing:
             time_independent["size_max"] = input_parameters.size_max
         else:
-            time_independent["size_max"] = input_parameters.size_initial
-            time_independent["size_initial"] = input_parameters.size_initial
+            time_independent["size_max"] = self.size_initial
+            time_independent["size_initial"] = self.size_initial
 
         if self.existing == 0:
             if not isinstance(self.size_max_arcs, pd.DataFrame):
