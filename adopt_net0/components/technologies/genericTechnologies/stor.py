@@ -755,17 +755,15 @@ class Stor(Technology):
                 set_t_rr = self.set_t_performance
             else:
                 # init bounds at full res
-                bounds_rr_full = {
-                    "input": {},
-                    "output": {}
-                }
+                bounds_rr_full = {"input": {}, "output": {}}
 
                 # Output Bounds
                 for carr in self.component_options.output_carrier:
                     bounds_rr_full["output"][carr] = np.column_stack(
                         (
                             np.zeros(shape=(len(self.set_t_full))),
-                            np.ones(shape=(len(self.set_t_full))) * self.flexibility_data["discharge_rate"]
+                            np.ones(shape=(len(self.set_t_full)))
+                            * self.flexibility_data["discharge_rate"],
                         )
                     )
 
@@ -775,13 +773,14 @@ class Stor(Technology):
                         bounds_rr_full["input"][carr] = np.column_stack(
                             (
                                 np.zeros(shape=(len(self.set_t_full))),
-                                np.ones(shape=(len(self.set_t_full))) * self.flexibility_data["charge_rate"]
+                                np.ones(shape=(len(self.set_t_full)))
+                                * self.flexibility_data["charge_rate"],
                             )
                         )
                     else:
                         if (
-                                "energy_consumption"
-                                in self.input_parameters.performance_data["performance"]
+                            "energy_consumption"
+                            in self.input_parameters.performance_data["performance"]
                         ):
                             energy_consumption = self.input_parameters.performance_data[
                                 "performance"
