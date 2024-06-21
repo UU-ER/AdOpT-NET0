@@ -693,12 +693,9 @@ class Network(ModelComponent):
         def calculate_max_capex():
             max_capex = (
                 b_netw.para_capex_gamma1
-                + b_netw.para_capex_gamma2 * b_arc.para_size_max * rated_capacity
+                + b_netw.para_capex_gamma2 * b_arc.para_size_max
                 + b_netw.para_capex_gamma3 * b_arc.distance
-                + b_netw.para_capex_gamma4
-                * b_arc.para_size_max
-                * rated_capacity
-                * b_arc.distance
+                + b_netw.para_capex_gamma4 * b_arc.para_size_max * b_arc.distance
             )
             return (0, max_capex)
 
@@ -730,12 +727,9 @@ class Network(ModelComponent):
             return (
                 b_arc.var_capex_aux
                 == b_netw.para_capex_gamma1
-                + b_netw.para_capex_gamma2 * b_arc.var_size * rated_capacity
+                + b_netw.para_capex_gamma2 * b_arc.var_size
                 + b_netw.para_capex_gamma3 * b_arc.distance
-                + b_netw.para_capex_gamma4
-                * b_arc.var_size
-                * rated_capacity
-                * b_arc.distance
+                + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
             )
 
         # CAPEX aux:
