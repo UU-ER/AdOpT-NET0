@@ -724,14 +724,18 @@ class Network(ModelComponent):
         :param str node_to: node to which arc goes
         :return: pyomo arc block
         """
+        rated_capacity = self.input_parameters.rated_power
 
         def init_capex(const):
             return (
                 b_arc.var_capex_aux
                 == b_netw.para_capex_gamma1
-                + b_netw.para_capex_gamma2 * b_arc.var_size
+                + b_netw.para_capex_gamma2 * b_arc.var_size * rated_capacity
                 + b_netw.para_capex_gamma3 * b_arc.distance
-                + b_netw.para_capex_gamma4 * b_arc.var_size * b_arc.distance
+                + b_netw.para_capex_gamma4
+                * b_arc.var_size
+                * rated_capacity
+                * b_arc.distance
             )
 
         # CAPEX aux:
@@ -831,17 +835,19 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
+        rated_capacity = self.input_parameters.rated_power
+
         b_arc.var_consumption_send = pyo.Var(
             self.set_t,
             b_netw.set_consumed_carriers,
             domain=pyo.NonNegativeReals,
-            bounds=(b_netw.para_size_min, b_arc.para_size_max),
+            bounds=(b_netw.para_size_min, b_arc.para_size_max * rated_capacity),
         )
         b_arc.var_consumption_receive = pyo.Var(
             self.set_t,
             b_netw.set_consumed_carriers,
             domain=pyo.NonNegativeReals,
-            bounds=(b_netw.para_size_min, b_arc.para_size_max),
+            bounds=(b_netw.para_size_min, b_arc.para_size_max * rated_capacity),
         )
 
         # Sending node
@@ -923,6 +929,8 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
+        rated_capacity = self.input_parameters.rated_power
+
         # Size in both direction is the same
         if self.component_options.decommission or not self.existing:
 
@@ -943,7 +951,7 @@ class Network(ModelComponent):
             return (
                 b_netw.arc_block[node_from, node_to].var_flow[t]
                 + b_netw.arc_block[node_to, node_from].var_flow[t]
-                <= b_netw.arc_block[node_from, node_to].var_size
+                <= b_netw.arc_block[node_from, node_to].var_size * rated_capacity
             )
 
         b_netw.const_cut_bidirectional = pyo.Constraint(
