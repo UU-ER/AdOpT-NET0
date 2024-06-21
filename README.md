@@ -9,9 +9,20 @@ model conversion technologies and networks for any carrier and optimize the
 design and operation of a multi energy system.
 
 ## Installation
-The package can be installed with pip:
+You can use the standard utility for installing Python packages by executing the
+following in a shell:
 
 ```pip install adopt_net0```
+
+Additionally, you need a [solver installed, that is supported by pyomo](https://pyomo
+.readthedocs.io/en/stable/solving_pyomo_models.html#supported-solvers) (we recommend
+gurobi, which has a free academic licence).
+
+Note for mac users: The export of the optimization results require a working
+[hdf5 library](https://www.hdfgroup.org/solutions/hdf5/). On windows this should be
+installed by default. On mac, you can install it with homebrew:
+
+```brew install hdf5```
 
 ## Usage and documentation
 The documentation and minimal examples of how to use the package can be found 
