@@ -269,7 +269,7 @@ class Network(ModelComponent):
 
         b_netw = self._define_possible_arcs(b_netw)
 
-        if self.component_options.bidirectional:
+        if self.component_options.allow_only_one_direction:
             b_netw = self._define_unique_arcs(b_netw)
 
         b_netw = self._define_size(b_netw)
@@ -313,7 +313,7 @@ class Network(ModelComponent):
         b_netw.arc_block = pyo.Block(b_netw.set_arcs, rule=arc_block_init)
 
         # CONSTRAINTS FOR BIDIRECTIONAL NETWORKS
-        if self.component_options.bidirectional:
+        if self.component_options.allow_only_one_direction:
             b_netw = self._define_bidirectional_constraints(b_netw)
 
         b_netw = self._define_capex_total(b_netw)
@@ -407,7 +407,7 @@ class Network(ModelComponent):
                 initialize=init_size_initial,
             )
             # Check if sizes in both direction are the same for bidirectional existing networks
-            if self.component_options.bidirectional:
+            if self.component_options.allow_only_one_direction:
                 for from_node in coeff_ti["size_initial"]:
                     for to_node in coeff_ti["size_initial"][from_node].index:
                         assert (
@@ -953,7 +953,7 @@ class Network(ModelComponent):
         )
 
         # Disjunction
-        if self.component_options.bidirectional_precise:
+        if self.component_options.allow_only_one_direction_precise:
             self.big_m_transformation_required = 1
 
             def init_bidirectional(dis, t, node_from, node_to, ind):
@@ -998,7 +998,7 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
-        if self.component_options.bidirectional:
+        if self.component_options.allow_only_one_direction:
             arc_set = b_netw.set_arcs_unique
         else:
             arc_set = b_netw.set_arcs
@@ -1020,7 +1020,7 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
-        if self.component_options.bidirectional:
+        if self.component_options.allow_only_one_direction:
             arc_set = b_netw.set_arcs_unique
         else:
             arc_set = b_netw.set_arcs
