@@ -82,20 +82,20 @@ def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC"):
 
 def fill_carrier_data(
     folder_path: str | Path,
-    value: float,
+    value_or_data: float | pd.DataFrame,
     columns: list = [],
     carriers: list = [],
     nodes: list = [],
     investment_periods: list = None,
 ):
     """
-    Specifies a constant value for a time series and writes it to file
+    Updates carrier data for a time series based on a provided value or DataFrame and writes it to file.
 
-    Allows you to easily specify a constant value of Demand, Import limit, Export limit, Import price,
+    Allows you to update Demand, Import limit, Export limit, Import price,
     Export price, Import emission factor, Export emission factor and/or Generic production.
 
     :param str folder_path: Path to the folder containing the case study data
-    :param float value: The new value of the carrier data to be changed
+    :param float | pd.DataFrame value_or_data: A float value to be applied or a DataFrame containing the new values for the carrier data
     :param list columns: Name of the columns that need to be changed
     :param list investment_periods: Name of investment periods to be changed
     :param list nodes: Name of the nodes that need to be changed
@@ -105,12 +105,12 @@ def fill_carrier_data(
     if isinstance(folder_path, str):
         folder_path = Path(folder_path)
 
-    # Reads the topology json file
+    # Read the topology json file
     json_file_path = folder_path / "Topology.json"
     with open(json_file_path, "r") as json_file:
         topology = json.load(json_file)
 
-    # define options
+    # Define options
     column_options = [
         "Demand",
         "Import limit",
@@ -136,11 +136,24 @@ def fill_carrier_data(
                 output_file = output_folder / filename
                 existing_data = pd.read_csv(output_file, sep=";")
 
-                # Fill in existing data with data from the fetched DataFrame based on column names
+                # Fill in existing data with either a constant value or data from the provided DataFrame
                 for column in columns if columns else column_options:
-                    existing_data[column] = value * np.ones(len(existing_data))
+                    if isinstance(value_or_data, pd.DataFrame):
+                        if column in value_or_data.columns:
+                            existing_data[column] = value_or_data[column].values
+                        else:
+                            raise ValueError(
+                                f"Column {column} not found in the provided DataFrame"
+                            )
+                    else:
+                        existing_data[column] = value_or_data * np.ones(
+                            len(existing_data)
+                        )
 
-                # Save the updated data back to CarrierData.csv
+                # Save the updated data back to the CSV file
+                output_file.parent.mkdir(
+                    parents=True, exist_ok=True
+                )  # Ensure directory exists
                 existing_data.to_csv(output_file, index=False, sep=";")
 
 
