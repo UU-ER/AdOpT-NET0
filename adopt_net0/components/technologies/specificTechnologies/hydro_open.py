@@ -290,17 +290,17 @@ class HydroOpen(Technology):
         if allow_only_one_direction == 1:
 
             # Cut according to Germans work
-            def init_cut_allow_only_one_direction(const, t, car):
+            def init_cut_bidirectional(const, t, car):
                 return (
                     self.output[t, car] / discharge_max
                     + self.input[t, car] / charge_max
                     <= b_tec.var_size
                 )
 
-            b_tec.const_cut_allow_only_one_direction = pyo.Constraint(
+            b_tec.const_cut_bidirectional = pyo.Constraint(
                 self.set_t_performance,
                 b_tec.set_input_carriers,
-                rule=init_cut_allow_only_one_direction,
+                rule=init_cut_bidirectional,
             )
 
             # Disjunct modelling

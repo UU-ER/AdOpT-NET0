@@ -22,7 +22,7 @@ class Network(ModelComponent):
     flows, losses and  consumption at nodes.
 
     Networks that can be used in two directions (e.g. electricity cables), are called
-    allow_only_one_direction and are treated respectively with their size and costs. Other
+    bidirectional and are treated respectively with their size and costs. Other
     networks, e.g. pipelines, require two installations to be able to transport in
     two directions. As such their CAPEX is double and their size in both directions
     can be different.
@@ -32,7 +32,7 @@ class Network(ModelComponent):
     - ``set_netw_carrier``: Set of network carrier (i.e. only one carrier, that is
       transported in the network)
     - ``set_arcs``: Set of all arcs (from_node, to_node)
-    - ``set_arcs_unique``: In case the network is allow_only_one_direction: Set of unique arcs (i.e.
+    - ``set_arcs_unique``: In case the network is bidirectional: Set of unique arcs (i.e.
       for each pair of arcs, one unique entry)
     - Furthermore for each node:
 
@@ -312,7 +312,7 @@ class Network(ModelComponent):
 
         b_netw.arc_block = pyo.Block(b_netw.set_arcs, rule=arc_block_init)
 
-        # CONSTRAINTS FOR allow_only_one_direction NETWORKS
+        # CONSTRAINTS FOR BIDIRECTIONAL NETWORKS
         if self.component_options.allow_only_one_direction:
             b_netw = self._define_allow_only_one_direction_constraints(b_netw)
 
@@ -406,7 +406,7 @@ class Network(ModelComponent):
                 domain=pyo.NonNegativeReals,
                 initialize=init_size_initial,
             )
-            # Check if sizes in both direction are the same for allow_only_one_direction existing networks
+            # Check if sizes in both direction are the same for bidirectional existing networks
             if self.component_options.allow_only_one_direction:
                 for from_node in coeff_ti["size_initial"]:
                     for to_node in coeff_ti["size_initial"][from_node].index:
@@ -916,7 +916,7 @@ class Network(ModelComponent):
 
         return b_arc
 
-    def _define_allow_only_one_direction_constraints(self, b_netw):
+    def _define_bidirectional_constraints(self, b_netw):
         """
         Defines constraints necessary, in case one arc can transport in two directions.
 
@@ -928,58 +928,54 @@ class Network(ModelComponent):
         # Size in both direction is the same
         if self.component_options.decommission or not self.existing:
 
-            def init_size_allow_only_one_direction(const, node_from, node_to):
+            def init_size_bidirectional(const, node_from, node_to):
                 return (
                     b_netw.arc_block[node_from, node_to].var_size
                     == b_netw.arc_block[node_to, node_from].var_size
                 )
 
-            b_netw.const_size_allow_only_one_direction = pyo.Constraint(
-                b_netw.set_arcs_unique, rule=init_size_allow_only_one_direction
+            b_netw.const_size_bidirectional = pyo.Constraint(
+                b_netw.set_arcs_unique, rule=init_size_bidirectional
             )
 
         s_indicators = range(0, 2)
 
         # Cut according to Germans work
-        def init_cut_allow_only_one_direction(const, t, node_from, node_to):
+        def init_cut_bidirectional(const, t, node_from, node_to):
             return (
                 b_netw.arc_block[node_from, node_to].var_flow[t]
                 + b_netw.arc_block[node_to, node_from].var_flow[t]
                 <= b_netw.arc_block[node_from, node_to].var_size * rated_capacity
             )
 
-        b_netw.const_cut_allow_only_one_direction = pyo.Constraint(
-            self.set_t, b_netw.set_arcs_unique, rule=init_cut_allow_only_one_direction
+        b_netw.const_cut_bidirectional = pyo.Constraint(
+            self.set_t, b_netw.set_arcs_unique, rule=init_cut_bidirectional
         )
 
         # Disjunction
         if self.component_options.allow_only_one_direction_precise:
             self.big_m_transformation_required = 1
 
-            def init_allow_only_one_direction(dis, t, node_from, node_to, ind):
+            def init_bidirectional(dis, t, node_from, node_to, ind):
                 if ind == 0:
 
-                    def init_allow_only_one_direction1(const):
+                    def init_bidirectional1(const):
                         return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
 
-                    dis.const_flow_zero = pyo.Constraint(
-                        rule=init_allow_only_one_direction1
-                    )
+                    dis.const_flow_zero = pyo.Constraint(rule=init_bidirectional1)
 
                 else:
 
-                    def init_allow_only_one_direction2(const):
+                    def init_bidirectional2(const):
                         return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
 
-                    dis.const_flow_zero = pyo.Constraint(
-                        rule=init_allow_only_one_direction2
-                    )
+                    dis.const_flow_zero = pyo.Constraint(rule=init_bidirectional2)
 
             b_netw.dis_one_direction_only = gdp.Disjunct(
                 self.set_t,
                 b_netw.set_arcs_unique,
                 s_indicators,
-                rule=init_allow_only_one_direction,
+                rule=init_bidirectional,
             )
 
             # Bind disjuncts

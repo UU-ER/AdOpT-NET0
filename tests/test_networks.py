@@ -121,7 +121,7 @@ def test_network_unidirectional(request):
     assert m.var_capex.value > 0
 
 
-def test_network_allow_only_one_direction(request):
+def test_network_bidirectional(request):
     """
     Tests a network that can transport in two directions
 

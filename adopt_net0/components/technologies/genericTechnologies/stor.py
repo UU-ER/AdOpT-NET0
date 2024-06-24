@@ -61,7 +61,7 @@ class Stor(Technology):
       .. math::
         E_{t} = E_{t-1} * (1 - \\lambda_1) - \\lambda_2(\\Theta) * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
 
-    - If ``allow_only_one_direction == 1``, then only input or output can be unequal
+    - If ``allow_only_one_direction_precise == 1``, then only input or output can be unequal
       to zero in each respective time step (otherwise, simultaneous charging and
       discharging can lead to unwanted 'waste' of energy/material).
 
@@ -342,12 +342,12 @@ class Stor(Technology):
             self.set_t_full, rule=init_storage_level
         )
 
-        # CONSTRAINTS FOR allow_only_one_direction storage
+        # CONSTRAINTS FOR BIDIRECTIONAL STORAGE
         if self.component_options.allow_only_one_direction:
 
             # Cut according to Morales-Espana "LP Formulation for Optimal Investment and
             # Operation of Storage Including Reserves"
-            def init_cut_allow_only_one_direction(const, t):
+            def init_cut_bidirectional(const, t):
                 # output[t]/discharge_rate + input[t]/charge_rate <= storSize
                 return (
                     self.output[t, self.component_options.main_input_carrier]
@@ -357,8 +357,8 @@ class Stor(Technology):
                     <= b_tec.var_size
                 )
 
-            b_tec.const_cut_allow_only_one_direction = pyo.Constraint(
-                self.set_t_performance, rule=init_cut_allow_only_one_direction
+            b_tec.const_cut_bidirectional = pyo.Constraint(
+                self.set_t_performance, rule=init_cut_bidirectional
             )
 
             if self.component_options.allow_only_one_direction_precise:
