@@ -749,14 +749,44 @@ class Stor(Technology):
                 set_t_rr = self.set_t_performance
             else:
                 # init bounds at full res
-                bounds_rr_full = {
-                    "input": self.fitting_class.calculate_input_bounds(
-                        self.component_options.size_based_on, len(self.set_t_full)
-                    ),
-                    "output": self.fitting_class.calculate_output_bounds(
-                        self.component_options.size_based_on, len(self.set_t_full)
-                    ),
-                }
+                bounds_rr_full = {"input": {}, "output": {}}
+
+                # Output Bounds
+                for carr in self.component_options.output_carrier:
+                    bounds_rr_full["output"][carr] = np.column_stack(
+                        (
+                            np.zeros(shape=(len(self.set_t_full))),
+                            np.ones(shape=(len(self.set_t_full)))
+                            * self.flexibility_data["discharge_rate"],
+                        )
+                    )
+
+                # Input Bounds
+                for carr in self.component_options.input_carrier:
+                    if carr == self.component_options.main_input_carrier:
+                        bounds_rr_full["input"][carr] = np.column_stack(
+                            (
+                                np.zeros(shape=(len(self.set_t_full))),
+                                np.ones(shape=(len(self.set_t_full)))
+                                * self.flexibility_data["charge_rate"],
+                            )
+                        )
+                    else:
+                        if (
+                            "energy_consumption"
+                            in self.input_parameters.performance_data["performance"]
+                        ):
+                            energy_consumption = self.input_parameters.performance_data[
+                                "performance"
+                            ]["energy_consumption"]
+                            bounds_rr_full["input"][carr] = np.column_stack(
+                                (
+                                    np.zeros(shape=(len(self.set_t_full))),
+                                    np.ones(shape=(len(self.set_t_full)))
+                                    * self.flexibility_data["charge_rate"]
+                                    * energy_consumption["in"][carr],
+                                )
+                            )
 
                 # create input and output variable for full res
                 def init_input_bounds(bounds, t, car):
