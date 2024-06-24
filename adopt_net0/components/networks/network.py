@@ -314,7 +314,7 @@ class Network(ModelComponent):
 
         # CONSTRAINTS FOR BIDIRECTIONAL NETWORKS
         if self.component_options.allow_only_one_direction:
-            b_netw = self._define_allow_only_one_direction_constraints(b_netw)
+            b_netw = self._define_bidirectional_constraints(b_netw)
 
         b_netw = self._define_capex_total(b_netw)
         b_netw = self._define_opex_total(b_netw)
