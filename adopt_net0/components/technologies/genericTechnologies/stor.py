@@ -175,13 +175,6 @@ class Stor(Technology):
                 ]
             )
 
-        # Options
-        self.component_options.other["allow_only_one_direction"] = (
-            get_attribute_from_dict(
-                self.input_parameters.performance_data, "allow_only_one_direction", 0
-            )
-        )
-
     def _calculate_bounds(self):
         """
         Calculates the bounds of the variables used
@@ -245,9 +238,7 @@ class Stor(Technology):
         coeff_td = self.processed_coeff.time_dependent_used
         coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
-        allow_only_one_direction = self.component_options.other[
-            "allow_only_one_direction"
-        ]
+
         # sequence_storage = self.sequence
         if config["optimization"]["typicaldays"]["N"]["value"] == 0:
             sequence_storage = self.sequence
@@ -351,14 +342,12 @@ class Stor(Technology):
             self.set_t_full, rule=init_storage_level
         )
 
-        # This makes sure that only either input or output is larger zero.
-        if allow_only_one_direction == 1:
-            self.big_m_transformation_required = 1
-            s_indicators = range(0, 2)
+        # CONSTRAINTS FOR allow_only_one_direction storage
+        if self.component_options.allow_only_one_direction:
 
             # Cut according to Morales-Espana "LP Formulation for Optimal Investment and
             # Operation of Storage Including Reserves"
-            def init_cut_bidirectional(const, t):
+            def init_cut_allow_only_one_direction(const, t):
                 # output[t]/discharge_rate + input[t]/charge_rate <= storSize
                 return (
                     self.output[t, self.component_options.main_input_carrier]
@@ -368,40 +357,45 @@ class Stor(Technology):
                     <= b_tec.var_size
                 )
 
-            b_tec.const_cut_bidirectional = pyo.Constraint(
-                self.set_t_performance, rule=init_cut_bidirectional
+            b_tec.const_cut_allow_only_one_direction = pyo.Constraint(
+                self.set_t_performance, rule=init_cut_allow_only_one_direction
             )
 
-            def init_input_output(dis, t, ind):
-                if ind == 0:  # input only
+            if self.component_options.allow_only_one_direction_precise:
 
-                    def init_output_to_zero(const, car_output):
-                        return self.output[t, car_output] == 0
+                self.big_m_transformation_required = 1
+                s_indicators = range(0, 2)
 
-                    dis.const_output_to_zero = pyo.Constraint(
-                        b_tec.set_output_carriers, rule=init_output_to_zero
-                    )
+                def init_input_output(dis, t, ind):
+                    if ind == 0:  # input only
 
-                elif ind == 1:  # output only
+                        def init_output_to_zero(const, car_output):
+                            return self.output[t, car_output] == 0
 
-                    def init_input_to_zero(const, car_input):
-                        return self.input[t, car_input] == 0
+                        dis.const_output_to_zero = pyo.Constraint(
+                            b_tec.set_output_carriers, rule=init_output_to_zero
+                        )
 
-                    dis.const_input_to_zero = pyo.Constraint(
-                        b_tec.set_input_carriers, rule=init_input_to_zero
-                    )
+                    elif ind == 1:  # output only
 
-            b_tec.dis_input_output = gdp.Disjunct(
-                self.set_t_performance, s_indicators, rule=init_input_output
-            )
+                        def init_input_to_zero(const, car_input):
+                            return self.input[t, car_input] == 0
 
-            # Bind disjuncts
-            def bind_disjunctions(dis, t):
-                return [b_tec.dis_input_output[t, i] for i in s_indicators]
+                        dis.const_input_to_zero = pyo.Constraint(
+                            b_tec.set_input_carriers, rule=init_input_to_zero
+                        )
 
-            b_tec.disjunction_input_output = gdp.Disjunction(
-                self.set_t_performance, rule=bind_disjunctions
-            )
+                b_tec.dis_input_output = gdp.Disjunct(
+                    self.set_t_performance, s_indicators, rule=init_input_output
+                )
+
+                # Bind disjuncts
+                def bind_disjunctions(dis, t):
+                    return [b_tec.dis_input_output[t, i] for i in s_indicators]
+
+                b_tec.disjunction_input_output = gdp.Disjunction(
+                    self.set_t_performance, rule=bind_disjunctions
+                )
 
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t):

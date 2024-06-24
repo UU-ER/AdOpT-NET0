@@ -9,13 +9,15 @@ from adopt_net0.components.utilities import perform_disjunct_relaxation
 
 
 def define_network(
-    load_path: Path, bidirectional: bool = False, energyconsumption: bool = False
+    load_path: Path,
+    allow_only_one_direction: bool = False,
+    energyconsumption: bool = False,
 ):
     """
     reads TestNetwork from path and creates network object
 
     :param Path load_path:
-    :param bool bidirectional:
+    :param bool allow_only_one_direction:
     :param bool energyconsumption:
     :return: Network object
     """
@@ -24,11 +26,11 @@ def define_network(
 
     netw_data["name"] = "TestNetwork"
 
-    if bidirectional:
-        netw_data["Performance"]["bidirectional"] = 1
-        netw_data["Performance"]["bidirectional_precise"] = 1
+    if allow_only_one_direction:
+        netw_data["Performance"]["allow_only_one_direction"] = 1
+        netw_data["Performance"]["allow_only_one_direction_precise"] = 1
     else:
-        netw_data["Performance"]["bidirectional"] = 0
+        netw_data["Performance"]["allow_only_one_direction"] = 0
 
     if not energyconsumption:
         netw_data["Performance"]["energyconsumption"] = {}
@@ -87,7 +89,7 @@ def test_network_unidirectional(request):
     nr_timesteps = 1
     netw = define_network(
         request.config.network_data_folder_path,
-        bidirectional=True,
+        allow_only_one_direction=True,
         energyconsumption=False,
     )
 
@@ -119,7 +121,7 @@ def test_network_unidirectional(request):
     assert m.var_capex.value > 0
 
 
-def test_network_bidirectional(request):
+def test_network_allow_only_one_direction(request):
     """
     Tests a network that can transport in two directions
 
@@ -130,7 +132,7 @@ def test_network_bidirectional(request):
     nr_timesteps = 1
     netw = define_network(
         request.config.network_data_folder_path,
-        bidirectional=False,
+        allow_only_one_direction=False,
         energyconsumption=False,
     )
 
@@ -165,7 +167,7 @@ def test_network_energyconsumption(request):
     nr_timesteps = 1
     netw = define_network(
         request.config.network_data_folder_path,
-        bidirectional=True,
+        allow_only_one_direction=True,
         energyconsumption=True,
     )
 

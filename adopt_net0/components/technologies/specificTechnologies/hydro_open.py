@@ -133,8 +133,12 @@ class HydroOpen(Technology):
         self.component_options.other["can_pump"] = get_attribute_from_dict(
             self.input_parameters.performance_data, "can_pump", 1
         )
-        self.component_options.other["bidirectional_precise"] = get_attribute_from_dict(
-            self.input_parameters.performance_data, "bidirectional_precise", 1
+        self.component_options.other["allow_only_one_direction_precise"] = (
+            get_attribute_from_dict(
+                self.input_parameters.performance_data,
+                "allow_only_one_direction_precise",
+                1,
+            )
         )
         self.component_options.other["maximum_discharge_time_discrete"] = (
             get_attribute_from_dict(
@@ -286,21 +290,21 @@ class HydroOpen(Technology):
         if allow_only_one_direction == 1:
 
             # Cut according to Germans work
-            def init_cut_bidirectional(const, t, car):
+            def init_cut_allow_only_one_direction(const, t, car):
                 return (
                     self.output[t, car] / discharge_max
                     + self.input[t, car] / charge_max
                     <= b_tec.var_size
                 )
 
-            b_tec.const_cut_bidirectional = pyo.Constraint(
+            b_tec.const_cut_allow_only_one_direction = pyo.Constraint(
                 self.set_t_performance,
                 b_tec.set_input_carriers,
-                rule=init_cut_bidirectional,
+                rule=init_cut_allow_only_one_direction,
             )
 
             # Disjunct modelling
-            if self.component_options.other["bidirectional_precise"]:
+            if self.component_options.other["allow_only_one_direction_precise"]:
                 self.big_m_transformation_required = 1
                 s_indicators = range(0, 2)
 
