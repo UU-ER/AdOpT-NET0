@@ -45,7 +45,7 @@ system by setting:
              onshore             0          0
              offshore            1          0
 
-         Connection: Example - Bidirectional
+         Connection: Example - allow_only_one_direction
                                  onshore    offshore
              onshore             0          1
              offshore            1          0
