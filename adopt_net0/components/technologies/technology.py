@@ -12,8 +12,11 @@ from ..utilities import (
     determine_constraint_scaling,
 )
 from .utilities import set_capex_model
-from ...logger import log_event
 from .ccs import fit_ccs_coeff
+
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class Technology(ModelComponent):
@@ -370,7 +373,8 @@ class Technology(ModelComponent):
         :return: pyomo block with technology model
         """
         # LOG
-        log_event(f"\t - Adding Technology {self.name}")
+        log_msg = f"\t - Adding Technology {self.name}"
+        log.info(log_msg)
 
         # TECHNOLOGY DATA
         config = data["config"]
@@ -477,7 +481,8 @@ class Technology(ModelComponent):
 
         # CCS and Emissions
         if self.component_options.ccs_possible:
-            log_event(f"\t - Adding CCS to Technology {self.name}")
+            log_msg = f"\t - Adding CCS to Technology {self.name}"
+            log.info(log_msg)
             self._calculate_ccs_bounds()
             if self.component_options.modelled_with_full_res:
                 self.ccs_component.processed_coeff.time_dependent_used = (
@@ -490,9 +495,9 @@ class Technology(ModelComponent):
             b_tec = self._define_ccs_performance(b_tec, data)
             b_tec = self._define_ccs_emissions(b_tec)
             b_tec = self._define_ccs_costs(b_tec, data)
-            log_event(
-                f"\t - Adding CCS to Technology {self.name} completed", print_it=False
-            )
+            log_msg = f"\t - Adding CCS to Technology {self.name} completed"
+            log.info(log_msg)
+
         else:
             b_tec = self._define_emissions(b_tec)
 
@@ -505,19 +510,18 @@ class Technology(ModelComponent):
             ):
                 b_tec = self._define_dynamics(b_tec, data)
             else:
-                log_event(
-                    "Modeling dynamic constraints not enabled for technology type"
-                    + self.name,
-                    level="warning",
-                )
+                log_msg = "Modeling dynamic constraints not enabled for technology type"
+                log.warning(log_msg)
+
         else:
             if self.component_options.performance_function_type == 4:
                 self.component_options.performance_function_type = 3
-                log_event(
-                    "Switching dynamics off for performance function type 4, type changed to 3 for "
-                    + self.name,
-                    level="warning",
-                )
+                log_msg = (
+                    "Switching dynamics off for performance function type 4, "
+                    "type changed to 3 for "
+                ) + self.name
+
+                log.warning(log_msg)
 
         # AGGREGATE ALL VARIABLES
         self._aggregate_input(b_tec)
@@ -1384,9 +1388,6 @@ class Technology(ModelComponent):
         emissions_based_on = self.component_options.emissions_based_on
         capture_rate = coeff_ti["capture_rate"]
 
-        # LOG
-        log_event(f"\t - Adding CCS to Technology {self.name}")
-
         # TODO: maybe make the full set of all carriers as a intersection between this set and the others?
         # Emission Factor
         b_tec.para_tec_emissionfactor = pyo.Param(
@@ -1657,7 +1658,8 @@ class Technology(ModelComponent):
         """
         config = data["config"]
 
-        log_event(f"\t \t Adding dynamics to Technology {self.name}")
+        log_msg = f"\t \t Adding dynamics to Technology {self.name}"
+        log.info(log_msg)
         if config["optimization"]["typicaldays"]["N"]["value"] != 0:
             raise Exception("time aggregation with dynamics is not implemented")
 
@@ -1680,7 +1682,8 @@ class Technology(ModelComponent):
         ):
             b_tec = self._dynamics_fast_SUSD(b_tec)
 
-        log_event(f"\t \t Adding dynamics to Technology {self.name}", print_it=False)
+        log_msg = f"\t \t Adding dynamics to Technology {self.name}"
+        log.info(log_msg)
 
         return b_tec
 
@@ -1713,22 +1716,23 @@ class Technology(ModelComponent):
         for para in para_names:
             if dynamics[para] < 0:
                 dynamics[para] = 0
-                log_event(
+                log_msg = (
                     "Using SU/SD logic constraints, parameter "
                     + str(para)
-                    + " set to default value 0",
-                    level="warning",
+                    + "set to default value 0"
                 )
+                log.warning(log_msg)
+
         para_names = ["min_uptime", "min_downtime"]
         for para in para_names:
             if dynamics[para] < 0:
                 dynamics[para] = 1
-                log_event(
+                log_msg = (
                     "Using SU/SD logic constraints, parameter "
                     + str(para)
-                    + " set to default value 1",
-                    level="warning",
+                    + " set to default value 1"
                 )
+                log.warning(log_msg)
 
         # Collect parameters
         SU_time = dynamics["SU_time"]
@@ -1807,12 +1811,12 @@ class Technology(ModelComponent):
         for para in para_names:
             if dynamics[para] < 0:
                 dynamics[para] = 1
-                log_event(
+                log_msg = (
                     "Using SU/SD load constraints, parameter"
                     + str(para)
-                    + "set to default value 1",
-                    level="warning",
+                    + "set to default value 1"
                 )
+                log.warning(log_msg)
 
         # Collect parameters
         SU_load = dynamics["SU_load"]

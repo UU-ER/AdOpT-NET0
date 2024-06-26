@@ -5,7 +5,10 @@ import os
 import json
 
 from ..components.technologies import *
-from ..logger import log_event
+
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def calculate_dni(data: pd.DataFrame, lon: float, lat: float) -> pd.Series:
@@ -238,4 +241,5 @@ def check_input_data_consistency(path: Path):
             " time is not allowed"
         )
 
-    log_event("Input data folder has been checked successfully - no errors occurred.")
+    log_msg = "Input data folder has been checked successfully - no errors occurred."
+    log.info(log_msg)
