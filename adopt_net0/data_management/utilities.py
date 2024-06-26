@@ -175,14 +175,7 @@ def check_input_data_consistency(path: Path):
                     check_path / "network_topology" / type / network / "distance.csv",
                     f"A distance.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
                 )
-                check_path_existance(
-                    check_path
-                    / "network_topology"
-                    / type
-                    / network
-                    / "size_max_arcs.csv",
-                    f"A size_max_arcs.csv for {network} is missing in {check_path / 'network_topology' / type / network}",
-                )
+
                 if type == "existing":
                     check_path_existance(
                         check_path / "network_topology" / type / network / "size.csv",

@@ -61,6 +61,11 @@ class Stor(Technology):
       .. math::
         E_{t} = E_{t-1} * (1 - \\lambda_1) - \\lambda_2(\\Theta) * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
 
+    - If ``allow_only_one_direction == 1``, simultaneous charging and discharging is limited
+      using Equation 24 from Morales-España, Germán & Hernandez, Ricardo & Helistö, Niina & Kiviluoma,
+      Juha. (2022). LP Formulation for Optimal Investment and Operation of Storage Including Reserves.
+      10.13140/RG.2.2.27048.03840.
+
     - If ``allow_only_one_direction_precise == 1``, then only input or output can be unequal
       to zero in each respective time step (otherwise, simultaneous charging and
       discharging can lead to unwanted 'waste' of energy/material).
