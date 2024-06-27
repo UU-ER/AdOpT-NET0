@@ -1,5 +1,5 @@
 Pyomo>=6.7.1
-numpy==1.26.4
+numpy<2.0.0
 dill>=0.3.8
 pandas>=2.2.2
 requests>=2.31.0

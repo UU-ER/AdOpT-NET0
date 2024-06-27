@@ -17,7 +17,7 @@
   },
   "Performance": {
     "carrier": "hydrogen",
-    "bidirectional": 0,
+    "allow_only_one_direction": 0,
     "loss": 1.25E-7,
     "min_transport": 0.1429,
     "loss2emissions": 0,
