@@ -62,7 +62,8 @@ Figure 1 shows two examples of energy systems that can be modeled with the tool.
 
 Table: Dimensions of energy system models and features of AdOpT-NET0 []{label="dimensions_mes"}
 
-![Two different case studies possible with AdOpT-NET0](joss_submission/MES_dimensions.jpg)
+
+![Two different case studies possible with AdOpT-NET0](./MES_dimensions.jpg)
 
 The model framework is formulated as a mixed integer linear program. Its mathematical
 formulation supports flexible spatial and temporal resolution, and technological
