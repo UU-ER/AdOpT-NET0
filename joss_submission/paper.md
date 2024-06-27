@@ -63,15 +63,15 @@ Figure 1 shows two examples of energy systems that can be modeled with the tool.
 Table: Dimensions of energy system models and features of AdOpT-NET0 []{label="dimensions_mes"}
 
 
-![Two different case studies possible with AdOpT-NET0](./Multiple_nodes.png)
+![Two different case studies possible with AdOpT-NET0](./Multiple_nodes.svg)
 
 The model framework is formulated as a mixed integer linear program. Its mathematical
 formulation supports flexible spatial and temporal resolution, and technological
 details. AdOpT-NET0 can optimize both system design and technology operation variables,
-enabling the optimization of existing energy systems with expansions or additions (
-brown-field) and new systems without the constraints of existing installations (
-greenfield). A key feature of AdOpT-NET0 is its high level of technological detail which
-allows for a highly realistic assessment of individual technologies and their
+enabling the optimization of existing energy systems with expansions or additions 
+(brown-field) and new systems without the constraints of existing installations 
+(greenfield). A key feature of AdOpT-NET0 is its high level of technological detail 
+which allows for a highly realistic assessment of individual technologies and their
 integration into an energy system without limiting the scope of the analysis.
 Furthermore, several complexity reduction algorithms can be adopted to deal with
 infeasible computation times [@gabrielli2018optimal; @weimann2022novel].
