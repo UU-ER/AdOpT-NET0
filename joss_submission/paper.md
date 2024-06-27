@@ -47,8 +47,8 @@ systems from individual technologies to industrial clusters, regions, or multipl
 countries. In multi-energy systems, multiple energy and material carriers, conversion
 and storage technologies, as well as means of transport can interact. These systems are
 highly complex but also offer synergies to reduce costs and environmental impacts. Table
-1 provides an overview of the covered dimensions of AdOpT-NET0, while Figure 1 shows two
-examples of energy systems that can be modeled with the tool.
+\ref{dimensions_mes} provides an overview of the covered dimensions of AdOpT-NET0, while
+Figure 1 shows two examples of energy systems that can be modeled with the tool.
 
 | Dimension                       | Feature of AdOpT-NET0                                    |
 |---------------------------------|----------------------------------------------------------|
@@ -60,7 +60,7 @@ examples of energy systems that can be modeled with the tool.
 | Time frame                      | Year or multiple years                                   |
 | Uncertainty                     | Deterministic, perfect foresight                         |
 
-[Dimensions of energy system models and features of AdOpT-NET0]{label="dimensions"}
+Table: Dimensions of energy system models and features of AdOpT-NET0 []{label="dimensions_mes"}
 
 ### Figure 1: Two different applications of AdOpT-NET0
 
@@ -75,7 +75,7 @@ greenfield). A key feature of AdOpT-NET0 is its high level of technological deta
 allows for a highly realistic assessment of individual technologies and their
 integration into an energy system without limiting the scope of the analysis.
 Furthermore, several complexity reduction algorithms can be adopted to deal with
-infeasible computation times [@gabrielli2018optimal, @weimann2022novel].
+infeasible computation times [@gabrielli2018optimal; @weimann2022novel].
 
 The tool was developed to assist researchers and students interested in energy system
 modeling. It combines 5+ years of research and is inspired by a closed-source MATLAB
@@ -95,7 +95,7 @@ framework to model the complex behavior of energy and industrial technologies em
 in an energy system. As such, the software comes with a number of detailed technology
 models that are based on previous scientific work; e.g., for direct air capture and
 carbon capture [@wiegner2022optimal], heat
-pumps [@ruhnau2019time,@xu2022investigation], gas turbine models for different
+pumps [@ruhnau2019time; @xu2022investigation], gas turbine models for different
 sizes [@weimann2019modeling], underground hydrogen storage, and electric naphtha
 cracking [@tiggeloven2023optimization]. Additionally, it includes the possibility to
 model operational constraints of conversion technologies such as ramping rates, minimum
