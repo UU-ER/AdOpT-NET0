@@ -3,8 +3,3 @@
 	"TestTec_GasTurbine_simple": 10},
     "new": []
 }
-
-{
-    "existing": [],
-    "new": ["TestTec_BoilerEl"]
-}

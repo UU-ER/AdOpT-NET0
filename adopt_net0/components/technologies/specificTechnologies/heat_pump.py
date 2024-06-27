@@ -6,9 +6,12 @@ import statsmodels.api as sm
 import pandas as pd
 
 from ..utilities import fit_piecewise_function, fit_linear_function
-from ...component import InputParameters
 from ..technology import Technology
 from ...utilities import link_full_resolution_to_clustered
+
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class HeatPump(Technology):
@@ -91,7 +94,7 @@ class HeatPump(Technology):
         elif "WaterSourced" in self.name:
             cop = 9.97 - 0.20 * delta_T + 0.0012 * delta_T**2
 
-        print("Deriving performance data for Heat Pump...")
+        log.info("Deriving performance data for Heat Pump...")
 
         if (
             self.component_options.performance_function_type == 1

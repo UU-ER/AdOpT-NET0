@@ -11,4 +11,5 @@ Advanced Topics
     advanced_topics/time_aggregation
     advanced_topics/pareto
     advanced_topics/monte_carlo
+    advanced_topics/logging
 

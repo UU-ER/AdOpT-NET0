@@ -9,6 +9,10 @@ from scipy.interpolate import griddata
 from ..utilities import fit_piecewise_function
 from ..technology import Technology
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class DacAdsorption(Technology):
     """
@@ -117,7 +121,7 @@ class DacAdsorption(Technology):
         out_max = np.empty(shape=(len(T)))
         total_in_max = np.empty(shape=(len(T)))
 
-        print("Deriving performance data for DAC...")
+        log.info("Deriving performance data for DAC...")
 
         for timestep in range(len(T)):
             if timestep % 100 == 1:

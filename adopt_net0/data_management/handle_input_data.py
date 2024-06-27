@@ -5,7 +5,9 @@ import tsam.timeseriesaggregation as tsam
 
 from .utilities import *
 from ..components.networks import *
-from ..logger import log_event
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class DataHandle:
@@ -88,6 +90,7 @@ class DataHandle:
         """
         Reads all data from folder
         """
+        log.info(f"Reading data from {self.data_path}")
         self._read_topology()
         self._read_model_config()
         self._read_time_series()
@@ -145,7 +148,8 @@ class DataHandle:
         )
 
         # Log success
-        log_event("Topology read successfully")
+        log_msg = "Topology read successfully"
+        log.info(log_msg)
 
     def _read_model_config(self):
         """
@@ -156,10 +160,9 @@ class DataHandle:
             self.model_config = json.load(json_file)
 
         # Log success
-        log_event("Model Configuration read successfully")
-        log_event(
-            "Model Configuration used: " + json.dumps(self.model_config), print_it=0
-        )
+        log_msg = "Model Configuration read successfully"
+        log.info(log_msg)
+        log.debug("Model Configuration used: " + json.dumps(self.model_config))
 
     def _read_time_series(self):
         """
@@ -176,8 +179,10 @@ class DataHandle:
             """
             if any(np.isnan(x) for x in ls):
                 ls = [0 if np.isnan(x) else x for x in ls]
-                log_event(
-                    f"Found NaN values in data for investment period {investment_period}, node {node}, key1 {var}, carrier {carrier}, key2 {key}. Replaced with zeros."
+                log.debug(
+                    f"Found NaN values in data for investment period {investment_period},"
+                    f" node {node}, key1 {var}, carrier {carrier}, key2 {key}."
+                    f" Replaced with zeros."
                 )
                 return ls
             else:
@@ -253,7 +258,8 @@ class DataHandle:
         self.time_series["full"] = data
 
         # Log success
-        log_event("Time series read successfully")
+        log_msg = "Time series read successfully"
+        log.info(log_msg)
 
     def _read_node_locations(self):
         """
@@ -264,7 +270,8 @@ class DataHandle:
         )
 
         # Log success
-        log_event("Node Locations read successfully")
+        log_msg = "Node Locations read successfully"
+        log.info(log_msg)
 
     def _read_energybalance_options(self):
         """
@@ -286,7 +293,9 @@ class DataHandle:
                     node
                 ] = energybalance_options
 
-        log_event("Energy balance options read successfully")
+        # Log success
+        log_msg = "Energy balance options read successfully"
+        log.info(log_msg)
 
     def _read_technology_data(self):
         """
@@ -360,7 +369,9 @@ class DataHandle:
 
         self.technology_data = technology_data
 
-        log_event("Technology data read successfully")
+        # Log success
+        log_msg = "Technology data read successfully"
+        log.info(log_msg)
 
     def _read_network_data(self):
         """
@@ -472,7 +483,9 @@ class DataHandle:
 
                 self.network_data[investment_period][network + "_existing"] = netw_data
 
-        log_event("Network data read successfully")
+        # Log success
+        log_msg = "Network data read successfully"
+        log.info(log_msg)
 
     def _read_monte_carlo(self):
         """
@@ -622,7 +635,9 @@ class DataHandle:
             clustered_resolution, names=["InvestmentPeriod"], axis=1
         )
 
-        log_event("Clustered data successfully")
+        # Log success
+        log_msg = "Clustered data successfully"
+        log.info(log_msg)
 
     def _average_data(self):
         """
@@ -676,4 +691,6 @@ class DataHandle:
             averaged_resolution, names=["InvestmentPeriod"], axis=1
         )
 
-        log_event("Averaged data successfully")
+        # Log success
+        log_msg = "Averaged data successfully"
+        log.info(log_msg)

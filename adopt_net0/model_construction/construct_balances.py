@@ -132,7 +132,6 @@ def construct_nodal_energybalance(model, config: dict):
                 model.set_nodes,
                 domain=pyo.NonNegativeReals,
             )
-            b_period.var_cost_violation = pyo.Var()
 
         def init_energybalance(const, t, car, node):
             if car in b_period.node_blocks[node].set_carriers:
@@ -218,7 +217,6 @@ def construct_global_energybalance(model, config):
                 model.set_nodes,
                 domain=pyo.NonNegativeReals,
             )
-            b_period.var_cost_violation = pyo.Var()
 
         def init_energybalance_global(const, t, car):
             tec_output = sum(

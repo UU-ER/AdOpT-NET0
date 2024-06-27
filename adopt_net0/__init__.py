@@ -1,3 +1,5 @@
+import logging
+from logging.handlers import MemoryHandler
 from .modelhub import ModelHub as ModelHub
 from .result_management import (
     print_h5_tree,
@@ -6,3 +8,11 @@ from .result_management import (
 )
 from .diagnostics import get_infeasible_constraints
 from .data_preprocessing import *
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# Stream Handler to control console output
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+logger.addHandler(ch)
