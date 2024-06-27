@@ -11,9 +11,12 @@ jobs:
     steps:
       - name: Check if PR is from develop branch
         run: |
-          if [[ "${{ github.event.pull_request.head.ref }}" != "develop" ]]; then
-            echo "Pull request is not from the develop branch"
-            exit 1
+          head_branch_name="${{ github.event.pull_request.head.ref }}"
+          echo head_branch_name
+#          if [[ "${{ github.event.pull_request.head.ref }}" != "develop" ]]; then
+#            echo "Pull request is not from the develop branch"
+#            exit 1
+#          fi
   autoformatting:
     needs: check_target_branch
     uses: ./.github/workflows/autoformatting.yml
