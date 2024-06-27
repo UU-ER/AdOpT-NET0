@@ -62,8 +62,9 @@ Figure 1 shows two examples of energy systems that can be modeled with the tool.
 
 Table: Dimensions of energy system models and features of AdOpT-NET0 []{label="dimensions_mes"}
 
-![A possible application of AdOpT-NET0 with a single node studying ethylene production with an electric cracker relying on variable renewable energy sources](./Single_nodes.svg){width=250px}
-![A possible application of AdOpT-NET0 with multiple nodes and networks studying the integration of large-scale offshore wind in the North Sea region](./Multiple_nodes.svg){width=250px}
+![A possible application of AdOpT-NET0 with a single node studying ethylene production with an electric cracker relying on variable renewable energy sources [adapted from @tiggeloven2023optimization]](./Single_nodes.svg){width=250px}
+
+![A possible application of AdOpT-NET0 with multiple nodes and networks studying the integration of large-scale offshore wind in the North Sea region [adapted from @wiegner2024integration]](./Multiple_nodes.svg){width=250px}
 
 The model framework is formulated as a mixed integer linear program. Its mathematical
 formulation supports flexible spatial and temporal resolution, and technological
