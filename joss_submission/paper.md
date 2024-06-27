@@ -64,7 +64,7 @@ Table: Dimensions of energy system models and features of AdOpT-NET0 []{label=di
 
 ![A possible application of AdOpT-NET0 with a single node studying ethylene production 
 with an electric cracker relying on variable renewable energy sources 
-[adapted from @tiggeloven2023optimization]](./Single_node.svg){width=1000px}
+[adapted from @tiggeloven2023optimization]](./Single_node.svg){width=1400px}
 
 ![A possible application of AdOpT-NET0 with multiple nodes and networks studying the 
 integration of large-scale offshore wind in the North Sea region
