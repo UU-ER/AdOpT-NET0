@@ -19,6 +19,7 @@ authors:
     affiliation: 1
   - name: Matteo Gazzani
     orcid: 0000-0002-1352-4562
+    corresponding: true
     affiliation: 1
 affiliations:
   - name: Utrecht University, Princetonlaan 8a, 3584 CB Utrecht, The Netherlands
