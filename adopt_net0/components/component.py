@@ -83,7 +83,6 @@ class InputParameters:
         self.performance_data = component_data["Performance"]
         self.size_min = component_data["size_min"]
         self.size_max = component_data["size_max"]
-        self.size_initial = None
         self.rated_power = 1
 
         self.rated_power = get_attribute_from_dict(
@@ -155,18 +154,21 @@ class ComponentOptions:
         if "carrier" in component_data["Performance"]:
             self.transported_carrier = component_data["Performance"]["carrier"]
 
-        if "bidirectional" in component_data["Performance"]:
-            self.bidirectional = component_data["Performance"]["bidirectional"]
-            if self.bidirectional:
-                self.bidirectional_precise = get_attribute_from_dict(
-                    component_data["Performance"], "bidirectional_precise", 1
-                )
-
         if "energyconsumption" in component_data["Performance"]:
             if component_data["Performance"]["energyconsumption"]:
                 self.energyconsumption = 1
             else:
                 self.energyconsumption = 0
+
+        # disable bidirectional for networks and storage
+        if "allow_only_one_direction" in component_data["Performance"]:
+            self.allow_only_one_direction = component_data["Performance"][
+                "allow_only_one_direction"
+            ]
+            if self.allow_only_one_direction:
+                self.allow_only_one_direction_precise = get_attribute_from_dict(
+                    component_data["Performance"], "allow_only_one_direction_precise", 1
+                )
 
         # other technology specific options
         self.other = {}

@@ -61,7 +61,7 @@ class Stor(Technology):
       .. math::
         E_{t} = E_{t-1} * (1 - \\lambda_1) - \\lambda_2(\\Theta) * E_{t-1} + {\\eta}_{in} * Input_{t} - 1 / {\\eta}_{out} * Output_{t}
 
-    - If ``allow_only_one_direction == 1``, then only input or output can be unequal
+    - If ``allow_only_one_direction_precise == 1``, then only input or output can be unequal
       to zero in each respective time step (otherwise, simultaneous charging and
       discharging can lead to unwanted 'waste' of energy/material).
 
@@ -175,13 +175,6 @@ class Stor(Technology):
                 ]
             )
 
-        # Options
-        self.component_options.other["allow_only_one_direction"] = (
-            get_attribute_from_dict(
-                self.input_parameters.performance_data, "allow_only_one_direction", 0
-            )
-        )
-
     def _calculate_bounds(self):
         """
         Calculates the bounds of the variables used
@@ -245,9 +238,7 @@ class Stor(Technology):
         coeff_td = self.processed_coeff.time_dependent_used
         coeff_ti = self.processed_coeff.time_independent
         dynamics = self.processed_coeff.dynamics
-        allow_only_one_direction = self.component_options.other[
-            "allow_only_one_direction"
-        ]
+
         # sequence_storage = self.sequence
         if config["optimization"]["typicaldays"]["N"]["value"] == 0:
             sequence_storage = self.sequence
@@ -351,10 +342,8 @@ class Stor(Technology):
             self.set_t_full, rule=init_storage_level
         )
 
-        # This makes sure that only either input or output is larger zero.
-        if allow_only_one_direction == 1:
-            self.big_m_transformation_required = 1
-            s_indicators = range(0, 2)
+        # CONSTRAINTS FOR BIDIRECTIONAL STORAGE
+        if self.component_options.allow_only_one_direction:
 
             # Cut according to Morales-Espana "LP Formulation for Optimal Investment and
             # Operation of Storage Including Reserves"
@@ -372,36 +361,41 @@ class Stor(Technology):
                 self.set_t_performance, rule=init_cut_bidirectional
             )
 
-            def init_input_output(dis, t, ind):
-                if ind == 0:  # input only
+            if self.component_options.allow_only_one_direction_precise:
 
-                    def init_output_to_zero(const, car_output):
-                        return self.output[t, car_output] == 0
+                self.big_m_transformation_required = 1
+                s_indicators = range(0, 2)
 
-                    dis.const_output_to_zero = pyo.Constraint(
-                        b_tec.set_output_carriers, rule=init_output_to_zero
-                    )
+                def init_input_output(dis, t, ind):
+                    if ind == 0:  # input only
 
-                elif ind == 1:  # output only
+                        def init_output_to_zero(const, car_output):
+                            return self.output[t, car_output] == 0
 
-                    def init_input_to_zero(const, car_input):
-                        return self.input[t, car_input] == 0
+                        dis.const_output_to_zero = pyo.Constraint(
+                            b_tec.set_output_carriers, rule=init_output_to_zero
+                        )
 
-                    dis.const_input_to_zero = pyo.Constraint(
-                        b_tec.set_input_carriers, rule=init_input_to_zero
-                    )
+                    elif ind == 1:  # output only
 
-            b_tec.dis_input_output = gdp.Disjunct(
-                self.set_t_performance, s_indicators, rule=init_input_output
-            )
+                        def init_input_to_zero(const, car_input):
+                            return self.input[t, car_input] == 0
 
-            # Bind disjuncts
-            def bind_disjunctions(dis, t):
-                return [b_tec.dis_input_output[t, i] for i in s_indicators]
+                        dis.const_input_to_zero = pyo.Constraint(
+                            b_tec.set_input_carriers, rule=init_input_to_zero
+                        )
 
-            b_tec.disjunction_input_output = gdp.Disjunction(
-                self.set_t_performance, rule=bind_disjunctions
-            )
+                b_tec.dis_input_output = gdp.Disjunct(
+                    self.set_t_performance, s_indicators, rule=init_input_output
+                )
+
+                # Bind disjuncts
+                def bind_disjunctions(dis, t):
+                    return [b_tec.dis_input_output[t, i] for i in s_indicators]
+
+                b_tec.disjunction_input_output = gdp.Disjunction(
+                    self.set_t_performance, rule=bind_disjunctions
+                )
 
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t):
@@ -755,14 +749,44 @@ class Stor(Technology):
                 set_t_rr = self.set_t_performance
             else:
                 # init bounds at full res
-                bounds_rr_full = {
-                    "input": self.fitting_class.calculate_input_bounds(
-                        self.component_options.size_based_on, len(self.set_t_full)
-                    ),
-                    "output": self.fitting_class.calculate_output_bounds(
-                        self.component_options.size_based_on, len(self.set_t_full)
-                    ),
-                }
+                bounds_rr_full = {"input": {}, "output": {}}
+
+                # Output Bounds
+                for carr in self.component_options.output_carrier:
+                    bounds_rr_full["output"][carr] = np.column_stack(
+                        (
+                            np.zeros(shape=(len(self.set_t_full))),
+                            np.ones(shape=(len(self.set_t_full)))
+                            * self.flexibility_data["discharge_rate"],
+                        )
+                    )
+
+                # Input Bounds
+                for carr in self.component_options.input_carrier:
+                    if carr == self.component_options.main_input_carrier:
+                        bounds_rr_full["input"][carr] = np.column_stack(
+                            (
+                                np.zeros(shape=(len(self.set_t_full))),
+                                np.ones(shape=(len(self.set_t_full)))
+                                * self.flexibility_data["charge_rate"],
+                            )
+                        )
+                    else:
+                        if (
+                            "energy_consumption"
+                            in self.input_parameters.performance_data["performance"]
+                        ):
+                            energy_consumption = self.input_parameters.performance_data[
+                                "performance"
+                            ]["energy_consumption"]
+                            bounds_rr_full["input"][carr] = np.column_stack(
+                                (
+                                    np.zeros(shape=(len(self.set_t_full))),
+                                    np.ones(shape=(len(self.set_t_full)))
+                                    * self.flexibility_data["charge_rate"]
+                                    * energy_consumption["in"][carr],
+                                )
+                            )
 
                 # create input and output variable for full res
                 def init_input_bounds(bounds, t, car):
