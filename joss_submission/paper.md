@@ -13,6 +13,7 @@ authors:
   - name: Julia Tiggeloven
     affiliation: 1
   - name: Luca Bertoni
+    orcid: 0009-0006-5330-7104
     affiliation: 1
   - name: Inge Ossentjuk
     affiliation: 1
@@ -47,8 +48,8 @@ systems from individual technologies to industrial clusters, regions, or multipl
 countries. In multi-energy systems, multiple energy and material carriers, conversion
 and storage technologies, as well as means of transport can interact. These systems are
 highly complex but also offer synergies to reduce costs and environmental impacts. Table
-\ref{dimensions_mes} provides an overview of the covered dimensions of AdOpT-NET0, while
-Figure 1 shows two examples of energy systems that can be modeled with the tool.
+1 provides an overview of the covered dimensions of AdOpT-NET0, while
+Figure 1 and 2 show two examples of energy systems that can be modeled with the tool.
 
 | Dimension                       | Feature of AdOpT-NET0                                    |
 |---------------------------------|----------------------------------------------------------|
@@ -60,7 +61,7 @@ Figure 1 shows two examples of energy systems that can be modeled with the tool.
 | Time frame                      | Year or multiple years                                   |
 | Uncertainty                     | Deterministic, perfect foresight                         |
 
-Table: Dimensions of energy system models and features of AdOpT-NET0 []{label=dimensions_mes}
+Table: Dimensions of energy system models and features of AdOpT-NET0
 
 ![A possible application of AdOpT-NET0 with a single node studying ethylene production 
 with an electric cracker relying on variable renewable energy sources 
@@ -110,10 +111,10 @@ power [@morales2017hidden].
 
 We are very grateful for the people who have paved the way for this work, mainly Paolo
 Gabrielli and Lukas Weimann, who have worked on the predecessor of AdOpT-NET0 in MATLAB.
-Additionally, the authors would like to thank Alissa Ganter, Jacob Mannhardt, and Sander
-van Rijn for the fruitful discussions during the development of the software and its
-supporting material. The present work was supported by DOSTA with project number (
-WIND.2019.002) of the NWO research program PhD@Sea that is (partly) financed by the
-Dutch Research Council (NWO).
+Additionally, the authors would like to thank Alissa Ganter, Jacob Mannhardt, Sander
+van Rijn, and Ioana Cocu for the fruitful discussions during the development of the 
+software and its supporting material. The present work was supported by DOSTA with 
+project number (WIND.2019.002) of the NWO research program PhD@Sea that is (partly) 
+financed by the Dutch Research Council (NWO).
 
 ## References
