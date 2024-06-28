@@ -102,7 +102,7 @@ simplified technology performances. AdOpT-NET0 bridges this gap by providing a m
 framework to model the complex behavior of energy and industrial technologies embedded
 in an energy system. As such, the software comes with a number of detailed technology
 models that are based on previous scientific work; e.g., for direct air capture and
-carbon capture [@wiegner2022optimal; weimann2023ccsmodel], heat
+carbon capture [@wiegner2022optimal; @weimann2023ccsmodel], heat
 pumps [@ruhnau2019time; @xu2022investigation], gas turbine models for different
 sizes [@weimann2019modeling], underground hydrogen storage, and electric naphtha
 cracking [@tiggeloven2023optimization]. Additionally, it includes the possibility to
