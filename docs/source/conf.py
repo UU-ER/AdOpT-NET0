@@ -17,10 +17,13 @@ mathjax_path = (
 
 project = "AdOpT-NET0"
 copyright = (
-    "2023, Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk, "
+    "2023, Jan F. Wiegner, Julia Tiggeloven, Luca Bertoni, Inge M. Ossentjuk, "
     "Matteo Gazzani"
 )
-author = "Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk, Matteo Gazzani"
+author = (
+    "Jan F. Wiegner, Julia Tiggeloven, Luca Bertoni, Inge M. Ossentjuk, "
+    "Matteo Gazzani"
+)
 release = "0.1"
 
 # -- General configuration ---------------------------------------------------
