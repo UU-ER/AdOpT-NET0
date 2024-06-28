@@ -483,8 +483,6 @@ class Stor(Technology):
             if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec, data, sequence_storage)
 
-        b_tec.pprint()
-
         return b_tec
 
     def _define_size(self, b_tec):
