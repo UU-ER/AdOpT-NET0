@@ -17,6 +17,7 @@ authors:
     orcid: 0009-0006-5330-7104
     affiliation: 1
   - name: Inge M. Ossentjuk
+    orcid: 0009-0001-8635-9385
     affiliation: 1
   - name: Matteo Gazzani
     orcid: 0000-0002-1352-4562
