@@ -10,7 +10,8 @@ authors:
     orcid: 0000-0003-2993-2496
     corresponding: true
     affiliation: 1
-  - name: Julia Tiggeloven
+  - name: Julia L. Tiggeloven
+    orcid: 0009-0006-2574-5887
     affiliation: 1
   - name: Luca Bertoni
     orcid: 0009-0006-5330-7104
