@@ -70,14 +70,14 @@ class Conv2(Technology):
       ``performance_function_type == 2`` with the exception that the performance
       function is defined piecewise for the respective number of pieces.
 
-    - ``performance_function_type == 4``:Piece-wise linear, minimal partload,
-      includes constraints for slow (>1h) startup and shutdown trajectories.
-      Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L.,
+    - ``performance_function_type == 4``:Piece-wise linear, minimal partload. Enables the modeling
+      of technologies with slow (>1h) startup and shutdown trajectories. For more information
+      please refer to :func:`dynamics`. Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L.,
       & Hobbs, B. F. (2017). Hidden power system inflexibilities imposed by
       traditional unit commitment formulations. Applied Energy, 191, 223–238.
       https://doi.org/10.1016/J.APENERGY.2017.01.089
 
-    - Additionally, ramping rates of the technology can be constraint.
+    - Additionally, ramping rates of the technology can be constrained.
 
       .. math::
          -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq rampingrate

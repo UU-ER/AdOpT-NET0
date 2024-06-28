@@ -25,6 +25,9 @@ Technology types, divided by generic and specific technologies:
     - Heat pump
     - Hydro open
 
+- Add-ons
+    - Carbon Capture
+
 All technology types listed above are modelled as subclasses of the :class:`Technology` class. An overview of all
 technologies that are currently modelled, and the technology classes / types used to model them, can be found
 :ref:`below <technologies_list>`.
