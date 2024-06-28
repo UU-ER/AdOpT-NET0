@@ -15,7 +15,7 @@ authors:
   - name: Luca Bertoni
     orcid: 0009-0006-5330-7104
     affiliation: 1
-  - name: Inge Ossentjuk
+  - name: Inge M. Ossentjuk
     affiliation: 1
   - name: Matteo Gazzani
     orcid: 0000-0002-1352-4562
