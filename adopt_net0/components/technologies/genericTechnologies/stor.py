@@ -525,7 +525,6 @@ class Stor(Technology):
         :param b_tec: pyomo block with technology model
         :param dict data: dict containing model information
         :return: pyomo block with technology model
-        :rtype: Block
         """
         super(Stor, self)._define_capex_parameters(b_tec, data)
 
@@ -595,7 +594,6 @@ class Stor(Technology):
         :param b_tec: pyomo block with technology model
         :param dict data: dict containing model information
         :return: pyomo block with technology model
-        :rtype: Block
         """
 
         super(Stor, self)._define_capex_variables(b_tec, data)
@@ -642,7 +640,6 @@ class Stor(Technology):
         :param b_tec: pyomo block with technology model
         :param dict data: dict containing model information
         :return: pyomo block with technology model
-        :rtype: Block
         """
 
         super(Stor, self)._define_capex_constraints(b_tec, data)
