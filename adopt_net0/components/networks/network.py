@@ -6,12 +6,15 @@ from ..utilities import (
     determine_variable_scaling,
     determine_constraint_scaling,
 )
-from ...logger import log_event
 
 import pandas as pd
 import copy
 import pyomo.environ as pyo
 import pyomo.gdp as gdp
+
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class Network(ModelComponent):
@@ -250,7 +253,8 @@ class Network(ModelComponent):
         :return: pyomo block with network model
         """
         # LOG
-        log_event(f"\t - Constructing Network {self.name}")
+        log_msg = f"\t - Constructing Network {self.name}"
+        log.info(log_msg)
 
         # NETWORK DATA
         config = data["config"]
@@ -305,10 +309,8 @@ class Network(ModelComponent):
                 b_arc = perform_disjunct_relaxation(b_arc)
 
             # LOG
-            log_event(
-                f"\t\t - Constructing Arc {node_from} - {node_to} " f"completed",
-                print_it=False,
-            )
+            log_msg = f"\t\t - Constructing Arc {node_from} - {node_to} " f"completed"
+            log.info(log_msg)
 
         b_netw.arc_block = pyo.Block(b_netw.set_arcs, rule=arc_block_init)
 
@@ -326,7 +328,8 @@ class Network(ModelComponent):
             b_netw = self._define_energyconsumption_total(b_netw)
 
         # LOG
-        log_event(f"\t - Constructing Network {self.name} completed", print_it=False)
+        log_msg = f"\t - Constructing Network {self.name} completed"
+        log.info(log_msg)
 
         return b_netw
 
@@ -1139,24 +1142,23 @@ class Network(ModelComponent):
         """
         coeff_ti = self.processed_coeff.time_independent
 
-        h5_group.create_dataset(
-            "para_capex_gamma1", data=model_block.para_capex_gamma1.value
-        )
-        h5_group.create_dataset(
-            "para_capex_gamma2", data=model_block.para_capex_gamma2.value
-        )
-        h5_group.create_dataset(
-            "para_capex_gamma3", data=model_block.para_capex_gamma3.value
-        )
-        h5_group.create_dataset(
-            "para_capex_gamma4", data=model_block.para_capex_gamma4.value
-        )
-
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
             str = "".join(arc_name)
             arc_group = h5_group.create_group(str)
 
+            arc_group.create_dataset(
+                "para_capex_gamma1", data=model_block.para_capex_gamma1.value
+            )
+            arc_group.create_dataset(
+                "para_capex_gamma2", data=model_block.para_capex_gamma2.value
+            )
+            arc_group.create_dataset(
+                "para_capex_gamma3", data=model_block.para_capex_gamma3.value
+            )
+            arc_group.create_dataset(
+                "para_capex_gamma4", data=model_block.para_capex_gamma4.value
+            )
             arc_group.create_dataset("network", data=self.name)
             arc_group.create_dataset("fromNode", data=arc_name[0])
             arc_group.create_dataset("toNode", data=arc_name[1])

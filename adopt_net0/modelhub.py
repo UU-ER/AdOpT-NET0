@@ -13,13 +13,15 @@ from .data_management import DataHandle, read_tec_data
 from .model_construction import *
 from .result_management.read_results import add_values_to_summary
 from .utilities import get_glpk_parameters, get_gurobi_parameters
-from .logger import log_event, logger
 from .result_management import *
 from .components.utilities import (
     annualize,
     set_discount_rate,
     perform_disjunct_relaxation,
 )
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class ModelHub:
@@ -70,12 +72,14 @@ class ModelHub:
         :param int start_period: starting period of the model
         :param int end_period: end period of the model
         """
-        log_event("--- Reading in data ---")
+        log_msg = "--- Reading in data ---"
+        log.info(log_msg)
         self.data.set_settings(data_path, start_period, end_period)
         self.data.read_data()
         self._perform_preprocessing_checks()
 
-        log_event("--- Reading in data complete ---")
+        log_msg = "--- Reading in data complete ---"
+        log.info(log_msg)
 
     def _perform_preprocessing_checks(self):
         """
@@ -195,7 +199,8 @@ class ModelHub:
 
                 Technology Block
         """
-        log_event("--- Constructing Model ---")
+        log_msg = "--- Constructing Model ---"
+        log.info(log_msg)
         start = time.time()
 
         # Determine aggregation
@@ -304,13 +309,15 @@ class ModelHub:
 
         model.periods = pyo.Block(model.set_periods, rule=init_period_block)
 
-        log_event(f"Constructing model completed in {str(round(time.time() - start))}s")
+        log_msg = f"Constructing model completed in {str(round(time.time() - start))}s"
+        log.info(log_msg)
 
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
         """
-        log_event("Constructing balances...")
+        log_msg = "Constructing balances..."
+        log.info(log_msg)
         start = time.time()
 
         config = self.data.model_config
@@ -329,9 +336,10 @@ class ModelHub:
         model = construct_system_cost(model, data)
         model = construct_global_balance(model)
 
-        log_event(
+        log_msg = (
             f"Constructing balances completed in {str(round(time.time() - start))}s"
         )
+        log.warning(log_msg)
 
     def solve(self):
         """
@@ -556,7 +564,8 @@ class ModelHub:
             return model.var_npv
 
         model.objective = pyo.Objective(rule=init_cost_objective, sense=pyo.minimize)
-        log_event("Set objective on cost")
+        log_msg = "Set objective on cost"
+        log.info(log_msg)
         self._call_solver()
 
     def _optimize_emissions_net(self):
@@ -573,7 +582,8 @@ class ModelHub:
         model.objective = pyo.Objective(
             rule=init_emission_net_objective, sense=pyo.minimize
         )
-        log_event("Set objective on net emissions")
+        log_msg = "Set objective on net emissions"
+        log.info(log_msg)
         self._call_solver()
 
     def _optimize_costs_emissionslimit(self):
@@ -594,7 +604,8 @@ class ModelHub:
         )
         if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
             self.solver.add_constraint(model.const_emission_limit)
-        log_event("Defined constraint on net emissions")
+        log_msg = "Defined constraint on net emissions"
+        log.info(log_msg)
         self._optimize_cost()
 
     def _optimize_costs_minE(self):
@@ -788,8 +799,7 @@ class ModelHub:
         """
         Calls the solver and solves the model
         """
-        print("_" * 60)
-        print("Solving Model...")
+        log.info("Solving Model...")
 
         start = time.time()
         config = self.data.model_config
@@ -872,8 +882,7 @@ class ModelHub:
         if write_results:
             self.write_results()
 
-        print("Solving model completed in " + str(round(time.time() - start)) + " s")
-        print("_" * 60)
+        log.info("Solving model completed in " + str(round(time.time() - start)) + " s")
 
     def _write_solution_diagnostics(self, save_path):
         """
@@ -930,7 +939,8 @@ class ModelHub:
 
         for limit in range(0, len(emission_limits)):
             self.info_pareto["pareto_point"] += 1
-            log_event(f"Optimizing Pareto point {limit}")
+            log_msg = f"Optimizing Pareto point {limit}"
+            log.info(log_msg)
             if limit != 0:
                 # If its not the first point, delete constraint
                 if config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
@@ -1052,10 +1062,8 @@ class ModelHub:
                                                     period, node, tec, new_row
                                                 )
                                             else:
-                                                log_event(
-                                                    f"Parameter unit_CAPEX is not defined for {tec} in MonteCarlo.csv",
-                                                    level="warning",
-                                                )
+                                                log_msg = f"Parameter unit_CAPEX is not defined for {tec} in MonteCarlo.csv"
+                                                log.warning(log_msg)
 
                                     else:
                                         # Find all rows with the same technology name
@@ -1070,10 +1078,8 @@ class ModelHub:
                                     processed_names.add(tec)
                                     break
                                 else:
-                                    log_event(
-                                        f"Technology {tec} in MonteCarlo.csv is not an active component",
-                                        level="warning",
-                                    )
+                                    log_msg = f"Technology {tec} in MonteCarlo.csv is not an active component"
+                                    log.warning(log_msg)
 
                 elif row["type"] == "Networks":
                     netw = row["name"]
@@ -1093,10 +1099,8 @@ class ModelHub:
                                 processed_names.add(netw)
                                 break
                             else:
-                                log_event(
-                                    f"Network {netw} in MonteCarlo.csv is not active component",
-                                    level="warning",
-                                )
+                                log_msg = f"Network {netw} in MonteCarlo.csv is not active component"
+                                log.warning(log_msg)
 
                 elif row["type"] == "Import":
                     import_constraint_reconstruction = True
@@ -1213,10 +1217,10 @@ class ModelHub:
                 b_tec = perform_disjunct_relaxation(b_tec)
 
         else:
-            log_event(
-                "monte carlo for capex models other than 1 and 3 is not implemented",
-                level="warning",
+            log_msg = (
+                "monte carlo for capex models other than 1 and 3 is not implemented"
             )
+            log.warning(log_msg)
 
     def _monte_carlo_networks(self, period, netw, MC_ranges=None):
         """
@@ -1468,10 +1472,11 @@ class ModelHub:
                     elif self.data.technology_data[period][node][tec].existing:
                         return pyo.Constraint.Skip
                     else:
-                        log_event(
-                            f"Size constraint imposed on {tec} at {node} in "
-                            f"{period}"
+                        log_msg = (
+                            f"Size constraint imposed on {tec} at {node} in {period}"
                         )
+                        log.info(log_msg)
+
                         return (
                             m_avg.periods[period]
                             .node_blocks[node]
@@ -1508,7 +1513,8 @@ class ModelHub:
                     b_netw_full = m_full.periods[period].network_block[netw]
                     b_netw_avg = m_avg.periods[period].network_block[netw]
 
-                    log_event(f"Size constraint imposed on {netw} in " f"{period}")
+                    log_msg = f"Size constraint imposed on {netw} in {period}"
+                    log.info(log_msg)
 
                     def size_constraints_arcs_init(const, node_from, node_to):
                         return (

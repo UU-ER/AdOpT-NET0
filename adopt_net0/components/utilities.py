@@ -1,7 +1,9 @@
 import time
 import pyomo.environ as pyo
 
-from ..logger import log_event
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def annualize(r: float, t: int, year_fraction: float):
@@ -85,18 +87,20 @@ def perform_disjunct_relaxation(model_block, method: str = "gdp.bigm"):
     :param str method: method to make transformation with.
     :return: component
     """
-    log_event("\t\t\t" + method + " Transformation...")
+    log_msg = "\t\t\t" + method + " Transformation..."
+    log.info(log_msg)
     start = time.time()
     xfrm = pyo.TransformationFactory(method)
     xfrm.apply_to(model_block)
-    log_event(
+    log_msg = (
         "\t\t\t"
         + method
         + " Transformation completed in "
         + str(round(time.time() - start))
-        + " s",
-        print_it=False,
+        + " s"
     )
+
+    log.info(log_msg)
     return model_block
 
 

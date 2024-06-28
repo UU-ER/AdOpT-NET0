@@ -1,6 +1,7 @@
 [![Documentation Status](https://readthedocs.org/projects/adopt-net0/badge/?version=latest)](https://adopt-net0.readthedocs.io/en/latest/?badge=latest)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Testing](https://github.com/UU-ER/AdOpT-NET0/actions/workflows/00publish_tests.yml/badge.svg?branch=main)
+[![PyPI version](https://badge.fury.io/py/adopt-net0.svg)](https://pypi.org/project/adopt-net0/)
 
 # AdOpT-NET0 - Advanced Optimization Tool for Networks and Energy
 

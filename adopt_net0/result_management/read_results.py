@@ -126,31 +126,20 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                     if not df.empty:
                         for period in df.columns.levels[0]:
                             for netw in df.columns.levels[1]:
-                                parameters1 = [
-                                    "para_capex_gamma1",
-                                    "para_capex_gamma2",
-                                    "para_capex_gamma3",
-                                    "para_capex_gamma4",
-                                ]
-                                for para in parameters1:
-                                    output_name = f"{period}/{netw}/{para}"
-                                    netw_output = df[period, netw, para].iloc[0, 0]
-                                    if output_name not in output_dict[case]:
-                                        output_dict[case][output_name] = netw_output
                                 for arc in df.columns.levels[2]:
-                                    if "gamma" not in arc:
-                                        parameters2 = ["size", "capex"]
-                                        for para in parameters2:
-                                            output_name = (
-                                                f"{period}/{netw}/{arc}/{para}"
-                                            )
-                                            arc_output = df[
-                                                period, netw, arc, para
-                                            ].iloc[0]
-                                            if output_name not in output_dict[case]:
-                                                output_dict[case][
-                                                    output_name
-                                                ] = arc_output
+                                    parameters = [
+                                        "para_capex_gamma1",
+                                        "para_capex_gamma2",
+                                        "para_capex_gamma3",
+                                        "para_capex_gamma4",
+                                        "size",
+                                        "capex",
+                                    ]
+                                    for para in parameters:
+                                        output_name = f"{period}/{netw}/{arc}/{para}"
+                                        arc_output = df[period, netw, arc, para].iloc[0]
+                                        if output_name not in output_dict[case]:
+                                            output_dict[case][output_name] = arc_output
 
                 if "Import" in component_set:
                     df = extract_datasets_from_h5group(

@@ -39,3 +39,4 @@ gurobipy==11.0.1
 scandir==1.10.0
 tables==3.9.2
 tsam>=2.3.1
+myst_nb>=1.1.0

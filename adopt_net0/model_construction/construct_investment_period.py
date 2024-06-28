@@ -1,5 +1,7 @@
 from pyomo.environ import Set, RangeSet, Var
-from ..logger import log_event
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def construct_investment_period_block(b_period, data: dict):
@@ -44,7 +46,8 @@ def construct_investment_period_block(b_period, data: dict):
     network_data = data["network_data"]
 
     # LOG
-    log_event(f"Constructing Investment Period {investment_period}")
+    log_msg = f"Constructing Investment Period {investment_period}"
+    log.info(log_msg)
 
     # SETS
     b_period.set_networks = Set(initialize=network_data.keys())
@@ -86,8 +89,7 @@ def construct_investment_period_block(b_period, data: dict):
     b_period.var_emissions_neg = Var()
     b_period.var_emissions_net = Var()
 
-    log_event(
-        f"Constructing Investment Period {investment_period} completed", print_it=False
-    )
+    log_msg = f"Constructing Investment Period {investment_period} completed"
+    log.warning(log_msg)
 
     return b_period

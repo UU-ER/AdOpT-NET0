@@ -17,10 +17,13 @@ mathjax_path = (
 
 project = "AdOpT-NET0"
 copyright = (
-    "2023, Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk, "
+    "2023, Jan F. Wiegner, Julia L. Tiggeloven, Luca Bertoni, Inge M. Ossentjuk, "
     "Matteo Gazzani"
 )
-author = "Jan Wiegner, Julia Tiggeloven, Luca Bertoni, Inge Ossentjuk, Matteo Gazzani"
+author = (
+    "Jan F. Wiegner, Julia L. Tiggeloven, Luca Bertoni, Inge M. Ossentjuk, "
+    "Matteo Gazzani"
+)
 release = "0.1"
 
 # -- General configuration ---------------------------------------------------
@@ -33,16 +36,21 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
+    "myst_nb",
 ]
 
 templates_path = ["_templates"]
 exclude_patterns = []
+
+# Dont run notebooks
+nb_execution_mode = "off"
 
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
+html_extra_path = [""]
 add_module_names = False
 
 # -- create table with configuration settings for documentation --------------------
