@@ -21,7 +21,7 @@ name = "adopt_net0"
 dynamic = ["version"]
 authors = [
   {name="Jan F. Wiegner", email="j.f.wiegner@uu.nl"},
-  {name="Julia Tiggeloven", email="j.l.tiggeloven@uu.nl"},
+  {name="Julia L. Tiggeloven", email="j.l.tiggeloven@uu.nl"},
   {name="Luca Bertoni", email="l.bertoni@uu.nl"},
   {name="Inge Ossentjuk", email="i.m.ossentjuk@uu.nl"},
   {name="Matteo Gazzani", email="m.gazzani@uu.nl"},
