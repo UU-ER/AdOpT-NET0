@@ -158,6 +158,8 @@ class DataHandle:
         # Open json
         with open(self.data_path / "ConfigModel.json") as json_file:
             self.model_config = json.load(json_file)
+            self.model_config['power_exponent'] = self.model_config.get('power_exponent', 3.0)  # Default value if not present
+            self.model_config['hub_height'] = self.model_config.get('hub_height', 100)  # Default value if not present
 
         # Log success
         log_msg = "Model Configuration read successfully"
@@ -335,11 +337,14 @@ class DataHandle:
                         / node
                         / "technology_data",
                     )
+
                     tec_data.fit_technology_performance(
                         self.time_series[aggregation_model][investment_period][node][
                             "ClimateData"
                         ]["global"],
                         self.node_locations.loc[node, :],
+                        power_exponent=self.model_config['power_exponent'],
+                        hub_height=self.model_config['hub_height']
                     )
                     technology_data[investment_period][node][technology] = tec_data
 
@@ -357,11 +362,15 @@ class DataHandle:
                     tec_data.input_parameters.size_initial = technologies_at_node[
                         "existing"
                     ][technology]
+
+
                     tec_data.fit_technology_performance(
                         self.time_series[aggregation_model][investment_period][node][
                             "ClimateData"
                         ]["global"],
                         self.node_locations.loc[node, :],
+                        power_exponent=self.model_config['power_exponent'],
+                        hub_height=self.model_config['hub_height']
                     )
                     technology_data[investment_period][node][
                         technology + "_existing"
