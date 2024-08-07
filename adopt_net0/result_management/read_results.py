@@ -102,7 +102,8 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
             with h5py.File(hdf_file_path, "r") as hdf_file:
 
                 if "Technologies" in component_set:
-                    df = extract_datasets_from_h5group(hdf_file["design/nodes"])
+                    data = extract_datasets_from_h5group(hdf_file["design/nodes"])
+                    df = pd.DataFrame(data)
                     for period in df.columns.levels[0]:
                         for node in df.columns.levels[1]:
                             for tec in df.columns.levels[2]:
@@ -120,7 +121,8 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                             output_dict[case][output_name] = tec_output
 
                 if "Networks" in component_set:
-                    df = extract_datasets_from_h5group(hdf_file["design/networks"])
+                    data = extract_datasets_from_h5group(hdf_file["design/networks"])
+                    df = pd.DataFrame(data)
                     if not df.empty:
                         for period in df.columns.levels[0]:
                             for netw in df.columns.levels[1]:
@@ -140,9 +142,10 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                             output_dict[case][output_name] = arc_output
 
                 if "Import" in component_set:
-                    df = extract_datasets_from_h5group(
+                    data = extract_datasets_from_h5group(
                         hdf_file["operation/energy_balance"]
                     )
+                    df = pd.DataFrame(data)
                     for period in df.columns.levels[0]:
                         for node in df[period].columns.levels[0]:
                             cars_at_node = (
@@ -178,9 +181,10 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                                             ] = car_output_std
 
                 if "Export" in component_set:
-                    df = extract_datasets_from_h5group(
+                    data = extract_datasets_from_h5group(
                         hdf_file["operation/energy_balance"]
                     )
+                    df = pd.DataFrame(data)
                     for period in df.columns.levels[0]:
                         for node in df[period].columns.levels[0]:
                             cars_at_node = (
