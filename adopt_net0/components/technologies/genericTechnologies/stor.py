@@ -78,12 +78,22 @@ class Stor(Technology):
        .. math::
          Input_{max} = \gamma_{charging} * S
 
-    - If in 'Flexibility' the "power_energy_ratio == flex" (flexible), then the
+    - If in 'Flexibility' the "power_energy_ratio == flexratio", then the
       capacity of the charging and discharging power is a variable in the
       optimization. In this case, the charging and discharging rates specified in the
       json file are the maximum installed capacities as a ratio of the energy
       capacity. The model will optimize the charging and discharging capacities,
       based on the incorporation of these components in the CAPEX function.
+
+    - If in 'Flexibility' the "power_energy_ratio == fixedratio", then the
+      capacity of the charging and discharging power is a fraction of the installed capacity.
+      In this case, the charging and discharging rates specified in the
+      json file are a ratio of the energy capacity.
+
+    - If in 'Flexibility' the "power_energy_ratio == fixedcapacity", then the
+      capacity of the charging and discharging power is a fixed input parameter.
+      In this case, the charging and discharging rates specified in the
+      json file in the same unit as the input and output.
 
     - If an energy consumption for charging or dis-charging process is given, the respective carrier input is:
 
