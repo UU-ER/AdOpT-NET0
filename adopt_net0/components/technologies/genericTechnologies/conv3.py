@@ -75,7 +75,7 @@ class Conv3(Technology):
 
     - ``performance_function_type == 4``:Piece-wise linear, minimal partload. Enables the modeling
       of technologies with slow (>1h) startup and shutdown trajectories. For more information
-      please refer to :func:`dynamics`. Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L.,
+      please refer to dynamics under advanced topics. Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L.,
       & Hobbs, B. F. (2017). Hidden power system inflexibilities imposed by
       traditional unit commitment formulations. Applied Energy, 191, 223–238.
       https://doi.org/10.1016/J.APENERGY.2017.01.089
