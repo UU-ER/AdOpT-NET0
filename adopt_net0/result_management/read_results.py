@@ -24,7 +24,7 @@ def print_h5_tree(file_path: Path | str):
         hdf_file.visititems(print_attrs)
 
 
-def extract_datasets_from_h5group(group, prefix: tuple = ()) -> pd.DataFrame:
+def extract_datasets_from_h5group(group, prefix: tuple = ()) -> dict:
     """
     Extracts datasets from a group within a h5 file
 
@@ -47,9 +47,7 @@ def extract_datasets_from_h5group(group, prefix: tuple = ()) -> pd.DataFrame:
             else:
                 data[prefix + (key,)] = value[:]
 
-    df = pd.DataFrame(data)
-
-    return df
+    return data
 
 
 def extract_dataset_from_h5(dataset) -> list:
