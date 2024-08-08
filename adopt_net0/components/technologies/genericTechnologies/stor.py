@@ -358,25 +358,41 @@ class Stor(Technology):
             # Cut according to Morales-Espana "LP Formulation for Optimal Investment and
             # Operation of Storage Including Reserves"
             def init_cut_bidirectional(const, t):
-                if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
-                    return (
-                        self.output[t, self.component_options.main_input_carrier]
-                        + self.input[t, self.component_options.main_input_carrier]
-                        <= b_tec.var_size
-                    )
-                else:
-                    # output[t]/discharge_rate + input[t]/charge_rate <= storSize
-                    return (
-                        self.output[t, self.component_options.main_input_carrier]
-                        / discharge_rate
-                        + self.input[t, self.component_options.main_input_carrier]
-                        / charge_rate
-                        <= b_tec.var_size
-                    )
+                # output[t]/discharge_rate + input[t]/charge_rate <= storSize
+                return (
+                    self.output[t, self.component_options.main_input_carrier]
+                    / discharge_rate
+                    + self.input[t, self.component_options.main_input_carrier]
+                    / charge_rate
+                    <= b_tec.var_size
+                )
 
-            b_tec.const_cut_bidirectional = pyo.Constraint(
-                self.set_t_performance, rule=init_cut_bidirectional
-            )
+            # Changes to cut from Morales-Espana for fixed charging and discharging capacities
+            def init_cut_bidirectional_fix1(const, t):
+                return (
+                    self.output[t, self.component_options.main_input_carrier]
+                    + self.input[t, self.component_options.main_input_carrier]
+                    <= b_tec.var_size
+                )
+
+            def init_cut_bidirectional_fix2(const, t):
+                return (
+                    self.output[t, self.component_options.main_input_carrier]
+                    + self.input[t, self.component_options.main_input_carrier]
+                    <= charge_rate + discharge_rate
+                )
+
+            if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
+                b_tec.const_cut_bidirectional = pyo.Constraint(
+                    self.set_t_performance, rule=init_cut_bidirectional_fix1
+                )
+                b_tec.const_cut_bidirectional = pyo.Constraint(
+                    self.set_t_performance, rule=init_cut_bidirectional_fix2
+                )
+            else:
+                b_tec.const_cut_bidirectional = pyo.Constraint(
+                    self.set_t_performance, rule=init_cut_bidirectional
+                )
 
             if self.component_options.allow_only_one_direction_precise:
 
