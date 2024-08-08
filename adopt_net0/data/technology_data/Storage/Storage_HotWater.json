@@ -49,7 +49,7 @@
   },
   "Flexibility": {
     "comment": "determines the flexibility of the power capacity compared to the energy capacity",
-    "power_energy_ratio": "fixed",
+    "power_energy_ratio": "fixedratio",
     "charge_rate": 0.33333333333333331,
     "discharge_rate": 0.33333333333333331,
     "capex_charging_power": 0,
