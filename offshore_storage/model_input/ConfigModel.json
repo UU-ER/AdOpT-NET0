@@ -207,7 +207,7 @@
         },
         "save_path": {
             "description": "Option to define the save path.",
-            "value": "./userData/"
+            "value": "//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/CapexOptimization"
         },
         "case_name": {
             "description": "Option to define a case study name that is added to the results folder name.",

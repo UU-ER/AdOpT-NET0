@@ -270,10 +270,13 @@ for technology in all_technologies:
                 if test:
                     m_baseline.read_data(input_data_path, start_period=0,
                                          end_period=test_periods)
+                    m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
+                            "TESTbaseline " + case_name)
                 else:
                     m_baseline.read_data(input_data_path)
-                m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
-                        "baseline " + case_name)
+                    m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
+                            "baseline " + case_name)
+
                 m_baseline.quick_solve()
 
                 # Read data from files and construct storage_model
@@ -283,10 +286,13 @@ for technology in all_technologies:
                 if test:
                     m_storage.read_data(input_data_path, start_period=0,
                                         end_period=test_periods)
+                    m_storage.data.model_config["reporting"]["case_name"]["value"] = (
+                            "TESTcapex_optim " + case_name)
                 else:
                     m_storage.read_data(input_data_path)
-                m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                        "capex_optim " + case_name)
+                    m_storage.data.model_config["reporting"]["case_name"]["value"] = (
+                            "capex_optim " + case_name)
+
                 m_storage.quick_solve()
 
             else:
