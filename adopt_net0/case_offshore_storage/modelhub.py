@@ -22,7 +22,7 @@ class ModelHubCapexOptimization(ModelHub):
                 pass
 
             model.const_cost_limit = Constraint(expr=model.var_npv <=
-                                                     self.total_cost_limit)
+                                                     self.total_cost_limit * 1.001)
 
             model.const_cost_limit.pprint()
             def init_max_capex(obj):

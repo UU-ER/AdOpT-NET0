@@ -203,7 +203,7 @@
         },
         "save_summary_path": {
             "description": "Path to save the summary file path to.",
-            "value": "./userData/"
+            "value": "//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/CapexOptimization"
         },
         "save_path": {
             "description": "Option to define the save path.",
