@@ -1,0 +1,11 @@
+{
+    "electricity": {
+        "curtailment_possible": 1
+    },
+    "hydrogen": {
+        "curtailment_possible": 0
+    },
+    "gas": {
+        "curtailment_possible": 0
+    }
+}

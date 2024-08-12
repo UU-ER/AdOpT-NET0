@@ -1,0 +1,65 @@
+{
+  "capex_optimization": 1,
+  "tec_type": "STOR",
+  "size": 3000,
+  "size_min": 0,
+  "size_max": 1.0E+7,
+  "size_is_int": 0,
+  "decommission": 0,
+  "Economics": {
+    "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "CAPEX_model": 1,
+    "unit_CAPEX": 500000,
+    "fix_CAPEX": 0,
+    "piecewise_CAPEX": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0,
+    "discount_rate": 0.1,
+    "lifetime": 40,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "electricity"
+    ],
+    "main_input_carrier": "electricity",
+    "output_carrier": [
+      "electricity"
+    ],
+    "emission_factor": 0,
+    "allow_only_one_direction": 1,
+    "allow_only_one_direction_precise": 0,
+    "performance": {
+      "eta_in": 0.84,
+      "eta_out": 0.84,
+      "lambda": 0,
+      "theta": 0
+    }
+  },
+  "Units": {
+    "size": "MWh",
+    "input_carrier": {
+      "electricity": "MW"
+    },
+    "output_carrier": {
+      "electricity": "MW"
+    }
+  },
+  "Flexibility": {
+    "comment": "determines the flexibility of the power capacity compared to the energy capacity",
+    "power_energy_ratio": "fixed",
+    "charge_rate": 0.02,
+    "discharge_rate": 0.1,
+    "capex_charging_power": 0,
+    "capex_discharging_power": 0
+  },
+  "ScalingFactors": {
+    "const_storage_level": 1,
+    "const_cut_bidirectional": 1,
+    "const_unit_capex": 1
+  }
+}
