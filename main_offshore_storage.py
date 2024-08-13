@@ -20,6 +20,7 @@ input_data_path = Path("./offshore_storage/model_input")
 # adopt.copy_technology_data(input_data_path)
 # adopt.copy_network_data(input_data_path)
 
+test = 0
 test_periods = 50
 climate_year = 2000
 # all_technologies = [
@@ -241,7 +242,6 @@ def adapt_model(m, p_onshore, p_offshore):
 
 for technology in all_technologies:
     # INPUT
-    test = 1
     factors = {}
     factors['demand'] = 0.05
     if test == 1:
@@ -307,6 +307,8 @@ for technology in all_technologies:
                 m_baseline.solve()
 
                 m_storage = adapt_model(m_storage, p_onshore, p_offshore)
+                m_storage.total_cost_limit = m_baseline.model[m_baseline.info_solving_algorithms[
+                    "aggregation_model"]].var_npv.value
                 m_storage.data.model_config["reporting"]["case_name"]["value"] = (
                         "capex_optim " + case_name)
                 m_storage.solve()
