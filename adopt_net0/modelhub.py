@@ -1289,10 +1289,12 @@ class ModelHub:
             b_arc.var_capex.setub(bounds[1])
 
             # Remove constraint (from persistent solver and from model)
-            if b_arc.find_component("_pyomo_gdp_bigm_reformulation"):
-                b_arc.del_component(model._pyomo_gdp_bigm_reformulation)
+            if b_arc.find_component("dis_installation"):
+                b_arc.del_component(b_arc._pyomo_gdp_bigm_reformulation)
                 b_arc.del_component(b_arc.dis_installation)
                 b_arc.del_component(b_arc.disjunction_installation)
+            if b_arc.find_component("const_capex_aux"):
+                b_arc.del_component(b_arc.const_capex_aux)
             b_arc.del_component(b_arc.const_capex)
 
             b_arc = netw_data._define_capex_constraints_arc(
