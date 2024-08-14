@@ -50,7 +50,7 @@ def construct_investment_period_block(b_period, data: dict):
     log.info(log_msg)
 
     # SETS
-    b_period.set_networks = Set(initialize=network_data.keys())
+    b_period.set_networks = Set(initialize=list(network_data.keys()))
 
     # TIME PERIODS
     if config["optimization"]["typicaldays"]["N"]["value"] == 0:
