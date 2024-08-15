@@ -53,10 +53,10 @@ class TechnologyCapexOptimization(Technology):
         fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
         annualization_factor = annualize(discount_rate, economics.lifetime, fraction_of_year_modelled)
 
-        b_tec.var_unit_capex_annual = pyo.Var(within=pyo.Reals, bounds=(0, 1e6))
-        b_tec.var_unit_capex = pyo.Var(within=pyo.Reals, bounds=(0, 1e6))
-        b_tec.var_capex = pyo.Var(within=pyo.Reals, bounds=(0, 1e6))
-        b_tec.var_capex_aux = pyo.Var(within=pyo.Reals, bounds=(0, 1e6))
+        b_tec.var_unit_capex_annual = pyo.Var(within=pyo.Reals, bounds=(0, 1e8))
+        b_tec.var_unit_capex = pyo.Var(within=pyo.Reals, bounds=(0, 1e8))
+        b_tec.var_capex = pyo.Var(within=pyo.Reals, bounds=(0, 1e8))
+        b_tec.var_capex_aux = pyo.Var(within=pyo.Reals, bounds=(0, 1e8))
 
         return b_tec
 
