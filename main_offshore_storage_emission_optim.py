@@ -21,12 +21,12 @@ input_data_path = Path("./offshore_storage/model_input_emission_optim")
 # adopt.copy_network_data(input_data_path)
 
 test = 1
-test_periods = 500
+test_periods = 100
 climate_year = 2000
 # all_technologies = [
 #     ('offshore', "Storage_OceanBattery_CapexOptimization")
 # ]
-emission_targets = [0, 0.2, 0.4, 0.6, 0.8]
+emission_targets = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0]
 all_technologies = [
     ('onshore', "Storage_Battery_CapexOptimization"),
     # ('onshore', "Storage_CAES_CapexOptimization"),
@@ -250,7 +250,7 @@ for technology in all_technologies:
         factors['offshore'] = [round(x, 2) for x in list(np.arange(0.1, 1.05, 0.05))]
         factors['self_sufficiency'] = [round(x, 2) for x in list(np.arange(0.1, 2.1, 0.1))]
 
-    idx = 1
+    idx_shares = 1
     for f_offshore in factors['offshore']:
         for f_self_sufficiency in factors['self_sufficiency']:
 
@@ -262,7 +262,7 @@ for technology in all_technologies:
             print(case_name)
 
             # Solve baseline
-            if idx == 1:
+            if idx_shares == 1:
                 set_data(climate_year, None, factors['demand'], f_offshore,
                          f_self_sufficiency, test)
 
@@ -298,9 +298,11 @@ for technology in all_technologies:
                 total_emissions = m_baseline.model[m_baseline.info_solving_algorithms[
                     "aggregation_model"]].var_emissions_net.value
 
+            next_solveable = True
             for emission_target in emission_targets:
+
                 # Solve storage
-                if idx == 1:
+                if idx_shares == 1:
                     m_storage = ModelHubEmissionOptimization(technology, total_emissions
                                                              * emission_target)
                     if test:
@@ -315,20 +317,33 @@ for technology in all_technologies:
                     m_storage.total_emission_limit = emission_target * total_emissions
 
                     m_storage.quick_solve()
+                    if m_storage.solution.solver.termination_condition in [
+                        pyo.TerminationCondition.infeasibleOrUnbounded,
+                        pyo.TerminationCondition.infeasible,
+                        pyo.TerminationCondition.unbounded,
+                    ]:
+                        next_solveable = False
 
                 else:
-                    m_storage.total_emission_limit = emission_target * total_emissions
-                    demand, p_onshore, p_offshore = determine_time_series(factors['demand'],
-                                                                          f_offshore,
-                                                                          f_self_sufficiency,
-                                                                          climate_year)
+                    if next_solveable:
+                        m_storage.total_emission_limit = emission_target * total_emissions
+                        demand, p_onshore, p_offshore = determine_time_series(factors['demand'],
+                                                                              f_offshore,
+                                                                              f_self_sufficiency,
+                                                                              climate_year)
 
-                    m_storage = adapt_model(m_storage, p_onshore, p_offshore)
-                    m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                            "emissions_optim " + case_name + str(emission_target))
-                    m_storage.solve()
+                        m_storage = adapt_model(m_storage, p_onshore, p_offshore)
+                        m_storage.data.model_config["reporting"]["case_name"]["value"] = (
+                                "emissions_optim " + case_name + str(emission_target))
+                        m_storage.solve()
+                        if m_storage.solution.solver.termination_condition in [
+                            pyo.TerminationCondition.infeasibleOrUnbounded,
+                            pyo.TerminationCondition.infeasible,
+                            pyo.TerminationCondition.unbounded,
+                        ]:
+                            next_solveable = False
 
-                idx = idx + 1
+                idx_shares = idx_shares + 1
 
 
 
