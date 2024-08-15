@@ -21,20 +21,20 @@ input_data_path = Path("./offshore_storage/model_input_emission_optim")
 # adopt.copy_network_data(input_data_path)
 
 test = 1
-test_periods = 100
+test_periods = 500
 climate_year = 2000
 # all_technologies = [
 #     ('offshore', "Storage_OceanBattery_CapexOptimization")
 # ]
-emission_target = 1
+emission_targets = [0, 0.2, 0.4, 0.6, 0.8]
 all_technologies = [
     ('onshore', "Storage_Battery_CapexOptimization"),
-    ('onshore', "Storage_CAES_CapexOptimization"),
-    ('onshore', "Electrolyzer"),
-    ('offshore', "Storage_Battery_CapexOptimization"),
-    ('offshore', "Storage_CAES_CapexOptimization"),
-    ('offshore', "Storage_OceanBattery_CapexOptimization"),
-    ('offshore', "Electrolyzer"),
+    # ('onshore', "Storage_CAES_CapexOptimization"),
+    # ('onshore', "Electrolyzer"),
+    # ('offshore', "Storage_Battery_CapexOptimization"),
+    # ('offshore', "Storage_CAES_CapexOptimization"),
+    # ('offshore', "Storage_OceanBattery_CapexOptimization"),
+    # ('offshore', "Electrolyzer"),
 ]
 # Write generic production
 def determine_time_series(f_demand, f_offshore, f_self_sufficiency, cy):
@@ -239,18 +239,13 @@ def adapt_model(m, p_onshore, p_offshore):
                                                          rule=init_generic_production)
     return m
 
-
 for technology in all_technologies:
-
-
-
-
     # INPUT
     factors = {}
     factors['demand'] = 0.05
     if test == 1:
         factors['offshore'] = [0.1]
-        factors['self_sufficiency'] = [1.5]
+        factors['self_sufficiency'] = [1]
     else:
         factors['offshore'] = [round(x, 2) for x in list(np.arange(0.1, 1.05, 0.05))]
         factors['self_sufficiency'] = [round(x, 2) for x in list(np.arange(0.1, 2.1, 0.1))]
@@ -259,12 +254,14 @@ for technology in all_technologies:
     for f_offshore in factors['offshore']:
         for f_self_sufficiency in factors['self_sufficiency']:
 
-            case_name = (technology[0] + " " + technology[1] + " offshore_" +
-                         str(f_offshore) + " selfsufficiency_" + str(
-                        f_self_sufficiency))
+            case_name = (technology[0] + " " + technology[1] +
+                         " offshore_" + str(f_offshore) +
+                         " selfsufficiency_" + str(f_self_sufficiency) +
+                         " emissiontarget_")
 
             print(case_name)
 
+            # Solve baseline
             if idx == 1:
                 set_data(climate_year, None, factors['demand'], f_offshore,
                          f_self_sufficiency, test)
@@ -289,39 +286,49 @@ for technology in all_technologies:
                 # Read data from files and construct storage_model
                 total_emissions = m_baseline.model[m_baseline.info_solving_algorithms[
                     "aggregation_model"]].var_emissions_net.value
-                m_storage = ModelHubEmissionOptimization(technology, total_emissions
-                                                         * emission_target)
-                if test:
-                    m_storage.read_data(input_data_path, start_period=0,
-                                        end_period=test_periods)
-                    m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                            "TESTemissions_optim " + case_name)
-                else:
-                    m_storage.read_data(input_data_path)
-                    m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                            "emissions_optim " + case_name)
-
-                m_storage.quick_solve()
-
             else:
                 demand, p_onshore, p_offshore = determine_time_series(factors['demand'],
                                                                       f_offshore,
                                                                       f_self_sufficiency,
                                                                       climate_year)
-
                 m_baseline = adapt_model(m_baseline, p_onshore, p_offshore)
                 m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
                         "baseline " + case_name)
                 m_baseline.solve()
-
-                m_storage = adapt_model(m_storage, p_onshore, p_offshore)
-                m_storage.total_emission_limit = m_baseline.model[m_baseline.info_solving_algorithms[
+                total_emissions = m_baseline.model[m_baseline.info_solving_algorithms[
                     "aggregation_model"]].var_emissions_net.value
-                m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                        "capex_optim " + case_name)
-                m_storage.solve()
 
-            idx = idx + 1
+            for emission_target in emission_targets:
+                # Solve storage
+                if idx == 1:
+                    m_storage = ModelHubEmissionOptimization(technology, total_emissions
+                                                             * emission_target)
+                    if test:
+                        m_storage.read_data(input_data_path, start_period=0,
+                                            end_period=test_periods)
+                        m_storage.data.model_config["reporting"]["case_name"]["value"] = (
+                                "TESTemissions_optim " + case_name + str(emission_target))
+                    else:
+                        m_storage.read_data(input_data_path)
+                        m_storage.data.model_config["reporting"]["case_name"]["value"] = (
+                                "emissions_optim " + case_name + str(emission_target))
+                    m_storage.total_emission_limit = emission_target * total_emissions
+
+                    m_storage.quick_solve()
+
+                else:
+                    m_storage.total_emission_limit = emission_target * total_emissions
+                    demand, p_onshore, p_offshore = determine_time_series(factors['demand'],
+                                                                          f_offshore,
+                                                                          f_self_sufficiency,
+                                                                          climate_year)
+
+                    m_storage = adapt_model(m_storage, p_onshore, p_offshore)
+                    m_storage.data.model_config["reporting"]["case_name"]["value"] = (
+                            "emissions_optim " + case_name + str(emission_target))
+                    m_storage.solve()
+
+                idx = idx + 1
 
 
 

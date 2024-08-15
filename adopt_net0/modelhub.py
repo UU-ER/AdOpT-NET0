@@ -847,26 +847,10 @@ class ModelHub:
                 keepfiles=True,
             )
 
-        if config["scaling"]["scaling_on"]["value"] == 1:
-            pyo.TransformationFactory("core.scale_model").propagate_solution(
-                model, self.model[self.info_solving_algorithms["aggregation_model"]]
-            )
-
-        if config["reporting"]["write_solution_diagnostics"]["value"] >= 1:
-            self._write_solution_diagnostics(result_folder_path)
-
-        self.solution.write()
-
-        self.last_solve_info["pareto_point"] = self.info_pareto["pareto_point"]
-        self.last_solve_info["monte_carlo_run"] = self.info_monte_carlo[
-            "monte_carlo_run"
-        ]
-        self.last_solve_info["config"] = config
-        self.last_solve_info["result_folder_path"] = result_folder_path
-        self.last_solve_info["time_stage"] = self.info_solving_algorithms["time_stage"]
-
         # Write results to path
         # Determine if results should be written
+        self.solution.write()
+
         write_results = False
         if (self.solution.solver.status == pyo.SolverStatus.ok) or (
             self.solution.solver.status == pyo.SolverStatus.warning
@@ -880,6 +864,25 @@ class ModelHub:
             write_results = False
 
         if write_results:
+
+            if config["scaling"]["scaling_on"]["value"] == 1:
+                pyo.TransformationFactory("core.scale_model").propagate_solution(
+                    model, self.model[self.info_solving_algorithms["aggregation_model"]]
+                )
+
+            if config["reporting"]["write_solution_diagnostics"]["value"] >= 1:
+                self._write_solution_diagnostics(result_folder_path)
+
+            self.solution.write()
+
+            self.last_solve_info["pareto_point"] = self.info_pareto["pareto_point"]
+            self.last_solve_info["monte_carlo_run"] = self.info_monte_carlo[
+                "monte_carlo_run"
+            ]
+            self.last_solve_info["config"] = config
+            self.last_solve_info["result_folder_path"] = result_folder_path
+            self.last_solve_info["time_stage"] = self.info_solving_algorithms["time_stage"]
+
             self.write_results()
 
         log.info("Solving model completed in " + str(round(time.time() - start)) + " s")
