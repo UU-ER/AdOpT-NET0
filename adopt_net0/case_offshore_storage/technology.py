@@ -24,8 +24,15 @@ class TechnologyCapexOptimization(Technology):
     def _define_size(self, b_tec):
 
         coeff_ti = self.processed_coeff.time_independent
-        charge_rate = coeff_ti["charge_rate"]
-        discharge_rate = coeff_ti["discharge_rate"]
+
+        if "charge_rate" in coeff_ti.keys():
+            charge_rate = coeff_ti["charge_rate"]
+            discharge_rate = coeff_ti["discharge_rate"]
+            var_charge_needed = True
+        else:
+            charge_rate = 1
+            discharge_rate = 1
+            var_charge_needed = False
 
         b_tec.para_size_min = pyo.Param(
             domain=pyo.NonNegativeReals, initialize=coeff_ti["size_min"], mutable=True
@@ -36,13 +43,14 @@ class TechnologyCapexOptimization(Technology):
 
         b_tec.var_size = pyo.Param(within=pyo.NonNegativeReals, initialize=self.size)
 
-        b_tec.var_capacity_charge = pyo.Var(
-            domain=pyo.NonNegativeReals, bounds=(0, b_tec.para_size_max * charge_rate)
-        )
-        b_tec.var_capacity_discharge = pyo.Var(
-            domain=pyo.NonNegativeReals,
-            bounds=(0, b_tec.para_size_max * discharge_rate),
-        )
+        if var_charge_needed:
+            b_tec.var_capacity_charge = pyo.Var(
+                domain=pyo.NonNegativeReals, bounds=(0, b_tec.para_size_max * charge_rate)
+            )
+            b_tec.var_capacity_discharge = pyo.Var(
+                domain=pyo.NonNegativeReals,
+                bounds=(0, b_tec.para_size_max * discharge_rate),
+            )
         return b_tec
 
     def _define_capex_variables(self, b_tec, data):
