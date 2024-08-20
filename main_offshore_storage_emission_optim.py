@@ -28,7 +28,7 @@ climate_year = 2000
 # ]
 emission_targets = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0]
 all_technologies = [
-    ('onshore', "Storage_Battery_CapexOptimization"),
+    # ('onshore', "Storage_Battery_CapexOptimization"),
     ('onshore', "Storage_CAES_CapexOptimization"),
     ('onshore', "Electrolyzer"),
     ('offshore', "Storage_Battery_CapexOptimization"),
@@ -279,7 +279,7 @@ for technology in all_technologies:
                                                                       climate_year)
                 m_baseline = adapt_model(m_baseline, p_onshore, p_offshore)
                 m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
-                        "baseline " + case_name)
+                        "BL " + case_name)
                 m_baseline.solve()
 
                 total_emissions = m_baseline.model[m_baseline.info_solving_algorithms[
