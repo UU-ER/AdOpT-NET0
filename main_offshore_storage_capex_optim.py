@@ -248,15 +248,15 @@ for technology in all_technologies:
         factors['offshore'] = [0.1]
         factors['self_sufficiency'] = [1.5]
     else:
-        factors['offshore'] = [round(x, 2) for x in list(np.arange(0.1, 1.05, 0.05))]
-        factors['self_sufficiency'] = [round(x, 2) for x in list(np.arange(0.1, 2.1, 0.1))]
+        factors['offshore'] = [0.25, 0.5, 0.75, 1]
+        factors['self_sufficiency'] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 
     idx = 1
     for f_offshore in factors['offshore']:
         for f_self_sufficiency in factors['self_sufficiency']:
 
-            case_name = (technology[0] + " " + technology[1] + " offshore_" +
-                         str(f_offshore) + " selfsufficiency_" + str(
+            case_name = (technology[0] + "_" + technology[1] + " OS_" +
+                         str(f_offshore) + " SS_" + str(
                         f_self_sufficiency))
 
             print(case_name)
@@ -275,7 +275,7 @@ for technology in all_technologies:
                 else:
                     m_baseline.read_data(input_data_path)
                     m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
-                            "baseline " + case_name)
+                            "BL " + case_name)
 
                 m_baseline.quick_solve()
 
@@ -291,7 +291,7 @@ for technology in all_technologies:
                 else:
                     m_storage.read_data(input_data_path)
                     m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                            "capex_optim " + case_name)
+                            "CAPEX " + case_name)
 
                 m_storage.quick_solve()
 
@@ -303,14 +303,14 @@ for technology in all_technologies:
 
                 m_baseline = adapt_model(m_baseline, p_onshore, p_offshore)
                 m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
-                        "baseline " + case_name)
+                        "BL " + case_name)
                 m_baseline.solve()
 
                 m_storage = adapt_model(m_storage, p_onshore, p_offshore)
                 m_storage.total_cost_limit = m_baseline.model[m_baseline.info_solving_algorithms[
                     "aggregation_model"]].var_npv.value
                 m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                        "capex_optim " + case_name)
+                        "CAPEX " + case_name)
                 m_storage.solve()
 
             idx = idx + 1

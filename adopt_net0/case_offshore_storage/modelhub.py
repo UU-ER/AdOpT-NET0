@@ -1,5 +1,5 @@
 from ..modelhub import ModelHub
-from .handle_input_data import DataHandleCapexOptimization
+from .handle_input_data import DataHandleCapexOptimization, DataHandleEmissionOptimization
 from pyomo.environ import *
 
 class ModelHubCapexOptimization(ModelHub):
@@ -44,6 +44,7 @@ class ModelHubCapexOptimization(ModelHub):
 class ModelHubEmissionOptimization(ModelHub):
     def __init__(self, technology_to_optimize:tuple, total_emission_limit:float):
         super().__init__()
+        self.data = DataHandleEmissionOptimization(technology_to_optimize)
         self.technology_to_optimize = technology_to_optimize
         self.total_emission_limit = total_emission_limit
 

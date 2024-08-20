@@ -20,8 +20,8 @@ input_data_path = Path("./offshore_storage/model_input_emission_optim")
 # adopt.copy_technology_data(input_data_path)
 # adopt.copy_network_data(input_data_path)
 
-test = 1
-test_periods = 10
+test = 0
+test_periods = 200
 climate_year = 2000
 # all_technologies = [
 #     ('offshore', "Storage_OceanBattery_CapexOptimization")
@@ -104,19 +104,6 @@ def set_data(climate_year, technology, f_demand, f_offshore,
             input_data_path / "period1" / "node_data" / "onshore" / "Technologies.json",
             "w") as json_file:
         json.dump(technologies, json_file, indent=4)
-
-    # other tecs
-    if technology:
-        with open(
-                input_data_path / "period1" / "node_data" / technology[0] /
-                "Technologies.json",
-                "r") as json_file:
-            technologies = json.load(json_file)
-        technologies["new"] = [technology[1]]
-        with open(
-                input_data_path / "period1" / "node_data" / "onshore" / "Technologies.json",
-                "w") as json_file:
-            json.dump(technologies, json_file, indent=4)
 
     # NETWORK SIZE
     size = pd.read_csv(
@@ -247,22 +234,23 @@ for technology in all_technologies:
         factors['offshore'] = [0.1]
         factors['self_sufficiency'] = [1]
     else:
-        factors['offshore'] = [round(x, 2) for x in list(np.arange(0.1, 1.05, 0.05))]
-        factors['self_sufficiency'] = [round(x, 2) for x in list(np.arange(0.1, 2.1, 0.1))]
+        factors['offshore'] = [0.25, 0.5, 0.75, 1]
+        factors['self_sufficiency'] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 
     idx_shares = 1
     for f_offshore in factors['offshore']:
         for f_self_sufficiency in factors['self_sufficiency']:
 
-            case_name = (technology[0] + " " + technology[1] +
-                         " offshore_" + str(f_offshore) +
-                         " selfsufficiency_" + str(f_self_sufficiency) +
-                         " emissiontarget_")
+            case_name = (technology[0] + "_" + technology[1] +
+                         " OS_" + str(f_offshore) +
+                         " SS_" + str(f_self_sufficiency) +
+                         " ET_")
 
             print(case_name)
 
             # Solve baseline
             if idx_shares == 1:
+                # If its the first iteration of a new tec, make model
                 set_data(climate_year, None, factors['demand'], f_offshore,
                          f_self_sufficiency, test)
 
@@ -276,17 +264,15 @@ for technology in all_technologies:
                 else:
                     m_baseline.read_data(input_data_path)
                     m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
-                            "baseline " + case_name)
+                            "BL " + case_name)
 
                 m_baseline.quick_solve()
-
-                set_data(climate_year, technology, factors['demand'], f_offshore,
-                         f_self_sufficiency, test)
 
                 # Read data from files and construct storage_model
                 total_emissions = m_baseline.model[m_baseline.info_solving_algorithms[
                     "aggregation_model"]].var_emissions_net.value
             else:
+                # If its not the first iteration of a new tec, adapt model
                 demand, p_onshore, p_offshore = determine_time_series(factors['demand'],
                                                                       f_offshore,
                                                                       f_self_sufficiency,
@@ -296,17 +282,14 @@ for technology in all_technologies:
                         "baseline " + case_name)
                 m_baseline.solve()
 
-                set_data(climate_year, technology, factors['demand'], f_offshore,
-                         f_self_sufficiency, test)
-
                 total_emissions = m_baseline.model[m_baseline.info_solving_algorithms[
                     "aggregation_model"]].var_emissions_net.value
 
             next_solveable = True
             for emission_target in emission_targets:
-
                 # Solve storage
                 if idx_shares == 1:
+                    # If its the first iteration of a new tec, make model
                     m_storage = ModelHubEmissionOptimization(technology, total_emissions
                                                              * emission_target)
                     if test:
@@ -317,7 +300,7 @@ for technology in all_technologies:
                     else:
                         m_storage.read_data(input_data_path)
                         m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                                "emissions_optim " + case_name + str(emission_target))
+                                "EMISSION " + case_name + str(emission_target))
                     m_storage.total_emission_limit = emission_target * total_emissions
 
                     m_storage.quick_solve()
@@ -329,6 +312,7 @@ for technology in all_technologies:
                         next_solveable = False
 
                 else:
+                    # If its not the first iteration of a new tec, adapt model
                     if next_solveable:
                         m_storage.total_emission_limit = emission_target * total_emissions
                         demand, p_onshore, p_offshore = determine_time_series(factors['demand'],
@@ -338,7 +322,7 @@ for technology in all_technologies:
 
                         m_storage = adapt_model(m_storage, p_onshore, p_offshore)
                         m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                                "emissions_optim " + case_name + str(emission_target))
+                                "EMISSION " + case_name + str(emission_target))
                         m_storage.solve()
                         if m_storage.solution.solver.termination_condition in [
                             pyo.TerminationCondition.infeasibleOrUnbounded,
