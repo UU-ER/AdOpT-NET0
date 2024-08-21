@@ -20,8 +20,8 @@ input_data_path = Path("./offshore_storage/model_input_emission_optim")
 # adopt.copy_technology_data(input_data_path)
 # adopt.copy_network_data(input_data_path)
 
-test = 0
-test_periods = 200
+test = 1
+test_periods = 1
 climate_year = 2000
 # all_technologies = [
 #     ('offshore', "Storage_OceanBattery_CapexOptimization")
