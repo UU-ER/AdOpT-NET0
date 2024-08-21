@@ -177,17 +177,17 @@ def adapt_model(m, p_onshore, p_offshore):
         b_arc.const_flow_size_high = pyo.Constraint(set_t_full,
                                                     rule=init_size_const_high)
 
-        b_netw.del_component('const_cut_bidirectional')
-        b_netw.del_component('const_cut_bidirectional_index')
+    b_netw.del_component('const_cut_bidirectional')
+    b_netw.del_component('const_cut_bidirectional_index')
 
-        def init_cut_bidirectional(const, t, node_from, node_to):
-            return b_netw.arc_block[node_from, node_to].var_flow[t] + \
-                b_netw.arc_block[node_to, node_from].var_flow[t] \
-                <= network_size
+    def init_cut_bidirectional(const, t, node_from, node_to):
+        return b_netw.arc_block[node_from, node_to].var_flow[t] + \
+            b_netw.arc_block[node_to, node_from].var_flow[t] \
+            <= network_size
 
-        b_netw.const_cut_bidirectional = pyo.Constraint(set_t_full,
-                                                        b_netw.set_arcs_unique,
-                                                        rule=init_cut_bidirectional)
+    b_netw.const_cut_bidirectional = pyo.Constraint(set_t_full,
+                                                    b_netw.set_arcs_unique,
+                                                    rule=init_cut_bidirectional)
 
     # Adapt production profiles (onshore)
     time_steps = len(m.data.time_series["full"][("period1", "onshore", "CarrierData",
@@ -245,7 +245,7 @@ for technology in all_technologies:
     factors = {}
     factors['demand'] = 0.05
     if test == 1:
-        factors['offshore'] = [0.1]
+        factors['offshore'] = [0.25, 0.5]
         factors['self_sufficiency'] = [1.5]
     else:
         factors['offshore'] = [0.25, 0.5, 0.75, 1]
