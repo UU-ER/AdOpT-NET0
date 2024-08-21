@@ -18,6 +18,7 @@
   "Performance": {
     "carrier": "electricity",
     "allow_only_one_direction": 1,
+    "allow_only_one_direction_precise": 0,
     "loss": 7E-8,
     "min_transport": 0,
     "loss2emissions": 0,
