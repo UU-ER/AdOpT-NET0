@@ -30,11 +30,11 @@ climate_year = 2000
 all_technologies = [
     # ('onshore', "Storage_Battery_CapexOptimization"),
     # ('onshore', "Storage_CAES_CapexOptimization"),
-    ('onshore', "Electrolyzer"),
-    # ('offshore', "Storage_Battery_CapexOptimization"),
-    # ('offshore', "Storage_CAES_CapexOptimization"),
-    # ('offshore', "Storage_OceanBattery_CapexOptimization"),
-    ('offshore', "Electrolyzer"),
+    # ('onshore', "Electrolyzer"),
+    ('offshore', "Storage_Battery_CapexOptimization"),
+    ('offshore', "Storage_CAES_CapexOptimization"),
+    ('offshore', "Storage_OceanBattery_CapexOptimization"),
+    # ('offshore', "Electrolyzer"),
 ]
 # Write generic production
 def determine_time_series(f_demand, f_offshore, f_self_sufficiency, cy):
