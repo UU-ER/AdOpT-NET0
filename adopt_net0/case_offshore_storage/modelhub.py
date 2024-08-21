@@ -22,7 +22,7 @@ class ModelHubCapexOptimization(ModelHub):
                 pass
 
             model.const_cost_limit = Constraint(expr=model.var_npv <=
-                                                     self.total_cost_limit*1.00001)
+                                                     self.total_cost_limit)
 
             model.const_cost_limit.pprint()
             def init_max_capex(obj):
@@ -60,7 +60,7 @@ class ModelHubEmissionOptimization(ModelHub):
             pass
 
         model.const_emission_limit = Constraint(expr=model.var_emissions_net <=
-                                                 self.total_emission_limit * 1.001)
+                                                 self.total_emission_limit)
 
         model.const_emission_limit.pprint()
         def init_min_size(obj):

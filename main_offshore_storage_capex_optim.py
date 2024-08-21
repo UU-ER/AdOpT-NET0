@@ -31,9 +31,9 @@ all_technologies = [
     # ('onshore', "Storage_Battery_CapexOptimization"),
     # ('onshore', "Storage_CAES_CapexOptimization"),
     # ('onshore', "Electrolyzer"),
-    ('offshore', "Storage_Battery_CapexOptimization"),
+    # ('offshore', "Storage_Battery_CapexOptimization"),
     ('offshore', "Storage_CAES_CapexOptimization"),
-    ('offshore', "Storage_OceanBattery_CapexOptimization"),
+    # ('offshore', "Storage_OceanBattery_CapexOptimization"),
     # ('offshore', "Electrolyzer"),
 ]
 # Write generic production
@@ -243,7 +243,7 @@ def adapt_model(m, p_onshore, p_offshore):
 for technology in all_technologies:
     # INPUT
     factors = {}
-    factors['demand'] = 0.05
+    factors['demand'] = 0.2
     if test == 1:
         factors['offshore'] = [0.25, 0.5]
         factors['self_sufficiency'] = [1.5]

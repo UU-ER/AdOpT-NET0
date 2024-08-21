@@ -229,7 +229,7 @@ def adapt_model(m, p_onshore, p_offshore):
 for technology in all_technologies:
     # INPUT
     factors = {}
-    factors['demand'] = 0.05
+    factors['demand'] = 0.2
     if test == 1:
         factors['offshore'] = [0.25]
         factors['self_sufficiency'] = [2]
