@@ -178,7 +178,7 @@
                 2,
                 3
             ],
-            "value": 0
+            "value": 3
         },
         "cuts": {
             "description": "Setting defining the aggressiveness of the global cut.",

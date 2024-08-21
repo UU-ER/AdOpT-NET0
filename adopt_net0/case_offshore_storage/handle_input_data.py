@@ -157,3 +157,92 @@ class DataHandleCapexOptimization(DataHandle):
         # Log success
         log_msg = "Technology data read successfully"
         log.info(log_msg)
+
+
+class DataHandleEmissionOptimization(DataHandle):
+
+    def __init__(self, technology_to_optimize):
+        """
+        Constructor
+        """
+        super().__init__()
+        self.technology_to_optimize = technology_to_optimize
+
+    def _read_technology_data(self):
+        """
+        Reads all technology data and fits it
+
+        :param str aggregation_model: specifies the aggregation type and thus the dict key to write the data to
+        """
+        # Technology data always fitted based on full resolution
+        aggregation_model = "full"
+
+        # Initialize technology_data dict
+        technology_data = {}
+
+        # Loop through all investment_periods and nodes
+        for investment_period in self.topology["investment_periods"]:
+            technology_data[investment_period] = {}
+            for node in self.topology["nodes"]:
+                technology_data[investment_period][node] = {}
+
+                # Get technologies at node
+                with open(
+                        self.data_path
+                        / investment_period
+                        / "node_data"
+                        / node
+                        / "Technologies.json"
+                ) as json_file:
+                    technologies_at_node = json.load(json_file)
+
+                if self.technology_to_optimize[0] == node:
+                    technologies_at_node["new"].append(self.technology_to_optimize[1])
+
+                # New technologies
+                for technology in technologies_at_node["new"]:
+                    tec_data = read_tec_data(
+                        technology,
+                        self.data_path
+                        / investment_period
+                        / "node_data"
+                        / node
+                        / "technology_data",
+                    )
+                    tec_data.fit_technology_performance(
+                        self.time_series[aggregation_model][investment_period][node][
+                            "ClimateData"
+                        ]["global"],
+                        self.node_locations.loc[node, :],
+                    )
+                    technology_data[investment_period][node][technology] = tec_data
+
+                # Existing technologies
+                for technology in technologies_at_node["existing"]:
+                    tec_data = read_tec_data(
+                        technology,
+                        self.data_path
+                        / investment_period
+                        / "node_data"
+                        / node
+                        / "technology_data",
+                    )
+                    tec_data.existing = 1
+                    tec_data.input_parameters.size_initial = technologies_at_node[
+                        "existing"
+                    ][technology]
+                    tec_data.fit_technology_performance(
+                        self.time_series[aggregation_model][investment_period][node][
+                            "ClimateData"
+                        ]["global"],
+                        self.node_locations.loc[node, :],
+                    )
+                    technology_data[investment_period][node][
+                        technology + "_existing"
+                        ] = tec_data
+
+        self.technology_data = technology_data
+
+        # Log success
+        log_msg = "Technology data read successfully"
+        log.info(log_msg)

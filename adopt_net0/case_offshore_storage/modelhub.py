@@ -1,5 +1,5 @@
 from ..modelhub import ModelHub
-from .handle_input_data import DataHandleCapexOptimization
+from .handle_input_data import DataHandleCapexOptimization, DataHandleEmissionOptimization
 from pyomo.environ import *
 
 class ModelHubCapexOptimization(ModelHub):
@@ -22,7 +22,7 @@ class ModelHubCapexOptimization(ModelHub):
                 pass
 
             model.const_cost_limit = Constraint(expr=model.var_npv <=
-                                                     self.total_cost_limit * 1.001)
+                                                     self.total_cost_limit*1.00001)
 
             model.const_cost_limit.pprint()
             def init_max_capex(obj):
@@ -44,6 +44,7 @@ class ModelHubCapexOptimization(ModelHub):
 class ModelHubEmissionOptimization(ModelHub):
     def __init__(self, technology_to_optimize:tuple, total_emission_limit:float):
         super().__init__()
+        self.data = DataHandleEmissionOptimization(technology_to_optimize)
         self.technology_to_optimize = technology_to_optimize
         self.total_emission_limit = total_emission_limit
 
