@@ -20,8 +20,8 @@ input_data_path = Path("./offshore_storage/model_input")
 # adopt.copy_technology_data(input_data_path)
 # adopt.copy_network_data(input_data_path)
 
-test = 0
-test_periods = 50
+test = 1
+test_periods = 500
 climate_year = 2000
 # all_technologies = [
 #     ('offshore', "Storage_OceanBattery_CapexOptimization")
@@ -30,10 +30,10 @@ climate_year = 2000
 all_technologies = [
     # ('onshore', "Storage_Battery_CapexOptimization"),
     # ('onshore', "Storage_CAES_CapexOptimization"),
-    # ('onshore', "Electrolyzer"),
-    ('offshore', "Storage_Battery_CapexOptimization"),
-    ('offshore', "Storage_CAES_CapexOptimization"),
-    ('offshore', "Storage_OceanBattery_CapexOptimization"),
+    ('onshore', "Electrolyzer"),
+    # ('offshore', "Storage_Battery_CapexOptimization"),
+    # ('offshore', "Storage_CAES_CapexOptimization"),
+    # ('offshore', "Storage_OceanBattery_CapexOptimization"),
     # ('offshore', "Electrolyzer"),
 ]
 # Write generic production
@@ -245,8 +245,8 @@ for technology in all_technologies:
     factors = {}
     factors['demand'] = 0.05
     if test == 1:
-        factors['offshore'] = [0.25, 0.5]
-        factors['self_sufficiency'] = [1.5]
+        factors['offshore'] = [0.25]
+        factors['self_sufficiency'] = [2]
     else:
         factors['offshore'] = [0.25, 0.5, 0.75, 1]
         factors['self_sufficiency'] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
@@ -314,6 +314,8 @@ for technology in all_technologies:
                 m_storage.solve()
 
             idx = idx + 1
+            # m_storage.model[m_baseline.info_solving_algorithms[
+            #     "aggregation_model"]].pprint()
 
 
 
