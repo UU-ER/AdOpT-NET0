@@ -93,7 +93,7 @@
         },
         "mipgap": {
             "description": "Value to define MIP gap.",
-            "value": 0.001
+            "value": 0.0001
         },
         "timelim": {
             "description": "Value to define time limit in hours.",

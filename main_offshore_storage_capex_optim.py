@@ -243,7 +243,7 @@ def adapt_model(m, p_onshore, p_offshore):
 for technology in all_technologies:
     # INPUT
     factors = {}
-    factors['demand'] = 0.05
+    factors['demand'] = 0.2
     if test == 1:
         factors['offshore'] = [0.25]
         factors['self_sufficiency'] = [2]
@@ -314,8 +314,6 @@ for technology in all_technologies:
                 m_storage.solve()
 
             idx = idx + 1
-            # m_storage.model[m_baseline.info_solving_algorithms[
-            #     "aggregation_model"]].pprint()
 
 
 

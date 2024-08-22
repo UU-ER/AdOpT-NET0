@@ -20,15 +20,15 @@ input_data_path = Path("./offshore_storage/model_input_emission_optim")
 # adopt.copy_technology_data(input_data_path)
 # adopt.copy_network_data(input_data_path)
 
-test = 1
-test_periods = 1
+test = 0
+test_periods = 300
 climate_year = 2000
 # all_technologies = [
 #     ('offshore', "Storage_OceanBattery_CapexOptimization")
 # ]
 emission_targets = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0]
 all_technologies = [
-    # ('onshore', "Storage_Battery_CapexOptimization"),
+    ('onshore', "Storage_Battery_CapexOptimization"),
     ('onshore', "Storage_CAES_CapexOptimization"),
     ('onshore', "Electrolyzer"),
     ('offshore', "Storage_Battery_CapexOptimization"),
@@ -164,17 +164,17 @@ def adapt_model(m, p_onshore, p_offshore):
         b_arc.const_flow_size_high = pyo.Constraint(set_t_full,
                                                     rule=init_size_const_high)
 
-        b_netw.del_component('const_cut_bidirectional')
-        b_netw.del_component('const_cut_bidirectional_index')
+    b_netw.del_component('const_cut_bidirectional')
+    b_netw.del_component('const_cut_bidirectional_index')
 
-        def init_cut_bidirectional(const, t, node_from, node_to):
-            return b_netw.arc_block[node_from, node_to].var_flow[t] + \
-                b_netw.arc_block[node_to, node_from].var_flow[t] \
-                <= network_size
+    def init_cut_bidirectional(const, t, node_from, node_to):
+        return b_netw.arc_block[node_from, node_to].var_flow[t] + \
+            b_netw.arc_block[node_to, node_from].var_flow[t] \
+            <= network_size
 
-        b_netw.const_cut_bidirectional = pyo.Constraint(set_t_full,
-                                                        b_netw.set_arcs_unique,
-                                                        rule=init_cut_bidirectional)
+    b_netw.const_cut_bidirectional = pyo.Constraint(set_t_full,
+                                                    b_netw.set_arcs_unique,
+                                                    rule=init_cut_bidirectional)
 
     # Adapt production profiles (onshore)
     time_steps = len(m.data.time_series["full"][("period1", "onshore", "CarrierData",
@@ -229,10 +229,10 @@ def adapt_model(m, p_onshore, p_offshore):
 for technology in all_technologies:
     # INPUT
     factors = {}
-    factors['demand'] = 0.05
+    factors['demand'] = 0.2
     if test == 1:
-        factors['offshore'] = [0.1]
-        factors['self_sufficiency'] = [1]
+        factors['offshore'] = [0.25]
+        factors['self_sufficiency'] = [2]
     else:
         factors['offshore'] = [0.25, 0.5, 0.75, 1]
         factors['self_sufficiency'] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
@@ -332,23 +332,3 @@ for technology in all_technologies:
                             next_solveable = False
 
                 idx_shares = idx_shares + 1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
