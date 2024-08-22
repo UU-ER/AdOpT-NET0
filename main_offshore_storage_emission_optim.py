@@ -28,13 +28,13 @@ climate_year = 2000
 # ]
 emission_targets = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0]
 all_technologies = [
-    ('onshore', "Storage_Battery_CapexOptimization"),
-    ('onshore', "Storage_CAES_CapexOptimization"),
-    ('onshore', "Electrolyzer"),
-    ('offshore', "Storage_Battery_CapexOptimization"),
+    # ('onshore', "Storage_Battery_CapexOptimization"),
+    # ('onshore', "Storage_CAES_CapexOptimization"),
+    # ('onshore', "Electrolyzer"),
+    # ('offshore', "Storage_Battery_CapexOptimization"),
     ('offshore', "Storage_CAES_CapexOptimization"),
-    ('offshore', "Storage_OceanBattery_CapexOptimization"),
-    ('offshore', "Electrolyzer"),
+    # ('offshore', "Storage_OceanBattery_CapexOptimization"),
+    # ('offshore', "Electrolyzer"),
 ]
 # Write generic production
 def determine_time_series(f_demand, f_offshore, f_self_sufficiency, cy):
