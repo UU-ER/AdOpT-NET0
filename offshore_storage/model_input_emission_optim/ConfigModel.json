@@ -203,11 +203,11 @@
         },
         "save_summary_path": {
             "description": "Path to save the summary file path to.",
-            "value": "//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/EmissionOptimization_v2"
+            "value": "//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/EmissionOptimization"
         },
         "save_path": {
             "description": "Option to define the save path.",
-            "value": "//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/EmissionOptimization_v2"
+            "value": "//ad.geo.uu.nl/Users/StaffUsers/6574114/EhubResults/StorageOffshore/EmissionOptimization"
         },
         "case_name": {
             "description": "Option to define a case study name that is added to the results folder name.",
