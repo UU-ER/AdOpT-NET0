@@ -102,7 +102,7 @@ def set_data(climate_year, technology, f_demand, f_offshore,
             "r") as json_file:
         technologies = json.load(json_file)
     technologies["existing"] = {"GasTurbine_simple": max(demand) * 1.5,
-                                "Storage_H2Cavern": 150000}
+                                "Storage_H2Cavern": 3000}
     technologies["new"] = []
     with open(
             input_data_path / "period1" / "node_data" / "onshore" / "Technologies.json",

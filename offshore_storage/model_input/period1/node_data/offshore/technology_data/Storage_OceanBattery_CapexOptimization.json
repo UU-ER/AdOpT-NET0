@@ -1,7 +1,7 @@
 {
   "capex_optimization": 1,
   "tec_type": "STOR",
-  "size": 7.5,
+  "size": 3000,
   "size_min": 0,
   "size_max": 1.0E+7,
   "size_is_int": 0,
