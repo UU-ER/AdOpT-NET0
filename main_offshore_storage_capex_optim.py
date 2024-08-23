@@ -1,3 +1,6 @@
+import os
+import time
+
 import adopt_net0 as adopt
 from adopt_net0.case_offshore_storage.modelhub import ModelHubCapexOptimization
 import pandas as pd
@@ -20,21 +23,22 @@ input_data_path = Path("./offshore_storage/model_input")
 # adopt.copy_technology_data(input_data_path)
 # adopt.copy_network_data(input_data_path)
 
-test = 1
-test_periods = 500
+test = 0
+test_periods = 72
 climate_year = 2000
 # all_technologies = [
 #     ('offshore', "Storage_OceanBattery_CapexOptimization")
 # ]
+run_baseline = 0
 
 all_technologies = [
     # ('onshore', "Storage_Battery_CapexOptimization"),
     # ('onshore', "Storage_CAES_CapexOptimization"),
-    ('onshore', "Electrolyzer"),
+    # ('onshore', "Electrolyzer"),
     # ('offshore', "Storage_Battery_CapexOptimization"),
     # ('offshore', "Storage_CAES_CapexOptimization"),
-    # ('offshore', "Storage_OceanBattery_CapexOptimization"),
-    # ('offshore', "Electrolyzer"),
+    ('offshore', "Storage_OceanBattery_CapexOptimization"),
+    ('offshore', "Electrolyzer"),
 ]
 # Write generic production
 def determine_time_series(f_demand, f_offshore, f_self_sufficiency, cy):
@@ -239,29 +243,34 @@ def adapt_model(m, p_onshore, p_offshore):
                                                          rule=init_generic_production)
     return m
 
+total_cost_limit = {}
 
-for technology in all_technologies:
-    # INPUT
-    factors = {}
-    factors['demand'] = 0.2
-    if test == 1:
-        factors['offshore'] = [0.25]
-        factors['self_sufficiency'] = [2]
-    else:
-        factors['offshore'] = [0.25, 0.5, 0.75, 1]
-        factors['self_sufficiency'] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+factors = {}
+factors['demand'] = 0.2
+if test == 1:
+    factors['offshore'] = [0.25, 0.5]
+    factors['self_sufficiency'] = [1, 2]
+else:
+    factors['offshore'] = [0.25, 0.5, 0.75, 1]
+    factors['self_sufficiency'] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 
-    idx = 1
+# BASELINE
+if run_baseline:
+    for f_offshore in factors['offshore']:
+        total_cost_limit[f_offshore] = {}
+        for f_self_sufficiency in factors['self_sufficiency']:
+            total_cost_limit[f_offshore][f_self_sufficiency] = -1
+
+    with open(input_data_path / "cost_limits.json", "w") as outfile:
+        json.dump(total_cost_limit, outfile)
+
     for f_offshore in factors['offshore']:
         for f_self_sufficiency in factors['self_sufficiency']:
-
-            case_name = (technology[0] + "_" + technology[1] + " OS_" +
-                         str(f_offshore) + " SS_" + str(
+            case_name_bl = ("BL OS_" +
+                            str(f_offshore) + " SS_" + str(
                         f_self_sufficiency))
-
-            print(case_name)
-
-            if idx == 1:
+            # SOLVE BASELINE
+            if "m_baseline" not in locals():
                 set_data(climate_year, None, factors['demand'], f_offshore,
                          f_self_sufficiency, test)
 
@@ -270,48 +279,81 @@ for technology in all_technologies:
                 if test:
                     m_baseline.read_data(input_data_path, start_period=0,
                                          end_period=test_periods)
-                    m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
-                            "TESTbaseline " + case_name)
                 else:
                     m_baseline.read_data(input_data_path)
-                    m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
-                            "BL " + case_name)
 
-                m_baseline.quick_solve()
-
-                # Read data from files and construct storage_model
-                total_cost_limit = m_baseline.model[m_baseline.info_solving_algorithms[
-                    "aggregation_model"]].var_npv.value
-                m_storage = ModelHubCapexOptimization(technology, total_cost_limit)
-                if test:
-                    m_storage.read_data(input_data_path, start_period=0,
-                                        end_period=test_periods)
-                    m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                            "TESTcapex_optim " + case_name)
-                else:
-                    m_storage.read_data(input_data_path)
-                    m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                            "CAPEX " + case_name)
-
-                m_storage.quick_solve()
+                m_baseline.construct_model()
+                m_baseline.construct_balances()
 
             else:
                 demand, p_onshore, p_offshore = determine_time_series(factors['demand'],
                                                                       f_offshore,
                                                                       f_self_sufficiency,
                                                                       climate_year)
-
                 m_baseline = adapt_model(m_baseline, p_onshore, p_offshore)
-                m_baseline.data.model_config["reporting"]["case_name"]["value"] = (
-                        "BL " + case_name)
-                m_baseline.solve()
 
+            if test:
+                m_baseline.data.model_config["reporting"]["case_name"]["value"] = "TEST " + case_name_bl
+            else:
+                m_baseline.data.model_config["reporting"]["case_name"]["value"] = case_name_bl
+            m_baseline.solve()
+            total_cost_limit[f_offshore][f_self_sufficiency] = m_baseline.model[m_baseline.info_solving_algorithms[
+                "aggregation_model"]].var_npv.value
+            with open(input_data_path / "cost_limits.json", "w") as outfile:
+                json.dump(total_cost_limit, outfile)
+
+for technology in all_technologies:
+    # INPUT
+    idx = 1
+    for f_offshore in factors['offshore']:
+        for f_self_sufficiency in factors['self_sufficiency']:
+
+            while True:
+                if os.path.exists(input_data_path / "cost_limits.json"):
+                    with open(input_data_path / "cost_limits.json", "r") as outfile:
+                        total_cost_limit = json.load(outfile)
+                    while total_cost_limit[str(f_offshore)][str(f_self_sufficiency)] == -1:
+                        print("BL not finished yet")
+                        time.sleep(10)
+                        with open(input_data_path / "cost_limits.json", "r") as outfile:
+                            total_cost_limit = json.load(outfile)
+                    break  # Exit the loop after successfully reading the file
+                else:
+                    print("File not found. Waiting 10 seconds before retrying...")
+                    time.sleep(10)
+
+            case_name_tec = (technology[0] + "_" + technology[1] + " OS_" +
+                         str(f_offshore) + " SS_" + str(
+                        f_self_sufficiency))
+
+            if idx == 1:
+                set_data(climate_year, None, factors['demand'], f_offshore,
+                         f_self_sufficiency, test)
+                m_storage = ModelHubCapexOptimization(technology, total_cost_limit[str(f_offshore)][str(f_self_sufficiency)])
+
+                if test:
+                    m_storage.read_data(input_data_path, start_period=0,
+                                        end_period=test_periods)
+                else:
+                    m_storage.read_data(input_data_path)
+
+                m_storage.construct_model()
+                m_storage.construct_balances()
+
+            else:
+                demand, p_onshore, p_offshore = determine_time_series(factors['demand'],
+                                                                      f_offshore,
+                                                                      f_self_sufficiency,
+                                                                      climate_year)
                 m_storage = adapt_model(m_storage, p_onshore, p_offshore)
-                m_storage.total_cost_limit = m_baseline.model[m_baseline.info_solving_algorithms[
-                    "aggregation_model"]].var_npv.value
-                m_storage.data.model_config["reporting"]["case_name"]["value"] = (
-                        "CAPEX " + case_name)
-                m_storage.solve()
+                m_storage.total_cost_limit = total_cost_limit[str(f_offshore)][str(f_self_sufficiency)]
+
+            if test:
+                m_storage.data.model_config["reporting"]["case_name"]["value"] = "TEST " + case_name_tec
+            else:
+                m_storage.data.model_config["reporting"]["case_name"]["value"] = case_name_tec
+
+            m_storage.solve()
 
             idx = idx + 1
 
