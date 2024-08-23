@@ -22,15 +22,15 @@ sizes = {
     "Battery": 7,
     "CAES": 3000,
     "Electrolyzer": 1,
-    "OceanBattery": 7.5
-
+    "OceanBattery": 7.5,
+    "Baseline": 1
 }
 
 def map_timestamp(timestamp, idx):
     for key, value in all_technologies.items():
         if key in timestamp:
             return value[idx]
-    return None  # or some default value if no match is found
+    return "Baseline"  # or some default value if no match is found
 
 def add_prefix_to_keys(dictionary, prefix):
     new_dict = {}
@@ -46,7 +46,7 @@ df['Node'] = df['time_stamp'].apply(lambda x: map_timestamp(x, 0))
 df['Technology'] = df['time_stamp'].apply(lambda x: map_timestamp(x, 1))
 df['SS'] = df['case'].str.extract(r'SS_(\d+\.?\d*)').astype(float)
 df['OS'] = df['case'].str.extract(r'OS_(\d+\.?\d*)').astype(float)
-df['Baseline'] = df['case'].str.contains('BL|baseline')
+df['Baseline'] = df['case'].str.contains('BL')
 df['max_specific_capex'] = df.apply(lambda row: row['cost_capex_tecs'] / sizes[row['Technology']], axis=1)
 
 
