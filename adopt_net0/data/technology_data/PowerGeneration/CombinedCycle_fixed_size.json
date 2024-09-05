@@ -1,7 +1,7 @@
 {
   "tec_type": "CCPP",
   "size_min": 0,
-  "size_max": 10000,
+  "size_max": 1,
   "size_is_int": 0,
   "size_based_on": "output",
   "decommission": 0,
@@ -26,12 +26,17 @@
       "electricity"
     ],
     "emission_factor": 0.187,
-    "max_input": {
-      "hydrogen": 0.05
-    },
     "steam_production": "ignore",
     "component": "DB",
     "nr_segments": 2,
+    "steam_turbine_generator_efficiency": 0.98,
+    "max_steam_extract_HP": 140,
+    "max_steam_extract_MP": 51,
+    "max_steam_extract_total": 0.45,
+    "size_db": 24,
+    "size_ohb": 24,
+    "max_h2_in": 24,
+    "max_h2_in_gt": 0.05,
     "ramping_time": -1,
     "ref_size": -1,
     "ramping_const_int": -1,

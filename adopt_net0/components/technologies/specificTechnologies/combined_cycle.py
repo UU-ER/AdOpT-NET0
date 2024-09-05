@@ -200,15 +200,24 @@ class CCPP(Technology):
         )
         data_path["GT"] = Path("GT_fitting_data.csv")
         data_path["HP"] = Path("HP_fitting_data.csv")
-        # data_path["MP"] = Path("MP_fitting_data.csv")
+        data_path["MP"] = Path("MP_fitting_data.csv")
 
         # Fit GT performance
         perf_data = {}
         perf_data["GT"] = pd.read_csv(performance_data_path / data_path["GT"], sep=";")
-        perf_data["HP"] = pd.read_csv(
-            performance_data_path / data_path["HP"], sep=";", index_col=0, header=[0, 1]
-        )
-        # perf_data["MP"] = pd.read_csv(performance_data_path / data_path["GT"], sep=";")
+        for turbine in ["HP", "MP"]:
+            perf_data[turbine] = pd.read_csv(
+                performance_data_path / data_path[turbine],
+                sep=";",
+                index_col=0,
+                header=[0, 1],
+            )
+            perf_data[turbine] = pd.read_csv(
+                performance_data_path / data_path[turbine],
+                sep=";",
+                index_col=0,
+                header=[0, 1],
+            )
 
         # Fit to temperature
         igv_positions = list(perf_data["GT"]["IGV"].unique())
@@ -269,89 +278,85 @@ class CCPP(Technology):
         self.processed_coeff.time_dependent_full["GT"]["bp_el_y"] = bp_el_y
         self.processed_coeff.time_dependent_full["GT"]["alpha_th"] = alpha_th
 
-        # Fit HP performance
-        bp_hp = [0, 12.92, 100]
+        # Fit HP/MP performance
+        bp = {}
+        bp["HP"] = [0, 12.92, 100]
+        bp["MP"] = [0, 42.50, 100]
+        for p in ["HP", "MP"]:
 
-        alpha_gt = np.empty(shape=(len(T), nr_segments))
-        alpha_hp = np.empty(shape=(len(T), nr_segments))
-        alpha_mp = np.empty(shape=(len(T), nr_segments))
-        alpha_cst = np.empty(shape=(len(T), nr_segments))
-        if self.component_options.other["component"] == "DB":
-            alpha_db = np.empty(shape=(len(T), nr_segments))
-        elif self.component_options.other["component"] == "OHB":
-            alpha_ohb = np.empty(shape=(len(T), nr_segments))
-
-        for par in [1, 2]:
-            data = perf_data["HP"]["GT"]["alpha_" + str(par)]
-            alpha_gt[:, par - 1] = griddata(
-                np.array(data.index), np.array(data), T, method="linear"
-            )
-
-            data = perf_data["HP"]["HP"]["alpha_" + str(par)]
-            alpha_hp[:, par - 1] = griddata(
-                np.array(data.index), np.array(data), T, method="linear"
-            )
-
-            data = perf_data["HP"]["MP"]["alpha_" + str(par)]
-            alpha_mp[:, par - 1] = griddata(
-                np.array(data.index), np.array(data), T, method="linear"
-            )
-
-            data = perf_data["HP"]["cst"]["alpha_" + str(par)]
-            alpha_cst[:, par - 1] = griddata(
-                np.array(data.index), np.array(data), T, method="linear"
-            )
-
+            alpha_gt = np.empty(shape=(len(T), nr_segments))
+            alpha_hp = np.empty(shape=(len(T), nr_segments))
+            alpha_mp = np.empty(shape=(len(T), nr_segments))
+            alpha_cst = np.empty(shape=(len(T), nr_segments))
             if self.component_options.other["component"] == "DB":
-                data = perf_data["HP"]["DB"]["alpha_" + str(par)]
-                alpha_db[:, par - 1] = griddata(
-                    np.array(data.index), np.array(data), T, method="linear"
-                )
-
+                alpha_db = np.empty(shape=(len(T), nr_segments))
             elif self.component_options.other["component"] == "OHB":
-                data = perf_data["HP"]["OHB"]["alpha_" + str(par)]
-                alpha_ohb[:, par - 1] = griddata(
+                alpha_ohb = np.empty(shape=(len(T), nr_segments))
+
+            for par in [1, 2]:
+                data = perf_data[p]["GT"]["alpha_" + str(par)]
+                alpha_gt[:, par - 1] = griddata(
                     np.array(data.index), np.array(data), T, method="linear"
                 )
 
-        # Temperature correction factors
-        f = np.empty(shape=(time_steps))
-        f[T <= 6] = (
-            self.input_parameters.performance_data["gamma"][0]
-            * (T[T <= 6] / self.input_parameters.performance_data["T_iso"])
-            + self.input_parameters.performance_data["delta"][0]
-        )
-        f[T > 6] = (
-            self.input_parameters.performance_data["gamma"][1]
-            * (T[T > 6] / self.input_parameters.performance_data["T_iso"])
-            + self.input_parameters.performance_data["delta"][1]
-        )
+                data = perf_data[p]["HP"]["alpha_" + str(par)]
+                alpha_hp[:, par - 1] = griddata(
+                    np.array(data.index), np.array(data), T, method="linear"
+                )
 
-        # Derive return
-        fit = {}
-        fit["td"] = {}
-        fit["td"]["temperature_correction"] = f.round(5)
+                data = perf_data[p]["MP"]["alpha_" + str(par)]
+                alpha_mp[:, par - 1] = griddata(
+                    np.array(data.index), np.array(data), T, method="linear"
+                )
 
-        fit["ti"] = {}
-        fit["ti"]["alpha"] = round(self.input_parameters.performance_data["alpha"], 5)
-        fit["ti"]["beta"] = round(self.input_parameters.performance_data["beta"], 5)
-        fit["ti"]["epsilon"] = round(
-            self.input_parameters.performance_data["epsilon"], 5
-        )
-        fit["ti"]["in_min"] = round(self.input_parameters.performance_data["in_min"], 5)
-        fit["ti"]["in_max"] = round(self.input_parameters.performance_data["in_max"], 5)
-        if len(self.component_options.input_carrier) == 2:
-            fit["ti"]["max_H2_admixture"] = self.input_parameters.performance_data[
-                "max_H2_admixture"
-            ]
-        else:
-            fit["ti"]["max_H2_admixture"] = 1
+                data = perf_data[p]["cst"]["alpha_" + str(par)]
+                alpha_cst[:, par - 1] = griddata(
+                    np.array(data.index), np.array(data), T, method="linear"
+                )
 
-        # Coefficients
-        for par in fit["td"]:
-            self.processed_coeff.time_dependent_full[par] = fit["td"][par]
-        for par in fit["ti"]:
-            self.processed_coeff.time_independent[par] = fit["ti"][par]
+                if self.component_options.other["component"] == "DB":
+                    data = perf_data[p]["DB"]["alpha_" + str(par)]
+                    alpha_db[:, par - 1] = griddata(
+                        np.array(data.index), np.array(data), T, method="linear"
+                    )
+
+                elif self.component_options.other["component"] == "OHB":
+                    data = perf_data[p]["OHB"]["alpha_" + str(par)]
+                    alpha_ohb[:, par - 1] = griddata(
+                        np.array(data.index), np.array(data), T, method="linear"
+                    )
+
+            self.processed_coeff.time_independent[p] = {}
+            self.processed_coeff.time_independent[p]["alpha_gt"] = alpha_gt
+            self.processed_coeff.time_independent[p]["alpha_hp"] = alpha_hp
+            self.processed_coeff.time_independent[p]["alpha_cst"] = alpha_cst
+            self.processed_coeff.time_independent[p]["bp_hp"] = bp[p]
+            if self.component_options.other["component"] == "DB":
+                self.processed_coeff.time_independent[p]["alpha_db"] = alpha_db
+            elif self.component_options.other["component"] == "OHB":
+                self.processed_coeff.time_independent[p]["alpha_ohb"] = alpha_ohb
+
+        data = self.input_parameters.performance_data
+        self.processed_coeff.time_independent["eta_stg"] = data[
+            "steam_turbine_generator_efficiency"
+        ]
+        self.processed_coeff.time_independent["hp_steam_max"] = data[
+            "max_steam_extract_HP"
+        ]
+        self.processed_coeff.time_independent["mp_steam_max"] = data[
+            "max_steam_extract_MP"
+        ]
+        self.processed_coeff.time_independent["kappa_steam"] = data[
+            "max_steam_extract_total"
+        ]
+        self.processed_coeff.time_independent["size_db"] = data["size_db"]
+        self.processed_coeff.time_independent["size_ohb"] = data["size_ohb"]
+        self.processed_coeff.time_independent["max_h2_in"] = data["max_h2_in"]
+        self.processed_coeff.time_independent["max_h2_in_gt"] = data["max_h2_in_gt"]
+        self.processed_coeff.time_independent["hp_max_p"] = 27
+        self.processed_coeff.time_independent["hp_min_p"] = 3
+        self.processed_coeff.time_independent["mp_max_p"] = 90
+        self.processed_coeff.time_independent["mp_min_p"] = 12
 
     def _calculate_bounds(self):
         """
@@ -361,63 +366,35 @@ class CCPP(Technology):
 
         time_steps = len(self.set_t_performance)
 
-        bounds = {}
-
         # Input bounds
-        bounds["input_bounds"] = {}
-        for c in self.component_options.input_carrier:
-            if c == "hydrogen":
-                bounds["input_bounds"][c] = np.column_stack(
-                    (
-                        np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps))
-                        * self.input_parameters.performance_data["in_max"]
-                        * self.processed_coeff.time_independent["max_H2_admixture"],
-                    )
-                )
-            else:
-                bounds["input_bounds"][c] = np.column_stack(
-                    (
-                        np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps))
-                        * self.input_parameters.performance_data["in_max"],
-                    )
-                )
+        min_in = np.zeros(shape=(time_steps))
+
+        # H2
+        max_h2 = (
+            np.ones(shape=(time_steps))
+            * self.processed_coeff.time_independent["max_h2_in"]
+        )
+
+        # NG
+        if self.component_options.other["component"] == "DB":
+            additional_ng_in = self.processed_coeff.time_independent["size_db"]
+        else:
+            additional_ng_in = 0
+        max_ng = (
+            self.processed_coeff.time_dependent_full["GT"]["bp_el_x"][:, -1]
+            + additional_ng_in
+        )
+
+        self.bounds["input"]["hydrogen"] = np.column_stack((min_in, max_h2))
+        self.bounds["input"]["gas"] = np.column_stack((min_in, max_ng))
+        self.bounds["input"]["total"] = np.column_stack((min_in, max_ng + max_h2))
 
         # Output bounds
-        bounds["output_bounds"] = {}
-        bounds["output_bounds"]["electricity"] = np.column_stack(
-            (
-                np.zeros(shape=(time_steps)),
-                self.processed_coeff.time_dependent_used["temperature_correction"]
-                * (
-                    self.input_parameters.performance_data["in_max"]
-                    * self.processed_coeff.time_independent["alpha"]
-                    + self.processed_coeff.time_independent["beta"]
-                ),
-            )
-        )
-        bounds["output_bounds"]["heat"] = np.column_stack(
-            (
-                np.zeros(shape=(time_steps)),
-                self.processed_coeff.time_independent["epsilon"]
-                * self.processed_coeff.time_independent["in_max"]
-                - self.processed_coeff.time_dependent_used["temperature_correction"]
-                * (
-                    self.input_parameters.performance_data["in_max"]
-                    * self.processed_coeff.time_independent["alpha"]
-                    + self.processed_coeff.time_independent["beta"]
-                ),
-            )
-        )
+        min_el = np.zeros(shape=(time_steps))
+        max_el = np.ones(shape=(time_steps)) * 3000
+        self.bounds["output"]["electricity"] = np.column_stack((min_el, max_el))
 
-        # Output Bounds
-        self.bounds["output"] = bounds["output_bounds"]
-        # Input Bounds
-        for car in self.component_options.input_carrier:
-            self.bounds["input"][car] = np.column_stack(
-                (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
-            )
+        # TODO: Calculate input bounds of el, heat, mp steam, hp steam
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -431,124 +408,339 @@ class CCPP(Technology):
         """
         super(CCPP, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
 
-        # Transformation required
+        b_tec = self._define_additional_vars(b_tec)
+        b_tec = self._define_tec_global_balances(b_tec)
+        b_tec = self._define_performance(b_tec)
+
         self.big_m_transformation_required = 1
 
+        # RAMPING RATES
+        dynamics = self.processed_coeff.dynamics
+        if "ramping_time" in dynamics:
+            if not dynamics["ramping_time"] == -1:
+                b_tec = self._define_ramping_rates(b_tec, data)
+
+        b_tec.pprint()
+
+        return b_tec
+
+    def _define_additional_vars(self, b_tec):
+
         # DATA OF TECHNOLOGY
-        bounds = self.bounds
         coeff_td = self.processed_coeff.time_dependent_used
         coeff_ti = self.processed_coeff.time_independent
-        dynamics = self.processed_coeff.dynamics
 
-        # Parameter declaration
-        in_min = coeff_ti["in_min"]
-        in_max = coeff_ti["in_max"]
-        max_H2_admixture = coeff_ti["max_H2_admixture"]
-        alpha = coeff_ti["alpha"]
-        beta = coeff_ti["beta"]
-        epsilon = coeff_ti["epsilon"]
-        temperature_correction = coeff_td["temperature_correction"]
+        # GT - total fuel input
+        def init_input_total_gt_bounds(bds, t):
+            return tuple((0, coeff_td["GT"]["bp_el_x"][t - 1, -1]))
 
-        # Additional decision variables
-        size_max = self.input_parameters.size_max
-
-        def init_input_bounds(bds, t):
-            if len(self.component_options.input_carrier) == 2:
-                car = "gas"
-            else:
-                car = "hydrogen"
-            return tuple(bounds["input"][car][t - 1, :] * size_max)
-
-        b_tec.var_total_input = pyo.Var(
+        b_tec.var_gt_input = pyo.Var(
             self.set_t_performance,
             within=pyo.NonNegativeReals,
-            bounds=init_input_bounds,
+            bounds=init_input_total_gt_bounds,
         )
 
-        b_tec.var_units_on = pyo.Var(
-            self.set_t_performance, within=pyo.NonNegativeIntegers, bounds=(0, size_max)
+        # GT - ng fuel input
+        def init_input_ng_gt_bounds(bds, t):
+            return tuple((0, coeff_td["GT"]["bp_el_x"][t - 1, -1]))
+
+        b_tec.var_gt_ng_input = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_input_ng_gt_bounds,
         )
 
-        # Calculate total input
-        def init_total_input(const, t):
-            return b_tec.var_total_input[t] == sum(
-                self.input[t, car_input] for car_input in b_tec.set_input_carriers
+        # GT - h2 fuel input
+        def init_input_h2_gt_bounds(bds, t):
+            min_h2 = min(
+                coeff_td["GT"]["bp_el_x"][t - 1, -1] * coeff_ti["max_h2_in_gt"],
+                coeff_ti["max_h2_in"],
+            )
+            return tuple((0, min_h2))
+
+        b_tec.var_gt_h2_input = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_input_h2_gt_bounds,
+        )
+
+        # GT - P electric
+        def init_gt_p_el_bounds(bds, t):
+            return tuple((0, coeff_td["GT"]["bp_el_y"][t - 1, -1]))
+
+        b_tec.var_gt_p_el = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_gt_p_el_bounds,
+        )
+
+        # GT - P thermal
+        b_tec.var_gt_p_th = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+        )
+
+        # Duct Burner - input
+        if self.component_options.other["component"] == "DB":
+
+            def init_db_input_bounds(bds, t):
+                return tuple((0, coeff_ti["size_db"]))
+
+            b_tec.var_db_h2_input = pyo.Var(
+                self.set_t_performance,
+                within=pyo.NonNegativeReals,
+                bounds=init_db_input_bounds,
+            )
+            b_tec.var_db_ng_input = pyo.Var(
+                self.set_t_performance,
+                within=pyo.NonNegativeReals,
+                bounds=init_db_input_bounds,
+            )
+            b_tec.var_db_input = pyo.Var(
+                self.set_t_performance,
+                within=pyo.NonNegativeReals,
+                bounds=init_db_input_bounds,
+            )
+        else:
+            b_tec.var_db_h2_input = pyo.Param(
+                self.set_t_performance, domain=pyo.Reals, initialize=0
+            )
+            b_tec.var_db_ng_input = pyo.Param(
+                self.set_t_performance, domain=pyo.Reals, initialize=0
+            )
+            b_tec.var_db_input = pyo.Param(
+                self.set_t_performance, domain=pyo.Reals, initialize=0
             )
 
-        b_tec.const_total_input = pyo.Constraint(
-            self.set_t_performance, rule=init_total_input
-        )
+        # OHB - input
+        if self.component_options.other["component"] == "OHB":
 
-        # Constrain hydrogen input
-        if len(self.component_options.input_carrier) == 2:
+            def init_ohb_input_bounds(bds, t):
+                return tuple((0, coeff_ti["size_ohb"]))
 
-            def init_h2_input(const, t):
-                return (
-                    self.input[t, "hydrogen"]
-                    <= b_tec.var_total_input[t] * max_H2_admixture
-                )
-
-            b_tec.const_h2_input = pyo.Constraint(
-                self.set_t_performance, rule=init_h2_input
+            b_tec.var_ohb_h2_input = pyo.Var(
+                self.set_t_performance,
+                within=pyo.NonNegativeReals,
+                bounds=init_ohb_input_bounds,
+            )
+        else:
+            b_tec.var_ohb_h2_input = pyo.Param(
+                self.set_t_performance, domain=pyo.Reals, initialize=0
             )
 
-        # LINEAR, MINIMAL PARTLOAD
-        s_indicators = range(0, 2)
+        # ST - HP
+        def init_hp_output_bounds(bds, t):
+            return tuple((0, coeff_ti["hp_max_p"]))
+
+        b_tec.var_hp_p_el = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_hp_output_bounds,
+        )
+
+        # ST - MP
+        def init_mp_output_bounds(bds, t):
+            return tuple((0, coeff_ti["mp_max_p"]))
+
+        b_tec.var_mp_p_el = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_mp_output_bounds,
+        )
+
+        if not b_tec.find_component("var_x"):
+            b_tec.var_x = pyo.Var(
+                self.set_t_performance, domain=pyo.NonNegativeIntegers, bounds=(0, 1)
+            )
+
+        return b_tec
+
+    def _define_tec_global_balances(self, b_tec):
+
+        # DATA OF TECHNOLOGY
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
+
+        # Calculate total hydrogen input
+        def init_total_input_h2(const, t):
+            return (
+                b_tec.var_input[t, "hydrogen"]
+                == b_tec.var_gt_h2_input[t]
+                + b_tec.var_db_h2_input[t]
+                + b_tec.var_ohb_h2_input[t]
+            )
+
+        b_tec.const_total_input_h2 = pyo.Constraint(
+            self.set_t_performance,
+            rule=init_total_input_h2,
+        )
+
+        # Calculate total gas input
+        def init_total_input_ng(const, t):
+            return (
+                b_tec.var_input[t, "gas"]
+                == b_tec.var_gt_ng_input[t] + b_tec.var_db_ng_input[t]
+            )
+
+        b_tec.const_total_input_ng = pyo.Constraint(
+            self.set_t_performance,
+            rule=init_total_input_ng,
+        )
+
+        # Calculate total electric output
+        def init_total_output_el(const, t):
+            return b_tec.var_output[t, "electricity"] == b_tec.var_hp_p_el[
+                t
+            ] + coeff_ti["eta_stg"] * (b_tec.var_mp_p_el[t] + b_tec.var_gt_p_el[t])
+
+        b_tec.const_total_output_el = pyo.Constraint(
+            self.set_t_performance,
+            rule=init_total_output_el,
+        )
+        # TODO: Calculate total heat, hp, mp steam output
+
+        # Constrain total H2 input
+        def init_total_input_h2_max(const, t):
+            return b_tec.var_input[t, "hydrogen"] <= coeff_ti["max_h2_in"]
+
+        b_tec.const_total_input_h2_max = pyo.Constraint(
+            self.set_t_performance,
+            rule=init_total_input_h2_max,
+        )
+
+        return b_tec
+
+    def _define_performance(self, b_tec):
+        coeff_td = self.processed_coeff.time_dependent_used
+        coeff_ti = self.processed_coeff.time_independent
+        alpha_th = coeff_td["GT"]["alpha_th"]
+        alpha = coeff_td["GT"]["alpha_el"]
+        beta = coeff_td["GT"]["beta_el"]
+        bp_x = coeff_td["GT"]["bp_el_x"]
+        nr_segments = self.component_options.other["nr_segments"]
+
+        # Total input to GT
+        def init_total_input_gt(const, t):
+            return (
+                b_tec.var_gt_input[t]
+                == b_tec.var_gt_ng_input[t] + b_tec.var_gt_h2_input[t]
+            )
+
+        b_tec.const_total_input_gt = pyo.Constraint(
+            self.set_t_performance,
+            rule=init_total_input_gt,
+        )
+
+        # Max H2 in
+        def init_max_h2_input_gt(const, t):
+            return (
+                b_tec.var_gt_h2_input[t]
+                <= coeff_ti["max_h2_in_gt"] * b_tec.var_gt_input[t]
+            )
+
+        b_tec.const_max_h2_input_gt = pyo.Constraint(
+            self.set_t_performance,
+            rule=init_max_h2_input_gt,
+        )
+
+        s_indicators = range(0, nr_segments + 1)
 
         def init_input_output(dis, t, ind):
             if ind == 0:  # technology off
 
-                def init_input_off(const, car):
-                    return self.input[t, car] == 0
+                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
+
+                def init_input_gt_ng_off(const):
+                    return b_tec.var_gt_ng_input[t] == 0
+
+                dis.const_input_gt_ng_off = pyo.Constraint(rule=init_input_gt_ng_off)
+
+                def init_input_gt_h2_off(const):
+                    return b_tec.var_gt_h2_input[t] == 0
+
+                dis.const_input_gt_h2_off = pyo.Constraint(rule=init_input_gt_h2_off)
+
+                def init_output_gt_el_off(const):
+                    return b_tec.var_gt_p_el[t] == 0
+
+                dis.const_output_gt_el_off = pyo.Constraint(rule=init_output_gt_el_off)
+
+                def init_output_mp_off(const):
+                    return b_tec.var_mp_p_el[t] == 0
+
+                dis.const_output_mp_off = pyo.Constraint(rule=init_output_mp_off)
+
+                def init_output_hp_off(const):
+                    return b_tec.var_hp_p_el[t] == 0
+
+                dis.const_output_hp_off = pyo.Constraint(rule=init_output_hp_off)
+
+                def init_input_off(const, car_input):
+                    return self.input[t, car_input] == 0
 
                 dis.const_input = pyo.Constraint(
                     b_tec.set_input_carriers, rule=init_input_off
                 )
 
-                def init_output_off(const, car):
-                    return self.output[t, car] == 0
+                def init_output_off(const, car_output):
+                    return self.output[t, car_output] == 0
 
                 dis.const_output_off = pyo.Constraint(
                     b_tec.set_output_carriers, rule=init_output_off
                 )
 
-            else:  # technology on
-                # input-output relation
-                def init_input_output_on_el(const):
-                    return (
-                        self.output[t, "electricity"]
-                        == (
-                            alpha * b_tec.var_total_input[t]
-                            + beta * b_tec.var_units_on[t]
-                        )
-                        * temperature_correction[t - 1]
+                if self.component_options.other["component"] == "DB":
+
+                    def init_input_db_off(const):
+                        return b_tec.var_db_input[t] == 0
+
+                    dis.const_input_db_off = pyo.Constraint(rule=init_input_db_off)
+
+                    def init_input_db_ng_off(const):
+                        return b_tec.var_db_ng_input[t] == 0
+
+                    dis.const_input_db_ng_off = pyo.Constraint(
+                        rule=init_input_db_ng_off
                     )
 
-                dis.const_input_output_on_el = pyo.Constraint(
-                    rule=init_input_output_on_el
-                )
+                    def init_input_db_h2_off(const):
+                        return b_tec.var_db_h2_input[t] == 0
 
-                def init_input_output_on_th(const):
-                    return (
-                        self.output[t, "heat"]
-                        == epsilon * b_tec.var_total_input[t]
-                        - self.output[t, "electricity"]
+                    dis.const_input_db_h2_off = pyo.Constraint(
+                        rule=init_input_db_h2_off
                     )
 
-                dis.const_input_output_on_th = pyo.Constraint(
-                    rule=init_input_output_on_th
-                )
+                if self.component_options.other["component"] == "OHB":
 
-                # min part load relation
-                def init_min_input(const):
-                    return b_tec.var_total_input[t] >= in_min * b_tec.var_units_on[t]
+                    def init_input_ohb_h2_off(const):
+                        return b_tec.var_ohb_h2_input[t] == 0
 
-                dis.const_min_input = pyo.Constraint(rule=init_min_input)
+                    dis.const_input_ohb_h2_off = pyo.Constraint(
+                        rule=init_input_ohb_h2_off
+                    )
 
-                def init_max_input(const):
-                    return b_tec.var_total_input[t] <= in_max * b_tec.var_units_on[t]
+            else:  # piecewise definition
 
-                dis.const_max_input = pyo.Constraint(rule=init_max_input)
+                dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
+
+                def init_input_on1(const):
+                    return bp_x[t - 1, ind - 1] <= b_tec.var_gt_input[t]
+
+                dis.const_input_on1 = pyo.Constraint(rule=init_input_on1)
+
+                def init_input_on2(const):
+                    return b_tec.var_gt_input[t] <= bp_x[t - 1, ind]
+
+                dis.const_input_on2 = pyo.Constraint(rule=init_input_on2)
+
+                def init_output_gt_on(const):
+                    return (
+                        b_tec.var_gt_p_el[t]
+                        == alpha[t - 1, ind - 1] * b_tec.var_gt_input[t]
+                        + beta[t - 1, ind - 1]
+                    )
+
+                dis.const_input_output_gt_on = pyo.Constraint(rule=init_output_gt_on)
 
         b_tec.dis_input_output = gdp.Disjunct(
             self.set_t_performance, s_indicators, rule=init_input_output
@@ -562,16 +754,14 @@ class CCPP(Technology):
             self.set_t_performance, rule=bind_disjunctions
         )
 
-        # Technologies on
-        def init_n_on(const, t):
-            return b_tec.var_units_on[t] <= b_tec.var_size
+        def init_output_gt_th(const, t):
+            return b_tec.var_gt_p_th[t] == alpha_th[t - 1] * (
+                b_tec.var_gt_input[t] - b_tec.var_gt_p_el[t]
+            )
 
-        b_tec.const_n_on = pyo.Constraint(self.set_t_performance, rule=init_n_on)
-
-        # RAMPING RATES
-        if "ramping_time" in dynamics:
-            if not dynamics["ramping_time"] == -1:
-                b_tec = self._define_ramping_rates(b_tec, data)
+        b_tec.const_output_gt_th = pyo.Constraint(
+            self.set_t_performance, rule=init_output_gt_th
+        )
 
         return b_tec
 
@@ -585,9 +775,52 @@ class CCPP(Technology):
         super(CCPP, self).write_results_tec_operation(h5_group, model_block)
 
         h5_group.create_dataset(
-            "modules_on",
-            data=[model_block.var_units_on[t].value for t in self.set_t_performance],
+            "gt_input",
+            data=[model_block.var_gt_input[t].value for t in self.set_t_performance],
         )
+        h5_group.create_dataset(
+            "gt_ng_input",
+            data=[model_block.var_gt_ng_input[t].value for t in self.set_t_performance],
+        )
+        h5_group.create_dataset(
+            "gt_h2_input",
+            data=[model_block.var_gt_h2_input[t].value for t in self.set_t_performance],
+        )
+        h5_group.create_dataset(
+            "gt_p_el",
+            data=[model_block.var_gt_p_el[t].value for t in self.set_t_performance],
+        )
+        h5_group.create_dataset(
+            "gt_p_th",
+            data=[model_block.var_gt_p_th[t].value for t in self.set_t_performance],
+        )
+        if self.component_options.other["component"] == "DB":
+            h5_group.create_dataset(
+                "db_input",
+                data=[
+                    model_block.var_db_input[t].value for t in self.set_t_performance
+                ],
+            )
+            h5_group.create_dataset(
+                "db_h2_input",
+                data=[
+                    model_block.var_db_h2_input[t].value for t in self.set_t_performance
+                ],
+            )
+            h5_group.create_dataset(
+                "db_ng_input",
+                data=[
+                    model_block.var_db_ng_input[t].value for t in self.set_t_performance
+                ],
+            )
+        if self.component_options.other["component"] == "OHB":
+            h5_group.create_dataset(
+                "ohb_h2_input",
+                data=[
+                    model_block.var_ohb_h2_input[t].value
+                    for t in self.set_t_performance
+                ],
+            )
 
     def _define_ramping_rates(self, b_tec, data):
         """
