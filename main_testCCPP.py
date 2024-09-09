@@ -10,7 +10,7 @@ import pandas as pd
 path = Path("C:/Users/6574114/PycharmProjects/adopt_net0/test_ccpp")
 
 steam_demand = 0
-el_demand = 150
+el_demand = 0
 
 # Create template files (comment these lines if already defined)
 # dp.create_optimization_templates(path)
@@ -45,7 +45,7 @@ dp.fill_carrier_data(
 dp.fill_carrier_data(path, 500, columns=["Export limit"], carriers=["electricity"])
 
 # Gas import
-dp.fill_carrier_data(path, 50, columns=["Import price"], carriers=["gas"])
+dp.fill_carrier_data(path, 0, columns=["Import price"], carriers=["gas"])
 dp.fill_carrier_data(path, 1000, columns=["Import limit"], carriers=["gas"])
 # H2 import
 dp.fill_carrier_data(path, 40, columns=["Import price"], carriers=["hydrogen"])

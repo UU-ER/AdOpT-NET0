@@ -329,8 +329,9 @@ class CCPP(Technology):
             self.processed_coeff.time_independent[p] = {}
             self.processed_coeff.time_independent[p]["alpha_gt"] = alpha_gt
             self.processed_coeff.time_independent[p]["alpha_hp"] = alpha_hp
+            self.processed_coeff.time_independent[p]["alpha_mp"] = alpha_mp
             self.processed_coeff.time_independent[p]["alpha_cst"] = alpha_cst
-            self.processed_coeff.time_independent[p]["bp_hp"] = bp[p]
+            self.processed_coeff.time_independent[p]["bp_" + p.lower()] = bp[p]
             if self.component_options.other["component"] == "DB":
                 self.processed_coeff.time_independent[p]["alpha_db"] = alpha_db
             elif self.component_options.other["component"] == "OHB":
@@ -475,9 +476,14 @@ class CCPP(Technology):
         )
 
         # GT - P thermal
+        # TODO: calculate bounds
+        def init_gt_p_th_bounds(bds, t):
+            return tuple((0, 1000))
+
         b_tec.var_gt_p_th = pyo.Var(
             self.set_t_performance,
             within=pyo.NonNegativeReals,
+            bounds=init_gt_p_th_bounds,
         )
 
         # Duct Burner - input
@@ -548,6 +554,44 @@ class CCPP(Technology):
             bounds=init_mp_output_bounds,
         )
 
+        # Steam Output
+        # TODO: Calculate bounds
+        def init_mp_hp_bounds(bds, t):
+            return tuple((0, 1000))
+
+        b_tec.var_mp_p_hp = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_mp_hp_bounds,
+        )
+
+        def init_mp_mp_bounds(bds, t):
+            return tuple((0, 1000))
+
+        b_tec.var_mp_p_mp = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_mp_mp_bounds,
+        )
+
+        def init_hp_hp_bounds(bds, t):
+            return tuple((0, 1000))
+
+        b_tec.var_hp_p_hp = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_hp_hp_bounds,
+        )
+
+        def init_hp_mp_bounds(bds, t):
+            return tuple((0, 1000))
+
+        b_tec.var_hp_p_mp = pyo.Var(
+            self.set_t_performance,
+            within=pyo.NonNegativeReals,
+            bounds=init_hp_mp_bounds,
+        )
+
         if not b_tec.find_component("var_x"):
             b_tec.var_x = pyo.Var(
                 self.set_t_performance, domain=pyo.NonNegativeIntegers, bounds=(0, 1)
@@ -613,11 +657,11 @@ class CCPP(Technology):
     def _define_performance(self, b_tec):
         coeff_td = self.processed_coeff.time_dependent_used
         coeff_ti = self.processed_coeff.time_independent
-        alpha_th = coeff_td["GT"]["alpha_th"]
-        alpha = coeff_td["GT"]["alpha_el"]
-        beta = coeff_td["GT"]["beta_el"]
-        bp_x = coeff_td["GT"]["bp_el_x"]
         nr_segments = self.component_options.other["nr_segments"]
+        gt_alpha_th = coeff_td["GT"]["alpha_th"]
+        gt_alpha = coeff_td["GT"]["alpha_el"]
+        gt_beta = coeff_td["GT"]["beta_el"]
+        gt_bp_x = coeff_td["GT"]["bp_el_x"]
 
         # Total input to GT
         def init_total_input_gt(const, t):
@@ -724,20 +768,20 @@ class CCPP(Technology):
                 dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
 
                 def init_input_on1(const):
-                    return bp_x[t - 1, ind - 1] <= b_tec.var_gt_input[t]
+                    return gt_bp_x[t - 1, ind - 1] <= b_tec.var_gt_input[t]
 
                 dis.const_input_on1 = pyo.Constraint(rule=init_input_on1)
 
                 def init_input_on2(const):
-                    return b_tec.var_gt_input[t] <= bp_x[t - 1, ind]
+                    return b_tec.var_gt_input[t] <= gt_bp_x[t - 1, ind]
 
                 dis.const_input_on2 = pyo.Constraint(rule=init_input_on2)
 
                 def init_output_gt_on(const):
                     return (
                         b_tec.var_gt_p_el[t]
-                        == alpha[t - 1, ind - 1] * b_tec.var_gt_input[t]
-                        + beta[t - 1, ind - 1]
+                        == gt_alpha[t - 1, ind - 1] * b_tec.var_gt_input[t]
+                        + gt_beta[t - 1, ind - 1]
                     )
 
                 dis.const_input_output_gt_on = pyo.Constraint(rule=init_output_gt_on)
@@ -755,12 +799,139 @@ class CCPP(Technology):
         )
 
         def init_output_gt_th(const, t):
-            return b_tec.var_gt_p_th[t] == alpha_th[t - 1] * (
+            return b_tec.var_gt_p_th[t] == gt_alpha_th[t - 1] * (
                 b_tec.var_gt_input[t] - b_tec.var_gt_p_el[t]
             )
 
         b_tec.const_output_gt_th = pyo.Constraint(
             self.set_t_performance, rule=init_output_gt_th
+        )
+
+        st_hp_alpha_gt = coeff_ti["HP"]["alpha_gt"]
+        st_hp_alpha_hp = coeff_ti["HP"]["alpha_hp"]
+        st_hp_alpha_mp = coeff_ti["HP"]["alpha_mp"]
+        st_hp_alpha_cst = coeff_ti["HP"]["alpha_cst"]
+        st_hp_bp_x = coeff_ti["HP"]["bp_hp"]
+        if self.component_options.other["component"] == "DB":
+            st_hp_alpha_db = coeff_ti["HP"]["alpha_db"]
+        elif self.component_options.other["component"] == "OHB":
+            st_hp_alpha_ohb = coeff_ti["HP"]["alpha_ohb"]
+        s_indicators = range(0, nr_segments + 1)
+
+        def init_perf_hp(dis, t, ind):
+            if ind == 0:  # technology off
+                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
+
+            else:  # technology on
+                dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
+
+                # HP bounds
+                def init_hp_on1(const):
+                    return st_hp_bp_x[ind - 1] <= b_tec.var_hp_p_el[t]
+
+                dis.const_hp_on1 = pyo.Constraint(rule=init_hp_on1)
+
+                def init_hp_on2(const):
+                    return b_tec.var_hp_p_el[t] <= st_hp_bp_x[ind]
+
+                dis.const_hp_on2 = pyo.Constraint(rule=init_hp_on2)
+
+                # HP performance
+                def init_hp_performance(const):
+                    if self.component_options.other["component"] == "DB":
+                        add = st_hp_alpha_db[t - 1, ind - 1] * b_tec.var_db_input[t]
+                    elif self.component_options.other["component"] == "OHB":
+                        add = (
+                            st_hp_alpha_ohb[t - 1, ind - 1] * b_tec.var_ohb_h2_input[t]
+                        )
+                    else:
+                        add = 0
+
+                    return (
+                        b_tec.var_hp_p_el[t]
+                        == st_hp_alpha_gt[t - 1, ind - 1] * b_tec.var_gt_p_th[t]
+                        + st_hp_alpha_hp[t - 1, ind - 1] * b_tec.var_hp_p_hp[t]
+                        + st_hp_alpha_mp[t - 1, ind - 1] * b_tec.var_hp_p_mp[t]
+                        + add
+                        + st_hp_alpha_cst[t - 1, ind - 1]
+                    )
+
+                dis.const_hp_performance = pyo.Constraint(rule=init_hp_performance)
+
+        b_tec.dis_performance_hp = gdp.Disjunct(
+            self.set_t_performance, s_indicators, rule=init_perf_hp
+        )
+
+        # Bind disjuncts
+        def bind_disjunctions(dis, t):
+            return [b_tec.dis_performance_hp[t, i] for i in s_indicators]
+
+        b_tec.disjunction_performance_hp = gdp.Disjunction(
+            self.set_t_performance, rule=bind_disjunctions
+        )
+
+        st_mp_alpha_gt = coeff_ti["MP"]["alpha_gt"]
+        st_mp_alpha_hp = coeff_ti["MP"]["alpha_hp"]
+        st_mp_alpha_mp = coeff_ti["MP"]["alpha_mp"]
+        st_mp_alpha_cst = coeff_ti["MP"]["alpha_cst"]
+        st_mp_bp_x = coeff_ti["MP"]["bp_mp"]
+
+        if self.component_options.other["component"] == "DB":
+            st_mp_alpha_db = coeff_ti["MP"]["alpha_db"]
+        elif self.component_options.other["component"] == "OHB":
+            st_mp_alpha_ohb = coeff_ti["MP"]["alpha_ohb"]
+
+        s_indicators = range(0, nr_segments + 1)
+
+        def init_perf_mp(dis, t, ind):
+            if ind == 0:  # technology off
+                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
+
+            else:  # technology on
+                dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
+
+                # MP bounds
+                def init_mp_on1(const):
+                    return st_mp_bp_x[ind - 1] <= b_tec.var_mp_p_el[t]
+
+                dis.const_mp_on1 = pyo.Constraint(rule=init_mp_on1)
+
+                def init_mp_on2(const):
+                    return b_tec.var_mp_p_el[t] <= st_mp_bp_x[ind]
+
+                dis.const_mp_on2 = pyo.Constraint(rule=init_mp_on2)
+
+                # MP performance
+                def init_mp_performance(const):
+                    if self.component_options.other["component"] == "DB":
+                        add = st_mp_alpha_db[t - 1, ind - 1] * b_tec.var_db_input[t]
+                    elif self.component_options.other["component"] == "OHB":
+                        add = (
+                            st_mp_alpha_ohb[t - 1, ind - 1] * b_tec.var_ohb_h2_input[t]
+                        )
+                    else:
+                        add = 0
+                    return (
+                        b_tec.var_mp_p_el[t]
+                        == st_mp_alpha_gt[t - 1, ind - 1] * b_tec.var_gt_p_th[t]
+                        + st_mp_alpha_hp[t - 1, ind - 1] * b_tec.var_mp_p_hp[t]
+                        + st_mp_alpha_mp[t - 1, ind - 1] * b_tec.var_mp_p_mp[t]
+                        + add
+                        + st_mp_alpha_cst[t - 1, ind - 1]
+                    )
+
+                dis.const_mp_performance = pyo.Constraint(rule=init_mp_performance)
+
+        b_tec.dis_performance_mp = gdp.Disjunct(
+            self.set_t_performance, s_indicators, rule=init_perf_mp
+        )
+
+        # Bind disjuncts
+        def bind_disjunctions(dis, t):
+            return [b_tec.dis_performance_mp[t, i] for i in s_indicators]
+
+        b_tec.disjunction_performance_mp = gdp.Disjunction(
+            self.set_t_performance, rule=bind_disjunctions
         )
 
         return b_tec
@@ -793,6 +964,14 @@ class CCPP(Technology):
         h5_group.create_dataset(
             "gt_p_th",
             data=[model_block.var_gt_p_th[t].value for t in self.set_t_performance],
+        )
+        h5_group.create_dataset(
+            "hp_p_el",
+            data=[model_block.var_hp_p_el[t].value for t in self.set_t_performance],
+        )
+        h5_group.create_dataset(
+            "mp_p_el",
+            data=[model_block.var_mp_p_el[t].value for t in self.set_t_performance],
         )
         if self.component_options.other["component"] == "DB":
             h5_group.create_dataset(
