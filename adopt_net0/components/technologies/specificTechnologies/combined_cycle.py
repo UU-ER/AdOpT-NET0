@@ -1,3 +1,5 @@
+import warnings
+
 import pyomo.environ as pyo
 import pyomo.gdp as gdp
 import copy
@@ -24,15 +26,19 @@ class CCPP(Technology):
     The size of the power plant it fixed and it only possible to model the plant as
     an existing technology (i.e. it cannot be sized). The model is based on Wiegner
     et al. (2024). Optimizing the Use of Limited Amounts of Hydrogen in Existing
-    Combined Heat and Power Plants.
+    Combined Heat and Power Plants
+    https://www.sciencedirect.com/science/article/pii/S2667095X24000199.
 
     It is possible in the JSON file to specify the following options:
 
-    - Size of an Oxy-fuel hydrogen burner
+    - size_ohb: Size of an Oxy-fuel hydrogen burner
 
-    - Size of a duct burner that can burn hydrogen or natural gas
+    - size_db: Size of a duct burner that can burn hydrogen or natural gas
 
-    - Max share (energy-based) of hydrogen combustion in the gas turbine ("max_input")
+    - max_h2_in_gt: Max share (energy-based) of hydrogen combustion in the gas
+      turbine ("max_input")
+
+    - max_h2_in: Maximum of hydrogen input to plant
 
     - How to treat steam production ("steam_production"):
 
@@ -173,6 +179,14 @@ class CCPP(Technology):
             "nr_segments"
         ]
 
+        # All other options
+        self.component_options.other["steam_turbine_generator_efficiency"] = tec_data[
+            "Performance"
+        ]["steam_turbine_generator_efficiency"]
+        self.component_options.other["max_steam_extract_HP"] = 140
+        self.component_options.other["max_steam_extract_MP"] = 51
+        self.component_options.other["kappa_steam"] = 0.45
+
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Performs fitting for technology type CCPP
@@ -184,7 +198,6 @@ class CCPP(Technology):
         super(CCPP, self).fit_technology_performance(climate_data, location)
 
         # Climate data & Number of timesteps
-        time_steps = len(climate_data)
         T = copy.deepcopy(climate_data["temp_air"])
 
         # Remove outliers
@@ -193,11 +206,22 @@ class CCPP(Technology):
 
         # Determine correct reading paths
         data_path = {}
-        performance_data_path = Path(__file__).parent.parent.parent.parent
-        performance_data_path = (
-            performance_data_path
-            / "data/technology_data/PowerGeneration/CombinedCycle_fixed_size_data"
-        )
+        if "performance_data_path" in self.input_parameters.performance_data:
+            performance_data_path = self.input_parameters.performance_data[
+                "performance_data_path"
+            ]
+        else:
+            performance_data_path = Path(__file__).parent.parent.parent.parent
+            performance_data_path = (
+                performance_data_path
+                / "data/technology_data/PowerGeneration/CombinedCycle_fixed_size_data"
+            )
+            log.warning(
+                "Using performance data with noice (not the same as in "
+                "publication. Refer to the paper authors (Jan Wiegner) to get "
+                "the actual data."
+            )
+
         data_path["GT"] = Path("GT_fitting_data.csv")
         data_path["HP"] = Path("HP_fitting_data.csv")
         data_path["MP"] = Path("MP_fitting_data.csv")
@@ -205,6 +229,7 @@ class CCPP(Technology):
         # Fit GT performance
         perf_data = {}
         perf_data["GT"] = pd.read_csv(performance_data_path / data_path["GT"], sep=";")
+
         for turbine in ["HP", "MP"]:
             perf_data[turbine] = pd.read_csv(
                 performance_data_path / data_path[turbine],
@@ -341,15 +366,7 @@ class CCPP(Technology):
         self.processed_coeff.time_independent["eta_stg"] = data[
             "steam_turbine_generator_efficiency"
         ]
-        self.processed_coeff.time_independent["hp_steam_max"] = data[
-            "max_steam_extract_HP"
-        ]
-        self.processed_coeff.time_independent["mp_steam_max"] = data[
-            "max_steam_extract_MP"
-        ]
-        self.processed_coeff.time_independent["kappa_steam"] = data[
-            "max_steam_extract_total"
-        ]
+
         self.processed_coeff.time_independent["size_db"] = data["size_db"]
         self.processed_coeff.time_independent["size_ohb"] = data["size_ohb"]
         self.processed_coeff.time_independent["max_h2_in"] = data["max_h2_in"]
@@ -391,11 +408,35 @@ class CCPP(Technology):
         self.bounds["input"]["total"] = np.column_stack((min_in, max_ng + max_h2))
 
         # Output bounds
-        min_el = np.zeros(shape=(time_steps))
-        max_el = np.ones(shape=(time_steps)) * 3000
-        self.bounds["output"]["electricity"] = np.column_stack((min_el, max_el))
+        min_out = np.zeros(shape=(time_steps))
+        max_el = (
+            self.processed_coeff.time_dependent_full["GT"]["bp_el_y"][:, -1]
+            + self.processed_coeff.time_independent["hp_max_p"]
+            + self.processed_coeff.time_independent["mp_max_p"]
+        )
+        max_hp = (
+            np.ones(shape=(time_steps))
+            * self.component_options.other["max_steam_extract_HP"]
+        )
+        max_mp = (
+            np.ones(shape=(time_steps))
+            * self.component_options.other["max_steam_extract_MP"]
+        )
+        self.bounds["output"]["electricity"] = np.column_stack((min_out, max_el))
 
-        # TODO: Calculate input bounds of el, heat, mp steam, hp steam
+        if self.component_options.other["steam_production"] == "ignore":
+            # For completeness, no other output then electricity
+            pass
+
+        elif self.component_options.other["steam_production"] == "as heat":
+            self.bounds["output"]["heat"] = np.column_stack((min_out, max_hp + max_mp))
+
+        elif self.component_options.other["steam_production"] == "as steam":
+            self.bounds["output"]["steam"] = np.column_stack((min_out, max_hp + max_mp))
+
+        elif self.component_options.other["steam_production"] == "as hp/mp steam":
+            self.bounds["output"]["steam_hp"] = np.column_stack((min_out, max_hp))
+            self.bounds["output"]["steam_mp"] = np.column_stack((min_out, max_mp))
 
     def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
@@ -420,8 +461,6 @@ class CCPP(Technology):
         if "ramping_time" in dynamics:
             if not dynamics["ramping_time"] == -1:
                 b_tec = self._define_ramping_rates(b_tec, data)
-
-        b_tec.pprint()
 
         return b_tec
 
@@ -476,9 +515,14 @@ class CCPP(Technology):
         )
 
         # GT - P thermal
-        # TODO: calculate bounds
+        gt_alpha_th = coeff_td["GT"]["alpha_th"]
+        gt_bp_y = coeff_td["GT"]["bp_el_y"]
+        gt_bp_x = coeff_td["GT"]["bp_el_x"]
+
         def init_gt_p_th_bounds(bds, t):
-            return tuple((0, 1000))
+            return tuple(
+                (0, gt_alpha_th[t - 1] * (gt_bp_x[t - 1, -1] - gt_bp_y[t - 1, -1]))
+            )
 
         b_tec.var_gt_p_th = pyo.Var(
             self.set_t_performance,
@@ -534,7 +578,7 @@ class CCPP(Technology):
                 self.set_t_performance, domain=pyo.Reals, initialize=0
             )
 
-        # ST - HP
+        # STHP electric output
         def init_hp_output_bounds(bds, t):
             return tuple((0, coeff_ti["hp_max_p"]))
 
@@ -544,7 +588,7 @@ class CCPP(Technology):
             bounds=init_hp_output_bounds,
         )
 
-        # ST - MP
+        # STMP electric output
         def init_mp_output_bounds(bds, t):
             return tuple((0, coeff_ti["mp_max_p"]))
 
@@ -555,9 +599,8 @@ class CCPP(Technology):
         )
 
         # Steam Output
-        # TODO: Calculate bounds
         def init_mp_hp_bounds(bds, t):
-            return tuple((0, 1000))
+            return tuple((0, self.component_options.other["max_steam_extract_HP"]))
 
         b_tec.var_mp_p_hp = pyo.Var(
             self.set_t_performance,
@@ -566,7 +609,7 @@ class CCPP(Technology):
         )
 
         def init_mp_mp_bounds(bds, t):
-            return tuple((0, 1000))
+            return tuple((0, self.component_options.other["max_steam_extract_MP"]))
 
         b_tec.var_mp_p_mp = pyo.Var(
             self.set_t_performance,
@@ -575,7 +618,7 @@ class CCPP(Technology):
         )
 
         def init_hp_hp_bounds(bds, t):
-            return tuple((0, 1000))
+            return tuple((0, coeff_ti["hp_max_p"]))
 
         b_tec.var_hp_p_hp = pyo.Var(
             self.set_t_performance,
@@ -584,7 +627,7 @@ class CCPP(Technology):
         )
 
         def init_hp_mp_bounds(bds, t):
-            return tuple((0, 1000))
+            return tuple((0, coeff_ti["mp_max_p"]))
 
         b_tec.var_hp_p_mp = pyo.Var(
             self.set_t_performance,
@@ -602,7 +645,6 @@ class CCPP(Technology):
     def _define_tec_global_balances(self, b_tec):
 
         # DATA OF TECHNOLOGY
-        coeff_td = self.processed_coeff.time_dependent_used
         coeff_ti = self.processed_coeff.time_independent
 
         # Calculate total hydrogen input
@@ -633,15 +675,74 @@ class CCPP(Technology):
 
         # Calculate total electric output
         def init_total_output_el(const, t):
-            return b_tec.var_output[t, "electricity"] == b_tec.var_hp_p_el[
+            return b_tec.var_output[t, "electricity"] == b_tec.var_gt_p_el[
                 t
-            ] + coeff_ti["eta_stg"] * (b_tec.var_mp_p_el[t] + b_tec.var_gt_p_el[t])
+            ] + coeff_ti["eta_stg"] * (b_tec.var_mp_p_el[t] + b_tec.var_hp_p_el[t])
 
         b_tec.const_total_output_el = pyo.Constraint(
             self.set_t_performance,
             rule=init_total_output_el,
         )
-        # TODO: Calculate total heat, hp, mp steam output
+
+        if self.component_options.other["steam_production"] == "ignore":
+            # For completeness, no other output than electricity
+            pass
+
+        elif self.component_options.other["steam_production"] == "as heat":
+
+            def init_total_output_heat(const, t):
+                return (
+                    b_tec.var_output[t, "heat"]
+                    == b_tec.var_mp_p_hp[t]
+                    + b_tec.var_mp_p_mp[t]
+                    + b_tec.var_hp_p_hp[t]
+                    + b_tec.var_hp_p_mp[t]
+                )
+
+            b_tec.const_total_output_heat = pyo.Constraint(
+                self.set_t_performance,
+                rule=init_total_output_heat,
+            )
+
+        elif self.component_options.other["steam_production"] == "as steam":
+
+            def init_total_output_steam(const, t):
+                return (
+                    b_tec.var_output[t, "steam"]
+                    == b_tec.var_mp_p_hp[t]
+                    + b_tec.var_mp_p_mp[t]
+                    + b_tec.var_hp_p_hp[t]
+                    + b_tec.var_hp_p_mp[t]
+                )
+
+            b_tec.const_total_output_steam = pyo.Constraint(
+                self.set_t_performance,
+                rule=init_total_output_steam,
+            )
+
+        elif self.component_options.other["steam_production"] == "as hp/mp steam":
+
+            def init_total_output_steam_hp(const, t):
+                return (
+                    b_tec.var_output[t, "steam_hp"]
+                    == b_tec.var_mp_p_hp[t] + b_tec.var_hp_p_hp[t]
+                )
+
+            b_tec.const_total_output_steam_hp = pyo.Constraint(
+                self.set_t_performance,
+                rule=init_total_output_steam_hp,
+            )
+
+            def init_total_output_steam_mp(const, t):
+                return (
+                    b_tec.var_output[t, "steam_mp"]
+                    == b_tec.var_mp_p_mp[t] + b_tec.var_hp_p_mp[t]
+                )
+
+            b_tec.const_total_output_steam_mp = pyo.Constraint(
+                self.set_t_performance,
+                rule=init_total_output_steam_mp,
+            )
 
         # Constrain total H2 input
         def init_total_input_h2_max(const, t):

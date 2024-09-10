@@ -1118,3 +1118,37 @@ def test_ccs(request):
     assert round(model.var_input_tot[1, "electricity"].value, 3) >= 0.001
     assert cost_ccs > cost_no_ccs * 1.01
     assert emissions_ccs < emissions_no_ccs * 0.11
+
+
+def test_combined_cycle_fixed_size(request):
+    """
+    tests Gas Turbine
+    """
+    time_steps = 1
+    technology = "TestTec_CombinedCycle_fixed_size"
+    tec = define_technology(
+        technology, time_steps, request.config.technology_data_folder_path
+    )
+
+    # INFEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [9])
+
+    termination = run_model(model, request.config.solver)
+    assert termination in [
+        TerminationCondition.infeasibleOrUnbounded,
+        TerminationCondition.infeasible,
+        TerminationCondition.other,
+    ]
+
+    # FEASIBILITY CASES
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model.test_const_output1 = Constraint(
+        expr=model.var_output_tot[1, "electricity"] == 200
+    )
+    model.test_const_output2 = Constraint(expr=model.var_output_tot[1, "heat"] == 5)
+    model.test_const_input = Constraint(expr=model.var_input_tot[1, "hydrogen"] == 3)
+
+    termination = run_model(model, request.config.solver)
+    assert termination == TerminationCondition.optimal
+    assert model.var_input_tot[1, "gas"].value >= 140 / 0.5

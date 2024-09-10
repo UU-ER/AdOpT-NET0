@@ -26,7 +26,7 @@
       "electricity"
     ],
     "emission_factor": 0.187,
-    "steam_production": "as hp/mp steam",
+    "steam_production": "as heat",
     "component": "OHB",
     "nr_segments": 2,
     "steam_turbine_generator_efficiency": 0.98,
