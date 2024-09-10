@@ -865,11 +865,6 @@ class ModelHub:
         self.last_solve_info["result_folder_path"] = result_folder_path
         self.last_solve_info["time_stage"] = self.info_solving_algorithms["time_stage"]
 
-        # self.model[self.info_solving_algorithms["aggregation_model"]].periods[
-        #     "period1"
-        # ].node_blocks["node1"].tech_blocks_active[
-        #     "CombinedCycle_fixed_size_existing"
-        # ].pprint()
         # Write results to path
         # Determine if results should be written
         write_results = False
