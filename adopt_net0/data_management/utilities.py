@@ -62,6 +62,8 @@ def select_technology(tec_data: dict):
         return HeatPump(tec_data)
     elif tec_data["tec_type"] == "HydroOpen":
         return HydroOpen(tec_data)
+    elif tec_data["tec_type"] == "CCPP":
+        return CCPP(tec_data)
 
 
 def read_tec_data(tec_name: str, load_path: Path):

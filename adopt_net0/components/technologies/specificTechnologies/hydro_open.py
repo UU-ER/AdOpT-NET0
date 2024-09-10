@@ -611,7 +611,7 @@ class HydroOpen(Technology):
                 if t > 1:
                     return -ramping_rate <= sum(
                         output_aux_rr[t, car_output] - output_aux_rr[t - 1, car_output]
-                        for car_output in b_tec.set_ouput_carriers
+                        for car_output in b_tec.set_output_carriers
                     )
                 else:
                     return pyo.Constraint.Skip
@@ -627,7 +627,7 @@ class HydroOpen(Technology):
                         sum(
                             output_aux_rr[t, car_output]
                             - output_aux_rr[t - 1, car_output]
-                            for car_output in b_tec.set_ouput_carriers
+                            for car_output in b_tec.set_output_carriers
                         )
                         <= ramping_rate
                     )

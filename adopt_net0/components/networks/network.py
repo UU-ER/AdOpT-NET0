@@ -738,6 +738,10 @@ class Network(ModelComponent):
         # CAPEX aux:
         if self.existing and not self.component_options.decommission:
             b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
+        elif (b_netw.para_capex_gamma1.value == 0) and (
+            b_netw.para_capex_gamma3.value == 0
+        ):
+            b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
         else:
             b_arc.big_m_transformation_required = 1
             s_indicators = range(0, 2)

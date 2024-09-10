@@ -1,7 +1,9 @@
 [![Documentation Status](https://readthedocs.org/projects/adopt-net0/badge/?version=latest)](https://adopt-net0.readthedocs.io/en/latest/?badge=latest)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Testing](https://github.com/UU-ER/AdOpT-NET0/actions/workflows/00publish_tests.yml/badge.svg?branch=main)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyPI version](https://badge.fury.io/py/adopt-net0.svg)](https://pypi.org/project/adopt-net0/)
+[![status](https://joss.theoj.org/papers/12578885161d419241e50c5e745b7a11/status.svg)](https://joss.theoj.org/papers/12578885161d419241e50c5e745b7a11)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13384688.svg)](https://doi.org/10.5281/zenodo.13384688)
 
 # AdOpT-NET0 - Advanced Optimization Tool for Networks and Energy
 

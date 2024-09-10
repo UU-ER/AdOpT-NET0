@@ -24,6 +24,7 @@ Technology types, divided by generic and specific technologies:
     - Gas turbine
     - Heat pump
     - Hydro open
+    - Combined Cycle with fixed size (cannot be sized)
 
 - Add-ons
     - Carbon Capture
@@ -102,6 +103,11 @@ Specific Technologies
 
 .. automodule:: adopt_net0.components.technologies.specificTechnologies.hydro_open
     :members: HydroOpen
+
+**Combined Cycle with fixed size**
+
+.. automodule:: adopt_net0.components.technologies.specificTechnologies.combined_cycle
+    :members: CCPP
 
 ..  _ccs_docu:
 
