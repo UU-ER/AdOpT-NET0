@@ -82,7 +82,7 @@ def construct_network_constraints(model, config: dict):
 
         def init_netw_consumption(const, node, car, t):
 
-            if (b_period.node_blocks[node].find_component("var_consumption")) and (
+            if (b_period.node_blocks[node].find_component("var_netw_consumption")) and (
                 car in b_period.node_blocks[node].set_carriers
             ):
                 return b_period.node_blocks[node].var_netw_consumption[t, car] == sum(
