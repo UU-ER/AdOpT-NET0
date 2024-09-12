@@ -495,7 +495,7 @@ class Stor(Technology):
             energy_consumption = coeff_ti["energy_consumption"]
             if "in" in energy_consumption:
                 b_tec.set_energyconsumption_carriers_in = pyo.Set(
-                    initialize=energy_consumption["in"].keys()
+                    initialize=list(energy_consumption["in"].keys())
                 )
 
                 def init_energyconsumption_in(const, t, car):
