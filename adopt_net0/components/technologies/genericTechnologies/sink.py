@@ -30,17 +30,17 @@ class Sink(Technology):
     - Size constraint:
 
       .. math::
-        E_{t} \leq S
+        E_{t} \\leq S
 
     - Maximal injection rate:
 
       .. math::
-        Input_{t, maincar} \leq injCapacity
+        Input_{t, maincar} \\leq injCapacity
 
     - Maximal injection capacity:
 
       .. math::
-        injCapacity \leq injRateMax
+        injCapacity \\leq injRateMax
 
 
     - Storage level calculation:
@@ -63,7 +63,7 @@ class Sink(Technology):
       output).
 
       .. math::
-         -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar} \leq rampingrate
+         -rampingrate \\leq Input_{t, maincar} - Input_{t-1, maincar} \\leq rampingrate
 
     """
 

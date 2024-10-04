@@ -94,12 +94,12 @@ class CCPP(Technology):
         Input_{H2, t} + Input_{NG, t} = Input_{tot, t}
 
       .. math::
-        Input_{H2, t} \leq in_{H2max} Input_{tot, t}
+        Input_{H2, t} \\leq in_{H2max} Input_{tot, t}
 
     - Turbines on:
 
       .. math::
-        N_{on, t} \leq S
+        N_{on, t} \\leq S
 
     - If technology is on:
 
@@ -110,7 +110,7 @@ class CCPP(Technology):
         Output_{th,t} = {\\epsilon} Input_{tot, t} - Output_{el,t}
 
       .. math::
-        Input_{min} * N_{on, t} \leq Input_{tot, t} \leq Input_{max} * N_{on, t}
+        Input_{min} * N_{on, t} \\leq Input_{tot, t} \\leq Input_{max} * N_{on, t}
 
     - If the technology is off, input and output is set to 0:
 
@@ -123,7 +123,7 @@ class CCPP(Technology):
     - Additionally, ramping rates of the technology can be constraint.
 
       .. math::
-         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq rampingrate
+         -rampingrate \\leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \\leq rampingrate
 
     """
 
