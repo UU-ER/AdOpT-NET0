@@ -858,7 +858,7 @@ class ModelHub:
             warnings.warn(
                 "The config file needs to contain config['reporting']"
                 "['write_results']. This is mandatory in future versions",
-                DeprecationWarning,
+                FutureWarning,
                 stacklevel=2,
             )
             write_results = True
