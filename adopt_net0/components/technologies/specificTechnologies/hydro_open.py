@@ -68,7 +68,7 @@ class HydroOpen(Technology):
          -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar} \leq rampingrate
 
       .. math::
-         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq rampingrate
+         -rampingrate \leq \\sum(Input_{t, car}) - \\sum(Input_{t-1, car}) \leq rampingrate
 
     """
 

@@ -23,45 +23,45 @@ class Conv1(Technology):
       For size_based_on == 'input' it holds:
 
       .. math::
-         \sum(Input_{t, car}) \leq S
+         \\sum(Input_{t, car}) \leq S
 
       For size_based_on == 'output' it holds:
 
       .. math::
-         \sum(Output_{t, car}) \leq S
+         \\sum(Output_{t, car}) \leq S
 
     - It is possible to limit the maximum input of a carrier. This needs to be
       specified in the technology JSON files.
       Then it holds:
 
       .. math::
-        Input_{t, car} <= max_in_{car} * \sum(Input_{t, car})
+        Input_{t, car} <= max_in_{car} * \\sum(Input_{t, car})
 
     - ``performance_function_type == 1``: Linear through origin. Note that if
       min_part_load is larger than 0, the technology cannot be turned off.
 
       .. math::
-        \sum(Output_{t, car}) == {\\alpha}_1 \sum(Input_{t, car})
+        \\sum(Output_{t, car}) == {\\alpha}_1 \\sum(Input_{t, car})
 
       .. math::
-        \min_part_load * S \leq {\\alpha}_1 \sum(Input_{t, car})
+        \min_part_load * S \leq {\\alpha}_1 \\sum(Input_{t, car})
 
     - ``performance_function_type == 2``: Linear with minimal partload (makes big-m
       transformation required). If the technology is in on, it holds:
 
       .. math::
-        \sum(Output_{t, car}) = {\\alpha}_1 \sum(Input_{t, car}) + {\\alpha}_2
+        \\sum(Output_{t, car}) = {\\alpha}_1 \\sum(Input_{t, car}) + {\\alpha}_2
 
       .. math::
-        \sum(Input_{car}) \geq Input_{min} * S
+        \\sum(Input_{car}) \geq Input_{min} * S
 
       If the technology is off, input and output is set to 0:
 
       .. math::
-         \sum(Output_{t, car}) = 0
+         \\sum(Output_{t, car}) = 0
 
       .. math::
-         \sum(Input_{t, car}) = 0
+         \\sum(Input_{t, car}) = 0
 
       If the technology has a standby-power, the input of the standy-by power carrier
       is:
@@ -84,7 +84,7 @@ class Conv1(Technology):
     - Additionally, ramping rates of the technology can be constrained.
 
       .. math::
-         -rampingrate \leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \leq rampingrate
+         -rampingrate \leq \\sum(Input_{t, car}) - \\sum(Input_{t-1, car}) \leq rampingrate
 
     """
 
