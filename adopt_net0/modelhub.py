@@ -377,29 +377,42 @@ class ModelHub:
         Writes optimization results of a model run to folder
         """
         # Write H5 File
-        config = self.data.model_config
 
-        save_summary_path = Path.joinpath(
-            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
-        )
+        solution_available = True
+        if self.solution.solver.termination_condition in [
+            pyo.TerminationCondition.infeasibleOrUnbounded,
+            pyo.TerminationCondition.infeasible,
+            pyo.TerminationCondition.unbounded,
+        ]:
+            solution_available = False
 
-        model_info = self.last_solve_info
+        if solution_available:
 
-        model = self.model[self.info_solving_algorithms["aggregation_model"]]
+            config = self.data.model_config
 
-        summary_dict = write_optimization_results_to_h5(
-            model, self.solution, model_info, self.data
-        )
+            save_summary_path = Path.joinpath(
+                Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
+            )
 
-        # Write Summary
-        if not os.path.exists(save_summary_path):
-            summary_df = pd.DataFrame(data=summary_dict, index=[0])
-            summary_df.to_excel(save_summary_path, index=False, sheet_name="Summary")
-        else:
-            summary_existing = pd.read_excel(save_summary_path)
-            pd.concat(
-                [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
-            ).to_excel(save_summary_path, index=False, sheet_name="Summary")
+            model_info = self.last_solve_info
+
+            model = self.model[self.info_solving_algorithms["aggregation_model"]]
+
+            summary_dict = write_optimization_results_to_h5(
+                model, self.solution, model_info, self.data
+            )
+
+            # Write Summary
+            if not os.path.exists(save_summary_path):
+                summary_df = pd.DataFrame(data=summary_dict, index=[0])
+                summary_df.to_excel(
+                    save_summary_path, index=False, sheet_name="Summary"
+                )
+            else:
+                summary_existing = pd.read_excel(save_summary_path)
+                pd.concat(
+                    [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
+                ).to_excel(save_summary_path, index=False, sheet_name="Summary")
 
     def add_technology(self, investment_period: str, node: str, technologies: list):
         """
