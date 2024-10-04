@@ -14,7 +14,7 @@ class Conv1(Technology):
     Technology with full input an output substitution
 
     This technology type resembles a technology with full input and output substitution,
-    i.e. :math:`\sum(output) = f(\sum(inputs))`
+    i.e. :math:`\\sum(output) = f(\\sum(inputs))`
     Three different performance function fits are possible.
 
     **Constraint declarations:**
@@ -23,12 +23,12 @@ class Conv1(Technology):
       For size_based_on == 'input' it holds:
 
       .. math::
-         \\sum(Input_{t, car}) \leq S
+         \\sum(Input_{t, car}) \\leq S
 
       For size_based_on == 'output' it holds:
 
       .. math::
-         \\sum(Output_{t, car}) \leq S
+         \\sum(Output_{t, car}) \\leq S
 
     - It is possible to limit the maximum input of a carrier. This needs to be
       specified in the technology JSON files.
@@ -44,7 +44,7 @@ class Conv1(Technology):
         \\sum(Output_{t, car}) == {\\alpha}_1 \\sum(Input_{t, car})
 
       .. math::
-        \min_part_load * S \leq {\\alpha}_1 \\sum(Input_{t, car})
+        min_part_load * S \\leq {\\alpha}_1 \\sum(Input_{t, car})
 
     - ``performance_function_type == 2``: Linear with minimal partload (makes big-m
       transformation required). If the technology is in on, it holds:
@@ -53,7 +53,7 @@ class Conv1(Technology):
         \\sum(Output_{t, car}) = {\\alpha}_1 \\sum(Input_{t, car}) + {\\alpha}_2
 
       .. math::
-        \\sum(Input_{car}) \geq Input_{min} * S
+        \\sum(Input_{car}) \\geq Input_{min} * S
 
       If the technology is off, input and output is set to 0:
 
@@ -84,7 +84,7 @@ class Conv1(Technology):
     - Additionally, ramping rates of the technology can be constrained.
 
       .. math::
-         -rampingrate \leq \\sum(Input_{t, car}) - \\sum(Input_{t-1, car}) \leq rampingrate
+         -rampingrate \\leq \\sum(Input_{t, car}) - \\sum(Input_{t-1, car}) \\leq rampingrate
 
     """
 

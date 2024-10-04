@@ -31,7 +31,7 @@ class Conv3(Technology):
     - Size constraints are formulated on the input.
 
       .. math::
-         Input_{t, maincarrier} \leq S
+         Input_{t, maincarrier} \\leq S
 
     - The ratios of inputs are fixed and given as:
 
@@ -47,7 +47,7 @@ class Conv3(Technology):
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier}
 
       .. math::
-        \min_part_load * S \leq {\\alpha}_1 Input_{t, maincarrier}
+        min_part_load * S \\leq {\\alpha}_1 Input_{t, maincarrier}
 
     - ``performance_function_type == 2``: Linear with minimal partload. If the
       technology is in on, it holds:
@@ -58,7 +58,7 @@ class Conv3(Technology):
         Output_{t, car} = {\\alpha}_{1, car} Input_{t, maincarrier} + {\\alpha}_{2, car}
 
       .. math::
-        Input_{maincarrier} \geq Input_{min} * S
+        Input_{maincarrier} \\geq Input_{min} * S
 
     - If the technology is off, input and output are set to 0:
 
@@ -83,7 +83,7 @@ class Conv3(Technology):
     - Additionally, ramping rates of the technology can be constrained.
 
       .. math::
-         -rampingrate \leq Input_{t, main-car} - Input_{t-1, car} \leq rampingrate
+         -rampingrate \\leq Input_{t, main-car} - Input_{t-1, car} \\leq rampingrate
 
     """
 

@@ -12,7 +12,7 @@ class Conv4(Technology):
     Technology with no inputs
 
     This technology type resembles a technology with fixed output ratios  and no
-    inputs, i.e., :math:`output_{car} \leq S`. This technology is useful for
+    inputs, i.e., :math:`output_{car} \\leq S`. This technology is useful for
     modelling a technology for which you do not care about the inputs, i.e., you do not
     wish to construct and solve an energy balance for the input carriers.
     Two different performance function fits are possible.
@@ -24,7 +24,7 @@ class Conv4(Technology):
     - Size constraints are formulated on the output.
 
       .. math::
-         Output_{t, maincarrier} \leq S
+         Output_{t, maincarrier} \\leq S
 
     - The ratios of outputs are fixed and given as:
 
@@ -40,7 +40,7 @@ class Conv4(Technology):
       When the technology is on:
 
       .. math::
-        Output_{maincarrier} \geq Output_{min} * S
+        Output_{maincarrier} \\geq Output_{min} * S
 
       When the technology is off, output is set to 0:
 
