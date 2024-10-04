@@ -1,4 +1,5 @@
 import random
+import warnings
 from pathlib import Path
 import pyomo.environ as pyo
 import os
@@ -848,17 +849,32 @@ class ModelHub:
             )
 
         # Determine if results should be written
-        write_results = False
-        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
-            self.solution.solver.status == pyo.SolverStatus.warning
-        ):
+        if "write_results" in config["reporting"].keys():
+            if config["reporting"]["write_results"]["value"] == 1:
+                write_results = True
+            else:
+                write_results = False
+        else:
+            warnings.warn(
+                "The config file needs to contain config['reporting']"
+                "['write_results']. This is mandatory in future versions",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             write_results = True
-        if self.solution.solver.termination_condition in [
-            pyo.TerminationCondition.infeasibleOrUnbounded,
-            pyo.TerminationCondition.infeasible,
-            pyo.TerminationCondition.unbounded,
-        ]:
-            write_results = False
+
+        # Check if solution is available
+        if write_results:
+            if (self.solution.solver.status == pyo.SolverStatus.ok) or (
+                self.solution.solver.status == pyo.SolverStatus.warning
+            ):
+                write_results = True
+            if self.solution.solver.termination_condition in [
+                pyo.TerminationCondition.infeasibleOrUnbounded,
+                pyo.TerminationCondition.infeasible,
+                pyo.TerminationCondition.unbounded,
+            ]:
+                write_results = False
 
         if write_results:
             if config["scaling"]["scaling_on"]["value"] == 1:
