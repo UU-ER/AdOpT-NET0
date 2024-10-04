@@ -162,7 +162,7 @@ def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
 
     def create_carbonprice_parameter(key):
         # Convert to dict/list for performance
-        ts = data["time_series"]["CarbonCost"][:][key].to_list()
+        ts = data["time_series"]["CarbonCost"]["global"][key].to_list()
 
         def init_carbonprice_parameter(para, t):
             """Rule initiating a carrier parameter"""

@@ -404,8 +404,9 @@ def initialize_configuration_templates() -> dict:
             },
         },
         "reporting": {
-            "save_detailed": {
-                "description": "Setting to select how the results are saved. When turned off only the summary is saved.",
+            "write_results": {
+                "description": "Write results (h5 file and to Summary.xlsx) directly "
+                "after the optimization.",
                 "options": [0, 1],
                 "value": 1,
             },
