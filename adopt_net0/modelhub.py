@@ -847,10 +847,24 @@ class ModelHub:
                 keepfiles=True,
             )
 
-        if config["scaling"]["scaling_on"]["value"] == 1:
-            pyo.TransformationFactory("core.scale_model").propagate_solution(
-                model, self.model[self.info_solving_algorithms["aggregation_model"]]
-            )
+        # Determine if results should be written
+        write_results = False
+        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
+            self.solution.solver.status == pyo.SolverStatus.warning
+        ):
+            write_results = True
+        if self.solution.solver.termination_condition in [
+            pyo.TerminationCondition.infeasibleOrUnbounded,
+            pyo.TerminationCondition.infeasible,
+            pyo.TerminationCondition.unbounded,
+        ]:
+            write_results = False
+
+        if write_results:
+            if config["scaling"]["scaling_on"]["value"] == 1:
+                pyo.TransformationFactory("core.scale_model").propagate_solution(
+                    model, self.model[self.info_solving_algorithms["aggregation_model"]]
+                )
 
         if config["reporting"]["write_solution_diagnostics"]["value"] >= 1:
             self._write_solution_diagnostics(result_folder_path)
@@ -866,19 +880,6 @@ class ModelHub:
         self.last_solve_info["time_stage"] = self.info_solving_algorithms["time_stage"]
 
         # Write results to path
-        # Determine if results should be written
-        write_results = False
-        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
-            self.solution.solver.status == pyo.SolverStatus.warning
-        ):
-            write_results = True
-        if self.solution.solver.termination_condition in [
-            pyo.TerminationCondition.infeasibleOrUnbounded,
-            pyo.TerminationCondition.infeasible,
-            pyo.TerminationCondition.unbounded,
-        ]:
-            write_results = False
-
         if write_results:
             self.write_results()
 
