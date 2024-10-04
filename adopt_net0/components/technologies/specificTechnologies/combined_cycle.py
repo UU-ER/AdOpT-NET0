@@ -115,15 +115,15 @@ class CCPP(Technology):
     - If the technology is off, input and output is set to 0:
 
       .. math::
-         \sum(Output_{t, car}) = 0
+        \\sum(Output_{t, car}) = 0
 
       .. math::
-         \sum(Input_{t, car}) = 0
+        \\sum(Input_{t, car}) = 0
 
     - Additionally, ramping rates of the technology can be constraint.
 
       .. math::
-         -rampingrate \\leq \sum(Input_{t, car}) - \sum(Input_{t-1, car}) \\leq rampingrate
+         -rampingrate \\leq\\sum(Input_{t, car}) -\\sum(Input_{t-1, car}) \\leq rampingrate
 
     """
 

@@ -3,7 +3,6 @@ import pytest
 from adopt_net0.data_management import DataHandle
 
 
-@pytest.mark.data_management
 def test_data_handle_reading(request):
     """
     Tests standard behavior of DataHandle Class

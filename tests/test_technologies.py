@@ -242,7 +242,6 @@ def calculate_piecewise_function(x: float, bp_x: list, bp_y: list) -> float:
                 )
 
 
-@pytest.mark.technologies
 def test_res_pv(request):
     """
     tests pv technology
@@ -279,7 +278,6 @@ def test_res_pv(request):
     assert termination == TerminationCondition.optimal
 
 
-@pytest.mark.technologies
 def test_res_wt(request):
     """
     tests wind turbine technology
@@ -315,7 +313,6 @@ def test_res_wt(request):
     assert termination == TerminationCondition.optimal
 
 
-@pytest.mark.technologies
 def test_conv_perf(request):
     """
     tests generic conversion technologies
