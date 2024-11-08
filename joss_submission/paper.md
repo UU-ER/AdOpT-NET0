@@ -39,7 +39,7 @@ programming. Energy system optimization models like AdOpT-NET0 are crucial in sh
 the energy and material transition to a net-zero emission future. This transition
 involves various challenges such as the integration of renewable energy resources, the
 selection of optimal decarbonization technologies and overarching strategies, and the
-expansion or rollout of new networks (electricity, hydrogen, CO2). At the same time, the
+expansion or rollout of new networks (electricity, hydrogen, CO<sub>2</sub>). At the same time, the
 interplay of traditionally separated sectors (e.g., the residential, industrial, and
 power sectors) becomes increasingly important. The resulting systems are inherently
 complex and at times non-intuitive; not surprisingly, models to simulate and optimize
@@ -54,28 +54,43 @@ highly complex but also offer synergies to reduce costs and environmental impact
 1 provides an overview of the covered dimensions of AdOpT-NET0, while
 Figure 1 and 2 show two examples of energy systems that can be modeled with the tool.
 
-| Dimension                       | Feature of AdOpT-NET0                                    |
-|---------------------------------|----------------------------------------------------------|
-| Spatial resolution              | Single node or multiple nodes with network constraints   |
-| Temporal resolution             | Flexible: 15 min to hours (default: 1h)                  |
-| Number of carriers or materials | Many different, can be user-defined                      |
-| Technology model detail         | Linear or mixed-integer linear (piece-wise if necessary) |
-| Type of analysis                | Operation only, brownfield or greenfield design          |
-| Time frame                      | Year or multiple years                                   |
-| Uncertainty                     | Deterministic, perfect foresight                         |
+| **Feature**                                         | **AdOpT-NET0**                                                                                                                 |
+|-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| **Model Dimensions**                                |                                                                                                                                |
+| Commodities                                         | Energy and/or material commodities possible                                                                                    |
+| Space                                               | Single node or multi-node systems with network constraints                                                                     |
+| Time                                                | By default, hourly resolution (other resolutions possible)                                                                     |
+| Stochastic scenarios                                | Deterministic, Monte Carlo sampling possible                                                                                   |
+| Transformation pathways                             | Multi-period possible, perfect foresight                                                                                       |
+| Components                                          | Modelling of sources/sinks, converters, electricity and material storage, and networks possible. Linear or mixed-integer-linear|
+| **Component Extensions**                            |                                                                                                                                |
+| Non-linear capacity expenditures                    | Piece-wise investment cost function possible                                                                                   |
+| Technology dynamics                                 | Constraining ramping, minimum part-load, minimum up-/down-time, maximum number of start-ups, slow start-ups/shut-downs possible|
+| Price elasticity of demand                          | Not implemented                                                                                                                |
+| Demand response                                     | Possible with defining a storage component                                                                                     |
+| Converter performance                               | Linear, piece-wise linear, technology-specific                                                                                 |
+| Storage performance                                 | Linear, piece-wise linear, technology-specific                                                                                 |
+| Network performance                                 | Linear or MILP, can be with a compression energy consumption for gas networks                                                  |
+| **Boundary conditions**                             |                                                                                                                                |
+| Technology potentials                               | Constraining maximum size of a technology possible                                                                             |
+| Regulations                                         | Not implemented                                                                                                                |
+| System security and resource adequacy               | Not implemented                                                                                                                |
+| **Multi-criteria objectives**                       |                                                                                                                                |
+| Pareto fronts                                       | Implemented                                                                                                                    |
+| **Complexity handling**                             |                                                                                                                                |
+| Spatial aggregation                                 | Not implemented                                                                                                                |
+| Technology aggregation                              | Not implemented                                                                                                                |
+| Temporal aggregation                                | Typical periods via k-means clustering, hierarchical time averaging                                                            |
+| Investment paths                                    | One-time investment                                                                                                            |
+| **Model Implementation**                            |                                                                                                                                |
+| Language                                            | Python                                                                                                                         |
+| Translator                                          | Pyomo                                                                                                                          |
+| Solver                                              | Multiple (solvers compatible with Pyomo)                                                                                       |
 
-Table: Dimensions of energy system models and features of AdOpT-NET0
+Table: Features of AdOpT-NET0. The feature list is based on the comprehensive review paper by Hoffmann et al (2024) [@Hoffmann2024review].
 
-![A possible application of AdOpT-NET0 with a single node studying ethylene production 
-with an electric cracker relying on variable renewable energy sources 
-[adapted from @tiggeloven2023optimization]](./Single_node.svg){width=1400px}
-
-![A possible application of AdOpT-NET0 with multiple nodes and networks studying the 
-integration of large-scale offshore wind in the North Sea region
-[adapted from @wiegner2024integration]](./Multiple_nodes.svg){width=1000px}
-
-The standard formulation of the model framework is a mixed integer linear program. Its
-mathematical formulation supports flexible spatial and temporal resolution and technological
+The standard formulation of the model framework is a mixed integer linear program (MILP). Its
+implementation supports a wide range of spatial/temporal resolutions and technological
 details. AdOpT-NET0 can optimize both system design and technology operation variables,
 enabling the optimization of existing energy systems with expansions or additions 
 (brownfield) and new systems without the constraints of existing installations 
@@ -84,6 +99,14 @@ which allows for a highly realistic assessment of individual technologies and th
 integration into an energy system without limiting the scope of the analysis.
 Furthermore, several complexity reduction algorithms can be adopted to deal with
 infeasible computation times [@gabrielli2018optimal; @weimann2022novel].
+
+![A possible application of AdOpT-NET0 with a single node studying ethylene production 
+with an electric cracker relying on variable renewable energy sources 
+[adapted from @tiggeloven2023optimization]](./Single_node.svg){width=1400px}
+
+![A possible application of AdOpT-NET0 with multiple nodes and networks studying the 
+integration of large-scale offshore wind in the North Sea region
+[adapted from @wiegner2024integration]](./Multiple_nodes.svg){width=1000px}
 
 The tool was developed to assist researchers and students interested in energy system
 modeling. It combines 5+ years of research and is inspired by a closed-source MATLAB
@@ -97,18 +120,23 @@ decisions to advance towards a net-zero future.
 
 Traditionally, models in the energy sector fall into two separate categories: (1) highly
 complex non-linear process or power system models with limited consideration of
-inter-temporal dynamics, and (2) low complex mostly linear energy system models with
-simplified technology performances. AdOpT-NET0 bridges this gap by providing a modeling
-framework to model the complex behavior of energy and industrial technologies embedded
-in an energy system. As such, the software comes with a number of detailed technology
-models that are based on previous scientific work; e.g., for direct air capture and
-carbon capture [@wiegner2022optimal; @weimann2023ccsmodel], heat
-pumps [@ruhnau2019time; @xu2022investigation], gas turbine models for different
-sizes [@weimann2019modeling], underground hydrogen storage, and electric naphtha
+inter-temporal dynamics, and (2) low complexity, mostly linear, energy system models with
+simplified technology performances. AdOpT-NET0 bridges this methodological divide by providing a 
+robust framework capable of modeling the complex behavior of energy and industrial technologies 
+embedded within broader energy systems. This dual capability enables both the detailed representation 
+of technology-specific behaviors and the spatial and temporal dynamics of (large-scale) energy systems,
+offering additional functionalities over existing models [@Hoffmann2024review].
+As such, AdOpT-NET0 includes advanced, scientifically validated
+technology models that are based on detailed, non-linear process models.
+These models capture a range of relevant energy and industrial processes, 
+including direct air capture and carbon capture systems [@wiegner2022optimal; @weimann2023ccsmodel], heat
+pumps [@ruhnau2019time; @xu2022investigation], gas turbine models across varied capacities
+[@weimann2019modeling], underground hydrogen storage, and electric naphtha
 cracking [@tiggeloven2023optimization]. Additionally, it includes the possibility to
 model operational constraints of conversion technologies such as ramping rates, minimum
 uptime, minimum downtime, the maximum number of start-ups, or standby
 power [@morales2017hidden].
+
 
 ## Acknowledgements
 
