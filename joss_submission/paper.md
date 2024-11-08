@@ -89,7 +89,7 @@ Figure 1 and 2 show two examples of energy systems that can be modeled with the 
 
 Table: Features of AdOpT-NET0. The feature list is based on the comprehensive review paper by Hoffmann et al (2024) [@Hoffmann2024review].
 
-The standard formulation of the model framework is a mixed integer linear program. Its
+The standard formulation of the model framework is a mixed integer linear program (MILP). Its
 implementation supports a wide range of spatial/temporal resolutions and technological
 details. AdOpT-NET0 can optimize both system design and technology operation variables,
 enabling the optimization of existing energy systems with expansions or additions 
