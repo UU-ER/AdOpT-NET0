@@ -97,18 +97,23 @@ decisions to advance towards a net-zero future.
 
 Traditionally, models in the energy sector fall into two separate categories: (1) highly
 complex non-linear process or power system models with limited consideration of
-inter-temporal dynamics, and (2) low complex mostly linear energy system models with
-simplified technology performances. AdOpT-NET0 bridges this gap by providing a modeling
-framework to model the complex behavior of energy and industrial technologies embedded
-in an energy system. As such, the software comes with a number of detailed technology
-models that are based on previous scientific work; e.g., for direct air capture and
-carbon capture [@wiegner2022optimal; @weimann2023ccsmodel], heat
-pumps [@ruhnau2019time; @xu2022investigation], gas turbine models for different
-sizes [@weimann2019modeling], underground hydrogen storage, and electric naphtha
+inter-temporal dynamics, and (2) low complexity, mostly linear, energy system models with
+simplified technology performances. AdOpT-NET0 bridges this methodological divide by providing a 
+robust framework capable of modeling the complex behavior of energy and industrial technologies 
+embedded within broader energy systems. This dual capability enables both the detailed representation 
+of technology-specific behaviors and the spatial and temporal dynamics of (large-scale) energy systems,
+offering additional functionalities over existing models [@Hoffmann2024review].
+As such, AdOpT-NET0 includes advanced, scientifically validated
+technology models that are based on detailed, non-linear process models.
+These models capture a range of relevant energy and industrial processes, 
+including direct air capture and carbon capture systems [@wiegner2022optimal; @weimann2023ccsmodel], heat
+pumps [@ruhnau2019time; @xu2022investigation], gas turbine models across varied capacities
+[@weimann2019modeling], underground hydrogen storage, and electric naphtha
 cracking [@tiggeloven2023optimization]. Additionally, it includes the possibility to
 model operational constraints of conversion technologies such as ramping rates, minimum
 uptime, minimum downtime, the maximum number of start-ups, or standby
 power [@morales2017hidden].
+
 
 ## Acknowledgements
 
