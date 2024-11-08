@@ -39,7 +39,7 @@ programming. Energy system optimization models like AdOpT-NET0 are crucial in sh
 the energy and material transition to a net-zero emission future. This transition
 involves various challenges such as the integration of renewable energy resources, the
 selection of optimal decarbonization technologies and overarching strategies, and the
-expansion or rollout of new networks (electricity, hydrogen, CO2). At the same time, the
+expansion or rollout of new networks (electricity, hydrogen, CO<sub>2</sub>). At the same time, the
 interplay of traditionally separated sectors (e.g., the residential, industrial, and
 power sectors) becomes increasingly important. The resulting systems are inherently
 complex and at times non-intuitive; not surprisingly, models to simulate and optimize
