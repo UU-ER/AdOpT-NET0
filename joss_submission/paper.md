@@ -61,33 +61,33 @@ Figure 1 and 2 show two examples of energy systems that can be modeled with the 
 | Space                                               | Single node or multi-node systems with network constraints                                                                     |
 | Time                                                | By default, hourly resolution (other resolutions possible)                                                                     |
 | Stochastic scenarios                                | Deterministic, Monte Carlo sampling possible                                                                                   |
-| Transformation pathways                             | Multi-period possible, perfect forsight                                                                                        |
-| Components                                          | Modelling of sources/sinks, converters, storage and networks possible. Linear or mixed-integer-linear                          |
-| **Component Extentions**                            |                                                                                                                                |
+| Transformation pathways                             | Multi-period possible, perfect foresight                                                                                       |
+| Components                                          | Modelling of sources/sinks, converters, electricity and material storage, and networks possible. Linear or mixed-integer-linear|
+| **Component Extensions**                            |                                                                                                                                |
 | Non-linear capacity expenditures                    | Piece-wise investment cost function possible                                                                                   |
-| Technology dynamics                                 | Constraining ramping, minimum-partload, minimum up-/down-time, maximum number of start-ups, slow start-ups/shut-downs possible |
+| Technology dynamics                                 | Constraining ramping, minimum part-load, minimum up-/down-time, maximum number of start-ups, slow start-ups/shut-downs possible|
 | Price elasticity of demand                          | Not implemented                                                                                                                |
 | Demand response                                     | Possible with defining a storage component                                                                                     |
-| Converter performance                               | Linear, piece-wise linear, technology specific                                                                                 |
-| Storage performance                                 | Linear, piece-wise linear, technology specific                                                                                 |
-| Network performance                                 | Linear, can be with an energy consumption of compression for gas networks                                                      |
+| Converter performance                               | Linear, piece-wise linear, technology-specific                                                                                 |
+| Storage performance                                 | Linear, piece-wise linear, technology-specific                                                                                 |
+| Network performance                                 | Linear or MILP, can be with a compression energy consumption for gas networks                                                  |
 | **Boundary conditions**                             |                                                                                                                                |
 | Technology potentials                               | Constraining maximum size of a technology possible                                                                             |
 | Regulations                                         | Not implemented                                                                                                                |
 | System security and resource adequacy               | Not implemented                                                                                                                |
-| **Multi criteria objectives**                       |                                                                                                                                |
+| **Multi-criteria objectives**                       |                                                                                                                                |
 | Pareto fronts                                       | Implemented                                                                                                                    |
 | **Complexity handling**                             |                                                                                                                                |
 | Spatial aggregation                                 | Not implemented                                                                                                                |
 | Technology aggregation                              | Not implemented                                                                                                                |
-| Termporal aggragation                               | Typical periods via k-means clustering, averaging timesteps                                                                    |
+| Temporal aggregation                                | Typical periods via k-means clustering, hierarchical time averaging                                                            |
 | Investment paths                                    | One-time investment                                                                                                            |
 | **Model Implementation**                            |                                                                                                                                |
 | Language                                            | Python                                                                                                                         |
 | Translator                                          | Pyomo                                                                                                                          |
 | Solver                                              | Multiple (solvers compatible with Pyomo)                                                                                       |
 
-Table: Features of AdOpT-NET0. The feature list is based on the commprehensive review paper by Hoffmann et al (2024) [@Hoffmann2024review].
+Table: Features of AdOpT-NET0. The feature list is based on the comprehensive review paper by Hoffmann et al (2024) [@Hoffmann2024review].
 
 The standard formulation of the model framework is a mixed integer linear program. Its
 implementation supports a wide range of spatial/temporal resolutions and technological
