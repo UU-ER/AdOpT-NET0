@@ -54,17 +54,39 @@ highly complex but also offer synergies to reduce costs and environmental impact
 1 provides an overview of the covered dimensions of AdOpT-NET0, while
 Figure 1 and 2 show two examples of energy systems that can be modeled with the tool.
 
-| Dimension                       | Feature of AdOpT-NET0                                    |
-|---------------------------------|----------------------------------------------------------|
-| Spatial resolution              | Single node or multiple nodes with network constraints   |
-| Temporal resolution             | Flexible: 15 min to hours (default: 1h)                  |
-| Number of carriers or materials | Many different, can be user-defined                      |
-| Technology model detail         | Linear or mixed-integer linear (piece-wise if necessary) |
-| Type of analysis                | Operation only, brownfield or greenfield design          |
-| Time frame                      | Year or multiple years                                   |
-| Uncertainty                     | Deterministic, perfect foresight                         |
+| **Feature**                           | **AdOpT-NET0**                                                                                                                 |
+|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| **Model Dimensions**                  |                                                                                                                                |
+| Commodities                           | Energy and/or material commodities possible                                                                                    |
+| Space                                 | Single node or multi-node systems with network constraints                                                                     |
+| Time                                  | By default, hourly resolution (other resolutions possible)                                                                     |
+| Stochastic scenarios                  | Deterministic, Monte Carlo sampling possible                                                                                   |
+| Transformation pathways               | Multi-period possible, perfect forsight                                                                                        |
+| Components                            | Modelling of sources/sinks, converters, storage and networks possible. Linear or mixed-integer-linear                          |
+| **Component Extentions**              |                                                                                                                                |
+| Non-linear capacity expenditures      | Piece-wise investment cost function possible                                                                                   |
+| Technology dynamics                   | Constraining ramping, minimum-partload, minimum up-/down-time, maximum number of start-ups, slow start-ups/shut-downs possible |
+| Price elasticity of demand            | Not implemented                                                                                                                |
+| Demand response                       | Possible with defining a storage component                                                                                     |
+| Converter performance                 | Linear, piece-wise linear, technology specific                                                                                 |
+| Storage performance                   | Linear, piece-wise linear, technology specific                                                                                 |
+| Network performance                   | Linear, can be with an energy consumption of compression for gas networks                                                      |
+| **Boundary conditions**               |                                                                                                                                |
+| Technology potentials                 | Constraining maximum size of a technology possible                                                                             |
+| Regulations                           | Not implemented                                                                                                                |
+| System security and resource adequacy | Not implemented                                                                                                                |
+| **Multi criteria objectives**         | Pareto fronts                                                                                                                  |
+| **Complexity handling**               |                                                                                                                                |
+| Spatial aggregation                   | Not implemented                                                                                                                |
+| Technology aggregation                | Not implemented                                                                                                                |
+| Termporal aggragation                 | Typical periods via k-means clustering, averaging timesteps                                                                    |
+| Investment paths                      | One-time investment                                                                                                            |
+| **Model Implementation**              |                                                                                                                                |
+| Language                              | Python                                                                                                                         |
+| Translator                            | Pyomo                                                                                                                          |
+| Solver                                | Multiple (solvers compatible with Pyomo)                                                                                       |
 
-Table: Dimensions of energy system models and features of AdOpT-NET0
+Table: Features of AdOpT-NET0. The feature list is based on the commprehensive review paper by Hoffmann et al (2024) [@Hoffmann2024review]. 
 
 ![A possible application of AdOpT-NET0 with a single node studying ethylene production 
 with an electric cracker relying on variable renewable energy sources 
@@ -75,7 +97,7 @@ integration of large-scale offshore wind in the North Sea region
 [adapted from @wiegner2024integration]](./Multiple_nodes.svg){width=1000px}
 
 The standard formulation of the model framework is a mixed integer linear program. Its
-mathematical formulation supports flexible spatial and temporal resolution and technological
+implementation supports a wide range of spatial/temporal resolutions and technological
 details. AdOpT-NET0 can optimize both system design and technology operation variables,
 enabling the optimization of existing energy systems with expansions or additions 
 (brownfield) and new systems without the constraints of existing installations 
