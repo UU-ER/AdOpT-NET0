@@ -383,10 +383,10 @@ class Stor(Technology):
                 )
 
             if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
-                b_tec.const_cut_bidirectional = pyo.Constraint(
+                b_tec.const_cut_bidirectional1 = pyo.Constraint(
                     self.set_t_performance, rule=init_cut_bidirectional_fix1
                 )
-                b_tec.const_cut_bidirectional = pyo.Constraint(
+                b_tec.const_cut_bidirectional2 = pyo.Constraint(
                     self.set_t_performance, rule=init_cut_bidirectional_fix2
                 )
             else:
