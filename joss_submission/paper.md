@@ -50,7 +50,7 @@ AdOpT-NET0 is a comprehensive tool to model and optimize a wide range of multi-e
 systems from individual technologies to industrial clusters, regions, or multiple
 countries. In multi-energy systems, multiple energy and material carriers, conversion
 and storage technologies, as well as means of transport can interact. These systems are
-highly complex but also offer synergies to reduce costs and environmental impacts. Table
+highly complex but also offer synergies to reduce costs and environmental impacts [@mancarella2014mes]. Table
 1 provides an overview of the covered dimensions of AdOpT-NET0, while
 Figure 1 and 2 show two examples of energy systems that can be modeled with the tool.
 
@@ -76,7 +76,7 @@ Figure 1 and 2 show two examples of energy systems that can be modeled with the 
 | Regulations                                         | Not implemented                                                                                                                |
 | System security and resource adequacy               | Not implemented                                                                                                                |
 | **Multi-criteria objectives**                       |                                                                                                                                |
-| Pareto fronts                                       | Implemented                                                                                                                    |
+| Pareto fronts                                       | $\varepsilon$-constraint method                                                                                                |
 | **Complexity handling**                             |                                                                                                                                |
 | Spatial aggregation                                 | Not implemented                                                                                                                |
 | Technology aggregation                              | Not implemented                                                                                                                |
@@ -94,11 +94,14 @@ implementation supports a wide range of spatial/temporal resolutions and technol
 details. AdOpT-NET0 can optimize both system design and technology operation variables,
 enabling the optimization of existing energy systems with expansions or additions 
 (brownfield) and new systems without the constraints of existing installations 
-(greenfield). A key feature of AdOpT-NET0 is its high level of technological detail 
-which allows for a highly realistic assessment of individual technologies and their
-integration into an energy system without limiting the scope of the analysis.
-Furthermore, several complexity reduction algorithms can be adopted to deal with
-infeasible computation times [@gabrielli2018optimal; @weimann2022novel].
+(greenfield). A key feature of AdOpT-NET0 is its high level of technological detail, allowing 
+for a comprehensive representation of individual technologies and their operational constraints. 
+This detailed representation supports the exploration of technology integration into energy 
+systems, enabling informed decision-making without limiting the scope of the analysis.
+Furthermore, several complexity reduction algorithms can be adopted to address infeasible 
+computation times, including the use of design days for representing systems with seasonal 
+storage [@gabrielli2018optimal] and a time-hierarchical solution method for systems with 
+a high penetration of renewables [@weimann2022novel].
 
 ![A possible application of AdOpT-NET0 with a single node studying ethylene production 
 with an electric cracker relying on variable renewable energy sources 
@@ -132,7 +135,9 @@ These models capture a range of relevant energy and industrial processes,
 including direct air capture and carbon capture systems [@wiegner2022optimal; @weimann2023ccsmodel], heat
 pumps [@ruhnau2019time; @xu2022investigation], gas turbine models across varied capacities
 [@weimann2019modeling], underground hydrogen storage, and electric naphtha
-cracking [@tiggeloven2023optimization]. Additionally, it includes the possibility to
+cracking [@tiggeloven2023optimization]. The model has been used in two forthcoming papers to model
+[...] [@wiegner2024integration] and to optimize emission reduction in an ammonia-ethylene chemical 
+cluster [@tiggeloven2024chemicalcluster]. Additionally, it includes the possibility to
 model operational constraints of conversion technologies such as ramping rates, minimum
 uptime, minimum downtime, the maximum number of start-ups, or standby
 power [@morales2017hidden].
