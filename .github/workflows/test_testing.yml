@@ -27,11 +27,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install coverage
         pip install poetry
-        poetry install
+        poetry install --without dev
 
-    - name: Export requirements.txt
+    - name: Write requirements.txt
       run: |
-        poetry export --without-hashes --output requirements.txt
+        poetry export --without-hashes --without dev --output requirements.txt
 
       # Step 5: Commit the changes
     - name: Commit and push changes
