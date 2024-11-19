@@ -12,10 +12,6 @@ jobs:
         os: [windows-latest]
 
     steps:
-    - name: Install GLPK Solver
-      run: | 
-        choco install glpk
-
     - name: Checkout Code
       uses: actions/checkout@v4
 
