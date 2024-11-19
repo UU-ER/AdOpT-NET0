@@ -14,11 +14,6 @@ license = "MIT"
 homepage = "https://github.com/UU-ER/AdOpT-NET0"
 repository = "https://github.com/UU-ER/AdOpT-NET0"
 documentation = "https://adopt-net0.readthedocs.io"
-requires-python = ">=3.12"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License"
-]
 
 [tool.poetry.dependencies]
 python = ">=3.12"
