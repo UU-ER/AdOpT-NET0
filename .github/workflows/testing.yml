@@ -41,7 +41,7 @@ jobs:
 
     - name: Build coverage report
       run: |
-        poetry run coverage report -m >coverage.txt
+        poetry run coverage report -m >"coverage-${{ matrix.python-version }}.txt"
 
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
