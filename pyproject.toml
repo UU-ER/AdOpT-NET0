@@ -20,6 +20,8 @@ python = "^3.12"
 tsam = ">=2.3.1"
 
 [tool.poetry.group.test.dependencies]
+
+[tool.poetry.group.dev.dependencies]
 Pyomo = ">=6.7.1"
 numpy = ">=1.26.4"
 pandas = ">=2.2.2"
@@ -34,9 +36,6 @@ pwlf = ">=2.2.1"
 gurobipy = ">=11.0.1"
 scandir = ">=1.10.0"
 tables = ">=3.9.2"
-
-[tool.poetry.group.dev.dependencies]
-
 
 [tool.poetry.urls]
 homepage = "https://github.com/UU-ER/AdOpT-NET0"
