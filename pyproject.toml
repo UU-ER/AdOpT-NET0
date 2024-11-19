@@ -16,7 +16,6 @@ repository = "https://github.com/UU-ER/AdOpT-NET0"
 documentation = "https://adopt-net0.readthedocs.io"
 
 [tool.poetry.dependencies]
-python = ">=3.12"
 Pyomo = ">=6.7.1"
 numpy = ">=1.26.4"
 dill = ">=0.3.8"
