@@ -46,5 +46,5 @@ jobs:
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
       with:
-        name: "coverage-report-${{ matrix.python-version }}
+        name: "coverage_report-${{ matrix.python-version }}
         path: "coverage-${{ matrix.python-version }}.txt"
