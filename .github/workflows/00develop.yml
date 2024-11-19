@@ -12,7 +12,7 @@ jobs:
     needs: autoformatting
     uses: ./.github/workflows/testing.yml
   pin_requirements:
-#    needs: testing
+    needs: testing
     uses: ./.github/workflows/pin_requirements.yml
 
 
