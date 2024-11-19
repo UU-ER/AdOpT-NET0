@@ -44,7 +44,6 @@ pre-commit = ">=3.7.0"
 black = ">=24.4.0"
 sphinx = ">=7.3.7"
 sphinx_rtd_theme = ">=2.0.0"
-gurobipy = ">=11.0.1"
 
 [tool.poetry.urls]
 homepage = "https://github.com/UU-ER/AdOpT-NET0"
