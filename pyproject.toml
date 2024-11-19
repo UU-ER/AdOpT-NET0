@@ -18,6 +18,9 @@ documentation = "https://adopt-net0.readthedocs.io"
 [tool.poetry-dynamic-versioning]
 enable = true
 
+[tool.poetry-dynamic-versioning.from-file]
+source = "version.py"
+
 [tool.poetry.dependencies]
 python = "^3.12"
 tsam = ">=2.3.1"
@@ -33,7 +36,6 @@ openpyxl = ">=3.1.2"
 pytest = ">=8.1.1"
 pwlf = ">=2.2.1"
 scandir = ">=1.10.0"
-tables = ">=3.9.2"
 
 [tool.poetry.group.test.dependencies]
 pytest = ">=8.1.1"
@@ -44,6 +46,7 @@ pre-commit = ">=3.7.0"
 black = ">=24.4.0"
 sphinx = ">=7.3.7"
 sphinx_rtd_theme = ">=2.0.0"
+tables = ">=3.9.2"
 
 [tool.poetry.urls]
 homepage = "https://github.com/UU-ER/AdOpT-NET0"
@@ -54,5 +57,5 @@ documentation = "https://adopt-net0.readthedocs.io"
 addopts = "--import-mode=importlib"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"

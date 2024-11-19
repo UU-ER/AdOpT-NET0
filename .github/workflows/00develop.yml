@@ -14,6 +14,8 @@ jobs:
   pin_requirements:
     needs: testing
     uses: ./.github/workflows/pin_requirements.yml
+  build:
+    uses: ./.github/workflows/uploadpypi.yml
 
 
 
