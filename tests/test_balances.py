@@ -41,7 +41,7 @@ def solve_model(m):
     :param m: pyomo model to solve
     :return: termination condition
     """
-    solver = SolverFactory("gurobi")
+    solver = SolverFactory("glpk")
     solution = solver.solve(m)
     termination_condition = solution.solver.termination_condition
     return termination_condition
