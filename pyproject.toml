@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "adopt_net0"
-version = "0.1.0"  # Version is static, but you can use dynamic versioning if needed
+version = "0.0.0"  # Version is static, but you can use dynamic versioning if needed
 description = "A python package for multi energy system modelling"
 authors = [
   "Jan F. Wiegner <j.f.wiegner@uu.nl>",
@@ -14,6 +14,9 @@ license = "MIT"
 homepage = "https://github.com/UU-ER/AdOpT-NET0"
 repository = "https://github.com/UU-ER/AdOpT-NET0"
 documentation = "https://adopt-net0.readthedocs.io"
+
+[tool.poetry-dynamic-versioning]
+enable = true
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -29,7 +32,6 @@ scipy = ">=1.13.0"
 openpyxl = ">=3.1.2"
 pytest = ">=8.1.1"
 pwlf = ">=2.2.1"
-gurobipy = ">=11.0.1"
 scandir = ">=1.10.0"
 tables = ">=3.9.2"
 
@@ -42,6 +44,7 @@ pre-commit = ">=3.7.0"
 black = ">=24.4.0"
 sphinx = ">=7.3.7"
 sphinx_rtd_theme = ">=2.0.0"
+gurobipy = ">=11.0.1"
 
 [tool.poetry.urls]
 homepage = "https://github.com/UU-ER/AdOpT-NET0"
