@@ -25,7 +25,7 @@ system by setting:
    .. code-block:: console
 
      "existing": [],
-     "new": ['electricityOffshore']
+     "new": ["electricityOffshore"]
 
    - Then, for each of the networks that you specify, an input data folder with that
      network name should be added  in the corresponding folder ("existing" or
@@ -88,8 +88,8 @@ system by setting:
 
    .. code-block:: console
 
-       "existing": ['WindTurbine_Onshore_1500': 2, 'Photovoltaic': 2.4],
-       "new": ['Storage_Battery', 'Photovoltaic', 'Furnace_NG']
+       "existing": {"WindTurbine_Onshore_1500": 2, "Photovoltaic": 2.4},
+       "new": ["Storage_Battery", "Photovoltaic", "Furnace_NG"]
 
    Note: For wind turbines, the capacity of one turbine is specified in the name
    (1500 W), and the size is an integer. Here, we thus have two 1.5MW wind turbines
