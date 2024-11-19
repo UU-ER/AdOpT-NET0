@@ -28,8 +28,8 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install poetry
-        pip install coverage
+        pip install poetry --without test,dev
+        pip install coverage, pytest
         poetry install
 
     - name: Check directory
