@@ -29,9 +29,9 @@ jobs:
         pip install poetry
         poetry install
 
-          - name: Export requirements.txt
-        run: |
-          poetry export --without-hashes --output requirements.txt
+    - name: Export requirements.txt
+      run: |
+        poetry export --without-hashes --output requirements.txt
 
       # Step 5: Commit the changes
     - name: Commit and push changes
