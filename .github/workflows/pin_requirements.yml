@@ -31,7 +31,7 @@ jobs:
 
     - name: Write requirements.txt
       run: |
-        poetry export --without-hashes --without dev --output requirements.txt
+        poetry export --without-hashes --output requirements.txt
 
     - name: Commit and push changes
       run: |
