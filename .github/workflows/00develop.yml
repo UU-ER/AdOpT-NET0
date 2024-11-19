@@ -6,11 +6,11 @@ on:
       - 'develop'
 
 jobs:
-#  autoformatting:
-#    uses: ./.github/workflows/autoformatting.yml
-#  testing:
-#    needs: autoformatting
-#    uses: ./.github/workflows/testing.yml
+  autoformatting:
+    uses: ./.github/workflows/autoformatting.yml
+  testing:
+    needs: autoformatting
+    uses: ./.github/workflows/testing.yml
   pin_requirements:
 #    needs: testing
     uses: ./.github/workflows/pin_requirements.yml
