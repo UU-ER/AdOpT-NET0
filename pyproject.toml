@@ -19,7 +19,7 @@ documentation = "https://adopt-net0.readthedocs.io"
 python = "^3.12"
 tsam = ">=2.3.1"
 
-[tool.poetry.group.test]
+[tool.poetry.group.test.dependencies]
 Pyomo = ">=6.7.1"
 numpy = ">=1.26.4"
 pandas = ">=2.2.2"
