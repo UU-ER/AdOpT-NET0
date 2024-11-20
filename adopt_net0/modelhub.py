@@ -94,6 +94,27 @@ class ModelHub:
         config = self.data.model_config
         topology = self.data.topology
 
+        # Is solver available?
+        try:
+            mock_model = pyo.ConcreteModel()
+            if config["solveroptions"]["solver"]["value"] == "gurobi":
+                solver = get_gurobi_parameters(config["solveroptions"])
+            elif config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
+                solver = get_gurobi_parameters(config["solveroptions"])
+                self.solver.set_instance(mock_model)
+            elif config["solveroptions"]["solver"]["value"] == "glpk":
+                solver = get_glpk_parameters(config["solveroptions"])
+            solver.solve(mock_model)
+        except:
+            raise Exception(
+                "The solver you are trying to use is not available. This "
+                "could be due to the following two reasons: (1) it is not "
+                "implemented (currently AdOpT-NET0 supports gurobi and "
+                "glpk. (2) If you are using gurobi, make sure that the "
+                "gurobipy version installed matches the gurobi version "
+                "installed."
+            )
+
         # Check if save-path exists
         save_path = Path(config["reporting"]["save_path"]["value"])
         if not os.path.exists(save_path) or not os.path.isdir(save_path):
