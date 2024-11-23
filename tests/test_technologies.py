@@ -914,7 +914,7 @@ def test_dac(request):
     tests DAC Adsorption
     """
     time_steps = 1
-    technology = "TestTec_DAC_adsorption"
+    technology = "TestTec_DAC_Adsorption"
     tec = define_technology(
         technology, time_steps, request.config.technology_data_folder_path
     )
