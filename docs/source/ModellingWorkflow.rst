@@ -40,7 +40,7 @@ The modelling steps are as follows:
         import json
         from pathlib import Path
 
-        input_data_path = "path_to_your_input_data_folder"
+        input_data_path = Path("path_to_your_input_data_folder")
         adopt.create_optimization_templates(input_data_path)
 
 - :ref:`Define your system topology<workflow_define-topology>` and the

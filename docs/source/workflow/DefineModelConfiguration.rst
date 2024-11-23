@@ -6,7 +6,7 @@ Define Model Configuration
 
 The ``ModelConfig.JSON`` is used to define and change the standard modeling configuration. The model configuration consists
 of all global modelling settings (e.g., objective, high-level algorithms, energy balance violation, costs and performances)
-and solver configurations. In the table :ref:`here<model_configuration>`here you can
+and solver configurations. In the table :ref:`table<model_configuration>` you can
 find all
 settings that can be
 specified, and a description, the options that can be chosen and the default value from the template for each setting.
