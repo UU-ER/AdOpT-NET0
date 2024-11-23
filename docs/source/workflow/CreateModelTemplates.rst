@@ -10,8 +10,9 @@ that will all input data. Specify the path to this folder and pass it to the
 .. testcode::
 
     import adopt_net0 as adopt
+    from pathlib import Path
 
-    path = "path_to_your_input_data_folder"
+    path = Path("path_to_your_input_data_folder")
 
     adopt.create_optimization_templates(path)
 

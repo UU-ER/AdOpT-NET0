@@ -135,7 +135,7 @@ the time dependent data more convenient:
 
   .. testcode::
 
-      adopt.fill_carrier_data(path, 10, columns=["Demand"], carriers=["electricity"], nodes=["onshore"], investment_periods=['period1'])
+      adopt.fill_carrier_data(path, value_or_data=10, columns=["Demand"], carriers=["electricity"], nodes=["onshore"], investment_periods=['period1'])
 
 
 .. _load-data_from-api:
