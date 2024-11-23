@@ -39,7 +39,7 @@ scandir = ">=1.10.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = ">=8.1.1"
-coverage = ">=7.6.7"
+pytest-cov = "6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = ">=3.7.0"

@@ -37,14 +37,9 @@ jobs:
 
     - name: Test
       run: |
-        poetry run coverage run -m pytest
+        poetry run pytest --cov --cov-report=xml
 
-    - name: Build coverage report
-      run: |
-        poetry run coverage report -m >"coverage-${{ matrix.python-version }}.txt"
-
-    - name: Upload Coverage Report
-      uses: actions/upload-artifact@v4
+    - name: Upload results to Codecov
+      uses: codecov/codecov-action@v4
       with:
-        name: "coverage-report-${{ matrix.python-version }}"
-        path: "coverage-${{ matrix.python-version }}.txt"
+        token: ${{ secrets.CODECOV_TOKEN }}
