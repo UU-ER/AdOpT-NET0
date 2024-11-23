@@ -16,7 +16,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
-        token: ${{ github.MY_TOKEN }}
+        token: ${{ secrets.ACTION_BOT }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
