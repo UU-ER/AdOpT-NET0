@@ -1,17 +1,15 @@
 name: Develop
 
 on:
-  pull_request:
-    branches:
-      - 'develop'
+  push:
 
 jobs:
-  pin_requirements:
-    uses: ./.github/workflows/pin_requirements.yml
-  autoformatting:
-    needs: pin_requirements
-    uses: ./.github/workflows/autoformatting.yml
+#  pin_requirements:
+#    uses: ./.github/workflows/pin_requirements.yml
+#  autoformatting:
+#    needs: pin_requirements
+#    uses: ./.github/workflows/autoformatting.yml
   testing:
-    needs: autoformatting
+#    needs: autoformatting
     uses: ./.github/workflows/testing.yml
 
