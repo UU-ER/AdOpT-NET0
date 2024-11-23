@@ -40,7 +40,7 @@ The modelling steps are as follows:
         import json
         from pathlib import Path
 
-        input_data_path = "path_to_your_input_data_folder"
+        input_data_path = Path("path_to_your_input_data_folder")
         adopt.create_optimization_templates(input_data_path)
 
 - :ref:`Define your system topology<workflow_define-topology>` and the
@@ -86,9 +86,9 @@ The modelling steps are as follows:
         adopt.load_climate_data_from_api(input_data_path)
 
         # Define demand
-        adopt.fill_carrier_data(input_data_path, value=0.01, columns=['Demand'], carriers=['electricity'], nodes=['node1'])
-        adopt.fill_carrier_data(input_data_path, value=100, columns=['Import price'], carriers=['electricity'], nodes=['node1'])
-        adopt.fill_carrier_data(input_data_path, value=1, columns=['Import limit'], carriers=['electricity'], nodes=['node1'])
+        adopt.fill_carrier_data(input_data_path, value_or_data=0.01, columns=['Demand'], carriers=['electricity'], nodes=['node1'])
+        adopt.fill_carrier_data(input_data_path, value_or_data=100, columns=['Import price'], carriers=['electricity'], nodes=['node1'])
+        adopt.fill_carrier_data(input_data_path, value_or_data=1, columns=['Import limit'], carriers=['electricity'], nodes=['node1'])
 
 - :ref:`Define model configuration<workflow_model-configuration>` if you want to
   change something from the defaults. Make sure that the
