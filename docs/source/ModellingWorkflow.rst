@@ -86,9 +86,9 @@ The modelling steps are as follows:
         adopt.load_climate_data_from_api(input_data_path)
 
         # Define demand
-        adopt.fill_carrier_data(input_data_path, value=0.01, columns=['Demand'], carriers=['electricity'], nodes=['node1'])
-        adopt.fill_carrier_data(input_data_path, value=100, columns=['Import price'], carriers=['electricity'], nodes=['node1'])
-        adopt.fill_carrier_data(input_data_path, value=1, columns=['Import limit'], carriers=['electricity'], nodes=['node1'])
+        adopt.fill_carrier_data(input_data_path, value_or_data=0.01, columns=['Demand'], carriers=['electricity'], nodes=['node1'])
+        adopt.fill_carrier_data(input_data_path, value_or_data=100, columns=['Import price'], carriers=['electricity'], nodes=['node1'])
+        adopt.fill_carrier_data(input_data_path, value_or_data=1, columns=['Import limit'], carriers=['electricity'], nodes=['node1'])
 
 - :ref:`Define model configuration<workflow_model-configuration>` if you want to
   change something from the defaults. Make sure that the
