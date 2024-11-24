@@ -25,7 +25,7 @@ system by setting:
    .. code-block:: console
 
      "existing": [],
-     "new": ['electricityOffshore']
+     "new": ["electricityOffshore"]
 
    - Then, for each of the networks that you specify, an input data folder with that
      network name should be added  in the corresponding folder ("existing" or
@@ -88,8 +88,8 @@ system by setting:
 
    .. code-block:: console
 
-       "existing": ['WindTurbine_Onshore_1500': 2, 'Photovoltaic': 2.4],
-       "new": ['Storage_Battery', 'Photovoltaic', 'Furnace_NG']
+       "existing": {"WindTurbine_Onshore_1500": 2, "Photovoltaic": 2.4},
+       "new": ["Storage_Battery", "Photovoltaic", "Furnace_NG"]
 
    Note: For wind turbines, the capacity of one turbine is specified in the name
    (1500 W), and the size is an integer. Here, we thus have two 1.5MW wind turbines
@@ -135,7 +135,7 @@ the time dependent data more convenient:
 
   .. testcode::
 
-      adopt.fill_carrier_data(path, 10, columns=["Demand"], carriers=["electricity"], nodes=["onshore"], investment_periods=['period1'])
+      adopt.fill_carrier_data(path, value_or_data=10, columns=["Demand"], carriers=["electricity"], nodes=["onshore"], investment_periods=['period1'])
 
 
 .. _load-data_from-api:

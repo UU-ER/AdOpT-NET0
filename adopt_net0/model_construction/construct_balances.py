@@ -34,10 +34,10 @@ def construct_network_constraints(model, config: dict):
     Construct the network constraints to calculate nodal in- and outflow
 
     .. math::
-      outflowToNetwork = \sum(outflow \forall arcs at node)
+      outflowToNetwork = \\sum(outflow \forall arcs at node)
 
     .. math::
-      inflowFromNetwork = \sum(inflow \forall arcs at node)\\
+      inflowFromNetwork = \\sum(inflow \forall arcs at node)\\
 
     :param model: pyomo model
     :param dict config: dict containing model information
@@ -82,7 +82,7 @@ def construct_network_constraints(model, config: dict):
 
         def init_netw_consumption(const, node, car, t):
 
-            if (b_period.node_blocks[node].find_component("var_consumption")) and (
+            if (b_period.node_blocks[node].find_component("var_netw_consumption")) and (
                 car in b_period.node_blocks[node].set_carriers
             ):
                 return b_period.node_blocks[node].var_netw_consumption[t, car] == sum(
@@ -428,7 +428,7 @@ def construct_import_costs(b_period, data, period: str):
     Calculates the total import costs for an investment period
 
     .. math::
-        C_{import} = \sum(p_{t, import} * F_{t, import})
+        C_{import} = \\sum(p_{t, import} * F_{t, import})
 
     :param b_period: pyomo block for period
     :param data: DataHandle
@@ -464,7 +464,7 @@ def construct_export_costs(b_period, data, period):
     Calculates the total export costs for an investment period
 
     .. math::
-        C_{export} = \sum(p_{t, export} * F_{t, export})
+        C_{export} = \\sum(p_{t, export} * F_{t, export})
 
     :param b_period: pyomo block for period
     :param data: DataHandle

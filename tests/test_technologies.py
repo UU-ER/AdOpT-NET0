@@ -242,7 +242,6 @@ def calculate_piecewise_function(x: float, bp_x: list, bp_y: list) -> float:
                 )
 
 
-@pytest.mark.technologies
 def test_res_pv(request):
     """
     tests pv technology
@@ -279,7 +278,6 @@ def test_res_pv(request):
     assert termination == TerminationCondition.optimal
 
 
-@pytest.mark.technologies
 def test_res_wt(request):
     """
     tests wind turbine technology
@@ -315,7 +313,6 @@ def test_res_wt(request):
     assert termination == TerminationCondition.optimal
 
 
-@pytest.mark.technologies
 def test_conv_perf(request):
     """
     tests generic conversion technologies
@@ -917,7 +914,7 @@ def test_dac(request):
     tests DAC Adsorption
     """
     time_steps = 1
-    technology = "TestTec_DAC_adsorption"
+    technology = "TestTec_DAC_Adsorption"
     tec = define_technology(
         technology, time_steps, request.config.technology_data_folder_path
     )

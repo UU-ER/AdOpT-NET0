@@ -1,4 +1,5 @@
 import random
+import warnings
 from pathlib import Path
 import pyomo.environ as pyo
 import os
@@ -92,6 +93,27 @@ class ModelHub:
         """
         config = self.data.model_config
         topology = self.data.topology
+
+        # Is solver available?
+        try:
+            mock_model = pyo.ConcreteModel()
+            if config["solveroptions"]["solver"]["value"] == "gurobi":
+                solver = get_gurobi_parameters(config["solveroptions"])
+            elif config["solveroptions"]["solver"]["value"] == "gurobi_persistent":
+                solver = get_gurobi_parameters(config["solveroptions"])
+                self.solver.set_instance(mock_model)
+            elif config["solveroptions"]["solver"]["value"] == "glpk":
+                solver = get_glpk_parameters(config["solveroptions"])
+            solver.solve(mock_model)
+        except:
+            raise Exception(
+                "The solver you are trying to use is not available. This "
+                "could be due to the following two reasons: (1) it is not "
+                "implemented (currently AdOpT-NET0 supports gurobi and "
+                "glpk. (2) If you are using gurobi, make sure that the "
+                "gurobipy version installed matches the gurobi version "
+                "installed."
+            )
 
         # Check if save-path exists
         save_path = Path(config["reporting"]["save_path"]["value"])
@@ -376,29 +398,42 @@ class ModelHub:
         Writes optimization results of a model run to folder
         """
         # Write H5 File
-        config = self.data.model_config
 
-        save_summary_path = Path.joinpath(
-            Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
-        )
+        solution_available = True
+        if self.solution.solver.termination_condition in [
+            pyo.TerminationCondition.infeasibleOrUnbounded,
+            pyo.TerminationCondition.infeasible,
+            pyo.TerminationCondition.unbounded,
+        ]:
+            solution_available = False
 
-        model_info = self.last_solve_info
+        if solution_available:
 
-        model = self.model[self.info_solving_algorithms["aggregation_model"]]
+            config = self.data.model_config
 
-        summary_dict = write_optimization_results_to_h5(
-            model, self.solution, model_info, self.data
-        )
+            save_summary_path = Path.joinpath(
+                Path(config["reporting"]["save_summary_path"]["value"]), "Summary.xlsx"
+            )
 
-        # Write Summary
-        if not os.path.exists(save_summary_path):
-            summary_df = pd.DataFrame(data=summary_dict, index=[0])
-            summary_df.to_excel(save_summary_path, index=False, sheet_name="Summary")
-        else:
-            summary_existing = pd.read_excel(save_summary_path)
-            pd.concat(
-                [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
-            ).to_excel(save_summary_path, index=False, sheet_name="Summary")
+            model_info = self.last_solve_info
+
+            model = self.model[self.info_solving_algorithms["aggregation_model"]]
+
+            summary_dict = write_optimization_results_to_h5(
+                model, self.solution, model_info, self.data
+            )
+
+            # Write Summary
+            if not os.path.exists(save_summary_path):
+                summary_df = pd.DataFrame(data=summary_dict, index=[0])
+                summary_df.to_excel(
+                    save_summary_path, index=False, sheet_name="Summary"
+                )
+            else:
+                summary_existing = pd.read_excel(save_summary_path)
+                pd.concat(
+                    [summary_existing, pd.DataFrame(data=summary_dict, index=[0])]
+                ).to_excel(save_summary_path, index=False, sheet_name="Summary")
 
     def add_technology(self, investment_period: str, node: str, technologies: list):
         """
@@ -847,10 +882,39 @@ class ModelHub:
                 keepfiles=True,
             )
 
-        if config["scaling"]["scaling_on"]["value"] == 1:
-            pyo.TransformationFactory("core.scale_model").propagate_solution(
-                model, self.model[self.info_solving_algorithms["aggregation_model"]]
+        # Determine if results should be written
+        if "write_results" in config["reporting"].keys():
+            if config["reporting"]["write_results"]["value"] == 1:
+                write_results = True
+            else:
+                write_results = False
+        else:
+            warnings.warn(
+                "The config file needs to contain config['reporting']"
+                "['write_results']. This is mandatory in future versions",
+                FutureWarning,
+                stacklevel=2,
             )
+            write_results = True
+
+        # Check if solution is available
+        if write_results:
+            if (self.solution.solver.status == pyo.SolverStatus.ok) or (
+                self.solution.solver.status == pyo.SolverStatus.warning
+            ):
+                write_results = True
+            if self.solution.solver.termination_condition in [
+                pyo.TerminationCondition.infeasibleOrUnbounded,
+                pyo.TerminationCondition.infeasible,
+                pyo.TerminationCondition.unbounded,
+            ]:
+                write_results = False
+
+        if write_results:
+            if config["scaling"]["scaling_on"]["value"] == 1:
+                pyo.TransformationFactory("core.scale_model").propagate_solution(
+                    model, self.model[self.info_solving_algorithms["aggregation_model"]]
+                )
 
         if config["reporting"]["write_solution_diagnostics"]["value"] >= 1:
             self._write_solution_diagnostics(result_folder_path)
@@ -866,19 +930,6 @@ class ModelHub:
         self.last_solve_info["time_stage"] = self.info_solving_algorithms["time_stage"]
 
         # Write results to path
-        # Determine if results should be written
-        write_results = False
-        if (self.solution.solver.status == pyo.SolverStatus.ok) or (
-            self.solution.solver.status == pyo.SolverStatus.warning
-        ):
-            write_results = True
-        if self.solution.solver.termination_condition in [
-            pyo.TerminationCondition.infeasibleOrUnbounded,
-            pyo.TerminationCondition.infeasible,
-            pyo.TerminationCondition.unbounded,
-        ]:
-            write_results = False
-
         if write_results:
             self.write_results()
 

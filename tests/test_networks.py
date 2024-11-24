@@ -55,8 +55,8 @@ def construct_netw_model(
     data = make_data_for_testing(nr_timesteps)
 
     netw_matrix = create_empty_network_matrix(data["topology"]["nodes"])
-    netw_matrix.loc["node1"]["node2"] = 1
-    netw_matrix.loc["node2"]["node1"] = 1
+    netw_matrix.loc["node2", "node1"] = 1
+    netw_matrix.loc["node1", "node2"] = 1
 
     netw.connection = netw_matrix
     netw.distance = netw_matrix

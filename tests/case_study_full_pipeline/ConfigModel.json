@@ -185,12 +185,9 @@
         }
     },
     "reporting": {
-        "save_detailed": {
-            "description": "Setting to select how the results are saved. When turned off only the summary is saved.",
-            "options": [
-                0,
-                1
-            ],
+        "write_results": {
+            "description": "Write results (h5 file and to Summary.xlsx) directly after the optimization.",
+            "options": [0, 1],
             "value": 1
         },
         "save_summary_path": {

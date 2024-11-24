@@ -47,15 +47,15 @@ class Stor(Technology):
     - Size constraint:
 
       .. math::
-        E_{t} \leq S
+        E_{t} \\leq S
 
     - Maximal charging and discharging:
 
       .. math::
-        Input_{t} \leq Input_{max}
+        Input_{t} \\leq Input_{max}
 
       .. math::
-        Output_{t} \leq Output_{max}
+        Output_{t} \\leq Output_{max}
 
     - Storage level calculation:
 
@@ -76,7 +76,7 @@ class Stor(Technology):
        Thus:
 
        .. math::
-         Input_{max} = \gamma_{charging} * S
+         Input_{max} = \\gamma_{charging} * S
 
     - If in 'Flexibility' the "power_energy_ratio == flexratio", then the
       capacity of the charging and discharging power is a variable in the
@@ -119,10 +119,10 @@ class Stor(Technology):
       output).
 
       .. math::
-         -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar} \leq rampingrate
+         -rampingrate \\leq Input_{t, maincar} - Input_{t-1, maincar} \\leq rampingrate
 
       .. math::
-         -rampingrate \leq \sum(Output_{t, car}) - \sum(Output_{t-1, car}) \leq
+         -rampingrate \\leq \\sum(Output_{t, car}) - \\sum(Output_{t-1, car}) \\leq
          rampingrate
 
 
@@ -383,10 +383,10 @@ class Stor(Technology):
                 )
 
             if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
-                b_tec.const_cut_bidirectional = pyo.Constraint(
+                b_tec.const_cut_bidirectional1 = pyo.Constraint(
                     self.set_t_performance, rule=init_cut_bidirectional_fix1
                 )
-                b_tec.const_cut_bidirectional = pyo.Constraint(
+                b_tec.const_cut_bidirectional2 = pyo.Constraint(
                     self.set_t_performance, rule=init_cut_bidirectional_fix2
                 )
             else:
@@ -495,7 +495,7 @@ class Stor(Technology):
             energy_consumption = coeff_ti["energy_consumption"]
             if "in" in energy_consumption:
                 b_tec.set_energyconsumption_carriers_in = pyo.Set(
-                    initialize=energy_consumption["in"].keys()
+                    initialize=list(energy_consumption["in"].keys())
                 )
 
                 def init_energyconsumption_in(const, t, car):

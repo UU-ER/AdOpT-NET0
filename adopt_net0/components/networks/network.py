@@ -49,7 +49,7 @@ class Network(ModelComponent):
     - ``para_size_min``: Min Size (for each arc)
     - ``para_size_max``: Max Size (for each arc)
     - ``para_size_initial``, var_size, var_capex: for existing networks
-    - ``para_capex_gamma``: :math:`{\gamma}_1, {\gamma}_2, {\gamma}_3, {\gamma}_4` for
+    - ``para_capex_gamma``: :math:`{\\gamma}_1, {\\gamma}_2, {\\gamma}_3, {\\gamma}_4` for
       CAPEX calculation (annualized from given data on up-front CAPEX, lifetime and
       discount rate)
     - ``para_opex_variable``: Variable OPEX
@@ -98,12 +98,12 @@ class Network(ModelComponent):
         * Flow losses:
 
           .. math::
-            loss = flow * {\mu} * D
+            loss = flow * {\\mu} * D
 
         * Flow constraints:
 
           .. math::
-            S * minTransport \leq flow \leq S
+            S * minTransport \\leq flow \\leq S
 
         * Consumption at sending and receiving node:
 
@@ -119,7 +119,7 @@ class Network(ModelComponent):
           based on the existing size.
 
           .. math::
-            CAPEX_{arc} = {\gamma}_1 + {\gamma}_2 * S + {\gamma}_3 * distance + {\gamma}_4 * S * distance
+            CAPEX_{arc} = {\\gamma}_1 + {\\gamma}_2 * S + {\\gamma}_3 * distance + {\\gamma}_4 * S * distance
 
         * Variable OPEX:
 
@@ -143,7 +143,7 @@ class Network(ModelComponent):
         S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}
 
       .. math::
-        flow_{nodeFrom, nodeTo} = 0 \lor flow_{nodeTo, nodeFrom} = 0
+        flow_{nodeFrom, nodeTo} = 0 \\lor flow_{nodeTo, nodeFrom} = 0
 
     - CAPEX calculation of whole network as a sum of CAPEX of all arcs. For
       bi-directional networks, each arc is only considered once, regardless of the
@@ -158,10 +158,10 @@ class Network(ModelComponent):
     - Total inflow and outflow as a sum for each node:
 
       .. math::
-        outflow_{node} = \sum_{nodeTo \in sendsto_{node}} flow_{node, nodeTo}
+        outflow_{node} = \\sum_{nodeTo \\in sendsto_{node}} flow_{node, nodeTo}
 
       .. math::
-        inflow_{node} = \sum_{nodeFrom \in receivesFrom_{node}} flow_{nodeFrom, node} - losses_{nodeFrom, node}
+        inflow_{node} = \\sum_{nodeFrom \\in receivesFrom_{node}} flow_{nodeFrom, node} - losses_{nodeFrom, node}
 
     - Energy consumption of other carriers at each node.
 

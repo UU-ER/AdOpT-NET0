@@ -30,17 +30,17 @@ class Sink(Technology):
     - Size constraint:
 
       .. math::
-        E_{t} \leq S
+        E_{t} \\leq S
 
     - Maximal injection rate:
 
       .. math::
-        Input_{t, maincar} \leq injCapacity
+        Input_{t, maincar} \\leq injCapacity
 
     - Maximal injection capacity:
 
       .. math::
-        injCapacity \leq injRateMax
+        injCapacity \\leq injRateMax
 
 
     - Storage level calculation:
@@ -63,7 +63,7 @@ class Sink(Technology):
       output).
 
       .. math::
-         -rampingrate \leq Input_{t, maincar} - Input_{t-1, maincar} \leq rampingrate
+         -rampingrate \\leq Input_{t, maincar} - Input_{t-1, maincar} \\leq rampingrate
 
     """
 
@@ -245,7 +245,7 @@ class Sink(Technology):
             energy_consumption = coeff_ti["energy_consumption"]
             if "in" in energy_consumption:
                 b_tec.set_energyconsumption_carriers_in = pyo.Set(
-                    initialize=energy_consumption["in"].keys()
+                    initialize=list(energy_consumption["in"].keys())
                 )
 
                 def init_energyconsumption_in(const, t, car):

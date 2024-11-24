@@ -45,7 +45,7 @@ def setup_before_tests(request):
     """
     # Create Folders
     data_folder_path = request.config.data_folder_path
-    result_folder_path = request.config.data_folder_path
+    result_folder_path = request.config.result_folder_path
     case_study_folder_path = request.config.case_study_folder_path
 
     if not os.path.exists(data_folder_path):

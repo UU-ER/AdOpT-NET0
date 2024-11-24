@@ -1,60 +1,61 @@
-[tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
+[tool.poetry]
+name = "adopt_net0"
+version = "0.0.0"  # Version is static, but you can use dynamic versioning if needed
+description = "A python package for multi energy system modelling"
+authors = [
+  "Jan F. Wiegner <j.f.wiegner@uu.nl>",
+  "Julia L. Tiggeloven <j.l.tiggeloven@uu.nl>",
+  "Luca Bertoni <l.bertoni@uu.nl>",
+  "Inge Ossentjuk <i.m.ossentjuk@uu.nl>",
+  "Matteo Gazzani <m.gazzani@uu.nl>"
 ]
+readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/UU-ER/AdOpT-NET0"
+repository = "https://github.com/UU-ER/AdOpT-NET0"
+documentation = "https://adopt-net0.readthedocs.io"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+
+[tool.poetry-dynamic-versioning.from-file]
+source = "version.py"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+tsam = ">=2.3.1"
+Pyomo = ">=6.7.1"
+numpy = ">=1.26.4"
+pandas = ">=2.2.2"
+requests = ">=2.31.0"
+timezonefinder = ">=6.5.0"
+statsmodels = ">=0.14.1"
+pvlib = ">=0.10.4"
+scipy = ">=1.13.0"
+openpyxl = ">=3.1.2"
+pytest = ">=8.1.1"
+pwlf = ">=2.2.1"
+scandir = ">=1.10.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=8.1.1"
+coverage = ">=7.6.7"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = ">=3.7.0"
+black = ">=24.4.0"
+sphinx = ">=7.3.7"
+sphinx_rtd_theme = ">=2.0.0"
+tables = ">=3.9.2"
+
+[tool.poetry.urls]
+homepage = "https://github.com/UU-ER/AdOpT-NET0"
+issues = "https://github.com/UU-ER/AdOpT-NET0/issues"
+documentation = "https://adopt-net0.readthedocs.io"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["adopt_net0"]
-
-[tool.hatch.build]
-include = ["adopt_net0/**"]
-
-[tool.hatch.version]
-path = "version.py"
-
-[project]
-name = "adopt_net0"
-dynamic = ["version"]
-authors = [
-  {name="Jan F. Wiegner", email="j.f.wiegner@uu.nl"},
-  {name="Julia L. Tiggeloven", email="j.l.tiggeloven@uu.nl"},
-  {name="Luca Bertoni", email="l.bertoni@uu.nl"},
-  {name="Inge Ossentjuk", email="i.m.ossentjuk@uu.nl"},
-  {name="Matteo Gazzani", email="m.gazzani@uu.nl"},
-]
-description = "A python package for multi energy system modelling"
-readme = "README.md"
-requires-python = ">=3.12"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License"
-]
-dependencies = [
-    "Pyomo>=6.7.1",
-    "numpy>=1.26.4",
-    "dill>=0.3.8",
-    "pandas>=2.2.2",
-    "requests>=2.31.0",
-    "timezonefinder>=6.5.0",
-    "statsmodels>=0.14.1",
-    "pvlib>=0.10.4",
-    "scipy>=1.13.0",
-    "openpyxl>=3.1.2",
-    "pytest>=8.1.1",
-    "scikit-learn>=1.4.2",
-    "pwlf>=2.2.1",
-    "gurobipy>=11.0.1",
-    "scandir>=1.10.0",
-    "tables>=3.9.2",
-    "tsam>=2.3.1"
-]
-
-
-[project.urls]
-Homepage = "https://github.com/UU-ER/AdOpT-NET0"
-Issues = "https://github.com/UU-ER/AdOpT-NET0/issues"
-Documentation = "https://adopt-net0.readthedocs.io"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"

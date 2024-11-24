@@ -43,6 +43,12 @@ def test_full_model_flow(request):
     pyhub.construct_model()
     pyhub.construct_balances()
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.data.model_config["reporting"]["save_summary_path"][
+        "value"
+    ] = request.config.result_folder_path
+    pyhub.data.model_config["reporting"]["save_path"][
+        "value"
+    ] = request.config.result_folder_path
     pyhub.solve()
 
     m = pyhub.model["full"]
@@ -102,6 +108,12 @@ def test_clustering_algo(request):
     pyhub.construct_model()
     pyhub.construct_balances()
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.data.model_config["reporting"]["save_summary_path"][
+        "value"
+    ] = request.config.result_folder_path
+    pyhub.data.model_config["reporting"]["save_path"][
+        "value"
+    ] = request.config.result_folder_path
     pyhub.solve()
 
     m = pyhub.model["full"]
@@ -113,6 +125,12 @@ def test_clustering_algo(request):
     pyhub.data.set_settings(path)
     pyhub.data._read_topology()
     pyhub.data._read_model_config()
+    pyhub.data.model_config["reporting"]["save_summary_path"][
+        "value"
+    ] = request.config.result_folder_path
+    pyhub.data.model_config["reporting"]["save_path"][
+        "value"
+    ] = request.config.result_folder_path
     for method in methods:
         for n in N:
             pyhub.data.model_config["optimization"]["typicaldays"]["N"]["value"] = n
@@ -159,6 +177,12 @@ def test_average_algo(request):
     pyhub.construct_model()
     pyhub.construct_balances()
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.data.model_config["reporting"]["save_summary_path"][
+        "value"
+    ] = request.config.result_folder_path
+    pyhub.data.model_config["reporting"]["save_path"][
+        "value"
+    ] = request.config.result_folder_path
     pyhub.solve()
 
     m = pyhub.model["full"]
@@ -170,6 +194,12 @@ def test_average_algo(request):
     pyhub.data._read_model_config()
 
     pyhub.data.model_config["optimization"]["timestaging"]["value"] = 4
+    pyhub.data.model_config["reporting"]["save_summary_path"][
+        "value"
+    ] = request.config.result_folder_path
+    pyhub.data.model_config["reporting"]["save_path"][
+        "value"
+    ] = request.config.result_folder_path
 
     pyhub.data._read_time_series()
     pyhub.data._read_node_locations()
@@ -209,6 +239,12 @@ def test_objective_functions(request):
     pyhub.construct_model()
     pyhub.construct_balances()
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.data.model_config["reporting"]["save_summary_path"][
+        "value"
+    ] = request.config.result_folder_path
+    pyhub.data.model_config["reporting"]["save_path"][
+        "value"
+    ] = request.config.result_folder_path
     pyhub._define_solver_settings()
 
     pyhub._optimize_emissions_net()
@@ -233,6 +269,12 @@ def test_monte_carlo(request):
     pyhub.construct_model()
     pyhub.construct_balances()
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.data.model_config["reporting"]["save_summary_path"][
+        "value"
+    ] = request.config.result_folder_path
+    pyhub.data.model_config["reporting"]["save_path"][
+        "value"
+    ] = request.config.result_folder_path
     pyhub.solve()
 
     termination = pyhub.solution.solver.termination_condition
@@ -261,4 +303,10 @@ def test_scaling(request):
     pyhub.construct_model()
     pyhub.construct_balances()
     pyhub.data.model_config["scaling"]["scaling_on"]["value"] = 1
+    pyhub.data.model_config["reporting"]["save_summary_path"][
+        "value"
+    ] = request.config.result_folder_path
+    pyhub.data.model_config["reporting"]["save_path"][
+        "value"
+    ] = request.config.result_folder_path
     pyhub.solve()

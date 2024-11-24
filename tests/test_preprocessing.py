@@ -11,7 +11,6 @@ from tests.utilities import (
 )
 
 
-@pytest.mark.data_preprocessing
 def test_create_input_data_folder(request):
     """
     Tests standard behavior of
@@ -26,8 +25,6 @@ def test_create_input_data_folder(request):
     dp.create_input_data_folder_template(data_folder_path)
 
 
-@pytest.mark.data_preprocessing
-@pytest.mark.slow
 def test_data_climate_data_loading(request):
     """
     Tests standard behavior of load_climate_data_from_api
@@ -58,7 +55,6 @@ def test_data_climate_data_loading(request):
             assert not climate_data[period][node].empty
 
 
-@pytest.mark.data_preprocessing
 def test_data_fill_carrier_data(request):
     """
     Tests standard behavior of fill_carrier_data
@@ -106,7 +102,6 @@ def test_data_fill_carrier_data(request):
                         assert (carrier_data[col] == 1).all()
 
 
-@pytest.mark.data_preprocessing
 def test_copy_technology_data(request):
     """
     Tests standard behavior of fill_carrier_data

@@ -10,6 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
+        python-version: [3.12, 3.13]
 
     steps:
     - name: Install GLPK Solver
@@ -22,15 +23,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.12
+        python-version: ${{ matrix.python-version }}
 
     - name: Install Dependencies
-      env:
-        PIP_CONSTRAINT: .github/workflows/constraints.txt
       run: |
         python -m pip install --upgrade pip
-        pip install coverage
-        pip install -r requirements.txt
+        pip install poetry
+        poetry install --without dev
 
     - name: Check directory
       run: |
@@ -38,14 +37,14 @@ jobs:
 
     - name: Test
       run: |
-        coverage run -m pytest
+        poetry run coverage run -m pytest
 
     - name: Build coverage report
       run: |
-        coverage report -m >coverage.txt
+        poetry run coverage report -m >"coverage-${{ matrix.python-version }}.txt"
 
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-report
-        path: coverage.txt
+        name: "coverage-report-${{ matrix.python-version }}"
+        path: "coverage-${{ matrix.python-version }}.txt"
