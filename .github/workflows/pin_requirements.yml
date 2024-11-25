@@ -12,16 +12,10 @@ jobs:
         os: [windows-latest]
 
     steps:
-    - name: Debug access to PAT
-      run: |
-        echo "Accessing the PAT secret"
-        echo "GITHUB_TOKEN is available: ${{ secrets.PAT_TOKEN }}"
-
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
-        token: ${{ secrets.PAT_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
