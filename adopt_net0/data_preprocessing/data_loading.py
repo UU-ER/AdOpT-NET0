@@ -18,7 +18,7 @@ def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC"):
     The data is written to the file
 
     :param str folder_path: Path to the folder containing node data and NodeLocations.csv
-    :param str dataset: Dataset to import from, can be JRC (only onshore) or ERA5 (global)
+    :param str dataset: Dataset to import from, can be JRC (only onshore)
     """
     # Convert to Path
     if isinstance(folder_path, str):
@@ -305,7 +305,7 @@ def import_jrc_climate_data(
     if response.status_code == 200:
         print("Importing Climate Data successful")
     else:
-        print(response)
+        raise Exception(response)
     data = response.json()
     climate_data = data["outputs"]["tmy_hourly"]
 
