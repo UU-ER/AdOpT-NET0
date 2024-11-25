@@ -9,7 +9,6 @@ jobs:
   pin_requirements:
     uses: ./.github/workflows/pin_requirements.yml
   autoformatting:
-    needs: pin_requirements
     uses: ./.github/workflows/autoformatting.yml
   testing:
     needs: autoformatting
