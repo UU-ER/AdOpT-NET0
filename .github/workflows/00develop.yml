@@ -1,7 +1,6 @@
 name: Develop
 
-on:
-  push:
+on: [push, pull_request]
 
 jobs:
 #  pin_requirements:
