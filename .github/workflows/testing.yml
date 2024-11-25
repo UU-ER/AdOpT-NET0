@@ -39,7 +39,7 @@ jobs:
       run: |
         poetry run pytest --cov --cov-report=xml
 
-    - name: Upload results to Codecov
+    - name: Upload coverage reports to Codecov with GitHub Action
       uses: codecov/codecov-action@v5
-      with:
-        token: ${{ secrets.CODECOV_TOKE }}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
