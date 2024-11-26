@@ -54,38 +54,38 @@ highly complex but also offer synergies to reduce costs and environmental impact
 1 provides an overview of the covered dimensions of AdOpT-NET0, while
 Figure 1 and 2 show two examples of energy systems that can be modeled with the tool.
 
-| **Feature**                                         | **AdOpT-NET0**                                                                                                                 |
-|-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| **Model Dimensions**                                |                                                                                                                                |
-| Commodities                                         | Energy and/or material commodities possible                                                                                    |
-| Space                                               | Single node or multi-node systems with network constraints                                                                     |
-| Time                                                | By default, hourly resolution (other resolutions possible)                                                                     |
-| Stochastic scenarios                                | Deterministic, Monte Carlo sampling possible                                                                                   |
-| Transformation pathways                             | Multi-period possible, perfect foresight                                                                                       |
-| Components                                          | Modelling of sources/sinks, converters, electricity and material storage, and networks possible. Linear or mixed-integer-linear|
-| **Component Extensions**                            |                                                                                                                                |
-| Non-linear capacity expenditures                    | Piece-wise investment cost function possible                                                                                   |
-| Technology dynamics                                 | Constraining ramping, minimum part-load, minimum up-/down-time, maximum number of start-ups, slow start-ups/shut-downs possible|
-| Price elasticity of demand                          | Not implemented                                                                                                                |
-| Demand response                                     | Possible with defining a storage component                                                                                     |
-| Converter performance                               | Linear, piece-wise linear, technology-specific                                                                                 |
-| Storage performance                                 | Linear, piece-wise linear, technology-specific                                                                                 |
-| Network performance                                 | Linear or MILP, can be with a compression energy consumption for gas networks                                                  |
-| **Boundary conditions**                             |                                                                                                                                |
-| Technology potentials                               | Constraining maximum size of a technology possible                                                                             |
-| Regulations                                         | Not implemented                                                                                                                |
-| System security and resource adequacy               | Not implemented                                                                                                                |
-| **Multi-criteria objectives**                       |                                                                                                                                |
-| Pareto fronts                                       | $\varepsilon$-constraint method                                                                                                |
-| **Complexity handling**                             |                                                                                                                                |
-| Spatial aggregation                                 | Not implemented                                                                                                                |
-| Technology aggregation                              | Not implemented                                                                                                                |
-| Temporal aggregation                                | Typical periods via k-means clustering, hierarchical time averaging                                                            |
-| Investment paths                                    | One-time investment                                                                                                            |
-| **Model Implementation**                            |                                                                                                                                |
-| Language                                            | Python                                                                                                                         |
-| Translator                                          | Pyomo                                                                                                                          |
-| Solver                                              | Multiple (solvers compatible with Pyomo)                                                                                       |
+| **Feature**                                         | **AdOpT-NET0**                                                                                                                  |
+|-----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| **Model Dimensions**                                |                                                                                                                                 |
+| Commodities                                         | Energy and/or material commodities possible                                                                                     |
+| Space                                               | Single node or multi-node systems with network constraints                                                                      |
+| Time                                                | By default, hourly resolution (other resolutions possible)                                                                      |
+| Stochastic scenarios                                | Deterministic, Monte Carlo sampling possible                                                                                    |
+| Transformation pathways                             | Perfect foresight, multi-period (not fully implemented yet)                                                                     |
+| Components                                          | Modelling of sources/sinks, converters, electricity and material storage, and networks possible. Linear or mixed-integer-linear |
+| **Component Extensions**                            |                                                                                                                                 |
+| Non-linear capacity expenditures                    | Piece-wise investment cost function possible                                                                                    |
+| Technology dynamics                                 | Constraining ramping, minimum part-load, minimum up-/down-time, maximum number of start-ups, slow start-ups/shut-downs possible |
+| Price elasticity of demand                          | Not implemented                                                                                                                 |
+| Demand response                                     | Possible with defining a storage component                                                                                      |
+| Converter performance                               | Linear, piece-wise linear, technology-specific                                                                                  |
+| Storage performance                                 | Linear, piece-wise linear, technology-specific                                                                                  |
+| Network performance                                 | Linear or MILP, can be with a compression energy consumption for gas networks                                                   |
+| **Boundary conditions**                             |                                                                                                                                 |
+| Technology potentials                               | Constraining maximum size of a technology possible                                                                              |
+| Regulations                                         | Not implemented                                                                                                                 |
+| System security and resource adequacy               | Not implemented                                                                                                                 |
+| **Multi-criteria objectives**                       |                                                                                                                                 |
+| Pareto fronts                                       | $\varepsilon$-constraint method                                                                                                 |
+| **Complexity handling**                             |                                                                                                                                 |
+| Spatial aggregation                                 | Not implemented                                                                                                                 |
+| Technology aggregation                              | Not implemented                                                                                                                 |
+| Temporal aggregation                                | Typical periods via k-means clustering, hierarchical time averaging                                                             |
+| Investment paths                                    | One-time investment                                                                                                             |
+| **Model Implementation**                            |                                                                                                                                 |
+| Language                                            | Python                                                                                                                          |
+| Translator                                          | Pyomo                                                                                                                           |
+| Solver                                              | Multiple (solvers compatible with Pyomo)                                                                                        |
 
 Table: Features of AdOpT-NET0. The feature list is based on the comprehensive review paper by Hoffmann et al (2024) [@Hoffmann2024review].
 
