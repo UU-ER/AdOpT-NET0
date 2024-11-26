@@ -5,8 +5,10 @@ Define Input Data
 
 Now that you have the :ref:`correct folder structure and templates for the data <workflow_create-data-templates>`,
 you can start to fill the templates and folders with data. First, you need to further
-define your energy
-system by setting:
+define your energy system by following the steps below. Note that the package
+includes predefined technologies and networks with respective performance and cost
+parameters, but the advanced user is free to define new technologies or adapt the
+templates provided.
 
 #. The geographical coordinates of your nodes in ``NodeLocations.csv`` in terms of
    longitude, latitude and altitude. Note: longitude and latitude should
@@ -20,7 +22,8 @@ system by setting:
 
      adopt.show_available_networks()
 
-   Specify the networks in the json file like this:
+   Note that all networks are based on the :ref:`Network Class <networks>`. Specify
+   the networks in the json file like this:
 
    .. code-block:: console
 
@@ -30,13 +33,16 @@ system by setting:
    - Then, for each of the networks that you specify, an input data folder with that
      network name should be added  in the corresponding folder ("existing" or
      "new") in the network_topology folder. To these folders, you should
-     copy the CSV files ``connection.csv``, ``distance.csv`` and ``size_max_arcs
-     .csv`` from the corresponding folder ("existing" or "new"). You then define the
+     copy the CSV files ``connection.csv`` and ``distance.csv``. You then define the
      topology for all of your networks by filling in these files (as
      illustrated in an elaborate example :ref:`here<workflow_example-usage>`) in
-     their respective folders. Note that for new networks the ``size_max_arcs.csv``
-     contains an upper limit, the actual size is determined by the optimization.
-
+     their respective folders. Note that the distance needs to be added manually,
+     even if the node locations were specified previously.
+     It is also possible to specify a maximum size for each
+     arc individually by creating another file called ``size_max_arcs.csv`` having the
+     same layout as ``connection.csv`` or ``distance.csv``.  Note that for new networks
+     the ``size_max_arcs.csv`` contains an upper limit, the actual size is determined
+     by the optimization.
 
      .. code-block:: console
 
@@ -45,7 +51,7 @@ system by setting:
              onshore             0          0
              offshore            1          0
 
-         Connection: Example - allow_only_one_direction
+         Connection: Example - Bidirectional
                                  onshore    offshore
              onshore             0          1
              offshore            1          0
@@ -69,7 +75,8 @@ system by setting:
      be either copied into the "network_data" folder in your input data folder or
      made from scratch (based on the template). You can do this manually, but if you
      have many different network types in your system, you can do it by running the
-     following code (see also :ref:`here<load-data_from-model>`):
+     following code (see also :ref:`here<load-data_from-model>`). After copying the
+     file you can also change the performance and cost parameters provided.
 
      .. testcode::
 
@@ -95,12 +102,13 @@ system by setting:
    (1500 W), and the size is an integer. Here, we thus have two 1.5MW wind turbines
    installed (totalling to 3MW), and 2.4MW of solar PV.
 
-    - Similar to the network data, we can now copy the required technology data files
-      by running (see also :ref:`here<load-data_from-model>`):
+    Similar to the network data, we can now copy the required technology data files
+    by running (see also :ref:`here<load-data_from-model>`). After copying the
+    files you can also change the performance and cost parameters provided.
 
-     .. testcode::
+    .. testcode::
 
-         adopt.copy_technology_data(input_data_path)
+       adopt.copy_technology_data(input_data_path)
 
 #. For the carriers, whether or not curtailment of generic production is possible in
    ``EnergybalanceOptions.JSON`` (0 = not possible; 1 = possible).
