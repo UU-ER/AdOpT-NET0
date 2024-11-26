@@ -5,6 +5,12 @@ Developer Instruction
 =====================================
 This page contains general instructions for the developers that are working on the PyHub.
 
+Reporting Issues
+-----------------------
+If you encounter an issue or a missing feature, you can report it on `github
+<https://github.com/UU-ER/AdOpT-NET0/issues>`_. Please
+attach a detailed description and a tag (bug, enhancement,...)
+
 Setting Up the Development Environment
 -----------------------------------------
 To develop actively on the tool, you can follow the subsequent steps (feel free to
@@ -156,9 +162,3 @@ As such, the documentation of a function can look like this:
 
         return capex_model
 
-
-Reporting Issues
------------------------
-If you encounter an issue or a missing feature, you can report it on `github
-<https://github.com/UU-ER/AdOpT-NET0/issues>`_. Please
-attach a detailed description and a tag (bug, enhancement,...)
