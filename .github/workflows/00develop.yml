@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - 'develop'
+  push:
 
 jobs:
   pin_requirements:
@@ -15,4 +16,4 @@ jobs:
   testing:
     needs: autoformatting
     uses: ./.github/workflows/testing.yml
-
+    secrets: inherit
