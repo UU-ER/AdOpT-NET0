@@ -15,4 +15,4 @@ jobs:
   testing:
     needs: autoformatting
     uses: ./.github/workflows/testing.yml
-
+    secrets: inherit
