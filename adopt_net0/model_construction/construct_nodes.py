@@ -46,7 +46,6 @@ def _determine_carriers_from_networks(network_data) -> list:
     carriers = []
     for netw in network_data:
         # Todo: This can be further extended to check if node is connected to network
-        # Todo: This needs to be written correctly, possibly its buggy, check if energy consumption works
         carriers.extend([network_data[netw].component_options.transported_carrier])
 
         if network_data[netw].component_options.energyconsumption:
