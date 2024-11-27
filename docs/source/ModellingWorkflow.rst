@@ -19,6 +19,9 @@ following pages:
     workflow/CheckModelDiagnostics
     workflow/ManageResults
 
+In addition to the workflow documentation below, we provide three documented :ref:`case studies <case-studies>`
+which can be useful to see how AdOpT-NET0 can be used to implement your optimization problem.
+
 In short
 ----------------------
 This workflow documentation will guide you through all the steps that are required to
