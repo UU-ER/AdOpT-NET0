@@ -1406,7 +1406,7 @@ class Technology(ModelComponent):
             bounds=(b_tec.para_size_min_ccs, b_tec.para_size_max_ccs),
         )
 
-        # TODO: maybe make the full set of all carriers as an intersection between this set and the others?
+        # TODO: maybe make the full set of all carriers as an intersection between this set and  the others?
         # Emission Factor
         b_tec.para_tec_emissionfactor = pyo.Param(
             domain=pyo.Reals,
@@ -1467,15 +1467,11 @@ class Technology(ModelComponent):
         )
 
         def init_size_output_ccs(const, t):
-            return (
-                b_tec.var_output_ccs[t, "CO2captured"]
-                <= b_tec.var_size_ccs
-            )
+            return b_tec.var_output_ccs[t, "CO2captured"] <= b_tec.var_size_ccs
 
         b_tec.const_size_output_ccs = pyo.Constraint(
             self.set_t_global, rule=init_size_output_ccs
         )
-
 
         # Electricity and heat demand CCS
         def init_input_ccs(const, t, car):
