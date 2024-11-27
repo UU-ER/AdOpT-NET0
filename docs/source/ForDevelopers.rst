@@ -62,7 +62,7 @@ branch. At each pull request to the development branch, the github CI checks if 
 tests succeed and if the code is correctly formatted. Each pull request needs at
 least one approved review.
 
-Before a pull request, tests can be locally run with ``coverage run -m pytest`` in
+Before a pull request, tests can be locally run with ``pytest`` in
 the terminal.
 
 Coding conventions
