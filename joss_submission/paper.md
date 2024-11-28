@@ -61,7 +61,7 @@ Figure 1 and 2 show two examples of energy systems that can be modeled with the 
 | Space                                               | Single node or multi-node systems with network constraints                                                                      |
 | Time                                                | By default, hourly resolution (other resolutions possible)                                                                      |
 | Stochastic scenarios                                | Deterministic, Monte Carlo sampling possible                                                                                    |
-| Transformation pathways                             | Perfect foresight, multi-period (not fully implemented yet)                                                                     |
+| Transformation pathways                             | Perfect foresight, rolling horizon (planned for v2.0, not implemented yet)                                                      |
 | Components                                          | Modelling of sources/sinks, converters, electricity and material storage, and networks possible. Linear or mixed-integer-linear |
 | **Component Extensions**                            |                                                                                                                                 |
 | Non-linear capacity expenditures                    | Piece-wise investment cost function possible                                                                                    |
@@ -136,8 +136,8 @@ including direct air capture and carbon capture systems [@wiegner2022optimal; @w
 pumps [@ruhnau2019time; @xu2022investigation], gas turbine models across varied capacities
 [@weimann2019modeling], underground hydrogen storage, and electric naphtha
 cracking [@tiggeloven2023optimization]. The model has been used in two forthcoming papers to model
-[...] [@wiegner2024integration] and to optimize emission reduction in an ammonia-ethylene chemical 
-cluster [@tiggeloven2024chemicalcluster]. Additionally, it includes the possibility to
+energy system integration pathways in the North Sea region [@wiegner2024integration] and
+to optimize emission reduction in an ammonia-ethylene chemical cluster [@tiggeloven2024chemicalcluster]. Additionally, it includes the possibility to
 model operational constraints of conversion technologies such as ramping rates, minimum
 uptime, minimum downtime, the maximum number of start-ups, or standby
 power [@morales2017hidden].
