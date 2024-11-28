@@ -30,6 +30,5 @@ jobs:
           poetry install --without test,dev
       - name: Publish package
         run: |
-          poetry config repositories.testpypi https://test.pypi.org/legacy/
-          poetry config pypi-token.testpypi ${{ secrets.PYPI_API_TOKEN }}
-          poetry publish --build -r testpypi
+          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+          poetry publish --build
