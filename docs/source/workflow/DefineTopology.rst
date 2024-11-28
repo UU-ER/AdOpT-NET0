@@ -8,9 +8,9 @@ In the ``Topology.JSON`` file, the system topology can be defined. The system to
 #. **The nodes**: Here you can alter the number and names of nodes you want to model. Node names can be chosen freely.
 #. **The carriers**: Here you can specify the carriers that you want to model in your system, e.g., electricity, hydrogen,
    gas, etc.. In general, it is important that the carries names that you specify match the carrier names that are
-specified in the JSON file of the technologies that you wish to have in your case study e.g. if in the JSON file of
-a gas turbine the carrier "gas" is used, then you need to define your gas carrier as "gas".
-. Note: in theory, carrier names can be chosen freely: for each carrier specified you can
+   specified in the JSON file of the technologies that you wish to have in your case
+   study e.g. if in the JSON file of a gas turbine the carrier "gas" is used, then
+   you need to define your gas carrier as "gas". Note: in theory, carrier names can be chosen freely: for each carrier specified you can
    (later) simply set a demand, production, import and export, and you can adjust conversion technologies to produce or
    use this carrier, and subsequently an energy balance for this carrier will be solved.
 #. **The investment periods**: Here you can specify the number and names of investment periods you want to
