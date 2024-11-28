@@ -5,7 +5,72 @@ Data Preparation
 =====================================
 
 When preparing the input data for your model application, you use the following two modules: ``template_creation.py``
-and ``data_loading.py``. For the code of these modules, see their respective pages below.
+and ``data_loading.py``. For the code of these modules, see their respective pages
+below. An exemplary tree structure of the input data directory is shown below (it
+resembles the input data directory for the :ref:`network case study <case-studies>`):
+
+.. testcode::
+
+    .
+    |-- period1
+    |   |-- network_data
+    |   |   |-- electricityOnshore.json
+    |   |   `-- hydrogenPipelineOffshore.json
+    |   |-- network_topology
+    |   |   |-- existing
+    |   |   |   |-- electricityOnshore
+    |   |   |   |   |-- connection.csv
+    |   |   |   |   |-- distance.csv
+    |   |   |   |   `-- size.csv
+    |   |   |   `-- hydrogenPipelineOffshore
+    |   |   |       |-- connection.csv
+    |   |   |       |-- distance.csv
+    |   |   |       `-- size.csv
+    |   |   `-- new
+    |   |       |-- electricityOnshore
+    |   |       |   |-- connection.csv
+    |   |       |   `-- distance.csv
+    |   |       `-- hydrogenPipelineOffshore
+    |   |           |-- connection.csv
+    |   |           |-- distance.csv
+    |   |           `-- size_max_arcs.csv
+    |   |-- node_data
+    |   |   |-- city
+    |   |   |   |-- carrier_data
+    |   |   |   |   |-- EnergybalanceOptions.json
+    |   |   |   |   |-- electricity.csv
+    |   |   |   |   |-- gas.csv
+    |   |   |   |   |-- heat.csv
+    |   |   |   |   `-- hydrogen.csv
+    |   |   |   |-- technology_data
+    |   |   |   |   |-- Boiler_Small_NG.json
+    |   |   |   |   |-- HeatPump_AirSourced.json
+    |   |   |   |   |-- Photovoltaic.json
+    |   |   |   |   `-- Storage_Battery.json
+    |   |   |   |-- CarbonCost.csv
+    |   |   |   |-- ClimateData.csv
+    |   |   |   `-- Technologies.json
+    |   |   `-- rural
+    |   |       |-- carrier_data
+    |   |       |   |-- EnergybalanceOptions.json
+    |   |       |   |-- electricity.csv
+    |   |       |   |-- gas.csv
+    |   |       |   |-- heat.csv
+    |   |       |   `-- hydrogen.csv
+    |   |       |-- technology_data
+    |   |       |   |-- Boiler_Small_NG.json
+    |   |       |   |-- GasTurbine_simple.json
+    |   |       |   |-- HeatPump_AirSourced.json
+    |   |       |   |-- Photovoltaic.json
+    |   |       |   |-- Storage_Battery.json
+    |   |       |   `-- WindTurbine_Onshore_4000.json
+    |   |       |-- CarbonCost.csv
+    |   |       |-- ClimateData.csv
+    |   |       `-- Technologies.json
+    |   `-- Networks.json
+    |-- ConfigModel.json
+    |-- NodeLocations.csv
+    `-- Topology.json
 
 Before the data gets processed by the model, you also have to :ref:`set the Model Configuration<workflow_model-configuration>`.
 Regarding this, the options of scaling, clustering and time averaging are elaborated upon in their respective documentation.

@@ -4,7 +4,7 @@
 Creating Model Templates
 =====================================
 In order to set up your model, you start by creating a new folder for your case study
-that will all input data. Specify the path to this folder and pass it to the
+that will contain all input data. Specify the path to this folder and pass it to the
 :func:`create_optimization_templates` method.
 
 .. testcode::
@@ -25,7 +25,8 @@ you will first have to adjust ``Topology.JSON`` to
 solving the model in ``ModelConfig.JSON``.
 
 Note: See a complete documentation of all template creation functions in the
-:ref:`source code documentation<src-code_data-preparation>`.
+:ref:`source code documentation<src-code_data-preparation>`. There, you can also view
+a tree diagram on how a complete input data directory looks like.
 
 .. automodule:: adopt_net0.data_preprocessing.template_creation
     :members: create_optimization_templates
