@@ -126,7 +126,11 @@ complex non-linear process or power system models with limited consideration of
 inter-temporal dynamics, and (2) low complexity, mostly linear, energy system models with
 simplified technology performances. AdOpT-NET0 bridges this methodological divide by providing a 
 robust framework capable of modeling the complex behavior of energy and industrial technologies 
-embedded within broader energy systems. This dual capability enables both the detailed representation 
+embedded within broader energy systems. As such, AdOpT-NET0 may be useful to both researchers tackling policy-related 
+questions on national or international energy systems and to researchers aiming at understanding how detailed 
+process models interact with an ever-complex energy system.
+
+The dual capability of AdOpT-NET0 enables both the detailed representation 
 of technology-specific behaviors and the spatial and temporal dynamics of (large-scale) energy systems,
 offering additional functionalities over existing models [@Hoffmann2024review].
 As such, AdOpT-NET0 includes advanced, scientifically validated
@@ -140,7 +144,8 @@ energy system integration pathways in the North Sea region [@wiegner2024integrat
 to optimize emission reduction in an ammonia-ethylene chemical cluster [@tiggeloven2024chemicalcluster]. Additionally, it includes the possibility to
 model operational constraints of conversion technologies such as ramping rates, minimum
 uptime, minimum downtime, the maximum number of start-ups, or standby
-power [@morales2017hidden].
+power [@morales2017hidden]. 
+
 
 
 ## Acknowledgements
