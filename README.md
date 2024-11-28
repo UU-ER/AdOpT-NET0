@@ -1,5 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/adopt-net0/badge/?version=latest)](https://adopt-net0.readthedocs.io/en/latest/?badge=latest)
-![Testing](https://github.com/UU-ER/AdOpT-NET0/actions/workflows/00publish_tests.yml/badge.svg?branch=main)
+![Testing](https://github.com/UU-ER/AdOpT-NET0/actions/workflows/00deploy.yml/badge.svg?branch=develop)
 [![codecov](https://codecov.io/gh/UU-ER/AdOpT-NET0/graph/badge.svg?token=RVR402OGG0)](https://codecov.io/gh/UU-ER/AdOpT-NET0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyPI version](https://badge.fury.io/py/adopt-net0.svg)](https://pypi.org/project/adopt-net0/)
