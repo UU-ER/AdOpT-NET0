@@ -61,7 +61,7 @@ Figure 1 and 2 show two examples of energy systems that can be modeled with the 
 | Space                                               | Single node or multi-node systems with network constraints                                                                      |
 | Time                                                | By default, hourly resolution (other resolutions possible)                                                                      |
 | Stochastic scenarios                                | Deterministic, Monte Carlo sampling possible                                                                                    |
-| Transformation pathways                             | Perfect foresight, rolling horizon (planned for v2.0, not implemented yet)                                                      |
+| Transformation pathways                             | Perfect foresight, rolling horizon (planned for v1.0, not implemented yet)                                                      |
 | Components                                          | Modelling of sources/sinks, converters, electricity and material storage, and networks possible. Linear or mixed-integer-linear |
 | **Component Extensions**                            |                                                                                                                                 |
 | Non-linear capacity expenditures                    | Piece-wise investment cost function possible                                                                                    |
