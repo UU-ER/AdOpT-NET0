@@ -113,37 +113,39 @@ templates provided.
 #. For the carriers, whether or not curtailment of generic production is possible in
    ``EnergybalanceOptions.JSON`` (0 = not possible; 1 = possible).
 
-After the complete system topology and system characteristics are finalised, time
-dependent data can be loaded into the input data folder. This remaining data covers:
+#. After the complete system topology and system characteristics are finalised, time
+   dependent data can be loaded into the input data folder. This remaining data covers:
 
-- Carbon costs: Prices of carbon emissions and/or subsidies for emission reductions. These are defined for each investment
-  period and node.
-- Climate data: global horizontal irradiance (ghi), direct normal irradiance (dni), diffuse horizontal irradiance (dhi),
-  air temperature, relative humidity, inflow of water, wind speed at 10 metres. The data is defined for each investment
-  period and node based on the geographical location.
-- Carrier data: Data on demand, import/export limits/prices/emission factors, and generic production for each carrier at
-  each node in each investment period.
+   - Carbon costs: Prices of carbon emissions and/or subsidies for emission reductions.
+     These are defined for each investment period and node.
+   - Climate data: global horizontal irradiance (ghi), direct normal irradiance (dni),
+     diffuse horizontal irradiance (dhi), air temperature, relative humidity, inflow
+     of water, wind speed at 10 metres. The data is defined for each investment
+     period and node based on the geographical location.
+   - Carrier data: Data on demand, import/export limits/prices/emission factors, and
+     generic production for each carrier at each node in each investment period.
 
-All this data is time-dependent, so you need to specify data for all time steps of your model run.
+   All this data is time-dependent, so you need to specify data for all time steps of
+   your model run.
 
-All data can be simply changed directly in the csv file. For example, you can copy a
-demand profile from a national database (if your nodes are countries) into the correct
-column in the csv. Additionally, we provide a couple of functions to make defining
-the time dependent data more convenient:
+   All data can be simply changed directly in the csv file. For example, you can copy a
+   demand profile from a national database (if your nodes are countries) into the
+   correct column in the csv. Additionally, we provide a couple of functions to make
+   defining the time dependent data more convenient:
 
-- For climate data, you can use the API to a :ref:`JRC database for onshore
-  locations in Europe<load-data_from-api>`. E.g.:
+   - For climate data, you can use the API to a :ref:`JRC database for onshore
+     locations in Europe<load-data_from-api>`. E.g.:
 
-  .. testcode::
+     .. testcode::
 
-      adopt.load_climate_data_from_api(input_data_path)
+         adopt.load_climate_data_from_api(input_data_path)
 
-- For all other time series, you can :ref:`specify a fixed
-  value<load-data_fixed-value>`, if the values do not change over time. E.g.:
+   - For all other time series, you can :ref:`specify a fixed
+     value<load-data_fixed-value>`, if the values do not change over time. E.g.:
 
-  .. testcode::
+     .. testcode::
 
-      adopt.fill_carrier_data(path, value_or_data=10, columns=["Demand"], carriers=["electricity"], nodes=["onshore"], investment_periods=['period1'])
+         adopt.fill_carrier_data(path, value_or_data=10, columns=["Demand"], carriers=["electricity"], nodes=["onshore"], investment_periods=['period1'])
 
 
 .. _load-data_from-api:
