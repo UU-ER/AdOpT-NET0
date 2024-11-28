@@ -70,7 +70,7 @@ Figure 1 and 2 show two examples of energy systems that can be modeled with the 
 | Demand response                                     | Possible with defining a storage component                                                                                      |
 | Converter performance                               | Linear, piece-wise linear, technology-specific                                                                                  |
 | Storage performance                                 | Linear, piece-wise linear, technology-specific                                                                                  |
-| Network performance                                 | Linear or MILP, can be with a compression energy consumption for gas networks                                                   |
+| Network performance                                 | Linear or MILP, compression energy consumption for gas networks possible                                                        |
 | **Boundary conditions**                             |                                                                                                                                 |
 | Technology potentials                               | Constraining maximum size of a technology possible                                                                              |
 | Regulations                                         | Not implemented                                                                                                                 |
@@ -105,11 +105,11 @@ a high penetration of renewables [@weimann2022novel].
 
 ![A possible application of AdOpT-NET0 with a single node studying ethylene production 
 with an electric cracker relying on variable renewable energy sources 
-[adapted from @tiggeloven2023optimization]](./Single_node.svg){width=1400px}
+[adapted from @tiggeloven2023optimization]](./Single_node.png){width=1400px}
 
 ![A possible application of AdOpT-NET0 with multiple nodes and networks studying the 
 integration of large-scale offshore wind in the North Sea region
-[adapted from @wiegner2024integration]](./Multiple_nodes.svg){width=1000px}
+[adapted from @wiegner2024integration]](./Multiple_nodes.png){width=1000px}
 
 The tool was developed to assist researchers and students interested in energy system
 modeling. It combines 5+ years of research and is inspired by a closed-source MATLAB
