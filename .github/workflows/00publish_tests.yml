@@ -13,3 +13,4 @@ jobs:
   publish:
     needs: testing
     uses: ./.github/workflows/uploadpypi.yml
+    secrets: inherit
