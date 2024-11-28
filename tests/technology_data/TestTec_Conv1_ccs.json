@@ -58,7 +58,7 @@
     "ccs": {
       "possible": 1,
       "co2_concentration" : 0.08,
-      "ccs_type": "Test_tec_CCS_MEA"
+      "ccs_type": "TestTec_CCS_MEA"
     },
     "ramping_time": -1,
     "ref_size": -1,
