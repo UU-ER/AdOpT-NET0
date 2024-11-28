@@ -152,10 +152,10 @@ power [@morales2017hidden].
 
 We are very grateful for the people who have paved the way for this work, mainly Paolo
 Gabrielli and Lukas Weimann, who have worked on the predecessor of AdOpT-NET0 in MATLAB.
-Additionally, the authors would like to thank Alissa Ganter, Jacob Mannhardt, Sander
+The authors would like to thank Alissa Ganter, Jacob Mannhardt, Sander
 van Rijn, and Ioana Cocu for the fruitful discussions during the development of the 
-software and its supporting material. The present work was supported by DOSTA with 
-project number (WIND.2019.002) of the NWO research program PhD@Sea that is (partly) 
-financed by the Dutch Research Council (NWO).
+software and its supporting material. Additionally, we thank Matteo Massera for his support during the review.
+The present work was supported by DOSTA with project number (WIND.2019.002) of the NWO 
+research program PhD@Sea that is (partly) financed by the Dutch Research Council (NWO).
 
 ## References
