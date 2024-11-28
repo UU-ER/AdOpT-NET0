@@ -200,12 +200,7 @@ def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path = No
             )
             # Copy JSON files corresponding to technology names to output folder
             for tec_name in tecs_at_node:
-                tec_json_file_path = find_json_path(tec_data_path, tec_name)
-                _copy_ccs_data(tec_json_file_path, tec_data_path, output_folder)
-                if tec_json_file_path:
-                    shutil.copy(tec_json_file_path, output_folder)
-                else:
-                    warnings.warn(f"Technology {tec_name} not found")
+                _copy_data(tec_data_path, tec_name, output_folder)
 
 
 def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path = None):
@@ -248,9 +243,7 @@ def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path = None)
         output_folder = folder_path / period / "network_data"
         # Copy JSON files corresponding to technology names to output folder
         for ntw_name in ntws_at_node:
-            ntw_json_file_path = find_json_path(ntw_data_path, ntw_name)
-            if ntw_json_file_path:
-                shutil.copy(ntw_json_file_path, output_folder)
+            _copy_data(ntw_data_path, ntw_name, output_folder)
 
 
 def find_json_path(data_path: str | Path, name: str) -> Path | None:
@@ -342,27 +335,35 @@ def import_jrc_climate_data(
     return answer
 
 
-def _copy_ccs_data(technology_file_path, tec_data_path, output_folder):
+def _copy_data(path, json_name, output_folder):
     """
-    Searches in the tech JSON if is CCS is possible, then copies CCS JSON to the node folder for each node and investment period.
+    Finds the JSON files and copies it to the desired output folder.
 
-    This function reads the JSON file of each technology, checks if CCS is possible and, if so, it copies the
-    corresponding JSON file to the output folder.
+    This function finds the JSON file of the component, and it copies it to the output folder.
+    It also reads the JSON file, checks if CCS is possible and, if so, it copies the
+    corresponding CCS JSON file to the output folder.
 
-    :param str | Path technology_file_path: Path to the folder containing the case study data.
-    :param str | Path tec_data_path: Path to the folder containing the technology data.
+    :param str | Path path: Path to the folder containing the case study data.
+    :param str | Component name json_name: Name of the JSON file.
     :param str | Path output_folder: Path to the folder containing the technology data.
     """
-
-    # Adding copy CCS when possible
-    with open(technology_file_path, "r") as json_tec_file:
-        json_tec = json.load(json_tec_file)
-    if "ccs" in json_tec["Performance"] and json_tec["Performance"]["ccs"]["possible"]:
-        ccs_name = json_tec["Performance"]["ccs"]["ccs_type"]
-        ccs_json_file_path = find_json_path(tec_data_path, ccs_name)
-        ccs_output_path = os.path.join(
-            output_folder, os.path.basename(ccs_json_file_path)
-        )
-        if not os.path.exists(ccs_output_path):
-            shutil.copy(ccs_json_file_path, output_folder)
-        shutil.copy(ccs_json_file_path, output_folder)
+    component_json_path = find_json_path(path, json_name)
+    if component_json_path:
+        shutil.copy(component_json_path, output_folder)
+        # Adding copy CCS when possible
+        with open(component_json_path, "r") as json_data_file:
+            json_data = json.load(json_data_file)
+        if (
+            "ccs" in json_data["Performance"]
+            and json_data["Performance"]["ccs"]["possible"]
+        ):
+            ccs_name = json_data["Performance"]["ccs"]["ccs_type"]
+            ccs_json_path = find_json_path(path, ccs_name)
+            ccs_output_path = os.path.join(
+                output_folder, os.path.basename(ccs_json_path)
+            )
+            # Copy CCS JSON if it doesn't exist yet
+            if not os.path.exists(ccs_output_path):
+                _copy_data(path, ccs_name, output_folder)
+    else:
+        warnings.warn(f"{json_name} not found")
