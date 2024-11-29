@@ -138,7 +138,7 @@ technology models that are based on detailed, non-linear process models.
 These models capture a range of relevant energy and industrial processes, 
 including direct air capture and carbon capture systems [@wiegner2022optimal; @weimann2023ccsmodel], heat
 pumps [@ruhnau2019time; @xu2022investigation], gas turbine models across varied capacities
-[@weimann2019modeling], underground hydrogen storage, and electric naphtha
+[@weimann2019modeling], underground hydrogen storage, [@Gabrielli2020a] and electric naphtha
 cracking [@tiggeloven2023optimization]. The model has been used in two forthcoming papers to model
 energy system integration pathways in the North Sea region [@wiegner2024integration] and
 to optimize emission reduction in an ammonia-ethylene chemical cluster [@tiggeloven2024chemicalcluster]. Additionally, it includes the possibility to
