@@ -8,6 +8,7 @@ from .result_management import (
 )
 from .diagnostics import get_infeasible_constraints
 from .data_preprocessing import *
+from .case_studies import *
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)

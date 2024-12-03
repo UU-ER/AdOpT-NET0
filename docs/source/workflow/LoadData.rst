@@ -12,7 +12,19 @@ templates provided.
 
 #. The geographical coordinates of your nodes in ``NodeLocations.csv`` in terms of
    longitude, latitude and altitude. Note: longitude and latitude should
-   be written in decimal degrees, and altitude in metres.
+   be written in decimal degrees, and altitude in metres. Climate data is loaded from
+   this data. Additionally it is used to calculate the position of the sun for PV
+   modelling (using pvlib). Note that the distance between nodes is not based on the
+   provided locations.
+
+   .. testcode::
+
+     # Define node locations (here an exemplary location in the Netherlands)
+     node_locations = pd.read_csv(input_data_path / "NodeLocations.csv", sep=";", index_col=0)
+     node_locations.loc["node1", "lon"] = 5.5
+     node_locations.loc["node1", "lat"] = 52.5
+     node_locations.loc["node1", "alt"] = 10
+     node_locations.to_csv(input_data_path / "NodeLocations.csv", sep=";")
 
 #. The networks in ``Networks.JSON`` for each investment period, where we distinguish between new (to be installed)
    networks and existing networks, using the network names as in ``.\data\network_data`` (a list of these can be found

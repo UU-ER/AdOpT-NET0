@@ -42,6 +42,7 @@ The modelling steps are as follows:
         import adopt_net0 as adopt
         import json
         from pathlib import Path
+        import pandas as pd
 
         input_data_path = Path("path_to_your_input_data_folder")
         adopt.create_optimization_templates(input_data_path)
@@ -74,6 +75,14 @@ The modelling steps are as follows:
   technology performance, demand data, etc.).
 
     .. testcode::
+
+        # Define node locations (here an exemplary location in the Netherlands)
+        node_locations = pd.read_csv(input_data_path / "NodeLocations.csv", sep=";",
+                             index_col=0)
+        node_locations.loc["node1", "lon"] = 5.5
+        node_locations.loc["node1", "lat"] = 52.5
+        node_locations.loc["node1", "alt"] = 10
+        node_locations.to_csv(input_data_path / "NodeLocations.csv", sep=";")
 
         # Define new technologies
         with open(input_data_path / "period1" / "node_data" / "node1" / "Technologies.json", "r") as json_file:

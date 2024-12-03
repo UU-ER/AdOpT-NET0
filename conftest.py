@@ -29,6 +29,8 @@ def pytest_configure(config):
     config.case_study_folder_path = Path("adopt_net0/test/test_case")
     config.technology_data_folder_path = Path("tests/technology_data")
     config.network_data_folder_path = Path("tests/network_data")
+    config.docu_notebook_folder_path = Path("tests")
+    config.docu_notebook_data_path = Path("tests/notebook_data")
     config.root_folder_path = Path(".")
     config.solver = "glpk"
 
@@ -47,6 +49,8 @@ def setup_before_tests(request):
     data_folder_path = request.config.data_folder_path
     result_folder_path = request.config.result_folder_path
     case_study_folder_path = request.config.case_study_folder_path
+    docu_notebook_folder_path = request.config.docu_notebook_folder_path
+    docu_notebook_data_path = request.config.docu_notebook_data_path
 
     if not os.path.exists(data_folder_path):
         os.makedirs(data_folder_path)
@@ -54,6 +58,10 @@ def setup_before_tests(request):
         os.makedirs(result_folder_path)
     if not os.path.exists(case_study_folder_path):
         os.makedirs(case_study_folder_path)
+    if not os.path.exists(docu_notebook_folder_path):
+        os.makedirs(docu_notebook_folder_path)
+    if not os.path.exists(docu_notebook_data_path):
+        os.makedirs(docu_notebook_data_path)
 
     # Create case study folders for preprocessing
     dp.create_optimization_templates(case_study_folder_path)
@@ -69,3 +77,7 @@ def setup_before_tests(request):
         shutil.rmtree(result_folder_path)
     if os.path.exists(case_study_folder_path) and os.path.isdir(case_study_folder_path):
         shutil.rmtree(case_study_folder_path)
+    if os.path.exists(docu_notebook_data_path) and os.path.isdir(
+        docu_notebook_data_path
+    ):
+        shutil.rmtree(docu_notebook_data_path)
