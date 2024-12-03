@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if PR is from develop branch
-        if: ${{ startsWith(github.event.pull_request.head.ref, 'develop_') }}
+        if: contains(${{ github.event.pull_request.head.ref }}, 'develop_')
         run: |
           echo ${{ github.event.pull_request.head.ref }}
           echo "Pull request is not from the develop branch"
