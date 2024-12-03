@@ -12,7 +12,19 @@ templates provided.
 
 #. The geographical coordinates of your nodes in ``NodeLocations.csv`` in terms of
    longitude, latitude and altitude. Note: longitude and latitude should
-   be written in decimal degrees, and altitude in metres.
+   be written in decimal degrees, and altitude in metres. Climate data is loaded from
+   this data. Additionally it is used to calculate the position of the sun for PV
+   modelling (using pvlib). Note that the distance between nodes is not based on the
+   provided locations.
+
+   .. testcode::
+
+     # Define node locations (here an exemplary location in the Netherlands)
+     node_locations = pd.read_csv(input_data_path / "NodeLocations.csv", sep=";", index_col=0)
+     node_locations.loc["node1", "lon"] = 5.5
+     node_locations.loc["node1", "lat"] = 52.5
+     node_locations.loc["node1", "alt"] = 10
+     node_locations.to_csv(input_data_path / "NodeLocations.csv", sep=";")
 
 #. The networks in ``Networks.JSON`` for each investment period, where we distinguish between new (to be installed)
    networks and existing networks, using the network names as in ``.\data\network_data`` (a list of these can be found
@@ -81,6 +93,8 @@ templates provided.
      .. testcode::
 
          adopt.copy_network_data(input_data_path)
+
+
 
 #. The technologies in ``Technologies.JSON`` for each investment period and each
    node, where we distinguish between new (to be installed) technologies and
@@ -185,9 +199,18 @@ For carrier data, you can use the :func:`fill_carrier_data` method if your value
 Copy technology and network data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For the technologies and networks, you can copy the JSON files automatically using the :func:`copy_technology_data` and
-:func:`copy_network_data` methods below. Note: the method automatically checks which technologies and networks it has to copy
+:func:`copy_network_data` methods documented below. Note: the method automatically
+checks which technologies and networks it has to copy
 from the model repository by reading in the ``Technology.JSON`` and ``Network.JSON`` files, respectively. Thus, make sure
 to use the naming conventions as in the JSON files in the model repository.
+
+The technologies and networks shipped with AdOpT-NET0 can be seen as templates and
+the performance and cost parameters as well as technology specific options can be
+further modified by the user. Therefore, you can modify the json files in the input
+data folder of your case study after they have been copied. Also it is possible to
+specify technologies or networks that are not provided in AdOpT by using the
+models defined in the :ref:`network<networks>` class or the
+:ref:`technology<technologies>` classes.
 
 .. automodule:: adopt_net0.data_preprocessing.data_loading
     :members: copy_technology_data, copy_network_data
