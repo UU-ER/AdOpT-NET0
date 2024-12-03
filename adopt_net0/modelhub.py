@@ -115,6 +115,12 @@ class ModelHub:
                 "installed."
             )
 
+        # Check if node locations are specified
+        if self.data.node_locations.isnull().values.any():
+            raise Exception(
+                "Please specify longitude, latitude and altitude for each node"
+            )
+
         # Check if save-path exists
         save_path = Path(config["reporting"]["save_path"]["value"])
         if not os.path.exists(save_path) or not os.path.isdir(save_path):
