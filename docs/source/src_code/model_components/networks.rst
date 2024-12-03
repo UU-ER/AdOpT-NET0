@@ -9,10 +9,10 @@ no subclasses of specific network models. An overview of all networks that are c
 specific network type (e.g., "electricitySimple"). In addition to the performance and
 cost parameters in defined in the respective json file of the network, networks can
 generally be modelled as either bi- or uni-directional by modifying the parameter
-``allow_only_one_direction`` and ``allow_only_one_direction_precise`` in the
+``bidirectional_network`` and ``bidirectional_network_precise`` in the
 json file of the respective technology.
 
-If ``allow_only_one_direction = 1`` the following properties of the network are
+If ``bidirectional_network = 1`` the following properties of the network are
 enforced:
 
 - The size of an arc in both direction needs to be equal.
@@ -20,10 +20,10 @@ enforced:
   connection once build can be used in both directions.
 - In each time step the flow can only be in one of the two directions.
 
-    - With ``allow_only_one_direction_precise = 1`` this is enforced with a
+    - With ``bidirectional_network_precise = 1`` this is enforced with a
       disjunction and a cut adding integers and thus computational complexity in the
       solving.
-    - With ``allow_only_one_direction_precise = 0`` this is enforced with a cut, thus
+    - With ``bidirectional_network_precise = 0`` this is enforced with a cut, thus
       not completly eliminating a flow in both directions at the same time.
 
 ..  _network_list:
