@@ -94,6 +94,8 @@ templates provided.
 
          adopt.copy_network_data(input_data_path)
 
+
+
 #. The technologies in ``Technologies.JSON`` for each investment period and each
    node, where we distinguish between new (to be installed) technologies and
    existing technologies. A list of these can be found :ref:`here
@@ -197,9 +199,18 @@ For carrier data, you can use the :func:`fill_carrier_data` method if your value
 Copy technology and network data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For the technologies and networks, you can copy the JSON files automatically using the :func:`copy_technology_data` and
-:func:`copy_network_data` methods below. Note: the method automatically checks which technologies and networks it has to copy
+:func:`copy_network_data` methods documented below. Note: the method automatically
+checks which technologies and networks it has to copy
 from the model repository by reading in the ``Technology.JSON`` and ``Network.JSON`` files, respectively. Thus, make sure
 to use the naming conventions as in the JSON files in the model repository.
+
+The technologies and networks shipped with AdOpT-NET0 can be seen as templates and
+the performance and cost parameters as well as technology specific options can be
+further modified by the user. Therefore, you can modify the json files in the input
+data folder of your case study after they have been copied. Also it is possible to
+specify technologies or networks that are not provided in AdOpT by using the
+models defined in the :ref:`network<networks>` class or the
+:ref:`technology<technologies>` classes.
 
 .. automodule:: adopt_net0.data_preprocessing.data_loading
     :members: copy_technology_data, copy_network_data

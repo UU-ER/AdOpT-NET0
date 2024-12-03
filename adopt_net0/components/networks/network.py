@@ -131,23 +131,12 @@ class Network(ModelComponent):
           .. math::
             emissions = flow * f_{emissions} + loss * f_{loss2emission}
 
-    **Constraint declarations**
-    This part calculates variables for all respective nodes and enforces constraints
-    for bi-directional networks.
+    **Network constraint declarations**
+    This part calculates variables for all respective nodes.
 
-    - If network is bi-directional, the sizes in both directions are equal, and only
-      one direction of flow is possible in each time step. This constraint is
-      formulated for each unique arc:
-
-      .. math::
-        S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}
-
-      .. math::
-        flow_{nodeFrom, nodeTo} = 0 \\lor flow_{nodeTo, nodeFrom} = 0
-
-    - CAPEX calculation of whole network as a sum of CAPEX of all arcs. For
-      bi-directional networks, each arc is only considered once, regardless of the
-      direction of the arc.
+    - CAPEX calculation of the whole network as a sum of CAPEX of all arcs. If
+      ``allow_only_one_direction`` is set to 1 for this network, the capex and fixed
+      opex for an arc is only counted once.
 
     - OPEX fix, as fraction of total CAPEX
 
@@ -164,6 +153,23 @@ class Network(ModelComponent):
         inflow_{node} = \\sum_{nodeFrom \\in receivesFrom_{node}} flow_{nodeFrom, node} - losses_{nodeFrom, node}
 
     - Energy consumption of other carriers at each node.
+
+    - If  ``allow_only_one_direction`` is set to 1 for this network only additional
+      constraints are enforced to ensure that at each time step a flow can only be in
+      one direction. For ``allow_only_one_direction_precise = 0``, only a cut and a
+      cosntraint on the sizes of the two directions of an arc are formulated:
+
+      .. math::
+        S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}
+
+      .. math::
+        flow_{nodeFrom, nodeTo} + flow_{nodeTo, nodeFrom} \\lor S_{nodeTo, nodeFrom}
+
+      For ``allow_only_one_direction_precise = 1`` additional disjunctions are
+      formulated, thus adding binaries and complexity to the model:
+
+      .. math::
+        flow_{nodeFrom, nodeTo} = 0 \\lor flow_{nodeTo, nodeFrom} = 0
 
     """
 
