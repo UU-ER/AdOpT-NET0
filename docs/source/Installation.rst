@@ -14,10 +14,11 @@ following in a shell:
 
     pip install adopt_net0
 
-Additionally, you need a `solver installed, that is supported by pyomo <https://pyomo
-.readthedocs.io/en/stable/solving_pyomo_models.html#supported-solvers>`_ (we recommend
-gurobi, which has a free academic licence).
-
+Additionally, you need a `solver installed, that is supported by pyomo
+<https://pyomo.readthedocs.io/en/6.8.0/solving_pyomo_models.html#supported-solvers>`_
+(we recommend gurobi, which has a free academic licence). An open-source solver
+that can be used is `GLPK <https://www.gnu.org/software/glpk/>`_. Note that the user
+is responsible to install a Pyomo supported solver.
 
 Note for mac users: The export of the optimization results require a working
 `hdf5 library <https://www.hdfgroup.org/solutions/hdf5/>`_. On windows this should be

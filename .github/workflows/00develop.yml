@@ -3,7 +3,7 @@ name: Develop
 on:
   pull_request:
     branches:
-      - 'develop'
+      - 'develop*'
 
 jobs:
   pin_requirements:

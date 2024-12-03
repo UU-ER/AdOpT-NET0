@@ -30,6 +30,9 @@ def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC"):
         node_locations_path, sep=";", names=["node", "lon", "lat", "alt"], header=0
     )
 
+    if node_locations_df.isnull().values.any():
+        raise Exception("Please specify longitude, latitude and altitude for each node")
+
     # Read nodes and investment_periods from the JSON file
     json_file_path = os.path.join(folder_path, "Topology.json")
     with open(json_file_path, "r") as json_file:
@@ -45,21 +48,9 @@ def load_climate_data_from_api(folder_path: str | Path, dataset: str = "JRC"):
         for node_name in topology["nodes"]:
             # Read lon, lat, and alt for this node name from node_locations_df
             node_data = node_locations_df[node_locations_df["node"] == node_name]
-            lon = (
-                node_data["lon"].values[0]
-                if not pd.isnull(node_data["lon"].values[0])
-                else 5.5
-            )
-            lat = (
-                node_data["lat"].values[0]
-                if not pd.isnull(node_data["lat"].values[0])
-                else 52.5
-            )
-            alt = (
-                node_data["alt"].values[0]
-                if not pd.isnull(node_data["alt"].values[0])
-                else 10
-            )
+            lon = node_data["lon"].values[0]
+            lat = node_data["lat"].values[0]
+            alt = node_data["alt"].values[0]
 
             if dataset == "JRC":
                 # Fetch climate data for the node
