@@ -131,23 +131,12 @@ class Network(ModelComponent):
           .. math::
             emissions = flow * f_{emissions} + loss * f_{loss2emission}
 
-    **Constraint declarations**
-    This part calculates variables for all respective nodes and enforces constraints
-    for bi-directional networks.
+    **Network constraint declarations**
+    This part calculates variables for all respective nodes.
 
-    - If network is bi-directional, the sizes in both directions are equal, and only
-      one direction of flow is possible in each time step. This constraint is
-      formulated for each unique arc:
-
-      .. math::
-        S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}
-
-      .. math::
-        flow_{nodeFrom, nodeTo} = 0 \\lor flow_{nodeTo, nodeFrom} = 0
-
-    - CAPEX calculation of whole network as a sum of CAPEX of all arcs. For
-      bi-directional networks, each arc is only considered once, regardless of the
-      direction of the arc.
+    - CAPEX calculation of the whole network as a sum of CAPEX of all arcs. If
+      ``bidirectional_network`` is set to 1 for this network, the capex and fixed
+      opex for an arc is only counted once.
 
     - OPEX fix, as fraction of total CAPEX
 
@@ -164,6 +153,23 @@ class Network(ModelComponent):
         inflow_{node} = \\sum_{nodeFrom \\in receivesFrom_{node}} flow_{nodeFrom, node} - losses_{nodeFrom, node}
 
     - Energy consumption of other carriers at each node.
+
+    - If  ``bidirectional_network`` is set to 1 for this network only additional
+      constraints are enforced to ensure that at each time step a flow can only be in
+      one direction. For ``bidirectional_network_precise = 0``, only a cut and a
+      cosntraint on the sizes of the two directions of an arc are formulated:
+
+      .. math::
+        S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}
+
+      .. math::
+        flow_{nodeFrom, nodeTo} + flow_{nodeTo, nodeFrom} \\lor S_{nodeTo, nodeFrom}
+
+      For ``bidirectional_network_precise = 1`` additional disjunctions are
+      formulated, thus adding binaries and complexity to the model:
+
+      .. math::
+        flow_{nodeFrom, nodeTo} = 0 \\lor flow_{nodeTo, nodeFrom} = 0
 
     """
 
@@ -273,7 +279,7 @@ class Network(ModelComponent):
 
         b_netw = self._define_possible_arcs(b_netw)
 
-        if self.component_options.allow_only_one_direction:
+        if self.component_options.bidirectional_network:
             b_netw = self._define_unique_arcs(b_netw)
 
         b_netw = self._define_size(b_netw)
@@ -315,7 +321,7 @@ class Network(ModelComponent):
         b_netw.arc_block = pyo.Block(b_netw.set_arcs, rule=arc_block_init)
 
         # CONSTRAINTS FOR BIDIRECTIONAL NETWORKS
-        if self.component_options.allow_only_one_direction:
+        if self.component_options.bidirectional_network:
             b_netw = self._define_bidirectional_constraints(b_netw)
 
         b_netw = self._define_capex_total(b_netw)
@@ -410,7 +416,7 @@ class Network(ModelComponent):
                 initialize=init_size_initial,
             )
             # Check if sizes in both direction are the same for bidirectional existing networks
-            if self.component_options.allow_only_one_direction:
+            if self.component_options.bidirectional_network:
                 for from_node in coeff_ti["size_initial"]:
                     for to_node in coeff_ti["size_initial"][from_node].index:
                         assert (
@@ -960,7 +966,7 @@ class Network(ModelComponent):
         )
 
         # Disjunction
-        if self.component_options.allow_only_one_direction_precise:
+        if self.component_options.bidirectional_network_precise:
             self.big_m_transformation_required = 1
 
             def init_bidirectional(dis, t, node_from, node_to, ind):
@@ -1005,7 +1011,7 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
-        if self.component_options.allow_only_one_direction:
+        if self.component_options.bidirectional_network:
             arc_set = b_netw.set_arcs_unique
         else:
             arc_set = b_netw.set_arcs
@@ -1027,7 +1033,7 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
-        if self.component_options.allow_only_one_direction:
+        if self.component_options.bidirectional_network:
             arc_set = b_netw.set_arcs_unique
         else:
             arc_set = b_netw.set_arcs

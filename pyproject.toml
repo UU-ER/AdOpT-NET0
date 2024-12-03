@@ -38,7 +38,9 @@ scandir = ">=1.10.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = ">=8.1.1"
-pytest-cov = "6.0.0"
+pytest-cov = ">= 6.0.0"
+nbformat = ">= 5.10.4"
+nbconvert = ">= 5.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = ">=3.7.0"
