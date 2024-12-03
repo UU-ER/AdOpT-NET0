@@ -2,7 +2,7 @@ import pytest
 import os
 from pathlib import Path
 import shutil
-
+import pandas as pd
 import adopt_net0.data_preprocessing as dp
 
 
@@ -66,6 +66,21 @@ def setup_before_tests(request):
     # Create case study folders for preprocessing
     dp.create_optimization_templates(case_study_folder_path)
     dp.create_input_data_folder_template(case_study_folder_path)
+
+    # Node Locations
+    node_location = pd.read_csv(
+        case_study_folder_path / "NodeLocations.csv", sep=";", index_col=0, header=0
+    )
+    node_location.at["node1", "lon"] = 4.9
+    node_location.at["node1", "lat"] = 52
+    node_location.at["node1", "alt"] = 10
+    node_location.at["node2", "lon"] = 4.9
+    node_location.at["node2", "lat"] = 52
+    node_location.at["node2", "alt"] = 10
+    node_location = node_location.reset_index()
+    node_location.to_csv(
+        case_study_folder_path / "NodeLocations.csv", sep=";", index=False
+    )
 
     # Yield control back to the test functions
     yield
