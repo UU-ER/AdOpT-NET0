@@ -105,7 +105,7 @@ a high penetration of renewables [@weimann2022novel].
 
 ![A possible application of AdOpT-NET0 with a single node studying ethylene production 
 with an electric cracker relying on variable renewable energy sources 
-[adapted from @tiggeloven2023optimization]](./Single_node.png){width=1400px}
+[from @tiggeloven2023optimization]](./Single_node.png){width=1400px}
 
 ![A possible application of AdOpT-NET0 with multiple nodes and networks studying the 
 integration of large-scale offshore wind in the North Sea region
