@@ -3,6 +3,7 @@ import pandas as pd
 import os
 
 import adopt_net0.data_preprocessing as dp
+from adopt_net0.data_management.utilities import calculate_dni
 from adopt_net0.data_management.utilities import check_input_data_consistency
 from tests.utilities import (
     select_random_list_from_list,
@@ -52,8 +53,23 @@ def test_data_climate_data_loading(request):
                 / node
                 / "ClimateData.csv",
                 sep=";",
+                index_col=0,
             )
             assert not climate_data[period][node].empty
+
+            # calculate dni and check if its ok
+            node_locations = pd.read_csv(
+                case_study_folder_path / "NodeLocations.csv", sep=";", index_col=0
+            )
+            lon = node_locations.loc[node, "lon"]
+            lat = node_locations.loc[node, "lat"]
+
+            climate_data_check = climate_data[period][node]
+            climate_data_check["dni_correct"] = climate_data_check["dni"]
+            climate_data_check = climate_data_check.drop(columns=["dni"])
+            climate_data_check["dni_check"] = calculate_dni(
+                climate_data_check, lon, lat
+            )
 
 
 def test_data_fill_carrier_data(request):
