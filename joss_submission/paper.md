@@ -52,7 +52,7 @@ countries. In multi-energy systems, multiple energy and material carriers, conve
 and storage technologies, as well as means of transport can interact. These systems are
 highly complex but also offer synergies to reduce costs and environmental impacts [@mancarella2014mes]. Table
 1 provides an overview of the covered dimensions of AdOpT-NET0, while
-Figure 1 and 2 show two examples of energy systems that can be modeled with the tool.
+Figures 1 and 2 show two examples of energy systems that can be modeled with the tool.
 
 | **Feature**                                         | **AdOpT-NET0**                                                                                                                  |
 |-----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
@@ -156,6 +156,6 @@ The authors would like to thank Alissa Ganter, Jacob Mannhardt, Sander
 van Rijn, and Ioana Cocu for the fruitful discussions during the development of the 
 software and its supporting material. Additionally, we thank Matteo Massera for his support during the review.
 The present work was supported by DOSTA with project number (WIND.2019.002) of the NWO 
-research program PhD@Sea that is (partly) financed by the Dutch Research Council (NWO).
+research program PhD@Sea which was (partly) financed by the Dutch Research Council (NWO).
 
 ## References
