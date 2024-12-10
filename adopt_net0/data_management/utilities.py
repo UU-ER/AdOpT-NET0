@@ -13,7 +13,9 @@ log = logging.getLogger(__name__)
 
 def calculate_dni(data: pd.DataFrame, lon: float, lat: float) -> pd.Series:
     """
-    Calculate direct normal irradiance from ghi and dhi
+    Calculate direct normal irradiance from ghi and dhi. The function assumes that
+    the ghi and dhi are given as an average value for the timestep and dni is
+    calculated using the position of the sun in the middle of the timestep.
 
     :param pd.DataFrame data: climate data with columns ghi and dhi
     :param float lon: longitude
@@ -21,7 +23,11 @@ def calculate_dni(data: pd.DataFrame, lon: float, lat: float) -> pd.Series:
     :return data: climate data including dni
     :rtype: pd.Series
     """
-    zenith = pvlib.solarposition.get_solarposition(data.index, lat, lon)
+    timesteps = pd.to_datetime(data.index)
+    timestep_length = pd.to_datetime(data.index[1]) - pd.to_datetime(data.index[0])
+    timesteps = timesteps + (timestep_length / 2)
+
+    zenith = pvlib.solarposition.get_solarposition(timesteps, lat, lon)
     data["dni"] = pvlib.irradiance.dni(
         data["ghi"].to_numpy(), data["dhi"].to_numpy(), zenith["zenith"].to_numpy()
     )
