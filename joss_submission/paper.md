@@ -113,11 +113,13 @@ integration of large-scale offshore wind in the North Sea region
 
 The tool was developed to assist researchers and students interested in energy system
 modeling. It combines 5+ years of research and is inspired by a closed-source MATLAB
-version of the model. Multiple detailed technology models, time aggregation methods,
+version of the model. It also relies on open-source packages, mainly Pyomo, pvlib and tsam 
+[@bynum2021pyomo; @Anderson2023pvlib;@Hoffmann2022tsam].
+Multiple detailed technology models, time aggregation methods,
 solving heuristics, and general improvements were added to form the present Python
 package that is further developed. AdOpT-NET0 also comes with a web-based visualization
 platform to provide a quick yet deep understanding of the model results to make informed
-decisions to advance towards a net-zero future.
+decisions to advance towards a net-zero future. 
 
 ## Statement of need
 
