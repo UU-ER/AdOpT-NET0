@@ -43,7 +43,7 @@ expansion or rollout of new networks (electricity, hydrogen, CO<sub>2</sub>). At
 interplay of traditionally separated sectors (e.g., the residential, industrial, and
 power sectors) becomes increasingly important. The resulting systems are inherently
 complex and at times non-intuitive; not surprisingly, models to simulate and optimize
-such complex systems are of paramount importance for a successful transition to a NET-0
+such complex systems are of paramount importance for a successful transition to a net-0
 society.
 
 AdOpT-NET0 is a comprehensive tool to model and optimize a wide range of multi-energy
@@ -87,7 +87,7 @@ Figures 1 and 2 show two examples of energy systems that can be modeled with the
 | Translator                                          | Pyomo                                                                                                                           |
 | Solver                                              | Multiple (solvers compatible with Pyomo)                                                                                        |
 
-Table: Features of AdOpT-NET0. The feature list is based on the comprehensive review paper by Hoffmann et al (2024) [@Hoffmann2024review].
+Table: Features of AdOpT-NET0. The feature list is based on the comprehensive review paper by @Hoffmann2024review.
 
 The standard formulation of the model framework is a mixed integer linear program (MILP). Its
 implementation supports a wide range of spatial/temporal resolutions and technological
@@ -113,7 +113,7 @@ integration of large-scale offshore wind in the North Sea region
 
 The tool was developed to assist researchers and students interested in energy system
 modeling. It combines 5+ years of research and is inspired by a closed-source MATLAB
-version of the model. It also relies on open-source packages, mainly Pyomo, pvlib and tsam 
+version of the model. It also relies on open-source packages, mainly Pyomo, pvlib, and tsam 
 [@bynum2021pyomo; @Anderson2023pvlib;@Hoffmann2022tsam].
 Multiple detailed technology models, time aggregation methods,
 solving heuristics, and general improvements were added to form the present Python
