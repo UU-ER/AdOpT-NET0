@@ -4,6 +4,9 @@ import pvlib
 import os
 import json
 
+from ..components.networks import Network
+from ..components.networks.genericNetworks.electricity import Electricity
+from ..components.networks.genericNetworks.fluid import Fluid
 from ..components.technologies import *
 
 import logging
@@ -35,6 +38,22 @@ def calculate_dni(data: pd.DataFrame, lon: float, lat: float) -> pd.Series:
     data["dni"] = data["dni"].where(data["dni"] > 0, 0)
 
     return data["dni"]
+
+
+def select_network(netw_data: dict):
+    """
+    Returns the correct subclass for a network
+
+    :param dict netw_data: dictonary derived from the network json files
+    :return: Network Class
+    """
+    """# Generic tecs
+    if netw_data["network_type"] == "fluid":
+        return Fluid(netw_data)
+    elif netw_data["network_type"] == "electricity":
+        return Electricity(netw_data)"""
+
+    return Network(netw_data)
 
 
 def select_technology(tec_data: dict):
@@ -72,7 +91,7 @@ def select_technology(tec_data: dict):
         return CCPP(tec_data)
 
 
-def read_tec_data(tec_name: str, load_path: Path):
+def create_technology_class(tec_name: str, load_path: Path):
     """
     Loads the technology data from load_path and preprocesses it.
 
@@ -90,6 +109,23 @@ def read_tec_data(tec_name: str, load_path: Path):
     if tec_data.component_options.ccs_possible:
         tec_data.ccs_data = open_json(tec_data.component_options.ccs_type, load_path)
     return tec_data
+
+
+def create_network_class(netw_name: str, load_path: Path):
+    """
+    Loads the network data from load_path and preprocesses it.
+
+    :param str netw_name: network name
+    :param Path load_path: load path
+    #:param dict location: Dictonary with node location
+
+    :return: Network Class
+    """
+    netw_data = open_json(netw_name, load_path)
+    netw_data["name"] = netw_name
+    netw_data = select_network(netw_data)
+
+    return netw_data
 
 
 def open_json(tec: str, load_path: Path) -> dict:

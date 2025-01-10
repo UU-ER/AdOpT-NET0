@@ -1,4 +1,4 @@
-{
+{ "network_type": "electricity",
   "size_is_int": 0,
   "decommission": 0,
   "size_min": 0,
