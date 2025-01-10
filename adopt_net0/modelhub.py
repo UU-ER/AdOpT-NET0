@@ -474,7 +474,7 @@ class ModelHub:
         }
         for technology in technologies:
             # read in technology data
-            tec_data = create_technology_class(
+            tec_data = read_tec_data(
                 technology,
                 self.data.data_path
                 / investment_period
