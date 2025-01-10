@@ -34,7 +34,7 @@ The documentation and minimal examples of how to use the package can be found
 with AdOpT-NET0.
 
 ## Dependencies
-The package relies heavily on other python packages. Among others this package uses:
+The package relies heavily on other python packages. Among others it uses:
 
 - [pyomo](https://github.com/Pyomo/pyomo) for compiling and constructing the model
 - [pvlib](https://github.com/pvlib/pvlib-python) for converting climate data into 
