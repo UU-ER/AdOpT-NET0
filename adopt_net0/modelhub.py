@@ -77,7 +77,6 @@ class ModelHub:
         log.info(log_msg)
         self.data.set_settings(data_path, start_period, end_period)
         self.data.read_data()
-        self._perform_preprocessing_checks()
 
         log_msg = "--- Reading in data complete ---"
         log.info(log_msg)
@@ -230,6 +229,8 @@ class ModelHub:
         log_msg = "--- Constructing Model ---"
         log.info(log_msg)
         start = time.time()
+
+        self._perform_preprocessing_checks()
 
         # Determine aggregation
         config = self.data.model_config
@@ -473,7 +474,7 @@ class ModelHub:
         }
         for technology in technologies:
             # read in technology data
-            tec_data = read_tec_data(
+            tec_data = create_technology_class(
                 technology,
                 self.data.data_path
                 / investment_period
