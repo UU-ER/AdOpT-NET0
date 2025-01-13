@@ -15,7 +15,7 @@ from adopt_net0.model_construction.construct_balances import (
     construct_network_constraints,
     construct_system_cost,
 )
-from adopt_net0.data_management import DataHandle
+from unittest.mock import MagicMock
 
 
 def construct_model(dh):
@@ -27,6 +27,7 @@ def construct_model(dh):
     """
 
     ehub = ModelHub()
+    ehub._perform_preprocessing_checks = MagicMock(return_value=None)
     ehub.data = dh
     ehub.construct_model()
     m = ehub.model["full"]
