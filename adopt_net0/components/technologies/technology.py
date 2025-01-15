@@ -604,13 +604,52 @@ class Technology(ModelComponent):
                 within=size_domain, initialize=coeff_ti["size_initial"]
             )
 
-        if self.existing and not self.component_options.decommission:
-            # Decommissioning is not possible, size fixed
-            b_tec.var_size = pyo.Param(
-                within=size_domain, initialize=b_tec.para_size_initial
-            )
+        if self.existing:
+            if not self.component_options.decommission:
+                # Decommissioning is not possible, size fixed
+                b_tec.var_size = pyo.Param(
+                    within=size_domain, initialize=b_tec.para_size_initial
+                )
+            else:
+                # Decommissioning is possible
+                b_tec.var_size = pyo.Var(
+                    within=size_domain,
+                    bounds=(b_tec.para_size_min, b_tec.para_size_max),
+                )
+
+                if self.component_options.decommission_full:
+                    # Full plant decommissioned only
+                    self.big_m_transformation_required = 1
+                    s_indicators = range(0, 2)
+
+                    def init_decommission_full(dis, ind):
+                        if ind == 0:  # tech not installed
+                            dis.const_decommissioned = pyo.Constraint(
+                                expr=b_tec.var_size == 0
+                            )
+                        else:  # tech installed
+                            dis.const_installed = pyo.Constraint(
+                                expr=b_tec.var_size == b_tec.para_size_initial
+                            )
+
+                    b_tec.dis_decommission_full = gdp.Disjunct(
+                        s_indicators, rule=init_decommission_full
+                    )
+
+                    def bind_disjunctions(dis):
+                        return [b_tec.dis_decommission_full[i] for i in s_indicators]
+
+                    b_tec.disjunction_decommission_full = gdp.Disjunction(
+                        rule=bind_disjunctions
+                    )
+                else:
+                    # Size is variable
+                    b_tec.var_size = pyo.Var(
+                        within=size_domain,
+                        bounds=(b_tec.para_size_min, b_tec.para_size_max),
+                    )
         else:
-            # Decommissioning is possible, size variable
+            # New technology
             b_tec.var_size = pyo.Var(
                 within=size_domain, bounds=(b_tec.para_size_min, b_tec.para_size_max)
             )
@@ -741,7 +780,9 @@ class Technology(ModelComponent):
 
         if self.existing and self.component_options.decommission:
             b_tec.para_decommissioning_cost = pyo.Param(
-                domain=pyo.Reals, initialize=economics.decommission_cost, mutable=True
+                domain=pyo.Reals,
+                initialize=annualization_factor * economics.decommission_cost,
+                mutable=True,
             )
 
         return b_tec
@@ -784,23 +825,37 @@ class Technology(ModelComponent):
             self.big_m_transformation_required = 1
             s_indicators = range(0, 2)
 
-            def init_installation(dis, ind):
-                if ind == 0:  # tech not installed
-                    dis.const_capex_aux = pyo.Constraint(expr=b_tec.var_capex_aux == 0)
-                    dis.const_not_installed = pyo.Constraint(expr=b_tec.var_size == 0)
-                else:  # tech installed
-                    dis.const_capex_aux = pyo.Constraint(
-                        expr=b_tec.var_size * b_tec.para_unit_capex_annual
-                        + b_tec.para_fix_capex_annual
-                        == b_tec.var_capex_aux
-                    )
+            if self.existing:
+                b_tec.const_capex_aux = pyo.Constraint(
+                    expr=b_tec.var_size * b_tec.para_unit_capex_annual
+                    + b_tec.para_fix_capex_annual
+                    == b_tec.var_capex_aux
+                )
+            else:
 
-            b_tec.dis_installation = gdp.Disjunct(s_indicators, rule=init_installation)
+                def init_installation(dis, ind):
+                    if ind == 0:  # tech not installed
+                        dis.const_capex_aux = pyo.Constraint(
+                            expr=b_tec.var_capex_aux == 0
+                        )
+                        dis.const_not_installed = pyo.Constraint(
+                            expr=b_tec.var_size == 0
+                        )
+                    else:  # tech installed
+                        dis.const_capex_aux = pyo.Constraint(
+                            expr=b_tec.var_size * b_tec.para_unit_capex_annual
+                            + b_tec.para_fix_capex_annual
+                            == b_tec.var_capex_aux
+                        )
 
-            def bind_disjunctions(dis):
-                return [b_tec.dis_installation[i] for i in s_indicators]
+                b_tec.dis_installation = gdp.Disjunct(
+                    s_indicators, rule=init_installation
+                )
 
-            b_tec.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
+                def bind_disjunctions(dis):
+                    return [b_tec.dis_installation[i] for i in s_indicators]
+
+                b_tec.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
 
         else:
             # Defined in the technology subclass
@@ -810,11 +865,6 @@ class Technology(ModelComponent):
         if self.existing:
             if self.component_options.decommission:
                 # technology can be decommissioned
-                b_tec.para_decommissioning_cost = pyo.Param(
-                    domain=pyo.Reals,
-                    initialize=economics.decommission_cost,
-                    mutable=True,
-                )
                 b_tec.const_capex = pyo.Constraint(
                     expr=b_tec.var_capex
                     == (b_tec.para_size_initial - b_tec.var_size)

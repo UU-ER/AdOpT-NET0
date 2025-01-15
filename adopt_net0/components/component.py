@@ -106,6 +106,7 @@ class ComponentOptions:
         self.lower_res_than_full = False
         self.size_is_int = component_data["size_is_int"]
         self.decommission = component_data["decommission"]
+        self.decommission_full = component_data["decommission_full"]
         self.size_based_on = None
         self.emissions_based_on = None
 

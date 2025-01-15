@@ -1,6 +1,7 @@
 {
   "tec_type": "GasTurbine_H2_100",
   "decommission": 0,
+  "decommission_full": 0,
   "size_is_int": 1,
   "size_min": 0,
   "size_max": 100,
