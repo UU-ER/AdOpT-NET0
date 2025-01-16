@@ -11,5 +11,13 @@ from ...utilities import link_full_resolution_to_clustered
 
 class Fluid(Network):
 
+    def __init__(self, netw_data: dict):
+        """
+        Constructor
+
+        :param dict netw_data: network data
+        """
+        super().__init__(netw_data)
+
     def fit_network_performance_performance(self):
         super(Fluid, self).fit_network_performance(self)

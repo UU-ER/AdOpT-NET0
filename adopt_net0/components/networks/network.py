@@ -66,9 +66,9 @@ class Network(ModelComponent):
     - ``var_opex_fixed``: Fixed OPEX
     - Furthermore for each node:
 
-        * ``var_netw_emissions_pos``: positive emissins at node
+        * ``var_netw_emissions_pos``: positive emissions at node
         * ``var_inflow``: Inflow to node (as a sum of all inflows from other nodes)
-        * ``var_outflow``: Outflow from node (as a sum of all outflows toother nodes)
+        * ``var_outflow``: Outflow from node (as a sum of all outflows to other nodes)
         * ``var_consumption``: Consumption of other carriers (e.g. electricity
           required for compression of a gas)
 
@@ -157,7 +157,7 @@ class Network(ModelComponent):
     - If  ``bidirectional_network`` is set to 1 for this network only additional
       constraints are enforced to ensure that at each time step a flow can only be in
       one direction. For ``bidirectional_network_precise = 0``, only a cut and a
-      cosntraint on the sizes of the two directions of an arc are formulated:
+      constraint on the sizes of the two directions of an arc are formulated:
 
       .. math::
         S_{nodeFrom, nodeTo} = S_{nodeTo, nodeFrom}
@@ -286,7 +286,7 @@ class Network(ModelComponent):
         b_netw = self._define_capex_parameters(b_netw, data)
         b_netw = self._define_opex_parameters(b_netw)
         b_netw = self._define_emission_vars(b_netw)
-        b_netw = self._define_network_characteristics(b_netw)
+        b_netw = self._define_network_carrier(b_netw)
         b_netw = self._define_inflow_vars(b_netw)
         b_netw = self._define_outflow_vars(b_netw)
 
@@ -509,9 +509,9 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def _define_network_characteristics(self, b_netw):
+    def _define_network_carrier(self, b_netw):
         """
-        Defines transported carrier, losses and minimum transport requirements
+        Defines transported carrier
 
         :param b_netw: pyomo network block
         :return: pyomo network block
