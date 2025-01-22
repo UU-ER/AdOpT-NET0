@@ -836,7 +836,7 @@ class Network(ModelComponent):
 
     def _define_energyconsumption_arc(self, b_arc, b_netw):
         """
-        Defines the energyconsumption for an arc
+        Defines the energy consumption for an arc
 
         :param b_arc: pyomo arc block
         :param b_netw: pyomo network block
@@ -848,13 +848,19 @@ class Network(ModelComponent):
             self.set_t,
             b_netw.set_consumed_carriers,
             domain=pyo.NonNegativeReals,
-            bounds=(b_netw.para_size_min, b_arc.para_size_max * rated_capacity),
+            bounds=(
+                b_netw.para_size_min * rated_capacity,
+                b_arc.para_size_max * rated_capacity,
+            ),
         )
         b_arc.var_consumption_receive = pyo.Var(
             self.set_t,
             b_netw.set_consumed_carriers,
             domain=pyo.NonNegativeReals,
-            bounds=(b_netw.para_size_min, b_arc.para_size_max * rated_capacity),
+            bounds=(
+                b_netw.para_size_min * rated_capacity,
+                b_arc.para_size_max * rated_capacity,
+            ),
         )
 
         # Sending node
