@@ -47,13 +47,13 @@ def select_network(netw_data: dict):
     :param dict netw_data: dictonary derived from the network json files
     :return: Network Class
     """
-    """# Generic tecs
+    # Generic netw
     if netw_data["network_type"] == "fluid":
         return Fluid(netw_data)
     elif netw_data["network_type"] == "electricity":
-        return Electricity(netw_data)"""
+        return Electricity(netw_data)
 
-    return Network(netw_data)
+    # return Network(netw_data)
 
 
 def select_technology(tec_data: dict):

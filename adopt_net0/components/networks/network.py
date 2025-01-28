@@ -227,13 +227,13 @@ class Network(ModelComponent):
             # Use initial size
             time_independent["size_max_arcs"] = time_independent["size_initial"]
 
-        # Emissions
+        """# Emissions
         time_independent["loss2emissions"] = input_parameters.performance_data[
             "loss2emissions"
         ]
         time_independent["emissionfactor"] = input_parameters.performance_data[
             "emissionfactor"
-        ]
+        ]"""
 
         # Other
         time_independent["rated_power"] = input_parameters.rated_power
@@ -285,7 +285,9 @@ class Network(ModelComponent):
         b_netw = self._define_size(b_netw)
         b_netw = self._define_capex_parameters(b_netw, data)
         b_netw = self._define_opex_parameters(b_netw)
-        b_netw = self._define_emission_vars(b_netw)
+        b_netw = self._define_emission_vars(
+            b_netw
+        )  # 1 to be changed -> it defines the variable
         b_netw = self._define_network_carrier(b_netw)
         b_netw = self._define_inflow_vars(b_netw)
         b_netw = self._define_outflow_vars(b_netw)
@@ -306,7 +308,9 @@ class Network(ModelComponent):
             )
             b_arc = self._define_flow(b_arc, b_netw)
             b_arc = self._define_opex_arc(b_arc, b_netw)
-            b_arc = self._define_emissions_arc(b_arc, b_netw)
+            b_arc = self._define_emissions_arc(
+                b_arc, b_netw
+            )  # 2 to be changed -> 0 for electricity, formula for fluid
 
             if self.component_options.energyconsumption:
                 b_arc = self._define_energyconsumption_arc(b_arc, b_netw)
@@ -328,7 +332,9 @@ class Network(ModelComponent):
         b_netw = self._define_opex_total(b_netw)
         b_netw = self._define_inflow_constraints(b_netw)
         b_netw = self._define_outflow_constraints(b_netw)
-        b_netw = self._define_emission_constraints(b_netw)
+        b_netw = self._define_emission_constraints(
+            b_netw
+        )  # 3 to be changed -> 0 for electricity, formula for fluid
 
         if self.component_options.energyconsumption:
             b_netw = self._define_energyconsumption_total(b_netw)
@@ -920,18 +926,19 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
-        coeff_ti = self.processed_coeff.time_independent
+        # coeff_ti = self.processed_coeff.time_independent
 
         b_arc.var_emissions = pyo.Var(self.set_t)
 
-        def init_arc_emissions(const, t):
+        """def init_arc_emissions(const, t):
             return (
-                b_arc.var_emissions[t]
-                == b_arc.var_flow[t] * coeff_ti["emissionfactor"]
-                + b_arc.var_losses[t] * coeff_ti["loss2emissions"]
+                b_arc.var_emissions[t] == 0
             )
+                #== b_arc.var_flow[t] * coeff_ti["emissionfactor"]
+                #+ b_arc.var_losses[t] * coeff_ti["loss2emissions"]
+            #)
 
-        b_arc.const_arc_emissions = pyo.Constraint(self.set_t, rule=init_arc_emissions)
+        b_arc.const_arc_emissions = pyo.Constraint(self.set_t, rule=init_arc_emissions)"""
 
         return b_arc
 
@@ -1112,7 +1119,7 @@ class Network(ModelComponent):
         :return: pyomo network block
         """
 
-        def init_netw_emissions(const, t, node):
+        """def init_netw_emissions(const, t, node):
             return b_netw.var_netw_emissions_pos[t, node] == sum(
                 b_netw.arc_block[from_node, node].var_emissions[t]
                 for from_node in b_netw.set_receives_from[node]
@@ -1120,7 +1127,7 @@ class Network(ModelComponent):
 
         b_netw.const_netw_emissions = pyo.Constraint(
             self.set_t, self.set_nodes, rule=init_netw_emissions
-        )
+        )"""
         return b_netw
 
     def _define_energyconsumption_total(self, b_netw):
@@ -1191,13 +1198,13 @@ class Network(ModelComponent):
             arc_group.create_dataset(
                 "total_flow", data=sum(arc.var_flow[t].value for t in self.set_t)
             )
-            total_emissions = (
+            """total_emissions = (
                 sum(arc.var_flow[t].value for t in self.set_t)
                 * coeff_ti["emissionfactor"]
                 + sum(arc.var_losses[t].value for t in self.set_t)
                 * coeff_ti["loss2emissions"]
             )
-            arc_group.create_dataset("total_emissions", data=total_emissions)
+            arc_group.create_dataset("total_emissions", data=total_emissions)"""
 
     def write_results_netw_operation(self, h5_group, model_block):
         """
