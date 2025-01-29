@@ -487,9 +487,6 @@ class DataHandle:
 
         # Log success
         log_msg = "Network data read successfully"
-        print(
-            f"ATTENTION: type of class created is: {netw_data.__class__.__name__}"
-        )  # This will be cancelled
         log.info(log_msg)
 
     def _read_monte_carlo(self):

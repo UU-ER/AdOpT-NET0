@@ -792,9 +792,6 @@ class Network(ModelComponent):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
-
-        b_arc.var_emissions = pyo.Var(self.set_t)
-
         return b_arc
 
     def _define_bidirectional_constraints(self, b_netw):
@@ -1047,23 +1044,6 @@ class Network(ModelComponent):
             arc_group.create_dataset(
                 "losses", data=[arc.var_losses[t].value for t in self.set_t]
             )
-
-            if arc.find_component("var_consumption_send"):
-                for car in model_block.set_consumed_carriers:
-
-                    arc_group.create_dataset(
-                        "consumption_send" + car,
-                        data=[
-                            arc.var_consumption_send[t, car].value for t in self.set_t
-                        ],
-                    )
-                    arc_group.create_dataset(
-                        "consumption_receive" + car,
-                        data=[
-                            arc.var_consumption_receive[t, car].value
-                            for t in self.set_t
-                        ],
-                    )
 
     def scale_model(self, b_netw, model, config: dict):
         """

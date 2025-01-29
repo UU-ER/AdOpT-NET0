@@ -194,6 +194,8 @@ class Fluid(Network):
 
         coeff_ti = self.processed_coeff.time_independent
 
+        b_arc.var_emissions = pyo.Var(self.set_t)
+
         def init_arc_emissions(const, t):
             return (
                 b_arc.var_emissions[t]
@@ -269,3 +271,16 @@ class Fluid(Network):
                 * coeff_ti["loss2emissions"]
             )
             arc_group.create_dataset("total_emissions", data=total_emissions)
+
+            for car in model_block.set_consumed_carriers:
+
+                arc_group.create_dataset(
+                    "consumption_send" + car,
+                    data=[arc.var_consumption_send[t, car].value for t in self.set_t],
+                )
+                arc_group.create_dataset(
+                    "consumption_receive" + car,
+                    data=[
+                        arc.var_consumption_receive[t, car].value for t in self.set_t
+                    ],
+                )
