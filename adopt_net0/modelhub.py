@@ -810,10 +810,9 @@ class ModelHub:
                 model_full.scaling_factor[b_node.var_netw_outflow] = f_global[
                     "energy_vars"
                 ]["value"]
-                if b_node.find_component("var_netw_consumption"):
-                    model_full.scaling_factor[b_node.var_netw_consumption] = f_global[
-                        "energy_vars"
-                    ]["value"]
+                model_full.scaling_factor[b_node.var_netw_consumption] = f_global[
+                    "energy_vars"
+                ]["value"]
                 model_full.scaling_factor[b_node.var_generic_production] = f_global[
                     "energy_vars"
                 ]["value"]

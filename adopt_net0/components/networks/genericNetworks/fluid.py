@@ -19,65 +19,33 @@ class Fluid(Network):
         """
         super().__init__(netw_data)
 
+        self._calculate_energy_consumption()
+
     def fit_network_performance(self):
+        """
+        Fits network performance for fluid network (bounds and coefficients).
+        """
         super(Fluid, self).fit_network_performance()
 
         input_parameters = self.input_parameters
-        time_independent = {}
+        # time_independent = {}
 
         # Emissions
-        time_independent["loss2emissions"] = input_parameters.performance_data[
-            "loss2emissions"
-        ]
-        time_independent["emissionfactor"] = input_parameters.performance_data[
-            "emissionfactor"
-        ]
-
-    def construct_netw_model(
-        self, b_netw, data: dict, set_nodes, set_t_full, set_t_clustered
-    ):
-        super(Fluid, self).construct_netw_model(
-            b_netw, data, set_nodes, set_t_full, set_t_clustered
+        self.processed_coeff.time_independent["loss2emissions"] = (
+            input_parameters.performance_data["loss2emissions"]
+        )
+        self.processed_coeff.time_independent["emissionfactor"] = (
+            input_parameters.performance_data["emissionfactor"]
         )
 
-        b_netw = self._define_emission_vars(b_netw)
-
-        """if self.component_options.energyconsumption:
-            b_netw = self._define_energyconsumption_parameters(b_netw)"""
-
-        # CONSTRAINTS FOR BIDIRECTIONAL NETWORKS
-        if self.component_options.bidirectional_network:
-            b_netw = self._define_bidirectional_constraints(b_netw)
-
-        b_netw = self._define_emission_constraints(b_netw)
-
-        """if self.component_options.energyconsumption:
-            b_netw = self._define_energyconsumption_total(b_netw)"""
-
-    '''def _define_emission_vars(self, b_netw):
+    def _define_energyconsumption_parameters(self, b_netw):
         """
-        Defines network emissions
+        Constructs constraints for fluid network energy consumption
 
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
-        b_netw.var_netw_emissions_pos = pyo.Var(
-            self.set_t, self.set_nodes, domain=pyo.NonNegativeReals
-        )
-
-        return b_netw'''
-
-    '''def _define_energyconsumption_parameters(self, b_netw):
-        """
-        Constructs constraints for network energy consumption
-
-        :param b_netw: pyomo network block
-        :return: pyomo network block
-        """
-        # Set of consumed carriers
-        b_netw.set_consumed_carriers = pyo.Set(
-            initialize=list(self.energy_consumption.keys())
-        )
+        super(Fluid, self)._define_energyconsumption_parameters(b_netw)
 
         # Parameters
         def init_cons_send1(para, car):
@@ -120,9 +88,9 @@ class Fluid(Network):
             domain=pyo.NonNegativeReals,
         )
 
-        return b_netw'''
+        return b_netw
 
-    '''def _calculate_energy_consumption(self):
+    def _calculate_energy_consumption(self):
         """
         Fits the performance parameters for a network, i.e. the consumption at each node.
         """
@@ -152,9 +120,9 @@ class Fluid(Network):
                 self.energy_consumption[car]["send"]["k_flowDistance"] = 0
                 self.energy_consumption[car]["receive"] = {}
                 self.energy_consumption[car]["receive"]["k_flow"] = 0
-                self.energy_consumption[car]["receive"]["k_flowDistance"] = 0'''
+                self.energy_consumption[car]["receive"]["k_flowDistance"] = 0
 
-    '''def _define_energyconsumption_arc(self, b_arc, b_netw):
+    def _define_energyconsumption_arc(self, b_arc, b_netw):
         """
         Defines the energy consumption for an arc
 
@@ -162,6 +130,7 @@ class Fluid(Network):
         :param b_netw: pyomo network block
         :return: pyomo arc block
         """
+        super(Fluid, self)._define_energyconsumption_arc(b_arc, b_netw)
         rated_capacity = self.input_parameters.rated_power
 
         b_arc.var_consumption_send = pyo.Var(
@@ -211,7 +180,7 @@ class Fluid(Network):
             self.set_t, b_netw.set_consumed_carriers, rule=init_consumption_receive
         )
 
-        return b_arc'''
+        return b_arc
 
     def _define_emissions_arc(self, b_arc, b_netw):
         """
@@ -243,7 +212,6 @@ class Fluid(Network):
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
-
         super(Fluid, self)._define_emission_constraints(b_netw)
 
         def init_netw_emissions(const, t, node):
@@ -257,13 +225,14 @@ class Fluid(Network):
         )
         return b_netw
 
-    '''def _define_energyconsumption_total(self, b_netw):
+    def _define_energyconsumption_total(self, b_netw):
         """
-        Defines network consumption at each node
+        Defines network consumption at each node for fluid network
 
         :param b_netw: pyomo network block
         :return: pyomo network block
         """
+        super(Fluid, self)._define_energyconsumption_total(b_netw)
 
         def init_network_consumption(const, t, car, node):
             return b_netw.var_consumption[t, car, node] == sum(
@@ -281,7 +250,7 @@ class Fluid(Network):
             rule=init_network_consumption,
         )
 
-        return b_netw'''
+        return b_netw
 
     def write_results_netw_design(self, h5_group, model_block):
         super(Fluid, self).write_results_netw_design(h5_group, model_block)
@@ -300,28 +269,3 @@ class Fluid(Network):
                 * coeff_ti["loss2emissions"]
             )
             arc_group.create_dataset("total_emissions", data=total_emissions)
-
-    """def write_results_netw_operation(self, h5_group, model_block):
-        super(Fluid, self).write_results_netw_operation(h5_group, model_block)
-
-        for arc_name in model_block.set_arcs:
-            arc = model_block.arc_block[arc_name]
-            str = "".join(arc_name)
-            arc_group = h5_group.create_group(str)
-
-            if arc.find_component("var_consumption_send"):
-                for car in model_block.set_consumed_carriers:
-
-                    arc_group.create_dataset(
-                        "consumption_send" + car,
-                        data=[
-                            arc.var_consumption_send[t, car].value for t in self.set_t
-                        ],
-                    )
-                    arc_group.create_dataset(
-                        "consumption_receive" + car,
-                        data=[
-                            arc.var_consumption_receive[t, car].value
-                            for t in self.set_t
-                        ],
-                    )"""
