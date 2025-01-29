@@ -1,20 +1,3 @@
-def determine_network_energy_consumption(network_data: dict) -> bool:
-    """
-    Determines if there is network consumption for a network
-
-    :param dict network_data: Network data
-    :return: Get if network has energyconsumption or not
-    :rtype: int
-    """
-    # Todo: This can be further extended to check if node is connected to network
-    network_energy_consumption = False
-    for netw in network_data:
-        if network_data[netw].component_options.energyconsumption:
-            network_energy_consumption = True
-
-    return network_energy_consumption
-
-
 def get_data_for_investment_period(
     data, investment_period: str, aggregation_model: str
 ) -> dict:

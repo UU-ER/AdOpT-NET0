@@ -2,11 +2,10 @@ from pathlib import Path
 import json
 import pyomo.environ as pyo
 
-from adopt_net0.components.networks import Network
 from tests.utilities import make_data_for_testing, run_model
 from adopt_net0.data_preprocessing.template_creation import create_empty_network_matrix
 from adopt_net0.components.utilities import perform_disjunct_relaxation
-from adopt_net0.data_management.utilities import select_network
+from adopt_net0.data_management.utilities import network_factory
 
 
 def define_network(
@@ -36,7 +35,7 @@ def define_network(
     if not energyconsumption:
         netw_data["Performance"]["energyconsumption"] = {}
 
-    netw_data = select_network(netw_data)
+    netw_data = network_factory(netw_data)
 
     return netw_data
 

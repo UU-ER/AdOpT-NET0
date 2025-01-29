@@ -4,9 +4,7 @@ import pvlib
 import os
 import json
 
-from ..components.networks import Network
-from ..components.networks.genericNetworks.electricity import Electricity
-from ..components.networks.genericNetworks.fluid import Fluid
+from ..components.networks import *
 from ..components.technologies import *
 
 import logging
@@ -40,7 +38,7 @@ def calculate_dni(data: pd.DataFrame, lon: float, lat: float) -> pd.Series:
     return data["dni"]
 
 
-def select_network(netw_data: dict):
+def network_factory(netw_data: dict):
     """
     Returns the correct subclass for a network
 
@@ -56,7 +54,7 @@ def select_network(netw_data: dict):
     # return Network(netw_data)
 
 
-def select_technology(tec_data: dict):
+def technology_factory(tec_data: dict):
     """
     Returns the correct subclass for a technology
 
@@ -103,7 +101,7 @@ def create_technology_class(tec_name: str, load_path: Path):
     """
     tec_data = open_json(tec_name, load_path)
     tec_data["name"] = tec_name
-    tec_data = select_technology(tec_data)
+    tec_data = technology_factory(tec_data)
 
     # CCS
     if tec_data.component_options.ccs_possible:
@@ -123,7 +121,7 @@ def create_network_class(netw_name: str, load_path: Path):
     """
     netw_data = open_json(netw_name, load_path)
     netw_data["name"] = netw_name
-    netw_data = select_network(netw_data)
+    netw_data = network_factory(netw_data)
 
     return netw_data
 
