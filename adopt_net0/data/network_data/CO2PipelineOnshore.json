@@ -1,7 +1,6 @@
 {
   "size_is_int": 0,
-  "decommission": 0,
-  "decommission_full": 0,
+  "decommission": "impossible",
   "size_min": 0,
   "size_max": 50,
   "Economics": {
