@@ -146,7 +146,9 @@ def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> d
             from_networks[period] = sum(
                 sum(
                     sum(
-                        b_period.network_block[netw].var_netw_emissions_pos[t, node]
+                        b_period.network_block[netw]
+                        .var_netw_emissions_pos[t, node]
+                        .value
                         * nr_timesteps_averaged
                         * hour_factors[t - 1]
                         for t in set_t
