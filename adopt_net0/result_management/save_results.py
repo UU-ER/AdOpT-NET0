@@ -124,7 +124,7 @@ def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> d
 
         from_carriers[period] = sum(
             sum(
-                b_period.node_blocks[node].var_import_emissions_pos[t].value
+                b_period.node_blocks[node].var_car_emissions_pos[t].value
                 * nr_timesteps_averaged
                 * hour_factors[t - 1]
                 for t in set_t
@@ -134,7 +134,7 @@ def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> d
 
         from_carriers_neg[period] = sum(
             sum(
-                b_period.node_blocks[node].var_import_emissions_neg[t].value
+                b_period.node_blocks[node].var_car_emissions_neg[t].value
                 * nr_timesteps_averaged
                 * hour_factors[t - 1]
                 for t in set_t
