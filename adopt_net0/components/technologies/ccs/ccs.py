@@ -38,8 +38,6 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
 
     ccs_data = ModelComponent(ccs_data)
 
-    molar_mass_CO2 = 44.01
-
     # Recalculate min/max size to have it in t/hCO2_in
     ccs_data.input_parameters.size_min = (
         ccs_data.input_parameters.size_min * co2_concentration
@@ -48,6 +46,8 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
         ccs_data.input_parameters.size_max * co2_concentration
     )
 
+    # TODO: it looks like we have the size_min/max in two places (ccs_data.processed_coeff.time_independent
+    #  and ccs_data.input_parameters). Check if it's needed
     # Calculate input ratios
     ccs_data.processed_coeff.time_independent["size_min"] = (
         ccs_data.input_parameters.size_min
