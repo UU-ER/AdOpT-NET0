@@ -25,11 +25,11 @@
       "electricity",
       "heat"
     ],
-    "main_output_carrier": "clinker",
+    "main_output_carrier": "CO2captured",
     "output_carrier": [
       "CO2captured"
     ],
-    "size_cement": 1800,
+    "nr_segments": 1,
     "ohmic_heating": 1,
     "emission_factor": -1,
     "performance": {
