@@ -663,7 +663,22 @@ def construct_system_cost(model, data):
                 )
                 for node in model.set_nodes
             )
-            return revenue_carbon_from_technologies == b_period.var_carbon_revenue
+
+            revenue_carbon_from_carriers = sum(
+                sum(
+                    b_period.node_blocks[node].var_car_emissions_neg[t]
+                    * nr_timesteps_averaged
+                    * b_period.node_blocks[node].para_carbon_subsidy[t]
+                    * hour_factors[t - 1]
+                    for t in set_t
+                )
+                for node in model.set_nodes
+            )
+
+            return (
+                revenue_carbon_from_technologies + revenue_carbon_from_carriers
+                == b_period.var_carbon_revenue
+            )
 
         b_period_cost.const_revenue_carbon = pyo.Constraint(rule=init_carbon_revenue)
 
