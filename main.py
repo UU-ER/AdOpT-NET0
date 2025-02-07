@@ -18,7 +18,15 @@ with open(path / "Topology.json", "r") as json_file:
 # Nodes
 topology["nodes"] = ["industrial_cluster"]
 # Carriers:
-topology["carriers"] = ["electricity", "CO2captured", "heat", "hydrogen", "gas"]
+topology["carriers"] = [
+    "electricity",
+    "CO2captured",
+    "heat",
+    "hydrogen",
+    "gas",
+    "clinker",
+    "hydrogen",
+]
 # Investment periods:
 topology["investment_periods"] = ["period1"]
 # Save json template
@@ -52,7 +60,7 @@ with open(
     path / "period1" / "node_data" / "industrial_cluster" / "Technologies.json", "r"
 ) as json_file:
     technologies = json.load(json_file)
-technologies["new"] = ["GasTurbine_simple_CCS"]
+technologies["new"] = ["CementHybridCCS"]
 
 with open(
     path / "period1" / "node_data" / "industrial_cluster" / "Technologies.json", "w"
