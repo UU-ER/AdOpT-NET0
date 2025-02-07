@@ -38,5 +38,23 @@ All networks that are modelled are listed below.
    :header-rows: 1
    :delim: ;
 
+Network Class
+-------------------------------------------------------------
+As mentioned, the network class is a subclass of the ModelComponent class. In general, all network subclasses
+share the equations of this class, though some exceptions are there for specific technologies (the subclass then
+overwrites the class method).
+
 .. automodule:: adopt_net0.components.networks.network
     :members: Network
+
+Generic Network
+--------------------------------
+.. automodule:: adopt_net0.components.networks.genericNetworks.fluid
+    :members: Fluid
+
+.. automodule:: adopt_net0.components.networks.genericNetworks.electricity
+    :members: Electricity
+
+.. automodule:: adopt_net0.components.networks.genericNetworks.connection
+    :members: Connection
+

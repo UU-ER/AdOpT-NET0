@@ -5,6 +5,7 @@ import os
 import json
 
 from ..components.networks import *
+from ..components.networks.genericNetworks.connection import Connection
 from ..components.technologies import *
 
 import logging
@@ -50,8 +51,8 @@ def network_factory(netw_data: dict):
         return Fluid(netw_data)
     elif netw_data["network_type"] == "electricity":
         return Electricity(netw_data)
-
-    # return Network(netw_data)
+    elif netw_data["network_type"] == "connection":
+        return Connection(netw_data)
 
 
 def technology_factory(tec_data: dict):

@@ -55,9 +55,6 @@ class Network(ModelComponent):
     - ``para_opex_variable``: Variable OPEX
     - ``para_opex_fixed``: Fixed OPEX
     - ``para_decommissioning_cost``: decommissioning costs for existing networks
-    - ``para_send_kflow``, ``para_send_kflowDistance``, ``para_receive_kflow``,
-      ``para_receive_kflowDistance``, Parameters for energy consumption at
-      receiving and sending node
 
     **Variable declarations:**
 
@@ -85,15 +82,8 @@ class Network(ModelComponent):
         * ``var_losses``: Losses :math:`loss`
         * ``var_capex``, ``var_capex_aux`` CAPEX: :math:`CAPEX`
         * ``var_opex_variable``: Variable :math:`OPEXvariable`
-        * ``var_emissions``: emissions from transport/losses
-        * If consumption at nodes exists for network:
 
-          * ``var_consumption_send``: Consumption at sending node :math:`Consumption_{
-            nodeFrom}`
-          * ``var_consumption_receive``: Consumption at receiving node
-            :math:`Consumption_{nodeTo}`
-
-    - Constraint definitions
+    - Constraint definitions:
 
         * Flow losses:
 
@@ -104,14 +94,6 @@ class Network(ModelComponent):
 
           .. math::
             S * minTransport \\leq flow \\leq S
-
-        * Consumption at sending and receiving node:
-
-          .. math::
-            Consumption_{nodeFrom} = flow * k_{1, send} + flow * distance * k_{2, send}
-
-          .. math::
-            Consumption_{nodeTo} = flow * k_{1, receive} + flow * distance * k_{2, receive}
 
         * CAPEX of respective arc. The CAPEX is calculated as follows (for new
           networks). Note that for existing networks, the CAPEX is zero, but the
@@ -126,10 +108,6 @@ class Network(ModelComponent):
           .. math::
             OPEXvariable_{arc} = CAPEX_{arc} * opex_{variable}
 
-        * Emissions:
-
-          .. math::
-            emissions = flow * f_{emissions} + loss * f_{loss2emission}
 
     **Network constraint declarations**
     This part calculates variables for all respective nodes.

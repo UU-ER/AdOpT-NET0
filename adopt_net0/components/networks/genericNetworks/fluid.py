@@ -10,6 +10,70 @@ from ...utilities import link_full_resolution_to_clustered
 
 
 class Fluid(Network):
+    """
+    Network with a fluid as carrier
+
+    This network type resembles a network in which the carrier is a fluid.
+    Fluid networks enable:
+    - Energy consumption
+    - Emissions due to leakage
+
+    **Constraint declarations:**
+
+
+    **Parameter declarations:**
+
+    - ``para_send_kflow``, ``para_send_kflowDistance``, ``para_receive_kflow``,
+      ``para_receive_kflowDistance``, Parameters for energy consumption at
+      receiving and sending node
+
+
+    **Variable declarations:**
+
+    - For each node:
+
+        * ``var_netw_emissions_pos``: positive emissions at node
+        * ``var_consumption``: Consumption of other carriers (e.g. electricity
+          required for compression of a gas)
+
+    **Arc Block declaration**
+
+    Each arc represents a connection between two nodes, and is thus indexed by (
+    node_from, node_to). For each arc, the following components are defined. Each
+    variable is indexed by the timestep :math:`t` (here left out for convenience).
+
+    - Decision Variables:
+
+        * ``var_emissions``: emissions from transport/losses
+        * If consumption at nodes exists for network:
+
+          * ``var_consumption_send``: Consumption at sending node :math:`Consumption_{
+            nodeFrom}`
+          * ``var_consumption_receive``: Consumption at receiving node
+            :math:`Consumption_{nodeTo}`
+
+    - Constraint definitions:
+
+        * Consumption at sending and receiving node:
+
+          .. math::
+            Consumption_{nodeFrom} = flow * k_{1, send} + flow * distance * k_{2, send}
+
+          .. math::
+            Consumption_{nodeTo} = flow * k_{1, receive} + flow * distance * k_{2, receive}
+
+        * Emissions:
+
+          .. math::
+            emissions = flow * f_{emissions} + loss * f_{loss2emission}
+
+    **Network constraint declarations**
+    This part calculates variables for all respective nodes.
+
+    - Total emissions as the sum of all arc emissions
+    - Energy consumption of other carriers at each node.
+
+    """
 
     def __init__(self, netw_data: dict):
         """
