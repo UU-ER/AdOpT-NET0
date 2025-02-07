@@ -18,7 +18,6 @@
   },
   "Performance": {
     "carrier": "electricity",
-    "bidirectional_network": 1,
     "loss": 7E-8,
     "min_transport": 0,
     "loss2emissions": 0,
