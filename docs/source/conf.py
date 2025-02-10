@@ -145,6 +145,6 @@ netw_list = generate_component_list(target_dir)
 
 
 with open("src_code/model_components/generated_netw_list.csv", "w") as f:
-    f.write(f"Network name; network_type \n")
+    f.write(f"Network name; Network_type \n")
     for netw in netw_list:
         f.write(f"{netw[0]}; {netw[1]} \n")
