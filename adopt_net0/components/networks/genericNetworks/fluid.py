@@ -156,7 +156,7 @@ class Fluid(Network):
 
     def _calculate_energy_consumption(self):
         """
-        Fits the performance parameters for a network, i.e. the consumption at each node.
+        Fits the performance parameters for a fluid network, i.e. the consumption at each node.
         """
         # Get energy consumption at nodes form file
         energycons = self.input_parameters.performance_data["energyconsumption"]
@@ -248,7 +248,7 @@ class Fluid(Network):
 
     def _define_emissions_arc(self, b_arc, b_netw):
         """
-        Defines emission per arc for Fluid network
+        Defines emission per arc for fluid network
 
         :param b_arc: pyomo arc block
         :param b_netw: pyomo network block

@@ -26,3 +26,45 @@ class Connection(Network):
 
         # we keep simple networks are always bi-directional
         self.component_options.bidirectional_network = 1
+
+    def fit_network_performance(self):
+        super(Connection, self).fit_network_performance()
+
+    def _define_emission_constraints(self, b_netw):
+        """
+        Defines emissions from connection network equal to zero
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+        super(Connection, self)._define_emission_constraints(b_netw)
+
+        def init_netw_emissions(const, t, node):
+            return b_netw.var_netw_emissions_pos[t, node] == 0
+
+        b_netw.const_netw_emissions = pyo.Constraint(
+            self.set_t, self.set_nodes, rule=init_netw_emissions
+        )
+        return b_netw
+
+    def _define_energyconsumption_total(self, b_netw):
+        """
+        Defines network consumption at each node for connection network
+
+        :param b_netw: pyomo network block
+        :return: pyomo network block
+        """
+
+        super(Connection, self)._define_energyconsumption_total(b_netw)
+
+        def init_network_consumption(const, t, car, node):
+            return b_netw.var_consumption[t, car, node] == 0
+
+        b_netw.const_netw_consumption = pyo.Constraint(
+            self.set_t,
+            b_netw.set_consumed_carriers,
+            self.set_nodes,
+            rule=init_network_consumption,
+        )
+
+        return b_netw
