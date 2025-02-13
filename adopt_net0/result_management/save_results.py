@@ -20,6 +20,7 @@ def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> d
     :param solution: Pyomo solver results
     :param Path folder_path: folder path of optimization run
     :param dict model_info: information of the last solve done by the model
+    :param data: Input data of the model
     :return: a dictionary containing the most important model results (i.e., summary_dict)
     :rtype: dict
     """
