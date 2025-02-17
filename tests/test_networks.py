@@ -21,7 +21,7 @@ def define_network(
     :param bool energyconsumption:
     :return: Network object
     """
-    with open(load_path / ("TestNetwork.json")) as json_file:
+    with open(load_path / ("TestNetworkFluid.json")) as json_file:
         netw_data = json.load(json_file)
 
     netw_data["name"] = "TestNetwork"
@@ -51,7 +51,34 @@ def define_network_simple(
     :param bool bidirectional_network:
     :return: Network object
     """
-    with open(load_path / ("TestNetworkSimple.json")) as json_file:
+    with open(load_path / "TestNetworkSimple.json") as json_file:
+        netw_data_simple = json.load(json_file)
+
+    netw_data_simple["name"] = "TestNetwork"
+
+    if bidirectional_network:
+        netw_data_simple["Performance"]["bidirectional_network"] = 1
+        netw_data_simple["Performance"]["bidirectional_network_precise"] = 1
+    else:
+        netw_data_simple["Performance"]["bidirectional_network"] = 0
+
+    netw_data_simple = network_factory(netw_data_simple)
+
+    return netw_data_simple
+
+
+def define_network_electricity(
+    load_path: Path,
+    bidirectional_network: bool = False,
+):
+    """
+    reads TestNetworkSimple from path and creates network object
+
+    :param Path load_path:
+    :param bool bidirectional_network:
+    :return: Network object
+    """
+    with open(load_path / "TestNetworkElectricity.json") as json_file:
         netw_data_simple = json.load(json_file)
 
     netw_data_simple["name"] = "TestNetwork"
@@ -222,6 +249,51 @@ def test_network_energyconsumption(request):
     termination = run_model(m, request.config.solver, objective="capex")
     assert termination == pyo.TerminationCondition.optimal
     assert m.var_consumption[1, "electricity", "node2"].value > 0
+
+
+def test_network_electricity(request):
+    """
+    Tests a network that can only transport in one direction and it is a simple connection
+
+    INFEASIBILITY CASES
+    1) flow in both directions is constraint to 1
+
+    FEASIBILITY CASES
+    2) flow in one direction is constraint to 1, checked that size in both directions
+    is correct
+    """
+    nr_timesteps = 1
+    netw = define_network_electricity(
+        request.config.network_data_folder_path,
+        bidirectional_network=True,
+    )
+
+    # INFEASIBILITY CASE
+    m = construct_netw_model(netw, nr_timesteps)
+    m.test_const_outflow1 = pyo.Constraint(
+        expr=m.var_inflow[1, "electricity", "node1"] == 1
+    )
+    m.test_const_outflow2 = pyo.Constraint(
+        expr=m.var_inflow[1, "electricity", "node2"] == 1
+    )
+    termination = run_model(m, request.config.solver, objective="capex")
+    assert termination in [
+        pyo.TerminationCondition.infeasibleOrUnbounded,
+        pyo.TerminationCondition.infeasible,
+    ]
+
+    # FEASIBILITY CASE
+    m = construct_netw_model(netw, nr_timesteps)
+    m.test_const_outflow1 = pyo.Constraint(
+        expr=m.var_inflow[1, "electricity", "node1"] == 1
+    )
+
+    termination = run_model(m, request.config.solver, objective="capex")
+    assert termination == pyo.TerminationCondition.optimal
+    assert round(m.arc_block["node2", "node1"].var_size.value, 3) == round(
+        m.arc_block["node1", "node2"].var_size.value, 3
+    )
+    assert m.var_capex.value > 0
 
 
 def test_network_connection(request):
