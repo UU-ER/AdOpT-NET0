@@ -689,7 +689,7 @@ class Network(ModelComponent):
             # Size is variable
             b_arc.var_size = pyo.Var(
                 within=size_domain,
-                bounds=(b_netw.para_size_min, b_netw.para_size_max),
+                bounds=(b_netw.para_size_min, b_arc.para_size_max),
             )
 
         return b_arc
