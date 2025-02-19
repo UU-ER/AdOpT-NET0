@@ -308,6 +308,10 @@ class Network(ModelComponent):
             b_arc = self._define_opex_arc(b_arc, b_netw)
             b_arc = self._define_emissions_arc(b_arc, b_netw)
 
+            # Decommissioning only complete
+            if self.existing and self.component_options.decommission == "only_complete":
+                b_arc = self._define_decommissioning_at_once_constraints(b_arc)
+
             if self.component_options.energyconsumption:
                 b_arc = self._define_energyconsumption_arc(b_arc, b_netw)
 
@@ -672,58 +676,20 @@ class Network(ModelComponent):
         b_arc.distance = self.distance.at[node_from, node_to]
 
         if self.existing:
-            # Existing network
-            if not self.component_options.decommission:
-                # Decommissioning not possible
-                b_arc.var_size = pyo.Param(
-                    domain=size_domain,
-                    initialize=b_netw.para_size_initial[node_from, node_to],
-                )
-            else:
-                # Decommissioning is possible
-                b_arc.var_size = pyo.Var(
-                    domain=size_domain,
-                    bounds=(b_netw.para_size_min, b_arc.para_size_max),
-                )
+            b_arc.para_size_initial = pyo.Param(
+                within=size_domain, initialize=coeff_ti["size_initial"]
+            )
 
-                if self.component_options.decommission_full:
-                    # Full plant decommissioned only
-                    self.big_m_transformation_required = 1
-                    s_indicators = range(0, 2)
-
-                    def init_decommission_full(dis, ind):
-                        if ind == 0:  # tech not installed
-                            dis.const_decommissioned = pyo.Constraint(
-                                expr=b_arc.var_size == 0
-                            )
-                        else:  # tech installed
-                            dis.const_installed = pyo.Constraint(
-                                expr=b_arc.var_size == b_arc.para_size_initial
-                            )
-
-                    b_arc.dis_decommission_full = gdp.Disjunct(
-                        s_indicators, rule=init_decommission_full
-                    )
-
-                    def bind_disjunctions(dis):
-                        return [b_arc.dis_decommission_full[i] for i in s_indicators]
-
-                    b_arc.disjunction_decommission_full = gdp.Disjunction(
-                        rule=bind_disjunctions
-                    )
-                else:
-                    # Decommissioning possible
-                    b_arc.var_size = pyo.Var(
-                        domain=size_domain,
-                        bounds=(
-                            b_netw.para_size_min,
-                            b_netw.para_size_initial[node_from, node_to],
-                        ),
-                    )
+        if self.existing and self.component_options.decommission == "impossible":
+            # Decommissioning is not possible, size fixed
+            b_arc.var_size = pyo.Param(
+                within=size_domain, initialize=coeff_ti["size_initial"]
+            )
         else:
-            # New network
+            # Size is variable
             b_arc.var_size = pyo.Var(
-                domain=size_domain, bounds=(b_netw.para_size_min, b_arc.para_size_max)
+                within=size_domain,
+                bounds=(b_netw.para_size_min, b_netw.para_size_max),
             )
 
         return b_arc
@@ -1181,6 +1147,34 @@ class Network(ModelComponent):
         )
 
         return b_netw
+
+    def _define_decommissioning_at_once_constraints(self, b_arc):
+        """ "Description
+        :param b_tec:
+        """
+
+        # Full plant decommissioned only
+        self.big_m_transformation_required = 1
+        s_indicators = range(0, 2)
+
+        def init_decommission_full(dis, ind):
+            if ind == 0:  # tech not installed
+                dis.const_decommissioned = pyo.Constraint(expr=b_arc.var_size == 0)
+            else:  # tech installed
+                dis.const_installed = pyo.Constraint(
+                    expr=b_arc.var_size == b_arc.para_size_initial
+                )
+
+        b_arc.dis_decommission_full = gdp.Disjunct(
+            s_indicators, rule=init_decommission_full
+        )
+
+        def bind_disjunctions(dis):
+            return [b_arc.dis_decommission_full[i] for i in s_indicators]
+
+        b_arc.disjunction_decommission_full = gdp.Disjunction(rule=bind_disjunctions)
+
+        return b_arc
 
     def write_results_netw_design(self, h5_group, model_block):
         """
