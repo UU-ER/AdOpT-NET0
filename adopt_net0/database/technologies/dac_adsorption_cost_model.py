@@ -15,7 +15,7 @@ class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
     If source = "Sievert"
 
     - cost model is based on Sievert, K., Schmidt, T. S., & Steffen, B. (2024). Considering technology characteristics to project future costs of direct air capture. Joule, 8(4), 979-999,  https://doi.org/10.1016/j.joule.2024.02.005.
-    - cumulative_capacity_installed_t_per_a: total global installed capturing capacity in t/a. Determines the learning rates.
+    - cumulative_capacity_installed_t_per_a: total global installed capturing capacity in t/a. Determines the cost reduction due to learning.
     - average_productivity_per_module_kg_per_h: average productivity of a DAC module in kg/h (default is at 20 degree, 43% humidity)
     - capacity_factor: used to calculate levelized cost of removal
 

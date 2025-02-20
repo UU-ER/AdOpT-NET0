@@ -44,20 +44,30 @@ Calculating detailed technology and network costs
 For a number of technologies and networks, there are detailed cost models available. The main functions to generate
 them are documented here. Below, you can also find further information about each of the implemented cost models.
 
-Examplary use is:
+Examplary use:
 
 .. testcode::
 
    from adopt_net0 import database as td
 
+   # Show all available cost models
+   td.help()
+
+   # Show help for a specific cost model
    tec = "DAC_Adsorption"
    td.help(component_name=tec)
 
+   # Define options
    options = {"currency_out": "EUR",
            "financial_year_out": 2020,
            "discount_rate": 0.1,
            "cumulative_capacity_installed_t_per_a": 10000}
 
+   # Calculate financial indicators and print them
+   financial_inds = td.calculate_financial_indicators(tec, options)
+   print(financial_inds)
+
+   # Write to a json file in specified PATH
    td.write_json(tec, PATH, options)
 
 

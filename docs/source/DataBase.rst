@@ -8,7 +8,7 @@ available in AdOpT-NET0. For a number of technologies and networks, there are al
 their documentation see :ref:`here<cost_models>`.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    database/CostModels
 
