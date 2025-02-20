@@ -744,7 +744,7 @@ class Technology(ModelComponent):
             # Defined in the technology subclass
             pass
 
-        if self.existing and self.component_options.decommission:
+        if self.existing and not self.component_options.decommission == "impossible":
             b_tec.para_decommissioning_cost = pyo.Param(
                 domain=pyo.Reals,
                 initialize=annualization_factor * economics.decommission_cost,
@@ -830,18 +830,17 @@ class Technology(ModelComponent):
         # CAPEX
         if self.existing:
             if self.component_options.decommission == "impossible":
-                b_tec.const_capex = pyo.Constraint(
-                    expr=b_tec.var_capex == b_tec.var_capex_aux
-                )
-            else:
                 # technology cannot be decommissioned
                 b_tec.const_capex = pyo.Constraint(expr=b_tec.var_capex == 0)
+            else:
+                b_tec.const_capex = pyo.Constraint(
+                    expr=b_tec.var_capex
+                    == (b_tec.para_size_initial - b_tec.var_size)
+                    * b_tec.para_decommissioning_cost
+                )
         else:
-            # technology can be decommissioned
             b_tec.const_capex = pyo.Constraint(
-                expr=b_tec.var_capex
-                == (b_tec.para_size_initial - b_tec.var_size)
-                * b_tec.para_decommissioning_cost
+                expr=b_tec.var_capex == b_tec.var_capex_aux
             )
 
         return b_tec
