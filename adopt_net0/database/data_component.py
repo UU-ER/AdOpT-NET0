@@ -1,4 +1,13 @@
-class DataComponent:
+import warnings
+from pathlib import Path
+import json
+
+from ..data_management.utilities import open_json
+
+PATH_CURRENT_DIR = Path(__file__).parent
+
+
+class DataComponent_CostModel:
     """
     Parent class to all technologies/networks calculations
 
@@ -8,7 +17,9 @@ class DataComponent:
     - discount_rate: discount rate for annualizing
     """
 
-    def __init__(self, options):
+    def __init__(self, tec_name, options):
+        self.tec_name = tec_name
+
         # Output units
         self.currency_out = options["currency_out"]
         self.financial_year_out = options["financial_year_out"]
@@ -25,7 +36,9 @@ class DataComponent:
         self.technical_indicators = {}
 
         # Json data
-        self.json_template = None
+        self.json_data = open_json(
+            tec_name, PATH_CURRENT_DIR.parent / "database" / "templates"
+        )
 
         # Options
         self.default_options = {}
@@ -37,7 +50,7 @@ class DataComponent:
 
         Overwritten in child classes
         """
-        pass
+        warnings.warn("No inflation correction of currency conversion has been done")
 
     def calculate_technical_indicators(self):
         """
@@ -54,7 +67,12 @@ class DataComponent:
         Overwritten in child classes
         :param str path: path to write to
         """
-        pass
+        self.calculate_financial_indicators()
+        with open(
+            Path(path) / (self.tec_name + ".json"),
+            "w",
+        ) as f:
+            json.dump(self.json_data, f, indent=4)
 
     def _set_option_value(self, key, options):
         """

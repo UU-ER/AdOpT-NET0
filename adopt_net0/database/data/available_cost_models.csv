@@ -1,0 +1,4 @@
+Component_Name;Component_Type;Available_Sources
+DAC_Adsorption;Technology;Sievert
+DAC_LiquidSolvent;Technology;Sievert
+DAC_CalciumLooping;Technology;Sievert

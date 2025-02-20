@@ -22,7 +22,7 @@ Table of Content
    Installation
    ModellingWorkflow
    CaseStudies
-   Technology and Network Database
+   DataBase
    AdvancedTopics
    SourceCode
    ForDevelopers

@@ -1,10 +1,13 @@
+import os
+
 import pandas as pd
 from pathlib import Path
 
 from .technologies import *
+from .data_component import DataComponent_CostModel
 
 PATH_CURRENT_DIR = Path(__file__).parent
-PATH_AVAILABLE_COMPONENTS = PATH_CURRENT_DIR / Path("./data/available_components.csv")
+PATH_AVAILABLE_COMPONENTS = PATH_CURRENT_DIR / Path("data/available_cost_models.csv")
 
 
 def write_json(component_name: str, directory: str, options):
@@ -24,7 +27,7 @@ def calculate_financial_indicators(component_name: str, options: dict) -> dict:
     """
     Calculates financial parameters based on the component and the provided options
 
-    If no options are provided, the default options are used
+    If no options are provided, the default options are used. Calculates:
 
     - lifetime
     - discount rate
@@ -49,28 +52,28 @@ def _component_factory(component_name: str, options: dict):
     :param str component_name: Name of the technology/network
     :return: component class
     """
-    if component_name == "DAC - Solid Sorbent":
-        return Dac_SolidSorbent(options)
+    if component_name == "DAC_Adsorption":
+        return Dac_SolidSorbent_CostModel(component_name, options)
     else:
-        raise NotImplementedError("Technology not implemented or spelled incorrectly")
+        return DataComponent_CostModel(component_name, options)
 
 
 def help(component_name: str = None):
     """
-    Provides help on available technologies and networks.
+    Provides help on available cost models of technologies and networks.
 
-    - If no argument is provided, it prints all available components.
+    - If no argument is provided, it prints all available cost models.
     - If a component name is provided, it prints detailed information about that component.
 
     :param str component_name: Name of the technology/network (optional)
     """
     if component_name is None:
-        _help_available_components()
+        _help_available_cost_models()
     else:
         _help_component(component_name)
 
 
-def _help_available_components():
+def _help_available_cost_models():
     """
     Prints available technologies and networks
     """
@@ -91,3 +94,29 @@ def _help_component(component_name: str):
     print("Default options are:")
     for o in component.default_options:
         print(o, ":", component.default_options[o])
+
+
+def show_available_networks():
+    """
+    Prints all available networks
+    """
+    tec_data_path = Path(
+        os.path.join(os.path.dirname(__file__) + "/../database/network_data")
+    )
+
+    for root, dirs, files in os.walk(tec_data_path.resolve()):
+        for file in files:
+            print(file[:-5])
+
+
+def show_available_technologies():
+    """
+    Prints all available technologies
+    """
+    tec_data_path = Path(
+        os.path.join(os.path.dirname(__file__) + "/../database/templates")
+    )
+
+    for root, dirs, files in os.walk(tec_data_path.resolve()):
+        for file in files:
+            print(file[:-5])

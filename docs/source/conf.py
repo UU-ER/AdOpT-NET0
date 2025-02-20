@@ -130,20 +130,25 @@ def generate_component_list(directory):
 
 
 # specify path to technology json files relative to current folder (not user-dependent)
-target_dir = Path(__file__).parent.parent.parent / "adopt_net0/database/templates"
+target_dir = (
+    Path(__file__).parent.parent.parent
+    / "adopt_net0/database/templates/technology_data"
+)
 tech_list = generate_component_list(target_dir)
 
-with open("src_code/model_components/generated_tech_list.csv", "w") as f:
+with open("database/generated_tech_list.csv", "w") as f:
     f.write(f"Technology name; Technology model (Tec_type)\n")
     for tech in tech_list:
         f.write(f"{tech[0]}; {tech[1]}\n")
 
 # specify path to network json files relative to current folder (not user-dependent)
-target_dir = Path(__file__).parent.parent.parent / "adopt_net0/data/network_data"
+target_dir = (
+    Path(__file__).parent.parent.parent / "adopt_net0/database/templates/network_data"
+)
 netw_list = generate_component_list(target_dir)
 
 
-with open("src_code/model_components/generated_netw_list.csv", "w") as f:
+with open("database/generated_netw_list.csv", "w") as f:
     f.write(f"Network name\n")
     for netw in netw_list:
         f.write(f"{netw}\n")

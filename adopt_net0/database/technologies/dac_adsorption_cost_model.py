@@ -3,23 +3,24 @@ import json
 
 from .utilities import Dac_sievert
 from ..utilities import convert_currency
-from ..data_component import DataComponent
-from ...data_management.utilities import open_json
-
-PATH_CURRENT_DIR = Path(__file__).parent
+from ..data_component import DataComponent_CostModel
 
 
-class Dac_SolidSorbent(DataComponent):
+class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
     """
-    DAC SOLID SORBENT
+    DAC (Adsorption)
 
     Possible options are:
+
     If source = "Sievert"
+
+    - cost model is based on Sievert, K., Schmidt, T. S., & Steffen, B. (2024). Considering technology characteristics to project future costs of direct air capture. Joule, 8(4), 979-999,  https://doi.org/10.1016/j.joule.2024.02.005.
     - cumulative_capacity_installed_t_per_a: total global installed capturing capacity in t/a. Determines the learning rates.
     - average_productivity_per_module_kg_per_h: average productivity of a DAC module in kg/h (default is at 20 degree, 43% humidity)
     - capacity_factor: used to calculate levelized cost of removal
 
     Financial indicators are:
+
     - module_capex in [currency]/module
     - fixed capex as fraction of annualized capex
     - variable opex in [currency]/ton
@@ -27,14 +28,8 @@ class Dac_SolidSorbent(DataComponent):
     - lifetime in years
     """
 
-    def __init__(self, options):
-        super().__init__(options)
-
-        # Json template
-        self.json_template = open_json(
-            "DAC_Adsorption", PATH_CURRENT_DIR.parent / "templates" / "technology_data"
-        )
-
+    def __init__(self, tec_name, options):
+        super().__init__(tec_name, options)
         # Default options:
         self.default_options["source"] = "Sievert"
         self.default_options["cumulative_capacity_installed_t_per_a"] = 0
@@ -97,33 +92,18 @@ class Dac_SolidSorbent(DataComponent):
             )
             self.financial_indicators["lifetime"] = calculation_module.lifetime
 
-        return self.financial_indicators
-
-    def write_json(self, path):
-        """
-        Write json to specified path
-
-        Overwritten in child classes
-        :param str path: path to write to
-        """
-        self.calculate_financial_indicators()
-        technology_data = self.json_template
-        technology_data["Economics"]["unit_CAPEX"] = self.financial_indicators[
+        self.json_data["Economics"]["unit_CAPEX"] = self.financial_indicators[
             "module_capex"
         ]
-        technology_data["Economics"]["OPEX_fixed"] = self.financial_indicators[
+        self.json_data["Economics"]["OPEX_fixed"] = self.financial_indicators[
             "opex_fix"
         ]
-        technology_data["Economics"]["OPEX_variable"] = self.financial_indicators[
+        self.json_data["Economics"]["OPEX_variable"] = self.financial_indicators[
             "opex_variable"
         ]
-        technology_data["Economics"]["lifetime"] = self.financial_indicators["lifetime"]
+        self.json_data["Economics"]["lifetime"] = self.financial_indicators["lifetime"]
 
-        with open(
-            Path(path) / "DAC_Adsorption.json",
-            "w",
-        ) as f:
-            json.dump(technology_data, f, indent=4)
+        return self.financial_indicators
 
     def calculate_technical_indicators(self):
         """

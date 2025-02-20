@@ -1,16 +1,15 @@
 .. _database:
 
-Data Base Documentation
+Technology and network database
 =====================================
 
-For users who want to learn what happens behind the scenes and for developers.
+Below you find lists with available :ref:`technology<technologies_list>` and :ref:`network<network_list>` templates
+available in AdOpT-NET0. For a number of technologies and networks, there are also detailed cost models available. For
+their documentation see :ref:`here<cost_models>`.
 
 .. toctree::
-    :maxdepth: 1
+   :maxdepth: 2
 
-    src_code/Components
-    src_code/DataPreparation
-    src_code/DataProcessing
-    src_code/Diagnostics
-    src_code/ModelConstruction
-    src_code/ResultsManagement
+   database/CostModels
+
+
