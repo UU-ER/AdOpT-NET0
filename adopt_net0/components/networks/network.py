@@ -310,7 +310,9 @@ class Network(ModelComponent):
 
             # Decommissioning only complete
             if self.existing and self.component_options.decommission == "only_complete":
-                b_arc = self._define_decommissioning_at_once_constraints(b_arc)
+                b_arc = self._define_decommissioning_at_once_constraints(
+                    b_arc, b_netw, node_from, node_to
+                )
 
             if self.component_options.energyconsumption:
                 b_arc = self._define_energyconsumption_arc(b_arc, b_netw)
@@ -675,15 +677,11 @@ class Network(ModelComponent):
 
         b_arc.distance = self.distance.at[node_from, node_to]
 
-        if self.existing:
-            b_arc.para_size_initial = pyo.Param(
-                within=size_domain, initialize=coeff_ti["size_initial"]
-            )
-
         if self.existing and self.component_options.decommission == "impossible":
             # Decommissioning is not possible, size fixed
             b_arc.var_size = pyo.Param(
-                within=size_domain, initialize=coeff_ti["size_initial"]
+                within=size_domain,
+                initialize=b_netw.para_size_initial[node_from, node_to],
             )
         else:
             # Size is variable
@@ -747,7 +745,7 @@ class Network(ModelComponent):
             )
 
         # CAPEX aux:
-        if self.existing and not self.component_options.decommission:
+        if self.existing and self.component_options.decommission == "impossible":
             b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
         elif (b_netw.para_capex_gamma1.value == 0) and (
             b_netw.para_capex_gamma3.value == 0
@@ -1148,7 +1146,9 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def _define_decommissioning_at_once_constraints(self, b_arc):
+    def _define_decommissioning_at_once_constraints(
+        self, b_arc, b_netw, node_from: str, node_to: str
+    ):
         """ "Description
         :param b_tec:
         """
@@ -1162,7 +1162,7 @@ class Network(ModelComponent):
                 dis.const_decommissioned = pyo.Constraint(expr=b_arc.var_size == 0)
             else:  # tech installed
                 dis.const_installed = pyo.Constraint(
-                    expr=b_arc.var_size == b_arc.para_size_initial
+                    expr=b_arc.var_size == b_netw.para_size_initial[node_from, node_to]
                 )
 
         b_arc.dis_decommission_full = gdp.Disjunct(
