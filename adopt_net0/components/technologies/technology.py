@@ -243,7 +243,7 @@ class Technology(ModelComponent):
         """
         Initializes technology class from technology data
 
-        The technology name needs to correspond to the name of a JSON file in ./data/technology_data.
+        The technology name needs to correspond to the name of a JSON file in ./database/templates/technology_data.
 
         :param dict tec_data: technology data
         """

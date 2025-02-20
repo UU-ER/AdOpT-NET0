@@ -130,7 +130,7 @@ def generate_component_list(directory):
 
 
 # specify path to technology json files relative to current folder (not user-dependent)
-target_dir = Path(__file__).parent.parent.parent / "adopt_net0/data/technology_data"
+target_dir = Path(__file__).parent.parent.parent / "adopt_net0/database/templates"
 tech_list = generate_component_list(target_dir)
 
 with open("src_code/model_components/generated_tech_list.csv", "w") as f:

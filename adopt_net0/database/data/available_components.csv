@@ -1,0 +1,4 @@
+Component_Name;Component_Type;Available_Sources;Technology_Type_AdOpT
+DAC - Solid Sorbent;Technology;Sievert;DAC_Adsorption
+DAC - Liquid Solvent;Technology;Sievert;
+DAC - Calcium Looping;Technology;Sievert;

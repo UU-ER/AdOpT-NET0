@@ -565,7 +565,7 @@ def show_available_technologies():
     Prints all available technologies
     """
     tec_data_path = Path(
-        os.path.join(os.path.dirname(__file__) + "/../data/technology_data")
+        os.path.join(os.path.dirname(__file__) + "/../database/templates")
     )
 
     for root, dirs, files in os.walk(tec_data_path.resolve()):
