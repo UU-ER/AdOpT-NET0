@@ -18,7 +18,7 @@ class CementHybridCCS(Technology):
     """
     Cement plant with hybrid CCS
 
-    The plant had an oxyfuel combustion in the calciner and post-combustion capture with MEA afterward. The size
+    The plant has an oxyfuel combustion in the calciner and post-combustion capture with MEA afterward. The size
     of the oxyfuel is fixed, while the size and capture rate of the MEA are variables of the optimization
     """
 
@@ -46,17 +46,36 @@ class CementHybridCCS(Technology):
         """
         super(CementHybridCCS, self).fit_technology_performance(climate_data, location)
 
-        # fit coefficients
-        self.processed_coeff.time_independent["fit"] = (
-            self.fitting_class.fit_performance_function(
-                self.input_parameters.performance_data["performance"]
-            )
+        performance_data_path = Path(__file__).parent.parent.parent.parent
+        performance_data_path = (
+            performance_data_path
+            / "data/technology_data/Industrial/CementHybridCCS_data/cement_emissions_vernasca.csv"
         )
 
-        phi = {}
-        for car in self.input_parameters.performance_data["input_ratios"]:
-            phi[car] = self.input_parameters.performance_data["input_ratios"][car]
-        self.processed_coeff.time_independent["phi"] = phi
+        performance_data = pd.read_csv(performance_data_path, sep=",")
+        # TODO: make a function that cleans data (either 0 or at full capacity), converts CO2 to clinker and daily to hourly
+
+        plant_size_clinker = self.input_parameters.performance_data[
+            "prod_capacity_clinker"
+        ]
+        self.processed_coeff.time_independent["hourly_clinker_production"]
+        if plant_size_clinker < 2400:
+            plant_size_type = 0
+        else:
+            plant_size_type = 1
+        self.processed_coeff.time_independent["plant_size_type"] = plant_size_type
+        self.processed_coeff.time_independent["alpha_oxy"] = performance_data[
+            "alpha_oxy"
+        ]
+        self.processed_coeff.time_independent["alpha_mea"] = performance_data[
+            "alpha_mea"
+        ]
+        self.processed_coeff.time_independent["emission_factor_clinker"] = (
+            performance_data["emission_factor_clinker"]
+        )
+        self.processed_coeff.time_independent["alpha_mea"] = performance_data[
+            "alpha_mea"
+        ]
 
         def _calculate_bounds(self):
             """
