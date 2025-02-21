@@ -15,25 +15,19 @@ class Electricity(Network):
 
     This network type resembles a network in which the carrier is electricity
 
-    **Constraint declarations:**
-
-
-    **Parameter declarations:**
-
-    **Variable declarations:**
-
     **Arc Block declaration**
 
     Each arc represents a connection between two nodes, and is thus indexed by (
     node_from, node_to). For each arc, the following components are defined. Each
     variable is indexed by the timestep :math:`t` (here left out for convenience).
 
-    - Decision Variables:
-
     - Constraint definitions:
 
     **Network constraint declarations**
     This part calculates variables for all respective nodes.
+
+    -  netw_emissions equal to zero
+    -  netw_consumption equal to zero
 
     """
 

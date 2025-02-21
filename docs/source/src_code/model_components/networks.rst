@@ -3,9 +3,12 @@
 Networks
 =====================================
 
-The network class is a subclass of the ModelComponent class. All networks are modelled using this class, and there are
-no subclasses of specific network models. An overview of all networks that are currently modelled can be found
-:ref:`below <network_list>`. A network is defined as the set of all arcs (i.e., connections between nodes) of a
+The network class is a subclass of the ModelComponent class.
+Furthermore, the network class has different subclasses that model different types of networks (fluid, electricity, simple).
+An overview of all networks that are currently modelled, along with their respective types, can be found
+:ref:`below <network_list>`.
+
+A network is defined as the set of all arcs (i.e., connections between nodes) of a
 specific network type (e.g., "electricitySimple"). In addition to the performance and
 cost parameters in defined in the respective json file of the network, networks can
 generally be modelled as either bi- or uni-directional by modifying the parameter
@@ -55,6 +58,6 @@ Generic Network
 .. automodule:: adopt_net0.components.networks.genericNetworks.electricity
     :members: Electricity
 
-.. automodule:: adopt_net0.components.networks.genericNetworks.connection
-    :members: Connection
+.. automodule:: adopt_net0.components.networks.genericNetworks.simple
+    :members: Simple
 

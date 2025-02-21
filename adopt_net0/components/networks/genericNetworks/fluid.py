@@ -14,12 +14,10 @@ class Fluid(Network):
     Network with a fluid as carrier
 
     This network type resembles a network in which the carrier is a fluid.
+
     Fluid networks enable:
     - Energy consumption
     - Emissions due to leakage
-
-    **Constraint declarations:**
-
 
     **Parameter declarations:**
 
@@ -32,7 +30,6 @@ class Fluid(Network):
 
     - For each node:
 
-        * ``var_netw_emissions_pos``: positive emissions at node
         * ``var_consumption``: Consumption of other carriers (e.g. electricity
           required for compression of a gas)
 
