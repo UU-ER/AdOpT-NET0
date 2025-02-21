@@ -24,7 +24,7 @@
   "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 1,
-    "prod_capacity_clinker": 1800,
+    "prod_capacity_clinker": 80,
     "input_carrier": [
       "heat",
       "electricity"
@@ -38,17 +38,19 @@
     "min_part_load": 0,
     "performance": {
       "tCO2_tclinker": 0.833,
-      "CCR_oxy": 0.79
+      "CCR_oxy": 0.79,
+      "CCR_mea": [0.6, 0.9, 0.95, 0.99]
     }
   },
   "Units": {
     "size": "tonne/hr",
     "input_carrier": {
-      "crackedgas": "tonne/hr",
+      "heat": "MW",
       "electricity": "MW"
     },
     "output_carrier": {
-      "crackedgas": "tonne/hr"
+      "clinker": "tonne/hr",
+      "CO2captured": "tonne/hr"
     }
   }
 }

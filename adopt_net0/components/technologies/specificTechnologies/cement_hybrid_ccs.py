@@ -32,7 +32,6 @@ class CementHybridCCS(Technology):
 
         self.component_options.emissions_based_on = "output"
         self.component_options.size_based_on = "output"
-        self.component_options.prod_capacity_clinker = tec_data["prod_capacity_clinker"]
         self.component_options.main_output_carrier = tec_data["Performance"][
             "main_output_carrier"
         ]
@@ -49,53 +48,103 @@ class CementHybridCCS(Technology):
         performance_data_path = Path(__file__).parent.parent.parent.parent
         performance_data_path = (
             performance_data_path
-            / "data/technology_data/Industrial/CementHybridCCS_data/cement_emissions_vernasca.csv"
+            / "data/technology_data/Industrial/CementHybridCCS_data/performance_cost_cementHybridCCS.xlsx"
         )
 
-        performance_data = pd.read_csv(performance_data_path, sep=",")
+        performance_data = pd.read_excel(
+            performance_data_path, sheet_name="performance", index_col=0
+        )
+        capex_data_oxy = pd.read_excel(
+            performance_data_path, sheet_name="cost_oxy", index_col=0
+        )
+        capex_data_mea = pd.read_excel(
+            performance_data_path, sheet_name="cost_mea", index_col=0
+        )
         # TODO: make a function that cleans data (either 0 or at full capacity), converts CO2 to clinker and daily to hourly
 
-        plant_size_clinker = self.input_parameters.performance_data[
+        prod_capacity_clinker = self.input_parameters.performance_data[
             "prod_capacity_clinker"
         ]
-        self.processed_coeff.time_independent["hourly_clinker_production"]
-        if plant_size_clinker < 2400:
-            plant_size_type = 0
+
+        if prod_capacity_clinker < 100:
+            plant_size_type = "small"
         else:
-            plant_size_type = 1
+            plant_size_type = "large"
+
         self.processed_coeff.time_independent["plant_size_type"] = plant_size_type
-        self.processed_coeff.time_independent["alpha_oxy"] = performance_data[
-            "alpha_oxy"
+        self.processed_coeff.time_independent["alpha_oxy"] = performance_data.loc[
+            "alpha_oxy", "value"
         ]
-        self.processed_coeff.time_independent["alpha_mea"] = performance_data[
-            "alpha_mea"
+        self.processed_coeff.time_independent["alpha_mea"] = performance_data.loc[
+            "alpha_mea", "value"
         ]
-        self.processed_coeff.time_independent["emission_factor_clinker"] = (
-            performance_data["emission_factor_clinker"]
+        self.processed_coeff.time_independent["beta_oxy"] = performance_data.loc[
+            "beta_oxy", "value"
+        ]
+        self.processed_coeff.time_independent["capex_data_oxy"] = capex_data_oxy
+        self.processed_coeff.time_independent["capex_data_mea"] = capex_data_mea
+
+    def _calculate_bounds(self):
+        """
+        Calculates the bounds of the variables used
+        """
+        super(CementHybridCCS, self)._calculate_bounds()
+
+        time_steps = len(self.set_t_performance)
+        prod_capacity_clinker = self.input_parameters.performance_data[
+            "prod_capacity_clinker"
+        ]
+        emissions_clinker = self.input_parameters.performance_data["performance"][
+            "tCO2_tclinker"
+        ]
+        CCR_oxy = self.input_parameters.performance_data["performance"]["CCR_oxy"]
+        CCR_mea = self.input_parameters.performance_data["performance"]["CCR_mea"]
+
+        # Output Bounds
+        self.bounds["output"]["CO2captured"] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                np.ones(shape=time_steps)
+                * prod_capacity_clinker
+                * emissions_clinker
+                * (CCR_oxy + (1 - CCR_oxy) * max(CCR_mea)),
+            )
         )
-        self.processed_coeff.time_independent["alpha_mea"] = performance_data[
-            "alpha_mea"
-        ]
 
-        def _calculate_bounds(self):
-            """
-            Calculates the bounds of the variables used
-            """
-            super(CementHybridCCS, self)._calculate_bounds()
-
-            time_steps = len(self.set_t_performance)
-
-            self.bounds["input"] = self.fitting_class.calculate_input_bounds(
-                self.component_options.size_based_on, time_steps
+        self.bounds["output"]["clinker"] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                np.ones(shape=time_steps) * prod_capacity_clinker,
             )
-            self.bounds["output"] = self.fitting_class.calculate_output_bounds(
-                self.component_options.size_based_on, time_steps
-            )
+        )
 
-            # Input bounds recalculation
-            for car in self.component_options.input_carrier:
-                if not car == self.component_options.main_input_carrier:
-                    self.bounds["input"][car] = (
-                        self.bounds["input"][self.component_options.main_input_carrier]
-                        * self.input_parameters.performance_data["input_ratios"][car]
-                    )
+        # Input Bounds
+        self.bounds["input"]["electricity"] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                np.ones(shape=time_steps)
+                * (
+                    prod_capacity_clinker
+                    * emissions_clinker
+                    * CCR_oxy
+                    * self.processed_coeff.time_independent["alpha_oxy"]
+                    + prod_capacity_clinker
+                    * emissions_clinker
+                    * (1 - CCR_oxy)
+                    * max(CCR_mea)
+                    * self.processed_coeff.time_independent["alpha_mea"]
+                ),
+            )
+        )
+        self.bounds["input"]["heat"] = np.column_stack(
+            (
+                np.zeros(shape=(time_steps)),
+                np.ones(shape=time_steps)
+                * (
+                    prod_capacity_clinker
+                    * emissions_clinker
+                    * CCR_oxy
+                    * self.processed_coeff.time_independent["beta_oxy"]
+                ),
+            )
+        )
