@@ -4,6 +4,7 @@ import pandas as pd
 from pathlib import Path
 
 from .technologies import *
+from .networks import *
 from .data_component import DataComponent_CostModel
 
 PATH_CURRENT_DIR = Path(__file__).parent
@@ -23,7 +24,7 @@ def write_json(component_name: str, directory: str, options):
     component.write_json(directory)
 
 
-def calculate_financial_indicators(component_name: str, options: dict) -> dict:
+def calculate_indicators(component_name: str, options: dict) -> dict:
     """
     Calculates financial parameters based on the component and the provided options
 
@@ -42,7 +43,7 @@ def calculate_financial_indicators(component_name: str, options: dict) -> dict:
     :rtype: dict
     """
     component = _component_factory(component_name, options)
-    return component.calculate_financial_indicators()
+    return component.calculate_indicators()
 
 
 def _component_factory(component_name: str, options: dict):
@@ -54,6 +55,10 @@ def _component_factory(component_name: str, options: dict):
     """
     if component_name == "DAC_Adsorption":
         return Dac_SolidSorbent_CostModel(component_name, options)
+    elif component_name == "CO2_Pipeline":
+        return CO2_Pipeline_CostModel(component_name, options)
+    elif component_name == "CO2_Compression":
+        return CO2_Compression_CostModel(component_name, options)
     else:
         return DataComponent_CostModel(component_name, options)
 
@@ -88,7 +93,12 @@ def _help_component(component_name: str):
 
     :param str component_name: Name of the technology/network
     """
-    options = {"currency_out": "", "financial_year_out": 9999, "discount_rate": 999}
+    options = {
+        "currency_out": "",
+        "financial_year_out": 9999,
+        "discount_rate": 999,
+        "length_km": -1,
+    }
     component = _component_factory(component_name, options)
     print(component.__doc__)
     print("Default options are:")

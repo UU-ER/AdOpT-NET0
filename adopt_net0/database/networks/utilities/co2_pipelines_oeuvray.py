@@ -34,6 +34,7 @@ class CO2Transport_Oeuvray:
         self.operating_hours_per_a = None
         self.p_initial_mpa = None
         self.terrain = None
+
         # results
         self.current_best_results = {}
         self.optimal_configuration = None
@@ -851,6 +852,7 @@ class CO2Transport_Oeuvray:
                 capex_recompression_eur = 0
                 opex_energy_recompression_eur_per_y = 0
                 w_recompression_mw_total = 0
+                e_comp_MJ_per_kg_total = 0
             else:
                 # Recompression stations
                 p_outlet_last_pump_pa = self._calculate_pressure_last_pump(
@@ -944,9 +946,15 @@ class CO2Transport_Oeuvray:
             )
 
             # Energy consumption
+            current_result["energy_compression_specific_Mj_per_kg"] = (
+                e_comp_MJ_per_kg_total + e_initial_compression_Mj_per_kg
+            )
             current_result["energy_compression_specific_MWh_per_kg"] = (
-                w_initial_compression_mw + w_recompression_mw_total
-            ) / self.m_kg_per_s
+                current_result["energy_compression_specific_Mj_per_kg"] / 3.6 / 1000
+            )
+            current_result["energy_compression_specific_MWh_per_t"] = (
+                current_result["energy_compression_specific_MWh_per_kg"] * 1000
+            )
 
             # Design
             current_result["steel_grade"] = best_steel_grade_config.index[0]
@@ -974,8 +982,6 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
 
     def calculate_cost(
         self,
-        currency,
-        year,
         discount_rate,
         timeframe,
         length_km,
@@ -984,7 +990,7 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
         electricity_price_eur_per_mw,
         operating_hours_per_a,
         p_inlet_bar,
-        poutlet_bar=None,
+        p_outlet_bar,
     ):
         """
         Calculates the transport cost of CO2, including pipelines, compression and recompression
@@ -999,12 +1005,10 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
         :param float electricity_price_eur_per_mw: used to minimize levelized cost (EUR/MWh)
         :param int operating_hours_per_a: number of operating hours per year
         :param float p_inlet_bar: inlet pressure in bar (beginning of pipeline)
-        :param float poutlet_bar: outlet pressure in bar (end of pipeline)
+        :param float p_outlet_bar: outlet pressure in bar (end of pipeline)
         :return: dictonary of cost and energy comsumption indicators of lowest levelized cost configuration
         :rtype: dict
         """
-        self.currency_out = currency
-        self.financial_year_out = year
         self.length_km = length_km
         self.timeframe = timeframe
         self.m_kg_per_s = m_kg_per_s
@@ -1018,15 +1022,12 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
 
         self.current_best_results["lc"] = 1e3
 
-        if poutlet_bar is None:
-            self.force_phase = None
-            poutlet_mpa = 1.5
-        elif poutlet_bar / 10 < 3e6:
+        if p_outlet_bar / 10 * 10e6 < 3e6:
             self.force_phase = "gas"
-            poutlet_mpa = poutlet_bar / 10
-        elif poutlet_bar / 10 >= 3e6:
+            poutlet_mpa = p_outlet_bar / 10
+        elif p_outlet_bar / 10 * 10e6 >= 3e6:
             self.force_phase = "liquid"
-            poutlet_mpa = poutlet_bar / 10
+            poutlet_mpa = p_outlet_bar / 10
         else:
             raise ValueError("Given outlet pressure not supported")
 
@@ -1087,32 +1088,33 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
         )
 
         cost_pipeline = {}
-        cost_pipeline["unit_capex"] = self._convert_currency(
-            self.optimal_configuration["capex_pipe"] / self.m_kg_per_s
-        )
+        cost_pipeline["unit_capex"] = self.optimal_configuration["capex_pipe"]
         cost_pipeline["opex_var"] = 0
-        cost_pipeline["opex_fix"] = self.optimal_configuration["opex_pipe"] / (
+        cost_pipeline["opex_fix_abs"] = self.optimal_configuration[
+            "opex_fix_compression"
+        ]
+        cost_pipeline["opex_fix_fraction"] = self.optimal_configuration["opex_pipe"] / (
             cost_pipeline["unit_capex"] * cr_pipe
         )
         cost_pipeline["lifetime"] = self.universal_data["z_pipe"]
 
         cost_compression = {}
-        cost_compression["unit_capex"] = self._convert_currency(
-            (
-                self.optimal_configuration["capex_total"]
-                - self.optimal_configuration["capex_pipe"]
-            )
-            / self.m_kg_per_s
+        cost_compression["unit_capex"] = (
+            self.optimal_configuration["capex_total"]
+            - self.optimal_configuration["capex_pipe"]
         )
         cost_compression["opex_var"] = 0
-        cost_compression["opex_fix"] = self.optimal_configuration[
+        cost_compression["opex_fix_abs"] = self.optimal_configuration[
+            "opex_fix_compression"
+        ]
+        cost_compression["opex_fix_fraction"] = self.optimal_configuration[
             "opex_fix_compression"
         ] / (cost_compression["unit_capex"] * cr_pump_compressions)
         cost_compression["lifetime"] = self.universal_data["z_pumpcomp"]
 
         energy_requirements = {}
         energy_requirements["specific_compression_energy"] = self.optimal_configuration[
-            "energy_compression_specific_MWh_per_kg"
+            "energy_compression_specific_MWh_per_t"
         ]
 
         results = {}
@@ -1120,48 +1122,9 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
         results["cost_compression"] = cost_compression
         results["energy_requirements"] = energy_requirements
         results["configuration"] = self.optimal_configuration
+        results["levelized_cost"] = self.optimal_configuration["lc"]
 
         return results
-
-
-class CO2Pipeline_Oeuvray(CO2Transport_Oeuvray):
-    def __init__(self):
-        """
-        Constructor
-        """
-        super().__init__()
-        self.p_outlet_mpa = None
-        self.p_inlet_mpa = None
-        self.id_nps_m
-
-    def calculate_cost(
-        self,
-        currency,
-        year,
-        discount_rate,
-        timeframe,
-        length_km,
-        m_kg_per_s,
-        terrain,
-        p_inlet_bar,
-        p_outlet_bar,
-        id_nps_m,
-    ):
-        self.currency_out = currency
-        self.financial_year_out = year
-        self.m_kg_per_s = m_kg_per_s
-        self.p_inlet_mpa = p_inlet_bar / 10
-        self.p_outlet_mpa = p_outlet_bar / 10
-        self.discount_rate = discount_rate
-        self.terrain = terrain
-
-        self._preprocess_data()
-
-        # Determine phase
-        if self.p_outlet_mpa < 3e6:
-            self.phase = "gas"
-        elif self.p_outlet_mpa >= 3e6:
-            self.phase = "liquid"
 
 
 class CO2Compression_Oeuvray(CO2Transport_Oeuvray):
@@ -1201,7 +1164,7 @@ class CO2Compression_Oeuvray(CO2Transport_Oeuvray):
         :param float discount_rate: discount rate
         :param float m_kg_per_s: mass flow rate of CO2 in kg/s
         :param float p_inlet_bar: inlet pressure in bar (beginning of pipeline)
-        :param float poutlet_bar: outlet pressure in bar (end of pipeline)
+        :param float p_outlet_bar: outlet pressure in bar (end of pipeline)
         :return: dictonary of cost and energy comsumption indicators
         :rtype: dict
         """
@@ -1241,7 +1204,7 @@ class CO2Compression_Oeuvray(CO2Transport_Oeuvray):
         )
 
         self.lifetime = min(self.universal_data)
-        self.unit_capex = self._convert_currency(capex_compression_eur)
+        self.unit_capex = capex_compression_eur
         self.opex_fix = opex_fix / (capex_compression_eur * cr_pump_compressions)
         self.opex_var = 0
 
@@ -1251,3 +1214,43 @@ class CO2Compression_Oeuvray(CO2Transport_Oeuvray):
             "opex_var": self.opex_var,
             "specific_compression_energy_mwh_per_t": w_compression_mwh_per_t,
         }
+
+
+# class CO2Pipeline_Oeuvray(CO2Transport_Oeuvray):
+#     def __init__(self):
+#         """
+#         Constructor
+#         """
+#         super().__init__()
+#         self.p_outlet_mpa = None
+#         self.p_inlet_mpa = None
+#         self.id_nps_m
+#
+#     def calculate_cost(
+#         self,
+#         currency,
+#         year,
+#         discount_rate,
+#         timeframe,
+#         length_km,
+#         m_kg_per_s,
+#         terrain,
+#         p_inlet_bar,
+#         p_outlet_bar,
+#         id_nps_m,
+#     ):
+#         self.currency_out = currency
+#         self.financial_year_out = year
+#         self.m_kg_per_s = m_kg_per_s
+#         self.p_inlet_mpa = p_inlet_bar / 10
+#         self.p_outlet_mpa = p_outlet_bar / 10
+#         self.discount_rate = discount_rate
+#         self.terrain = terrain
+#
+#         self._preprocess_data()
+#
+#         # Determine phase
+#         if self.p_outlet_mpa < 3e6:
+#             self.phase = "gas"
+#         elif self.p_outlet_mpa >= 3e6:
+#             self.phase = "liquid"

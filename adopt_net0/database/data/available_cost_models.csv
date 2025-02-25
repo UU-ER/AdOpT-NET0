@@ -1,4 +1,4 @@
 Component_Name;Component_Type;Available_Sources
 DAC_Adsorption;Technology;Sievert
-CO2PipelineOffshore;Network;Oeuvray
-CO2PipelineOnshore;Network;Oeuvray
+CO2_Pipeline;Network;Oeuvray
+CO2_Compression;Technology;Oeuvray

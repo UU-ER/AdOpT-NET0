@@ -1,6 +1,3 @@
-from pathlib import Path
-import json
-
 from .utilities import Dac_sievert
 from ..utilities import convert_currency
 from ..data_component import DataComponent_CostModel
@@ -45,13 +42,13 @@ class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
             self.financial_year_in = 2022
 
             # Options
-            self._set_option_value("cumulative_capacity_installed_t_per_a", options)
-            self._set_option_value("average_productivity_per_module_kg_per_h", options)
-            self._set_option_value("capacity_factor", options)
+            for o in self.default_options.keys():
+                self._set_option_value(o, options)
+
         else:
             raise ValueError("This source is not available")
 
-    def calculate_financial_indicators(self):
+    def calculate_indicators(self):
         """
         Calculates financial indicators
         """
@@ -92,6 +89,7 @@ class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
             )
             self.financial_indicators["lifetime"] = calculation_module.lifetime
 
+        # Write to json template
         self.json_data["Economics"]["unit_CAPEX"] = self.financial_indicators[
             "module_capex"
         ]
@@ -103,10 +101,4 @@ class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
         ]
         self.json_data["Economics"]["lifetime"] = self.financial_indicators["lifetime"]
 
-        return self.financial_indicators
-
-    def calculate_technical_indicators(self):
-        """
-        Overwritten in child classes
-        """
-        raise NotImplementedError
+        return {"financial_indicators": self.financial_indicators}

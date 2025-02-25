@@ -44,21 +44,13 @@ class DataComponent_CostModel:
         self.default_options = {}
         self.options = {}
 
-    def calculate_financial_indicators(self):
+    def calculate_indicators(self):
         """
         Calculates financial indicators
 
         Overwritten in child classes
         """
         warnings.warn("No inflation correction of currency conversion has been done")
-
-    def calculate_technical_indicators(self):
-        """
-        Calculates technical indicators
-
-        Overwritten in child classes
-        """
-        raise NotImplementedError
 
     def write_json(self, path):
         """
@@ -67,7 +59,7 @@ class DataComponent_CostModel:
         Overwritten in child classes
         :param str path: path to write to
         """
-        self.calculate_financial_indicators()
+        self.calculate_indicators()
         with open(
             Path(path) / (self.tec_name + ".json"),
             "w",
