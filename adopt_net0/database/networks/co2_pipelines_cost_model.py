@@ -36,8 +36,8 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
     TODO
     """
 
-    def __init__(self, tec_name, options):
-        super().__init__(tec_name, options)
+    def __init__(self, tec_name):
+        super().__init__(tec_name)
         # Default options:
         self.default_options["source"] = "Oeuvray"
         self.default_options["timeframe"] = "mid-term"
@@ -49,6 +49,12 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
         self.default_options["operating_hours_per_a"] = 8000
         self.default_options["p_inlet_bar"] = 10
         self.default_options["p_outlet_bar"] = 70
+
+    def _set_options(self, options: dict):
+        """
+        Sets all provided options
+        """
+        super()._set_options(options)
 
         try:
             self.options["length_km"] = options["length_km"]
@@ -71,10 +77,11 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
         else:
             raise ValueError("This source is not available")
 
-    def calculate_indicators(self):
+    def calculate_indicators(self, options: dict):
         """
         Calculates financial indicators
         """
+        super().calculate_indicators(options)
 
         if self.options["source"] == "Oeuvray":
             if self.options["m_kg_per_s_min"] == self.options["m_kg_per_s_max"]:

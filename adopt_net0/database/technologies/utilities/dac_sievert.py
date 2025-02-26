@@ -154,7 +154,7 @@ class Dac_sievert:
         self.cost_total_plant = self._calculate_total_plant_cost(cumulative_capacity)
         self.cost_start_up = self._calculate_startup_costs(cumulative_capacity)
         self.cost_total_overnight = self.cost_total_plant + self.cost_start_up
-        self.unit_capex = self.cost_total_overnight / foak_scale * 8760
+        self.unit_capex = self.cost_total_overnight / foak_scale
 
     def _calculate_opex_var(self, cumulative_capacity):
         """
@@ -427,6 +427,6 @@ class Dac_sievert:
 
         lcoc = (
             self.unit_capex * crf * (1 + self.opex_fix)
-            + 8760 * capacity_factor * self.opex_var
-        ) / (8760 * capacity_factor)
+            + capacity_factor * self.opex_var
+        ) / (capacity_factor)
         return lcoc

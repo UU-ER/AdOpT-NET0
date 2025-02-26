@@ -17,13 +17,13 @@ class DataComponent_CostModel:
     - discount_rate: discount rate for annualizing
     """
 
-    def __init__(self, tec_name, options):
+    def __init__(self, tec_name):
         self.tec_name = tec_name
 
         # Output units
-        self.currency_out = options["currency_out"]
-        self.financial_year_out = options["financial_year_out"]
-        self.discount_rate = options["discount_rate"]
+        self.currency_out = None
+        self.financial_year_out = None
+        self.discount_rate = None
 
         # Input units
         self.currency_in = None
@@ -44,22 +44,30 @@ class DataComponent_CostModel:
         self.default_options = {}
         self.options = {}
 
-    def calculate_indicators(self):
+    def calculate_indicators(self, options: dict):
         """
         Calculates financial indicators
 
         Overwritten in child classes
         """
-        warnings.warn("No inflation correction of currency conversion has been done")
+        self._set_options(options)
 
-    def write_json(self, path):
+    def _set_options(self, options: dict):
+        """
+        Sets all provided options
+        """
+        self.currency_out = options["currency_out"]
+        self.financial_year_out = options["financial_year_out"]
+        self.discount_rate = options["discount_rate"]
+
+    def write_json(self, path: str, options: dict):
         """
         Write json to specified path
 
         Overwritten in child classes
         :param str path: path to write to
         """
-        self.calculate_indicators()
+        self.calculate_indicators(options)
         with open(
             Path(path) / (self.tec_name + ".json"),
             "w",

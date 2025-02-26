@@ -20,8 +20,8 @@ def write_json(component_name: str, directory: str, options):
     :param dict options: options used in the calculations
     :return:
     """
-    component = _component_factory(component_name, options)
-    component.write_json(directory)
+    component = _component_factory(component_name)
+    component.write_json(directory, options)
 
 
 def calculate_indicators(component_name: str, options: dict) -> dict:
@@ -42,11 +42,11 @@ def calculate_indicators(component_name: str, options: dict) -> dict:
     :return: dictionary containing financial parameters
     :rtype: dict
     """
-    component = _component_factory(component_name, options)
-    return component.calculate_indicators()
+    component = _component_factory(component_name)
+    return component.calculate_indicators(options)
 
 
-def _component_factory(component_name: str, options: dict):
+def _component_factory(component_name: str):
     """
     Creates component class
 
@@ -54,13 +54,15 @@ def _component_factory(component_name: str, options: dict):
     :return: component class
     """
     if component_name == "DAC_Adsorption":
-        return Dac_SolidSorbent_CostModel(component_name, options)
+        return Dac_SolidSorbent_CostModel(component_name)
     elif component_name == "CO2_Pipeline":
-        return CO2_Pipeline_CostModel(component_name, options)
+        return CO2_Pipeline_CostModel(component_name)
     elif component_name == "CO2_Compression":
-        return CO2_Compression_CostModel(component_name, options)
+        return CO2_Compression_CostModel(component_name)
+    elif component_name == "WindTurbine":
+        return WindEnergy_CostModel(component_name)
     else:
-        return DataComponent_CostModel(component_name, options)
+        return DataComponent_CostModel(component_name)
 
 
 def help(component_name: str = None):
@@ -93,13 +95,7 @@ def _help_component(component_name: str):
 
     :param str component_name: Name of the technology/network
     """
-    options = {
-        "currency_out": "",
-        "financial_year_out": 9999,
-        "discount_rate": 999,
-        "length_km": -1,
-    }
-    component = _component_factory(component_name, options)
+    component = _component_factory(component_name)
     print(component.__doc__)
     print("Default options are:")
     for o in component.default_options:

@@ -25,13 +25,19 @@ class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
     - lifetime in years
     """
 
-    def __init__(self, tec_name, options):
-        super().__init__(tec_name, options)
+    def __init__(self, tec_name):
+        super().__init__(tec_name)
         # Default options:
         self.default_options["source"] = "Sievert"
         self.default_options["cumulative_capacity_installed_t_per_a"] = 0
         self.default_options["average_productivity_per_module_kg_per_h"] = 8.6
         self.default_options["capacity_factor"] = 0.9
+
+    def _set_options(self, options: dict):
+        """
+        Sets all provided options
+        """
+        super()._set_options(options)
 
         # Set options
         self._set_option_value("source", options)
@@ -48,10 +54,12 @@ class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
         else:
             raise ValueError("This source is not available")
 
-    def calculate_indicators(self):
+    def calculate_indicators(self, options: dict):
         """
         Calculates financial indicators
         """
+        super().calculate_indicators(options)
+
         if self.options["source"] == "Sievert":
             module_capacity_t_per_a = (
                 self.options["average_productivity_per_module_kg_per_h"] * 8760 / 1000
