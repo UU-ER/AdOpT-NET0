@@ -116,8 +116,12 @@ class Dac_sievert:
         self.cost_total_plant = None
         self.cost_start_up = None
         self.cost_total_overnight = None
+        self.unit_capex = None
+        self.opex_fix = None
+        self.opex_var = None
+        self.levelized_cost = None
 
-    def calculate_cost(self, discount_rate, cumulative_capacity):
+    def calculate_cost(self, discount_rate, cumulative_capacity, capacity_factor):
         """
         Calculates cost (Capex, fixed opex, variable opex) and corrects for exchange rates and inflation
 
@@ -128,6 +132,8 @@ class Dac_sievert:
         - Opex var does not include energy and downstream transport/storage cost
 
         :param float cumulative_capacity: total global installed capturing capacity in t/a. Determines the learning rates
+        :return: unit_capex, opex_fix, opex_var and lifetime
+        :rtype: dict
         """
         self.discount_rate = discount_rate
         if cumulative_capacity == 0:
@@ -136,11 +142,14 @@ class Dac_sievert:
         self._calculate_capex(cumulative_capacity)
         self._calculate_opex_var(cumulative_capacity)
         self._calculate_opex_fix(cumulative_capacity)
+        self._calculate_levelized_cost(capacity_factor)
 
         return {
             "unit_capex": self.unit_capex,
             "opex_fix": self.opex_fix,
             "opex_var": self.opex_var,
+            "lifetime": self.lifetime,
+            "levelized_cost": self.levelized_cost,
         }
 
     def _calculate_capex(self, cumulative_capacity):
@@ -410,7 +419,7 @@ class Dac_sievert:
 
         return direct_labor_cost + indirect_labor_cost + maintenance_cost
 
-    def calculate_levelized_cost(self, capacity_factor):
+    def _calculate_levelized_cost(self, capacity_factor):
         """
         Calculates levelized costs of co2 capture (excluding energy costs).
 
@@ -425,8 +434,7 @@ class Dac_sievert:
             / ((1 + self.discount_rate) ** self.lifetime - 1)
         )
 
-        lcoc = (
+        self.levelized_cost = (
             self.unit_capex * crf * (1 + self.opex_fix)
             + capacity_factor * self.opex_var
         ) / (capacity_factor)
-        return lcoc

@@ -69,6 +69,7 @@ class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
             cost = calculation_module.calculate_cost(
                 self.discount_rate,
                 self.options["cumulative_capacity_installed_t_per_a"],
+                self.options["capacity_factor"],
             )
 
             self.financial_indicators["module_capex"] = convert_currency(
@@ -87,15 +88,13 @@ class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
             )
             self.financial_indicators["opex_fix"] = cost["opex_fix"]
             self.financial_indicators["levelized_cost"] = convert_currency(
-                calculation_module.calculate_levelized_cost(
-                    self.options["capacity_factor"]
-                ),
+                cost["levelized_cost"],
                 self.financial_year_in,
                 self.financial_year_out,
                 self.currency_in,
                 self.currency_out,
             )
-            self.financial_indicators["lifetime"] = calculation_module.lifetime
+            self.financial_indicators["lifetime"] = cost["lifetime"]
 
         # Write to json template
         self.json_data["Economics"]["unit_CAPEX"] = self.financial_indicators[
