@@ -63,8 +63,8 @@ Examplary use:
            "discount_rate": 0.1,
            "cumulative_capacity_installed_t_per_a": 10000}
 
-   # Calculate financial indicators and print them
-   financial_inds = td.calculate_financial_indicators(tec, options)
+   # Calculate indicators and print them
+   financial_inds = td.calculate_indicators(tec, options)
    print(financial_inds)
 
    # Write to a json file in specified PATH
@@ -72,11 +72,27 @@ Examplary use:
 
 
 .. automodule:: adopt_net0.database.technology_database
-    :members: help, write_json, calculate_financial_indicators
+    :members: help, write_json, calculate_indicators
 
 
-Detailed cost models
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Detailed technology cost models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Photovoltaic**
+
+.. automodule:: adopt_net0.database.technologies.pv_cost_model
+
+.. autoclass:: PV_CostModel
+   :undoc-members:
+   :noindex:
+
+**Wind energy**
+
+.. automodule:: adopt_net0.database.technologies.wind_cost_model
+
+.. autoclass:: WindEnergy_CostModel
+   :undoc-members:
+   :noindex:
 
 **Solid Sorbent Direct Air Capture**
 
@@ -85,3 +101,23 @@ Detailed cost models
 .. autoclass:: Dac_SolidSorbent_CostModel
    :undoc-members:
    :noindex:
+
+**CO2 compression**
+
+.. automodule:: adopt_net0.database.technologies.co2_compression_cost_model
+
+.. autoclass:: CO2_Compression_CostModel
+   :undoc-members:
+   :noindex:
+
+Detailed network cost models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**CO2 pipeline**
+
+.. automodule:: adopt_net0.database.networks.co2_pipelines_cost_model
+
+.. autoclass:: CO2_Pipeline_CostModel
+   :undoc-members:
+   :noindex:
+

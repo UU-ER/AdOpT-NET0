@@ -1,4 +1,4 @@
-from .utilities import Irena, Nrel
+from .utilities import Irena, Nrel, Dea
 from ..utilities import convert_currency
 from ..data_component import DataComponent_CostModel
 
@@ -20,8 +20,14 @@ class WindEnergy_CostModel(DataComponent_CostModel):
     If source = "NREL"
 
     - cost model is based on NREL (2024): 2024 Annual Technology Baseline (ATB) for Wind Turbine Technology 1
-    - projection_year: future year for which to estimate cost (possible values: 2022-2050)
+    - projection_year: future year for which to estimate cost (possible values: 2030, 2040, 2050)
     - projection_type: can be "Advanced", "Moderate", or "Conservative"
+    - mounting_type: can be "fixed" or "floating" for offshore turbines
+
+    If source = "DEA"
+
+    - cost model is based on Danish Energy Agency (2025): Technology Data for Generation of Electricity and District Heating
+    - projection_year: future year for which to estimate cost (possible values: 2022-2050)
     - mounting_type: can be "fixed" or "floating" for offshore turbines
 
     Financial indicators are:
@@ -72,6 +78,15 @@ class WindEnergy_CostModel(DataComponent_CostModel):
             self.options["mounting_type"] = options["mounting_type"]
             self.options["projection_year"] = options["projection_year"]
             self.options["projection_type"] = options["projection_type"]
+
+        elif self.options["source"] == "DEA":
+            # Input units
+            self.currency_in = "EUR"
+            self.financial_year_in = 2020
+            self.options["terrain"] = options["terrain"]
+            self.options["mounting_type"] = options["mounting_type"]
+            self.options["projection_year"] = options["projection_year"]
+
         else:
             raise ValueError("This source is not available")
 
@@ -85,6 +100,8 @@ class WindEnergy_CostModel(DataComponent_CostModel):
             calculation_module = self._create_calculation_module_irena()
         elif self.options["source"] == "NREL":
             calculation_module = self._create_calculation_module_nrel()
+        elif self.options["source"] == "DEA":
+            calculation_module = self._create_calculation_module_dea()
 
         cost = calculation_module.calculate_cost(self.options)
 
@@ -96,7 +113,7 @@ class WindEnergy_CostModel(DataComponent_CostModel):
             self.currency_out,
         )
         self.financial_indicators["opex_variable"] = convert_currency(
-            cost["opex_var"],
+            cost["opex_var"] * 1000,
             self.financial_year_in,
             self.financial_year_out,
             self.currency_in,
@@ -163,5 +180,28 @@ class WindEnergy_CostModel(DataComponent_CostModel):
             return Irena("Wind_Offshore")
         elif self.options["terrain"] == "Onshore":
             return Irena("Wind_Onshore")
+        else:
+            raise ValueError("Wrong terrain specified, needs to be Onshore or Offshore")
+
+    def _create_calculation_module_dea(self):
+        """
+        Creates calculation module for source Danish Energy Agency
+
+        :return: calculation_module
+        """
+        if self.options["terrain"] == "Offshore":
+            if not "mounting_type" in self.options:
+                raise ValueError(
+                    "For offshore wind, you need to specify a mounting_type (fixed or floating)"
+                )
+
+            if self.options["mounting_type"] == "fixed":
+                return Dea("Wind_Offshore_fixed")
+            elif self.options["mounting_type"] == "floating":
+                return Dea("Wind_Offshore_floating")
+            else:
+                raise ValueError("mounting_type can only be fixed or floating")
+        elif self.options["terrain"] == "Onshore":
+            return Dea("Wind_Onshore")
         else:
             raise ValueError("Wrong terrain specified, needs to be Onshore or Offshore")

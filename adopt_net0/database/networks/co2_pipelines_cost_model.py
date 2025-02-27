@@ -33,7 +33,15 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
 
     Financial indicators are:
 
-    TODO
+    - gamma1, gamma2, gamma3, gamma4 in [currency] (equivalent to the cost parameters of a network)
+    - fixed capex as fraction of annualized capex
+    - variable opex in [currency]/ton
+    - lifetime in years
+    - levelized_cost in [currency]/t
+
+    Technical indicators are:
+
+    - energyconsumption in MWh/t compressed
     """
 
     def __init__(self, tec_name):

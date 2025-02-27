@@ -22,6 +22,7 @@ def write_json(component_name: str, directory: str, options):
     """
     component = _component_factory(component_name)
     component.write_json(directory, options)
+    return component
 
 
 def calculate_indicators(component_name: str, options: dict) -> dict:

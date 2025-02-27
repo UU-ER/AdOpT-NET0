@@ -228,7 +228,7 @@ class Irena:
         Calculates the cost of wind energy
 
         :param dict options: Options to use
-        :return: unit_capex (USD2023/kW), opex_fix (USD2023/kW/yr), opex_var (0) and lifetime (yrs)
+        :return: unit_capex (USD2023/kW), opex_fix (% of annualized investment), opex_var (0) and lifetime (yrs)
         :rtype: dict
         """
         region = options["region"]

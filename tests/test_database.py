@@ -25,7 +25,14 @@ def test_wind_cost_model(request):
             "source": "IRENA",
         }
 
-        td.write_json(tec, request.config.result_folder_path, options)
+        c = td.write_json(tec, request.config.result_folder_path, options)
+        assert (
+            500
+            <= c.financial_indicators["module_capex"]
+            / c.options["nameplate_capacity_MW"]
+            / 1000
+            <= 10000
+        )
 
     # NREL
     for terrain in ["Onshore", "Offshore"]:
@@ -42,7 +49,37 @@ def test_wind_cost_model(request):
                 "mounting_type": mounting_type,
             }
 
-            td.write_json(tec, request.config.result_folder_path, options)
+            c = td.write_json(tec, request.config.result_folder_path, options)
+            assert (
+                500
+                <= c.financial_indicators["module_capex"]
+                / c.options["nameplate_capacity_MW"]
+                / 1000
+                <= 10000
+            )
+
+    # DEA
+    for terrain in ["Onshore", "Offshore"]:
+        for mounting_type in ["fixed", "floating"]:
+            options = {
+                "currency_out": "EUR",
+                "financial_year_out": 2020,
+                "discount_rate": 0.1,
+                "nameplate_capacity_MW": 4,
+                "source": "DEA",
+                "terrain": terrain,
+                "projection_year": 2030,
+                "mounting_type": mounting_type,
+            }
+
+            c = td.write_json(tec, request.config.result_folder_path, options)
+            assert (
+                500
+                <= c.financial_indicators["module_capex"]
+                / c.options["nameplate_capacity_MW"]
+                / 1000
+                <= 10000
+            )
 
 
 # PV COST MODELS
@@ -62,7 +99,8 @@ def test_pv_cost_model(request):
         "source": "IRENA",
     }
 
-    td.write_json(tec, request.config.result_folder_path, options)
+    c = td.write_json(tec, request.config.result_folder_path, options)
+    assert 200 <= c.financial_indicators["unit_capex"] / 1000 <= 10000
 
     # NREL
     for pv_type in ["utility", "rooftop commercial", "rooftop residential"]:
@@ -76,7 +114,22 @@ def test_pv_cost_model(request):
             "pv_type": pv_type,
         }
 
-        td.write_json(tec, request.config.result_folder_path, options)
+        c = td.write_json(tec, request.config.result_folder_path, options)
+        assert 200 <= c.financial_indicators["unit_capex"] / 1000 <= 10000
+
+    # DEA
+    for pv_type in ["utility", "rooftop commercial", "rooftop residential"]:
+        options = {
+            "currency_out": "EUR",
+            "financial_year_out": 2020,
+            "discount_rate": 0.1,
+            "source": "DEA",
+            "projection_year": 2030,
+            "pv_type": pv_type,
+        }
+
+        c = td.write_json(tec, request.config.result_folder_path, options)
+        assert 200 <= c.financial_indicators["unit_capex"] / 1000 <= 10000
 
 
 # DAC
@@ -99,7 +152,7 @@ def test_dac_cost_model(request):
         "source": "Sievert",
     }
 
-    td.write_json(tec, ".", options)
+    c = td.write_json(tec, ".", options)
 
 
 # CO2 PIPELINE
@@ -125,7 +178,7 @@ def test_co2_pipeline_cost_model(request):
                 "terrain": terrain,
             }
 
-            td.write_json(tec, ".", options)
+            c = td.write_json(tec, ".", options)
 
 
 # CO2 Compressor
@@ -150,4 +203,4 @@ def test_co2_compressor_cost_model(request):
                 "capex_model": capex_model,
             }
 
-            td.write_json(tec, ".", options)
+            c = td.write_json(tec, ".", options)

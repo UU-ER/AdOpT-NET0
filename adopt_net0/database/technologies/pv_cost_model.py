@@ -1,4 +1,4 @@
-from .utilities import Irena, Nrel
+from .utilities import Irena, Nrel, Dea
 from ..utilities import convert_currency
 from ..data_component import DataComponent_CostModel
 
@@ -19,6 +19,12 @@ class PV_CostModel(DataComponent_CostModel):
     - cost model is based on NREL (2024): 2024 Annual Technology Baseline (ATB) for Wind Turbine Technology 1
     - projection_year: future year for which to estimate cost (possible values: 2022-2050)
     - projection_type: can be "Advanced", "Moderate", or "Conservative"
+    - pv_type: can be "utility" or "rooftop commercial" or "rooftop residential"
+
+    If source = "DEA"
+
+    - cost model is based on Danish Energy Agency (2025): Technology Data for Generation of Electricity and District Heating
+    - projection_year: future year for which to estimate cost (possible values: 2022-2050)
     - pv_type: can be "utility" or "rooftop commercial" or "rooftop residential"
 
     Financial indicators are:
@@ -63,6 +69,13 @@ class PV_CostModel(DataComponent_CostModel):
             self.options["projection_year"] = options["projection_year"]
             self.options["projection_type"] = options["projection_type"]
 
+        elif self.options["source"] == "DEA":
+            # Input units
+            self.currency_in = "EUR"
+            self.financial_year_in = 2020
+            self.options["pv_type"] = options["pv_type"]
+            self.options["projection_year"] = options["projection_year"]
+
         else:
             raise ValueError("This source is not available")
 
@@ -76,6 +89,8 @@ class PV_CostModel(DataComponent_CostModel):
             calculation_module = self._create_calculation_module_irena()
         elif self.options["source"] == "NREL":
             calculation_module = self._create_calculation_module_nrel()
+        elif self.options["source"] == "DEA":
+            calculation_module = self._create_calculation_module_dea()
 
         cost = calculation_module.calculate_cost(self.options)
 
@@ -142,6 +157,23 @@ class PV_CostModel(DataComponent_CostModel):
             return Nrel("Photovoltaic_distributed_commercial")
         elif self.options["pv_type"] == "rooftop residential":
             return Nrel("Photovoltaic_distributed_residential")
+        else:
+            raise ValueError(
+                "Wrong pv_type specified, needs to be utility or rooftop commercial or rooftop residential"
+            )
+
+    def _create_calculation_module_dea(self):
+        """
+        Creates calculation module for source DEA
+
+        :return: calculation_module
+        """
+        if self.options["pv_type"] == "utility":
+            return Dea("Photovoltaic_utility")
+        elif self.options["pv_type"] == "rooftop commercial":
+            return Dea("Photovoltaic_distributed_commercial")
+        elif self.options["pv_type"] == "rooftop residential":
+            return Dea("Photovoltaic_distributed_residential")
         else:
             raise ValueError(
                 "Wrong pv_type specified, needs to be utility or rooftop commercial or rooftop residential"

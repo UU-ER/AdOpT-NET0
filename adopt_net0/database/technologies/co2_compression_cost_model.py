@@ -31,8 +31,13 @@ class CO2_Compression_CostModel(DataComponent_CostModel):
     - unit_capex in [currency]/t/a
     - fixed capex as fraction of annualized capex
     - variable opex in [currency]/ton
-    - levelized cost in [currency]/ton without energy costs
     - lifetime in years
+
+    Technical indicators are:
+
+    - energyconsumption in MWh/t compressed
+
+    -
     """
 
     def __init__(self, tec_name):
