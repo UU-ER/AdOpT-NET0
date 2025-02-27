@@ -19,7 +19,7 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
     If source = "Oeuvray"
 
     - cost and energy consumption model is based on Oeuvray, P., Burger, J., Roussanaly, S., Mazzotti, M., Becattini, V. (2024):
-    Multi-criteria assessment of inland and offshore carbon dioxide transport options, Journal of Cleaner Production, https://doi.org/10.1016/j.jclepro.2024.140781.
+      Multi-criteria assessment of inland and offshore carbon dioxide transport options, Journal of Cleaner Production, https://doi.org/10.1016/j.jclepro.2024.140781.
     - length_km: Length of pipeline in km
     - timeframe: determines which steel grades are available, can be 'short-term', 'mid-term', or 'long-term'
     - m_kg_per_s_min: minimal mass flow rate of CO2 in kg/s to evaluate for costs
@@ -65,6 +65,7 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
 
         # Set options
         self._set_option_value("source", options)
+        self.options["discount_rate"] = self.discount_rate
 
         if self.options["source"] == "Oeuvray":
             # Input units
@@ -103,17 +104,8 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
             for m_kg_per_s in range_m_kg_per_s:
                 print(m_kg_per_s)
                 m_t_per_h = m_kg_per_s / 1000 * 3600
-                cost = calculation_module.calculate_cost(
-                    self.discount_rate,
-                    self.options["timeframe"],
-                    self.options["length_km"],
-                    m_kg_per_s,
-                    self.options["terrain"],
-                    self.options["electricity_price_eur_per_mw"],
-                    self.options["operating_hours_per_a"],
-                    self.options["p_inlet_bar"],
-                    self.options["p_outlet_bar"],
-                )
+                self.options["m_kg_per_s"] = m_kg_per_s
+                cost = calculation_module.calculate_cost(self.options)
 
                 # Correct for compression lifetime
                 cr_pipeline = (

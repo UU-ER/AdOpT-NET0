@@ -1,6 +1,5 @@
 import pandas as pd
 from pathlib import Path
-import numpy as np
 
 
 class Irena:
@@ -224,15 +223,16 @@ class Irena:
         self.opex_var = None
         self.levelized_cost = None
 
-    def calculate_cost(self, region: str, discount_rate: float) -> dict:
+    def calculate_cost(self, options: dict) -> dict:
         """
         Calculates the cost of wind energy
 
-        :param str region: Region to calculate costs for
+        :param dict options: Options to use
         :return: unit_capex (USD2023/kW), opex_fix (USD2023/kW/yr), opex_var (0) and lifetime (yrs)
         :rtype: dict
         """
-
+        region = options["region"]
+        discount_rate = options["discount_rate"]
         if region not in self.available_regions:
             raise ValueError(
                 f"Region is not available. Available regions are {self.available_regions.to_list()}"

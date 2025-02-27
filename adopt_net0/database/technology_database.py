@@ -57,7 +57,7 @@ def _component_factory(component_name: str):
         return Dac_SolidSorbent_CostModel(component_name)
     elif component_name == "CO2_Pipeline":
         return CO2_Pipeline_CostModel(component_name)
-    elif component_name == "CO2_Compression":
+    elif component_name == "CO2_Compressor":
         return CO2_Compression_CostModel(component_name)
     elif "WindTurbine" in component_name:
         return WindEnergy_CostModel(component_name)

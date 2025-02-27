@@ -1,4 +1,4 @@
-from .utilities import Irena
+from .utilities import Irena, Nrel
 from ..utilities import convert_currency
 from ..data_component import DataComponent_CostModel
 
@@ -13,6 +13,13 @@ class PV_CostModel(DataComponent_CostModel):
 
     - cost model is based on IRENA (2023): Renewable power generation costs in 2023 for utility scale photovoltaics
     - region can be chosen among different countries
+
+    If source = "NREL"
+
+    - cost model is based on NREL (2024): 2024 Annual Technology Baseline (ATB) for Wind Turbine Technology 1
+    - projection_year: future year for which to estimate cost (possible values: 2022-2050)
+    - projection_type: can be "Advanced", "Moderate", or "Conservative"
+    - pv_type: can be "utility" or "rooftop commercial" or "rooftop residential"
 
     Financial indicators are:
 
@@ -37,6 +44,7 @@ class PV_CostModel(DataComponent_CostModel):
 
         # Set options
         self._set_option_value("source", options)
+        self.options["discount_rate"] = self.discount_rate
 
         if self.options["source"] == "IRENA":
             # Input units
@@ -46,6 +54,14 @@ class PV_CostModel(DataComponent_CostModel):
             # Options
             for o in self.default_options.keys():
                 self._set_option_value(o, options)
+
+        elif self.options["source"] == "NREL":
+            # Input units
+            self.currency_in = "USD"
+            self.financial_year_in = 2022
+            self.options["pv_type"] = options["pv_type"]
+            self.options["projection_year"] = options["projection_year"]
+            self.options["projection_type"] = options["projection_type"]
 
         else:
             raise ValueError("This source is not available")
@@ -57,38 +73,38 @@ class PV_CostModel(DataComponent_CostModel):
         super().calculate_indicators(options)
 
         if self.options["source"] == "IRENA":
-            calculation_module = Irena("Photovoltaic")
+            calculation_module = self._create_calculation_module_irena()
+        elif self.options["source"] == "NREL":
+            calculation_module = self._create_calculation_module_nrel()
 
-            cost = calculation_module.calculate_cost(
-                self.options["region"], self.discount_rate
-            )
+        cost = calculation_module.calculate_cost(self.options)
 
-            self.financial_indicators["unit_capex"] = convert_currency(
-                cost["unit_capex"] * 1000,
+        self.financial_indicators["unit_capex"] = convert_currency(
+            cost["unit_capex"] * 1000,
+            self.financial_year_in,
+            self.financial_year_out,
+            self.currency_in,
+            self.currency_out,
+        )
+        self.financial_indicators["opex_variable"] = convert_currency(
+            cost["opex_var"],
+            self.financial_year_in,
+            self.financial_year_out,
+            self.currency_in,
+            self.currency_out,
+        )
+        self.financial_indicators["opex_fix"] = cost["opex_fix"]
+        self.financial_indicators["levelized_cost"] = (
+            convert_currency(
+                cost["levelized_cost"],
                 self.financial_year_in,
                 self.financial_year_out,
                 self.currency_in,
                 self.currency_out,
             )
-            self.financial_indicators["opex_variable"] = convert_currency(
-                cost["opex_var"],
-                self.financial_year_in,
-                self.financial_year_out,
-                self.currency_in,
-                self.currency_out,
-            )
-            self.financial_indicators["opex_fix"] = cost["opex_fix"]
-            self.financial_indicators["levelized_cost"] = (
-                convert_currency(
-                    cost["levelized_cost"],
-                    self.financial_year_in,
-                    self.financial_year_out,
-                    self.currency_in,
-                    self.currency_out,
-                )
-                * 1000
-            )
-            self.financial_indicators["lifetime"] = cost["lifetime"]
+            * 1000
+        )
+        self.financial_indicators["lifetime"] = cost["lifetime"]
 
         # Write to json template
         self.json_data["Economics"]["unit_CAPEX"] = self.financial_indicators[
@@ -104,3 +120,29 @@ class PV_CostModel(DataComponent_CostModel):
         self.json_data["size_is_int"] = 1
 
         return {"financial_indicators": self.financial_indicators}
+
+    def _create_calculation_module_irena(self):
+        """
+        Creates calculation module for source IRENA
+
+        :return: calculation_module
+        """
+
+        return Irena("Photovoltaic")
+
+    def _create_calculation_module_nrel(self):
+        """
+        Creates calculation module for source IRENA
+
+        :return: calculation_module
+        """
+        if self.options["pv_type"] == "utility":
+            return Nrel("Photovoltaic_utility")
+        elif self.options["pv_type"] == "rooftop commercial":
+            return Nrel("Photovoltaic_distributed_commercial")
+        elif self.options["pv_type"] == "rooftop residential":
+            return Nrel("Photovoltaic_distributed_residential")
+        else:
+            raise ValueError(
+                "Wrong pv_type specified, needs to be utility or rooftop commercial or rooftop residential"
+            )
