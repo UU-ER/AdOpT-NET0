@@ -75,17 +75,19 @@ class WindEnergy_CostModel(DataComponent_CostModel):
             self.currency_in = "USD"
             self.financial_year_in = 2022
             self.options["terrain"] = options["terrain"]
-            self.options["mounting_type"] = options["mounting_type"]
             self.options["projection_year"] = options["projection_year"]
             self.options["projection_type"] = options["projection_type"]
+            if self.options["terrain"] == "Offshore":
+                self.options["mounting_type"] = options["mounting_type"]
 
         elif self.options["source"] == "DEA":
             # Input units
             self.currency_in = "EUR"
             self.financial_year_in = 2020
             self.options["terrain"] = options["terrain"]
-            self.options["mounting_type"] = options["mounting_type"]
             self.options["projection_year"] = options["projection_year"]
+            if self.options["terrain"] == "Offshore":
+                self.options["mounting_type"] = options["mounting_type"]
 
         else:
             raise ValueError("This source is not available")
