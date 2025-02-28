@@ -197,9 +197,9 @@ class Res(Technology):
         wt_data = pd.read_csv(wt_data_path, delimiter=";")
 
         # match WT with data
-        if self.name in wt_data["TurbineName"]:
-            wt_data = wt_data[wt_data["TurbineName"] == self.name]
-        else:
+        wt_data = wt_data[wt_data["TurbineName"] == self.name]
+
+        if len(wt_data) == 0:
             wt_data = wt_data[wt_data["TurbineName"] == "WindTurbine_Onshore_1500"]
             warnings.warn(
                 "TurbineName not in csv, standard WindTurbine_Onshore_1500 selected."
