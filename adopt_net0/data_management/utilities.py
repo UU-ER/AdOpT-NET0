@@ -5,7 +5,6 @@ import os
 import json
 
 from ..components.networks import *
-from ..components.networks.genericNetworks.simple import Simple
 from ..components.technologies import *
 
 import logging

@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import pyomo.environ as pyo
 
+from adopt_net0.components.networks import Fluid
 from tests.utilities import make_data_for_testing, run_model
 from adopt_net0.data_preprocessing.template_creation import create_empty_network_matrix
 from adopt_net0.components.utilities import perform_disjunct_relaxation
@@ -10,6 +11,7 @@ from adopt_net0.data_management.utilities import network_factory
 
 def define_network(
     load_path: Path,
+    netw_name: str,
     bidirectional_network: bool = False,
     energyconsumption: bool = False,
 ):
@@ -21,7 +23,7 @@ def define_network(
     :param bool energyconsumption:
     :return: Network object
     """
-    with open(load_path / ("TestNetworkFluid.json")) as json_file:
+    with open(load_path / (f"TestNetwork{netw_name}.json")) as json_file:
         netw_data = json.load(json_file)
 
     netw_data["name"] = "TestNetwork"
@@ -38,60 +40,6 @@ def define_network(
     netw_data = network_factory(netw_data)
 
     return netw_data
-
-
-def define_network_simple(
-    load_path: Path,
-    bidirectional_network: bool = False,
-):
-    """
-    reads TestNetworkSimple from path and creates network object
-
-    :param Path load_path:
-    :param bool bidirectional_network:
-    :return: Network object
-    """
-    with open(load_path / "TestNetworkSimple.json") as json_file:
-        netw_data_simple = json.load(json_file)
-
-    netw_data_simple["name"] = "TestNetwork"
-
-    if bidirectional_network:
-        netw_data_simple["Performance"]["bidirectional_network"] = 1
-        netw_data_simple["Performance"]["bidirectional_network_precise"] = 1
-    else:
-        netw_data_simple["Performance"]["bidirectional_network"] = 0
-
-    netw_data_simple = network_factory(netw_data_simple)
-
-    return netw_data_simple
-
-
-def define_network_electricity(
-    load_path: Path,
-    bidirectional_network: bool = False,
-):
-    """
-    reads TestNetworkSimple from path and creates network object
-
-    :param Path load_path:
-    :param bool bidirectional_network:
-    :return: Network object
-    """
-    with open(load_path / "TestNetworkElectricity.json") as json_file:
-        netw_data_simple = json.load(json_file)
-
-    netw_data_simple["name"] = "TestNetwork"
-
-    if bidirectional_network:
-        netw_data_simple["Performance"]["bidirectional_network"] = 1
-        netw_data_simple["Performance"]["bidirectional_network_precise"] = 1
-    else:
-        netw_data_simple["Performance"]["bidirectional_network"] = 0
-
-    netw_data_simple = network_factory(netw_data_simple)
-
-    return netw_data_simple
 
 
 def construct_netw_model(
@@ -143,6 +91,7 @@ def test_network_unidirectional(request):
     nr_timesteps = 1
     netw = define_network(
         request.config.network_data_folder_path,
+        "Fluid",
         bidirectional_network=True,
         energyconsumption=False,
     )
@@ -186,6 +135,7 @@ def test_network_bidirectional(request):
     nr_timesteps = 1
     netw = define_network(
         request.config.network_data_folder_path,
+        "Fluid",
         bidirectional_network=False,
         energyconsumption=False,
     )
@@ -221,6 +171,7 @@ def test_network_energyconsumption(request):
     nr_timesteps = 1
     netw = define_network(
         request.config.network_data_folder_path,
+        "Fluid",
         bidirectional_network=True,
         energyconsumption=True,
     )
@@ -263,8 +214,9 @@ def test_network_electricity(request):
     is correct
     """
     nr_timesteps = 1
-    netw = define_network_electricity(
+    netw = define_network(
         request.config.network_data_folder_path,
+        "Electricity",
         bidirectional_network=True,
     )
 
@@ -308,8 +260,9 @@ def test_network_connection(request):
     is correct
     """
     nr_timesteps = 1
-    netw = define_network_simple(
+    netw = define_network(
         request.config.network_data_folder_path,
+        "Simple",
         bidirectional_network=True,
     )
 

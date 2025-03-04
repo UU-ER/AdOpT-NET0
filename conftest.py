@@ -32,7 +32,7 @@ def pytest_configure(config):
     config.docu_notebook_folder_path = Path("tests")
     config.docu_notebook_data_path = Path("tests/notebook_data")
     config.root_folder_path = Path(".")
-    config.solver = "glpk"
+    config.solver = "gurobi"
 
 
 @pytest.fixture(autouse=True)

@@ -15,12 +15,6 @@ class Simple(Network):
 
     This network type resembles a network in which the carrier is not specified.
 
-    **Arc Block declaration**
-
-    Each arc represents a connection between two nodes, and is thus indexed by (
-    node_from, node_to). For each arc, the following components are defined. Each
-    variable is indexed by the timestep :math:`t` (here left out for convenience).
-
     - Constraint definitions:
 
     **Network constraint declarations**

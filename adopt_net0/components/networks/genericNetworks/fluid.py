@@ -333,15 +333,27 @@ class Fluid(Network):
             )
             arc_group.create_dataset("total_emissions", data=total_emissions)
 
-            for car in model_block.set_consumed_carriers:
+    def write_results_netw_operation(self, h5_group, model_block):
+        super(Fluid, self).write_results_netw_operation(h5_group, model_block)
 
-                arc_group.create_dataset(
-                    "consumption_send" + car,
-                    data=[arc.var_consumption_send[t, car].value for t in self.set_t],
-                )
-                arc_group.create_dataset(
-                    "consumption_receive" + car,
-                    data=[
-                        arc.var_consumption_receive[t, car].value for t in self.set_t
-                    ],
-                )
+        for arc_name in model_block.set_arcs:
+            arc = model_block.arc_block[arc_name]
+            str = "".join(arc_name)
+            arc_group = h5_group.create_group(str)
+
+            if arc.find_component("var_consumption_send"):
+                for car in model_block.set_consumed_carriers:
+
+                    arc_group.create_dataset(
+                        "consumption_send" + car,
+                        data=[
+                            arc.var_consumption_send[t, car].value for t in self.set_t
+                        ],
+                    )
+                    arc_group.create_dataset(
+                        "consumption_receive" + car,
+                        data=[
+                            arc.var_consumption_receive[t, car].value
+                            for t in self.set_t
+                        ],
+                    )
