@@ -138,11 +138,13 @@ class Technology(ModelComponent):
         .. math::
             capex_{aux} = size * capex_{unitannual} + capex_{fixed}
 
-      Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 1) or not (decommission = 0).
-      For technologies that cannot be decommissioned, the size is fixed to the size
-      given in the technology data.
-      For technologies that can be decommissioned, the size can be smaller or equal to the initial size. Reducing the
-      size comes at the decommissioning costs specified in the economics of the technology.
+      Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 'continuous' or decommission =
+      'only_complete') or not (decommission = 'impossible').
+      For technologies that cannot be decommissioned, the size is fixed to the initial size given in the technology
+      data. For technologies that can be decommissioned, the size can be smaller or equal to the initial size. When
+      decommission = 'continuous' the size can take any value between the minimum and initial size. When decommission =
+      'only_complete' the size is either 0 or the initial size. Reducing the size comes at the decommissioning costs or
+      benefits specified in the economics of the technology.
       The fixed opex is calculated by determining the capex that the technology would have costed if newly build and
       then taking the respective opex_fixed share of this. This is done with the auxiliary variable capex_aux.
 
@@ -1056,8 +1058,16 @@ class Technology(ModelComponent):
         return b_tec
 
     def _define_decommissioning_at_once_constraints(self, b_tec):
-        """ "Description
-        :param b_tec:
+        """
+        Defines constraints to ensure that a technology can only be decommissioned as a whole.
+
+        This function creates a disjunction formulation that enforces
+        full-plant decommissioning decisions, meaning that either the technology is fully installed
+        or fully decommissioned, with no partial decommissioning allowed.
+
+        :param b_tec: The block representing the technology.
+
+        :return: The modified technology block with added decommissioning constraints.
         """
 
         # Full plant decommissioned only

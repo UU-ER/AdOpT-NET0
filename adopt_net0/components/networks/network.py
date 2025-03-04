@@ -171,6 +171,14 @@ class Network(ModelComponent):
       .. math::
         flow_{nodeFrom, nodeTo} = 0 \\lor flow_{nodeTo, nodeFrom} = 0
 
+    Existing networks, i.e. existing = 1, can be decommissioned (decommission = 'continuous' or decommission =
+      'only_complete') or not (decommission = 'impossible').
+      For networks that cannot be decommissioned, the size is fixed to the initial size given in the network
+      data. For networks that can be decommissioned, the size can be smaller or equal to the initial size. When
+      decommission = 'continuous' the size can take any value between the minimum and initial size. When decommission =
+      'only_complete' the size is either 0 or the initial size. Reducing the size comes at the decommissioning costs or
+      benefits specified in the economics of the network.
+
     """
 
     def __init__(self, netw_data: dict):
@@ -1145,8 +1153,20 @@ class Network(ModelComponent):
     def _define_decommissioning_at_once_constraints(
         self, b_arc, b_netw, node_from: str, node_to: str
     ):
-        """ "Description
-        :param b_tec:
+        """
+        Defines constraints to ensure that a network connection can only be decommissioned as a whole.
+
+        This function creates a disjunction formulation that enforces
+        full decommissioning decisions for a network arc, meaning that either the connection is fully
+        installed or fully decommissioned, with no partial decommissioning allowed.
+
+        :param b_arc: The block representing the network arc.
+        :param b_netw: The block representing the network.
+        :param node_from: The originating node of the arc.
+        :param node_to: The destination node of the arc.
+
+        :return: The modified network arc block with added decommissioning constraints.
+        :rtype: Pyomo Block
         """
 
         # Full plant decommissioned only
