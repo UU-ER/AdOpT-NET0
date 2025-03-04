@@ -12,7 +12,7 @@ from tests.utilities import (
     run_model,
 )
 from adopt_net0.components.technologies.technology import Technology
-from adopt_net0.data_management.utilities import open_json, select_technology
+from adopt_net0.data_management.utilities import open_json, technology_factory
 from adopt_net0.components.utilities import annualize
 from adopt_net0.components.utilities import perform_disjunct_relaxation
 
@@ -44,7 +44,7 @@ def define_technology(
     if CAPEX_model:
         tec["Economics"]["CAPEX_model"] = CAPEX_model
 
-    tec = select_technology(tec)
+    tec = technology_factory(tec)
 
     # Technology fitting
     climate_data = make_climate_data("2022-01-01 12:00", nr_timesteps)
