@@ -341,19 +341,15 @@ class Fluid(Network):
             str = "".join(arc_name)
             arc_group = h5_group.create_group(str)
 
-            if arc.find_component("var_consumption_send"):
-                for car in model_block.set_consumed_carriers:
+            for car in model_block.set_consumed_carriers:
 
-                    arc_group.create_dataset(
-                        "consumption_send" + car,
-                        data=[
-                            arc.var_consumption_send[t, car].value for t in self.set_t
-                        ],
-                    )
-                    arc_group.create_dataset(
-                        "consumption_receive" + car,
-                        data=[
-                            arc.var_consumption_receive[t, car].value
-                            for t in self.set_t
-                        ],
-                    )
+                arc_group.create_dataset(
+                    "consumption_send" + car,
+                    data=[arc.var_consumption_send[t, car].value for t in self.set_t],
+                )
+                arc_group.create_dataset(
+                    "consumption_receive" + car,
+                    data=[
+                        arc.var_consumption_receive[t, car].value for t in self.set_t
+                    ],
+                )
