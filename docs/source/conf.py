@@ -124,8 +124,9 @@ def generate_component_list(directory):
                     tec_type = data.get("tec_type", "")
                     component_ls.append((name, tec_type))
             elif "network" in str(directory):
-                component_ls.append(name)
-
+                if "network_type" in data:
+                    network_type = data.get("network_type", "")
+                    component_ls.append((name, network_type))
     return component_ls
 
 
@@ -144,6 +145,6 @@ netw_list = generate_component_list(target_dir)
 
 
 with open("src_code/model_components/generated_netw_list.csv", "w") as f:
-    f.write(f"Network name\n")
+    f.write(f"Network name; Network_type \n")
     for netw in netw_list:
-        f.write(f"{netw}\n")
+        f.write(f"{netw[0]}; {netw[1]} \n")
