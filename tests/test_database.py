@@ -85,7 +85,7 @@ def test_wind_cost_model(request):
 # PV COST MODELS
 def test_pv_cost_model(request):
     """
-    tests PV cost model for IRENA, NREL
+    tests PV cost model for IRENA, NREL, DEA
     """
     tec = "Photovoltaic"
     td.help(component_name=tec)
@@ -204,3 +204,30 @@ def test_co2_compressor_cost_model(request):
             }
 
             c = td.write_json(tec, ".", options)
+
+
+def test_heat_pump_cost_model(request):
+    """
+    tests hp cost model for DEA
+    """
+    tec = "HeatPump_AirSourced"
+    td.help(component_name=tec)
+
+    # DEA
+    for hp_type in [
+        "air_sourced_1MW",
+        "air_sourced_3MW",
+        "air_sourced_10MW",
+        "seawater_20MW",
+    ]:
+        options = {
+            "currency_out": "EUR",
+            "financial_year_out": 2020,
+            "discount_rate": 0.1,
+            "source": "DEA",
+            "projection_year": 2030,
+            "hp_type": hp_type,
+        }
+
+        c = td.write_json(tec, request.config.result_folder_path, options)
+        assert 400 <= c.financial_indicators["unit_capex"] / 1000 * 4 <= 4000

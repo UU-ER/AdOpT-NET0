@@ -60,6 +60,8 @@ def _component_factory(component_name: str):
         return CO2_Pipeline_CostModel(component_name)
     elif component_name == "CO2_Compressor":
         return CO2_Compression_CostModel(component_name)
+    elif "HeatPump" in component_name:
+        return HeatPump_CostModel(component_name)
     elif "WindTurbine" in component_name:
         return WindEnergy_CostModel(component_name)
     elif component_name == "Photovoltaic":

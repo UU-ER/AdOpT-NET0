@@ -102,7 +102,7 @@ class PV_CostModel(DataComponent_CostModel):
             self.currency_out,
         )
         self.financial_indicators["opex_variable"] = convert_currency(
-            cost["opex_var"],
+            cost["opex_var"] * 1000,
             self.financial_year_in,
             self.financial_year_out,
             self.currency_in,
