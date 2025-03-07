@@ -168,11 +168,15 @@ def test_copy_network_data(request):
     for period in periods_to_add_to:
         path = case_study_folder_path / period / "Networks.json"
         networks = load_json(path)
-        networks["new"] = ["TestNetwork"]
+        networks["new"] = ["TestNetworkSimple"]
         save_json(networks, path)
 
         os.makedirs(
-            case_study_folder_path / period / "network_topology" / "new" / "TestNetwork"
+            case_study_folder_path
+            / period
+            / "network_topology"
+            / "new"
+            / "TestNetworkSimple"
         )
 
         connection = pd.read_csv(
@@ -189,7 +193,7 @@ def test_copy_network_data(request):
             / period
             / "network_topology"
             / "new"
-            / "TestNetwork"
+            / "TestNetworkSimple"
             / "connection.csv",
             sep=";",
         )
@@ -217,7 +221,7 @@ def test_copy_network_data(request):
             / period
             / "network_topology"
             / "new"
-            / "TestNetwork"
+            / "TestNetworkSimple"
             / "distance.csv",
             sep=";",
         )

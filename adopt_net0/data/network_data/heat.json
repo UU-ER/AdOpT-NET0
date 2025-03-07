@@ -1,4 +1,5 @@
 {
+  "network_type": "fluid",
   "size_is_int": 0,
   "decommission": "impossible",
   "size_min": 0,

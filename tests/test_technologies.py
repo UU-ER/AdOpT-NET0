@@ -13,7 +13,7 @@ from tests.utilities import (
     run_model,
 )
 from adopt_net0.components.technologies.technology import Technology
-from adopt_net0.data_management.utilities import open_json, select_technology
+from adopt_net0.data_management.utilities import open_json, technology_factory
 from adopt_net0.components.utilities import annualize
 from adopt_net0.components.utilities import perform_disjunct_relaxation
 
@@ -54,7 +54,7 @@ def define_technology(
     #     tec["existing"] = existing
     #     tec["size_initial"] = size_initial
 
-    tec = select_technology(tec)
+    tec = technology_factory(tec)
 
     if existing:
         tec.existing = existing

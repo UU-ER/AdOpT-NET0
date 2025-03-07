@@ -23,6 +23,7 @@ Table of Content
    AdvancedTopics
    SourceCode
    ForDevelopers
+   FAQ
 
 Indices and tables
 ==================

@@ -1,6 +1,7 @@
 {
+  "network_type": "electricity",
   "size_is_int": 0,
-  "decommission": "impossible",
+  "decommission": 0,
   "size_min": 0,
   "size_max": 10000,
   "Economics": {
@@ -16,22 +17,9 @@
     "decommission_cost": 0
   },
   "Performance": {
-    "carrier": "hydrogen",
+    "carrier": "electricity",
     "bidirectional_network": 0,
     "loss": 0.1,
-    "min_transport": 0,
-    "loss2emissions": 0,
-    "emissionfactor": 0,
-    "energyconsumption": {
-      "electricity": {
-        "cons_model": 2,
-        "p": 85,
-        "c": 0.00398,
-        "T": 300,
-        "eta": 0.65,
-        "gam": 1.405,
-        "LHV": 33.32
-      }
-    }
+    "min_transport": 0
   }
 }

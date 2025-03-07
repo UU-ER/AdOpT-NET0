@@ -60,7 +60,7 @@ def test_full_model_flow(request):
     # Size same in both directions
     s_arc1 = round(netw_block.arc_block["node1", "node2"].var_size.value, 3)
     s_arc2 = round(netw_block.arc_block["node2", "node1"].var_size.value, 3)
-    assert s_arc1 != s_arc2
+    assert s_arc1 == s_arc2
 
     # Flow in one direction is larger 1
     assert netw_block.arc_block["node1", "node2"].var_flow[1].value > 1
