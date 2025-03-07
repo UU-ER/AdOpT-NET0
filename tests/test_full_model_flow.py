@@ -88,12 +88,21 @@ def test_full_model_flow(request):
 
     # COST CHECKS
     assert m.var_npv.value > 0
+    cost1 = m.var_npv.value
 
     # EMISSION CHECKS
     # Emission from gas combustion at gas turbine
     assert round(m.var_emissions_net.value, 3) == round(
         m.periods["period1"].node_blocks["node1"].var_import_flow[1, "gas"].value, 3
     )
+
+    # test if technology can be added to a node
+    pyhub.add_technology("period1", "node1", ["TestTec_WindTurbine"])
+    pyhub.construct_balances()
+    pyhub.solve()
+    cost2 = pyhub.model["full"].var_npv.value
+
+    assert cost2 <= cost1
 
 
 def test_clustering_algo(request):
