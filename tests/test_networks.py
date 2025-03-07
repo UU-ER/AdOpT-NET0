@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 
 import pandas as pd
+import pyomo
 import pyomo.environ as pyo
 
 from adopt_net0.components.networks import Fluid
@@ -327,29 +328,43 @@ def test_network_decommission(request):
         decommission="impossible",
     )
 
-    # INFEASIBILITY CASE
-    # m = construct_netw_model(netw, nr_timesteps)
-    # m.test_const_outflow1 = pyo.Constraint(
-    #     expr=m.var_inflow[1, "electricity", "node1"] == 1
-    # )
-    # m.test_const_outflow2 = pyo.Constraint(
-    #     expr=m.var_inflow[1, "electricity", "node2"] == 1
-    # )
-    termination = run_model(m, request.config.solver, objective="capex")
-    # assert termination in [
-    #     pyo.TerminationCondition.infeasibleOrUnbounded,
-    #     pyo.TerminationCondition.infeasible,
-    # ]
-    #
-    # # FEASIBILITY CASE
-    # m = construct_netw_model(netw, nr_timesteps)
-    # m.test_const_outflow1 = pyo.Constraint(
-    #     expr=m.var_inflow[1, "electricity", "node1"] == 1
-    # )
-    #
-    # termination = run_model(m, request.config.solver, objective="capex")
-    # assert termination == pyo.TerminationCondition.optimal
-    # assert round(m.arc_block["node2", "node1"].var_size.value, 3) == round(
-    #     m.arc_block["node1", "node2"].var_size.value, 3
-    # )
-    # assert m.var_capex.value > 0
+    m = construct_netw_model(netw, nr_timesteps)
+
+    # No decommissioning
+    assert isinstance(
+        m.arc_block["node1", "node2"].var_size, pyomo.core.base.param.ScalarParam
+    )
+
+    # Technology can decommission
+    netw = define_network(
+        request.config.network_data_folder_path,
+        "Simple",
+        existing=1,
+        size_initial=size_initial,
+        decommission="continuous",
+    )
+
+    m = construct_netw_model(netw, nr_timesteps)
+
+    m.test_const_size_zero = pyo.Constraint(expr=m.var_size == 5)
+    termination = run_model(m, request.config.solver)
+    assert termination in [pyo.TerminationCondition.optimal]
+
+    # Only complete decommissioning
+    netw = define_network(
+        request.config.network_data_folder_path,
+        "Simple",
+        existing=1,
+        size_initial=size_initial,
+        decommission="only_complete",
+    )
+
+    m = construct_netw_model(netw, nr_timesteps)
+
+    m.test_const_size_zero = pyo.Constraint(expr=m.var_size == 5)
+    termination = run_model(m, request.config.solver)
+
+    assert termination in [
+        pyo.TerminationCondition.infeasibleOrUnbounded,
+        pyo.TerminationCondition.infeasible,
+    ]
