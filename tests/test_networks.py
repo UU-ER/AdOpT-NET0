@@ -346,8 +346,11 @@ def test_network_decommission(request):
 
     m = construct_netw_model(netw, nr_timesteps)
 
-    m.test_const_size_zero = pyo.Constraint(expr=m.var_size == 5)
-    termination = run_model(m, request.config.solver)
+    m.test_const_size_zero = pyo.Constraint(
+        expr=m.arc_block["node1", "node2"].var_size == 5
+    )
+    termination = run_model(m, request.config.solver, objective="capex")
+
     assert termination in [pyo.TerminationCondition.optimal]
 
     # Only complete decommissioning
@@ -361,8 +364,10 @@ def test_network_decommission(request):
 
     m = construct_netw_model(netw, nr_timesteps)
 
-    m.test_const_size_zero = pyo.Constraint(expr=m.var_size == 5)
-    termination = run_model(m, request.config.solver)
+    m.test_const_size_zero = pyo.Constraint(
+        expr=m.arc_block["node1", "node2"].var_size == 5
+    )
+    termination = run_model(m, request.config.solver, objective="capex")
 
     assert termination in [
         pyo.TerminationCondition.infeasibleOrUnbounded,
