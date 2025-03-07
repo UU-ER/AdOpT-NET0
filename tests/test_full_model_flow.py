@@ -102,7 +102,7 @@ def test_full_model_flow(request):
     pyhub.solve()
     cost2 = pyhub.model["full"].var_npv.value
 
-    assert cost2 <= cost1
+    assert cost2 < cost1
 
 
 def test_clustering_algo(request):
