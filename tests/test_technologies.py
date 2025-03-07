@@ -50,9 +50,6 @@ def define_technology(
         tec["Performance"]["performance_function_type"] = perf_type
     if CAPEX_model:
         tec["Economics"]["CAPEX_model"] = CAPEX_model
-    # if existing:
-    #     tec["existing"] = existing
-    #     tec["size_initial"] = size_initial
 
     tec = technology_factory(tec)
 
