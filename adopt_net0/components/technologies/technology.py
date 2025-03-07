@@ -324,9 +324,7 @@ class Technology(ModelComponent):
             ]
             self.ccs_data["name"] = "CCS"
             self.ccs_data["tec_type"] = self.component_options.ccs_type
-            self.ccs_component = fit_ccs_coeff(
-                co2_concentration, self.ccs_data, climate_data
-            )
+            self.ccs_component = fit_ccs_coeff(co2_concentration, self.ccs_data)
 
     def _calculate_bounds(self):
         """
@@ -1539,24 +1537,6 @@ class Technology(ModelComponent):
             b_tec.const_tec_emissions_neg = pyo.Constraint(
                 self.set_t_global, rule=init_tec_emissions_neg
             )
-
-        # Initialize the size of CCS as in _define_size (size given in mass flow of CO2 entering the CCS object)
-        b_tec.para_size_min_ccs = pyo.Param(
-            domain=pyo.NonNegativeReals,
-            initialize=self.ccs_component.input_parameters.size_min,
-            mutable=True,
-        )
-        b_tec.para_size_max_ccs = pyo.Param(
-            domain=pyo.NonNegativeReals,
-            initialize=self.ccs_component.input_parameters.size_max,
-            mutable=True,
-        )
-
-        # Decommissioning is possible, size variable
-        b_tec.var_size_ccs = pyo.Var(
-            within=pyo.NonNegativeReals,
-            bounds=(0, b_tec.para_size_max_ccs),
-        )
 
         return b_tec
 
