@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from statsmodels import api as sm
-import matplotlib.pyplot as plt
 
 from .utilities import *
 from ..utilities import convert_currency
