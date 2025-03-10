@@ -5,10 +5,6 @@ from .template_creation import (
     initialize_topology_templates,
     create_montecarlo_template_csv,
 )
-from ..database.technology_database import (
-    show_available_networks,
-    show_available_technologies,
-)
 from .data_loading import (
     copy_network_data,
     copy_technology_data,

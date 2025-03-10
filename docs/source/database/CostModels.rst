@@ -9,7 +9,7 @@ can also be produced by:
 
 .. testcode::
 
- adopt.show_available_networks()
+ adopt.show_available_technologies()
 
 .. csv-table::
    :file: generated_tech_list.csv
@@ -28,7 +28,7 @@ can also be produced by:
 
 .. testcode::
 
- adopt.show_available_technologies()
+ adopt.show_available_networks()
 
 .. csv-table::
    :file: generated_netw_list.csv

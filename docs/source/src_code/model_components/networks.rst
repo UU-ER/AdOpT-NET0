@@ -29,8 +29,6 @@ enforced:
     - With ``bidirectional_network_precise = 0`` this is enforced with a cut, thus
       not completly eliminating a flow in both directions at the same time.
 
-..  _network_list:
-
 Network Class
 -------------------------------------------------------------
 As mentioned, the network class is a subclass of the ModelComponent class. In general, all network subclasses
