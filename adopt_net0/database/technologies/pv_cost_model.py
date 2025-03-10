@@ -132,7 +132,6 @@ class PV_CostModel(DataComponent_CostModel):
             "opex_variable"
         ]
         self.json_data["Economics"]["lifetime"] = self.financial_indicators["lifetime"]
-        self.json_data["size_is_int"] = 1
 
         return {"financial_indicators": self.financial_indicators}
 
