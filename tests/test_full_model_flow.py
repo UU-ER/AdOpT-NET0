@@ -60,7 +60,7 @@ def test_full_model_flow(request):
     # Size same in both directions
     s_arc1 = round(netw_block.arc_block["node1", "node2"].var_size.value, 3)
     s_arc2 = round(netw_block.arc_block["node2", "node1"].var_size.value, 3)
-    assert s_arc1 != s_arc2
+    assert s_arc1 == s_arc2
 
     # Flow in one direction is larger 1
     assert netw_block.arc_block["node1", "node2"].var_flow[1].value > 1
@@ -88,12 +88,35 @@ def test_full_model_flow(request):
 
     # COST CHECKS
     assert m.var_npv.value > 0
+    assert (
+        "TestTec_WindTurbine"
+        not in p.node_blocks["node1"].tech_blocks_active.index_set()
+    )
+    cost1 = m.var_npv.value
 
     # EMISSION CHECKS
     # Emission from gas combustion at gas turbine
     assert round(m.var_emissions_net.value, 3) == round(
         m.periods["period1"].node_blocks["node1"].var_import_flow[1, "gas"].value, 3
     )
+
+    # test if technology can be added to a node
+    pyhub.add_technology("period1", "node1", ["TestTec_WindTurbine"])
+    pyhub.construct_balances()
+    pyhub.solve()
+
+    m = pyhub.model["full"]
+    p = m.periods["period1"]
+    cost2 = m.var_npv.value
+
+    assert (
+        "TestTec_WindTurbine" in p.node_blocks["node1"].tech_blocks_active.index_set()
+    )
+    assert (
+        "TestTec_WindTurbine"
+        not in p.node_blocks["node2"].tech_blocks_active.index_set()
+    )
+    assert cost2 < cost1
 
 
 def test_clustering_algo(request):

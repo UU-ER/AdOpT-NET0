@@ -327,7 +327,7 @@ class DataHandle:
 
                 # New technologies
                 for technology in technologies_at_node["new"]:
-                    tec_data = read_tec_data(
+                    tec_data = create_technology_class(
                         technology,
                         self.data_path
                         / investment_period
@@ -345,7 +345,7 @@ class DataHandle:
 
                 # Existing technologies
                 for technology in technologies_at_node["existing"]:
-                    tec_data = read_tec_data(
+                    tec_data = create_technology_class(
                         technology,
                         self.data_path
                         / investment_period
@@ -353,6 +353,9 @@ class DataHandle:
                         / node
                         / "technology_data",
                     )
+
+                    tec_data.name = tec_data.name + "_existing"
+
                     tec_data.existing = 1
                     tec_data.input_parameters.size_initial = technologies_at_node[
                         "existing"
@@ -390,12 +393,10 @@ class DataHandle:
 
             # New networks
             for network in networks["new"]:
-                netw_data = open_json(
+
+                netw_data = create_network_class(
                     network, self.data_path / investment_period / "network_data"
                 )
-
-                netw_data["name"] = network
-                netw_data = Network(netw_data)
                 netw_data.connection = pd.read_csv(
                     self.data_path
                     / investment_period
@@ -441,12 +442,13 @@ class DataHandle:
 
             # Existing networks
             for network in networks["existing"]:
-                netw_data = open_json(
+
+                netw_data = create_network_class(
                     network, self.data_path / investment_period / "network_data"
                 )
 
-                netw_data["name"] = network + "_existing"
-                netw_data = Network(netw_data)
+                netw_data.name = netw_data.name + "_existing"
+
                 netw_data.existing = 1
                 netw_data.connection = pd.read_csv(
                     self.data_path
@@ -468,7 +470,7 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data.size_initial = pd.read_csv(
+                netw_data.input_parameters.size_initial = pd.read_csv(
                     self.data_path
                     / investment_period
                     / "network_topology"

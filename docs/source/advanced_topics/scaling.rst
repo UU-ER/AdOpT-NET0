@@ -76,7 +76,7 @@ And we add scaling factors to some of the individual constraints and variables i
     [...]
       "size_max": 1,
       "size_is_int": 0,
-      "decommission": 0,
+      "decommission": "impossible",
       "ScalingFactors": {
         "const_flowlosses": 1e4,
         "var_losses": 1e1,

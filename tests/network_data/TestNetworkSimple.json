@@ -1,5 +1,5 @@
 {
-  "network_type": "electricity",
+  "network_type": "simple",
   "size_is_int": 0,
   "decommission": "impossible",
   "size_min": 0,
@@ -19,10 +19,7 @@
   "Performance": {
     "carrier": "electricity",
     "bidirectional_network": 0,
-    "loss": 0,
-    "min_transport": 0,
-    "loss2emissions": 0,
-    "emissionfactor": 0,
-    "energyconsumption": []
+    "loss": 0.1,
+    "min_transport": 0
   }
 }

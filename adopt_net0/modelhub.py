@@ -10,7 +10,7 @@ import sys
 import datetime
 
 from .utilities import get_set_t
-from .data_management import DataHandle, read_tec_data
+from .data_management import DataHandle, create_technology_class
 from .model_construction import *
 from .result_management.read_results import add_values_to_summary
 from .utilities import get_glpk_parameters, get_gurobi_parameters
@@ -474,7 +474,7 @@ class ModelHub:
         }
         for technology in technologies:
             # read in technology data
-            tec_data = read_tec_data(
+            tec_data = create_technology_class(
                 technology,
                 self.data.data_path
                 / investment_period
@@ -810,10 +810,9 @@ class ModelHub:
                 model_full.scaling_factor[b_node.var_netw_outflow] = f_global[
                     "energy_vars"
                 ]["value"]
-                if b_node.find_component("var_netw_consumption"):
-                    model_full.scaling_factor[b_node.var_netw_consumption] = f_global[
-                        "energy_vars"
-                    ]["value"]
+                model_full.scaling_factor[b_node.var_netw_consumption] = f_global[
+                    "energy_vars"
+                ]["value"]
                 model_full.scaling_factor[b_node.var_generic_production] = f_global[
                     "energy_vars"
                 ]["value"]

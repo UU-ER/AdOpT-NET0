@@ -252,10 +252,15 @@ class DacAdsorption(Technology):
         # Additional sets
         b_tec.set_pieces = pyo.RangeSet(1, nr_segments)
 
+        if self.component_options.size_is_int:
+            size_domain = pyo.NonNegativeIntegers
+        else:
+            size_domain = pyo.NonNegativeReals
+
         # Additional decision variables
         b_tec.var_modules_on = pyo.Var(
             self.set_t_performance,
-            domain=pyo.NonNegativeIntegers,
+            domain=size_domain,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
 
