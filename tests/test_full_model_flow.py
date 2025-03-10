@@ -88,6 +88,10 @@ def test_full_model_flow(request):
 
     # COST CHECKS
     assert m.var_npv.value > 0
+    assert (
+        "TestTec_WindTurbine"
+        not in p.node_blocks["node2"].tech_blocks_active.index_set()
+    )
     cost1 = m.var_npv.value
 
     # EMISSION CHECKS
@@ -102,6 +106,9 @@ def test_full_model_flow(request):
     pyhub.solve()
     cost2 = pyhub.model["full"].var_npv.value
 
+    assert (
+        "TestTec_WindTurbine" in p.node_blocks["node2"].tech_blocks_active.index_set()
+    )
     assert cost2 < cost1
 
 
