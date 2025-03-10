@@ -470,7 +470,7 @@ class DataHandle:
                     sep=";",
                     index_col=0,
                 )
-                netw_data.size_initial = pd.read_csv(
+                netw_data.input_parameters.size_initial = pd.read_csv(
                     self.data_path
                     / investment_period
                     / "network_topology"
