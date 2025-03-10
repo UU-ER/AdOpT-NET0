@@ -1456,7 +1456,7 @@ class Technology(ModelComponent):
         # Size CCS
         b_tec.var_size_ccs = pyo.Var(
             within=pyo.NonNegativeReals,
-            bounds=(b_tec.para_size_min_ccs, b_tec.para_size_max_ccs),
+            bounds=(0, b_tec.para_size_max_ccs),
         )
 
         # TODO: maybe make the full set of all carriers as an intersection between this set and  the others?
@@ -1593,24 +1593,6 @@ class Technology(ModelComponent):
                 self.set_t_global, rule=init_tec_emissions_neg
             )
 
-        # Initialize the size of CCS as in _define_size (size given in mass flow of CO2 entering the CCS object)
-        b_tec.para_size_min_ccs = pyo.Param(
-            domain=pyo.NonNegativeReals,
-            initialize=self.ccs_component.input_parameters.size_min,
-            mutable=True,
-        )
-        b_tec.para_size_max_ccs = pyo.Param(
-            domain=pyo.NonNegativeReals,
-            initialize=self.ccs_component.input_parameters.size_max,
-            mutable=True,
-        )
-
-        # Decommissioning is possible, size variable
-        b_tec.var_size_ccs = pyo.Var(
-            within=pyo.NonNegativeReals,
-            bounds=(0, b_tec.para_size_max_ccs),
-        )
-
         return b_tec
 
     def _define_ccs_costs(self, b_tec, data: dict):
@@ -1714,7 +1696,7 @@ class Technology(ModelComponent):
 
         def init_opex_variable_ccs(const, t):
             return (
-                b_tec.var_output_ccs[t, b_tec.set_output_carriers_ccs[1]]
+                b_tec.var_output_ccs[t, b_tec.set_output_carriers_ccs.at(1)]
                 * b_tec.para_opex_variable_ccs
                 == b_tec.var_opex_variable_ccs[t]
             )
