@@ -90,7 +90,7 @@ def test_full_model_flow(request):
     assert m.var_npv.value > 0
     assert (
         "TestTec_WindTurbine"
-        not in p.node_blocks["node2"].tech_blocks_active.index_set()
+        not in p.node_blocks["node1"].tech_blocks_active.index_set()
     )
     cost1 = m.var_npv.value
 
@@ -104,10 +104,17 @@ def test_full_model_flow(request):
     pyhub.add_technology("period1", "node1", ["TestTec_WindTurbine"])
     pyhub.construct_balances()
     pyhub.solve()
-    cost2 = pyhub.model["full"].var_npv.value
+
+    m = pyhub.model["full"]
+    p = m.periods["period1"]
+    cost2 = m.var_npv.value
 
     assert (
-        "TestTec_WindTurbine" in p.node_blocks["node2"].tech_blocks_active.index_set()
+        "TestTec_WindTurbine" in p.node_blocks["node1"].tech_blocks_active.index_set()
+    )
+    assert (
+        "TestTec_WindTurbine"
+        not in p.node_blocks["node2"].tech_blocks_active.index_set()
     )
     assert cost2 < cost1
 
