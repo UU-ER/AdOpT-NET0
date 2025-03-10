@@ -1,5 +1,8 @@
 from pathlib import Path
 import json
+
+import pandas as pd
+import pyomo
 import pyomo.environ as pyo
 
 from adopt_net0.components.networks import Fluid
@@ -14,11 +17,15 @@ def define_network(
     netw_name: str,
     bidirectional_network: bool = False,
     energyconsumption: bool = False,
+    existing: int = 0,
+    size_initial: pd.DataFrame = None,
+    decommission: str = "impossible",
 ):
     """
     reads TestNetwork from path and creates network object
 
     :param Path load_path:
+    :param str netw_name:
     :param bool bidirectional_network:
     :param bool energyconsumption:
     :return: Network object
@@ -39,13 +46,15 @@ def define_network(
 
     netw_data = network_factory(netw_data)
 
+    if existing:
+        netw_data.existing = existing
+        netw_data.input_parameters.size_initial = size_initial
+        netw_data.component_options.decommission = decommission
+
     return netw_data
 
 
-def construct_netw_model(
-    netw,
-    nr_timesteps: int,
-):
+def construct_netw_model(netw, nr_timesteps: int):
     """
     Construct a mock network model for testing
 
@@ -62,7 +71,8 @@ def construct_netw_model(
 
     netw.connection = netw_matrix
     netw.distance = netw_matrix
-    netw.size_max_arcs = netw_matrix * 10
+    if not netw.existing:
+        netw.size_max_arcs = netw_matrix * 10
     netw.fit_network_performance()
 
     m = pyo.ConcreteModel()
@@ -261,9 +271,7 @@ def test_network_connection(request):
     """
     nr_timesteps = 1
     netw = define_network(
-        request.config.network_data_folder_path,
-        "Simple",
-        bidirectional_network=True,
+        request.config.network_data_folder_path, "Simple", bidirectional_network=True
     )
 
     # INFEASIBILITY CASE
@@ -292,3 +300,76 @@ def test_network_connection(request):
         m.arc_block["node1", "node2"].var_size.value, 3
     )
     assert m.var_capex.value > 0
+
+
+def test_network_decommission(request):
+    """
+    Tests a network that can only transport in one direction and it is a simple connection
+
+    INFEASIBILITY CASES
+    1) flow in both directions is constraint to 1
+
+    FEASIBILITY CASES
+    2) flow in one direction is constraint to 1, checked that size in both directions
+    is correct
+    """
+    nr_timesteps = 1
+    data = make_data_for_testing(nr_timesteps)
+
+    size_initial = create_empty_network_matrix(data["topology"]["nodes"])
+    size_initial.loc["node2", "node1"] = 10
+    size_initial.loc["node1", "node2"] = 10
+
+    netw = define_network(
+        request.config.network_data_folder_path,
+        "Simple",
+        existing=1,
+        size_initial=size_initial,
+        decommission="impossible",
+    )
+
+    m = construct_netw_model(netw, nr_timesteps)
+
+    # No decommissioning
+    assert isinstance(
+        m.arc_block["node1", "node2"].var_size, pyomo.core.base.param.ScalarParam
+    )
+
+    # Technology can decommission
+    netw = define_network(
+        request.config.network_data_folder_path,
+        "Simple",
+        existing=1,
+        size_initial=size_initial,
+        decommission="continuous",
+    )
+
+    m = construct_netw_model(netw, nr_timesteps)
+
+    m.test_const_size_zero = pyo.Constraint(
+        expr=m.arc_block["node1", "node2"].var_size == 5
+    )
+    termination = run_model(m, request.config.solver, objective="capex")
+
+    assert termination in [pyo.TerminationCondition.optimal]
+
+    # Only complete decommissioning
+    netw = define_network(
+        request.config.network_data_folder_path,
+        "Simple",
+        existing=1,
+        size_initial=size_initial,
+        decommission="only_complete",
+    )
+
+    m = construct_netw_model(netw, nr_timesteps)
+
+    m.test_const_size_zero = pyo.Constraint(
+        expr=m.arc_block["node1", "node2"].var_size == 5
+    )
+    termination = run_model(m, request.config.solver, objective="capex")
+
+    assert termination in [
+        pyo.TerminationCondition.infeasibleOrUnbounded,
+        pyo.TerminationCondition.infeasible,
+    ]
