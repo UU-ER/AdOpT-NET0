@@ -946,13 +946,36 @@ def test_dac(request):
     # FEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [1])
-
     termination = run_model(model, request.config.solver)
+
+    heat_in = model.var_input_tot[1, "heat"].value
+    electricity_in = model.var_input_tot[1, "electricity"].value
+    size = model.var_size.value
+    capex = model.var_capex.value
+
     assert termination == TerminationCondition.optimal
-    assert model.var_input_tot[1, "heat"].value > 0.1
-    assert model.var_input_tot[1, "electricity"].value > 0.01
-    assert model.var_size.value > 1
-    assert model.var_capex.value > 0
+    assert heat_in > 0.1
+    assert electricity_in > 0.01
+    assert size > 1
+    assert round(size, 3) % 1 == 0
+    assert capex > 0
+
+    tec.component_options.size_is_int = 0
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [1])
+    termination = run_model(model, request.config.solver)
+
+    heat_in2 = model.var_input_tot[1, "heat"].value
+    electricity_in2 = model.var_input_tot[1, "electricity"].value
+    size2 = model.var_size.value
+    capex2 = model.var_capex.value
+
+    assert termination == TerminationCondition.optimal
+    assert round(heat_in2, 1) == round(heat_in, 1)
+    assert round(electricity_in2, 1) == round(electricity_in, 1)
+    assert size2 < size
+    assert size2 % 1 != 0
+    assert capex2 < capex
 
 
 def test_hydro_open(request):
