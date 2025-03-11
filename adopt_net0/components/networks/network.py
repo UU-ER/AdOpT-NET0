@@ -149,6 +149,14 @@ class Network(ModelComponent):
       .. math::
         flow_{nodeFrom, nodeTo} = 0 \\lor flow_{nodeTo, nodeFrom} = 0
 
+    Existing networks, i.e. existing = 1, can be decommissioned (decommission = 'continuous' or decommission =
+      'only_complete') or not (decommission = 'impossible').
+      For networks that cannot be decommissioned, the size is fixed to the initial size given in the network
+      data. For networks that can be decommissioned, the size can be smaller or equal to the initial size. When
+      decommission = 'continuous' the size can take any value between the minimum and initial size. When decommission =
+      'only_complete' the size is either 0 or the initial size. Reducing the size comes at the decommissioning costs or
+      benefits specified in the economics of the network.
+
     """
 
     def __init__(self, netw_data: dict):
@@ -184,8 +192,8 @@ class Network(ModelComponent):
         if not self.existing:
             time_independent["size_max"] = input_parameters.size_max
         else:
-            time_independent["size_max"] = self.size_initial
-            time_independent["size_initial"] = self.size_initial
+            time_independent["size_max"] = input_parameters.size_initial
+            time_independent["size_initial"] = input_parameters.size_initial
 
         if self.existing == 0:
             if not isinstance(self.size_max_arcs, pd.DataFrame):
@@ -274,6 +282,12 @@ class Network(ModelComponent):
             b_arc = self._define_emissions_arc(b_arc, b_netw)
 
             b_arc = self._define_energyconsumption_arc(b_arc, b_netw)
+
+            # Decommissioning only complete
+            if self.existing and self.component_options.decommission == "only_complete":
+                b_arc = self._define_decommissioning_at_once_constraints(
+                    b_arc, b_netw, node_from, node_to
+                )
 
             if b_arc.big_m_transformation_required:
                 b_arc = perform_disjunct_relaxation(b_arc)
@@ -430,6 +444,13 @@ class Network(ModelComponent):
             initialize=economics.capex_data["gamma4"] * annualization_factor,
         )
 
+        if self.existing:
+            b_netw.para_decommissioning_cost = pyo.Param(
+                domain=pyo.Reals,
+                initialize=economics.decommission_cost * annualization_factor,
+                mutable=True,
+            )
+
         b_netw.var_capex = pyo.Var()
 
         return b_netw
@@ -452,10 +473,6 @@ class Network(ModelComponent):
 
         b_netw.var_opex_variable = pyo.Var(self.set_t)
         b_netw.var_opex_fixed = pyo.Var()
-        if self.existing:
-            b_netw.para_decommissioning_cost = pyo.Param(
-                domain=pyo.Reals, initialize=economics.decommission_cost, mutable=True
-            )
 
         return b_netw
 
@@ -562,27 +579,17 @@ class Network(ModelComponent):
 
         b_arc.distance = self.distance.at[node_from, node_to]
 
-        if self.existing:
-            # Existing network
-            if not self.component_options.decommission:
-                # Decommissioning not possible
-                b_arc.var_size = pyo.Param(
-                    domain=size_domain,
-                    initialize=b_netw.para_size_initial[node_from, node_to],
-                )
-            else:
-                # Decommissioning possible
-                b_arc.var_size = pyo.Var(
-                    domain=size_domain,
-                    bounds=(
-                        b_netw.para_size_min,
-                        b_netw.para_size_initial[node_from, node_to],
-                    ),
-                )
+        if self.existing and self.component_options.decommission == "impossible":
+            # Decommissioning is not possible, size fixed
+            b_arc.var_size = pyo.Param(
+                within=size_domain,
+                initialize=b_netw.para_size_initial[node_from, node_to],
+            )
         else:
-            # New network
+            # Size is variable
             b_arc.var_size = pyo.Var(
-                domain=size_domain, bounds=(b_netw.para_size_min, b_arc.para_size_max)
+                within=size_domain,
+                bounds=(b_netw.para_size_min, b_arc.para_size_max),
             )
 
         return b_arc
@@ -611,7 +618,7 @@ class Network(ModelComponent):
         # For existing technologies it is used to calculate fixed OPEX
         b_arc.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
 
-        if self.existing and not self.component_options.decommission:
+        if self.existing and self.component_options.decommission == "impossible":
             b_arc.var_capex = pyo.Param(domain=pyo.NonNegativeReals, initialize=0)
         else:
             b_arc.var_capex = pyo.Var(bounds=calculate_max_capex())
@@ -640,7 +647,7 @@ class Network(ModelComponent):
             )
 
         # CAPEX aux:
-        if self.existing and not self.component_options.decommission:
+        if self.existing and self.component_options.decommission == "impossible":
             b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
         elif (b_netw.para_capex_gamma1.value == 0) and (
             b_netw.para_capex_gamma3.value == 0
@@ -665,13 +672,13 @@ class Network(ModelComponent):
             b_arc.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
 
         # CAPEX and CAPEX aux
-        if self.existing and self.component_options.decommission:
+        if self.existing and not self.component_options.decommission == "impossible":
             b_arc.const_capex = pyo.Constraint(
                 expr=b_arc.var_capex
                 == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size)
                 * b_netw.para_decommissioning_cost
             )
-        elif not self.existing:
+        else:
             b_arc.const_capex = pyo.Constraint(
                 expr=b_arc.var_capex == b_arc.var_capex_aux
             )
@@ -782,7 +789,7 @@ class Network(ModelComponent):
         rated_capacity = self.input_parameters.rated_power
 
         # Size in both direction is the same
-        if self.component_options.decommission or not self.existing:
+        if not self.existing or not self.component_options.decommission == "impossible":
 
             def init_size_bidirectional(const, node_from, node_to):
                 return (
@@ -960,6 +967,48 @@ class Network(ModelComponent):
         """
 
         return b_netw
+
+    def _define_decommissioning_at_once_constraints(
+        self, b_arc, b_netw, node_from: str, node_to: str
+    ):
+        """
+        Defines constraints to ensure that a network connection can only be decommissioned as a whole.
+
+        This function creates a disjunction formulation that enforces
+        full decommissioning decisions for a network arc, meaning that either the connection is fully
+        installed or fully decommissioned, with no partial decommissioning allowed.
+
+        :param b_arc: The block representing the network arc.
+        :param b_netw: The block representing the network.
+        :param node_from: The originating node of the arc.
+        :param node_to: The destination node of the arc.
+
+        :return: The modified network arc block with added decommissioning constraints.
+        :rtype: Pyomo Block
+        """
+
+        # Full plant decommissioned only
+        self.big_m_transformation_required = 1
+        s_indicators = range(0, 2)
+
+        def init_decommission_full(dis, ind):
+            if ind == 0:  # tech not installed
+                dis.const_decommissioned = pyo.Constraint(expr=b_arc.var_size == 0)
+            else:  # tech installed
+                dis.const_installed = pyo.Constraint(
+                    expr=b_arc.var_size == b_netw.para_size_initial[node_from, node_to]
+                )
+
+        b_arc.dis_decommission_full = gdp.Disjunct(
+            s_indicators, rule=init_decommission_full
+        )
+
+        def bind_disjunctions(dis):
+            return [b_arc.dis_decommission_full[i] for i in s_indicators]
+
+        b_arc.disjunction_decommission_full = gdp.Disjunction(rule=bind_disjunctions)
+
+        return b_arc
 
     def write_results_netw_design(self, h5_group, model_block):
         """
