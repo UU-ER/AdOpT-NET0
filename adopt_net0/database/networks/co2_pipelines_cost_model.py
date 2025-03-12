@@ -21,9 +21,9 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
       Multi-criteria assessment of inland and offshore carbon dioxide transport options, Journal of Cleaner Production, https://doi.org/10.1016/j.jclepro.2024.140781.
     - length_km: Length of pipeline in km
     - timeframe: determines which steel grades are available, can be 'short-term', 'mid-term', or 'long-term'
-    - m_kg_per_s_min: minimal mass flow rate of CO2 in kg/s to evaluate for costs
-    - m_kg_per_s_max: maximal mass flow rate of CO2 in kg/s to evaluate for costs
-    - m_kg_evaluation_points: for how many points should costs be calculated between m_kg_per_s_min, m_kg_per_s_max (includes min and max)
+    - massflow_min_kg_per_s: minimal mass flow rate of CO2 in kg/s to evaluate for costs
+    - massflow_max_kg_per_s: maximal mass flow rate of CO2 in kg/s to evaluate for costs
+    - massflow_evaluation_points: for how many points should costs be calculated between massflow_min_kg_per_s, massflow_max_kg_per_s (includes min and max)
     - terrain: 'Offshore' or 'Onshore', determines right of way cost and if recompression is possible (not possible for "Offshore")
     - electricity_price_eur_per_mw: used to minimize levelized cost (EUR/MWh)
     - operating_hours_per_a: number of operating hours per year
@@ -48,9 +48,9 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
         # Default options:
         self.default_options["source"] = "Oeuvray"
         self.default_options["timeframe"] = "mid-term"
-        self.default_options["m_kg_per_s_min"] = 5
-        self.default_options["m_kg_per_s_max"] = 10
-        self.default_options["m_kg_evaluation_points"] = 2
+        self.default_options["massflow_min_kg_per_s"] = 5
+        self.default_options["massflow_max_kg_per_s"] = 10
+        self.default_options["massflow_evaluation_points"] = 2
         self.default_options["terrain"] = "Offshore"
         self.default_options["electricity_price_eur_per_mw"] = 60
         self.default_options["operating_hours_per_a"] = 8000
@@ -92,13 +92,16 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
         super().calculate_indicators(options)
 
         if self.options["source"] == "Oeuvray":
-            if self.options["m_kg_per_s_min"] == self.options["m_kg_per_s_max"]:
-                range_m_kg_per_s = [self.options["m_kg_per_s_min"]]
+            if (
+                self.options["massflow_min_kg_per_s"]
+                == self.options["massflow_max_kg_per_s"]
+            ):
+                range_m_kg_per_s = [self.options["massflow_min_kg_per_s"]]
             else:
                 range_m_kg_per_s = np.linspace(
-                    self.options["m_kg_per_s_min"],
-                    self.options["m_kg_per_s_max"],
-                    self.options["m_kg_evaluation_points"],
+                    self.options["massflow_min_kg_per_s"],
+                    self.options["massflow_max_kg_per_s"],
+                    self.options["massflow_evaluation_points"],
                 )
 
             calculation_module = CO2Chain_Oeuvray()
@@ -110,7 +113,7 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
             costs = pd.DataFrame()
             for m_kg_per_s in range_m_kg_per_s:
                 print(m_kg_per_s)
-                m_t_per_h = m_kg_per_s / 1000 * 3600
+                massflow_t_per_h = m_kg_per_s / 1000 * 3600
                 self.options["m_kg_per_s"] = m_kg_per_s
                 cost = calculation_module.calculate_cost(self.options)
 
@@ -137,29 +140,29 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
                 )
                 correction_factor = cr_pipeline / cr_compressor
 
-                costs.loc[m_t_per_h, "capex_pipeline"] = (
+                costs.loc[massflow_t_per_h, "capex_pipeline"] = (
                     cost["cost_pipeline"]["unit_capex"] * correction_factor
                 )
-                costs.loc[m_t_per_h, "capex_compression"] = cost["cost_compression"][
-                    "unit_capex"
-                ]
-                costs.loc[m_t_per_h, "capex_total"] = (
+                costs.loc[massflow_t_per_h, "capex_compression"] = cost[
+                    "cost_compression"
+                ]["unit_capex"]
+                costs.loc[massflow_t_per_h, "capex_total"] = (
                     cost["cost_pipeline"]["unit_capex"] * correction_factor
                     + cost["cost_compression"]["unit_capex"]
                     + cost["cost_compression"]["unit_capex"]
                 )
-                costs.loc[m_t_per_h, "opex_var"] = (
+                costs.loc[massflow_t_per_h, "opex_var"] = (
                     cost["cost_pipeline"]["opex_var"] * correction_factor
                     + cost["cost_compression"]["opex_var"]
                 )
-                costs.loc[m_t_per_h, "opex_fix"] = (
+                costs.loc[massflow_t_per_h, "opex_fix"] = (
                     cost["cost_pipeline"]["opex_fix_abs"]
                     + cost["cost_compression"]["opex_fix_abs"]
-                ) / (costs.loc[m_t_per_h, "capex_total"] * cr_compressor)
-                costs.loc[m_t_per_h, "specific_compression_energy"] = cost[
+                ) / (costs.loc[massflow_t_per_h, "capex_total"] * cr_compressor)
+                costs.loc[massflow_t_per_h, "specific_compression_energy"] = cost[
                     "energy_requirements"
                 ]["specific_compression_energy"]
-                costs.loc[m_t_per_h, "levelized_cost"] = cost["levelized_cost"]
+                costs.loc[massflow_t_per_h, "levelized_cost"] = cost["levelized_cost"]
 
             # Fit linear cost function to results
             costs["intercept"] = 1

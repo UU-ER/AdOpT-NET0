@@ -19,9 +19,9 @@ class CO2_Compression_CostModel(DataComponent_CostModel):
 
     - cost and energy consumption model is based on Oeuvray, P., Burger, J., Roussanaly, S., Mazzotti, M., Becattini, V. (2024):
       Multi-criteria assessment of inland and offshore carbon dioxide transport options, Journal of Cleaner Production, https://doi.org/10.1016/j.jclepro.2024.140781.    - cumulative_capacity_installed_t_per_a: total global installed capturing capacity in t/a. Determines the cost reduction due to learning.
-    - m_kg_per_s_min: minimal mass flow rate of CO2 in kg/s to evaluate for costs
-    - m_kg_per_s_max: maximal mass flow rate of CO2 in kg/s to evaluate for costs
-    - m_kg_evaluation_points: for how many points should costs be calculated between m_kg_per_s_min, m_kg_per_s_max (includes min and max)
+    - massflow_min_kg_per_s: minimal mass flow rate of CO2 in kg/s to evaluate for costs
+    - massflow_max_kg_per_s: maximal mass flow rate of CO2 in kg/s to evaluate for costs
+    - massflow_evaluation_points: for how many points should costs be calculated between massflow_min_kg_per_s, massflow_max_kg_per_s (includes min and max)
     - p_inlet_bar: inlet pressure in bar (beginning of pipeline)
     - p_outlet_bar: outlet pressure in bar (end of pipeline)
     - capex_model: for 1 linear cost through origin, for 3 linear with intercept
@@ -44,9 +44,9 @@ class CO2_Compression_CostModel(DataComponent_CostModel):
         super().__init__(tec_name)
         # Default options:
         self.default_options["source"] = "Oeuvray"
-        self.default_options["m_kg_per_s_min"] = 5
-        self.default_options["m_kg_per_s_max"] = 10
-        self.default_options["m_kg_evaluation_points"] = 2
+        self.default_options["massflow_min_kg_per_s"] = 5
+        self.default_options["massflow_max_kg_per_s"] = 10
+        self.default_options["massflow_evaluation_points"] = 2
         self.default_options["p_inlet_bar"] = 10
         self.default_options["p_outlet_bar"] = 70
         self.default_options["capex_model"] = 1
@@ -80,13 +80,16 @@ class CO2_Compression_CostModel(DataComponent_CostModel):
         super().calculate_indicators(options)
 
         if self.options["source"] == "Oeuvray":
-            if self.options["m_kg_per_s_min"] == self.options["m_kg_per_s_max"]:
-                range_m_kg_per_s = [self.options["m_kg_per_s_min"]]
+            if (
+                self.options["massflow_min_kg_per_s"]
+                == self.options["massflow_max_kg_per_s"]
+            ):
+                range_m_kg_per_s = [self.options["massflow_min_kg_per_s"]]
             else:
                 range_m_kg_per_s = np.linspace(
-                    self.options["m_kg_per_s_min"],
-                    self.options["m_kg_per_s_max"],
-                    self.options["m_kg_evaluation_points"],
+                    self.options["massflow_min_kg_per_s"],
+                    self.options["massflow_max_kg_per_s"],
+                    self.options["massflow_evaluation_points"],
                 )
             calculation_module = CO2Compression_Oeuvray()
             self.financial_indicators["lifetime"] = calculation_module.universal_data[
