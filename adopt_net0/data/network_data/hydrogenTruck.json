@@ -34,6 +34,10 @@
         "k_flow": 0.05,
         "k_flowDistance": 0.05
       }
+    },
+    "pressure": {
+      "low": 350,
+      "high": 700
     }
   },
   "Units": {

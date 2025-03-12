@@ -40,7 +40,10 @@
     ],
     "T_iso": 15,
     "epsilon": 0.955,
-    "emission_factor": 0.185
+    "emission_factor": 0.185,
+    "pressure": {
+      "inlet": 350
+    }
   },
   "Units": {
     "size": "MW",

@@ -33,7 +33,12 @@
         "gam": 1.405,
         "LHV": 33.32
       }
-    }
+    },
+    "pressure": {
+      "low": 2,
+      "medium": 20,
+      "high": 50
+      }
   },
   "Units": {
     "size": "MW",

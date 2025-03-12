@@ -31,6 +31,7 @@ class ModelComponent:
         self.existing = 0
         self.size_initial = []
         self.economics = Economics(data["Economics"])
+        self.pressure = []
 
         self.input_parameters = InputParameters(data)
         self.component_options = ComponentOptions(data)
@@ -94,6 +95,10 @@ class InputParameters:
         self.standby_power = get_attribute_from_dict(
             component_data["Performance"], "standby_power", -1
         )
+        self.pressure = get_attribute_from_dict(
+            component_data["Performance"], "pressure", {}
+        )
+        print(self.pressure)
 
 
 class ComponentOptions:
