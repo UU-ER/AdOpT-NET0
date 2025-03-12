@@ -60,7 +60,7 @@ class CementHybridCCS(Technology):
         capex_data_mea = pd.read_excel(
             performance_data_path, sheet_name="cost_mea", index_col=0
         )
-        # TODO: make a function that cleans data (either 0 or at full capacity), converts CO2 to clinker and daily to hourly
+        # TODO: make a function that cleans data (cement output either 0 or at full capacity), converts CO2 to clinker and daily to hourly
 
         prod_capacity_clinker = self.input_parameters.performance_data[
             "prod_capacity_clinker"
@@ -162,3 +162,34 @@ class CementHybridCCS(Technology):
         super(CementHybridCCS, self).construct_tech_model(
             b_tec, data, set_t_full, set_t_clustered
         )
+
+        # Size constraint
+        prod_capacity_clinker = self.input_parameters.performance_data[
+            "prod_capacity_clinker"
+        ]
+        emissions_clinker = self.input_parameters.performance_data["performance"][
+            "tCO2_tclinker"
+        ]
+        CCR_oxy = self.input_parameters.performance_data["performance"]["CCR_oxy"]
+        CCR_mea = self.input_parameters.performance_data["performance"]["CCR_mea"]
+
+        def init_size_constraint_mea(const, t):
+            return (
+                self.output[t, "CO2captured"]
+                <= prod_capacity_clinker * emissions_clinker * CCR_oxy
+                + b_tec.var_size * CCR_mea
+            )
+
+        b_tec.const_size = pyo.Constraint(
+            self.set_t_performance, rule=init_size_constraint_clinker
+        )
+
+        # Input bounds
+
+        # output bounds
+
+        # input-output correlations
+
+        # define emissions
+
+        #
