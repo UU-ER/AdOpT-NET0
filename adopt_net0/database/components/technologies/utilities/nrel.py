@@ -9,7 +9,7 @@ class Nrel:
 
     def __init__(self, technology):
 
-        nrel_input_path = Path(__file__).parent.parent.parent / Path(
+        nrel_input_path = Path(__file__).parent.parent.parent.parent / Path(
             "./data/technologies/nrel/2024 v2 Annual Technology Baseline Workbook Errata 7-19-2024.xlsx"
         )
 
@@ -144,7 +144,7 @@ class Nrel:
         Calculates the cost of wind energy
 
         :param dict options: Options to use
-        :return: unit_capex (USD2023/kW), opex_fix (% of annualized investment), opex_var (0) and lifetime (yrs)
+        :return: unit_capex (USD2023/kW), opex_fix (% of up-front investment), opex_var (0) and lifetime (yrs)
         :rtype: dict
         """
         discount_rate = options["discount_rate"]
@@ -156,15 +156,12 @@ class Nrel:
             options["projection_type"], options["projection_year"]
         ]
 
-        crf = (
-            discount_rate
-            * (1 + discount_rate) ** self.lifetime
-            / ((1 + discount_rate) ** self.lifetime - 1)
+        self.opex_fix = (
+            self.opex_fixed_usd_per_kw_per_year.loc[
+                options["projection_type"], options["projection_year"]
+            ]
+            / self.unit_capex
         )
-
-        self.opex_fix = self.opex_fixed_usd_per_kw_per_year.loc[
-            options["projection_type"], options["projection_year"]
-        ] / (crf * self.unit_capex)
 
         self._calculate_levelized_cost(discount_rate)
 
@@ -190,4 +187,6 @@ class Nrel:
             / ((1 + discount_rate) ** self.lifetime - 1)
         )
 
-        self.levelized_cost = (self.unit_capex * crf + self.opex_fix) / (self.cf * 8760)
+        self.levelized_cost = (
+            self.unit_capex * crf + self.unit_capex * self.opex_fix
+        ) / (self.cf * 8760)

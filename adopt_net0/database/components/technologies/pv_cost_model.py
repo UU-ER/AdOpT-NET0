@@ -30,7 +30,7 @@ class PV_CostModel(DataComponent_CostModel):
     Financial indicators are:
 
     - unit_capex in [currency]/MWh
-    - fixed capex as fraction of annualized capex
+    - fixed capex as fraction of up-front capex
     - variable opex in [currency]/MWh
     - levelized cost in [currency]/MWh
     - lifetime in years

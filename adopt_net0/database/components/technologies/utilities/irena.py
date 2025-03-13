@@ -9,7 +9,7 @@ class Irena:
 
     def __init__(self, technology):
 
-        irena_input_path = Path(__file__).parent.parent.parent / Path(
+        irena_input_path = Path(__file__).parent.parent.parent.parent / Path(
             "./data/technologies/irena/IRENA-Datafile-RenPwrGenCosts-in-2023-v1.xlsx"
         )
 
@@ -241,14 +241,7 @@ class Irena:
         self.cf = self.cf[region]
         self.unit_capex = self.capex_usd_per_kw[region]
         self.opex_var = 0
-
-        crf = (
-            discount_rate
-            * (1 + discount_rate) ** self.lifetime
-            / ((1 + discount_rate) ** self.lifetime - 1)
-        )
-
-        self.opex_fix = self.opex_usd_per_kw_per_year[region] / (crf * self.unit_capex)
+        self.opex_fix = self.opex_usd_per_kw_per_year[region] / self.unit_capex
 
         self._calculate_levelized_cost(discount_rate)
 
@@ -274,4 +267,6 @@ class Irena:
             / ((1 + discount_rate) ** self.lifetime - 1)
         )
 
-        self.levelized_cost = (self.unit_capex * crf + self.opex_fix) / (self.cf * 8760)
+        self.levelized_cost = (
+            self.unit_capex * crf + self.unit_capex * self.opex_fix
+        ) / (self.cf * 8760)

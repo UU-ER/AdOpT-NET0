@@ -53,7 +53,7 @@ class Network(ModelComponent):
       CAPEX calculation (annualized from given data on up-front CAPEX, lifetime and
       discount rate)
     - ``para_opex_variable``: Variable OPEX
-    - ``para_opex_fixed``: Fixed OPEX
+    - ``para_opex_fixed``: Fixed OPEX in % of up-front CAPEX
     - ``para_decommissioning_cost_annual``: decommissioning costs for existing networks
 
     **Variable declarations:**
@@ -97,7 +97,7 @@ class Network(ModelComponent):
 
         * CAPEX of respective arc. The CAPEX is calculated as follows (for new
           networks). Note that for existing networks, the CAPEX is zero, but the
-          fixed OPEX is calculated as a fraction of a hypothetical CAPEX
+          fixed OPEX is calculated as a fraction of a hypothetical up-front CAPEX
           based on the existing size.
 
           .. math::

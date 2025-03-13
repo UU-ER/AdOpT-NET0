@@ -71,7 +71,7 @@ class Technology(ModelComponent):
     - para_fix_capex_annual: Fixed CAPEX annualized (annualized from given data on
       up-front CAPEX, lifetime and discount rate)
     - para_opex_variable: operational cost EUR/output or input
-    - para_opex_fixed: fixed opex as fraction of annualized capex
+    - para_opex_fixed: fixed opex as fraction of up-front capex
     - para_tec_emissionfactor: emission factor per output or input
 
     If ccs is possible:
@@ -83,7 +83,7 @@ class Technology(ModelComponent):
     - para_fix_capex_annual_ccs: Fixed CAPEX annualized (annualized from given data on
       up-front CAPEX, lifetime and discount rate)
     - para_opex_variable_ccs: operational cost EUR/output or input
-    - para_opex_fixed_ccs: fixed opex as fraction of annualized capex
+    - para_opex_fixed_ccs: fixed opex as fraction of up-front capex
 
     For existing technologies:
 
@@ -100,7 +100,7 @@ class Technology(ModelComponent):
     - var_output_tot: output aggregation of technology and CCS output
     - var_capex: annualized investment of the technology
     - var_opex_variable: variable operation costs, defined for each time slice
-    - var_opex_fixed: fixed operational costs
+    - var_opex_fixed: fixed operational costs as fraction of up-front CAPEX
     - var_capex_tot: aggregation of technology and CCS capex
     - var_capex_aux: auxiliary variable to calculate the fixed opex of existing technologies
     - var_opex_variable_tot: aggregation of technology and CCS opex variable, defined for
