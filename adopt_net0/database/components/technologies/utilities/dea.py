@@ -9,7 +9,7 @@ class Dea:
 
     def __init__(self, technology):
 
-        dea_input_path = Path(__file__).parent.parent.parent / Path(
+        dea_input_path = Path(__file__).parent.parent.parent.parent / Path(
             "./data/technologies/dea/technology_data_for_el_and_dh - 0016.xlsx"
         )
 
@@ -200,13 +200,7 @@ class Dea:
             opex_fixed_eur_per_mw_per_year["val"].sum() / 1000 * capacity_correction
         )
 
-        crf = (
-            discount_rate
-            * (1 + discount_rate) ** self.lifetime
-            / ((1 + discount_rate) ** self.lifetime - 1)
-        )
-
-        self.opex_fix = opex_fixed_eur_per_kw_per_year / (crf * self.unit_capex)
+        self.opex_fix = opex_fixed_eur_per_kw_per_year / self.unit_capex
 
         # Opex var
         opex_var_eur_per_mwh = self.opex_variable_eur_per_mwh[
@@ -257,5 +251,7 @@ class Dea:
         )
 
         self.levelized_cost = (
-            self.unit_capex * crf + self.opex_fix + self.opex_var * self.cf * 8760
+            self.unit_capex * crf
+            + self.unit_capex * self.opex_fix
+            + self.opex_var * self.cf * 8760
         ) / (self.cf * 8760)

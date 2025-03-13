@@ -41,7 +41,7 @@ class Dac_sievert:
     The units of the cost parameters are as follows:
 
     - unit_capex is in [selected currency] / t(CO2) / h
-    - opex_fix is in % of annualized capex using the given discount rate and lifetime
+    - opex_fix is in % of up-front capex using the given discount rate and lifetime
     - opex_var is in [selected currency] / t(CO2) and excludes energy costs
     """
 
@@ -50,7 +50,7 @@ class Dac_sievert:
         # Read universal input
         self.dac_technology = dac_technology
 
-        dac_input_path = Path(__file__).parent.parent.parent / Path(
+        dac_input_path = Path(__file__).parent.parent.parent.parent / Path(
             "./data/technologies/dac_sievert/inputs_DACS_single.xlsx"
         )
         universal = pd.read_excel(dac_input_path, "Universal_Inputs", index_col=0)
@@ -219,14 +219,7 @@ class Dac_sievert:
             / 8760
         )
 
-        crf = (
-            self.discount_rate
-            * (1 + self.discount_rate) ** self.lifetime
-            / ((1 + self.discount_rate) ** self.lifetime - 1)
-        )
-        annualized_capex = crf * self.unit_capex
-
-        self.opex_fix = fom / annualized_capex
+        self.opex_fix = fom / self.unit_capex
 
     def _calculate_total_plant_cost(self, cumulative_capacity):
         """
@@ -435,6 +428,5 @@ class Dac_sievert:
         )
 
         self.levelized_cost = (
-            self.unit_capex * crf * (1 + self.opex_fix)
-            + capacity_factor * self.opex_var
+            self.unit_capex * (1 + self.opex_fix) + capacity_factor * self.opex_var
         ) / (capacity_factor)

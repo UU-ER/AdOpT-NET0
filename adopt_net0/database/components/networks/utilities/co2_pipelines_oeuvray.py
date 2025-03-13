@@ -17,7 +17,7 @@ class CO2Transport_Oeuvray:
     def __init__(self):
         super().__init__()
 
-        input_path = Path(__file__).parent.parent.parent / Path(
+        input_path = Path(__file__).parent.parent.parent.parent / Path(
             "./data/networks/co2_transport_oeuvray/"
         )
 
@@ -1000,7 +1000,7 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
         """
         self.length_km = options["length_km"]
         self.timeframe = options["timeframe"]
-        self.m_kg_per_s = options["m_kg_per_s"]
+        self.m_kg_per_s = options["massflow_kg_per_s"]
         self.terrain = options["terrain"]
         self.electricity_price_eur_per_mw = options["electricity_price_eur_per_mw"]
         self.operating_hours_per_a = options["operating_hours_per_a"]
@@ -1083,7 +1083,7 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
             "opex_fix_compression"
         ]
         cost_pipeline["opex_fix_fraction"] = self.optimal_configuration["opex_pipe"] / (
-            cost_pipeline["unit_capex"] * cr_pipe
+            cost_pipeline["unit_capex"]
         )
         cost_pipeline["lifetime"] = self.universal_data["z_pipe"]
 
@@ -1096,9 +1096,10 @@ class CO2Chain_Oeuvray(CO2Transport_Oeuvray):
         cost_compression["opex_fix_abs"] = self.optimal_configuration[
             "opex_fix_compression"
         ]
-        cost_compression["opex_fix_fraction"] = self.optimal_configuration[
-            "opex_fix_compression"
-        ] / (cost_compression["unit_capex"] * cr_pump_compressions)
+        cost_compression["opex_fix_fraction"] = (
+            self.optimal_configuration["opex_fix_compression"]
+            / cost_compression["unit_capex"]
+        )
         cost_compression["lifetime"] = self.universal_data["z_pumpcomp"]
 
         energy_requirements = {}
@@ -1121,7 +1122,7 @@ class CO2Compression_Oeuvray(CO2Transport_Oeuvray):
     Calculates the compressor costs and specific compression energy isolated from the CO2 transport chain
 
     - unit_capex is in [selected currency] / kg(CO2) / s
-    - opex_fix is in % of annualized capex using the given discount rate and lifetime
+    - opex_fix is in % of up-front capex
     - opex_var is 0
     - specific_compression_energy_mwh_per_t is in MWh/t(CO2)
     """
@@ -1183,7 +1184,7 @@ class CO2Compression_Oeuvray(CO2Transport_Oeuvray):
 
         self.lifetime = min(self.universal_data)
         self.unit_capex = capex_compression_eur
-        self.opex_fix = opex_fix / (capex_compression_eur * cr_pump_compressions)
+        self.opex_fix = opex_fix / capex_compression_eur
         self.opex_var = 0
 
         return {
