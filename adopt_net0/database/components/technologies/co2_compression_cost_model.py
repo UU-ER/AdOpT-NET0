@@ -5,8 +5,8 @@ from statsmodels import api as sm
 # import matplotlib.pyplot as plt
 
 from ..networks.utilities import CO2Compression_Oeuvray
-from ..utilities import convert_currency
-from ..data_component import DataComponent_CostModel
+from adopt_net0.database.utilities import convert_currency
+from adopt_net0.database.data_component import DataComponent_CostModel
 
 
 class CO2_Compression_CostModel(DataComponent_CostModel):

@@ -1,6 +1,6 @@
 from .utilities import Irena, Nrel, Dea
-from ..utilities import convert_currency
-from ..data_component import DataComponent_CostModel
+from adopt_net0.database.utilities import convert_currency
+from adopt_net0.database.data_component import DataComponent_CostModel
 
 
 class PV_CostModel(DataComponent_CostModel):

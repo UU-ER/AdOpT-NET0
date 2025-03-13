@@ -3,8 +3,7 @@ import os
 import pandas as pd
 from pathlib import Path
 
-from .technologies import *
-from .networks import *
+from adopt_net0.database.components import *
 from .data_component import DataComponent_CostModel
 
 PATH_CURRENT_DIR = Path(__file__).parent

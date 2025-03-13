@@ -3,8 +3,8 @@ import pandas as pd
 from statsmodels import api as sm
 
 from .utilities import *
-from ..utilities import convert_currency
-from ..data_component import DataComponent_CostModel
+from adopt_net0.database.utilities import convert_currency
+from adopt_net0.database.data_component import DataComponent_CostModel
 
 
 class CO2_Pipeline_CostModel(DataComponent_CostModel):
@@ -33,7 +33,7 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
     Financial indicators are:
 
     - gamma1, gamma2, gamma3, gamma4 in [currency] (equivalent to the cost parameters of a network)
-    - fixed capex as fraction of annualized capex
+    - fixed opex as fraction of annualized capex
     - variable opex in [currency]/ton
     - lifetime in years
     - levelized_cost in [currency]/t
@@ -96,9 +96,9 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
                 self.options["massflow_min_kg_per_s"]
                 == self.options["massflow_max_kg_per_s"]
             ):
-                range_m_kg_per_s = [self.options["massflow_min_kg_per_s"]]
+                range_massflow_kg_per_s = [self.options["massflow_min_kg_per_s"]]
             else:
-                range_m_kg_per_s = np.linspace(
+                range_massflow_kg_per_s = np.linspace(
                     self.options["massflow_min_kg_per_s"],
                     self.options["massflow_max_kg_per_s"],
                     self.options["massflow_evaluation_points"],
@@ -111,10 +111,10 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
 
             # Calculate costs for different mass flow rates
             costs = pd.DataFrame()
-            for m_kg_per_s in range_m_kg_per_s:
-                print(m_kg_per_s)
-                massflow_t_per_h = m_kg_per_s / 1000 * 3600
-                self.options["m_kg_per_s"] = m_kg_per_s
+            for massflow_kg_per_s in range_massflow_kg_per_s:
+                print(massflow_kg_per_s)
+                massflow_t_per_h = massflow_kg_per_s / 1000 * 3600
+                self.options["massflow_kg_per_s"] = massflow_kg_per_s
                 cost = calculation_module.calculate_cost(self.options)
 
                 # Correct for compression lifetime
@@ -166,8 +166,8 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
 
             # Fit linear cost function to results
             costs["intercept"] = 1
-            d = costs.reset_index(names="m_t_per_h")
-            x = d[["m_t_per_h", "intercept"]]
+            d = costs.reset_index(names="massflow_t_per_h")
+            x = d[["massflow_t_per_h", "intercept"]]
             y = d["capex_total"]
 
             linmodel = sm.OLS(y, x)
@@ -176,8 +176,8 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
             #
             # d["fitted"] = linfit.predict(x)
             #
-            # plt.plot(d["m_t_per_h"],d["capex_total"])
-            # plt.plot(d["m_t_per_h"], d["fitted"])
+            # plt.plot(d["massflow_t_per_h"],d["capex_total"])
+            # plt.plot(d["massflow_t_per_h"], d["fitted"])
             #
             #
             # plt.show()
@@ -190,7 +190,7 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
                 self.currency_out,
             )
             self.financial_indicators["gamma2"] = convert_currency(
-                coeff["m_t_per_h"],
+                coeff["massflow_t_per_h"],
                 self.financial_year_in,
                 self.financial_year_out,
                 self.currency_in,

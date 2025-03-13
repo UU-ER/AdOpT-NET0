@@ -1,6 +1,6 @@
 from .utilities import Dac_sievert
-from ..utilities import convert_currency
-from ..data_component import DataComponent_CostModel
+from adopt_net0.database.utilities import convert_currency
+from adopt_net0.database.data_component import DataComponent_CostModel
 
 
 class Dac_SolidSorbent_CostModel(DataComponent_CostModel):

@@ -94,6 +94,14 @@ Detailed technology cost models
    :undoc-members:
    :noindex:
 
+**Heat Pump**
+
+.. automodule:: adopt_net0.database.technologies.heat_pump_cost_model
+
+.. autoclass:: HeatPump_CostModel
+   :undoc-members:
+   :noindex:
+
 **Solid Sorbent Direct Air Capture**
 
 .. automodule:: adopt_net0.database.technologies.dac_adsorption_cost_model
