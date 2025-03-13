@@ -88,7 +88,7 @@ class Technology(ModelComponent):
     For existing technologies:
 
     - para_size_initial: initial size
-    - para_decommissioning_cost: Decommissioning cost
+    - para_decommissioning_cost_annual: Decommissioning cost
 
     **Variable declarations:**
 
@@ -451,6 +451,7 @@ class Technology(ModelComponent):
         b_tec = self._define_capex_constraints(b_tec, data)
         b_tec = self._define_input(b_tec, data)
         b_tec = self._define_output(b_tec, data)
+        b_tec = self._define_opex(b_tec, data)
 
         # EXISTING TECHNOLOGY CONSTRAINTS
         if self.existing and self.component_options.decommission == "only_complete":
@@ -482,8 +483,6 @@ class Technology(ModelComponent):
                     self.input = b_tec.var_input_aux
                 if b_tec.find_component("var_output"):
                     self.output = b_tec.var_output_aux
-
-        b_tec = self._define_opex(b_tec)
 
         # CCS and Emissions
         if self.component_options.ccs_possible:
@@ -747,7 +746,7 @@ class Technology(ModelComponent):
             pass
 
         if self.existing and not self.component_options.decommission == "impossible":
-            b_tec.para_decommissioning_cost = pyo.Param(
+            b_tec.para_decommissioning_cost_annual = pyo.Param(
                 domain=pyo.Reals,
                 initialize=annualization_factor * economics.decommission_cost,
                 mutable=True,
@@ -838,7 +837,7 @@ class Technology(ModelComponent):
                 b_tec.const_capex = pyo.Constraint(
                     expr=b_tec.var_capex
                     == (b_tec.para_size_initial - b_tec.var_size)
-                    * b_tec.para_decommissioning_cost
+                    * b_tec.para_decommissioning_cost_annual
                 )
         else:
             b_tec.const_capex = pyo.Constraint(
@@ -900,14 +899,21 @@ class Technology(ModelComponent):
         )
         return b_tec
 
-    def _define_opex(self, b_tec):
+    def _define_opex(self, b_tec, data):
         """
         Defines variable and fixed OPEX
 
         :param b_tec: pyomo block with technology model
+        :param dict data: dict containing model information
         :return: pyomo block with technology model
         """
+        config = data["config"]
         economics = self.economics
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        annualization_factor = annualize(
+            discount_rate, economics.lifetime, fraction_of_year_modelled
+        )
 
         # VARIABLE OPEX
         b_tec.para_opex_variable = pyo.Param(
@@ -944,7 +950,8 @@ class Technology(ModelComponent):
         )
         b_tec.var_opex_fixed = pyo.Var()
         b_tec.const_opex_fixed = pyo.Constraint(
-            expr=b_tec.var_capex_aux * b_tec.para_opex_fixed == b_tec.var_opex_fixed
+            expr=(b_tec.var_capex_aux / annualization_factor) * b_tec.para_opex_fixed
+            == b_tec.var_opex_fixed
         )
         return b_tec
 
@@ -1684,7 +1691,8 @@ class Technology(ModelComponent):
         )
         b_tec.var_opex_fixed_ccs = pyo.Var()
         b_tec.const_opex_fixed_ccs = pyo.Constraint(
-            expr=b_tec.var_capex_aux_ccs * b_tec.para_opex_fixed_ccs
+            expr=(b_tec.var_capex_aux_ccs / annualization_factor)
+            * b_tec.para_opex_fixed_ccs
             == b_tec.var_opex_fixed_ccs
         )
 
