@@ -6,7 +6,7 @@
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
-    "comment": "CAPEX in EUR/(t/hCO2_in), OPEX_variable in EUR/(t/h_CO2_captured), OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/(t/hCO2_in), OPEX_variable in EUR/(t/h_CO2_captured), OPEX_fixed in % of up-front CAPEX",
     "CAPEX_model": 3,
     "unit_CAPEX": 1.1084E+06,
     "CAPEX_kappa": 2.83E+06,
