@@ -6,7 +6,7 @@ Networks
 The network class is a subclass of the ModelComponent class.
 Furthermore, the network class has different subclasses that model different types of networks (fluid, electricity, simple).
 An overview of all networks that are currently modelled, along with their respective types, can be found
-:ref:`below <network_list>`.
+:ref:`here <network_list>`.
 
 A network is defined as the set of all arcs (i.e., connections between nodes) of a
 specific network type (e.g., "electricitySimple"). In addition to the performance and
@@ -28,18 +28,6 @@ enforced:
       solving.
     - With ``bidirectional_network_precise = 0`` this is enforced with a cut, thus
       not completly eliminating a flow in both directions at the same time.
-
-..  _network_list:
-
-List of Networks
------------------
-
-All networks that are modelled are listed below.
-
-.. csv-table::
-   :file: generated_netw_list.csv
-   :header-rows: 1
-   :delim: ;
 
 Network Class
 -------------------------------------------------------------

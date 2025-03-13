@@ -53,8 +53,8 @@ class Network(ModelComponent):
       CAPEX calculation (annualized from given data on up-front CAPEX, lifetime and
       discount rate)
     - ``para_opex_variable``: Variable OPEX
-    - ``para_opex_fixed``: Fixed OPEX
-    - ``para_decommissioning_cost``: decommissioning costs for existing networks
+    - ``para_opex_fixed``: Fixed OPEX in % of up-front CAPEX
+    - ``para_decommissioning_cost_annual``: decommissioning costs for existing networks
 
     **Variable declarations:**
 
@@ -97,7 +97,7 @@ class Network(ModelComponent):
 
         * CAPEX of respective arc. The CAPEX is calculated as follows (for new
           networks). Note that for existing networks, the CAPEX is zero, but the
-          fixed OPEX is calculated as a fraction of a hypothetical CAPEX
+          fixed OPEX is calculated as a fraction of a hypothetical up-front CAPEX
           based on the existing size.
 
           .. math::
@@ -303,7 +303,7 @@ class Network(ModelComponent):
             b_netw = self._define_bidirectional_constraints(b_netw)
 
         b_netw = self._define_capex_total(b_netw)
-        b_netw = self._define_opex_total(b_netw)
+        b_netw = self._define_opex_total(b_netw, data)
         b_netw = self._define_inflow_constraints(b_netw)
         b_netw = self._define_outflow_constraints(b_netw)
         b_netw = self._define_emission_constraints(b_netw)
@@ -445,7 +445,7 @@ class Network(ModelComponent):
         )
 
         if self.existing:
-            b_netw.para_decommissioning_cost = pyo.Param(
+            b_netw.para_decommissioning_cost_annual = pyo.Param(
                 domain=pyo.Reals,
                 initialize=economics.decommission_cost * annualization_factor,
                 mutable=True,
@@ -676,7 +676,7 @@ class Network(ModelComponent):
             b_arc.const_capex = pyo.Constraint(
                 expr=b_arc.var_capex
                 == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size)
-                * b_netw.para_decommissioning_cost
+                * b_netw.para_decommissioning_cost_annual
             )
         else:
             b_arc.const_capex = pyo.Constraint(
@@ -876,13 +876,22 @@ class Network(ModelComponent):
 
         return b_netw
 
-    def _define_opex_total(self, b_netw):
+    def _define_opex_total(self, b_netw, data):
         """
         Defines total OPEX of network
 
         :param b_netw: pyomo network block
+        :param dict data: dict containing model information
         :return: pyomo network block
         """
+        config = data["config"]
+        economics = self.economics
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        annualization_factor = annualize(
+            discount_rate, economics.lifetime, fraction_of_year_modelled
+        )
+
         if self.component_options.bidirectional_network:
             arc_set = b_netw.set_arcs_unique
         else:
@@ -891,7 +900,10 @@ class Network(ModelComponent):
         def init_opex_fixed(const):
             return (
                 b_netw.para_opex_fixed
-                * sum(b_netw.arc_block[arc].var_capex_aux for arc in arc_set)
+                * (
+                    sum(b_netw.arc_block[arc].var_capex_aux for arc in arc_set)
+                    / annualization_factor
+                )
                 == b_netw.var_opex_fixed
             )
 
@@ -1010,14 +1022,22 @@ class Network(ModelComponent):
 
         return b_arc
 
-    def write_results_netw_design(self, h5_group, model_block):
+    def write_results_netw_design(self, h5_group, model_block, config, data):
         """
         Function to report network design
 
         :param model_block: pyomo network block
+        :param dict config: dict containing model configuration
+        :param dict data: dict containing model information
         :param h5_group: h5 group to write to
         """
         coeff_ti = self.processed_coeff.time_independent
+        economics = self.economics
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data.topology["fraction_of_year_modelled"]
+        annualization_factor = annualize(
+            discount_rate, economics.lifetime, fraction_of_year_modelled
+        )
 
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
@@ -1043,7 +1063,10 @@ class Network(ModelComponent):
             arc_group.create_dataset("capex", data=arc.var_capex.value)
             arc_group.create_dataset(
                 "opex_fixed",
-                data=[model_block.para_opex_fixed.value * arc.var_capex_aux.value],
+                data=[
+                    model_block.para_opex_fixed.value
+                    * (arc.var_capex_aux.value / annualization_factor)
+                ],
             )
             arc_group.create_dataset(
                 "opex_variable",
