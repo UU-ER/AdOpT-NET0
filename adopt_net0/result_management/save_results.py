@@ -390,24 +390,27 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                             for t in set_t
                         ],
                     )
-                    car_group.create_dataset(
-                        "network_inflow",
-                        data=[
-                            0 if x is None else x
-                            for x in [
-                                node_data.var_netw_inflow[t, car].value for t in set_t
-                            ]
-                        ],
-                    )
-                    car_group.create_dataset(
-                        "network_outflow",
-                        data=[
-                            0 if x is None else x
-                            for x in [
-                                node_data.var_netw_outflow[t, car].value for t in set_t
-                            ]
-                        ],
-                    )
+                    if hasattr(node_data, "var_netw_consumption"):
+                        car_group.create_dataset(
+                            "network_inflow",
+                            data=[
+                                0 if x is None else x
+                                for x in [
+                                    node_data.var_netw_inflow[t, car].value
+                                    for t in set_t
+                                ]
+                            ],
+                        )
+                        car_group.create_dataset(
+                            "network_outflow",
+                            data=[
+                                0 if x is None else x
+                                for x in [
+                                    node_data.var_netw_outflow[t, car].value
+                                    for t in set_t
+                                ]
+                            ],
+                        )
                     if hasattr(node_data, "var_netw_consumption"):
                         network_consumption = [
                             node_data.var_netw_consumption[t, car].value for t in set_t
