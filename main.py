@@ -60,7 +60,7 @@ with open(
     path / "period1" / "node_data" / "industrial_cluster" / "Technologies.json", "r"
 ) as json_file:
     technologies = json.load(json_file)
-technologies["new"] = ["GasTurbine_simple_CCS"]
+technologies["new"] = ["CementHybridCCS"]
 
 with open(
     path / "period1" / "node_data" / "industrial_cluster" / "Technologies.json", "w"

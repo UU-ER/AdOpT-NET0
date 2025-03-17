@@ -919,6 +919,7 @@ class Technology(ModelComponent):
                 (self.component_options.technology_model == "RES")
                 or (self.component_options.technology_model == "CONV4")
                 or (self.component_options.technology_model == "DAC_Adsorption")
+                or (self.component_options.technology_model == "CementHybridCCS")
             ):
                 opex_variable_based_on = b_tec.var_output[
                     t, b_tec.set_output_carriers[1]
