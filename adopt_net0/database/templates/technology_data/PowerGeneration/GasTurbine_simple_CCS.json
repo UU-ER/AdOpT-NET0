@@ -1,0 +1,70 @@
+{
+  "tec_type": "CONV1",
+  "size_min": 0,
+  "size_max": 10000,
+  "size_is_int": 0,
+  "size_based_on": "output",
+  "decommission": "impossible",
+  "Economics": {
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of up-front CAPEX",
+    "CAPEX_model": 1,
+    "unit_CAPEX": 18000,
+    "OPEX_variable": 0.1,
+    "OPEX_fixed": 0.09,
+    "discount_rate": 0.1,
+    "lifetime": 15,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "performance_function_type": 1,
+    "input_carrier": [
+      "gas",
+      "hydrogen"
+    ],
+    "main_input_carrier": "gas",
+    "output_carrier": [
+      "electricity"
+    ],
+    "emission_factor": 0.2,
+    "min_part_load": 0,
+    "performance": {
+      "in": [
+        0,
+        1
+      ],
+      "out": [
+        0,
+        0.5
+      ]
+    },
+    "max_input": {
+      "hydrogen": 0.05
+    },
+    "ccs": {
+      "possible": 1,
+      "co2_concentration" : 0.08,
+      "ccs_type": "MEA_medium"
+    },
+    "ramping_rate": -1,
+    "standby_power": -1,
+    "min_uptime": -1,
+    "min_downtime": -1,
+    "SU_time": -1,
+    "SD_time": -1,
+    "SU_load": -1,
+    "SD_load": -1,
+    "max_startups": -1
+  },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "gas": "MW",
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "electricity": "MW",
+      "heat": "MW"
+    }
+  }
+}

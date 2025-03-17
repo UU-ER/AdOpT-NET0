@@ -165,7 +165,9 @@ def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path = No
 
     if tec_data_path is None:
         tec_data_path = Path(
-            os.path.join(os.path.dirname(__file__) + "/../data/technology_data")
+            os.path.join(
+                os.path.dirname(__file__) + "/../database/templates/technology_data"
+            )
         )
     else:
         if isinstance(tec_data_path, str):
@@ -213,7 +215,9 @@ def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path = None)
 
     if ntw_data_path is None:
         ntw_data_path = Path(
-            os.path.join(os.path.dirname(__file__) + "/../data/network_data")
+            os.path.join(
+                os.path.dirname(__file__) + "/../database/templates/network_data"
+            )
         )
     else:
         if isinstance(ntw_data_path, str):
