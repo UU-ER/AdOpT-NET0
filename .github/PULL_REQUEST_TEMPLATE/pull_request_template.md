@@ -4,7 +4,7 @@ What kind of change does this PR introduce (check all applicable)?
 - [ ] Bugfix
 - [ ] Feature
 - [ ] Refactoring (no functional changes, no api changes)
-- [ ] CI related changes
+- [ ] Continuous integration related changes
 - [ ] Documentation content changes
 - [ ] Tests
 - [ ] Other
