@@ -33,6 +33,12 @@
         "gam": 1.405,
         "LHV": 33.32
       }
+    },
+    "pressure": {
+      "hydrogen": {
+        "inlet": 20,
+        "outlet": 20
+      }
     }
   },
   "Units": {

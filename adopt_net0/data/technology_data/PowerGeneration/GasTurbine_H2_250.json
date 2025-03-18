@@ -42,8 +42,11 @@
     "epsilon": 0.955,
     "emission_factor": 0.185,
     "pressure": {
-      "inlet": 350
-    }
+      "hydrogen": {
+        "inlet": 350,
+        "outlet": 350
+        }
+      }
   },
   "Units": {
     "size": "MW",

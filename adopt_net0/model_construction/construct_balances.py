@@ -278,8 +278,24 @@ def construct_global_energybalance(model, config):
             else:
                 violation = 0
 
+            if (
+                config["performance"]["pressure"]["value"] == 1
+            ):  # here it could per performace-pressure-value or soptimiziation-pressure-value
+                compress_node = sum(
+                    b_period.var_compression[t, car, node]
+                    for node in model.set_nodes
+                    if car in b_period.node_blocks[node].set_carriers
+                )
+            else:
+                compress_node = 0
+
             return (
-                tec_output - tec_input + import_flow - export_flow + violation
+                tec_output
+                - tec_input
+                + import_flow
+                - export_flow
+                + violation
+                + compress_node
                 == demand - gen_prod
             )
 

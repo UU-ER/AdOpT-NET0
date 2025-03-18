@@ -98,7 +98,6 @@ class InputParameters:
         self.pressure = get_attribute_from_dict(
             component_data["Performance"], "pressure", {}
         )
-        print(self.pressure)
 
 
 class ComponentOptions:
