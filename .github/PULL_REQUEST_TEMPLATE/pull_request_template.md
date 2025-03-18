@@ -15,7 +15,6 @@ For pull requests that relate or close an issue, please include them. "closes #1
 request to issue 1234. When the pull request is merged into main, Github will
 automatically close the issue.
 
-- Related issue #
 - Closes #
 
 ## Checklist
@@ -25,10 +24,10 @@ Please tick all relevant boxes
 - [ ] No, and this is why: _please replace this line with details on why tests
       have not been included_
 ### Documentation
-- [ ] Checked if readme.md needs update and updated it
-- [ ] Checked if docs need updates and implemented it
-- [ ] Added docstrings to all new functions/classes
-- [ ] Added variable types to all new functions/classes
+- [ ] I checked if readme.md needs an update and updated it
+- [ ] I checked if docs need an update and implemented it
+- [ ] I added docstrings to all new functions/classes
+- [ ] I added variable types to all new functions/classes
 ### Other
-- [ ] PR is on latest develop branch
-- [ ] Created an issue for improvements that I noticed and that need attention in the future (this can include refactoring, bugs, features,...)
+- [ ] The PR is on latest develop branch
+- [ ] I created an issue for improvements (if applicable) that I noticed and that need attention in the future (this can include refactoring, bugs, features,...)
