@@ -20,6 +20,7 @@ automatically close the issue.
 ## Checklist
 Please tick all relevant boxes
 ### Testing
+You can check the code coverage report to see if tests cover the added or changed code.
 - [ ] Yes, I added new test functions for this PR
 - [ ] Yes, everything was already tested properly
 - [ ] No, and this is why: _please replace this line with details on why tests
