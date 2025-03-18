@@ -648,7 +648,10 @@ class Network(ModelComponent):
 
         # CAPEX aux:
         if self.existing and self.component_options.decommission == "impossible":
-            b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
+            if b_arc.var_size.value == 0:
+                b_arc.const_capex_aux = pyo.Constraint(expr=b_arc.var_capex_aux == 0)
+            else:
+                b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
         elif (b_netw.para_capex_gamma1.value == 0) and (
             b_netw.para_capex_gamma3.value == 0
         ):
@@ -672,12 +675,13 @@ class Network(ModelComponent):
             b_arc.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
 
         # CAPEX and CAPEX aux
-        if self.existing and not self.component_options.decommission == "impossible":
-            b_arc.const_capex = pyo.Constraint(
-                expr=b_arc.var_capex
-                == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size)
-                * b_netw.para_decommissioning_cost_annual
-            )
+        if self.existing:
+            if not self.component_options.decommission == "impossible":
+                b_arc.const_capex = pyo.Constraint(
+                    expr=b_arc.var_capex
+                    == (b_netw.para_size_initial[node_from, node_to] - b_arc.var_size)
+                    * b_netw.para_decommissioning_cost_annual
+                )
         else:
             b_arc.const_capex = pyo.Constraint(
                 expr=b_arc.var_capex == b_arc.var_capex_aux
