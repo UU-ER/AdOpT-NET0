@@ -48,6 +48,9 @@ overwrites the class method).
 
 Generic Technologies
 --------------------------------
+..  _generic_technologies:
+
+
 .. automodule:: adopt_net0.components.technologies.genericTechnologies.res
     :members: Res
 
