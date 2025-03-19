@@ -58,7 +58,7 @@ class DacAdsorption(Technology):
         performance_data_path = Path(__file__).parent.parent.parent.parent
         performance_data_path = (
             performance_data_path
-            / "data/technology_data/CO2Capture/DAC_adsorption_data/dac_adsorption_performance.txt"
+            / "database/templates/technology_data/DAC/DAC_adsorption_data/dac_adsorption_performance.txt"
         )
 
         performance_data = pd.read_csv(performance_data_path, sep=",")
@@ -252,10 +252,15 @@ class DacAdsorption(Technology):
         # Additional sets
         b_tec.set_pieces = pyo.RangeSet(1, nr_segments)
 
+        if self.component_options.size_is_int:
+            size_domain = pyo.NonNegativeIntegers
+        else:
+            size_domain = pyo.NonNegativeReals
+
         # Additional decision variables
         b_tec.var_modules_on = pyo.Var(
             self.set_t_performance,
-            domain=pyo.NonNegativeIntegers,
+            domain=size_domain,
             bounds=(b_tec.para_size_min, b_tec.para_size_max),
         )
 

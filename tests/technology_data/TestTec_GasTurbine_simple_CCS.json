@@ -4,9 +4,9 @@
   "size_max": 10000,
   "size_is_int": 0,
   "size_based_on": "output",
-  "decommission": 0,
+  "decommission": "impossible",
   "Economics": {
-    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of CAPEX_annual",
+    "comment": "CAPEX in EUR/MW/year or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of up-front CAPEX",
     "CAPEX_model": 1,
     "unit_CAPEX": 18000,
     "OPEX_variable": 0.1,

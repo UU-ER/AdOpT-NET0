@@ -1,5 +1,6 @@
 import warnings
 
+import pyomo.core.base.param
 import pytest
 from pathlib import Path
 from pyomo.environ import ConcreteModel, Set, Constraint, TerminationCondition
@@ -23,6 +24,9 @@ def define_technology(
     load_path: Path,
     perf_type: int = None,
     CAPEX_model: int = None,
+    existing: int = 0,
+    size_initial: float = 0,
+    decommission: str = "impossible",
 ):
     """
     Reads technology data and fits it
@@ -32,6 +36,9 @@ def define_technology(
     :param Path load_path: Path to load from
     :param int perf_type: performance function type (for generic conversion tecs)
     :param int CAPEX_model: capex model (1,2,3,4)
+    :param int existing: is technology existing or not,
+    :param float size_initial: initial size of existing technology,
+    :param str decommission: type of decommissioning "impossible", "continuous", "only_complete"
     :return: Technology class
     """
     # Technology Class Creation
@@ -45,6 +52,11 @@ def define_technology(
         tec["Economics"]["CAPEX_model"] = CAPEX_model
 
     tec = technology_factory(tec)
+
+    if existing:
+        tec.existing = existing
+        tec.input_parameters.size_initial = size_initial
+        tec.component_options.decommission = decommission
 
     # Technology fitting
     climate_data = make_climate_data("2022-01-01 12:00", nr_timesteps)
@@ -934,13 +946,36 @@ def test_dac(request):
     # FEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [1])
-
     termination = run_model(model, request.config.solver)
+
+    heat_in = model.var_input_tot[1, "heat"].value
+    electricity_in = model.var_input_tot[1, "electricity"].value
+    size = model.var_size.value
+    capex = model.var_capex.value
+
     assert termination == TerminationCondition.optimal
-    assert model.var_input_tot[1, "heat"].value > 0.1
-    assert model.var_input_tot[1, "electricity"].value > 0.01
-    assert model.var_size.value > 1
-    assert model.var_capex.value > 0
+    assert heat_in > 0.1
+    assert electricity_in > 0.01
+    assert size > 1
+    assert round(size, 3) % 1 == 0
+    assert capex > 0
+
+    tec.component_options.size_is_int = 0
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model = generate_output_constraint(model, [1])
+    termination = run_model(model, request.config.solver)
+
+    heat_in2 = model.var_input_tot[1, "heat"].value
+    electricity_in2 = model.var_input_tot[1, "electricity"].value
+    size2 = model.var_size.value
+    capex2 = model.var_capex.value
+
+    assert termination == TerminationCondition.optimal
+    assert round(heat_in2, 1) == round(heat_in, 1)
+    assert round(electricity_in2, 1) == round(electricity_in, 1)
+    assert size2 < size
+    assert size2 % 1 != 0
+    assert capex2 < capex
 
 
 def test_hydro_open(request):
@@ -1149,3 +1184,55 @@ def test_combined_cycle_fixed_size(request):
     termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
     assert model.var_input_tot[1, "gas"].value >= 140 / 0.5
+
+
+def test_decommissioning(request):
+    """
+    tests decommissioning of technology
+    """
+    time_steps = 1
+    technology = "TestTec_WindTurbine_decommission"
+
+    # No decommissioning
+    tec = define_technology(
+        technology,
+        time_steps,
+        request.config.technology_data_folder_path,
+        existing=1,
+        size_initial=15,
+    )
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+
+    assert isinstance(model.var_size, pyomo.core.base.param.ScalarParam)
+
+    # Technology can decommission
+    tec = define_technology(
+        technology,
+        time_steps,
+        request.config.technology_data_folder_path,
+        existing=1,
+        size_initial=15,
+        decommission="continuous",
+    )
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model.test_const_size_zero = Constraint(expr=model.var_size == 5)
+    termination = run_model(model, request.config.solver)
+    assert termination in [TerminationCondition.optimal]
+
+    # Only complete decommissioning
+    tec = define_technology(
+        technology,
+        time_steps,
+        request.config.technology_data_folder_path,
+        existing=1,
+        size_initial=15,
+        decommission="only_complete",
+    )
+    model = construct_tec_model(tec, nr_timesteps=time_steps)
+    model.test_const_size_zero = Constraint(expr=model.var_size == 5)
+    termination = run_model(model, request.config.solver)
+    assert termination in [
+        TerminationCondition.infeasibleOrUnbounded,
+        TerminationCondition.infeasible,
+        TerminationCondition.other,
+    ]

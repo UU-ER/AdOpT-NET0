@@ -1,0 +1,13 @@
+Component_Name;Component_Type;Available_Sources
+DAC_Adsorption;Technology;Sievert
+CO2_Pipeline;Network;Oeuvray
+CO2_Compressor;Technology;Oeuvray
+WindTurbine_Onshore;Technology;IRENA
+WindTurbine_Onshore;Technology;NREL
+WindTurbine_Onshore;Technology;DEA
+WindTurbine_Offshore;Technology;IRENA
+WindTurbine_Offshore;Technology;NREL
+WindTurbine_Offshore;Technology;DEA
+Photovoltaic;Technology;IRENA
+Photovoltaic;Technology;NREL
+Photovoltaic;Technology;DEA

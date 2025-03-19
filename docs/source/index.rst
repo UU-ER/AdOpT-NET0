@@ -11,6 +11,8 @@ We recommend to start with the :ref:`installation<installation>`, the
 :ref:`workflow for (first-time) users<workflow>`, and the
 :ref:`exemplary case studies <case-studies>`.
 
+The package also comes with a database of predefined technologies and networks (read more about this :ref:`here <database>`
+
 Table of Content
 ==================
 
@@ -20,9 +22,11 @@ Table of Content
    Installation
    ModellingWorkflow
    CaseStudies
+   DataBase
    AdvancedTopics
    SourceCode
    ForDevelopers
+   FAQ
 
 Indices and tables
 ==================

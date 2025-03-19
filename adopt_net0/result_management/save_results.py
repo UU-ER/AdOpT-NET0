@@ -290,7 +290,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                     netw_specific_group = g_period_netw_design.create_group(netw_name)
                     b_netw = b_period.network_block[netw_name]
                     data.network_data[period][netw_name].write_results_netw_design(
-                        netw_specific_group, b_netw
+                        netw_specific_group, b_netw, config, data
                     )
 
         # TIME-INDEPENDENT RESULTS: NODES [g]
@@ -390,24 +390,27 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                             for t in set_t
                         ],
                     )
-                    car_group.create_dataset(
-                        "network_inflow",
-                        data=[
-                            0 if x is None else x
-                            for x in [
-                                node_data.var_netw_inflow[t, car].value for t in set_t
-                            ]
-                        ],
-                    )
-                    car_group.create_dataset(
-                        "network_outflow",
-                        data=[
-                            0 if x is None else x
-                            for x in [
-                                node_data.var_netw_outflow[t, car].value for t in set_t
-                            ]
-                        ],
-                    )
+                    if hasattr(node_data, "var_netw_consumption"):
+                        car_group.create_dataset(
+                            "network_inflow",
+                            data=[
+                                0 if x is None else x
+                                for x in [
+                                    node_data.var_netw_inflow[t, car].value
+                                    for t in set_t
+                                ]
+                            ],
+                        )
+                        car_group.create_dataset(
+                            "network_outflow",
+                            data=[
+                                0 if x is None else x
+                                for x in [
+                                    node_data.var_netw_outflow[t, car].value
+                                    for t in set_t
+                                ]
+                            ],
+                        )
                     if hasattr(node_data, "var_netw_consumption"):
                         network_consumption = [
                             node_data.var_netw_consumption[t, car].value for t in set_t

@@ -1,0 +1,58 @@
+{
+  "tec_type": "GasTurbine_NG_400",
+  "decommission": "impossible",
+  "size_is_int": 1,
+  "size_min": 0,
+  "size_max": 100,
+  "Economics": {
+    "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of up-front CAPEX",
+    "CAPEX_model": 1,
+    "unit_CAPEX": 73509431.0,
+    "fix_CAPEX": 0,
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0.05,
+    "discount_rate": 0.1,
+    "lifetime": 15,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "gas",
+      "hydrogen"
+    ],
+    "max_H2_admixture": 0.05,
+    "main_input_carrier": "gas",
+    "output_carrier": [
+      "electricity",
+      "heat"
+    ],
+    "rated_power": 400,
+    "in_min": 685.696,
+    "in_max": 1083.4,
+    "alpha": 0.5763,
+    "beta": -169.291,
+    "gamma": [
+      0.0064,
+      -0.0971
+    ],
+    "delta": [
+      1.002,
+      1.0538
+    ],
+    "T_iso": 15,
+    "epsilon": 0.871207034372502,
+    "emission_factor": 0.185
+  },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "gas": "MW",
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "electricity": "MW",
+      "heat": "MW"
+    }
+  }
+}

@@ -229,10 +229,13 @@ def construct_global_energybalance(model, config):
                     .tech_blocks_active[tec]
                     .var_output_tot[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
-                    if car in b_period.node_blocks[node].set_carriers
-                    and b_period.node_blocks[node]
-                    .tech_blocks_active[tec]
-                    .set_output_carriers_all
+                    if (car in b_period.node_blocks[node].set_carriers)
+                    and (
+                        car
+                        in b_period.node_blocks[node]
+                        .tech_blocks_active[tec]
+                        .set_output_carriers_all
+                    )
                 )
                 for node in model.set_nodes
             )
@@ -243,10 +246,13 @@ def construct_global_energybalance(model, config):
                     .tech_blocks_active[tec]
                     .var_input_tot[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
-                    if car in b_period.node_blocks[node].set_carriers
-                    and b_period.node_blocks[node]
-                    .tech_blocks_active[tec]
-                    .set_input_carriers_all
+                    if (car in b_period.node_blocks[node].set_carriers)
+                    and (
+                        car
+                        in b_period.node_blocks[node]
+                        .tech_blocks_active[tec]
+                        .set_input_carriers_all
+                    )
                 )
                 for node in model.set_nodes
             )

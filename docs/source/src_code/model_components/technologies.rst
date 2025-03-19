@@ -31,25 +31,10 @@ Technology types, divided by generic and specific technologies:
 
 All technology types listed above are modelled as subclasses of the :class:`Technology` class. An overview of all
 technologies that are currently modelled, and the technology classes / types used to model them, can be found
-:ref:`below <technologies_list>`.
+:ref:`here <technologies_list>`.
 
 Additionally, you can attach a post combustion CCS to any technology (see :ref:`here
 <ccs_docu>`)
-
-
-..  _technologies_list:
-
-List of Technologies
-----------------------
-
-All technologies that are modelled are listed below, as well as their respective technology models (i.e.,
-types of technologies that follow similar constraints, which are explained :ref:`here<technologies>`).
-
-.. csv-table::
-   :file: generated_tech_list.csv
-   :header-rows: 1
-   :delim: ;
-
 
 Technology Class
 -------------------------------------------------------------
@@ -63,6 +48,9 @@ overwrites the class method).
 
 Generic Technologies
 --------------------------------
+..  _generic_technologies:
+
+
 .. automodule:: adopt_net0.components.technologies.genericTechnologies.res
     :members: Res
 

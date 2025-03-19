@@ -91,7 +91,8 @@ def test_jupyter_notebooks(request):
         try:
             result = subprocess.run(
                 [sys.executable, testing_path / file_name],
-                capture_output=True,
+                stderr=sys.stderr,  # Direct stderr to the terminal
+                stdout=sys.stdout,  # Direct stdout to the terminal
                 text=True,
                 check=True,
             )
