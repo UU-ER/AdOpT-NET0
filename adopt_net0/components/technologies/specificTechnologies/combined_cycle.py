@@ -214,7 +214,7 @@ class CCPP(Technology):
             performance_data_path = Path(__file__).parent.parent.parent.parent
             performance_data_path = (
                 performance_data_path
-                / "data/technology_data/PowerGeneration/CombinedCycle_fixed_size_data"
+                / "database/templates/technology_data/PowerGeneration/CombinedCycle_fixed_size_data"
             )
             log.warning(
                 "Using performance data with noice (not the same as in "

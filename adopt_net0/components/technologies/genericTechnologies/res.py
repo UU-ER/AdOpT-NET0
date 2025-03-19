@@ -184,21 +184,25 @@ class Res(Technology):
         """
         Calculates capacity factors for a wind turbine
 
-        The power curves are located in ``data/technology_data/RES/WT_data``
+        The power curves are located in ``database/templates/technology_data/RES/WT_data``
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param float hubheight: hubheight of wind turbine
         """
         # Load data for wind turbine type
         wt_path = Path(__file__).parent.parent.parent.parent
-        wt_data_path = wt_path / "data/technology_data/RES/WT_data/WT_data.csv"
-        wt_data = pd.read_csv(wt_data_path, delimiter=";")
+        wt_data_path = (
+            wt_path / "database/templates/technology_data/RES/WT_data/WT_data.csv"
+        )
+        wt_data_full = pd.read_csv(wt_data_path, delimiter=";")
 
         # match WT with data
-        if self.name in wt_data["TurbineName"]:
-            wt_data = wt_data[wt_data["TurbineName"] == self.name]
-        else:
-            wt_data = wt_data[wt_data["TurbineName"] == "WindTurbine_Onshore_1500"]
+        wt_data = wt_data_full[wt_data_full["TurbineName"] == self.name]
+
+        if len(wt_data) == 0:
+            wt_data = wt_data_full[
+                wt_data_full["TurbineName"] == "WindTurbine_Onshore_1500"
+            ]
             warnings.warn(
                 "TurbineName not in csv, standard WindTurbine_Onshore_1500 selected."
             )

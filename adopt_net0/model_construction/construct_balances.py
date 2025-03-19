@@ -82,14 +82,12 @@ def construct_network_constraints(model, config: dict):
 
         def init_netw_consumption(const, node, car, t):
 
-            if (b_period.node_blocks[node].find_component("var_netw_consumption")) and (
-                car in b_period.node_blocks[node].set_carriers
-            ):
+            if car in b_period.node_blocks[node].set_carriers:
+
                 return b_period.node_blocks[node].var_netw_consumption[t, car] == sum(
                     b_period.network_block[netw].var_consumption[t, car, node]
                     for netw in b_period.set_networks
-                    if (b_period.network_block[netw].find_component("var_consumption"))
-                    and car in b_period.network_block[netw].set_consumed_carriers
+                    if car in b_period.network_block[netw].set_consumed_carriers
                 )
             else:
                 return pyo.Constraint.Skip
@@ -225,10 +223,13 @@ def construct_global_energybalance(model, config):
                     .tech_blocks_active[tec]
                     .var_output_tot[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
-                    if car in b_period.node_blocks[node].set_carriers
-                    and b_period.node_blocks[node]
-                    .tech_blocks_active[tec]
-                    .set_output_carriers_all
+                    if (car in b_period.node_blocks[node].set_carriers)
+                    and (
+                        car
+                        in b_period.node_blocks[node]
+                        .tech_blocks_active[tec]
+                        .set_output_carriers_all
+                    )
                 )
                 for node in model.set_nodes
             )
@@ -239,10 +240,13 @@ def construct_global_energybalance(model, config):
                     .tech_blocks_active[tec]
                     .var_input_tot[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
-                    if car in b_period.node_blocks[node].set_carriers
-                    and b_period.node_blocks[node]
-                    .tech_blocks_active[tec]
-                    .set_input_carriers_all
+                    if (car in b_period.node_blocks[node].set_carriers)
+                    and (
+                        car
+                        in b_period.node_blocks[node]
+                        .tech_blocks_active[tec]
+                        .set_input_carriers_all
+                    )
                 )
                 for node in model.set_nodes
             )
@@ -665,7 +669,22 @@ def construct_system_cost(model, data):
                 )
                 for node in model.set_nodes
             )
-            return revenue_carbon_from_technologies == b_period.var_carbon_revenue
+
+            revenue_carbon_from_carriers = sum(
+                sum(
+                    b_period.node_blocks[node].var_car_emissions_neg[t]
+                    * nr_timesteps_averaged
+                    * b_period.node_blocks[node].para_carbon_subsidy[t]
+                    * hour_factors[t - 1]
+                    for t in set_t
+                )
+                for node in model.set_nodes
+            )
+
+            return (
+                revenue_carbon_from_technologies + revenue_carbon_from_carriers
+                == b_period.var_carbon_revenue
+            )
 
         b_period_cost.const_revenue_carbon = pyo.Constraint(rule=init_carbon_revenue)
 

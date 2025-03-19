@@ -15,7 +15,7 @@ from adopt_net0.model_construction.construct_balances import (
     construct_network_constraints,
     construct_system_cost,
 )
-from adopt_net0.data_management import DataHandle
+from unittest.mock import MagicMock
 
 
 def construct_model(dh):
@@ -27,6 +27,7 @@ def construct_model(dh):
     """
 
     ehub = ModelHub()
+    ehub._perform_preprocessing_checks = MagicMock(return_value=None)
     ehub.data = dh
     ehub.construct_model()
     m = ehub.model["full"]
@@ -34,20 +35,20 @@ def construct_model(dh):
     return m
 
 
-def solve_model(m):
+def solve_model(m, solver):
     """
     Solves model and returns termination condition
 
     :param m: pyomo model to solve
     :return: termination condition
     """
-    solver = SolverFactory("glpk")
+    solver = SolverFactory(solver)
     solution = solver.solve(m)
     termination_condition = solution.solver.termination_condition
     return termination_condition
 
 
-def test_model_nodal_energy_balance():
+def test_model_nodal_energy_balance(request):
     """
     Tests the energybalance on a nodal level
 
@@ -78,7 +79,7 @@ def test_model_nodal_energy_balance():
     m = construct_network_constraints(m, config)
     m = construct_nodal_energybalance(m, config)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
 
     assert termination_condition == TerminationCondition.infeasible
 
@@ -89,7 +90,7 @@ def test_model_nodal_energy_balance():
     m = construct_network_constraints(m, config)
     m = construct_nodal_energybalance(m, config)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
 
     assert termination_condition == TerminationCondition.optimal
     assert m.periods[period].var_violation[1, carrier, node].value == 1
@@ -103,13 +104,13 @@ def test_model_nodal_energy_balance():
     m = construct_network_constraints(m, config)
     m = construct_nodal_energybalance(m, config)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
 
     assert termination_condition == TerminationCondition.optimal
     assert m.periods[period].node_blocks[node].var_import_flow[1, carrier].value == 1
 
 
-def test_model_global_energy_balance():
+def test_model_global_energy_balance(request):
     """
     Tests the energybalance on a global level
 
@@ -141,7 +142,7 @@ def test_model_global_energy_balance():
     m = construct_network_constraints(m, config)
     m = construct_global_energybalance(m, config)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
 
     assert termination_condition == TerminationCondition.infeasible
 
@@ -152,7 +153,7 @@ def test_model_global_energy_balance():
     m = construct_network_constraints(m, config)
     m = construct_global_energybalance(m, config)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
 
     assert termination_condition == TerminationCondition.optimal
     assert m.periods[period].var_violation[1, carrier, node1].value == 1
@@ -166,13 +167,13 @@ def test_model_global_energy_balance():
     m = construct_network_constraints(m, config)
     m = construct_global_energybalance(m, config)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
 
     assert termination_condition == TerminationCondition.optimal
     assert m.periods[period].node_blocks[node2].var_import_flow[1, carrier].value == 1
 
 
-def test_model_emission_balance():
+def test_model_emission_balance(request):
     """
     Tests the emission balance
 
@@ -217,7 +218,7 @@ def test_model_emission_balance():
         m.set_periods, rule=init_emissions_to_zero
     )
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
 
     assert termination_condition == TerminationCondition.infeasible
 
@@ -227,7 +228,7 @@ def test_model_emission_balance():
     m = construct_nodal_energybalance(m, config)
     m = construct_emission_balance(m, dh)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
 
     assert termination_condition == TerminationCondition.optimal
     assert m.periods[period].var_emissions_net.value == 1
@@ -235,9 +236,9 @@ def test_model_emission_balance():
     assert m.periods[period].var_emissions_neg.value == 0
 
 
-def test_model_cost_balance():
+def test_model_cost_balance(request):
     """
-    Tests the cost balance balance
+    Tests the cost balance
 
     This testing function contains two subtests:
 
@@ -276,7 +277,7 @@ def test_model_cost_balance():
 
     m.test_const_system_costs = Constraint(expr=m.var_npv == 0)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
     assert termination_condition == TerminationCondition.infeasible
 
     # FEASIBILITY CASE
@@ -286,7 +287,7 @@ def test_model_cost_balance():
     m = construct_system_cost(m, dh)
     m = construct_global_balance(m)
 
-    termination_condition = solve_model(m)
+    termination_condition = solve_model(m, request.config.solver)
     assert termination_condition == TerminationCondition.optimal
     assert m.periods[period].node_blocks[node].var_import_flow[1, carrier].value == 1
     assert m.periods[period].var_cost_imports.value == 1

@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 import pyomo.environ as pyo
 
-from ..model_construction.utilities import determine_network_energy_consumption
-
 
 def _determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:
     """
@@ -212,11 +210,8 @@ def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
     if not config["energybalance"]["copperplate"]["value"]:
         b_node.var_netw_inflow = pyo.Var(set_t, b_node.set_carriers)
         b_node.var_netw_outflow = pyo.Var(set_t, b_node.set_carriers)
-        network_energy_consumption = determine_network_energy_consumption(
-            data["network_data"]
-        )
-        if network_energy_consumption:
-            b_node.var_netw_consumption = pyo.Var(set_t, b_node.set_carriers)
+
+        b_node.var_netw_consumption = pyo.Var(set_t, b_node.set_carriers)
 
     # Generic production profile
     b_node.var_generic_production = pyo.Var(

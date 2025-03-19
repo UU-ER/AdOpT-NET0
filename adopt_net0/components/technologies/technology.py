@@ -71,7 +71,7 @@ class Technology(ModelComponent):
     - para_fix_capex_annual: Fixed CAPEX annualized (annualized from given data on
       up-front CAPEX, lifetime and discount rate)
     - para_opex_variable: operational cost EUR/output or input
-    - para_opex_fixed: fixed opex as fraction of annualized capex
+    - para_opex_fixed: fixed opex as fraction of up-front capex
     - para_tec_emissionfactor: emission factor per output or input
 
     If ccs is possible:
@@ -83,12 +83,12 @@ class Technology(ModelComponent):
     - para_fix_capex_annual_ccs: Fixed CAPEX annualized (annualized from given data on
       up-front CAPEX, lifetime and discount rate)
     - para_opex_variable_ccs: operational cost EUR/output or input
-    - para_opex_fixed_ccs: fixed opex as fraction of annualized capex
+    - para_opex_fixed_ccs: fixed opex as fraction of up-front capex
 
     For existing technologies:
 
     - para_size_initial: initial size
-    - para_decommissioning_cost: Decommissioning cost
+    - para_decommissioning_cost_annual: Decommissioning cost
 
     **Variable declarations:**
 
@@ -100,7 +100,7 @@ class Technology(ModelComponent):
     - var_output_tot: output aggregation of technology and CCS output
     - var_capex: annualized investment of the technology
     - var_opex_variable: variable operation costs, defined for each time slice
-    - var_opex_fixed: fixed operational costs
+    - var_opex_fixed: fixed operational costs as fraction of up-front CAPEX
     - var_capex_tot: aggregation of technology and CCS capex
     - var_capex_aux: auxiliary variable to calculate the fixed opex of existing technologies
     - var_opex_variable_tot: aggregation of technology and CCS opex variable, defined for
@@ -138,11 +138,13 @@ class Technology(ModelComponent):
         .. math::
             capex_{aux} = size * capex_{unitannual} + capex_{fixed}
 
-      Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 1) or not (decommission = 0).
-      For technologies that cannot be decommissioned, the size is fixed to the size
-      given in the technology data.
-      For technologies that can be decommissioned, the size can be smaller or equal to the initial size. Reducing the
-      size comes at the decommissioning costs specified in the economics of the technology.
+      Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 'continuous' or decommission =
+      'only_complete') or not (decommission = 'impossible').
+      For technologies that cannot be decommissioned, the size is fixed to the initial size given in the technology
+      data. For technologies that can be decommissioned, the size can be smaller or equal to the initial size. When
+      decommission = 'continuous' the size can take any value between the minimum and initial size. When decommission =
+      'only_complete' the size is either 0 or the initial size. Reducing the size comes at the decommissioning costs or
+      benefits specified in the economics of the technology.
       The fixed opex is calculated by determining the capex that the technology would have costed if newly build and
       then taking the respective opex_fixed share of this. This is done with the auxiliary variable capex_aux.
 
@@ -243,7 +245,7 @@ class Technology(ModelComponent):
         """
         Initializes technology class from technology data
 
-        The technology name needs to correspond to the name of a JSON file in ./data/technology_data.
+        The technology name needs to correspond to the name of a JSON file in ./database/templates/technology_data.
 
         :param dict tec_data: technology data
         """
@@ -449,6 +451,11 @@ class Technology(ModelComponent):
         b_tec = self._define_capex_constraints(b_tec, data)
         b_tec = self._define_input(b_tec, data)
         b_tec = self._define_output(b_tec, data)
+        b_tec = self._define_opex(b_tec, data)
+
+        # EXISTING TECHNOLOGY CONSTRAINTS
+        if self.existing and self.component_options.decommission == "only_complete":
+            b_tec = self._define_decommissioning_at_once_constraints(b_tec)
 
         # CLUSTERED DATA
         if (config["optimization"]["typicaldays"]["N"]["value"] == 0) or (
@@ -476,8 +483,6 @@ class Technology(ModelComponent):
                     self.input = b_tec.var_input_aux
                 if b_tec.find_component("var_output"):
                     self.output = b_tec.var_output_aux
-
-        b_tec = self._define_opex(b_tec)
 
         # CCS and Emissions
         if self.component_options.ccs_possible:
@@ -604,15 +609,16 @@ class Technology(ModelComponent):
                 within=size_domain, initialize=coeff_ti["size_initial"]
             )
 
-        if self.existing and not self.component_options.decommission:
+        if self.existing and self.component_options.decommission == "impossible":
             # Decommissioning is not possible, size fixed
             b_tec.var_size = pyo.Param(
-                within=size_domain, initialize=b_tec.para_size_initial
+                within=size_domain, initialize=coeff_ti["size_initial"]
             )
         else:
-            # Decommissioning is possible, size variable
+            # Size is variable
             b_tec.var_size = pyo.Var(
-                within=size_domain, bounds=(b_tec.para_size_min, b_tec.para_size_max)
+                within=size_domain,
+                bounds=(b_tec.para_size_min, b_tec.para_size_max),
             )
 
         return b_tec
@@ -739,9 +745,11 @@ class Technology(ModelComponent):
             # Defined in the technology subclass
             pass
 
-        if self.existing and self.component_options.decommission:
-            b_tec.para_decommissioning_cost = pyo.Param(
-                domain=pyo.Reals, initialize=economics.decommission_cost, mutable=True
+        if self.existing and not self.component_options.decommission == "impossible":
+            b_tec.para_decommissioning_cost_annual = pyo.Param(
+                domain=pyo.Reals,
+                initialize=annualization_factor * economics.decommission_cost,
+                mutable=True,
             )
 
         return b_tec
@@ -784,23 +792,37 @@ class Technology(ModelComponent):
             self.big_m_transformation_required = 1
             s_indicators = range(0, 2)
 
-            def init_installation(dis, ind):
-                if ind == 0:  # tech not installed
-                    dis.const_capex_aux = pyo.Constraint(expr=b_tec.var_capex_aux == 0)
-                    dis.const_not_installed = pyo.Constraint(expr=b_tec.var_size == 0)
-                else:  # tech installed
-                    dis.const_capex_aux = pyo.Constraint(
-                        expr=b_tec.var_size * b_tec.para_unit_capex_annual
-                        + b_tec.para_fix_capex_annual
-                        == b_tec.var_capex_aux
-                    )
+            if self.existing:
+                b_tec.const_capex_aux = pyo.Constraint(
+                    expr=b_tec.var_size * b_tec.para_unit_capex_annual
+                    + b_tec.para_fix_capex_annual
+                    == b_tec.var_capex_aux
+                )
+            else:
 
-            b_tec.dis_installation = gdp.Disjunct(s_indicators, rule=init_installation)
+                def init_installation(dis, ind):
+                    if ind == 0:  # tech not installed
+                        dis.const_capex_aux = pyo.Constraint(
+                            expr=b_tec.var_capex_aux == 0
+                        )
+                        dis.const_not_installed = pyo.Constraint(
+                            expr=b_tec.var_size == 0
+                        )
+                    else:  # tech installed
+                        dis.const_capex_aux = pyo.Constraint(
+                            expr=b_tec.var_size * b_tec.para_unit_capex_annual
+                            + b_tec.para_fix_capex_annual
+                            == b_tec.var_capex_aux
+                        )
 
-            def bind_disjunctions(dis):
-                return [b_tec.dis_installation[i] for i in s_indicators]
+                b_tec.dis_installation = gdp.Disjunct(
+                    s_indicators, rule=init_installation
+                )
 
-            b_tec.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
+                def bind_disjunctions(dis):
+                    return [b_tec.dis_installation[i] for i in s_indicators]
+
+                b_tec.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
 
         else:
             # Defined in the technology subclass
@@ -808,21 +830,15 @@ class Technology(ModelComponent):
 
         # CAPEX
         if self.existing:
-            if self.component_options.decommission:
-                # technology can be decommissioned
-                b_tec.para_decommissioning_cost = pyo.Param(
-                    domain=pyo.Reals,
-                    initialize=economics.decommission_cost,
-                    mutable=True,
-                )
+            if self.component_options.decommission == "impossible":
+                # technology cannot be decommissioned
+                b_tec.const_capex = pyo.Constraint(expr=b_tec.var_capex == 0)
+            else:
                 b_tec.const_capex = pyo.Constraint(
                     expr=b_tec.var_capex
                     == (b_tec.para_size_initial - b_tec.var_size)
-                    * b_tec.para_decommissioning_cost
+                    * b_tec.para_decommissioning_cost_annual
                 )
-            else:
-                # technology cannot be decommissioned
-                b_tec.const_capex = pyo.Constraint(expr=b_tec.var_capex == 0)
         else:
             b_tec.const_capex = pyo.Constraint(
                 expr=b_tec.var_capex == b_tec.var_capex_aux
@@ -883,14 +899,21 @@ class Technology(ModelComponent):
         )
         return b_tec
 
-    def _define_opex(self, b_tec):
+    def _define_opex(self, b_tec, data):
         """
         Defines variable and fixed OPEX
 
         :param b_tec: pyomo block with technology model
+        :param dict data: dict containing model information
         :return: pyomo block with technology model
         """
+        config = data["config"]
         economics = self.economics
+        discount_rate = set_discount_rate(config, economics)
+        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        annualization_factor = annualize(
+            discount_rate, economics.lifetime, fraction_of_year_modelled
+        )
 
         # VARIABLE OPEX
         b_tec.para_opex_variable = pyo.Param(
@@ -927,7 +950,8 @@ class Technology(ModelComponent):
         )
         b_tec.var_opex_fixed = pyo.Var()
         b_tec.const_opex_fixed = pyo.Constraint(
-            expr=b_tec.var_capex_aux * b_tec.para_opex_fixed == b_tec.var_opex_fixed
+            expr=(b_tec.var_capex_aux / annualization_factor) * b_tec.para_opex_fixed
+            == b_tec.var_opex_fixed
         )
         return b_tec
 
@@ -1037,6 +1061,42 @@ class Technology(ModelComponent):
                 b_tec.const_tec_emissions_neg = pyo.Constraint(
                     self.set_t_global, rule=init_tec_emissions_neg
                 )
+
+        return b_tec
+
+    def _define_decommissioning_at_once_constraints(self, b_tec):
+        """
+        Defines constraints to ensure that a technology can only be decommissioned as a whole.
+
+        This function creates a disjunction formulation that enforces
+        full-plant decommissioning decisions, meaning that either the technology is fully installed
+        or fully decommissioned, with no partial decommissioning allowed.
+
+        :param b_tec: The block representing the technology.
+
+        :return: The modified technology block with added decommissioning constraints.
+        """
+
+        # Full plant decommissioned only
+        self.big_m_transformation_required = 1
+        s_indicators = range(0, 2)
+
+        def init_decommission_full(dis, ind):
+            if ind == 0:  # tech not installed
+                dis.const_decommissioned = pyo.Constraint(expr=b_tec.var_size == 0)
+            else:  # tech installed
+                dis.const_installed = pyo.Constraint(
+                    expr=b_tec.var_size == b_tec.para_size_initial
+                )
+
+        b_tec.dis_decommission_full = gdp.Disjunct(
+            s_indicators, rule=init_decommission_full
+        )
+
+        def bind_disjunctions(dis):
+            return [b_tec.dis_decommission_full[i] for i in s_indicators]
+
+        b_tec.disjunction_decommission_full = gdp.Disjunction(rule=bind_disjunctions)
 
         return b_tec
 
@@ -1403,7 +1463,7 @@ class Technology(ModelComponent):
         # Size CCS
         b_tec.var_size_ccs = pyo.Var(
             within=pyo.NonNegativeReals,
-            bounds=(b_tec.para_size_min_ccs, b_tec.para_size_max_ccs),
+            bounds=(0, b_tec.para_size_max_ccs),
         )
 
         # TODO: maybe make the full set of all carriers as an intersection between this set and  the others?
@@ -1540,24 +1600,6 @@ class Technology(ModelComponent):
                 self.set_t_global, rule=init_tec_emissions_neg
             )
 
-        # Initialize the size of CCS as in _define_size (size given in mass flow of CO2 entering the CCS object)
-        b_tec.para_size_min_ccs = pyo.Param(
-            domain=pyo.NonNegativeReals,
-            initialize=self.ccs_component.input_parameters.size_min,
-            mutable=True,
-        )
-        b_tec.para_size_max_ccs = pyo.Param(
-            domain=pyo.NonNegativeReals,
-            initialize=self.ccs_component.input_parameters.size_max,
-            mutable=True,
-        )
-
-        # Decommissioning is possible, size variable
-        b_tec.var_size_ccs = pyo.Var(
-            within=pyo.NonNegativeReals,
-            bounds=(0, b_tec.para_size_max_ccs),
-        )
-
         return b_tec
 
     def _define_ccs_costs(self, b_tec, data: dict):
@@ -1649,7 +1691,8 @@ class Technology(ModelComponent):
         )
         b_tec.var_opex_fixed_ccs = pyo.Var()
         b_tec.const_opex_fixed_ccs = pyo.Constraint(
-            expr=b_tec.var_capex_aux_ccs * b_tec.para_opex_fixed_ccs
+            expr=(b_tec.var_capex_aux_ccs / annualization_factor)
+            * b_tec.para_opex_fixed_ccs
             == b_tec.var_opex_fixed_ccs
         )
 
@@ -1661,7 +1704,7 @@ class Technology(ModelComponent):
 
         def init_opex_variable_ccs(const, t):
             return (
-                b_tec.var_output_ccs[t, b_tec.set_output_carriers_ccs[1]]
+                b_tec.var_output_ccs[t, b_tec.set_output_carriers_ccs.at(1)]
                 * b_tec.para_opex_variable_ccs
                 == b_tec.var_opex_variable_ccs[t]
             )

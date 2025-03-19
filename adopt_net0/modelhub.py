@@ -10,7 +10,7 @@ import sys
 import datetime
 
 from .utilities import get_set_t
-from .data_management import DataHandle, read_tec_data
+from .data_management import DataHandle, create_technology_class
 from .model_construction import *
 from .result_management.read_results import add_values_to_summary
 from .utilities import get_glpk_parameters, get_gurobi_parameters
@@ -77,7 +77,6 @@ class ModelHub:
         log.info(log_msg)
         self.data.set_settings(data_path, start_period, end_period)
         self.data.read_data()
-        self._perform_preprocessing_checks()
 
         log_msg = "--- Reading in data complete ---"
         log.info(log_msg)
@@ -230,6 +229,8 @@ class ModelHub:
         log_msg = "--- Constructing Model ---"
         log.info(log_msg)
         start = time.time()
+
+        self._perform_preprocessing_checks()
 
         # Determine aggregation
         config = self.data.model_config
@@ -473,7 +474,7 @@ class ModelHub:
         }
         for technology in technologies:
             # read in technology data
-            tec_data = read_tec_data(
+            tec_data = create_technology_class(
                 technology,
                 self.data.data_path
                 / investment_period
@@ -809,10 +810,9 @@ class ModelHub:
                 model_full.scaling_factor[b_node.var_netw_outflow] = f_global[
                     "energy_vars"
                 ]["value"]
-                if b_node.find_component("var_netw_consumption"):
-                    model_full.scaling_factor[b_node.var_netw_consumption] = f_global[
-                        "energy_vars"
-                    ]["value"]
+                model_full.scaling_factor[b_node.var_netw_consumption] = f_global[
+                    "energy_vars"
+                ]["value"]
                 model_full.scaling_factor[b_node.var_generic_production] = f_global[
                     "energy_vars"
                 ]["value"]

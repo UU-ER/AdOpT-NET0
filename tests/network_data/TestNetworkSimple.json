@@ -1,0 +1,25 @@
+{
+  "network_type": "simple",
+  "size_is_int": 0,
+  "decommission": "impossible",
+  "size_min": 0,
+  "size_max": 10000,
+  "Economics": {
+    "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of up-front CAPEX",
+    "gamma1": 0,
+    "gamma2": 1,
+    "gamma3": 0,
+    "gamma4": 0,
+    "OPEX_variable": 0,
+    "OPEX_fixed": 0,
+    "discount_rate": 0,
+    "lifetime": 1,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "carrier": "electricity",
+    "bidirectional_network": 0,
+    "loss": 0.1,
+    "min_transport": 0
+  }
+}
