@@ -150,10 +150,7 @@ def construct_nodal_energybalance(model, config: dict):
 
                 netw_outflow = node_block.var_netw_outflow[t, car]
 
-                if hasattr(node_block, "var_netw_consumption"):
-                    netw_consumption = node_block.var_netw_consumption[t, car]
-                else:
-                    netw_consumption = 0
+                netw_consumption = node_block.var_netw_consumption[t, car]
 
                 import_flow = node_block.var_import_flow[t, car]
 
@@ -163,6 +160,14 @@ def construct_nodal_energybalance(model, config: dict):
                     violation = b_period.var_violation[t, car, node]
                 else:
                     violation = 0
+
+                if (
+                    config["performance"]["pressure"]["value"] == 1
+                ):  # here it could per performace-pressure-value or optimiziation-pressure-value
+                    compress_node = node_block.var_compression[t, car]
+                else:
+                    compress_node = 0
+
                 return (
                     tec_output
                     - tec_input
@@ -171,6 +176,7 @@ def construct_nodal_energybalance(model, config: dict):
                     - netw_consumption
                     + import_flow
                     - export_flow
+                    + compress_node  # here to decide if using negative or positive sign
                     + violation
                     == node_block.para_demand[t, car]
                     - node_block.var_generic_production[t, car]
@@ -280,9 +286,11 @@ def construct_global_energybalance(model, config):
 
             if (
                 config["performance"]["pressure"]["value"] == 1
-            ):  # here it could per performace-pressure-value or soptimiziation-pressure-value
+            ):  # here it could per performace-pressure-value or optimiziation-pressure-value
                 compress_node = sum(
-                    b_period.var_compression[t, car, node]
+                    b_period.var_compression[
+                        t, car, node
+                    ]  # var_compression needs to be calculated before with the new function
                     for node in model.set_nodes
                     if car in b_period.node_blocks[node].set_carriers
                 )
@@ -295,7 +303,7 @@ def construct_global_energybalance(model, config):
                 + import_flow
                 - export_flow
                 + violation
-                + compress_node
+                + compress_node  # here to decide if using negative or positive sign
                 == demand - gen_prod
             )
 
