@@ -10,6 +10,7 @@ jobs:
   testing:
     needs: autoformatting
     uses: ./.github/workflows/testing.yml
+    secrets: inherit
   publish:
     needs: testing
     uses: ./.github/workflows/uploadpypi.yml
