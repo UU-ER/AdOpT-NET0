@@ -48,7 +48,7 @@ class CementHybridCCS(Technology):
         performance_data_path = Path(__file__).parent.parent.parent.parent
         performance_data_path = (
             performance_data_path
-            / "data/technology_data/Industrial/CementHybridCCS_data/performance_cost_cementHybridCCS.xlsx"
+            / "database/templates/technology_data/Industrial/CementHybridCCS_data/performance_cost_cementHybridCCS.xlsx"
         )
 
         performance_data = pd.read_excel(
@@ -107,7 +107,7 @@ class CementHybridCCS(Technology):
                 np.ones(shape=time_steps)
                 * prod_capacity_clinker
                 * emissions_clinker
-                * (CCR_oxy + (1 - CCR_oxy) * max(CCR_mea)),
+                * (CCR_oxy + (1 - CCR_oxy) * CCR_mea),
             )
         )
 
@@ -131,7 +131,7 @@ class CementHybridCCS(Technology):
                     + prod_capacity_clinker
                     * emissions_clinker
                     * (1 - CCR_oxy)
-                    * max(CCR_mea)
+                    * CCR_mea
                     * self.processed_coeff.time_independent["alpha_mea"]
                 ),
             )
@@ -188,6 +188,11 @@ class CementHybridCCS(Technology):
             bounds=[0, emission_capacity_max * (1 - CCR_oxy)],
         )
 
+        def init_size_clinker(const):
+            return b_tec.var_size == prod_capacity_clinker
+
+        b_tec.const_size_clinker = pyo.Constraint(rule=init_size_clinker())
+
         def init_size_constraint_mea(const, t):
             return b_tec.var_co2_captured_mea[t] <= b_tec.var_size_mea * CCR_mea
 
@@ -197,28 +202,19 @@ class CementHybridCCS(Technology):
 
         def init_mea_operation_constraint(const, t):
             return (
-                b_tec.var_co2_captured_mea
-                <= self.output["clinker"] * (1 - CCR_oxy) * CCR_mea
+                b_tec.var_co2_captured_mea[t]
+                <= self.output[t, "clinker"] * (1 - CCR_oxy) * CCR_mea
             )
 
         b_tec.const_mea_operation = pyo.Constraint(
             self.set_t_performance, rule=init_mea_operation_constraint
         )
 
-        # Input bounds
-        # TODO check if this function is actually called (and not the one in superclass technology)
-        def init_input_bounds(bounds, t, car):
-            return tuple(self.bounds["input"][car][self.sequence[t - 1] - 1, :])
-
-        # output bounds
-        # TODO check if this function is actually called (and not the one in superclass technology)
-        def init_output_bounds(bounds, t, car):
-            return tuple(self.bounds["output"][car][self.sequence[t - 1] - 1, :])
-
         # input-output correlations
-        # TODO define var_co2_mea, to be inserted here as well
         def init_input_output(const, t, car_input):
+            b = 1
             if car_input == "heat":
+                a = 1
                 return (
                     self.input[t, car_input]
                     == self.output[t, "clinker"]
@@ -227,10 +223,13 @@ class CementHybridCCS(Technology):
                     * beta_oxy
                 )
             elif car_input == "electricity":
-                return self.input[t, car_input] == self.output[
-                    t, "clinker"
-                ] * emissions_clinker * (
-                    CCR_oxy * alpha_oxy + (1 - CCR_oxy) * CCR_mea * alpha_mea
+                return (
+                    self.input[t, car_input]
+                    == self.output[t, "clinker"]
+                    * emissions_clinker
+                    * CCR_oxy
+                    * alpha_oxy
+                    + b_tec.var_co2_captured_mea[t] * alpha_mea
                 )
 
         b_tec.const_input_output = pyo.Constraint(
@@ -241,7 +240,7 @@ class CementHybridCCS(Technology):
             return (
                 self.output[t, "CO2captured"]
                 == self.output[t, "clinker"] * emissions_clinker * CCR_oxy
-                + b_tec.var_co2_captured_mea
+                + b_tec.var_co2_captured_mea[t]
             )
 
         b_tec.const_output_output = pyo.Constraint(
@@ -250,4 +249,90 @@ class CementHybridCCS(Technology):
 
         # define emissions
 
-        #
+    def _define_input(self, b_tec, data: dict):
+        """
+        Defines input to a technology
+
+        :param b_tec: pyomo block with technology model
+        :param dict data: dict containing model information
+        :return: pyomo block with technology model
+        """
+        # Technology related data
+        c = self.processed_coeff.time_independent
+
+        def init_input_bounds(bounds, t, car):
+            return tuple(self.bounds["input"][car][self.sequence[t - 1] - 1, :])
+
+        b_tec.var_input = pyo.Var(
+            self.set_t_global,
+            b_tec.set_input_carriers,
+            within=pyo.NonNegativeReals,
+            bounds=init_input_bounds,
+        )
+
+        return b_tec
+
+    def _define_output(self, b_tec, data: dict):
+        """
+        Defines output to a technology
+
+        :param b_tec: pyomo block with technology model
+        :param dict data: dict containing model information
+        :return: pyomo block with technology model
+        """
+        # Technology related data
+        c = self.processed_coeff.time_independent
+
+        def init_output_bounds(bounds, t, car):
+            return tuple(self.bounds["output"][car][self.sequence[t - 1] - 1, :])
+
+        b_tec.var_output = pyo.Var(
+            self.set_t_global,
+            b_tec.set_output_carriers,
+            within=pyo.NonNegativeReals,
+            bounds=init_output_bounds,
+        )
+        return b_tec
+
+    def _define_emissions(self, b_tec):
+        """
+        Defines Emissions
+
+        :param b_tec: pyomo block with technology model
+        :return: pyomo block with technology model
+        """
+        c = self.processed_coeff.time_independent
+        technology_model = self.component_options.technology_model
+        emissions_clinker = self.input_parameters.performance_data["performance"][
+            "tCO2_tclinker"
+        ]
+
+        b_tec.var_tec_emissions_pos = pyo.Var(
+            self.set_t_global, within=pyo.NonNegativeReals
+        )
+        b_tec.var_tec_emissions_neg = pyo.Var(
+            self.set_t_global, within=pyo.NonNegativeReals
+        )
+
+        def init_tec_emissions_pos(const, t):
+            """emissions_pos = output * emissionfactor"""
+            return (
+                self.output[t, "clinker"] * emissions_clinker
+                - self.output[t, "CO2captured"]
+                == b_tec.var_tec_emissions_pos[t]
+            )
+
+        b_tec.const_tec_emissions_pos = pyo.Constraint(
+            self.set_t_global, rule=init_tec_emissions_pos
+        )
+
+        def init_tec_emissions_neg(const, t):
+            return b_tec.var_tec_emissions_neg[t] == 0
+
+        b_tec.const_tec_emissions_neg = pyo.Constraint(
+            self.set_t_global, rule=init_tec_emissions_neg
+        )
+
+        return b_tec
+
+    # TODO define capex

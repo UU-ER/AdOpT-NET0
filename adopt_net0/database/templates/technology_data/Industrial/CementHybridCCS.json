@@ -34,12 +34,11 @@
       "CO2captured",
       "clinker"
     ],
-    "emission_factor": 0,
     "min_part_load": 0,
     "performance": {
       "tCO2_tclinker": 0.833,
       "CCR_oxy": 0.79,
-      "CCR_mea": [0.6, 0.9, 0.95, 0.99]
+      "CCR_mea": 0.9
     }
   },
   "Units": {

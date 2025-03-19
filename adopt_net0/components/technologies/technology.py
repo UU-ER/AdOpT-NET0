@@ -928,7 +928,7 @@ class Technology(ModelComponent):
                 or (self.component_options.technology_model == "CementHybridCCS")
             ):
                 opex_variable_based_on = b_tec.var_output[
-                    t, b_tec.set_output_carriers[1]
+                    t, b_tec.set_output_carriers.at(1)
                 ]
             else:
                 opex_variable_based_on = b_tec.var_input[
