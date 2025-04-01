@@ -454,7 +454,12 @@ def initialize_configuration_templates() -> dict:
                 "description": "Determines if dynamics are used.",
                 "options": [0, 1],
                 "value": 0,
-            }
+            },
+            "pressure": {
+                "description": "Determines if pressure levels are used, 0 (no pressure levels) is default.",
+                "options": [0, 1],
+                "value": 0,
+            },
         },
         "scaling": {
             "scaling_on": {

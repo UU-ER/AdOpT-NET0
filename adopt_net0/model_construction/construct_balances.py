@@ -161,7 +161,7 @@ def construct_nodal_energybalance(model, config: dict):
                 else:
                     violation = 0
 
-                if (
+                if (  # change number 1
                     config["performance"]["pressure"]["value"] == 1
                 ):  # here it could per performace-pressure-value or optimiziation-pressure-value
                     compress_node = node_block.var_compression[t, car]
@@ -290,7 +290,7 @@ def construct_global_energybalance(model, config):
             else:
                 violation = 0
 
-            if (
+            if (  # change number 2
                 config["performance"]["pressure"]["value"] == 1
             ):  # here it could per performace-pressure-value or optimiziation-pressure-value
                 compress_node = sum(
@@ -539,6 +539,9 @@ def construct_system_cost(model, data):
     - Carbon costs and revenues
     - Total cost per investment period as a sum of technology, network, import,
       export, violation and carbon costs
+      If considering pressure levels:
+    -Total capex of compressors
+    -Total opex of compressors
 
     :param model: pyomo model
     :param dict config: dict containing model information
@@ -630,6 +633,47 @@ def construct_system_cost(model, data):
                 return b_period.var_cost_opex_netws == 0
 
         b_period_cost.const_opex_netw = pyo.Constraint(rule=init_cost_opex_netws)
+
+        # Change number 3
+        # here I added the var, but they still don't exist
+        # they need to be initialized in construct node and construct investment period
+
+        # Capex Compression
+        def init_cost_capex_compression(const):
+            if config["performance"]["pressure"]["value"] == 1:
+                return b_period.var_cost_capex_compress == sum(
+                    b_period.compress_block[compr].var_capex
+                    for compr in b_period.set_compress
+                )
+            else:
+                b_period.var_cost_capex_compress = 0
+
+        b_period_cost.const_capex_compress = pyo.Constraint(
+            rule=init_cost_capex_compression
+        )
+
+        # Opex Compression
+        def init_cost_opex_compression(const):
+            if config["performance"]["pressure"]["value"] == 1:
+                return b_period.var_cost_opex_compress == sum(
+                    b_period.compress_block[compr].var_opex
+                    for compr in b_period.set_compress
+                )
+            else:
+                b_period.var_cost_opex_compress = 0
+
+        b_period_cost.const_capex_compress = pyo.Constraint(
+            rule=init_cost_opex_compression
+        )
+
+        # Total Compression Costs
+        def init_cost_compress(const):
+            return (
+                b_period.var_cost_compress
+                == b_period.var_cost_capex_compress + b_period.var_cost_opex_compress
+            )
+
+        b_period_cost.const_cost_compress = pyo.Constraint(rule=init_cost_compress)
 
         # Total technology costs
         def init_cost_tecs(const):
@@ -770,6 +814,7 @@ def construct_system_cost(model, data):
                 + b_period.var_cost_imports
                 + b_period.var_cost_exports
                 + b_period.var_cost_violation
+                + b_period.var_cost_compress
                 + b_period.var_carbon_cost
                 - b_period.var_carbon_revenue
                 == b_period.var_cost_total

@@ -163,7 +163,7 @@ class Network(ModelComponent):
         """
         Initializes network class from network data
 
-        :param dict netw_data: technology data
+        :param dict netw_data: network data
         """
         super().__init__(netw_data)
 

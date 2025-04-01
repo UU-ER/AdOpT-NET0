@@ -74,10 +74,13 @@ def construct_investment_period_block(b_period, data: dict):
     # VARIABLES
     b_period.var_cost_capex_tecs = Var()
     b_period.var_cost_capex_netws = Var()
+    b_period.var_cost_capex_compress = Var()
     b_period.var_cost_opex_tecs = Var()
     b_period.var_cost_opex_netws = Var()
+    b_period.var_cost_opex_compress = Var()
     b_period.var_cost_tecs = Var()
     b_period.var_cost_netws = Var()
+    b_period.var_cost_compress = Var()
     b_period.var_cost_imports = Var()
     b_period.var_cost_exports = Var()
     b_period.var_cost_violation = Var()
