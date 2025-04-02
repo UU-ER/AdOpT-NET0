@@ -109,8 +109,8 @@ def construct_nodal_energybalance(model, config: dict):
 
     .. math::
         outputFromTechnologies - inputToTechnologies + \\
-        inflowFromNetwork - outflowToNetwork + \\
-        imports - exports = demand - genericProductionProfile
+        inflowFromNetwork - outflowToNetwork - consumptionNetwork+ \\
+        imports - exports + compression + violation = demand - genericProductionProfile
 
     :param model: pyomo model
     :param dict config: dict containing model information
@@ -290,26 +290,8 @@ def construct_global_energybalance(model, config):
             else:
                 violation = 0
 
-            if (  # change number 2
-                config["performance"]["pressure"]["value"] == 1
-            ):  # here it could per performace-pressure-value or optimiziation-pressure-value
-                compress_node = sum(
-                    b_period.var_compression[
-                        t, car, node
-                    ]  # var_compression needs to be calculated before with the new function
-                    for node in model.set_nodes
-                    if car in b_period.node_blocks[node].set_carriers
-                )
-            else:
-                compress_node = 0
-
             return (
-                tec_output
-                - tec_input
-                + import_flow
-                - export_flow
-                + violation
-                + compress_node  # here to decide if using negative or positive sign
+                tec_output - tec_input + import_flow - export_flow + violation
                 == demand - gen_prod
             )
 
@@ -634,7 +616,7 @@ def construct_system_cost(model, data):
 
         b_period_cost.const_opex_netw = pyo.Constraint(rule=init_cost_opex_netws)
 
-        # Change number 3
+        # Change number 2
         # here I added the var, but they still don't exist
         # they need to be initialized in construct node and construct investment period
 
