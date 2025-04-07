@@ -341,7 +341,6 @@ class Fluid(Network):
         for arc_name in model_block.set_arcs:
             arc = model_block.arc_block[arc_name]
             str = "".join(arc_name)
-
             arc_group = h5_group[str]
 
             for car in model_block.set_consumed_carriers:
