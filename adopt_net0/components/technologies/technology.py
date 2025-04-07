@@ -652,8 +652,7 @@ class Technology(ModelComponent):
                 bounds = (0, max_capex)
             elif capex_model == 2:
                 max_capex = (
-                    b_tec.para_size_max
-                    * max(economics.capex_data["piecewise_capex"]["bp_y"])
+                    max(economics.capex_data["piecewise_capex"]["bp_y"])
                     * annualization_factor
                 )
                 bounds = (0, max_capex)
