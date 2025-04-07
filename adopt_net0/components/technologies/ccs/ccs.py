@@ -8,8 +8,8 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     Obtain bounds and input ratios for CCS
 
     Calculates the amount of input (and their bounds) required for each unit of CO2 entering the carbon capture (CC)
-    object. The minimum and maximum size parameters are multiplied by the CO2 concentration, so that the units
-    of the size becomes t/h of CO2 in. These are also the units used for the rest of the model.
+    object. The minimum and maximum size parameters are multiplied by the CO2 concentration and capture rate, so that the units
+    of the size becomes t/h of CO2 out. These are also the units used for the rest of the model (e.g. size of CC unit).
     So far, only post-combustion MEA has been modelled (based on Eq. 7 in Weimann et Al. (2023), A thermodynamic-based
     mixed-integer linear model of post-combustion carbon capture for reliable use in energy system optimisation
     https://doi.org/10.1016/j.apenergy.2023.120738).
