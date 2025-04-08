@@ -1,12 +1,12 @@
 {
   "ccs_type": "MEA",
-  "comment": "Note that size_min and max are in terms of t/h of flue gas, but in the model everything is converted to t/h CO2 in",
+  "comment": "Note that size_min and max are in terms of t/h of flue gas, but in the model everything is converted to t/h CO2 out",
   "size_min": 792.18,
   "size_max": 1985.203,
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
-    "comment": "CAPEX in EUR/(t/hCO2_in), OPEX_variable in EUR/(t/h_CO2_captured), OPEX_fixed in % of up-front CAPEX",
+    "comment": "CAPEX in EUR/(t/hCO2_out) after pre-processing, OPEX_variable in EUR/(t/h_CO2_out), OPEX_fixed in % of up-front CAPEX",
     "CAPEX_model": 3,
     "unit_CAPEX": 1.1084E+06,
     "CAPEX_kappa": 3.11E+06,
