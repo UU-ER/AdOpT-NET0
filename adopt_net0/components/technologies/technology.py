@@ -111,7 +111,7 @@ class Technology(ModelComponent):
 
     If ccs is possible:
 
-    - var_size_ccs: Size of CCS
+    - var_size_ccs: Size of CCS (in CO2 captured terms)
     - var_input_ccs: input to the CCS component, defined for each CCS input carrier and
       time slice
     - var_output_ccs: output from the CCS component, defined for each CCS output carrier
