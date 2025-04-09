@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b93fd630-6379-4c4f-b77b-96e9ab00f7c4" alt="Adopt_fulllogo" width="300"/>
+</p>
+
+<br><br>
+
 [![Documentation Status](https://readthedocs.org/projects/adopt-net0/badge/?version=latest)](https://adopt-net0.readthedocs.io/en/latest/?badge=latest)
 ![Testing](https://github.com/UU-ER/AdOpT-NET0/actions/workflows/00deploy.yml/badge.svg?branch=develop)
 [![codecov](https://codecov.io/gh/UU-ER/AdOpT-NET0/graph/badge.svg?token=RVR402OGG0)](https://codecov.io/gh/UU-ER/AdOpT-NET0)

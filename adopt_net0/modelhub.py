@@ -172,33 +172,34 @@ class ModelHub:
 
         # check if technologies have dynamic parameters
         if config["performance"]["dynamics"]["value"]:
-            for node in self.data.topology.nodes:
-                for tec in self.data.technology_data[node]:
-                    if self.data.technology_data[node][tec].technology_model in [
-                        "CONV1",
-                        "CONV2",
-                        "CONV3",
-                    ]:
-                        par_check = [
-                            "max_startups",
-                            "min_uptime",
-                            "min_downtime",
-                            "SU_load",
-                            "SD_load",
-                            "SU_time",
-                            "SD_time",
-                        ]
-                        for par in par_check:
-                            if (
-                                par
-                                not in self.data.technology_data[node][
-                                    tec
-                                ].processed_coeff.dynamics
-                            ):
-                                raise ValueError(
-                                    f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
-                                    f"json files or switch off the dynamics."
-                                )
+            for period in topology["investment_periods"]:
+                for node in topology["nodes"]:
+                    for tec in self.data.technology_data[period][node]:
+                        if self.data.technology_data[period][node][tec].component_options.technology_model in [
+                            "CONV1",
+                            "CONV2",
+                            "CONV3",
+                        ]:
+                            par_check = [
+                                "max_startups",
+                                "min_uptime",
+                                "min_downtime",
+                                "SU_load",
+                                "SD_load",
+                                "SU_time",
+                                "SD_time",
+                            ]
+                            for par in par_check:
+                                if (
+                                    par
+                                    not in self.data.technology_data[period][node][
+                                        tec
+                                    ].processed_coeff.dynamics
+                                ):
+                                    raise ValueError(
+                                        f"The technology '{tec}' does not have dynamic parameter '{par}'. Add the parameters in the "
+                                        f"json files or switch off the dynamics."
+                                    )
 
     def construct_model(self):
         """
