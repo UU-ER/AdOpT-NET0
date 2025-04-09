@@ -1,0 +1,2 @@
+For the logo to render in readthedocs open the cvg file in a text editor and add an explicit width to the svg tag like this:
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 249.14 105.19" width="400">
