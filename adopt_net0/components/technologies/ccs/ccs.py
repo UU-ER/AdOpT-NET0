@@ -8,8 +8,8 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     Obtain bounds and input ratios for CCS
 
     Calculates the amount of input (and their bounds) required for each unit of CO2 entering the carbon capture (CC)
-    object. The minimum and maximum size parameters are multiplied by the CO2 concentration, so that the units
-    of the size becomes t/h of CO2 in. These are also the units used for the rest of the model.
+    object. The minimum and maximum size parameters are multiplied by the CO2 concentration and capture rate, so that the units
+    of the size becomes t/h of CO2 out. These are also the units used for the rest of the model (e.g. size of CC unit).
     So far, only post-combustion MEA has been modelled (based on Eq. 7 in Weimann et Al. (2023), A thermodynamic-based
     mixed-integer linear model of post-combustion carbon capture for reliable use in energy system optimisation
     https://doi.org/10.1016/j.apenergy.2023.120738).
@@ -19,18 +19,16 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     :param pd.Dataframe climate_data: dataframe containing climate data
     :return: CCS data updated with the bounds and input ratios for CCS
     """
-    # Recalculate unit_capex
     molar_mass_CO2 = 44.01
-    # convert kmol/s of fluegas to ton/h of CO2molar_mass_CO2 = 44.01
+    # convert kmol/s of fluegas to ton/h of molar_mass_CO2 = 44.01
     convert2t_per_h = molar_mass_CO2 * co2_concentration * 3.6
-
     capture_rate = ccs_data["Performance"]["capture_rate"]
+    # Recalculate unit_capex in EUR/(t_CO2out/h)
     ccs_data["Economics"]["unit_CAPEX"] = (
         (
             ccs_data["Economics"]["CAPEX_kappa"] / convert2t_per_h
             + ccs_data["Economics"]["CAPEX_lambda"]
         )
-        * capture_rate
         * co2_concentration
     ) / convert2t_per_h
 
@@ -38,14 +36,12 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
 
     ccs_data = ModelComponent(ccs_data)
 
-    molar_mass_CO2 = 44.01
-
-    # Recalculate min/max size to have it in t/hCO2_in
+    # Recalculate min/max size to have it in t/hCO2_out
     ccs_data.input_parameters.size_min = (
-        ccs_data.input_parameters.size_min * co2_concentration
+        ccs_data.input_parameters.size_min * co2_concentration * capture_rate
     )
     ccs_data.input_parameters.size_max = (
-        ccs_data.input_parameters.size_max * co2_concentration
+        ccs_data.input_parameters.size_max * co2_concentration * capture_rate
     )
 
     # Calculate input ratios

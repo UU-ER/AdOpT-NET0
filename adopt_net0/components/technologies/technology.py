@@ -111,7 +111,7 @@ class Technology(ModelComponent):
 
     If ccs is possible:
 
-    - var_size_ccs: Size of CCS
+    - var_size_ccs: Size of CCS (in CO2 captured terms)
     - var_input_ccs: input to the CCS component, defined for each CCS input carrier and
       time slice
     - var_output_ccs: output from the CCS component, defined for each CCS output carrier
@@ -652,8 +652,7 @@ class Technology(ModelComponent):
                 bounds = (0, max_capex)
             elif capex_model == 2:
                 max_capex = (
-                    b_tec.para_size_max
-                    * max(economics.capex_data["piecewise_capex"]["bp_y"])
+                    max(economics.capex_data["piecewise_capex"]["bp_y"])
                     * annualization_factor
                 )
                 bounds = (0, max_capex)
