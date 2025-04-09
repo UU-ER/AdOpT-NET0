@@ -175,7 +175,9 @@ class ModelHub:
             for period in topology["investment_periods"]:
                 for node in topology["nodes"]:
                     for tec in self.data.technology_data[period][node]:
-                        if self.data.technology_data[period][node][tec].component_options.technology_model in [
+                        if self.data.technology_data[period][node][
+                            tec
+                        ].component_options.technology_model in [
                             "CONV1",
                             "CONV2",
                             "CONV3",
