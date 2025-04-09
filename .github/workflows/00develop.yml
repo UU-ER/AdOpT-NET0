@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - 'develop*'
+    paths:
+      - '!README.md'          # Optional: explicitly exclude
+      - '!docs/**'            # Optional: exclude docs
 
 jobs:
   pin_requirements:
