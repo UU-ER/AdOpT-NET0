@@ -52,6 +52,11 @@
         ]
       }
     },
+    "pressure": {
+      "hydrogen": {
+        "inlet": 350
+      }
+    },
     "ramping_time": -1,
     "ref_size": -1,
     "ramping_const_int": -1,

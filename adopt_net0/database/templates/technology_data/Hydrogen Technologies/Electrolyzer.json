@@ -50,6 +50,11 @@
         0.655
       ]
     },
+    "pressure": {
+      "hydrogen": {
+        "outlet": 40
+      }
+    },
     "ramping_time": -1,
     "ref_size": -1,
     "ramping_const_int": -1,
