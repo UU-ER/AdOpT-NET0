@@ -459,6 +459,10 @@ def initialize_configuration_templates() -> dict:
                 "description": "Determines if pressure levels are used, 0 (no pressure levels) is default.",
                 "options": [0, 1],
                 "value": 0,
+                "compressed_carrier": {
+                    "description": "List of carriers (e.g., hydrogen, CO2) for which pressure levels are considered.",
+                    "value": ["hydrogen"],
+                },
             },
         },
         "scaling": {

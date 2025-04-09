@@ -98,6 +98,7 @@ class DataHandle:
         self._read_energybalance_options()
         self._read_technology_data()
         self._read_network_data()
+        self.calculate_possible_compressions()
 
         # Monte Carlo
         if self.model_config["optimization"]["monte_carlo"]["N"]["value"] > 0:
@@ -696,3 +697,66 @@ class DataHandle:
         # Log success
         log_msg = "Averaged data successfully"
         log.info(log_msg)
+
+    def calculate_possible_compressions(self):
+        connection_data = {}
+        target_carriers = self.model_config["performance"]["pressure"][
+            "compressed_carrier"
+        ]["value"]
+
+        for carrier_i in target_carriers:
+            connection_data[carrier_i] = {}
+
+            for node_i in self.topology["nodes"]:
+                connection_data[carrier_i][node_i] = {}
+                connection_data[carrier_i][node_i] = {"inputs": {}, "outputs": {}}
+
+                network_list_input = []
+                network_list_output = []
+                technology_input = []
+                technology_output = []
+
+                # here actually we should look at connection.loc [node_i, NODE 2] =1
+                for network_i in self.network_data:
+                    # here there is a matrix in network_topology
+                    if network_i["Performance"]["carrier"] == carrier_i:
+                        if network_i.connection.index == 1:
+                            # means that there is a network starting in this node
+                            network_list_input[carrier_i].add_netw_to_list(
+                                network_i, carrier_i, "Input"
+                            )
+
+                        if network_i.connection.columns == 1:
+                            network_list_output[carrier_i].add_netw_to_list(
+                                network_i, carrier_i, "Output"
+                            )
+                        # the function add_network_to_list should not only add the network
+                        # but also it should already read the pressure information and add to the list/dictionary
+
+                for technologies_i in self.technology_data:
+                    # first we look at the one that has hydrogen as input
+                    if technologies_i["Performance"]["input_carrier"] == ["carrier_i"]:
+                        # as done it before we have a function that write the technology and their INPUT pressure
+                        technology_input[carrier_i].add_tech_to_list(
+                            technologies_i, carrier_i, "Input"
+                        )
+
+                    if technologies_i["Performance"]["output_carrier"] == ["carrier_i"]:
+                        # same as before, but with OUTPUT carrier and pressure
+                        technology_output[carrier_i].add_tech_to_list(
+                            technologies_i, carrier_i, "Output"
+                        )
+
+                connection_data[carrier_i][node_i]["inputs"]["pressure_level"][
+                    "networks"
+                ] = network_list_input
+                connection_data[carrier_i][node_i]["inputs"]["pressure_level"][
+                    "technologies"
+                ] = technology_input
+                connection_data[carrier_i][node_i]["outputs"]["pressure_level"][
+                    "networks"
+                ] = network_list_output
+                connection_data[carrier_i][node_i]["outputs"]["pressure_level"][
+                    "technologies"
+                ] = technology_output
+        return connection_data

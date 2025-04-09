@@ -156,6 +156,22 @@ def open_json(tec: str, load_path: Path) -> dict:
     return data
 
 
+def add_tech_to_list(tech, carrier, str):
+    if str == "Input":
+        pressure = tech["Performance"]["pressure"][carrier]["inlet"]
+    elif str == "Output":
+        pressure = tech["Performance"]["pressure"][carrier]["outlet"]
+    return tech, pressure
+
+
+def add_netw_to_list(netw, carrier, str):
+    if str == "Input":
+        pressure = netw["Performance"]["pressure"][carrier]["inlet"]
+    elif str == "Output":
+        pressure = netw["Performance"]["pressure"][carrier]["outlet"]
+    return netw, pressure
+
+
 def check_input_data_consistency(path: Path):
     """
     Checks if the topology is consistent with the input data.
