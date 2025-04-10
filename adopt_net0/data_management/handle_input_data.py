@@ -30,6 +30,8 @@ class DataHandle:
     :param dict model_config: Container for the model configuration
     :param dict k_means_specs: Container for k-means clustering algorithm specifications
     :param dict averaged_specs: Container for averaging algorithm specifications
+
+    :param dict connection_pressures: Container for alla connection of outputs inputs and their pressures
     :param int, None start_period: starting period to use, if None, the first available period is used
     :param int, None end_period: end period to use, if None, the last available period is used
     """
@@ -46,10 +48,10 @@ class DataHandle:
         self.network_data = {}
         self.node_locations = pd.DataFrame()
         self.model_config = {}
-        self.connection_pressures = {}
         self.k_means_specs = {}
         self.averaged_specs = {}
         self.monte_carlo_specs = {}
+        self.connection_pressures = {}
         self.start_period = None
         self.end_period = None
 
@@ -99,7 +101,8 @@ class DataHandle:
         self._read_energybalance_options()
         self._read_technology_data()
         self._read_network_data()
-        self.calculate_possible_compressions()
+        if self.model_config["performance"]["pressure"]["value"] == 1:
+            self.calculate_possible_compressions()
 
         # Monte Carlo
         if self.model_config["optimization"]["monte_carlo"]["N"]["value"] > 0:
@@ -700,6 +703,12 @@ class DataHandle:
         log.info(log_msg)
 
     def calculate_possible_compressions(self):
+        """
+        Create a dictionary with for each carrier, for which pressure level are considered, at each node,
+        considering all the possible connections between output and input for same carrier for different component.
+        The dictionary will have alla the possible connections and their pressures saved
+
+        """
         connection_data = {}
         connection_pressures = {}
         target_carriers = self.model_config["performance"]["pressure"][
@@ -753,7 +762,6 @@ class DataHandle:
                             tech, pressure = add_tech_to_list(
                                 technologies_i, carrier_i, "Input"
                             )
-                            # technology_input.append([tech, pressure, node_i])
                             connection_data[carrier_i][node_i]["inputs"][
                                 "technologies"
                             ].append({"name": tech, "pressure": pressure})
