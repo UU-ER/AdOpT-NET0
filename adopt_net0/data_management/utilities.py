@@ -156,20 +156,34 @@ def open_json(tec: str, load_path: Path) -> dict:
     return data
 
 
-def add_tech_to_list(tech, carrier, str):
-    if str == "Input":
-        pressure = tech["Performance"]["pressure"][carrier]["inlet"]
-    elif str == "Output":
-        pressure = tech["Performance"]["pressure"][carrier]["outlet"]
-    return tech, pressure
+def add_tech_to_list(tech_obj, carrier, direction):
+    pressure_data = tech_obj.input_parameters.pressure
+    tech_name = tech_obj.name
+    pressure = ()
+    if direction == "Input":
+        pressure = pressure_data[carrier]["inlet"]
+    elif direction == "Output":
+        pressure = pressure_data[carrier]["outlet"]
+    return tech_name, pressure
 
 
-def add_netw_to_list(netw, carrier, str):
-    if str == "Input":
-        pressure = netw["Performance"]["pressure"][carrier]["inlet"]
-    elif str == "Output":
-        pressure = netw["Performance"]["pressure"][carrier]["outlet"]
-    return netw, pressure
+def add_netw_to_list(netw_obj, carrier, direction):
+    pressure_data = netw_obj.input_parameters.pressure
+    netw_name = netw_obj.name
+    pressure = ()
+    if direction == "Input":
+        pressure = pressure_data[carrier]["inlet"]
+    elif direction == "Output":
+        pressure = pressure_data[carrier]["outlet"]
+    return netw_name, pressure
+
+
+def direct_connection(output_component, input_component):
+    return
+
+
+def calculate_compression_energy(output_component, input_component):
+    return
 
 
 def check_input_data_consistency(path: Path):

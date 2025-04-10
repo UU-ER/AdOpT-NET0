@@ -31,7 +31,6 @@ class ModelComponent:
         self.existing = 0
         self.size_initial = []
         self.economics = Economics(data["Economics"])
-        self.pressure = []
 
         self.input_parameters = InputParameters(data)
         self.component_options = ComponentOptions(data)

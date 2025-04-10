@@ -46,6 +46,7 @@ class DataHandle:
         self.network_data = {}
         self.node_locations = pd.DataFrame()
         self.model_config = {}
+        self.connection_pressures = {}
         self.k_means_specs = {}
         self.averaged_specs = {}
         self.monte_carlo_specs = {}
@@ -700,63 +701,97 @@ class DataHandle:
 
     def calculate_possible_compressions(self):
         connection_data = {}
+        connection_pressures = {}
         target_carriers = self.model_config["performance"]["pressure"][
             "compressed_carrier"
-        ]["value"]
+        ]
 
         for carrier_i in target_carriers:
             connection_data[carrier_i] = {}
+            connection_pressures[carrier_i] = {}
 
             for node_i in self.topology["nodes"]:
                 connection_data[carrier_i][node_i] = {}
-                connection_data[carrier_i][node_i] = {"inputs": {}, "outputs": {}}
-
-                network_list_input = []
-                network_list_output = []
-                technology_input = []
-                technology_output = []
+                connection_pressures[carrier_i][node_i] = {}
+                connection_data[carrier_i][node_i] = {
+                    "inputs": {"networks": [], "technologies": []},
+                    "outputs": {"networks": [], "technologies": []},
+                }
 
                 # here actually we should look at connection.loc [node_i, NODE 2] =1
-                for network_i in self.network_data:
+                for _, network_i in self.network_data["period1"].items():
                     # here there is a matrix in network_topology
-                    if network_i["Performance"]["carrier"] == carrier_i:
-                        if network_i.connection.index == 1:
+                    if carrier_i in network_i.input_parameters.pressure.keys():
+                        if network_i.connection.loc[:, node_i].sum() >= 1:
                             # means that there is a network starting in this node
-                            network_list_input[carrier_i].add_netw_to_list(
+                            netw, pressure = add_netw_to_list(
                                 network_i, carrier_i, "Input"
                             )
+                            # network_list_input.append([netw, pressure, node_i])
+                            connection_data[carrier_i][node_i]["inputs"][
+                                "networks"
+                            ].append({"name": netw, "pressure": pressure})
 
-                        if network_i.connection.columns == 1:
-                            network_list_output[carrier_i].add_netw_to_list(
+                        if network_i.connection.loc[node_i, :].sum() >= 1:
+                            netw, pressure = add_netw_to_list(
                                 network_i, carrier_i, "Output"
                             )
+                            # network_list_output.append([netw, pressure, node_i])
+                            connection_data[carrier_i][node_i]["outputs"][
+                                "networks"
+                            ].append({"name": netw, "pressure": pressure})
                         # the function add_network_to_list should not only add the network
                         # but also it should already read the pressure information and add to the list/dictionary
 
-                for technologies_i in self.technology_data:
+                technologies_by_node = self.technology_data["period1"][node_i]
+                for _, technologies_i in technologies_by_node.items():
                     # first we look at the one that has hydrogen as input
-                    if technologies_i["Performance"]["input_carrier"] == ["carrier_i"]:
-                        # as done it before we have a function that write the technology and their INPUT pressure
-                        technology_input[carrier_i].add_tech_to_list(
-                            technologies_i, carrier_i, "Input"
+                    if carrier_i in technologies_i.input_parameters.pressure.keys():
+                        pressure_param = technologies_i.input_parameters.pressure
+                        if "inlet" in pressure_param[carrier_i]:
+                            # as done it before we have a function that write the technology and their INPUT pressure
+                            tech, pressure = add_tech_to_list(
+                                technologies_i, carrier_i, "Input"
+                            )
+                            # technology_input.append([tech, pressure, node_i])
+                            connection_data[carrier_i][node_i]["inputs"][
+                                "technologies"
+                            ].append({"name": tech, "pressure": pressure})
+
+                        if "outlet" in pressure_param[carrier_i]:
+                            # same as before, but with OUTPUT carrier and pressure
+                            tech, pressure = add_tech_to_list(
+                                technologies_i, carrier_i, "Output"
+                            )
+                            # technology_output.append([tech, pressure, node_i])
+                            connection_data[carrier_i][node_i]["outputs"][
+                                "technologies"
+                            ].append({"name": tech, "pressure": pressure})
+
+                for output_component in connection_data[carrier_i][node_i][
+                    "outputs"
+                ].get("technologies", []) + connection_data[carrier_i][node_i][
+                    "outputs"
+                ].get(
+                    "networks", []
+                ):
+                    for input_component in (
+                        connection_data[carrier_i][node_i]["inputs"]["technologies"]
+                        + connection_data[carrier_i][node_i]["inputs"]["networks"]
+                    ):
+
+                        connection_key = (
+                            output_component["name"],
+                            input_component["name"],
                         )
 
-                    if technologies_i["Performance"]["output_carrier"] == ["carrier_i"]:
-                        # same as before, but with OUTPUT carrier and pressure
-                        technology_output[carrier_i].add_tech_to_list(
-                            technologies_i, carrier_i, "Output"
+                        connection_pressures[carrier_i][node_i][connection_key] = (
+                            output_component["pressure"],
+                            input_component["pressure"],
                         )
 
-                connection_data[carrier_i][node_i]["inputs"]["pressure_level"][
-                    "networks"
-                ] = network_list_input
-                connection_data[carrier_i][node_i]["inputs"]["pressure_level"][
-                    "technologies"
-                ] = technology_input
-                connection_data[carrier_i][node_i]["outputs"]["pressure_level"][
-                    "networks"
-                ] = network_list_output
-                connection_data[carrier_i][node_i]["outputs"]["pressure_level"][
-                    "technologies"
-                ] = technology_output
-        return connection_data
+        self.connection_pressures = connection_pressures
+
+        # Log success
+        log_msg = "Pressure data read successfully"
+        log.info(log_msg)
