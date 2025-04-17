@@ -50,8 +50,17 @@ nb_execution_mode = "off"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
+html_theme_options = {
+    "logo_only": True,
+}
+
 html_extra_path = [""]
 add_module_names = False
+
+# html_logo = "logo/SVG/Adopt_icononly.svg"
+html_logo = "logo/SVG/Adopt_fulllogo.svg"
+html_favicon = "logo/SVG/Adopt_icononly.svg"
+
 
 # -- create table with configuration settings for documentation --------------------
 

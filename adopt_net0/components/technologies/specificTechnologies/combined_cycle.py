@@ -1200,6 +1200,17 @@ class CCPP(Technology):
                     )
                 }
 
+                for car in self.component_options.input_carrier:
+                    if not car == self.component_options.main_input_carrier:
+                        bounds_rr_full["input"][car] = (
+                            bounds_rr_full["input"][
+                                self.component_options.main_input_carrier
+                            ]
+                            * self.input_parameters.performance_data["input_ratios"][
+                                car
+                            ]
+                        )
+
                 # create input variable for full res
                 def init_input_bounds(bounds, t, car):
                     return tuple(
