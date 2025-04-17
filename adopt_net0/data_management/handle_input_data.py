@@ -891,11 +891,15 @@ class DataHandle:
                     for compressor in connection_at_node[investment_period][carrier_i][
                         node
                     ]["new"]:
-                        comp_data = create_compressor_class(compressor, carrier_i)
 
+                        comp_data = create_compressor_class(compressor, carrier_i)
+                        name_comp = f"{comp_data.name}"
+                        compressor_data[investment_period][carrier_i][node][
+                            name_comp
+                        ] = {}
                         comp_data.fit_compressor_performance()
                         compressor_data[investment_period][carrier_i][node][
-                            compressor
+                            name_comp
                         ] = comp_data
 
                     # Existing compressor
@@ -905,23 +909,15 @@ class DataHandle:
                         comp_data = create_compressor_class(compressor, carrier_i)
 
                         comp_data.name = comp_data.name + "_existing"
-
-                        comp_data.existing = 1
-                        comp_data.input_parameters.size_initial = compressor[
-                            "existing"
-                        ][compressor]
-                        comp_data.fit_compressor_performance(
-                            self.time_series[aggregation_model][investment_period][
-                                node
-                            ]["ClimateData"]["global"],
-                            self.node_locations.loc[node, :],
-                        )
+                        name_comp = f"{comp_data.name}"
                         compressor_data[investment_period][carrier_i][node][
-                            compressor + "_existing"
+                            name_comp
+                        ] = {}
+                        comp_data.existing = 1
+                        comp_data.fit_compressor_performance()
+                        compressor_data[investment_period][carrier_i][node][
+                            name_comp
                         ] = comp_data
-
-        # Store compressor
-        compressor_data[investment_period][carrier_i][node][connection_i] = comp_data
 
         self.compressor_data = compressor_data
 
