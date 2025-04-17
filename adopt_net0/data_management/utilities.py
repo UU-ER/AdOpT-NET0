@@ -4,8 +4,10 @@ import pvlib
 import os
 import json
 
+from ..components.compressors.compressor import Compressor
 from ..components.networks import *
 from ..components.technologies import *
+from ..components.compressors import *
 
 import logging
 
@@ -124,6 +126,57 @@ def create_network_class(netw_name: str, load_path: Path):
     netw_data = network_factory(netw_data)
 
     return netw_data
+
+
+def create_compressor_class(comp_name, carrier):
+    """
+    Loads the compressor data from load_path and preprocesses it.
+
+    :param comp_name: compressed carrier
+    :param Path load_path: load path
+    #:param dict location: Dictonary with node location
+
+    :return: Compressor Class
+    """
+
+    comp_type = carrier
+
+    def define_carrier(comp_carrier: str) -> str:
+        carrier_map = {
+            "hydrogen": "HydrogenCompressor",
+            # "CO2": "CO2Compressor",
+            # "natural_gas": "NaturalGasCompressor",
+        }
+
+        if comp_carrier not in carrier_map:
+            raise ValueError(f"Unsupported comp_carrier: {comp_carrier}")
+
+        return carrier_map[comp_carrier]
+
+    comp_type = define_carrier(comp_type)
+    json_filename = comp_type + ".json"
+
+    # Get the absolute path to the folder
+    base_path = os.path.dirname(__file__)
+    json_path = os.path.join(
+        base_path, "..", "database", "templates", "compressor_data", json_filename
+    )
+    json_path = os.path.abspath(json_path)
+
+    if not os.path.exists(json_path):
+        raise FileNotFoundError(f"No JSON data found at: {json_path}")
+
+    with open(json_path, "r") as file:
+        comp_data = json.load(file)
+
+    comp_data.update(comp_name)
+
+    comp_data["name"] = (
+        f"{comp_type}_{comp_data['output_component']}_{comp_data['input_component']}"
+    )
+    comp_data = Compressor(comp_data)
+
+    return comp_data
 
 
 def open_json(tec: str, load_path: Path) -> dict:

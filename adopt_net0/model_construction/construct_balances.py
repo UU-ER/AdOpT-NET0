@@ -620,12 +620,12 @@ def construct_system_cost(model, data):
         # here I added the var, but they still don't exist
         # they need to be initialized in construct node and construct investment period
 
-        # Capex Compression
+        # Capex compressors
         def init_cost_capex_compression(const):
             if config["performance"]["pressure"]["value"] == 1:
                 return b_period.var_cost_capex_compress == sum(
                     b_period.compress_block[compr].var_capex
-                    for compr in b_period.set_compress
+                    for compr in b_period.set_compressors
                 )
             else:
                 b_period.var_cost_capex_compress = 0
@@ -634,7 +634,7 @@ def construct_system_cost(model, data):
             rule=init_cost_capex_compression
         )
 
-        # Opex Compression
+        # Opex compressors
         def init_cost_opex_compression(const):
             if config["performance"]["pressure"]["value"] == 1:
                 return b_period.var_cost_opex_compress == sum(
@@ -648,7 +648,7 @@ def construct_system_cost(model, data):
             rule=init_cost_opex_compression
         )
 
-        # Total Compression Costs
+        # Total compressors Costs
         def init_cost_compress(const):
             return (
                 b_period.var_cost_compress

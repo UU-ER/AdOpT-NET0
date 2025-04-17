@@ -42,22 +42,14 @@ class Compressor(ModelComponent):
         self.set_t_global = None
         self.sequence = None
 
-        self.output_component = get_attribute_from_dict(
-            compr_data["output_component"], "name", []
-        )
-        self.input_component = get_attribute_from_dict(
-            compr_data["input_component"], "name", []
-        )
-        self.output_pressure = get_attribute_from_dict(
-            compr_data["output_component"], "pressure", []
-        )
-        self.input_pressure = get_attribute_from_dict(
-            compr_data["input_component"], "pressure", []
-        )
+        self.output_component = compr_data["output_component"]
+        self.input_component = compr_data["input_component"]
+        self.output_pressure = compr_data[
+            "output_pressure"
+        ]  # to be define better (output is where carrier is coming from)
+        self.input_pressure = compr_data["input_pressure"]
         # to be fixed
-        self.input_carrier = get_attribute_from_dict(
-            compr_data["Performance"], "input_carrier", []
-        )
+        self.input_carrier = compr_data["carrier"]
 
     def fit_compressor_performance(self):
         """
@@ -85,7 +77,7 @@ class Compressor(ModelComponent):
         # SET T
         self.set_t_full = set_t_full
 
-        if config["optimization"]["typicaldays"]["N"]["value"] == 0:
+        """if config["optimization"]["typicaldays"]["N"]["value"] == 0:
             # everything with full resolution
             self.component_options.modelled_with_full_res = True
             self.set_t_performance = set_t_full
@@ -117,7 +109,7 @@ class Compressor(ModelComponent):
         else:
             self.processed_coeff.time_dependent_used = (
                 self.processed_coeff.time_dependent_clustered
-            )
+            )"""
 
         # CALCULATE BOUNDS
         # self._calculate_bounds()
@@ -130,13 +122,13 @@ class Compressor(ModelComponent):
         b_compr = self._define_carrier(b_compr)
         b_compr = self._define_flow(b_compr, data)
         b_compr = self._define_size(b_compr)
-        b_compr = self._define_capex_parameters(b_compr, data)
-        b_compr = self._define_capex_variables(b_compr, data)
-        b_compr = self._define_capex_constraints(b_compr, data)
+        # b_compr = self._define_capex_parameters(b_compr, data)
+        # b_compr = self._define_capex_variables(b_compr, data)
+        # b_compr = self._define_capex_constraints(b_compr, data)
         b_compr = self._define_energy(b_compr, data)
-        b_compr = self._define_opex(b_compr, data)
+        # b_compr = self._define_opex(b_compr, data)
 
-        # EXISTING TECHNOLOGY CONSTRAINTS
+        """# EXISTING TECHNOLOGY CONSTRAINTS
         if self.existing and self.component_options.decommission == "only_complete":
             b_compr = self._define_decommissioning_at_once_constraints(b_compr)
 
@@ -160,7 +152,7 @@ class Compressor(ModelComponent):
         # AGGREGATE ALL VARIABLES
         self._aggregate_input(b_compr)
         self._aggregate_output(b_compr)
-        self._aggregate_cost(b_compr)
+        self._aggregate_cost(b_compr)"""
 
         return b_compr
 
@@ -171,7 +163,7 @@ class Compressor(ModelComponent):
         :param b_compr: pyomo block with compressor model
         :return: pyomo block with compressor model
         """
-        b_compr.set_output_component = pyo.Set(initialize=self.output_component)
+        b_compr.set_output_component = pyo.Param(initialize=self.output_component)
         return b_compr
 
     def _define_output_pressure(self, b_compr):
@@ -181,7 +173,7 @@ class Compressor(ModelComponent):
         :param b_compr: pyomo block with compressor model
         :return: pyomo block with compressor model
         """
-        b_compr.set_output_pressure = pyo.Set(initialize=self.output_pressure)
+        b_compr.set_output_pressure = pyo.Param(initialize=self.output_pressure)
         return b_compr
 
     def _define_input_component(self, b_compr):
@@ -191,7 +183,7 @@ class Compressor(ModelComponent):
         :param b_compr: pyomo block with compressor model
         :return: pyomo block with compressor model
         """
-        b_compr.set_input_component = pyo.Set(initialize=self.input_component)
+        b_compr.set_input_component = pyo.Param(initialize=self.input_component)
         return b_compr
 
     def _define_input_pressure(self, b_compr):
@@ -201,7 +193,7 @@ class Compressor(ModelComponent):
         :param b_compr: pyomo block with compressor model
         :return: pyomo block with compressor model
         """
-        b_compr.set_input_pressure = pyo.Set(initialize=self.input_pressure)
+        b_compr.set_input_pressure = pyo.Param(initialize=self.input_pressure)
         return b_compr
 
     def _define_carrier(self, b_compr):
@@ -212,9 +204,7 @@ class Compressor(ModelComponent):
         :return: pyomo block with compressor model
         """
         # to be fixed correctly
-        b_compr.set_input_pressure = pyo.Set(
-            initialize=self.component_options.input_carrier
-        )
+        b_compr.set_input_pressure = pyo.Param(initialize=self.input_carrier)
         return b_compr
 
     def _define_flow(self, b_compr, data: dict):
@@ -226,23 +216,19 @@ class Compressor(ModelComponent):
         :return: pyomo block with compressor model
         """
 
-        coeff_ti = self.processed_coeff.time_independent
-        c = self.processed_coeff.time_independent
+        """coeff_ti = self.processed_coeff.time_independent
+        c = self.processed_coeff.time_independent"""
 
-        # to be fixed
+        """# to be fixed
         def init_input_bounds(bounds, t, car):
             return tuple(
                 self.bounds["input"][car][self.sequence[t - 1] - 1, :]
                 * c["size_max"]
                 * c["rated_power"]
-            )
+            )"""
+        b_compr.set_compressors = pyo.Set(initialize=self.input_carrier)
 
-        b_compr.flow = pyo.Var(
-            self.set_t_global,
-            b_compr.set_input_carriers,
-            within=pyo.NonNegativeReals,
-            bounds=init_input_bounds,
-        )
+        b_compr.flow = 5
         return b_compr
 
     def _define_size(self, b_compr):
@@ -252,36 +238,9 @@ class Compressor(ModelComponent):
         :param b_compr: pyomo block with compressor model
         :return: pyomo block with compressor model
         """
-        coeff_ti = self.processed_coeff.time_independent
 
-        if self.component_options.size_is_int:
-            size_domain = pyo.NonNegativeIntegers
-        else:
-            size_domain = pyo.NonNegativeReals
-
-        b_compr.para_size_min = pyo.Param(
-            domain=pyo.NonNegativeReals, initialize=coeff_ti["size_min"], mutable=True
-        )
-        b_compr.para_size_max = pyo.Param(
-            domain=pyo.NonNegativeReals, initialize=coeff_ti["size_max"], mutable=True
-        )
-
-        if self.existing:
-            b_compr.para_size_initial = pyo.Param(
-                within=size_domain, initialize=coeff_ti["size_initial"]
-            )
-
-        if self.existing and self.component_options.decommission == "impossible":
-            # Decommissioning is not possible, size fixed
-            b_compr.var_size = pyo.Param(
-                within=size_domain, initialize=coeff_ti["size_initial"]
-            )
-        else:
-            # Size is variable
-            b_compr.var_size = pyo.Var(
-                within=size_domain,
-                bounds=(b_compr.para_size_min, b_compr.para_size_max),
-            )
+        b_compr.para_size_min = 5
+        b_compr.para_size_max = 20
         return b_compr
 
     def _define_capex_parameters(self, b_compr, data):
@@ -394,18 +353,19 @@ class Compressor(ModelComponent):
         :param b_netw: pyomo compressor block
         :return: pyomo network block
         """
-        energy_cons = self.input_parameters.performance_data["compression_energy"]
+        """energy_cons = self.input_parameters.performance_data["compression_energy"]
         b_compr.var_compress_energy = pyo.Var(
             self.set_t_global, domain=pyo.NonNegativeReals
-        )
+        )"""
 
-        # to be fixed
+        """# to be fixed
         def init_compr_energy(t):
-            return b_compr.var_compress_energy[t] == b_compr.flow * energy_cons
+            return b_compr.var_compress_energy[t] == b_compr.flow * 2
 
         b_compr.const_compress_energy = pyo.Constraint(
             self.set_t_global, rule=init_compr_energy
-        )
+        )"""
+        b_compr.const_compress_energy = b_compr.flow * 2
 
         return b_compr
 

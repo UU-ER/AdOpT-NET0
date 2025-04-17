@@ -226,7 +226,7 @@ def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
     b_node.var_car_emissions_pos = pyo.Var(set_t, within=pyo.NonNegativeReals)
     b_node.var_car_emissions_neg = pyo.Var(set_t, within=pyo.NonNegativeReals)
 
-    # Compression energy
+    # compressors energy
     b_node.var_compression = pyo.Var(set_t, b_node.set_carriers)
 
     # CONSTRAINTS

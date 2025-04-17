@@ -11,7 +11,7 @@ from adopt_net0.database.data_component import DataComponent_CostModel
 
 class CO2_Compression_CostModel(DataComponent_CostModel):
     """
-    CO2 Compression
+    CO2 compressors
 
     Possible options are:
 
