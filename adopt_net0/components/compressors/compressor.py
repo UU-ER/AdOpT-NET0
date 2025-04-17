@@ -56,10 +56,18 @@ class Compressor(ModelComponent):
         Fits compressor performance (bounds and coefficients).
         """
 
+        # what do we need here?
+        # from other classes: there are some parameter time independent that are saved here in self
+
         input_parameters = self.input_parameters
         # to be fixed (gamma)
         input_parameters.performance_data["compression_energy"] = 5
         # time_independent = {}
+
+        input_parameters.pressure["input_pressure"] = self.input_pressure
+        input_parameters.pressure["output_pressure"] = self.output_pressure
+
+        input_parameters.performance_data["input_carrier"] = self.input_carrier
 
         # energy
         self.processed_coeff.time_independent["compression_energy"] = (
