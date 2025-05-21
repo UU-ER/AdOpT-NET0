@@ -914,34 +914,23 @@ class Technology(ModelComponent):
             discount_rate, economics.lifetime, fraction_of_year_modelled
         )
 
-        # VARIABLE OPEX
-        b_tec.para_opex_variable = pyo.Param(
-            domain=pyo.Reals, initialize=economics.opex_variable, mutable=True
-        )
-        b_tec.var_opex_variable = pyo.Var(self.set_t_global)
+        # VARIABLE OPEX — simplified
+b_tec.para_opex_variable = pyo.Param(
+    domain=pyo.Reals, initialize=economics.opex_variable, mutable=True
+)
 
-        def init_opex_variable(const, t):
-            """opexvar_{t} = Input_{t, maincarrier} * opex_{var}"""
-            if (
-                (self.component_options.technology_model == "RES")
-                or (self.component_options.technology_model == "CONV4")
-                or (self.component_options.technology_model == "DAC_Adsorption")
-            ):
-                opex_variable_based_on = b_tec.var_output[
-                    t, b_tec.set_output_carriers[1]
-                ]
-            else:
-                opex_variable_based_on = b_tec.var_input[
-                    t, self.component_options.main_input_carrier
-                ]
-            return (
-                opex_variable_based_on * b_tec.para_opex_variable
-                == b_tec.var_opex_variable[t]
-            )
-
-        b_tec.const_opex_variable = pyo.Constraint(
-            self.set_t_global, rule=init_opex_variable
-        )
+if (
+    self.component_options.technology_model in ("RES", "CONV4", "DAC_Adsorption")
+):
+    b_tec.var_opex_variable_total = sum(
+        b_tec.var_output[t, b_tec.set_output_carriers[1]] * b_tec.para_opex_variable
+        for t in self.set_t_global
+    )
+else:
+    b_tec.var_opex_variable_total = sum(
+        b_tec.var_input[t, self.component_options.main_input_carrier] * b_tec.para_opex_variable
+        for t in self.set_t_global
+    )
 
         # FIXED OPEX
         b_tec.para_opex_fixed = pyo.Param(

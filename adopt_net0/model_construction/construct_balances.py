@@ -587,14 +587,9 @@ def construct_system_cost(model, data):
         def init_cost_opex_netws(const):
             if not config["energybalance"]["copperplate"]["value"]:
                 netw_opex_variable = sum(
-                    sum(
-                        b_period.network_block[netw].var_opex_variable[t]
-                        * nr_timesteps_averaged
-                        * hour_factors[t - 1]
-                        for netw in b_period.set_networks
-                    )
-                    for t in set_t
-                )
+    b_period.network_block[netw].var_opex_variable_total
+    for netw in b_period.set_networks
+)
                 netw_opex_fixed = sum(
                     b_period.network_block[netw].var_opex_fixed
                     for netw in b_period.set_networks
