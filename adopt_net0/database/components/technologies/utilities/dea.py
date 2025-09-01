@@ -9,9 +9,33 @@ class Dea:
 
     def __init__(self, technology):
 
-        dea_input_path = Path(__file__).parent.parent.parent.parent / Path(
-            "./data/technologies/dea/technology_data_for_el_and_dh - 0016.xlsx"
-        )
+        if (
+            technology == "Wind_Onshore"
+            or technology == "Wind_Offshore_fixed"
+            or technology == "Wind_Offshore_floating"
+            or technology == "Photovoltaic_utility"
+            or technology == "Photovoltaic_distributed_commercial"
+            or technology == "Photovoltaic_distributed_residential"
+            or technology == "air_sourced_1MW"
+            or technology == "air_sourced_3MW"
+            or technology == "air_sourced_10MW"
+            or technology == "seawater_20MW"
+        ):
+            dea_input_path = Path(__file__).parent.parent.parent.parent / Path(
+                "./data/technologies/dea/technology_data_for_el_and_dh - 0016.xlsx"
+            )
+
+        elif (
+            technology == "AEC_10MW"
+            or technology == "AEC_100MW"
+            or technology == "AEC_1GW"
+            or technology == "PEMEC_10MW"
+            or technology == "PEMEC_100MW"
+            or technology == "PEMEC_1GW"
+        ):
+            dea_input_path = Path(__file__).parent.parent.parent.parent / Path(
+                "./data/technologies/dea/data_sheets_for_renewable_fuels.xlsx"
+            )
 
         all_data = pd.read_excel(
             dea_input_path, sheet_name="alldata_flat", index_col=None
@@ -124,6 +148,60 @@ class Dea:
             filter_capex = ["Nominal investment (*total) [MEUR/MW_h]"]
             filter_cop = "Heat efficiency (net, name plate) []"
 
+        elif technology == "AEC_10MW":
+            self.tec_type = "CONV1"
+            filter_tec = "1.1 AEC 10 MW"
+            filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
+            filter_var_opex = "Variable O&M [€/kWh of total input]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
+            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_capex = "Specific investment [€/kW of total input_e]"
+
+        elif technology == "AEC_100MW":
+            self.tec_type = "CONV1"
+            filter_tec = "1.1 AEC 100 MW"
+            filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
+            filter_var_opex = "Variable O&M [€/kWh of total input]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
+            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_capex = "Specific investment [€/kW of total input_e]"
+
+        elif technology == "AEC_1GW":
+            self.tec_type = "CONV1"
+            filter_tec = "1.1 AEC 1 GW"
+            filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
+            filter_var_opex = "Variable O&M [€/kWh of total input]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
+            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_capex = "Specific investment [€/kW of total input_e]"
+
+        elif technology == "PEMEC_10MW":
+            self.tec_type = "CONV1"
+            filter_tec = "1.1 PEMEC 10 MW"
+            filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
+            filter_var_opex = "Variable O&M [€/kWh of total input]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
+            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_capex = "Specific investment [€/kW of total input_e]"
+
+        elif technology == "PEMEC_100MW":
+            self.tec_type = "CONV1"
+            filter_tec = "1.1 PEMEC 100 MW"
+            filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
+            filter_var_opex = "Variable O&M [€/kWh of total input]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
+            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_capex = "Specific investment [€/kW of total input_e]"
+
+        elif technology == "PEMEC_1GW":
+            self.tec_type = "CONV1"
+            filter_tec = "1.1 PEMEC 1 GW"
+            filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
+            filter_var_opex = "Variable O&M [€/kWh of total input]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
+            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_capex = "Specific investment [€/kW of total input_e]"
+
         else:
             raise ValueError("Technology not available")
 
@@ -136,6 +214,11 @@ class Dea:
             self.other["cf"]["val"] = self.other["cf"]["val"] / 8760
         elif self.tec_type == "HP":
             self.other["cop"] = technology_data[technology_data["par"] == filter_cop]
+        elif self.tec_type == "CONV1":
+            self.other["out"] = technology_data[
+                technology_data["par"] == filter_efficiency
+            ]
+            self.other["Performance"]["performance"]["out"] = self.other["out"] / 100
 
         self.capex_meur_per_mw = technology_data[
             technology_data["par"].isin(filter_capex)
