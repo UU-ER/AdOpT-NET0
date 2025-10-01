@@ -419,17 +419,18 @@ class CCPP(Technology):
             self.bounds["output"]["steam_hp"] = np.column_stack((min_out, max_hp))
             self.bounds["output"]["steam_mp"] = np.column_stack((min_out, max_mp))
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered, cost_targeting=False):
         """
         Adds constraints to technology blocks for gas turbines
 
+        :param cost_targeting:
         :param b_tec: pyomo block with technology model
         :param dict data: data containing model configuration
         :param set_t_full: pyomo set containing timesteps
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(CCPP, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
+        super(CCPP, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered, cost_targeting)
 
         b_tec = self._define_additional_vars(b_tec)
         b_tec = self._define_tec_global_balances(b_tec)

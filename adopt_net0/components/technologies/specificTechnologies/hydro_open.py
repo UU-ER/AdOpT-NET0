@@ -171,19 +171,18 @@ class HydroOpen(Technology):
                 )
             )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered, cost_targeting=False):
         """
         Adds constraints to technology blocks for tec_type Hydro_Open
 
+        :param cost_targeting:
         :param b_tec: pyomo block with technology model
         :param dict data: data containing model configuration
         :param set_t_full: pyomo set containing timesteps
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(HydroOpen, self).construct_tech_model(
-            b_tec, data, set_t_full, set_t_clustered
-        )
+        super(HydroOpen, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered, cost_targeting)
 
         config = data["config"]
 

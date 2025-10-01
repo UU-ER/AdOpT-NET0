@@ -258,6 +258,9 @@ class Technology(ModelComponent):
         if "ScalingFactors" in tec_data:
             self.scaling_factors = tec_data["ScalingFactors"]
 
+        # Cost targeting
+        self.cost_targeting = None
+
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits technology performance (bounds and coefficients).
@@ -355,10 +358,11 @@ class Technology(ModelComponent):
                 )
             )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered, cost_targeting=False):
         """
         Construct the technology model with all required parameters, variable, sets,...
 
+        :param cost_targeting:
         :param b_tec: pyomo block with technology model
         :param dict data: data containing model configuration
         :param set_t_full: pyomo set containing timesteps
@@ -372,6 +376,7 @@ class Technology(ModelComponent):
 
         # TECHNOLOGY DATA
         config = data["config"]
+        self.cost_targeting = cost_targeting
 
         # SET T
         self.set_t_full = set_t_full
@@ -435,12 +440,14 @@ class Technology(ModelComponent):
         b_tec = self._define_input_carriers(b_tec)
         b_tec = self._define_output_carriers(b_tec)
         b_tec = self._define_size(b_tec)
-        b_tec = self._define_capex_parameters(b_tec, data)
+        if not self.cost_targeting:
+            b_tec = self._define_capex_parameters(b_tec, data)
         b_tec = self._define_capex_variables(b_tec, data)
         b_tec = self._define_capex_constraints(b_tec, data)
         b_tec = self._define_input(b_tec, data)
         b_tec = self._define_output(b_tec, data)
-        b_tec = self._define_opex(b_tec, data)
+        if not self.cost_targeting:
+            b_tec = self._define_opex(b_tec, data)
 
         # EXISTING TECHNOLOGY CONSTRAINTS
         if self.existing and self.decommission == "only_complete":
@@ -628,7 +635,10 @@ class Technology(ModelComponent):
         # CAPEX auxilliary (used to calculate theoretical CAPEX)
         # For new technologies, this is equal to actual CAPEX
         # For existing technologies it is used to calculate fixed OPEX
-        b_tec.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
+        if not self.cost_targeting:
+            b_tec.var_capex_aux = pyo.Var()
+        else:
+            b_tec.var_capex_aux = pyo.Var(bounds=calculate_max_capex())
 
         b_tec.var_capex = pyo.Var()
 
@@ -720,70 +730,72 @@ class Technology(ModelComponent):
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
-        annualization_factor = annualize(
-            discount_rate, economics["lifetime"], fraction_of_year_modelled
-        )
 
-        capex_model = set_capex_model(config, economics)
-
-        if capex_model == 1:
-            b_tec.const_capex_aux = pyo.Constraint(
-                expr=b_tec.var_size * b_tec.para_unit_capex_annual
-                == b_tec.var_capex_aux
+        if not self.cost_targeting:
+            annualization_factor = annualize(
+                discount_rate, economics["lifetime"], fraction_of_year_modelled
             )
-        elif capex_model == 2:
-            self.big_m_transformation_required = 1
-            bp_x = economics["piecewise_capex"]["bp_x"]
-            bp_y_annual = [
-                y * annualization_factor for y in economics["piecewise_capex"]["bp_y"]
-            ]
-            b_tec.const_capex_aux = pyo.Piecewise(
-                b_tec.var_capex_aux,
-                b_tec.var_size,
-                pw_pts=bp_x,
-                pw_constr_type="EQ",
-                f_rule=bp_y_annual,
-                pw_repn="SOS2",
-            )
-        elif capex_model == 3:
-            self.big_m_transformation_required = 1
-            s_indicators = range(0, 2)
 
-            if self.existing:
+            capex_model = set_capex_model(config, economics)
+
+            if capex_model == 1:
                 b_tec.const_capex_aux = pyo.Constraint(
                     expr=b_tec.var_size * b_tec.para_unit_capex_annual
-                    + b_tec.para_fix_capex_annual
                     == b_tec.var_capex_aux
                 )
-            else:
-
-                def init_installation(dis, ind):
-                    if ind == 0:  # tech not installed
-                        dis.const_capex_aux = pyo.Constraint(
-                            expr=b_tec.var_capex_aux == 0
-                        )
-                        dis.const_not_installed = pyo.Constraint(
-                            expr=b_tec.var_size == 0
-                        )
-                    else:  # tech installed
-                        dis.const_capex_aux = pyo.Constraint(
-                            expr=b_tec.var_size * b_tec.para_unit_capex_annual
-                            + b_tec.para_fix_capex_annual
-                            == b_tec.var_capex_aux
-                        )
-
-                b_tec.dis_installation = gdp.Disjunct(
-                    s_indicators, rule=init_installation
+            elif capex_model == 2:
+                self.big_m_transformation_required = 1
+                bp_x = economics["piecewise_capex"]["bp_x"]
+                bp_y_annual = [
+                    y * annualization_factor for y in economics["piecewise_capex"]["bp_y"]
+                ]
+                b_tec.const_capex_aux = pyo.Piecewise(
+                    b_tec.var_capex_aux,
+                    b_tec.var_size,
+                    pw_pts=bp_x,
+                    pw_constr_type="EQ",
+                    f_rule=bp_y_annual,
+                    pw_repn="SOS2",
                 )
+            elif capex_model == 3:
+                self.big_m_transformation_required = 1
+                s_indicators = range(0, 2)
 
-                def bind_disjunctions(dis):
-                    return [b_tec.dis_installation[i] for i in s_indicators]
+                if self.existing:
+                    b_tec.const_capex_aux = pyo.Constraint(
+                        expr=b_tec.var_size * b_tec.para_unit_capex_annual
+                        + b_tec.para_fix_capex_annual
+                        == b_tec.var_capex_aux
+                    )
+                else:
 
-                b_tec.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
+                    def init_installation(dis, ind):
+                        if ind == 0:  # tech not installed
+                            dis.const_capex_aux = pyo.Constraint(
+                                expr=b_tec.var_capex_aux == 0
+                            )
+                            dis.const_not_installed = pyo.Constraint(
+                                expr=b_tec.var_size == 0
+                            )
+                        else:  # tech installed
+                            dis.const_capex_aux = pyo.Constraint(
+                                expr=b_tec.var_size * b_tec.para_unit_capex_annual
+                                + b_tec.para_fix_capex_annual
+                                == b_tec.var_capex_aux
+                            )
 
-        else:
-            # Defined in the technology subclass
-            pass
+                    b_tec.dis_installation = gdp.Disjunct(
+                        s_indicators, rule=init_installation
+                    )
+
+                    def bind_disjunctions(dis):
+                        return [b_tec.dis_installation[i] for i in s_indicators]
+
+                    b_tec.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
+
+            else:
+                # Defined in the technology subclass
+                pass
 
         # CAPEX
         if self.existing:

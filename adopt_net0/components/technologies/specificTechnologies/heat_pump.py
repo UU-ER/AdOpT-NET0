@@ -202,19 +202,18 @@ class HeatPump(Technology):
 
         time_steps = len(self.set_t_performance)
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered, cost_targeting=False):
         """
         Adds constraints to technology blocks for tec_type HP (Heat Pump)
 
+        :param cost_targeting:
         :param b_tec: pyomo block with technology model
         :param dict data: data containing model configuration
         :param set_t_full: pyomo set containing timesteps
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(HeatPump, self).construct_tech_model(
-            b_tec, data, set_t_full, set_t_clustered
-        )
+        super(HeatPump, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered, cost_targeting)
 
         # DATA OF TECHNOLOGY
         coeff_ti = self.processed_coeff.time_independent
