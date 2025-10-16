@@ -580,11 +580,36 @@ class Network(ModelComponent):
                 initialize=b_netw.para_size_initial[node_from, node_to],
             )
         else:
-            # Size is variable
-            b_arc.var_size = pyo.Var(
-                within=size_domain,
-                bounds=(b_netw.para_size_min, b_arc.para_size_max),
-            )
+            # Size is variable - conditional logic based on size_min
+            if b_netw.para_size_min.value == 0:
+                # Simple case: size_min is zero, so variable can be 0 to size_max
+                b_arc.var_size = pyo.Var(
+                    within=size_domain,
+                    bounds=(b_netw.para_size_min, b_arc.para_size_max),
+                )
+            else:
+                # Complex case: size_min > 0, so we need either 0 or [size_min, size_max]
+                # Binary variable to indicate if the arc is installed
+                b_arc.var_installed = pyo.Var(within=pyo.Binary)
+
+                # Size variable with full range from 0 to size_max
+                b_arc.var_size = pyo.Var(
+                    within=size_domain,
+                    bounds=(0, b_arc.para_size_max),
+                )
+
+                # Big-M constraint: if not installed, size must be 0
+                # if installed = 0, then size <= 0 * M = 0, so size = 0
+                b_arc.con_size_if_not_installed = pyo.Constraint(
+                    expr=b_arc.var_size <= b_arc.var_installed * b_arc.para_size_max
+                )
+
+                # If installed, size must be >= size_min
+                # if installed = 1, then size >= size_min
+                # if installed = 0, then size >= 0 (which is already guaranteed by bounds)
+                b_arc.con_size_if_installed = pyo.Constraint(
+                    expr=b_arc.var_size >= b_arc.var_installed * b_netw.para_size_min
+                )
 
         return b_arc
 
