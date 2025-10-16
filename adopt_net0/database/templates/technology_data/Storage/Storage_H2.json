@@ -7,7 +7,7 @@
   "Economics": {
     "comment": "CAPEX in EUR/MWh or as a piecewise function, opex_variable in EUR/MWh total output, opex_fixed in % of up-front CAPEX",
     "capex_model": 1,
-    "unit_capex": 1E-5,
+    "unit_capex": 4400,
     "fix_capex": 0,
     "piecewise_capex": {
       "bp_x": "not defined",
@@ -35,6 +35,12 @@
       "eta_out": 1,
       "lambda": 0,
       "theta": 0
+    },
+    "pressure": {
+      "hydrogen": {
+        "inlet": 200,
+        "outlet": 200
+      }
     }
   },
   "Flexibility": {
