@@ -148,6 +148,87 @@ def fill_carrier_data(
                 existing_data.to_csv(output_file, index=False, sep=";")
 
 
+def fill_carrier_pressure_data(
+    folder_path: str | Path,
+    pressure_value_bar: float,
+    connection: list = [],
+    carriers: list = [],
+    nodes: list = [],
+    investment_periods: list = None,
+):
+    """
+    Updates carrier pressure data for exchange connections for a time series
+    based on a provided value and writes it to file.
+
+    Allows you to update Demand pressure, Export pressure and Import pressure.
+
+    :param str folder_path: Path to the folder containing the case study data
+    :param float pressure_value_bar: A float value to be applied containing the values of the carrier pressure data
+    :param list connection: Name of the connection that need to be changed
+    :param list carriers: Name of the carriers that need to be changed
+    :param list nodes: Name of the nodes that need to be changed
+    :param list investment_periods: Name of investment periods to be changed
+    """
+
+    # Convert to Path
+    if isinstance(folder_path, str):
+        folder_path = Path(folder_path)
+
+    # Read the Configuration json file
+    json_file_path = folder_path / "ConfigModel.json"
+    with open(json_file_path, "r") as json_file:
+        configuration = json.load(json_file)
+
+    # Read the topology json file
+    json_file_path = folder_path / "Topology.json"
+    with open(json_file_path, "r") as json_file:
+        topology = json.load(json_file)
+
+    if configuration["performance"]["pressure"]["pressure_on"]["value"] == 0:
+        warnings.warn(
+            "Pressure configuration is turned off and pressure information will not be used"
+        )
+        return
+
+    for car in carriers:
+        if (
+            car
+            not in configuration["performance"]["pressure"]["pressure_carriers"][
+                "value"
+            ]
+        ):
+            raise ValueError(
+                f"Carrier '{car} is not configured for pressure information. Change it in configuration"
+            )
+
+    for period in (
+        investment_periods if investment_periods else topology["investment_periods"]
+    ):
+        for node_name in nodes:
+            # Path to JSON file
+            output_file = (
+                folder_path
+                / period
+                / "node_data"
+                / node_name
+                / "carrier_data"
+                / "PressureExchangeData.json"
+            )
+
+            for car in carriers:
+                # Load existing data if the file exists
+                with open(output_file, "r") as f:
+                    existing_data = json.load(f)
+
+                for conn in connection:
+                    existing_data[car][conn]["value"] = pressure_value_bar
+
+            # Save updated JSON file
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_file, "w") as f:
+                json.dump(existing_data, f, indent=4)
+
+
 def copy_technology_data(folder_path: str | Path, tec_data_path: str | Path = None):
     """
     Copies technology JSON files to the node folder for each node and investment period.
@@ -239,6 +320,55 @@ def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path = None)
         # Copy JSON files corresponding to technology names to output folder
         for ntw_name in ntws_at_node:
             _copy_data(ntw_data_path, ntw_name, output_folder)
+
+
+def copy_compressor_data(folder_path: str | Path, compr_data_path: str | Path = None):
+    """
+    Copies compressor JSON files to the compressor_data folder for each investment period.
+
+    This function reads the topology JSON file to determine the existing and new compressors for
+    each investment period. It then searches for the corresponding JSON files in the specified `compr_data_path`
+    folder (and its subfolders) using the compressor names and copies them to folder_path.
+
+    :param str | Path folder_path: Path to the folder containing the case study data.
+    :param str | Path compr_data_path: Path to the folder containing the compressors data (if left
+    empty, standard folder is used).
+    :return: None
+    """
+    config_file_path = folder_path / "ConfigModel.json"
+    with open(config_file_path, "r") as json_file:
+        config = json.load(json_file)
+        if config["performance"]["pressure"]["pressure_on"]["value"] == 0:
+            return
+        else:
+            # Convert to Path
+            if isinstance(folder_path, str):
+                folder_path = Path(folder_path)
+
+            if compr_data_path is None:
+                compr_data_path = Path(
+                    os.path.join(
+                        os.path.dirname(__file__)
+                        + "/../database/templates/compressor_data"
+                    )
+                )
+            else:
+                if isinstance(compr_data_path, str):
+                    compr_data_path = Path(compr_data_path)
+
+            # Reads the topology JSON file
+            json_file_path = folder_path / "Topology.json"
+            with open(json_file_path, "r") as json_file:
+                topology = json.load(json_file)
+
+            for period in topology["investment_periods"]:
+                # Read the JSON compressor file
+                output_folder = folder_path / period / "compressor_data"
+                # Copy JSON files corresponding to compressor names to output folder
+                for compr_name in config["performance"]["pressure"][
+                    "pressure_carriers"
+                ]["value"]:
+                    _copy_data(compr_data_path, compr_name, output_folder)
 
 
 def find_json_path(data_path: str | Path, name: str) -> Path | None:

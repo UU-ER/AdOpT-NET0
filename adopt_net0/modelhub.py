@@ -10,11 +10,14 @@ import datetime
 
 from .data_management import DataHandle, create_technology_class
 from .model_construction import *
+from .result_management.read_results import add_values_to_summary
 from .utilities import (
     get_glpk_parameters,
     get_gurobi_parameters,
+    determine_flow_existing_compressors,
     get_data_for_investment_period,
 )
+
 from .result_management import *
 import logging
 
@@ -312,6 +315,7 @@ class ModelHub:
 
                 # TECHNOLOGY BLOCK
                 def init_technology_block(b_tec, tec):
+                    """Pyomo rule to initialize a block holding all technologies at node"""
                     b_tec = construct_technology_block(
                         b_tec, data_node, b_period.set_t_full, b_period.set_t_clustered
                     )
@@ -322,9 +326,43 @@ class ModelHub:
                     b_node.set_technologies, rule=init_technology_block
                 )
 
+                # COMPRESSOR BLOCK
+                if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+
+                    def init_compressor_block(b_compr, car, comp1, comp2):
+                        """Pyomo rule to initialize a block holding all compressors at node"""
+                        b_compr = construct_compressor_block(
+                            b_compr,
+                            data_node,
+                            b_period.set_t_full,
+                            b_period.set_t_clustered,
+                        )
+                        return b_compr
+
+                    b_node.compressor_blocks_active = pyo.Block(
+                        b_node.set_compressor, rule=init_compressor_block
+                    )
                 return b_node
 
             b_period.node_blocks = pyo.Block(model.set_nodes, rule=init_node_block)
+
+            if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                # fixing size of existing compressor based on components minimum capacity
+                for node in b_period.node_blocks:
+                    data_node = get_data_for_node(data_period, node)
+                    for compr in b_period.node_blocks[node].set_compressor:
+                        compressor = data_node["compressor_data"][compr]
+                        b_compr = b_period.node_blocks[node].compressor_blocks_active[
+                            compr
+                        ]
+
+                        if (compressor.compression_active == 1) and (
+                            compressor.existing == 1
+                        ):
+                            size = determine_flow_existing_compressors(
+                                self, compressor, b_period, node
+                            )
+                            b_compr = compressor.fix_size(b_compr, size)
 
             return b_period
 
@@ -354,6 +392,9 @@ class ModelHub:
             model = construct_nodal_energybalance(model, config)
         else:
             model = construct_global_energybalance(model, config)
+
+        if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+            model = construct_compressor_constrains(model, config)
 
         model = construct_emission_balance(model, data)
         model = construct_system_cost(model, data)

@@ -1,0 +1,66 @@
+{
+  "carrier": "hydrogen",
+  "size_min": 0,
+  "size_max": 100000,
+  "size_is_int": 0,
+  "size_based_on": "input",
+  "decommission": "impossible",
+  "Economics": {
+    "comment": "CAPEX in EUR/MW or as a piecewise function, opex_variable in EUR/MWh, opex_fixed in % of CAPEX_annual",
+    "capex_model": 3,
+    "unit_capex": 5.170,
+    "fix_capex": 147.890,
+    "opex_variable": 0,
+    "opex_fixed": 0.04,
+    "discount_rate": 0.1,
+    "lifetime": 25,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "performance_function_type": 1,
+    "input_carrier": [
+      "electricity", "hydrogen"
+    ],
+    "main_input_carrier": "electricity",
+    "output_carrier": [
+      "hydrogen"
+    ],
+    "emission_factor": 0,
+    "min_part_load": 0,
+    "performance": {
+      "in": [
+        0,
+        1
+      ],
+      "out": [
+        0,
+        0.655
+      ]
+    },
+    "max_pressure_per_stage": 2.1,
+    "isentropic_efficiency": 0.75,
+    "heat_coefficient": 1.4,
+    "mean_compressibility_factor": 1,
+    "energyconsumption": {
+      "electricity": {
+        "cons_model": 2,
+        "p": 85,
+        "c": 0.00398,
+        "T": 300,
+        "eta": 0.65,
+        "gam": 1.405,
+        "LHV": 33.32
+      }
+    }
+  },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "hydrogen": "MW"
+    }
+  }
+}

@@ -6,7 +6,8 @@
     "carriers": [
         "electricity",
         "gas",
-        "heat"
+        "heat",
+        "hydrogen"
     ],
     "investment_periods": [
         "period1"

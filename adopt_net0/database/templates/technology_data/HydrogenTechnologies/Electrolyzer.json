@@ -52,7 +52,7 @@
     },
     "pressure": {
       "hydrogen": {
-        "outlet": 40
+        "outlet": 10
       }
     },
     "ramping_time": -1,

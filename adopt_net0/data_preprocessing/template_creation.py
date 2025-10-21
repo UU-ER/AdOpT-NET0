@@ -98,6 +98,9 @@ def create_input_data_folder_template(base_path: Path | str):
     with open(base_path / "Topology.json") as json_file:
         topology = json.load(json_file)
 
+    with open(base_path / "ConfigModel.json") as json_file:
+        configuration = json.load(json_file)
+
     timesteps = pd.date_range(
         start=topology["start_date"],
         end=topology["end_date"],
@@ -110,6 +113,19 @@ def create_input_data_folder_template(base_path: Path | str):
     energy_balance_options = {
         carrier: {"curtailment_possible": 0} for carrier in topology["carriers"]
     }
+
+    if configuration["performance"]["pressure"]["pressure_on"]["value"] == 1:
+        pressure_exchange_data = {
+            carrier: {
+                "Demand": {"value": "", "unit": "bar"},
+                "Export": {"value": "", "unit": "bar"},
+                "Import": {"value": "", "unit": "bar"},
+                "Generic production": {"value": "", "unit": "bar"},
+            }
+            for carrier in configuration["performance"]["pressure"][
+                "pressure_carriers"
+            ]["value"]
+        }
 
     # Template csvs
     carrier_data = create_carrier_data(timesteps)
@@ -129,6 +145,9 @@ def create_input_data_folder_template(base_path: Path | str):
         with open(base_path / investment_period / "Networks.json", "w") as f:
             json.dump(networks, f, indent=4)
         (base_path / investment_period / "network_data").mkdir(
+            parents=True, exist_ok=True
+        )
+        (base_path / investment_period / "compressor_data").mkdir(
             parents=True, exist_ok=True
         )
         (base_path / investment_period / "network_topology").mkdir(
@@ -211,6 +230,19 @@ def create_input_data_folder_template(base_path: Path | str):
                 "w",
             ) as f:
                 json.dump(energy_balance_options, f, indent=4)
+
+            if configuration["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                with open(
+                    base_path
+                    / investment_period
+                    / "node_data"
+                    / node
+                    / "carrier_data"
+                    / "PressureExchangeData.json",
+                    "w",
+                ) as f:
+                    json.dump(pressure_exchange_data, f, indent=4)
+
             for carrier in topology["carriers"]:
                 carrier_data.to_csv(
                     base_path
@@ -426,7 +458,18 @@ def initialize_configuration_templates() -> dict:
                 "description": "Determines if dynamics are used.",
                 "options": [0, 1],
                 "value": 0,
-            }
+            },
+            "pressure": {
+                "pressure_on": {
+                    "description": "Determines if pressure levels are used, 0 (no pressure levels) is default.",
+                    "options": [0, 1],
+                    "value": 0,
+                },
+                "pressure_carriers": {
+                    "description": "Determines which carriers are considered for pressure calculations. Should be a list of carrier strings",
+                    "value": ["hydrogen"],
+                },
+            },
         },
         "scaling": {
             "scaling_on": {

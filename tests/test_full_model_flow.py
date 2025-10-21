@@ -19,6 +19,7 @@ def test_full_model_flow(request):
     - Technologies:
         - node1: existing gas power plant
         - node2: new electric boiler
+        - node2: existing electrolyzer
     - Networks:
         - new electricity
     - Timeframe: 1 timestep
@@ -27,6 +28,7 @@ def test_full_model_flow(request):
     - Demand:
         - node1: electricity=1
         - node2: heat=1
+        - node2: hydrogen=1
     - Import:
         - node1: gas
     - Import price:
@@ -36,6 +38,7 @@ def test_full_model_flow(request):
     - network size >=1
     - electric boiler size >= 1
     - output electric boiler = 1
+    - hydrogen flow from eletrolyzer to demand = 1
     - total cost
     - total emissions
     """
@@ -43,6 +46,7 @@ def test_full_model_flow(request):
 
     pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=1)
+    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 1
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
     pyhub.data.model_config["reporting"]["save_summary_path"][
         "value"
@@ -131,6 +135,7 @@ def test_clustering_algo(request):
 
     pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=2 * 24)
+    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
     pyhub.data.model_config["reporting"]["save_summary_path"][
         "value"
@@ -152,6 +157,7 @@ def test_clustering_algo(request):
     pyhub.data.set_settings(path)
     pyhub.data._read_topology()
     pyhub.data._read_model_config()
+    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
     pyhub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
@@ -202,6 +208,7 @@ def test_average_algo(request):
 
     pyhub = ModelHub()
     pyhub.read_data(path, start_period=0, end_period=2 * 24)
+    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
     pyhub.data.model_config["reporting"]["save_summary_path"][
         "value"
@@ -226,6 +233,7 @@ def test_average_algo(request):
     pyhub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
+    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
     pyhub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
@@ -268,6 +276,7 @@ def test_objective_functions(request):
     pyhub.read_data(path, start_period=0, end_period=1)
 
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
     pyhub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
@@ -302,6 +311,7 @@ def test_scaling(request):
     pyhub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
+    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
 
     pyhub.construct_model()

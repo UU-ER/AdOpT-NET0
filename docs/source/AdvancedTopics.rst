@@ -11,5 +11,6 @@ Advanced Topics
     advanced_topics/time_aggregation
     advanced_topics/pareto
     advanced_topics/dynamics
+    advanced_topics/compression
     advanced_topics/logging
 

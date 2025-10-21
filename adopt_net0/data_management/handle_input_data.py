@@ -25,12 +25,15 @@ class DataHandle:
     :param Path data_path: Container data_path
     :param dict time_series: Container for all time series
     :param dict energybalance_options: Container for energy balance options
+    :param dict connection_pressure_options: Container for pressure options for demand, export, import
     :param dict technology_data: Container for technology data
     :param dict network_data: Container for network data
     :param pd.DataFrame node_locations: Container for node locations
     :param dict model_config: Container for the model configuration
     :param dict k_means_specs: Container for k-means clustering algorithm specifications
     :param dict averaged_specs: Container for averaging algorithm specifications
+    :param dict connection_pressures: Container for all connection of outputs and inputs and their pressures
+    :param dict compressor_data: Container for compressor data
     :param int, None start_period: starting period to use, if None, the first available period is used
     :param int, None end_period: end period to use, if None, the last available period is used
     """
@@ -43,8 +46,11 @@ class DataHandle:
         self.data_path = Path()
         self.time_series = {}
         self.energybalance_options = {}
+        self.connection_pressure_options = {}
         self.technology_data = {}
         self.network_data = {}
+        self.connection_pressures = {}
+        self.compressor_data = {}
         self.node_locations = pd.DataFrame()
         self.model_config = {}
         self.k_means_specs = {}
@@ -98,6 +104,10 @@ class DataHandle:
         self._read_energybalance_options()
         self._read_technology_data()
         self._read_network_data()
+        if self.model_config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+            self._read_pressure_connection_options()
+            self.calculate_possible_compressions()
+            self._read_compressor_data()
 
         # Clustering/Averaging algorithms
         if self.model_config["optimization"]["typicaldays"]["N"]["value"] != 0:
@@ -291,6 +301,42 @@ class DataHandle:
 
         # Log success
         log_msg = "Energy balance options read successfully"
+        log.info(log_msg)
+
+    def _read_pressure_connection_options(self):
+        """
+        Reads connection pressure options for demand, import and export
+        """
+        for investment_period in self.topology["investment_periods"]:
+            self.connection_pressure_options[investment_period] = {}
+            for node in self.topology["nodes"]:
+                with open(
+                    self.data_path
+                    / investment_period
+                    / "node_data"
+                    / node
+                    / "carrier_data"
+                    / "PressureExchangeData.json"
+                ) as json_file:
+                    connection_pressure_options = json.load(json_file)
+
+                    # Check for correct data
+                    for carrier, connections in connection_pressure_options.items():
+                        for connection_type, value in connections.items():
+                            if not isinstance(value["value"], (int, float)):
+                                raise ValueError(
+                                    f"Invalid pressure value at node '{node}',"
+                                    f" carrier '{carrier}',"
+                                    f" connection '{connection_type}'"
+                                    f": {value['value']}"
+                                )
+
+                self.connection_pressure_options[investment_period][
+                    node
+                ] = connection_pressure_options
+
+        # Log success
+        log_msg = "Connection pressure options read successfully"
         log.info(log_msg)
 
     def _read_technology_data(self):
@@ -751,4 +797,199 @@ class DataHandle:
 
         # Log success
         log_msg = "Averaged data successfully"
+        log.info(log_msg)
+
+    def calculate_possible_compressions(self):
+        """
+        Creates a dictionary that stores all possible compression connections for each carrier with defined pressure levels,
+        at each node. It identifies all valid connections where the same carrier is used as both input and output across
+        different components (e.g., technologies, networks, demand, import/export).
+
+        The resulting dictionary contains:
+            - All feasible input-output connections for the same carrier.
+            - Associated pressure levels for each connection.
+            - Relevant information about the two components involved in each connection (existing, type).
+        """
+        target_carriers = self.model_config["performance"]["pressure"][
+            "pressure_carriers"
+        ]["value"]
+
+        for investment_period in self.topology["investment_periods"]:
+            self.connection_pressures[investment_period] = {}
+            for node_i in self.topology["nodes"]:
+                self.connection_pressures[investment_period][node_i] = {}
+                for carrier_i in target_carriers:
+                    pressure_data_at_node = self._collect_pressure_info_at_node(
+                        carrier_i, investment_period, node_i
+                    )
+                    connection_data_at_node = collect_possible_connections_at_node(
+                        pressure_data_at_node
+                    )
+
+                    self.connection_pressures[investment_period][node_i][
+                        carrier_i
+                    ] = connection_data_at_node
+
+        # Log success
+        log_msg = "Pressure data read successfully"
+        log.info(log_msg)
+
+    def _collect_pressure_info_at_node(self, carrier_i, investment_period, node_i):
+        """
+        Collects all possible connections at a given node for a specific carrier and investment period.
+        This includes connections where the same carrier is used as input and output
+        across technologies, networks, demand, import, and export.
+
+        :param carrier_i: energy carrier for which connections are being collected
+        :param investment_period: investment period under consideration
+        :param node_i: node at which connections are being created
+        """
+        pressure_data_at_node = {
+            "inputs": [],
+            "outputs": [],
+        }
+
+        for _, network_i in self.network_data[investment_period].items():
+            if "pressure" in network_i.performance_data:
+                if carrier_i in network_i.performance_data["pressure"].keys():
+                    if network_i.connection.loc[node_i, :].sum() >= 1:
+                        # means that there is a network starting in this node
+                        pressure_data_at_node["inputs"].append(
+                            get_pressure_info(network_i, carrier_i, "Input")
+                        )
+
+                    if network_i.connection.loc[:, node_i].sum() >= 1:
+                        # means that there is a network arriving at this node
+                        pressure_data_at_node["outputs"].append(
+                            get_pressure_info(network_i, carrier_i, "Output")
+                        )
+
+        technologies_by_node = self.technology_data[investment_period][node_i]
+        for _, technologies_i in technologies_by_node.items():
+            # We look at the one that has the gas as input
+            if "pressure" in technologies_i.performance_data:
+                if carrier_i in technologies_i.performance_data["pressure"].keys():
+                    pressure_param = technologies_i.performance_data["pressure"]
+                    if "inlet" in pressure_param[carrier_i]:
+                        # as done it before we have a function that write the technology and their INPUT pressure
+                        pressure_data_at_node["inputs"].append(
+                            get_pressure_info(technologies_i, carrier_i, "Input")
+                        )
+
+                    if "outlet" in pressure_param[carrier_i]:
+                        # same as before, but with OUTPUT carrier and pressure
+                        pressure_data_at_node["outputs"].append(
+                            get_pressure_info(technologies_i, carrier_i, "Output")
+                        )
+
+        info_node_exchange_pressure = self.connection_pressure_options[
+            investment_period
+        ][node_i][carrier_i]
+
+        if (
+            self.time_series["full"][investment_period][node_i]["CarrierData"][
+                carrier_i
+            ]["Demand"].any()
+            != 0
+        ):
+            pressure_data_at_node["inputs"].append(
+                {
+                    "name": "Demand",
+                    "pressure": (info_node_exchange_pressure["Demand"]["value"]),
+                    "type": "Demand",
+                    "existing": 1,
+                }
+            )
+
+        if (
+            self.time_series["full"][investment_period][node_i]["CarrierData"][
+                carrier_i
+            ]["Export limit"].any()
+            != 0
+        ):
+            pressure_data_at_node["inputs"].append(
+                {
+                    "name": "Export",
+                    "pressure": (info_node_exchange_pressure["Export"]["value"]),
+                    "type": "Export",
+                    "existing": 1,
+                }
+            )
+
+        if (
+            self.time_series["full"][investment_period][node_i]["CarrierData"][
+                carrier_i
+            ]["Import limit"].any()
+            != 0
+        ):
+            pressure_data_at_node["outputs"].append(
+                {
+                    "name": "Import",
+                    "pressure": (info_node_exchange_pressure["Import"]["value"]),
+                    "type": "Import",
+                    "existing": 1,
+                }
+            )
+
+        if (
+            self.time_series["full"][investment_period][node_i]["CarrierData"][
+                carrier_i
+            ]["Generic production"].any()
+            != 0
+        ):
+            pressure_data_at_node["outputs"].append(
+                {
+                    "name": "Generic production",
+                    "pressure": (
+                        info_node_exchange_pressure["Generic production"]["value"]
+                    ),
+                    "type": "Generic production",
+                    "existing": 1,
+                }
+            )
+
+        return pressure_data_at_node
+
+    def _read_compressor_data(self):
+        """
+        Reads all compressor data and fits it
+        """
+        # compressor data always fitted based on full resolution
+        aggregation_model = "full"
+        target_carriers = self.model_config["performance"]["pressure"][
+            "pressure_carriers"
+        ]["value"]
+
+        # Initialize technology_data dict
+        compressor_data = {}
+
+        # Loop through all investment_periods, carriers, nodes
+        for investment_period in self.topology["investment_periods"]:
+            compressor_data[investment_period] = {}
+            for node_i in self.topology["nodes"]:
+                compressor_data[investment_period][node_i] = {}
+                for carrier_i in target_carriers:
+                    # Compressor
+                    for compressor_i in self.connection_pressures[investment_period][
+                        node_i
+                    ][carrier_i]:
+
+                        comp_data = create_compressor_class(
+                            compressor_i,
+                            carrier_i,
+                            self.data_path / investment_period / "compressor_data",
+                        )
+                        comp_data.fit_compressor_performance()
+                        compressor_data[investment_period][node_i][
+                            (
+                                carrier_i,
+                                compressor_i["components"][0],
+                                compressor_i["components"][1],
+                            )
+                        ] = comp_data
+
+        self.compressor_data = compressor_data
+
+        # Log success
+        log_msg = "Compressor data read successfully"
         log.info(log_msg)

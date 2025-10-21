@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.todo",
     "myst_nb",
 ]
+autodoc_member_order = "bysource"
 
 templates_path = ["_templates"]
 exclude_patterns = []

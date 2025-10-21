@@ -1,13 +1,13 @@
 {
   "tec_type": "STOR",
   "size_min": 0,
-  "size_max": 100000,
+  "size_max": 114906,
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
-    "comment": "CAPEX in EUR/tonne or as a piecewise function, opex_variable in EUR/tonne total output, opex_fixed in % of up-front CAPEX",
+    "comment": "capex in EUR/MW or as a piecewise function, opex_variable in EUR/MWh total output, opex_fixed in % of capex_annual",
     "capex_model": 1,
-    "unit_capex": 19520,
+    "unit_capex": 26219,
     "fix_capex": 0,
     "piecewise_capex": {
       "bp_x": "not defined",
@@ -15,8 +15,8 @@
     },
     "opex_variable": 0,
     "opex_fixed": 0.02,
-    "discount_rate": 0.1,
-    "lifetime": 15,
+    "discount_rate": 0.08,
+    "lifetime": 25,
     "decommission_cost": 0
   },
   "Performance": {
@@ -30,28 +30,29 @@
     ],
     "emission_factor": 0,
     "allow_only_one_direction": 1,
+    "allow_only_one_direction_precise": 0,
     "performance": {
       "eta_in": 1,
-      "eta_out": 0.99,
-      "lambda": 0.001,
+      "eta_out": 1,
+      "lambda": 0,
       "theta": 0
     }
   },
   "Flexibility": {
     "comment": "determines the flexibility of the power capacity compared to the energy capacity",
-    "power_energy_ratio": "fixedratio",
-    "charge_rate": 1,
-    "discharge_rate": 1,
+    "power_energy_ratio": "fixedcapacity",
+    "charge_rate": 250,
+    "discharge_rate": 250,
     "capex_charging_power": 0,
     "capex_discharging_power": 0
   },
   "Units": {
     "size": "tonne",
     "input_carrier": {
-      "CO2": "tonne/hr"
+      "ethylene": "tonne/hr"
     },
     "output_carrier": {
-      "CO2": "tonne/hr"
+      "ethylene": "tonne/hr"
     }
   }
 }

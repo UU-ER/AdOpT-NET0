@@ -227,6 +227,19 @@ def _read_network_data_data_patch(self):
         self.network_data[investment_period] = {}
 
 
+def _read_compressor_data_data_patch(self):
+    """
+    Monkey patch read compressor data
+    """
+    compressor_data = {}
+    for investment_period in self.topology["investment_periods"]:
+        compressor_data[investment_period] = {}
+        for node in self.topology["nodes"]:
+            compressor_data[investment_period][node] = {}
+
+    self.compressor_data = compressor_data
+
+
 def read_input_data_patch(self):
     """
     Monkey patch read data
@@ -237,6 +250,7 @@ def read_input_data_patch(self):
     self._read_energybalance_options()
     self._read_technology_data()
     self._read_network_data()
+    self._read_compressor_data()
 
 
 def make_data_handle(nr_timesteps: int, topology=None):
@@ -266,6 +280,7 @@ def make_data_handle(nr_timesteps: int, topology=None):
     dh._read_energybalance_options = _read_energybalance_options_patch.__get__(dh)
     dh._read_technology_data = _read_technology_data_patch.__get__(dh)
     dh._read_network_data = _read_network_data_data_patch.__get__(dh)
+    dh._read_compressor_data = _read_compressor_data_data_patch.__get__(dh)
     dh.set_settings = read_input_data_patch.__get__(dh)
 
     dh.start_period = 0
@@ -273,6 +288,24 @@ def make_data_handle(nr_timesteps: int, topology=None):
     dh.set_settings()
 
     return dh
+
+
+def update_config(target: dict, update: dict):
+    """ "
+    Update model configuration where is needed
+
+    :param dict target: original model configuration dictionary to be updated
+    :param dict update: dictionary containing the updates to apply
+    :return: updated configuration dictionary
+    """
+
+    for key, value in update.items():
+        if isinstance(value, dict) and key in target and isinstance(target[key], dict):
+            update_config(target[key], value)
+        else:
+            target[key] = value
+
+    return target
 
 
 def run_model(model, solver: str, objective: str = "capex"):

@@ -149,7 +149,6 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
                 costs.loc[massflow_t_per_h, "capex_total"] = (
                     cost["cost_pipeline"]["unit_capex"] * correction_factor
                     + cost["cost_compression"]["unit_capex"]
-                    + cost["cost_compression"]["unit_capex"]
                 )
                 costs.loc[massflow_t_per_h, "opex_var"] = (
                     cost["cost_pipeline"]["opex_var"] * correction_factor

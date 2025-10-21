@@ -14,6 +14,8 @@ def get_data_for_node(data: dict, node: str) -> dict:
     data_node["network_data"] = data["network_data"]
     data_node["energybalance_options"] = data["energybalance_options"][node]
     data_node["config"] = data["config"]
+    if data["config"]["performance"]["pressure"]["pressure_on"]["value"] == 1:
+        data_node["compressor_data"] = data["compressor_data"][node]
     if data["config"]["optimization"]["typicaldays"]["N"]["value"] != 0:
         data_node["k_means_specs"] = data["k_means_specs"]
         # data_node["averaged_specs"] = data["averaged_specs"]

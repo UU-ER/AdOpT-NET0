@@ -17,3 +17,4 @@ For the component-specific documentation for technologies and networks, see thei
 
     model_components/technologies
     model_components/networks
+    model_components/compressor

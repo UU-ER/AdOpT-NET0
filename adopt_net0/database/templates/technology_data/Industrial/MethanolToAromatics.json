@@ -1,0 +1,94 @@
+{
+  "tec_type": "CONV3",
+  "size_min": 0,
+  "size_max": 1467,
+  "size_is_int": 0,
+  "decommission": "impossible",
+  "Economics": {
+    "comment": "capex in EUR/unit or as a piecewise function, opex_variable in EUR/unit total output, opex_fixed in % of capex_annual",
+    "capex_model": 3,
+    "unit_capex": 143751,
+    "fix_capex": 12460605,
+    "piecewise_capex": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "opex_variable": 0,
+    "opex_fixed": 0.025,
+    "discount_rate": 0.08,
+    "lifetime": 25,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "performance_function_type": 1,
+    "input_carrier": [
+      "methanol",
+      "electricity",
+      "steam"
+    ],
+    "main_input_carrier": "methanol",
+    "output_carrier": [
+      "BTX",
+      "LPG",
+      "pentane",
+      "heatlowT"
+    ],
+    "emission_factor": 0,
+    "min_part_load": 0.9,
+    "performance": {
+      "in": [
+        0,
+        1
+      ],
+      "out": {
+        "BTX": [
+          0,
+          0.155
+        ],
+        "LPG": [
+          0,
+          0.196
+        ],
+        "pentane": [
+          0,
+          0.043
+        ],
+        "heatlowT": [
+          0,
+          0.236
+        ]
+      }
+    },
+    "input_ratios": {
+      "methanol": 1,
+      "electricity": 0.064,
+      "steam": 0.149
+    },
+    "ramping_time": 10,
+    "ref_size": -1,
+    "ramping_const_int": -1,
+    "standby_power": -1,
+    "min_uptime": -1,
+    "min_downtime": -1,
+    "SU_time": -1,
+    "SD_time": -1,
+    "SU_load": -1,
+    "SD_load": -1,
+    "max_startups": -1
+  },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "methanol": "tonne/hr",
+      "electricity": "MW",
+      "steam": "MW"
+    },
+    "output_carrier": {
+      "BTX": "tonne/hr",
+      "LPG": "tonne/hr",
+      "pentane": "tonne/hr",
+      "heatlowT": "MW"
+    }
+  }
+}

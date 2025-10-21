@@ -80,6 +80,8 @@ def get_data_for_investment_period(
     if data.model_config["optimization"]["typicaldays"]["N"]["value"] != 0:
         data_period["k_means_specs"] = data.k_means_specs[investment_period]
         # data_period["averaged_specs"] = data.averaged_specs[investment_period]
+    if data.model_config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+        data_period["compressor_data"] = data.compressor_data[investment_period]
 
     # Hour multiplication factors
     if data.model_config["optimization"]["typicaldays"]["N"]["value"] == 0:
@@ -102,3 +104,80 @@ def get_data_for_investment_period(
         data_period["nr_timesteps_averaged"] = 1
 
     return data_period
+
+
+def determine_flow_existing_compressors(self, compressor, b_period, node):
+    """
+    Determines the flow capacity of an existing compressor connection by returning
+    the minimum available capacity between the output and input components
+
+    :param compressor: tuple with carrier, component1, component 2
+    :param b_period: pyomo block data for period
+    :param node: pyomo block data for node
+    :return float: minimum capacity between input and output component
+    """
+    component_output_bound = float("inf")
+    component_input_bound = float("inf")
+    period_name = b_period.name.split("[")[-1].rstrip("]")
+    type_component = [compressor.output_type, compressor.input_type]
+
+    if type_component[0] == "Technology":
+        var_output = (
+            b_period.node_blocks[node]
+            .tech_blocks_active[compressor.output_component]
+            .var_output
+        )
+        component_output_bound = max(var_output[idx].ub for idx in var_output)
+    elif type_component[0] == "Network":
+        component_output_bound = next(
+            iter(
+                b_period.network_block[
+                    compressor.output_component
+                ].para_size_initial.values()
+            )
+        )
+    elif type_component[0] == "Import":
+        component_output_bound = max(
+            self.data.time_series["full"][period_name][node]["CarrierData"][
+                compressor.carrier
+            ]["Import limit"]
+        )
+
+    elif type_component[0] == "Generic production":
+        component_output_bound = max(
+            self.data.time_series["full"][period_name][node]["CarrierData"][
+                compressor.carrier
+            ]["Generic production"]
+        )
+
+    if type_component[1] == "Technology":
+        var_output = (
+            b_period.node_blocks[node]
+            .tech_blocks_active[compressor.input_component]
+            .var_output
+        )
+        component_input_bound = max(var_output[idx].ub for idx in var_output)
+    elif type_component[1] == "Network":
+        component_input_bound = next(
+            iter(
+                b_period.network_block[
+                    compressor.input_component
+                ].para_size_initial.values()
+            )
+        )
+    elif type_component[1] == "Demand":
+        component_input_bound = max(
+            self.data.time_series["full"][period_name][node]["CarrierData"][
+                compressor.carrier
+            ]["Demand"]
+        )
+    elif type_component[1] == "Export":
+        component_input_bound = max(
+            self.data.time_series["full"][period_name][node]["CarrierData"][
+                compressor.carrier
+            ]["Export limit"]
+        )
+
+    size = min(component_output_bound, component_input_bound)
+
+    return size

@@ -1,6 +1,9 @@
 import pytest
 import pandas as pd
 import os
+import json
+
+from pandas import read_json
 
 import adopt_net0.data_preprocessing as dp
 from adopt_net0.data_management.utilities import calculate_dni
@@ -101,7 +104,7 @@ def test_data_fill_carrier_data(request):
     # Get periods and nodes:
     investment_periods, nodes, carriers = get_topology_data(case_study_folder_path)
 
-    # Verify that climate data is not empty
+    # Verify that carrier data is not empty
     for period in investment_periods:
         for node in nodes:
             for carrier in carriers:
@@ -117,6 +120,53 @@ def test_data_fill_carrier_data(request):
                 for col in carrier_data.columns:
                     if (carrier in carriers_to_fill) and (col in series_to_fill):
                         assert (carrier_data[col] == 1).all()
+
+
+def test_data_fill_carrier_pressure_data(request):
+    """
+    Tests standard behavior of fill_carrier_pressure_data
+    - Tests if df is indeed filled
+    """
+
+    case_study_folder_path = request.config.case_study_folder_path
+
+    with open(case_study_folder_path / "ConfigModel.json") as json_file:
+        configuration = json.load(json_file)
+
+    with open(case_study_folder_path / "ConfigModel.json", "w") as json_file:
+        configuration["performance"]["pressure"]["pressure_on"]["value"] = 1
+        json.dump(configuration, json_file, indent=4)
+
+    dp.create_input_data_folder_template(case_study_folder_path)
+
+    # Write to files (should fill some random columns with 1 for all nodes and investment periods
+    carriers_to_fill = ["hydrogen"]
+    connection = ["Demand"]
+
+    # Check if it is filled indeed
+    # Get periods and nodes:
+    investment_periods, nodes, carriers = get_topology_data(case_study_folder_path)
+
+    dp.fill_carrier_pressure_data(
+        case_study_folder_path, 40, connection, carriers_to_fill, nodes
+    )
+
+    # Verify that pressure data is not empty
+    for period in investment_periods:
+        for node in nodes:
+            for carrier in carriers_to_fill:
+                carrier_pressure_data = pd.read_json(
+                    case_study_folder_path
+                    / period
+                    / "node_data"
+                    / node
+                    / "carrier_data"
+                    / "PressureExchangeData.json"
+                )
+
+                for exchange in carrier_pressure_data[carrier].keys():
+                    if (carrier in carriers_to_fill) and (exchange in connection):
+                        assert carrier_pressure_data[carrier][exchange]["value"] == 40
 
 
 def test_copy_technology_data(request):
@@ -235,6 +285,44 @@ def test_copy_network_data(request):
 
     # Copy to folder
     dp.copy_network_data(case_study_folder_path, network_data_folder_path)
+
+    # Check it jsons are there
+    check_input_data_consistency(case_study_folder_path)
+
+
+def test_copy_compressor_data(request):
+    """
+    Tests standard behavior of test_copy_compressor_data
+    - Tests if df is indeed filled
+    """
+    case_study_folder_path = request.config.case_study_folder_path
+
+    with open(case_study_folder_path / "ConfigModel.json") as json_file:
+        configuration = json.load(json_file)
+
+    with open(case_study_folder_path / "ConfigModel.json", "w") as json_file:
+        configuration["performance"]["pressure"]["pressure_on"]["value"] = 1
+        json.dump(configuration, json_file, indent=4)
+
+    dp.create_input_data_folder_template(case_study_folder_path)
+
+    compressor_data_folder_path = request.config.compressor_data_folder_path
+
+    investment_periods, nodes, carriers = get_topology_data(case_study_folder_path)
+    periods_to_add_to = select_random_list_from_list(investment_periods)
+
+    # Create compressor
+    for period in periods_to_add_to:
+        path = case_study_folder_path / period / "compressor_data" / "hydrogen.json"
+
+        with open(
+            compressor_data_folder_path / "TestCompressor_hydrogen.json"
+        ) as json_file:
+            compressor = json.load(json_file)
+            save_json(compressor, path)
+
+    # Copy to folder
+    dp.copy_compressor_data(case_study_folder_path, compressor_data_folder_path)
 
     # Check it jsons are there
     check_input_data_consistency(case_study_folder_path)

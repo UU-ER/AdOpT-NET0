@@ -29,6 +29,7 @@ def pytest_configure(config):
     config.case_study_folder_path = Path("adopt_net0/test/test_case")
     config.technology_data_folder_path = Path("tests/technology_data")
     config.network_data_folder_path = Path("tests/network_data")
+    config.compressor_data_folder_path = Path("tests/compressor_data")
     config.docu_notebook_folder_path = Path("tests")
     config.docu_notebook_data_path = Path("tests/notebook_data")
     config.root_folder_path = Path(".")

@@ -315,6 +315,18 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                         tec_name
                     ].write_results_tec_design(tec_group, b_tec)
 
+                if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                    for compr_name in b_node.set_compressor:
+                        b_compr = b_node.compressor_blocks_active[compr_name]
+                        compressor = data.compressor_data[period][node_name][compr_name]
+                        if compressor.compression_active == 1:
+                            compr_group = node_specific_group.create_group(
+                                compressor.name_compressor
+                            )
+                            compressor.write_results_compressor_design(
+                                compr_group, b_compr
+                            )
+
         # TIME-DEPENDENT RESULTS (operation) [g]
         operation = f.create_group("operation")
 
@@ -349,6 +361,18 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                     data.technology_data[period][node_name][
                         tec_name
                     ].write_results_tec_operation(tec_group, b_tec)
+
+                if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                    for compr_name in b_node.set_compressor:
+                        b_compr = b_node.compressor_blocks_active[compr_name]
+                        compressor = data.compressor_data[period][node_name][compr_name]
+                        if compressor.compression_active == 1:
+                            compr_group = node_specific_group.create_group(
+                                compressor.name_compressor
+                            )
+                            compressor.write_results_compressor_operation(
+                                compr_group, b_compr
+                            )
 
         # ENERGY BALANCE [g] > within: node > specific carrier [g]
         ebalance_group = operation.create_group("energy_balance")
@@ -458,6 +482,30 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                         car_group.create_dataset(
                             "network_consumption", data=network_consumption
                         )
+
+                    if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                        compression_input = [
+                            sum(
+                                node_data.compressor_blocks_active[compr]
+                                .var_consumption_energy[t, car]
+                                .value
+                                for compr in node_data.set_compressor
+                                if hasattr(
+                                    node_data.compressor_blocks_active[compr],
+                                    "var_consumption_energy",
+                                )
+                                if car
+                                in node_data.compressor_blocks_active[
+                                    compr
+                                ].set_consumed_carriers
+                            )
+                            for t in set_t
+                        ]
+
+                        car_group.create_dataset(
+                            "compressor_input", data=compression_input
+                        )
+
                     car_group.create_dataset(
                         "import",
                         data=[node_data.var_import_flow[t, car].value for t in set_t],

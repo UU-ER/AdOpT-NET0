@@ -23,6 +23,9 @@ def construct_investment_period_block(b_period, data: dict):
     - var_cost_netws: Total network costs
     - var_cost_imports: Total import costs
     - var_cost_exports: Total export costs
+    - var_cost_capex_compress: Total Capex of compressors for respective investment period
+    - var_cost_opex_compress: Total Opex (fixed and variable) of compressors for respective investment period
+    - var_cost_compress: Total compressor costs
     - var_cost_violation: Total violation cost
     - var_carbon_revenue: Total carbon revenues from negative emission technologies
     - var_carbon_cost: Total carbon cost from technologies, networks and imports/exports
@@ -75,10 +78,13 @@ def construct_investment_period_block(b_period, data: dict):
     # VARIABLES
     b_period.var_cost_capex_tecs = Var()
     b_period.var_cost_capex_netws = Var()
+    b_period.var_cost_capex_compress = Var()
     b_period.var_cost_opex_tecs = Var()
     b_period.var_cost_opex_netws = Var()
+    b_period.var_cost_opex_compress = Var()
     b_period.var_cost_tecs = Var()
     b_period.var_cost_netws = Var()
+    b_period.var_cost_compress = Var()
     b_period.var_cost_imports = Var()
     b_period.var_cost_exports = Var()
     b_period.var_cost_violation = Var()
