@@ -153,8 +153,8 @@ class Dea:
             filter_tec = "1.1 AEC 10 MW"
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
-            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
-            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
+            filter_lifetime = "Technical lifetime [years]"
             filter_capex = "Specific investment [€/kW of total input_e]"
 
         elif technology == "AEC_100MW":
@@ -162,8 +162,8 @@ class Dea:
             filter_tec = "1.1 AEC 100 MW"
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
-            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
-            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
+            filter_lifetime = "Technical lifetime [years]"
             filter_capex = "Specific investment [€/kW of total input_e]"
 
         elif technology == "AEC_1GW":
@@ -171,35 +171,35 @@ class Dea:
             filter_tec = "1.1 AEC 1 GW"
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
-            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
-            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
+            filter_lifetime = "Technical lifetime [years]"
             filter_capex = "Specific investment [€/kW of total input_e]"
 
         elif technology == "PEMEC_10MW":
             self.tec_type = "CONV1"
-            filter_tec = "1.1 PEMEC 10 MW"
+            filter_tec = "86 PEMEC 10 MW"
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
-            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
-            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
+            filter_lifetime = "Technical lifetime [years]"
             filter_capex = "Specific investment [€/kW of total input_e]"
 
         elif technology == "PEMEC_100MW":
             self.tec_type = "CONV1"
-            filter_tec = "1.1 PEMEC 100 MW"
+            filter_tec = "86 PEMEC 100 MW"
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
-            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
-            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
+            filter_lifetime = "Technical lifetime [years]"
             filter_capex = "Specific investment [€/kW of total input_e]"
 
         elif technology == "PEMEC_1GW":
             self.tec_type = "CONV1"
-            filter_tec = "1.1 PEMEC 1 GW"
+            filter_tec = "PEMEC 1 GW"
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
-            filter_fixed_opex = "Fixed O&M [% of specific investment/year]"
-            filter_lifetime = "Technical lifetime of plant [years]"
+            filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
+            filter_lifetime = "Technical lifetime [years]"
             filter_capex = "Specific investment [€/kW of total input_e]"
 
         else:
@@ -218,11 +218,31 @@ class Dea:
             self.other["out"] = technology_data[
                 technology_data["par"] == filter_efficiency
             ]
-            self.other["Performance"]["performance"]["out"] = self.other["out"] / 100
+            # Check if data was found
+            if self.other["out"].empty:
+                raise ValueError(
+                    f"No efficiency data found for {technology} with filter: {filter_efficiency}"
+                )
 
-        self.capex_meur_per_mw = technology_data[
-            technology_data["par"].isin(filter_capex)
-        ]
+            # Initialize nested dictionary structure before accessing it
+            if "Performance" not in self.other:
+                self.other["Performance"] = {}
+            if "performance" not in self.other["Performance"]:
+                self.other["Performance"]["performance"] = {}
+            self.other["Performance"]["performance"]["out"] = (
+                self.other["out"]["val"].iloc[0] / 100
+            )
+
+        # Handle CAPEX filtering - for CONV1 technologies, filter_capex is a string, not a list
+        if self.tec_type == "CONV1":
+            self.capex_meur_per_mw = technology_data[
+                technology_data["par"] == filter_capex
+            ]
+        else:
+            self.capex_meur_per_mw = technology_data[
+                technology_data["par"].isin(filter_capex)
+            ]
+
         self.opex_fixed_eur_per_mw_per_year = technology_data[
             technology_data["par"] == filter_fixed_opex
         ]
@@ -292,9 +312,12 @@ class Dea:
         if len(opex_var_eur_per_mwh) == 0:
             self.opex_var = 0
         elif len(opex_var_eur_per_mwh) == 1:
-            self.opex_var = (
-                opex_var_eur_per_mwh["val"].sum() / 1000 * capacity_correction
-            )
+            # Handle cases where variable OPEX is a string (e.g., "-" for no variable costs)
+            opex_val = opex_var_eur_per_mwh["val"].iloc[0]
+            if isinstance(opex_val, str) or opex_val == "-" or pd.isna(opex_val):
+                self.opex_var = 0
+            else:
+                self.opex_var = float(opex_val) / 1000 * capacity_correction
         else:
             raise ValueError("Something went wrong with variable opex calculation")
 
@@ -307,6 +330,8 @@ class Dea:
                 raise ValueError("Something went wrong with fixed opex calculation")
             self.cf = cf["val"].sum()
         elif self.tec_type == "HP":
+            self.cf = 0.5
+        elif self.tec_type == "CONV1":
             self.cf = 0.5
 
         self._calculate_levelized_cost(discount_rate)

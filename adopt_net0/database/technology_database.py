@@ -65,6 +65,8 @@ def _component_factory(component_name: str):
         return WindEnergy_CostModel(component_name)
     elif component_name == "Photovoltaic":
         return PV_CostModel(component_name)
+    elif component_name == "Electrolyzer":
+        return Electrolyzer_CostModel(component_name)
     else:
         return DataComponent_CostModel(component_name)
 
