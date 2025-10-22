@@ -1,13 +1,13 @@
 {
   "tec_type": "STOR",
   "size_min": 0,
-  "size_max": 1000,
+  "size_max": 100,
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
     "comment": "CAPEX in EUR/MWh or as a piecewise function, opex_variable in EUR/MWh total output, opex_fixed in % of up-front CAPEX",
     "capex_model": 1,
-    "unit_capex": 1E-5,
+    "unit_capex": 0.035,
     "fix_capex": 0,
     "piecewise_capex": {
       "bp_x": "not defined",
