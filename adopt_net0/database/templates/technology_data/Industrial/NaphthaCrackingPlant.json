@@ -1,14 +1,14 @@
 {
   "tec_type": "CONV3",
   "size_min": 0,
-  "size_max": 1677,
+  "size_max": 594,
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
     "comment": "capex in EUR/unit or as a piecewise function, opex_variable in EUR/unit total output, opex_fixed in % of capex_annual",
     "capex_model": 3,
-    "unit_capex": 1411834,
-    "fix_capex": 368370729,
+    "unit_capex": 2082848,
+    "fix_capex": 543446155,
     "piecewise_capex": {
       "bp_x": "not defined",
       "bp_y": "not defined"
@@ -21,43 +21,54 @@
   },
   "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 2,
+    "performance_function_type": 1,
     "input_carrier": [
       "naphtha",
+      "steam",
       "electricity"
     ],
     "main_input_carrier": "naphtha",
     "output_carrier": [
-      "olefins",
-      "steam"
+      "ethylene",
+      "propylene",
+      "crackergas"
     ],
-    "emission_factor": 0,
-    "min_part_load": 0.4,
+    "emission_factor": 0.327,
+    "min_part_load": 0.95,
     "performance": {
       "in": [
         0,
         1
       ],
       "out": {
-        "olefins": [
+        "ethylene": [
           0,
-          1
+          0.3025
         ],
-        "steam": [
+        "propylene": [
           0,
-          0.050
+          0.1363
+        ],
+        "crackergas": [
+          0,
+          0.781
         ]
       }
     },
     "input_ratios": {
       "naphtha": 1,
-      "electricity": 1.942
+      "steam": 0.082,
+      "electricity": 0.083
     },
-    "ramping_time": 2.5,
+    "ccs": {
+      "possible": 1,
+      "co2_concentration" : 0.062,
+      "ccs_type": "MEA_large"
+    },
+    "ramping_time": 10,
     "ref_size": -1,
     "ramping_const_int": -1,
-    "standby_power": 0.05,
-    "standby_power_carrier": "electricity",
+    "standby_power": -1,
     "min_uptime": -1,
     "min_downtime": -1,
     "SU_time": -1,
@@ -66,15 +77,24 @@
     "SD_load": -1,
     "max_startups": -1
   },
+  "ScalingFactors": {
+    "const_capex_aux": 1,
+    "const_input_output": 1,
+    "const_max_input": 1,
+    "const_opex_variable": 1,
+    "const_opex_fixed": 1
+  },
   "Units": {
     "size": "MW",
     "input_carrier": {
       "naphtha": "tonne/hr",
+      "steam": "MW",
       "electricity": "MW"
     },
     "output_carrier": {
-      "olefins": "tonne/hr",
-      "steam": "MW"
+      "ethylene": "tonne/hr",
+      "propylene": "tonne/hr",
+      "crackergas": "MW"
     }
   }
 }

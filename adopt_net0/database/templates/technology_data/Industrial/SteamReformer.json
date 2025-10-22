@@ -1,44 +1,38 @@
 {
-  "tec_type": "CONV2",
-  "size_min": 1,
-  "size_max": 100000,
+  "tec_type": "CONV3",
+  "size_min": 0,
+  "size_max": 2196,
   "size_is_int": 0,
-  "decommission": "impossible",
+  "decommission": "only_complete",
   "Economics": {
-    "comment": "CAPEX in EUR/MW or as a piecewise function, opex_variable in EUR/MWh, opex_fixed in % of up-front CAPEX",
-    "capex_model": 1,
-    "unit_capex": 1000,
-    "fix_capex": 0,
+    "comment": "capex in EUR/unit or as a piecewise function, opex_variable in EUR/unit total output, opex_fixed in % of capex_annual",
+    "capex_model": 3,
+    "unit_capex": 573644,
+    "fix_capex": 169652224,
     "piecewise_capex": {
-      "bp_x": [
-        1,
-        20,
-        100000
-      ],
-      "bp_y": [
-        1.003E+7,
-        1.98E+7,
-        2.4015E+10
-      ]
+      "bp_x": "not defined",
+      "bp_y": "not defined"
     },
     "opex_variable": 0,
-    "opex_fixed": 0.04,
-    "discount_rate": 0.1,
-    "lifetime": 20,
-    "decommission_cost": 0
+    "opex_fixed": 0.076,
+    "discount_rate": 0.08,
+    "lifetime": 25,
+    "decommission_cost": -220108
   },
   "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 2,
+    "performance_function_type": 1,
     "input_carrier": [
-      "gas"
+      "feedgas",
+      "steam"
     ],
-    "main_input_carrier": "gas",
+    "main_input_carrier": "feedgas",
     "output_carrier": [
-      "hydrogen",
-      "electricity"
+      "HBfeed",
+      "electricity",
+      "CO2"
     ],
-    "emission_factor": 0,
+    "emission_factor": 0.067,
     "min_part_load": 0.9,
     "performance": {
       "in": [
@@ -46,17 +40,30 @@
         1
       ],
       "out": {
-        "hydrogen": [
+        "HBfeed": [
           0,
-          0.75
+          0.761
         ],
         "electricity": [
           0,
-          0.025
+          0.024
+        ],
+        "CO2": [
+          0,
+          0.154
         ]
       }
     },
-    "ramping_time": -1,
+    "input_ratios": {
+      "feedgas": 1,
+      "steam": 0.087
+    },
+    "ccs": {
+      "possible": 1,
+      "co2_concentration" : 0.062,
+      "ccs_type": "MEA_large"
+    },
+    "ramping_time": 10,
     "ref_size": -1,
     "ramping_const_int": -1,
     "standby_power": -1,
@@ -71,11 +78,14 @@
   "Units": {
     "size": "MW",
     "input_carrier": {
-      "gas": "MW"
+      "feedgas": "tonne/hr",
+      "steam": "MW"
     },
     "output_carrier": {
-      "hydrogen": "MW",
-      "electricity": "MW"
+      "HBfeed": "MW",
+      "electricity": "MW",
+      "CO2": "tonne/hr"
+
     }
   }
 }

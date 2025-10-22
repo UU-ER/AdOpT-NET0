@@ -1,20 +1,20 @@
 {
   "tec_type": "CONV3",
   "size_min": 0,
-  "size_max": 1677,
+  "size_max": 3660,
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
     "comment": "capex in EUR/unit or as a piecewise function, opex_variable in EUR/unit total output, opex_fixed in % of capex_annual",
     "capex_model": 3,
-    "unit_capex": 1411834,
-    "fix_capex": 368370729,
+    "unit_capex": 524673,
+    "fix_capex": 126718694,
     "piecewise_capex": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
     "opex_variable": 0,
-    "opex_fixed": 0.04,
+    "opex_fixed": 0.039,
     "discount_rate": 0.08,
     "lifetime": 25,
     "decommission_cost": 0
@@ -23,13 +23,12 @@
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "performance_function_type": 2,
     "input_carrier": [
-      "naphtha",
+      "feedgas",
       "electricity"
     ],
-    "main_input_carrier": "naphtha",
+    "main_input_carrier": "feedgas",
     "output_carrier": [
-      "olefins",
-      "steam"
+      "syngas"
     ],
     "emission_factor": 0,
     "min_part_load": 0.4,
@@ -39,19 +38,15 @@
         1
       ],
       "out": {
-        "olefins": [
+        "syngas": [
           0,
-          1
-        ],
-        "steam": [
-          0,
-          0.050
+          0.187
         ]
       }
     },
     "input_ratios": {
-      "naphtha": 1,
-      "electricity": 1.942
+      "feedgas": 1,
+      "electricity": 0.272
     },
     "ramping_time": 2.5,
     "ref_size": -1,
@@ -69,12 +64,11 @@
   "Units": {
     "size": "MW",
     "input_carrier": {
-      "naphtha": "tonne/hr",
+      "feedgas": "tonne/hr",
       "electricity": "MW"
     },
     "output_carrier": {
-      "olefins": "tonne/hr",
-      "steam": "MW"
+      "syngas": "tonne/hr"
     }
   }
 }

@@ -1199,7 +1199,10 @@ def test_decommissioning(request):
     )
     model = construct_tec_model(tec, nr_timesteps=time_steps)
 
-    assert isinstance(model.var_size, pyomo.core.base.param.ScalarParam)
+    # run model
+    run_model(model, request.config.solver)
+
+    assert model.var_size.value == 15
 
     # Technology can decommission
     tec = define_technology(

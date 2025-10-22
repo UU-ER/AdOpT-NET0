@@ -1,20 +1,20 @@
 {
   "tec_type": "STOR",
   "size_min": 0,
-  "size_max": 114906,
+  "size_max": 138158,
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
     "comment": "capex in EUR/MW or as a piecewise function, opex_variable in EUR/MWh total output, opex_fixed in % of capex_annual",
     "capex_model": 1,
-    "unit_capex": 26219,
+    "unit_capex": 8741,
     "fix_capex": 0,
     "piecewise_capex": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
     "opex_variable": 0,
-    "opex_fixed": 0.02,
+    "opex_fixed": 0.03,
     "discount_rate": 0.08,
     "lifetime": 25,
     "decommission_cost": 0
@@ -22,11 +22,12 @@
   "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
-      "ethylene"
+      "ammonia",
+      "electricity"
     ],
-    "main_input_carrier": "ethylene",
+    "main_input_carrier": "ammonia",
     "output_carrier": [
-      "ethylene"
+      "ammonia"
     ],
     "emission_factor": 0,
     "allow_only_one_direction": 1,
@@ -35,7 +36,12 @@
       "eta_in": 1,
       "eta_out": 1,
       "lambda": 0,
-      "theta": 0
+      "theta": 0,
+      "energy_consumption": {
+        "in": {
+          "electricity": 0.010
+        }
+      }
     }
   },
   "Flexibility": {
@@ -49,10 +55,10 @@
   "Units": {
     "size": "tonne",
     "input_carrier": {
-      "ethylene": "tonne/hr"
+      "ammonia": "tonne/hr"
     },
     "output_carrier": {
-      "ethylene": "tonne/hr"
+      "ammonia": "tonne/hr"
     }
   }
 }
