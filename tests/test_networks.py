@@ -341,9 +341,13 @@ def test_network_decommission(request):
 
     m = construct_netw_model(netw, nr_timesteps)
 
+    # run model
+    run_model(m, request.config.solver, objective="capex")
+
     # No decommissioning
-    assert isinstance(
-        m.arc_block["node1", "node2"].var_size, pyomo.core.base.param.ScalarParam
+    assert (
+        m.arc_block["node1", "node2"].var_size.value
+        == size_initial.loc["node1", "node2"]
     )
 
     # Technology can decommission

@@ -23,6 +23,7 @@ def get_gurobi_parameters(solveroptions: dict):
     solver.options["FeasibilityTol"] = solveroptions["feastol"]["value"]
     solver.options["Cuts"] = solveroptions["cuts"]["value"]
     solver.options["NumericFocus"] = solveroptions["numericfocus"]["value"]
+    solver.options["NoRelHeurTime"] = solveroptions["NoRelHeurTime"]
 
     return solver
 

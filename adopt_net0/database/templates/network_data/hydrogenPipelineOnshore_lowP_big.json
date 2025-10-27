@@ -3,9 +3,9 @@
   "size_is_int": 1,
   "capex_defined_per_arc": 0,
   "size_max_defined_per_arc": 0,
-  "decommission": 0,
+  "decommission": "impossible",
   "size_min": 0,
-  "size_max": 4,
+  "size_max": 1,
   "Economics": {
     "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, opex_variable in EUR/MWh total output, opex_fixed in % of CAPEX_annual",
     "gamma1": 1000000,

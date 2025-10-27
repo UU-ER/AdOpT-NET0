@@ -1,14 +1,14 @@
 {
   "tec_type": "CONV3",
   "size_min": 0,
-  "size_max": 1677,
+  "size_max": 990,
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
     "comment": "capex in EUR/unit or as a piecewise function, opex_variable in EUR/unit total output, opex_fixed in % of capex_annual",
     "capex_model": 3,
-    "unit_capex": 1411834,
-    "fix_capex": 368370729,
+    "unit_capex": 2082848,
+    "fix_capex": 543446155,
     "piecewise_capex": {
       "bp_x": "not defined",
       "bp_y": "not defined"
@@ -28,7 +28,9 @@
     ],
     "main_input_carrier": "naphtha",
     "output_carrier": [
-      "olefins",
+      "ethylene",
+      "propylene",
+      "crackergas",
       "steam"
     ],
     "emission_factor": 0,
@@ -39,9 +41,17 @@
         1
       ],
       "out": {
-        "olefins": [
+        "ethylene": [
           0,
-          1
+          0.3025
+        ],
+        "propylene": [
+          0,
+          0.1363
+        ],
+        "crackergas": [
+          0,
+          2.649
         ],
         "steam": [
           0,
@@ -73,7 +83,9 @@
       "electricity": "MW"
     },
     "output_carrier": {
-      "olefins": "tonne/hr",
+      "ethylene": "tonne/hr",
+      "propylene": "tonne/hr",
+      "crackergas": "MW",
       "steam": "MW"
     }
   }

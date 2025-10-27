@@ -1,7 +1,7 @@
 {
   "tec_type": "STOR",
   "size_min": 0,
-  "size_max": 114906,
+  "size_max": 123720,
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
@@ -22,11 +22,11 @@
   "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
     "input_carrier": [
-      "ethylene"
+      "propylene"
     ],
-    "main_input_carrier": "ethylene",
+    "main_input_carrier": "propylene",
     "output_carrier": [
-      "ethylene"
+      "propylene"
     ],
     "emission_factor": 0,
     "allow_only_one_direction": 1,
@@ -49,10 +49,10 @@
   "Units": {
     "size": "tonne",
     "input_carrier": {
-      "ethylene": "tonne/hr"
+      "propylene": "tonne/hr"
     },
     "output_carrier": {
-      "ethylene": "tonne/hr"
+      "propylene": "tonne/hr"
     }
   }
 }
