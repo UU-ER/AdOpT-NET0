@@ -44,21 +44,23 @@ def test_full_model_flow(request):
     """
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = ModelHub()
-    pyhub.read_data(path, start_period=0, end_period=1)
-    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 1
-    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
-    pyhub.data.model_config["reporting"]["save_summary_path"][
+    adopthub = ModelHub()
+    adopthub.read_data(path, start_period=0, end_period=1)
+    adopthub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 1
+    adopthub.data.model_config["solveroptions"]["solver"][
+        "value"
+    ] = request.config.solver
+    adopthub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["reporting"]["save_path"][
+    adopthub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.construct_model()
-    pyhub.construct_balances()
-    pyhub.solve()
+    adopthub.construct_model()
+    adopthub.construct_balances()
+    adopthub.solve()
 
-    m = pyhub.model["full"]
+    m = adopthub.model["full"]
     p = m.periods["period1"]
 
     # NETWORK CHECKS
@@ -108,11 +110,11 @@ def test_full_model_flow(request):
     )
 
     # test if technology can be added to a node
-    pyhub.add_technology("period1", "node1", ["TestTec_WindTurbine"])
-    pyhub.construct_balances()
-    pyhub.solve()
+    adopthub.add_technology("period1", "node1", ["TestTec_WindTurbine"])
+    adopthub.construct_balances()
+    adopthub.solve()
 
-    m = pyhub.model["full"]
+    m = adopthub.model["full"]
     p = m.periods["period1"]
     cost2 = m.var_npv.value
 
@@ -133,60 +135,64 @@ def test_clustering_algo(request):
 
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = ModelHub()
-    pyhub.read_data(path, start_period=0, end_period=2 * 24)
-    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
-    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
-    pyhub.data.model_config["reporting"]["save_summary_path"][
+    adopthub = ModelHub()
+    adopthub.read_data(path, start_period=0, end_period=2 * 24)
+    adopthub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
+    adopthub.data.model_config["solveroptions"]["solver"][
+        "value"
+    ] = request.config.solver
+    adopthub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["reporting"]["save_path"][
+    adopthub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
 
-    pyhub.construct_model()
-    pyhub.construct_balances()
-    pyhub.solve()
+    adopthub.construct_model()
+    adopthub.construct_balances()
+    adopthub.solve()
 
-    m = pyhub.model["full"]
+    m = adopthub.model["full"]
     npv_no_cluster = m.var_npv.value
 
     methods = [1, 2]
     N = [2, 1]
-    pyhub = ModelHub()
-    pyhub.data.set_settings(path)
-    pyhub.data._read_topology()
-    pyhub.data._read_model_config()
-    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
-    pyhub.data.model_config["reporting"]["save_summary_path"][
+    adopthub = ModelHub()
+    adopthub.data.set_settings(path)
+    adopthub.data._read_topology()
+    adopthub.data._read_model_config()
+    adopthub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
+    adopthub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["reporting"]["save_path"][
+    adopthub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    adopthub.data.model_config["solveroptions"]["solver"][
+        "value"
+    ] = request.config.solver
     for method in methods:
         for n in N:
-            pyhub.data.model_config["optimization"]["typicaldays"]["N"]["value"] = n
-            pyhub.data.model_config["optimization"]["typicaldays"]["method"][
+            adopthub.data.model_config["optimization"]["typicaldays"]["N"]["value"] = n
+            adopthub.data.model_config["optimization"]["typicaldays"]["method"][
                 "value"
             ] = method
-            pyhub.data._read_time_series()
-            pyhub.data._read_node_locations()
-            pyhub.data._read_energybalance_options()
-            pyhub.data._read_technology_data()
-            pyhub.data._read_network_data()
+            adopthub.data._read_time_series()
+            adopthub.data._read_node_locations()
+            adopthub.data._read_energybalance_options()
+            adopthub.data._read_technology_data()
+            adopthub.data._read_network_data()
 
             # Clustering algorithms
             if (
-                pyhub.data.model_config["optimization"]["typicaldays"]["N"]["value"]
+                adopthub.data.model_config["optimization"]["typicaldays"]["N"]["value"]
                 != 0
             ):
-                pyhub.data._cluster_data()
-            if pyhub.data.model_config["optimization"]["timestaging"]["value"] != 0:
-                pyhub.data._average_data()
+                adopthub.data._cluster_data()
+            if adopthub.data.model_config["optimization"]["timestaging"]["value"] != 0:
+                adopthub.data._average_data()
 
-            pyhub.quick_solve()
+            adopthub.quick_solve()
 
             if n == 2:
                 tol = 0.0001
@@ -194,7 +200,7 @@ def test_clustering_algo(request):
                 tol = 0.01
 
             assert (
-                abs(npv_no_cluster - pyhub.model["clustered"].var_npv.value)
+                abs(npv_no_cluster - adopthub.model["clustered"].var_npv.value)
                 / npv_no_cluster
             ) <= tol
 
@@ -206,57 +212,61 @@ def test_average_algo(request):
 
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = ModelHub()
-    pyhub.read_data(path, start_period=0, end_period=2 * 24)
-    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
-    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
-    pyhub.data.model_config["reporting"]["save_summary_path"][
+    adopthub = ModelHub()
+    adopthub.read_data(path, start_period=0, end_period=2 * 24)
+    adopthub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
+    adopthub.data.model_config["solveroptions"]["solver"][
+        "value"
+    ] = request.config.solver
+    adopthub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["reporting"]["save_path"][
+    adopthub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
 
-    pyhub.construct_model()
-    pyhub.construct_balances()
-    pyhub.solve()
+    adopthub.construct_model()
+    adopthub.construct_balances()
+    adopthub.solve()
 
-    m = pyhub.model["full"]
+    m = adopthub.model["full"]
     npv_no_cluster = m.var_npv.value
 
-    pyhub = ModelHub()
-    pyhub.data.set_settings(path)
-    pyhub.data._read_topology()
-    pyhub.data._read_model_config()
+    adopthub = ModelHub()
+    adopthub.data.set_settings(path)
+    adopthub.data._read_topology()
+    adopthub.data._read_model_config()
 
-    pyhub.data.model_config["optimization"]["timestaging"]["value"] = 4
-    pyhub.data.model_config["reporting"]["save_summary_path"][
+    adopthub.data.model_config["optimization"]["timestaging"]["value"] = 4
+    adopthub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
-    pyhub.data.model_config["reporting"]["save_path"][
+    adopthub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
+    adopthub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    adopthub.data.model_config["solveroptions"]["solver"][
+        "value"
+    ] = request.config.solver
 
-    pyhub.data._read_time_series()
-    pyhub.data._read_node_locations()
-    pyhub.data._read_energybalance_options()
-    pyhub.data._read_technology_data()
-    pyhub.data._read_network_data()
+    adopthub.data._read_time_series()
+    adopthub.data._read_node_locations()
+    adopthub.data._read_energybalance_options()
+    adopthub.data._read_technology_data()
+    adopthub.data._read_network_data()
 
     # Averaging algorithms
-    if pyhub.data.model_config["optimization"]["timestaging"]["value"] != 0:
-        pyhub.data._average_data()
+    if adopthub.data.model_config["optimization"]["timestaging"]["value"] != 0:
+        adopthub.data._average_data()
 
-    pyhub.quick_solve()
+    adopthub.quick_solve()
 
     assert (
-        abs(npv_no_cluster - pyhub.model["full"].var_npv.value) / npv_no_cluster
+        abs(npv_no_cluster - adopthub.model["full"].var_npv.value) / npv_no_cluster
     ) <= 0.01
 
     assert (
-        abs(npv_no_cluster - pyhub.model["averaged"].var_npv.value) / npv_no_cluster
+        abs(npv_no_cluster - adopthub.model["averaged"].var_npv.value) / npv_no_cluster
     ) <= 0.1
 
 
@@ -272,27 +282,29 @@ def test_objective_functions(request):
 
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = ModelHub()
-    pyhub.read_data(path, start_period=0, end_period=1)
+    adopthub = ModelHub()
+    adopthub.read_data(path, start_period=0, end_period=1)
 
-    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
-    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
-    pyhub.data.model_config["reporting"]["save_summary_path"][
+    adopthub.data.model_config["solveroptions"]["solver"][
+        "value"
+    ] = request.config.solver
+    adopthub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
+    adopthub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["reporting"]["save_path"][
+    adopthub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
 
-    pyhub.construct_model()
-    pyhub.construct_balances()
-    pyhub._define_solver_settings()
+    adopthub.construct_model()
+    adopthub.construct_balances()
+    adopthub._define_solver_settings()
 
-    pyhub._optimize_emissions_net()
-    pyhub._optimize_costs_minE()
-    pyhub._optimize_costs_emissionslimit()
+    adopthub._optimize_emissions_net()
+    adopthub._optimize_costs_minE()
+    adopthub._optimize_costs_emissionslimit()
 
-    pyhub._solve_pareto()
+    adopthub._solve_pareto()
 
 
 def test_scaling(request):
@@ -301,19 +313,21 @@ def test_scaling(request):
     """
     path = Path("tests/case_study_full_pipeline")
 
-    pyhub = ModelHub()
-    pyhub.read_data(path, start_period=0, end_period=1)
+    adopthub = ModelHub()
+    adopthub.read_data(path, start_period=0, end_period=1)
 
-    pyhub.data.model_config["scaling"]["scaling_on"]["value"] = 1
-    pyhub.data.model_config["reporting"]["save_summary_path"][
+    adopthub.data.model_config["scaling"]["scaling_on"]["value"] = 1
+    adopthub.data.model_config["reporting"]["save_summary_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["reporting"]["save_path"][
+    adopthub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
-    pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
+    adopthub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
+    adopthub.data.model_config["solveroptions"]["solver"][
+        "value"
+    ] = request.config.solver
 
-    pyhub.construct_model()
-    pyhub.construct_balances()
-    pyhub.solve()
+    adopthub.construct_model()
+    adopthub.construct_balances()
+    adopthub.solve()

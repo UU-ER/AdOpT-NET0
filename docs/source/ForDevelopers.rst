@@ -3,7 +3,7 @@
 =====================================
 Developer Instruction
 =====================================
-This page contains general instructions for the developers that are working on the PyHub.
+This page contains general instructions for the developers that are working on AdOpT-NET0.
 
 Reporting Issues
 -----------------------

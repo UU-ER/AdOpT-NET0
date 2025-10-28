@@ -1,4 +1,3 @@
-# from adopt_net0.model_configuration import ModelConfiguration
 from pathlib import Path
 import adopt_net0.data_preprocessing as dp
 from adopt_net0.modelhub import ModelHub
@@ -21,12 +20,12 @@ dp.copy_compressor_data(path, "path to compressor data")
 # Read climate data and fill carried data (comment these lines if already defined)
 dp.load_climate_data_from_api(path)
 dp.fill_carrier_data(path, value=0)
-# dp.fill_carrier_pressure_data(path, value=0)
+dp.fill_carrier_pressure_data(path, value=0)
 
 # Construct and solve the model
-pyhub = ModelHub()
-pyhub.read_data(path)
-pyhub.quick_solve()
+adopthub = ModelHub()
+adopthub.read_data(path)
+adopthub.quick_solve()
 
 # Add values of (part of) the parameters and variables to the summary file
 add_values_to_summary(Path("path to summary file"))
