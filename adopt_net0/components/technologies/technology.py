@@ -578,11 +578,42 @@ class Technology(ModelComponent):
                 bounds=(coeff_ti["size_initial"], b_tec.para_size_max),
             )
         else:
-            # Size is variable
-            b_tec.var_size = pyo.Var(
-                within=size_domain,
-                bounds=(b_tec.para_size_min, b_tec.para_size_max),
-            )
+            if b_tec.para_size_min.value == 0:
+                # Size is variable - based on size_min
+                b_tec.var_size = pyo.Var(
+                    within=size_domain,
+                    bounds=(b_tec.para_size_min, b_tec.para_size_max),
+                )
+
+            else:
+                # size_min > 0, so size is either 0 or [size_min, size_max]
+                b_tec.var_size = pyo.Var(
+                    within=size_domain,
+                    bounds=(0, b_tec.para_size_max),
+                )
+
+                # Need separate installation disjunction for SIZE
+                self.big_m_transformation_required = 1
+                s_indicators = range(0, 2)
+
+                def init_installation_size(dis, ind):
+                    if ind == 0:  # Tec not installed
+                        dis.const_size_zero = pyo.Constraint(expr=b_tec.var_size == 0)
+                    else:  # Arc installed
+                        dis.con_size_bounds = pyo.Constraint(
+                            expr=b_tec.var_size >= b_tec.para_size_min
+                        )
+
+                b_tec.dis_size_installation = gdp.Disjunct(
+                    s_indicators, rule=init_installation_size
+                )
+
+                def bind_size_disjunctions(dis):
+                    return [b_tec.dis_size_installation[i] for i in s_indicators]
+
+                b_tec.disjunction_size_installation = gdp.Disjunction(
+                    rule=bind_size_disjunctions
+                )
 
         return b_tec
 

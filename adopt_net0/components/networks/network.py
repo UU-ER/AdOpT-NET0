@@ -577,37 +577,33 @@ class Network(ModelComponent):
                 bounds=(b_arc.para_size_initial, b_arc.para_size_max),
             )
         else:
-            # Size is variable - conditional logic based on size_min
+            # Size is variable - based on size_min
             if b_netw.para_size_min.value == 0:
-                # Simple case: size_min is zero, so variable can be 0 to size_max
                 b_arc.var_size = pyo.Var(
                     within=size_domain,
                     bounds=(b_netw.para_size_min, b_arc.para_size_max),
                 )
             else:
-                # Complex case: size_min > 0, so we need either 0 or [size_min, size_max]
-                # Use disjunction instead of Big-M constraints
+                # size_min > 0, so size is either 0 or [size_min, size_max]
                 b_arc.var_size = pyo.Var(
                     within=size_domain,
                     bounds=(0, b_arc.para_size_max),
                 )
 
-                # Mark that big-M transformation will be required
+                # Need separate installation disjunction for SIZE
                 b_arc.big_m_transformation_required = 1
-
-                # Disjunction indicators: 0 = not installed, 1 = installed
                 s_indicators = range(0, 2)
 
-                def init_size_disjunction(dis, ind):
+                def init_installation_size(dis, ind):
                     if ind == 0:  # Arc not installed
-                        dis.con_size_zero = pyo.Constraint(expr=b_arc.var_size == 0)
-                    else:  # Arc installed
+                        dis.const_size_zero = pyo.Constraint(expr=b_arc.var_size == 0)
+                    else:  #Arc installed
                         dis.con_size_bounds = pyo.Constraint(
                             expr=b_arc.var_size >= b_netw.para_size_min
                         )
 
                 b_arc.dis_size_installation = gdp.Disjunct(
-                    s_indicators, rule=init_size_disjunction
+                    s_indicators, rule=init_installation_size
                 )
 
                 def bind_size_disjunctions(dis):
@@ -730,25 +726,14 @@ class Network(ModelComponent):
                 + b_arc.para_capex_gamma4 * b_arc.var_size * b_arc.distance
             )
 
-        # Check if size disjunction already exists (when size_min > 0)
-        if hasattr(b_arc, "disjunction_size_installation"):
-            # Size disjunction already handles installation logic
-            # Add CAPEX constraint to the "installed" disjunct
-            b_arc.dis_size_installation[1].con_capex_aux = pyo.Constraint(
-                rule=init_capex
-            )
-            # For not installed case, CAPEX aux should be 0
-            b_arc.dis_size_installation[0].con_capex_aux_zero = pyo.Constraint(
-                expr=b_arc.var_capex_aux == 0
-            )
-        elif self.existing and self.decommission == "impossible":
+        # CAPEX aux:
+        if self.existing and self.decommission == "impossible":
             b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
         elif (b_arc.para_capex_gamma1.value == 0) and (
-            b_arc.para_capex_gamma3.value == 0
+                b_arc.para_capex_gamma3.value == 0
         ):
             b_arc.const_capex_aux = pyo.Constraint(rule=init_capex)
         else:
-            # Need separate installation disjunction for CAPEX
             b_arc.big_m_transformation_required = 1
             s_indicators = range(0, 2)
 
@@ -766,15 +751,15 @@ class Network(ModelComponent):
 
             b_arc.disjunction_installation = gdp.Disjunction(rule=bind_disjunctions)
 
-        # CAPEX and CAPEX aux relationship
+        # CAPEX and CAPEX aux
         if self.existing:
             if self.decommission == "impossible":
                 b_arc.const_capex = pyo.Constraint(expr=b_arc.var_capex == 0)
             else:
                 b_arc.const_capex = pyo.Constraint(
                     expr=b_arc.var_capex
-                    == (b_arc.para_size_initial - b_arc.var_size)
-                    * b_arc.para_decommissioning_cost_annual
+                         == (b_arc.para_size_initial - b_arc.var_size)
+                         * b_arc.para_decommissioning_cost_annual
                 )
         else:
             b_arc.const_capex = pyo.Constraint(
