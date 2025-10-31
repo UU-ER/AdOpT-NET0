@@ -236,7 +236,7 @@ def test_heat_pump_cost_model(request):
 # ELECTROLYZER COST MODELS
 def test_electrolyzer_cost_model(request):
     """
-    tests electrolyzer cost model for DEA with automatic size selection
+    tests the electrolyzer cost model for DEA with automatic size selection
     """
     tec = "Electrolyzer"
     td.help(component_name=tec)
