@@ -71,18 +71,29 @@ class HeatPump(Technology):
         time_steps = len(climate_data)
 
         # Ambient air temperature
-        T = copy.deepcopy(climate_data["temp_air"])
+        T_ambient = copy.deepcopy(climate_data["temp_air"])
 
         # Determine T_out
         if self.performance_data["application"] == "radiator_heating":
-            t_out = 40 - T
+            t_out = 40 - T_ambient
         elif self.performance_data["application"] == "floor_heating":
-            t_out = 30 - 0.5 * T
-        else:
+            t_out = 30 - 0.5 * T_ambient
+        elif self.performance_data["application"] == "industrial":
             t_out = self.performance_data["T_out"]
+        else:
+            raise ValueError("Application must be 'radiator_heating', 'floor_heating' or 'industrial'")
 
         # Determine delta T
-        delta_T = t_out - T
+        if "Industrial" in self.name:
+            if self.performance_data["heat_source"] == "ambient":
+                t_in = T_ambient
+                delta_T = t_out - T_ambient
+            elif self.performance_data["heat_source"] == "waste_heat":
+                t_in = self.performance_data["T_in"] * np.ones_like(T_ambient)
+                delta_T = (t_out - t_in)
+        else:
+            delta_T = t_out - T_ambient
+
 
         # Determine COP
         if "AirSourced" in self.name:
@@ -91,6 +102,8 @@ class HeatPump(Technology):
             cop = 10.29 - 0.21 * delta_T + 0.0012 * delta_T**2
         elif "WaterSourced" in self.name:
             cop = 9.97 - 0.20 * delta_T + 0.0012 * delta_T**2
+        elif "Industrial" in self.name:
+            cop = 1/(1-(t_in + 273)/(t_out + 273))
 
         log.info("Deriving performance data for Heat Pump...")
 

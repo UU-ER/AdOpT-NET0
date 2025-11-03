@@ -1,0 +1,58 @@
+{
+  "tec_type": "HeatPump_Industrial",
+  "size_is_int": 0,
+  "size_min": 0,
+  "size_max": 2,
+  "decommission": "impossible",
+  "Economics": {
+    "comment": "CAPEX in EUR/MW or as a piecewise function, opex_variable in EUR/MWh total output, opex_fixed in % of up-front CAPEX",
+    "capex_model": 1,
+    "unit_capex": 800000,
+    "fix_capex": 0,
+    "piecewise_capex": {
+      "bp_x": [
+        0.02,
+        0.05,
+        0.3,
+        2
+      ],
+      "bp_y": [
+        41764,
+        104412,
+        409715,
+        1.992245E+6
+      ]
+    },
+    "opex_variable": 0,
+    "opex_fixed": 0.015,
+    "discount_rate": 0.1,
+    "lifetime": 15,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "performance_function_type": 1,
+    "input_carrier": [
+      "electricity"
+    ],
+    "main_input_carrier": "electricity",
+    "output_carrier": [
+      "heat"
+    ],
+    "emission_factor": 0,
+    "min_part_load": 0.2,
+    "application": "industrial",
+    "heat_source": "waste_heat",
+    "T_out": 150,
+    "T_in": 70
+  },
+  "Units": {
+    "size": "MW",
+    "input_carrier": {
+      "electricity": "MW"
+    },
+    "output_carrier": {
+      "heat": "MW"
+    }
+  }
+}

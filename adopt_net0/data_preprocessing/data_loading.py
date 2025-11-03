@@ -386,7 +386,7 @@ def find_json_path(data_path: str | Path, name: str) -> Path | None:
 
 
 def import_jrc_climate_data(
-    lon: float, lat: float, year: int | str, alt: float
+    lon: float, lat: float, year: int | str, alt: float, year_idx=None
 ) -> dict:
     """
     Reads in climate data for a full year from `JRC PVGIS <https://re.jrc.ec.europa.eu/pvg_tools/en/>`_.
@@ -407,6 +407,9 @@ def import_jrc_climate_data(
     # get time zone
     tf = TimezoneFinder()
 
+    if year_idx == None:
+        year_idx = year
+
     # Specify year import, lon, lat
     if year == "typical_year":
         parameters = {"lon": lon, "lat": lat, "outputformat": "json"}
@@ -414,7 +417,7 @@ def import_jrc_climate_data(
     else:
         parameters = {"lon": lon, "lat": lat, "year": year, "outputformat": "json"}
         time_index = pd.date_range(
-            start=str(year) + "-01-01 00:00", end=str(year) + "-12-31 23:00", freq="1h"
+            start=str(year_idx) + "-01-01 00:00", end=str(year_idx) + "-12-31 23:00", freq="1h"
         )
 
     # Get data from JRC dataset
