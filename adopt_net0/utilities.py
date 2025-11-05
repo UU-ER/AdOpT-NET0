@@ -1,4 +1,10 @@
+import json
+import shutil
+from pathlib import Path
+
 from pyomo.environ import SolverFactory
+
+from adopt_net0.data_preprocessing.template_creation import create_empty_network_matrix
 
 
 def get_gurobi_parameters(solveroptions: dict):
@@ -8,6 +14,7 @@ def get_gurobi_parameters(solveroptions: dict):
     :param dict solveroptions: dict with solver parameters
     :return: Gurobi Solver
     """
+
     solver = SolverFactory(solveroptions["solver"]["value"], solver_io="python")
     solver.options["TimeLimit"] = solveroptions["timelim"]["value"] * 3600
     solver.options["MIPGap"] = solveroptions["mipgap"]["value"]
@@ -181,3 +188,117 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
     size = min(component_output_bound, component_input_bound)
 
     return size
+
+
+def installed_capacities_existing(m, interval, prev_interval, casepath):
+    """
+    Set the capacity of a technology to a minimum capacity for the next brownfield simulation
+    """
+    casepath = Path(casepath)
+    prev_model = (
+        m[prev_interval]
+        .model[m[prev_interval].info_solving_algorithms["aggregation_model"]]
+        .periods[prev_interval]
+    )
+
+    # Technologies
+    for node in prev_model.node_blocks:
+        b_node_prev = prev_model.node_blocks[node]
+
+        size_tecs_existing = {}
+
+        # Loop through all technologies
+        for tec_name in b_node_prev.set_technologies:
+            if tec_name.endswith("_existing"):
+                # Standalone existing technology (no new counterpart)
+                base_tec_name = tec_name.replace("_existing", "")
+                if base_tec_name not in b_node_prev.set_technologies:
+                    prev_existing_size = (
+                        b_node_prev.tech_blocks_active[tec_name].var_size.value or 0
+                    )
+                    if prev_existing_size > 0:
+                        size_tecs_existing[base_tec_name] = prev_existing_size
+                continue  # Skip processing it as a "new" technology
+
+            # New technology case
+            prev_tec_size = b_node_prev.tech_blocks_active[tec_name].var_size.value or 0
+
+            existing_tec_name = tec_name + "_existing"
+            prev_existing_size = 0
+
+            if existing_tec_name in b_node_prev.set_technologies:
+                prev_existing_size = (
+                    b_node_prev.tech_blocks_active[existing_tec_name].var_size.value
+                    or 0
+                )
+
+            if prev_tec_size + prev_existing_size > 0:
+                size_tecs_existing[tec_name] = prev_tec_size + prev_existing_size
+
+        # Read the JSON technology file
+        json_tec_file_path = (
+            casepath / interval / "node_data" / node / "Technologies.json"
+        )
+        with open(json_tec_file_path, "r") as json_tec_file:
+            json_tec = json.load(json_tec_file)
+
+        json_tec["existing"] = size_tecs_existing
+        with open(json_tec_file_path, "w") as json_tec_file:
+            json.dump(json_tec, json_tec_file, indent=4)
+
+    # Networks
+    for network in prev_model.network_block:
+        # --- Define paths ---
+        folder_topology_existing = (
+            casepath / interval / "network_topology" / "existing" / network
+        )
+        folder_topology_new = casepath / interval / "network_topology" / "new" / network
+        json_netw_file_path = casepath / interval / "Networks.json"
+
+        # --- Build network size matrix ---
+        netw_size_matrix = create_empty_network_matrix(list(prev_model.node_blocks))
+        for arc in prev_model.network_block[network].set_arcs:
+            netw_size_matrix.loc[arc] = (
+                prev_model.network_block[network].arc_block[arc].var_size.value
+            )
+
+        active_network = netw_size_matrix.values.sum() > 0
+
+        # --- Read JSON once ---
+        with open(json_netw_file_path, "r") as f:
+            json_netw = json.load(f)
+
+        if active_network:
+            # Add network to 'existing' if not already there
+            if network not in json_netw["existing"]:
+                json_netw["existing"].append(network)
+
+            # Create folder and copy files if not yet present
+            if not folder_topology_existing.exists():
+                folder_topology_existing.mkdir(parents=True, exist_ok=True)
+                for fname in ["distance.csv", "connection.csv"]:
+                    src = folder_topology_new / fname
+                    dst = folder_topology_existing / fname
+                    if src.exists():
+                        shutil.copy(src, dst)
+                    else:
+                        print(f"Warning: {src} not found, skipping copy.")
+
+        else:
+            # Remove inactive network from 'existing' if present
+            if network in json_netw["existing"]:
+                json_netw["existing"].remove(network)
+
+        # --- Always overwrite size.csv (zero matrix if inactive) ---
+        if folder_topology_existing.exists():
+            netw_size_matrix.index.name = ""
+            netw_size_matrix.to_csv(
+                folder_topology_existing / "size.csv",
+                sep=";",
+                decimal=".",
+                float_format="%.6f",
+            )
+
+        # --- Save JSON back ---
+        with open(json_netw_file_path, "w") as f:
+            json.dump(json_netw, f, indent=4)
