@@ -192,8 +192,45 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
 
 def installed_capacities_existing(m, interval, prev_interval, casepath):
     """
-    Set the capacity of a technology to a minimum capacity for the next brownfield simulation
+    Transfer installed capacities from a previous interval to define minimum capacities
+    for the next brownfield simulation, updating both technologies and networks. Installed
+    compressor capacities for the networks are calculated from the existing network and
+    technology capacities, as for all simulations with existing networks.
+
+    This function performs two main tasks:
+
+    1. **Technologies** — For each node, it reads the installed technology sizes from
+       the previous interval's solved model and writes them into the corresponding
+       `Technologies.json` file of the current interval.
+
+       - The sum of the new or existing capacities of a technology in the previous run
+       are stored under the `"existing"` key in the JSON file.
+
+    2. **Networks** — For each network, it determines whether the network was active in
+       the previous interval (based on arc sizes). If active, it:
+
+       - Adds the network name to the `"existing"` list in `Networks.json`.
+       - Copies `distance.csv` and `connection.csv` from the "new" topology folder to
+         the "existing" topology folder (if not already present).
+       - Writes a `size.csv` file with the current arc sizes.
+
+       If inactive, it removes the network from `"existing"` in `Networks.json` and,
+       if the existing folder exists, overwrites `size.csv` with a zero matrix.
+
+    Parameters
+    ----------
+    m : dict
+        Model dictionary containing interval-specific pyomo model objects. The previous
+        interval model is accessed via `m[prev_interval]`.
+    interval : str
+        Name of the current interval (e.g., `"2030"` or `"Interval_1"`).
+    prev_interval : str
+        Name of the previous interval from which existing capacities are taken.
+    casepath : str or pathlib.Path
+        Base path to the case directory containing case study data, including the
+        `node_data` and `network_topology` subfolders.
     """
+
     casepath = Path(casepath)
     prev_model = (
         m[prev_interval]
