@@ -16,6 +16,7 @@ following pages:
     workflow/LoadData
     workflow/DefineModelConfiguration
     workflow/SolveModel
+    workflow/MultiYear
     workflow/CheckModelDiagnostics
     workflow/ManageResults
 
@@ -111,9 +112,12 @@ The modelling steps are as follows:
 
     .. testcode::
 
-        m = adopt.ModelHub()
+        m = ModelHub()
         m.read_data(input_data_path, start_period=None, end_period=None)
         m.quick_solve()
+
+- :ref:`Multiyear analysis with rolling-horizon approach<workflow_multi-year>` to analyze an energy system
+  over a longer time horizon.
 
 - If something unexpected happens: check the :ref:`model
   diagnostics<model_diagnostics>`.

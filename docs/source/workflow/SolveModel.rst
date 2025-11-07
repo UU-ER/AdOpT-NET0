@@ -9,6 +9,6 @@ subsequently solves it. For background information on this construction, see :re
 
 .. testcode::
 
-    m = adopt.ModelHub()
+    m = ModelHub()
     m.read_data(path, start_period=None, end_period=None)
     m.quick_solve()
