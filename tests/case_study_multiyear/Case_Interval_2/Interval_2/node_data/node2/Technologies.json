@@ -1,0 +1,10 @@
+{
+    "existing": {
+        "TestTec_BoilerEl": 1.1111111111111112,
+        "TestTec_Electrolyzer": 3.0
+    },
+    "new": [
+        "TestTec_BoilerEl",
+        "TestTec_Electrolyzer"
+    ]
+}

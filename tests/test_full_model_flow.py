@@ -7,6 +7,7 @@ from adopt_net0.components.utilities import annualize
 from pyomo.opt import TerminationCondition
 
 from adopt_net0.modelhub import ModelHub
+from adopt_net0.utilities import installed_capacities_existing
 
 
 def test_full_model_flow(request):
@@ -126,6 +127,136 @@ def test_full_model_flow(request):
         not in p.node_blocks["node2"].tech_blocks_active.index_set()
     )
     assert cost2 < cost1
+
+
+def test_full_model_flow_multiyear(request):
+    """
+    Tests the full modelling pipeline with multiple investment periods and a rolling horizon
+
+    Topology:
+    - Nodes: node1, node2
+    - Investment Periods: Interval_1, Interval_2
+    - Technologies:
+        Interval_1:
+        - node1: existing gas power plant (size = 10)
+        - node2: new electric boiler
+        - node2: existing electrolyzer (size = 3)
+        - node2: new electrolyzer
+        Interval_2:
+        - node1: existing gas power plant
+        - node2: new electric boiler
+        - node2: existing electrolyzer
+        - node2: new electrolyzer
+    - Networks:
+        Interval_1:
+        - new electricity
+        Interval_2:
+        - new electricity
+    - Timeframe: 1 timestep
+
+    Data:
+    - Demand:
+        Interval_1
+        - node1: electricity=1
+        - node2: heat=1
+        - node2: hydrogen=1
+        Interval_1
+        - node1: electricity=1
+        - node2: heat=1
+        - node2: hydrogen=3
+    - Import:
+        - node1: gas
+    - Import price:
+        - node1: gas: 1
+
+    The following is checked:
+    - Interval_1: network size >=1, Interval_2: network size >= Interval_1
+    - Interval_1: hydrogen flow from electrolyzer to demand = 1, Interval_2: hydrogen flow from electrolyzer to demand = 3
+    - Interval_2: has existing electric boiler capacity from previous interval
+    - total cost
+    """
+    path = Path("tests/case_study_multiyear")
+
+    # Build the model with investment intervals
+    adopthub = {}
+    intervals = ["Interval_1", "Interval_2"]
+
+    # Construct and solve the model
+    for i, interval in enumerate(intervals):
+        path_interval = path / ("Case_" + interval)
+
+        if i != 0:
+            prev_interval = intervals[i - 1]
+            installed_capacities_existing(
+                adopthub, interval, prev_interval, path_interval
+            )
+
+        adopthub[interval] = ModelHub()
+        adopthub[interval].read_data(path_interval, start_period=0, end_period=1)
+
+        # Select options
+        adopthub[interval].data.model_config["solveroptions"]["solver"][
+            "value"
+        ] = "gurobi"
+        # adopthub[interval].data.model_config["solveroptions"]["solver"][
+        #     "value"
+        # ] = request.config.solver
+        adopthub[interval].data.model_config["reporting"]["save_summary_path"][
+            "value"
+        ] = request.config.result_folder_path
+        adopthub[interval].data.model_config["reporting"]["save_path"][
+            "value"
+        ] = request.config.result_folder_path
+        adopthub[interval].data.model_config["reporting"]["case_name"][
+            "value"
+        ] = interval
+
+        adopthub[interval].quick_solve()
+
+    # Check results
+    s_arc1 = {}
+    electrolyzer_prod = {}
+    for interval in intervals:
+        m = adopthub[interval].model["full"]
+        p = m.periods[interval]
+
+        # Network flow
+        flow_int = 0
+        for netw in p.network_block:
+            if "electricitySimple" in netw:
+                netw_block = p.network_block[netw]
+                flow_int += round(
+                    netw_block.arc_block["node1", "node2"].var_flow[1].value, 3
+                )
+
+        # Arc flow
+        s_arc1[interval] = flow_int
+
+        # Hydrogen production
+        prod_int = 0
+        for tech in p.node_blocks["node2"].tech_blocks_active:
+            if "Electrolyzer" in tech:
+                tec_block = p.node_blocks["node2"].tech_blocks_active[tech]
+                prod_int += round(tec_block.var_output[1, "hydrogen"].value, 3)
+
+        electrolyzer_prod[interval] = prod_int
+
+    # Check 1: Network flow increases in second interval
+    assert s_arc1["Interval_1"] <= s_arc1["Interval_2"]
+
+    # Check 2: Hydrogen production from electrolyzer is 1 in Interval_1 and 3 in Interval_2
+    assert electrolyzer_prod["Interval_1"] == 1
+    assert electrolyzer_prod["Interval_2"] == 3
+
+    # Check 3: Existing electric boiler in Interval_2
+    node_block = (
+        adopthub["Interval_2"].model["full"].periods["Interval_2"].node_blocks["node2"]
+    )
+    assert "TestTec_BoilerEl_existing" in node_block.tech_blocks_active
+
+    # COST CHECKS
+    assert adopthub["Interval_1"].model["full"].var_npv.value > 0
+    assert adopthub["Interval_2"].model["full"].var_npv.value > 0
 
 
 def test_clustering_algo(request):
