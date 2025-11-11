@@ -1,7 +1,7 @@
 .. _workflow_multi-year:
 
-Multiyear analysis with a rolling horizon approach
-==================================================
+Multiyear analysis with rolling-horizon
+========================================
 
 
 When performing a **multi-year analysis** using the **rolling-horizon** approach, the model is organized as a dictionary,
