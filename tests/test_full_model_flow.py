@@ -197,7 +197,10 @@ def test_full_model_flow_multiyear(request):
         # Select options
         adopthub[interval].data.model_config["solveroptions"]["solver"][
             "value"
-        ] = request.config.solver
+        ] = "gurobi"
+        # adopthub[interval].data.model_config["solveroptions"]["solver"][
+        #     "value"
+        # ] = request.config.solver
         adopthub[interval].data.model_config["reporting"]["save_summary_path"][
             "value"
         ] = request.config.result_folder_path
@@ -249,11 +252,28 @@ def test_full_model_flow_multiyear(request):
     node_block = (
         adopthub["Interval_1"].model["full"].periods["Interval_1"].node_blocks["node2"]
     )
-    print(node_block.tech_blocks_active["TestTec_BoilerEl"].var_output[1, "heat"].value)
+    print(
+        "Int1 TestTec_BoilerEl output",
+        node_block.tech_blocks_active["TestTec_BoilerEl"].var_output[1, "heat"].value,
+    )
+    print(
+        "Int1 TestTec_BoilerEl size",
+        node_block.tech_blocks_active["TestTec_BoilerEl"].var_size.value,
+    )
 
     # Check 3: Existing electric boiler in Interval_2
     node_block = (
         adopthub["Interval_2"].model["full"].periods["Interval_2"].node_blocks["node2"]
+    )
+    print(
+        "Int2 TestTec_BoilerEl",
+        node_block.tech_blocks_active["TestTec_BoilerEl"].var_output[1, "heat"].value,
+    )
+    print(
+        "Int2 TestTec_BoilerEl_existing",
+        node_block.tech_blocks_active["TestTec_BoilerEl_existing"]
+        .var_output[1, "heat"]
+        .value,
     )
     assert "TestTec_BoilerEl_existing" in node_block.tech_blocks_active
 
