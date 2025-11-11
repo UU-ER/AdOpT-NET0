@@ -158,7 +158,7 @@ def test_full_model_flow_multiyear(request):
     - Demand:
         Interval_1
         - node1: electricity=1
-        - node2: heat=1
+        - node2: heat=3
         - node2: hydrogen=1
         Interval_1
         - node1: electricity=1
