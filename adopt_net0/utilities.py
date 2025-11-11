@@ -283,6 +283,8 @@ def installed_capacities_existing(m, interval, prev_interval, casepath):
         with open(json_tec_file_path, "w") as json_tec_file:
             json.dump(json_tec, json_tec_file, indent=4)
 
+        print(node, size_tecs_existing)
+
     # Networks
     for network in prev_model.network_block:
         # --- Define paths ---
