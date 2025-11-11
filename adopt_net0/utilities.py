@@ -42,7 +42,7 @@ def get_glpk_parameters(solveroptions: dict):
     :return: Gurobi Solver
     """
     solver = SolverFactory("glpk")
-    solver.options["tol"] = 1e-9
+    solver.options["tol_prim"] = 1e-9
     solver.options["mipgap"] = 1e-9
 
     return solver
