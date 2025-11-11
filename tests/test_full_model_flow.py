@@ -245,6 +245,12 @@ def test_full_model_flow_multiyear(request):
     assert electrolyzer_prod["Interval_1"] == 1
     assert electrolyzer_prod["Interval_2"] == 3
 
+    # Check heat supply
+    node_block = (
+        adopthub["Interval_1"].model["full"].periods["Interval_1"].node_blocks["node2"]
+    )
+    print(node_block.tech_blocks_active["TestTec_BoilerEl"].var_output[1, "heat"].value)
+
     # Check 3: Existing electric boiler in Interval_2
     node_block = (
         adopthub["Interval_2"].model["full"].periods["Interval_2"].node_blocks["node2"]
