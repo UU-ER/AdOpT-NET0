@@ -257,6 +257,12 @@ def test_full_model_flow_multiyear(request):
         node_block.tech_blocks_active["TestTec_BoilerEl"].var_output[1, "heat"].value,
     )
     print(
+        "Int1 TestTec_BoilerEl input",
+        node_block.tech_blocks_active["TestTec_BoilerEl"]
+        .var_input[1, "electricity"]
+        .value,
+    )
+    print(
         "Int1 TestTec_BoilerEl size",
         node_block.tech_blocks_active["TestTec_BoilerEl"].var_size.value,
     )
