@@ -195,9 +195,6 @@ def test_full_model_flow_multiyear(request):
         adopthub[interval].read_data(path_interval, start_period=0, end_period=1)
 
         # Select options
-        # adopthub[interval].data.model_config["solveroptions"]["solver"][
-        #     "value"
-        # ] = "gurobi"
         adopthub[interval].data.model_config["solveroptions"]["solver"][
             "value"
         ] = request.config.solver
@@ -270,16 +267,6 @@ def test_full_model_flow_multiyear(request):
     # Check 3: Existing electric boiler in Interval_2
     node_block = (
         adopthub["Interval_2"].model["full"].periods["Interval_2"].node_blocks["node2"]
-    )
-    print(
-        "Int2 TestTec_BoilerEl",
-        node_block.tech_blocks_active["TestTec_BoilerEl"].var_output[1, "heat"].value,
-    )
-    print(
-        "Int2 TestTec_BoilerEl_existing",
-        node_block.tech_blocks_active["TestTec_BoilerEl_existing"]
-        .var_output[1, "heat"]
-        .value,
     )
     assert "TestTec_BoilerEl_existing" in node_block.tech_blocks_active
 

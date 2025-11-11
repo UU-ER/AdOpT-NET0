@@ -42,6 +42,8 @@ def get_glpk_parameters(solveroptions: dict):
     :return: Gurobi Solver
     """
     solver = SolverFactory("glpk")
+    solver.options["tol"] = 1e-9
+    solver.options["mipgap"] = 1e-9
 
     return solver
 
@@ -254,14 +256,12 @@ def installed_capacities_existing(m, interval, prev_interval, casepath):
                     prev_existing_size = (
                         b_node_prev.tech_blocks_active[tec_name].var_size.value or 0
                     )
-                    print("existing only:", tec_name, prev_existing_size)
                     if prev_existing_size > 1e-6:
                         size_tecs_existing[base_tec_name] = prev_existing_size
                 continue  # Skip processing it as a "new" technology
 
             # New technology case
             prev_tec_size = b_node_prev.tech_blocks_active[tec_name].var_size.value or 0
-            print("new:", tec_name, prev_tec_size)
 
             existing_tec_name = tec_name + "_existing"
             prev_existing_size = 0
@@ -272,7 +272,6 @@ def installed_capacities_existing(m, interval, prev_interval, casepath):
                     b_node_prev.tech_blocks_active[existing_tec_name].var_size.value
                     or 0
                 )
-                print("existing (and new):", tec_name, prev_existing_size)
 
             if prev_tec_size + prev_existing_size > 1e-6:
                 size_tecs_existing[tec_name] = prev_tec_size + prev_existing_size
