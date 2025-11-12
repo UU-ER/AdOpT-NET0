@@ -1,13 +1,7 @@
 from pathlib import Path
-from warnings import warn
-import pandas as pd
-from adopt_net0.components.utilities import annualize
-
-
-from pyomo.opt import TerminationCondition
-
 from adopt_net0.modelhub import ModelHub
 from adopt_net0.utilities import installed_capacities_existing
+import pyomo.environ as pyo
 
 
 def test_full_model_flow(request):
@@ -197,6 +191,7 @@ def test_full_model_flow_multiyear(request):
         # Select options
         adopthub[interval].data.model_config["solveroptions"]["solver"][
             "value"
+            # ] = "gurobi"
         ] = request.config.solver
         adopthub[interval].data.model_config["reporting"]["save_summary_path"][
             "value"
@@ -210,10 +205,59 @@ def test_full_model_flow_multiyear(request):
 
         adopthub[interval].quick_solve()
 
+        print("Status:", adopthub[interval].solution.solver.status)  # e.g. ok
+        print(
+            "Termination:", adopthub[interval].solution.solver.termination_condition
+        )  # want: optimal
+
     # print model boiler
-    adopthub["Interval_1"].model["full"].periods["Interval_1"].node_blocks[
-        "node2"
-    ].tech_blocks_active["TestTec_BoilerEl"].pprint()
+    b = (
+        adopthub["Interval_1"]
+        .model["full"]
+        .periods["Interval_1"]
+        .node_blocks["node2"]
+        .tech_blocks_active["TestTec_BoilerEl"]
+    )
+    t = 1
+    body_val = pyo.value(b.const_size[t].body)
+    upper = b.const_size[t].upper
+    print("const_size: body=", body_val, " upper=", upper)  # you expect body ≤ upper
+    print(
+        "var_input:",
+        pyo.value(b.var_input[1, "electricity"]),
+        " lb:",
+        b.var_input[1, "electricity"].lb,
+        " ub:",
+        b.var_input[1, "electricity"].ub,
+    )
+    print(
+        "var_size:",
+        pyo.value(b.var_size),
+        " lb:",
+        b.var_size.lb,
+        " ub:",
+        b.var_size.ub,
+        " fixed?:",
+        b.var_size.fixed,
+    )
+    print(
+        "var_input:",
+        pyo.value(b.var_input[1, "electricity"]),
+        " lb:",
+        b.var_input[1, "electricity"].lb,
+        " ub:",
+        b.var_input[1, "electricity"].ub,
+    )
+    print(
+        "var_size:",
+        pyo.value(b.var_size),
+        " lb:",
+        b.var_size.lb,
+        " ub:",
+        b.var_size.ub,
+        " fixed?:",
+        b.var_size.fixed,
+    )
 
     # Check results
     s_arc1 = {}
