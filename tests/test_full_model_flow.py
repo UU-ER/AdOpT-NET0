@@ -197,7 +197,10 @@ def test_full_model_flow_multiyear(request):
         # Select options
         adopthub[interval].data.model_config["solveroptions"]["solver"][
             "value"
-        ] = request.config.solver
+        ] = "gurobi"
+        # adopthub[interval].data.model_config["solveroptions"]["solver"][
+        #     "value"
+        # ] = request.config.solver
         adopthub[interval].data.model_config["reporting"]["save_summary_path"][
             "value"
         ] = request.config.result_folder_path
@@ -209,6 +212,11 @@ def test_full_model_flow_multiyear(request):
         ] = interval
 
         adopthub[interval].quick_solve()
+
+    # print model boiler
+    adopthub["Interval_1"].model["full"].periods["Interval_1"].node_blocks[
+        "node2"
+    ].tech_blocks_active["TestTec_BoilerEl"].pprint()
 
     # Check results
     s_arc1 = {}
