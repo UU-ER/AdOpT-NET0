@@ -164,7 +164,7 @@ def test_full_model_flow_multiyear(request):
     The following is checked:
     - Interval_1: network size >=1, Interval_2: network size >= Interval_1
     - Interval_1: hydrogen flow from electrolyzer to demand = 1, Interval_2: hydrogen flow from electrolyzer to demand = 3
-    - Interval_2: has existing electrolyzer capacity from previous interval
+    - Interval_2: has existing electric boiler capacity from previous interval
     - total cost
     """
     path = Path("tests/case_study_multiyear")
@@ -189,7 +189,8 @@ def test_full_model_flow_multiyear(request):
         # Select options
         adopthub[interval].data.model_config["solveroptions"]["solver"][
             "value"
-        ] = request.config.solver
+            # ] = request.config.solver
+        ] = "gurobi"
         adopthub[interval].data.model_config["reporting"]["save_summary_path"][
             "value"
         ] = request.config.result_folder_path
@@ -203,21 +204,23 @@ def test_full_model_flow_multiyear(request):
         adopthub[interval].construct_model()
         adopthub[interval].construct_balances()
 
-        # add constraint for glpk
+        # Fix size to prevent constraint violation in glpk
         if interval == "Interval_1":
-            b = (
-                adopthub[interval]
-                .model["full"]
-                .periods[interval]
-                .node_blocks["node2"]
-                .tech_blocks_active["TestTec_BoilerEl"]
-            )
+            p = adopthub[interval].model["full"].periods[interval]
+            b_tec = p.node_blocks["node2"].tech_blocks_active["TestTec_BoilerEl"]
 
-            # Add additional constraint to force size in glpk: var_size >= 3
-            def glpk_size_link_rule(m):
-                return b.var_size >= 15
+            # Add additional constraint to force size in glpk: var_size >= 15
+            def glpk_boiler_size(m):
+                return b_tec.var_size >= 15
 
-            b.const_size_link = pyo.Constraint(rule=glpk_size_link_rule)
+            b_tec.const_boiler_size = pyo.Constraint(rule=glpk_boiler_size)
+
+            b_netw = p.network_block["electricitySimple"]
+
+            def glpk_netw_size(m):
+                return b_netw.arc_block["node1", "node2"].var_size >= 15
+
+            b_tec.const_netw_size = pyo.Constraint(rule=glpk_netw_size)
 
         adopthub[interval].solve()
 
