@@ -1,6 +1,4 @@
 {
-    "existing": {
-        "TestTec_Electrolyzer": 3
-    },
+    "existing": {},
     "new": ["TestTec_BoilerEl", "TestTec_Electrolyzer"]
 }

@@ -134,12 +134,10 @@ def test_full_model_flow_multiyear(request):
         Interval_1:
         - node1: existing gas power plant (size = 10)
         - node2: new electric boiler
-        - node2: existing electrolyzer (size = 3)
         - node2: new electrolyzer
         Interval_2:
         - node1: existing gas power plant
         - node2: new electric boiler
-        - node2: existing electrolyzer
         - node2: new electrolyzer
     - Networks:
         Interval_1:
@@ -166,7 +164,7 @@ def test_full_model_flow_multiyear(request):
     The following is checked:
     - Interval_1: network size >=1, Interval_2: network size >= Interval_1
     - Interval_1: hydrogen flow from electrolyzer to demand = 1, Interval_2: hydrogen flow from electrolyzer to demand = 3
-    - Interval_2: has existing electric boiler capacity from previous interval
+    - Interval_2: has existing electrolyzer capacity from previous interval
     - total cost
     """
     path = Path("tests/case_study_multiyear")
@@ -191,7 +189,6 @@ def test_full_model_flow_multiyear(request):
         # Select options
         adopthub[interval].data.model_config["solveroptions"]["solver"][
             "value"
-            # ] = "gurobi"
         ] = request.config.solver
         adopthub[interval].data.model_config["reporting"]["save_summary_path"][
             "value"
@@ -203,89 +200,7 @@ def test_full_model_flow_multiyear(request):
             "value"
         ] = interval
 
-        adopthub[interval].construct_model()
-        adopthub[interval].construct_balances()
-
-        # add constraint for glpk
-        if interval == "Interval_1":
-            b = (
-                adopthub[interval]
-                .model["full"]
-                .periods[interval]
-                .node_blocks["node2"]
-                .tech_blocks_active["TestTec_BoilerEl"]
-            )
-            set_t = (
-                adopthub[interval]
-                .data.technology_data["Interval_1"]["node2"]["TestTec_BoilerEl"]
-                .set_t_performance
-            )
-            rated_capacity = 1  # your rated capacity
-            eps = 1e-6
-
-            # Add additional constraint: var_input <= var_size * rated_capacity + eps
-            def glpk_size_link_rule(m, t, car):
-                return b.var_input[t, car] <= b.var_size * rated_capacity + eps
-
-            b.const_size_link = pyo.Constraint(
-                set_t, b.set_input_carriers, rule=glpk_size_link_rule
-            )
-
-        adopthub[interval].solve()
-
-        print("Status:", adopthub[interval].solution.solver.status)  # e.g. ok
-        print(
-            "Termination:", adopthub[interval].solution.solver.termination_condition
-        )  # want: optimal
-
-    # print model boiler
-    b = (
-        adopthub["Interval_1"]
-        .model["full"]
-        .periods["Interval_1"]
-        .node_blocks["node2"]
-        .tech_blocks_active["TestTec_BoilerEl"]
-    )
-    t = 1
-    body_val = pyo.value(b.const_size[t].body)
-    upper = b.const_size[t].upper
-    print("const_size: body=", body_val, " upper=", upper)  # you expect body ≤ upper
-    print(
-        "var_input:",
-        pyo.value(b.var_input[1, "electricity"]),
-        " lb:",
-        b.var_input[1, "electricity"].lb,
-        " ub:",
-        b.var_input[1, "electricity"].ub,
-    )
-    print(
-        "var_size:",
-        pyo.value(b.var_size),
-        " lb:",
-        b.var_size.lb,
-        " ub:",
-        b.var_size.ub,
-        " fixed?:",
-        b.var_size.fixed,
-    )
-    print(
-        "var_input:",
-        pyo.value(b.var_input[1, "electricity"]),
-        " lb:",
-        b.var_input[1, "electricity"].lb,
-        " ub:",
-        b.var_input[1, "electricity"].ub,
-    )
-    print(
-        "var_size:",
-        pyo.value(b.var_size),
-        " lb:",
-        b.var_size.lb,
-        " ub:",
-        b.var_size.ub,
-        " fixed?:",
-        b.var_size.fixed,
-    )
+        adopthub[interval].quick_solve()
 
     # Check results
     s_arc1 = {}
@@ -322,30 +237,11 @@ def test_full_model_flow_multiyear(request):
     assert electrolyzer_prod["Interval_1"] == 1
     assert electrolyzer_prod["Interval_2"] == 3
 
-    # Check heat supply
-    node_block = (
-        adopthub["Interval_1"].model["full"].periods["Interval_1"].node_blocks["node2"]
-    )
-    print(
-        "Int1 TestTec_BoilerEl output",
-        node_block.tech_blocks_active["TestTec_BoilerEl"].var_output[1, "heat"].value,
-    )
-    print(
-        "Int1 TestTec_BoilerEl input",
-        node_block.tech_blocks_active["TestTec_BoilerEl"]
-        .var_input[1, "electricity"]
-        .value,
-    )
-    print(
-        "Int1 TestTec_BoilerEl size",
-        node_block.tech_blocks_active["TestTec_BoilerEl"].var_size.value,
-    )
-
     # Check 3: Existing electric boiler in Interval_2
     node_block = (
         adopthub["Interval_2"].model["full"].periods["Interval_2"].node_blocks["node2"]
     )
-    assert "TestTec_BoilerEl_existing" in node_block.tech_blocks_active
+    assert "TestTec_Electrolyzer_existing" in node_block.tech_blocks_active
 
     # COST CHECKS
     assert adopthub["Interval_1"].model["full"].var_npv.value > 0
