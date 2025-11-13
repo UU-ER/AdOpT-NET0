@@ -189,8 +189,7 @@ def test_full_model_flow_multiyear(request):
         # Select options
         adopthub[interval].data.model_config["solveroptions"]["solver"][
             "value"
-            # ] = request.config.solver
-        ] = "gurobi"
+        ] = request.config.solver
         adopthub[interval].data.model_config["reporting"]["save_summary_path"][
             "value"
         ] = request.config.result_folder_path
