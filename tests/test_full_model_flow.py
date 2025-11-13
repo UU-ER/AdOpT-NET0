@@ -215,7 +215,7 @@ def test_full_model_flow_multiyear(request):
 
             # Add additional constraint to force size in glpk: var_size >= 3
             def glpk_size_link_rule(m):
-                return b.var_size >= 3
+                return b.var_size >= 15
 
             b.const_size_link = pyo.Constraint(rule=glpk_size_link_rule)
 
