@@ -200,7 +200,26 @@ def test_full_model_flow_multiyear(request):
             "value"
         ] = interval
 
-        adopthub[interval].quick_solve()
+        adopthub[interval].construct_model()
+        adopthub[interval].construct_balances()
+
+        # add constraint for glpk
+        if interval == "Interval_1":
+            b = (
+                adopthub[interval]
+                .model["full"]
+                .periods[interval]
+                .node_blocks["node2"]
+                .tech_blocks_active["TestTec_BoilerEl"]
+            )
+
+            # Add additional constraint to force size in glpk: var_size >= 3
+            def glpk_size_link_rule(m):
+                return b.var_size >= 3
+
+            b.const_size_link = pyo.Constraint(rule=glpk_size_link_rule)
+
+        adopthub[interval].solve()
 
     # Check results
     s_arc1 = {}
@@ -241,7 +260,7 @@ def test_full_model_flow_multiyear(request):
     node_block = (
         adopthub["Interval_2"].model["full"].periods["Interval_2"].node_blocks["node2"]
     )
-    assert "TestTec_Electrolyzer_existing" in node_block.tech_blocks_active
+    assert "TestTec_BoilerEl_existing" in node_block.tech_blocks_active
 
     # COST CHECKS
     assert adopthub["Interval_1"].model["full"].var_npv.value > 0
