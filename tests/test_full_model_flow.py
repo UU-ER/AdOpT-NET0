@@ -207,28 +207,29 @@ def test_full_model_flow_multiyear(request):
         adopthub[interval].construct_balances()
 
         # add constraint for glpk
-        b = (
-            adopthub[interval]
-            .model["full"]
-            .periods[interval]
-            .node_blocks["node2"]
-            .tech_blocks_active["TestTec_BoilerEl"]
-        )
-        set_t = (
-            adopthub[interval]
-            .data.technology_data["Interval_1"]["node2"]["TestTec_BoilerEl"]
-            .set_t_performance
-        )
-        rated_capacity = 1  # your rated capacity
-        eps = 1e-6
+        if interval == "Interval_1":
+            b = (
+                adopthub[interval]
+                .model["full"]
+                .periods[interval]
+                .node_blocks["node2"]
+                .tech_blocks_active["TestTec_BoilerEl"]
+            )
+            set_t = (
+                adopthub[interval]
+                .data.technology_data["Interval_1"]["node2"]["TestTec_BoilerEl"]
+                .set_t_performance
+            )
+            rated_capacity = 1  # your rated capacity
+            eps = 1e-6
 
-        # Add additional constraint: var_input <= var_size * rated_capacity + eps
-        def glpk_size_link_rule(m, t, car):
-            return b.var_input[t, car] <= b.var_size * rated_capacity + eps
+            # Add additional constraint: var_input <= var_size * rated_capacity + eps
+            def glpk_size_link_rule(m, t, car):
+                return b.var_input[t, car] <= b.var_size * rated_capacity + eps
 
-        b.const_size_link = pyo.Constraint(
-            set_t, b.set_input_carriers, rule=glpk_size_link_rule
-        )
+            b.const_size_link = pyo.Constraint(
+                set_t, b.set_input_carriers, rule=glpk_size_link_rule
+            )
 
         adopthub[interval].solve()
 
