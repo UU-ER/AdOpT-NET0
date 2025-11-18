@@ -113,7 +113,7 @@ class Network(ModelComponent):
         * Variable OPEX:
 
           .. math::
-            OPEXvariable_{arc} = CAPEX_{arc} * opex_{variable}
+            OPEXvariable_{arc} = flow_{arc} * opex_{variable}
 
 
     **Network constraint declarations**
