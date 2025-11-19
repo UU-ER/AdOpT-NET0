@@ -1,0 +1,18 @@
+OS: Operating strategy. Can be ignored.
+T: Temperature in degree Celsius
+RH: Relative humidity in percent
+E_tot: Specific total energy demand in MJ/kg(CO2)
+E_th: Specific thermal energy demand in MJ/kg(CO2)
+E_el: Specific electric energy demand in MJ/kg(CO2)
+CO2_Out: Total CO2 produced in one hour for a contractor volume of 1m3 in kg(CO2)/h/m3
+Water_Out: Water adsorbed in kg(H2O)/kg(CO2)
+adTime: Duration of adsorption time step in s
+prodTime: Duration of production time step in s
+pressure: Pressure (bar)
+purgeDeltaT: Temperature difference purging step in Kelvin
+prodTemp: Temperature during production step in Kelvin
+purgeTime: Duration of purging step in s
+airVolume: Volume flow of air in m3/s
+cycleTime: Total duration of one cycle (in s)
+Point: Point on the input-output line for one temperature-humidity combination
+

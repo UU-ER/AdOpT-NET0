@@ -29,6 +29,8 @@ class DacAdsorption(Technology):
     Industrial and Engineering Chemistry Research, 2022, 12649–12667.
     https://doi.org/10.1021/acs.iecr.2c00681. It resembles operation configuration 1
     without water spraying.
+    The performance data from the process model and respective metadata is located in
+    database/templates/technology_data/DAC/DAC_adsorption_data
     """
 
     def __init__(self, tec_data: dict):

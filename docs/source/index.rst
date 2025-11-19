@@ -22,6 +22,7 @@ Table of Content
    Installation
    ModellingWorkflow
    CaseStudies
+   ScientificProjects
    DataBase
    AdvancedTopics
    SourceCode
