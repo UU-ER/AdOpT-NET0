@@ -90,6 +90,12 @@ def test_full_model_flow(request):
     # Output equal to demand
     assert round(tec_block2.var_output[1, "heat"].value, 3) == 1
 
+    compressor_1 = p.node_blocks["node2"].compressor_blocks_active[
+        "hydrogen", "TestTec_Electrolyzer_existing", "Demand"
+    ]
+    # Flow equal to hydrogen demand
+    assert round(compressor_1.var_flow[1].value, 3) == 1
+
     # COST CHECKS
     assert m.var_npv.value > 0
     assert (
