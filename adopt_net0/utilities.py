@@ -303,7 +303,7 @@ def installed_capacities_existing(m, interval, prev_interval, casepath):
                 prev_model.network_block[network].arc_block[arc].var_size.value
             )
 
-        active_network = netw_size_matrix.values.sum() > 0
+        active_network = netw_size_matrix.values.sum() > 1e-6
 
         # --- Read JSON once ---
         with open(json_netw_file_path, "r") as f:

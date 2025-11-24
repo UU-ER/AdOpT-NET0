@@ -13,6 +13,13 @@ technologies are carried over from the previous interval. By appending the inter
 configuration, each interval automatically generates a separate result folder, ensuring that results are stored
 independently for each optimization step.
 
+In AdOpt, technology lifetimes represent only the economic depreciation period, which is used to compute annuitized
+investment costs. Actual technical lifetimes are not explicitly modeled. This is because, in industrial practice, assets
+can often remain operational well beyond their nominal lifetime through increased maintenance efforts and retrofits. To
+reflect this flexibility, users may directly adjust the input parameters, such as the maintenance-related fixed costs,
+to represent the effective condition of each technology. This approach ensures that the model remains adaptable to
+real-world asset management strategies without enforcing hard replacement cycles.
+
 .. testcode::
 
     adopthub = {}
