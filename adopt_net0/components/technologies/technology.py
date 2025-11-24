@@ -133,7 +133,7 @@ class Technology(ModelComponent):
             capex_{aux} = size * capex_{unitannual} + capex_{fixed}
 
       Note that capex_aux is zero if the technology is not installed. For capex model 2, the piecewise CAPEX should be
-      given - in the json file of the technology - as the total CAPEX (vector bp_y) corresponding to the sizes in
+      given - in the json file of the technology - as the total CAPEX (vector bp_y, in EUR) corresponding to the sizes in
       the vector bp_x.
       Existing technologies, i.e. existing = 1, can be decommissioned (decommission = 'continuous' or decommission =
       'only_complete') or not (decommission = 'impossible').
