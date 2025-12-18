@@ -68,7 +68,7 @@ html_favicon = "logo/SVG/Adopt_icononly.svg"
 # -- create table with configuration settings for documentation --------------------
 
 # Import the function that created the dictionary
-from adopt_net0.data_preprocessing.template_creation import (
+from adopt_net0.core.data_preprocessing.template_creation import (
     initialize_configuration_templates,
 )
 

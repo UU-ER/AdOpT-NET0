@@ -1,15 +1,12 @@
 from pathlib import Path
 import json
-
 import pandas as pd
-import pyomo
 import pyomo.environ as pyo
 
-from adopt_net0.components.networks import Fluid
 from tests.utilities import make_data_for_testing, run_model
-from adopt_net0.data_preprocessing.template_creation import create_empty_network_matrix
-from adopt_net0.components.utilities import perform_disjunct_relaxation
-from adopt_net0.data_management.utilities import network_factory
+from adopt_net0.core.data_preprocessing import create_empty_network_matrix
+from adopt_net0.core.components.utilities import perform_disjunct_relaxation
+from adopt_net0.core.data_management.utilities import network_factory
 
 
 def define_network(

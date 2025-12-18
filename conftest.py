@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import pandas as pd
-import adopt_net0.data_preprocessing as dp
+import adopt_net0.core.data_preprocessing as dp
 
 
 def pytest_configure(config):

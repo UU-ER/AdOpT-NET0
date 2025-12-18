@@ -1,14 +1,13 @@
 from pyomo.environ import (
-    ConcreteModel,
     Constraint,
     TerminationCondition,
     SolverFactory,
 )
 
-from adopt_net0.model_construction import construct_compressor_constrains
+from adopt_net0.core.model_construction import construct_compressor_constrains
 from tests.utilities import make_data_handle, update_config
-from adopt_net0.modelhub import ModelHub
-from adopt_net0.model_construction.construct_balances import (
+from adopt_net0.core.modelhub import ModelHub
+from adopt_net0.core.model_construction.construct_balances import (
     construct_global_balance,
     construct_global_energybalance,
     construct_emission_balance,

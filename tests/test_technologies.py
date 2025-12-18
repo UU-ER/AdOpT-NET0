@@ -1,7 +1,5 @@
 import warnings
 
-import pyomo.core.base.param
-import pytest
 from pathlib import Path
 from pyomo.environ import ConcreteModel, Set, Constraint, TerminationCondition
 import json
@@ -12,10 +10,10 @@ from tests.utilities import (
     make_data_for_testing,
     run_model,
 )
-from adopt_net0.components.technologies.technology import Technology
-from adopt_net0.data_management.utilities import open_json, technology_factory
-from adopt_net0.components.utilities import annualize
-from adopt_net0.components.utilities import perform_disjunct_relaxation
+from adopt_net0.core.components.technologies.technology import Technology
+from adopt_net0.core.data_management.utilities import open_json, technology_factory
+from adopt_net0.core.components.utilities import annualize
+from adopt_net0.core.components.utilities import perform_disjunct_relaxation
 
 
 def define_technology(

@@ -1,6 +1,4 @@
-import pytest
-
-from adopt_net0.data_management import DataHandle
+from adopt_net0.core.data_management.handle_input_data import DataHandle
 
 
 def test_data_handle_reading(request):

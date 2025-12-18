@@ -1,9 +1,4 @@
-import pytest
-from pathlib import Path
-import json
-import numpy as np
-
-from adopt_net0 import database as td
+from adopt_net0.core import database as td
 
 
 # WIND COST MODELS
