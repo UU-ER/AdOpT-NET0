@@ -165,6 +165,8 @@ class Network(ModelComponent):
       benefits specified in the economics of the network.
 
     """
+    component_type = "network"
+
 
     def __init__(self, netw_data: dict):
         """
@@ -196,7 +198,7 @@ class Network(ModelComponent):
         self.bidirectional_network = None
         self.bidirectional_network_precise = None
 
-    def fit_network_performance(self):
+    def fit_performance(self):
         """
         Fits network performance (bounds and coefficients).
         """
@@ -250,7 +252,7 @@ class Network(ModelComponent):
         # Write to self
         self.processed_coeff.time_independent = time_independent
 
-    def construct_netw_model(
+    def construct_model(
         self, b_netw, data: dict, set_nodes, set_t_full, set_t_clustered
     ):
         """

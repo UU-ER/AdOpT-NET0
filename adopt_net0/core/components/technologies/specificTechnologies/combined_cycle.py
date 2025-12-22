@@ -172,7 +172,7 @@ class CCPP(Technology):
         self.performance_data["max_steam_extract_MP"] = 51
         self.performance_data["kappa_steam"] = 0.45
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Performs fitting for technology type CCPP
 
@@ -180,7 +180,7 @@ class CCPP(Technology):
         :param climate_data: climate data
         :return:
         """
-        super(CCPP, self).fit_technology_performance(climate_data, location)
+        super(CCPP, self).fit_performance(climate_data, location)
 
         # Climate data & Number of timesteps
         T = copy.deepcopy(climate_data["temp_air"])
@@ -419,7 +419,7 @@ class CCPP(Technology):
             self.bounds["output"]["steam_hp"] = np.column_stack((min_out, max_hp))
             self.bounds["output"]["steam_mp"] = np.column_stack((min_out, max_mp))
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for gas turbines
 
@@ -429,7 +429,7 @@ class CCPP(Technology):
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(CCPP, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
+        super(CCPP, self).construct_model(b_tec, data, set_t_full, set_t_clustered)
 
         b_tec = self._define_additional_vars(b_tec)
         b_tec = self._define_tec_global_balances(b_tec)

@@ -48,7 +48,7 @@ def test_full_model_flow(request):
     pyhub.data.model_config["reporting"]["save_path"][
         "value"
     ] = request.config.result_folder_path
-    pyhub.construct_model()
+    pyhub.construct_components()
     pyhub.construct_balances()
     pyhub.solve()
 
@@ -138,7 +138,7 @@ def test_clustering_algo(request):
         "value"
     ] = request.config.result_folder_path
 
-    pyhub.construct_model()
+    pyhub.construct_components()
     pyhub.construct_balances()
     pyhub.solve()
 
@@ -211,7 +211,7 @@ def test_average_algo(request):
         "value"
     ] = request.config.result_folder_path
 
-    pyhub.construct_model()
+    pyhub.construct_components()
     pyhub.construct_balances()
     pyhub.solve()
 
@@ -278,7 +278,7 @@ def test_objective_functions(request):
         "value"
     ] = request.config.result_folder_path
 
-    pyhub.construct_model()
+    pyhub.construct_components()
     pyhub.construct_balances()
     pyhub._define_solver_settings()
 
@@ -308,6 +308,6 @@ def test_scaling(request):
     pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = 0
     pyhub.data.model_config["solveroptions"]["solver"]["value"] = request.config.solver
 
-    pyhub.construct_model()
+    pyhub.construct_components()
     pyhub.construct_balances()
     pyhub.solve()

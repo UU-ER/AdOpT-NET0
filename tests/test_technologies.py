@@ -64,7 +64,7 @@ def define_technology(
     location["alt"] = 0
     if tec.ccs_possible:
         tec.ccs_data = open_json(tec.ccs_type, load_path)
-    tec.fit_technology_performance(climate_data, location)
+    tec.fit_performance(climate_data, location)
 
     return tec
 
@@ -87,7 +87,7 @@ def construct_tec_model(tec, nr_timesteps: int, dynamics: int = None):
     if dynamics:
         data["config"]["performance"]["dynamics"]["value"] = dynamics
 
-    m = tec.construct_tech_model(m, data, m.set_t, m.set_t_full)
+    m = tec.construct_model(m, data, m.set_t, m.set_t_full)
     if tec.big_m_transformation_required:
         m = perform_disjunct_relaxation(m)
 

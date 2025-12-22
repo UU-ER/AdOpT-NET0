@@ -38,8 +38,8 @@ class Simple(Network):
             netw_data["Performance"], "bidirectional_network_precise", 1
         )
 
-    def fit_network_performance(self):
-        super(Simple, self).fit_network_performance()
+    def fit_performance(self):
+        super(Simple, self).fit_performance()
 
     def _define_emission_constraints(self, b_netw):
         """

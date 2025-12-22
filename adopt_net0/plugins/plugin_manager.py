@@ -84,7 +84,6 @@ class PluginManager:
 
     def emit(self, hook_name: str, **kwargs):
         """
-        Hook for events
         Call hook `hook_name` on all plugins. One can pass additional arguments via kwargs.
         """
         for p in list(self._plugins):

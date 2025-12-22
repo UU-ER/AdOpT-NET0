@@ -378,7 +378,7 @@ class DataHandle:
                         / node
                         / "technology_data",
                     )
-                    tec_data.fit_technology_performance(
+                    tec_data.fit_performance(
                         self.time_series[aggregation_model][investment_period][node][
                             "ClimateData"
                         ]["global"],
@@ -401,7 +401,7 @@ class DataHandle:
 
                     tec_data.existing = 1
                     tec_data.size_initial = technologies_at_node["existing"][technology]
-                    tec_data.fit_technology_performance(
+                    tec_data.fit_performance(
                         self.time_series[aggregation_model][investment_period][node][
                             "ClimateData"
                         ]["global"],
@@ -519,7 +519,7 @@ class DataHandle:
                             f"size_max_defined_per_arc==0, but you defined a file for it for network {network}"
                         )
 
-                netw_data.fit_network_performance()
+                netw_data.fit_performance()
                 self.network_data[investment_period][network] = netw_data
 
             # Existing networks
@@ -594,7 +594,7 @@ class DataHandle:
                     index_col=0,
                 )
 
-                netw_data.fit_network_performance()
+                netw_data.fit_performance()
 
                 self.network_data[investment_period][network + "_existing"] = netw_data
 

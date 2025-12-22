@@ -74,14 +74,14 @@ class Sink(Technology):
         self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
         self.flexibility_data = tec_data["Flexibility"]
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Calculate input bounds and select new capex model
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
-        super(Sink, self).fit_technology_performance(climate_data, location)
+        super(Sink, self).fit_performance(climate_data, location)
 
         # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
         # to account for charging and discharging capacity costs.
@@ -128,7 +128,7 @@ class Sink(Technology):
                         )
                     )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Construct SINK constraints
 
@@ -141,7 +141,7 @@ class Sink(Technology):
         :return: pyomo block with technology model
         """
 
-        super(Sink, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
+        super(Sink, self).construct_model(b_tec, data, set_t_full, set_t_clustered)
 
         # DATA OF TECHNOLOGY
         config = data["config"]

@@ -32,7 +32,7 @@ def construct_model(dh, config: dict):
     ehub = ModelHub()
     ehub._perform_preprocessing_checks = MagicMock(return_value=None)
     ehub.data = dh
-    ehub.construct_model()
+    ehub.construct_components()
     m = ehub.model["full"]
 
     return m
@@ -80,8 +80,8 @@ def test_model_nodal_energy_balance(request):
     dh.time_series["full"].loc[:, (period, node, "CarrierData", carrier, "Demand")] = 1
 
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_nodal_energybalance(m, config)
+    construct_network_constraints(m, config)
+    construct_nodal_energybalance(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -91,8 +91,8 @@ def test_model_nodal_energy_balance(request):
     # Through violation
     config["energybalance"]["violation"]["value"] = 1
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_nodal_energybalance(m, config)
+    construct_network_constraints(m, config)
+    construct_nodal_energybalance(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -105,8 +105,8 @@ def test_model_nodal_energy_balance(request):
         :, (period, node, "CarrierData", carrier, "Import limit")
     ] = 1
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_nodal_energybalance(m, config)
+    construct_network_constraints(m, config)
+    construct_nodal_energybalance(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -148,9 +148,9 @@ def test_model_nodal_energy_balance_with_compression(request):
     dh.time_series["full"].loc[:, (period, node, "CarrierData", carrier, "Demand")] = 1
 
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_nodal_energybalance(m, config)
-    m = construct_compressor_constrains(m, config)
+    construct_network_constraints(m, config)
+    construct_nodal_energybalance(m, config)
+    construct_compressor_constrains(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -160,9 +160,9 @@ def test_model_nodal_energy_balance_with_compression(request):
     # Through violation
     config["energybalance"]["violation"]["value"] = 1
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_nodal_energybalance(m, config)
-    m = construct_compressor_constrains(m, config)
+    construct_network_constraints(m, config)
+    construct_nodal_energybalance(m, config)
+    construct_compressor_constrains(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -175,9 +175,9 @@ def test_model_nodal_energy_balance_with_compression(request):
         :, (period, node, "CarrierData", carrier, "Import limit")
     ] = 1
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_nodal_energybalance(m, config)
-    m = construct_compressor_constrains(m, config)
+    construct_network_constraints(m, config)
+    construct_nodal_energybalance(m, config)
+    construct_compressor_constrains(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -215,8 +215,8 @@ def test_model_global_energy_balance(request):
     dh.time_series["full"].loc[:, (period, node1, "CarrierData", carrier, "Demand")] = 1
 
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_global_energybalance(m, config)
+    construct_network_constraints(m, config)
+    construct_global_energybalance(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -226,8 +226,8 @@ def test_model_global_energy_balance(request):
     # Through violation
     config["energybalance"]["violation"]["value"] = 1
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_global_energybalance(m, config)
+    construct_network_constraints(m, config)
+    construct_global_energybalance(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -240,8 +240,8 @@ def test_model_global_energy_balance(request):
         :, (period, node2, "CarrierData", carrier, "Import limit")
     ] = 1
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_global_energybalance(m, config)
+    construct_network_constraints(m, config)
+    construct_global_energybalance(m, config)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -284,9 +284,9 @@ def test_model_emission_balance(request):
     ] = 1
 
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_nodal_energybalance(m, config)
-    m = construct_emission_balance(m, dh)
+    construct_network_constraints(m, config)
+    construct_nodal_energybalance(m, config)
+    construct_emission_balance(m, dh)
 
     def init_emissions_to_zero(const, period):
         return m.periods[period].var_emissions_net == 0
@@ -301,9 +301,9 @@ def test_model_emission_balance(request):
 
     # FEASIBILITY CASE
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_nodal_energybalance(m, config)
-    m = construct_emission_balance(m, dh)
+    construct_network_constraints(m, config)
+    construct_nodal_energybalance(m, config)
+    construct_emission_balance(m, dh)
 
     termination_condition = solve_model(m, request.config.solver)
 
@@ -348,10 +348,10 @@ def test_model_cost_balance(request):
     ] = 1
 
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_global_energybalance(m, config)
-    m = construct_system_cost(m, dh)
-    m = construct_global_balance(m)
+    construct_network_constraints(m, config)
+    construct_global_energybalance(m, config)
+    construct_system_cost(m, dh)
+    construct_global_balance(m)
 
     m.test_const_system_costs = Constraint(expr=m.var_npv == 0)
 
@@ -360,10 +360,10 @@ def test_model_cost_balance(request):
 
     # FEASIBILITY CASE
     m = construct_model(dh, config)
-    m = construct_network_constraints(m, config)
-    m = construct_global_energybalance(m, config)
-    m = construct_system_cost(m, dh)
-    m = construct_global_balance(m)
+    construct_network_constraints(m, config)
+    construct_global_energybalance(m, config)
+    construct_system_cost(m, dh)
+    construct_global_balance(m)
 
     termination_condition = solve_model(m, request.config.solver)
     assert termination_condition == TerminationCondition.optimal

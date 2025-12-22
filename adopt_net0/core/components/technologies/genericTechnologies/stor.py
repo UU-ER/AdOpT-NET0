@@ -144,14 +144,14 @@ class Stor(Technology):
 
         self.flexibility_data = tec_data["Flexibility"]
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits conversion technology type STOR and fills in the fitted parameters in a dict
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
-        super(Stor, self).fit_technology_performance(climate_data, location)
+        super(Stor, self).fit_performance(climate_data, location)
 
         # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
         # to account for charging and discharging capacity costs.
@@ -232,7 +232,7 @@ class Stor(Technology):
                         )
                     )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type STOR, resembling a storage technology
 
@@ -243,7 +243,7 @@ class Stor(Technology):
         :return: pyomo block with technology model
         """
 
-        super(Stor, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
+        super(Stor, self).construct_model(b_tec, data, set_t_full, set_t_clustered)
 
         config = data["config"]
 

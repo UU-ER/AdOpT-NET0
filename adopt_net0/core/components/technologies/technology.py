@@ -13,7 +13,6 @@ import logging
 
 log = logging.getLogger(__name__)
 
-
 class Technology(ModelComponent):
     """
     Class to read and manage data for technologies
@@ -199,6 +198,7 @@ class Technology(ModelComponent):
     .. math::
         OPEX_{tot} = OPEX_{CCS} + OPEX_{tec}
     """
+    component_type = "technology"
 
     def __init__(self, tec_data: dict):
         """
@@ -252,7 +252,7 @@ class Technology(ModelComponent):
         if "ScalingFactors" in tec_data:
             self.scaling_factors = tec_data["ScalingFactors"]
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits technology performance (bounds and coefficients).
 
@@ -349,7 +349,7 @@ class Technology(ModelComponent):
                 )
             )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Construct the technology model with all required parameters, variable, sets,...
 

@@ -70,14 +70,14 @@ def construct_netw_model(netw, nr_timesteps: int):
     netw.distance = netw_matrix
     if not netw.existing:
         netw.size_max_arcs = netw_matrix * 10
-    netw.fit_network_performance()
+    netw.fit_performance()
 
     m = pyo.ConcreteModel()
     m.set_t = pyo.Set(initialize=list(range(1, nr_timesteps + 1)))
     m.set_t_full = pyo.Set(initialize=list(range(1, nr_timesteps + 1)))
     m.set_nodes = pyo.Set(initialize=data["topology"]["nodes"])
 
-    m = netw.construct_netw_model(m, data, m.set_nodes, m.set_t, m.set_t_full)
+    m = netw.construct_model(m, data, m.set_nodes, m.set_t, m.set_t_full)
     if netw.big_m_transformation_required:
         m = perform_disjunct_relaxation(m)
 

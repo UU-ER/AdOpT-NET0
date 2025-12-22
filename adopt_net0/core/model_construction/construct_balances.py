@@ -1,5 +1,8 @@
 import pyomo.environ as pyo
+import logging
+import time
 
+log = logging.getLogger(__name__)
 from adopt_net0.core.utilities import get_set_t, get_data_for_investment_period
 
 
@@ -26,8 +29,38 @@ def delete_all_balances(model):
     if model.find_component("const_emissions"):
         model.del_component(model.const_emissions)
 
-    return model
+def construct_balances(model, modelhub):
+    """
+    Constructs the energy balance, emission balance and calculates costs
+    """
+    log_msg = "Constructing balances..."
+    print(log_msg)
+    log.info(log_msg)
+    start = time.time()
 
+    config = modelhub.data.model_config
+    data = modelhub.data
+
+    delete_all_balances(model)
+
+    if not config["energybalance"]["copperplate"]["value"]:
+        construct_network_constraints(model, config)
+        construct_nodal_energybalance(model, config)
+    else:
+        construct_global_energybalance(model, config)
+
+    if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+        construct_compressor_constrains(model, config)
+
+    construct_emission_balance(model, data)
+    construct_system_cost(model, data)
+    construct_global_balance(model)
+
+    log_msg = (
+        f"Constructing balances completed in {str(round(time.time() - start))}s"
+    )
+    print(log_msg)
+    log.info(log_msg)
 
 def construct_network_constraints(model, config: dict):
     """
@@ -99,8 +132,6 @@ def construct_network_constraints(model, config: dict):
     model.block_network_constraints = pyo.Block(
         model.set_periods, rule=init_network_constraints
     )
-
-    return model
 
 
 def construct_compressor_constrains(model, config: dict):
@@ -352,7 +383,7 @@ def construct_compressor_constrains(model, config: dict):
         rule=init_compressor_constraints,
     )
 
-    return model
+    
 
 
 def construct_nodal_energybalance(model, config: dict):
@@ -475,7 +506,7 @@ def construct_nodal_energybalance(model, config: dict):
 
     model.block_energybalance = pyo.Block(model.set_periods, rule=init_energybalance)
 
-    return model
+    
 
 
 def construct_global_energybalance(model, config):
@@ -595,7 +626,7 @@ def construct_global_energybalance(model, config):
 
     model.block_energybalance = pyo.Block(model.set_periods, rule=init_energybalance)
 
-    return model
+    
 
 
 def construct_emission_balance(model, data):
@@ -713,7 +744,7 @@ def construct_emission_balance(model, data):
         model.set_periods, rule=init_emissionbalance
     )
 
-    return model
+    
 
 
 def construct_import_costs(b_period, data, period: str):
@@ -1143,7 +1174,7 @@ def construct_system_cost(model, data):
 
     model.block_costbalance = pyo.Block(model.set_periods, rule=init_period_cost)
 
-    return model
+    
 
 
 def construct_global_balance(model):
@@ -1169,4 +1200,4 @@ def construct_global_balance(model):
 
     model.const_emissions = pyo.Constraint(rule=init_emissions)
 
-    return model
+    

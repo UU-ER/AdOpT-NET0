@@ -86,11 +86,11 @@ class Fluid(Network):
         )
         self._calculate_energy_consumption()
 
-    def fit_network_performance(self):
+    def fit_performance(self):
         """
         Fits network performance for fluid network (bounds and coefficients).
         """
-        super(Fluid, self).fit_network_performance()
+        super(Fluid, self).fit_performance()
 
         # Emissions
         self.processed_coeff.time_independent["loss2emissions"] = self.performance_data[

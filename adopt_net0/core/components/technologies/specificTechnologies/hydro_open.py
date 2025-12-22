@@ -91,14 +91,14 @@ class HydroOpen(Technology):
                 tec_data["Performance"], "allow_only_one_direction_precise", 1
             )
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits technology performance
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
-        super(HydroOpen, self).fit_technology_performance(climate_data, location)
+        super(HydroOpen, self).fit_performance(climate_data, location)
 
         # Coefficients
         for par in self.performance_data["performance"]:
@@ -171,7 +171,7 @@ class HydroOpen(Technology):
                 )
             )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type Hydro_Open
 
@@ -181,7 +181,7 @@ class HydroOpen(Technology):
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(HydroOpen, self).construct_tech_model(
+        super(HydroOpen, self).construct_model(
             b_tec, data, set_t_full, set_t_clustered
         )
 

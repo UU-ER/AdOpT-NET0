@@ -22,20 +22,32 @@ class ModelComponent:
         :param dict data: technology/network data
         """
         self.name = data["name"]
+        self.data = data
+        self.bounds = {}
+        self.processed_coeff = ProcessedCoefficients()
+        self.big_m_transformation_required = 0
+
+
+
+
+        # Todo: Remove later
         self.existing = 0
         self.size_min = data["size_min"]
         self.size_max = data["size_max"]
         self.size_is_int = data["size_is_int"]
         self.size_initial = []
         self.decommission = data["decommission"]
-
         self.economics = data["Economics"]
         self.performance_data = data["Performance"]
-
         self.bounds = {"input": {}, "output": {}}
-        self.processed_coeff = ProcessedCoefficients()
 
-        self.big_m_transformation_required = 0
+
+    def fit_performance(self, plugin_manager, **kwargs):
+        pass
+
+    def construct_model(self, plugin_manager, **kwargs):
+        pass
+
 
 
 class ProcessedCoefficients:

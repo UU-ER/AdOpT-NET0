@@ -1,3 +1,4 @@
+from .construct_components import construct_components
 from .construct_technology import construct_technology_block
 from .construct_networks import construct_network_block
 from .construct_compressor import construct_compressor_block
@@ -14,5 +15,4 @@ from .construct_balances import (
     construct_import_costs,
 )
 from .construct_nodes import construct_node_block
-from .construct_investment_period import construct_investment_period_block
 from .utilities import get_data_for_node

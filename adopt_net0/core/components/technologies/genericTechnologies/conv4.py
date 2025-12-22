@@ -58,14 +58,14 @@ class Conv4(Technology):
         self.emissions_based_on = "output"
         self.main_output_carrier = tec_data["Performance"]["main_output_carrier"]
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits conversion technology type 4
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
-        super(Conv4, self).fit_technology_performance(climate_data, location)
+        super(Conv4, self).fit_performance(climate_data, location)
 
         # Coefficients
         phi = {}
@@ -98,7 +98,7 @@ class Conv4(Technology):
                     * self.performance_data["output_ratios"][car]
                 )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV4
 
@@ -108,7 +108,7 @@ class Conv4(Technology):
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(Conv4, self).construct_tech_model(
+        super(Conv4, self).construct_model(
             b_tec, data, set_t_full, set_t_clustered
         )
 

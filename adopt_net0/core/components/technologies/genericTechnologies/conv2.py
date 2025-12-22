@@ -116,14 +116,14 @@ class Conv2(Technology):
                 "performance_function_type must be an integer between 1 and 4"
             )
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Fits conversion technology type 2
 
         :param pd.Dataframe climate_data: dataframe containing climate data
         :param dict location: dict containing location details
         """
-        super(Conv2, self).fit_technology_performance(climate_data, location)
+        super(Conv2, self).fit_performance(climate_data, location)
 
         if self.size_based_on == "output":
             raise Exception("size_based_on == output for CONV2 not possible.")
@@ -150,7 +150,7 @@ class Conv2(Technology):
             self.size_based_on, time_steps
         )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type CONV2
 
@@ -160,7 +160,7 @@ class Conv2(Technology):
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(Conv2, self).construct_tech_model(
+        super(Conv2, self).construct_model(
             b_tec, data, set_t_full, set_t_clustered
         )
 

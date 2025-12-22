@@ -98,7 +98,7 @@ class GasTurbine(Technology):
         self.size_based_on = "output"
         self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Performs fitting for technology type GasTurbine
 
@@ -106,7 +106,7 @@ class GasTurbine(Technology):
         :param climate_data: climate data
         :return:
         """
-        super(GasTurbine, self).fit_technology_performance(climate_data, location)
+        super(GasTurbine, self).fit_performance(climate_data, location)
 
         # Climate data & Number of timesteps
         time_steps = len(climate_data)
@@ -214,7 +214,7 @@ class GasTurbine(Technology):
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for gas turbines
 
@@ -224,7 +224,7 @@ class GasTurbine(Technology):
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(GasTurbine, self).construct_tech_model(
+        super(GasTurbine, self).construct_model(
             b_tec, data, set_t_full, set_t_clustered
         )
 

@@ -14,7 +14,7 @@ def construct_network_block(b_netw, data: dict, set_nodes, set_t_full, set_t_clu
     """
     netw = b_netw.index()
     network = data["network_data"][netw]
-    b_netw = network.construct_netw_model(
+    b_netw = network.construct_model(
         b_netw, data, set_nodes, set_t_full, set_t_clustered
     )
     if network.big_m_transformation_required:

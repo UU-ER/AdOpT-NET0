@@ -57,7 +57,7 @@ class HeatPump(Technology):
         self.emissions_based_on = "input"
         self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
-    def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
+    def fit_performance(self, climate_data: pd.DataFrame, location: dict):
         """
         Performs fitting for technology type HeatPump
 
@@ -65,7 +65,7 @@ class HeatPump(Technology):
         :param climate_data: climate data
         :return:
         """
-        super(HeatPump, self).fit_technology_performance(climate_data, location)
+        super(HeatPump, self).fit_performance(climate_data, location)
 
         # Climate data & Number of timesteps
         time_steps = len(climate_data)
@@ -202,7 +202,7 @@ class HeatPump(Technology):
 
         time_steps = len(self.set_t_performance)
 
-    def construct_tech_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
+    def construct_model(self, b_tec, data: dict, set_t_full, set_t_clustered):
         """
         Adds constraints to technology blocks for tec_type HP (Heat Pump)
 
@@ -212,7 +212,7 @@ class HeatPump(Technology):
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with technology model
         """
-        super(HeatPump, self).construct_tech_model(
+        super(HeatPump, self).construct_model(
             b_tec, data, set_t_full, set_t_clustered
         )
 

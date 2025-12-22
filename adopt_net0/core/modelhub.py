@@ -11,12 +11,13 @@ import logging
 
 from adopt_net0.core.data_management.utilities import create_technology_class
 from adopt_net0.core.data_management.handle_input_data import DataHandle
-from adopt_net0.core.model_construction import *
-from adopt_net0.core.utilities import get_glpk_parameters, get_gurobi_parameters, determine_flow_existing_compressors, \
+from adopt_net0.core.utilities import get_glpk_parameters, get_gurobi_parameters, \
     get_data_for_investment_period
 from adopt_net0.core.result_management import *
-
-# Add plugin manager import
+from adopt_net0.core.model_construction.construct_components import construct_components
+from adopt_net0.core.model_construction.construct_technology import construct_technology_block
+from adopt_net0.core.model_construction.construct_balances import construct_balances
+from adopt_net0.core.model_construction.utilities import get_data_for_node
 from adopt_net0.plugins.plugin_manager import PluginManager
 
 log = logging.getLogger(__name__)
@@ -195,9 +196,9 @@ class ModelHub:
                                         f"json files or switch off the dynamics."
                                     )
 
-    def construct_model(self):
+    def construct_components(self):
         """
-        Constructs the model. The model structure is as follows:
+        Constructs the components. The model structure is as follows:
 
         **Global sets**
 
@@ -221,11 +222,6 @@ class ModelHub:
 
                 Technology Block
         """
-        log_msg = "--- Constructing Model ---"
-        print(log_msg)
-        log.info(log_msg)
-        start = time.time()
-
         self._perform_preprocessing_checks()
 
         # Determine aggregation
@@ -253,159 +249,16 @@ class ModelHub:
 
         # INITIALIZE MODEL
         aggregation_model = self.info_solving_algorithms["aggregation_model"]
-        aggregation_data = self.info_solving_algorithms["aggregation_data"]
         self.model[aggregation_model] = pyo.ConcreteModel()
 
-        # GET DATA
-        model = self.model[aggregation_model]
-        topology = self.data.topology
-        config = self.data.model_config
-
-        # DEFINE GLOBAL SETS
-        # Nodes, Carriers, Technologies, Networks
-        model.set_periods = pyo.Set(initialize=topology["investment_periods"])
-        model.set_nodes = pyo.Set(initialize=topology["nodes"])
-        model.set_carriers = pyo.Set(initialize=topology["carriers"])
-
-        # DEFINE GLOBAL VARIABLES
-        model.var_npv = pyo.Var()
-        model.var_emissions_net = pyo.Var()
-
-        # INVESTMENT PERIOD BLOCK
-        def init_period_block(b_period):
-            """Pyomo rule to initialize a block holding all investment periods"""
-
-            # Get data for investment period
-            investment_period = b_period.index()
-            data_period = get_data_for_investment_period(
-                self.data, investment_period, aggregation_data
-            )
-            # Add sets, parameters, variables, constraints to block
-            b_period = construct_investment_period_block(b_period, data_period)
-
-            # NETWORK BLOCK
-            if not config["energybalance"]["copperplate"]["value"]:
-
-                def init_network_block(b_netw, netw):
-                    """Pyomo rule to initialize a block holding all networks"""
-                    # Add sets, parameters, variables, constraints to block
-                    b_netw = construct_network_block(
-                        b_netw,
-                        data_period,
-                        model.set_nodes,
-                        b_period.set_t_full,
-                        b_period.set_t_clustered,
-                    )
-
-                    return b_netw
-
-                b_period.network_block = pyo.Block(
-                    b_period.set_networks, rule=init_network_block
-                )
-
-            # NODE BLOCK
-            def init_node_block(b_node, node):
-                """Pyomo rule to initialize a block holding all nodes"""
-                # Get data for node
-                data_node = get_data_for_node(data_period, node)
-
-                # Add sets, parameters, variables, constraints to block
-                b_node = construct_node_block(
-                    b_node, data_node, b_period.set_t_full, b_period.set_t_clustered
-                )
-
-                # TECHNOLOGY BLOCK
-                def init_technology_block(b_tec, tec):
-                    """Pyomo rule to initialize a block holding all technologies at node"""
-                    b_tec = construct_technology_block(
-                        b_tec, data_node, b_period.set_t_full, b_period.set_t_clustered
-                    )
-
-                    return b_tec
-
-                b_node.tech_blocks_active = pyo.Block(
-                    b_node.set_technologies, rule=init_technology_block
-                )
-
-                # COMPRESSOR BLOCK
-                if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-
-                    def init_compressor_block(b_compr, car, comp1, comp2):
-                        """Pyomo rule to initialize a block holding all compressors at node"""
-                        b_compr = construct_compressor_block(
-                            b_compr,
-                            data_node,
-                            b_period.set_t_full,
-                            b_period.set_t_clustered,
-                        )
-                        return b_compr
-
-                    b_node.compressor_blocks_active = pyo.Block(
-                        b_node.set_compressor, rule=init_compressor_block
-                    )
-                return b_node
-
-            b_period.node_blocks = pyo.Block(model.set_nodes, rule=init_node_block)
-
-            if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                # fixing size of existing compressor based on components minimum capacity
-                for node in b_period.node_blocks:
-                    data_node = get_data_for_node(data_period, node)
-                    for compr in b_period.node_blocks[node].set_compressor:
-                        compressor = data_node["compressor_data"][compr]
-                        b_compr = b_period.node_blocks[node].compressor_blocks_active[
-                            compr
-                        ]
-
-                        if (compressor.compression_active == 1) and (
-                            compressor.existing == 1
-                        ):
-                            size = determine_flow_existing_compressors(
-                                self, compressor, b_period, node
-                            )
-                            b_compr = compressor.fix_size(b_compr, size)
-
-            return b_period
-
-        model.periods = pyo.Block(model.set_periods, rule=init_period_block)
-
-        log_msg = f"Constructing model completed in {str(round(time.time() - start))}s"
-        print(log_msg)
-        log.info(log_msg)
+        construct_components(self.model[aggregation_model], self)
 
     def construct_balances(self):
         """
         Constructs the energy balance, emission balance and calculates costs
         """
-        log_msg = "Constructing balances..."
-        print(log_msg)
-        log.info(log_msg)
-        start = time.time()
-
-        config = self.data.model_config
-        data = self.data
         model = self.model[self.info_solving_algorithms["aggregation_model"]]
-
-        model = delete_all_balances(model)
-
-        if not config["energybalance"]["copperplate"]["value"]:
-            model = construct_network_constraints(model, config)
-            model = construct_nodal_energybalance(model, config)
-        else:
-            model = construct_global_energybalance(model, config)
-
-        if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-            model = construct_compressor_constrains(model, config)
-
-        model = construct_emission_balance(model, data)
-        model = construct_system_cost(model, data)
-        model = construct_global_balance(model)
-
-        log_msg = (
-            f"Constructing balances completed in {str(round(time.time() - start))}s"
-        )
-        print(log_msg)
-        log.info(log_msg)
+        construct_balances(model, self)
 
     def solve(self):
         """
@@ -431,7 +284,7 @@ class ModelHub:
         - :func:`~adopt_net0.modelhub.construct_balances`
         - :func:`~adopt_net0.modelhub.solve`
         """
-        self.construct_model()
+        self.construct_components()
         self.construct_balances()
         self.solve()
 
@@ -522,7 +375,7 @@ class ModelHub:
                 / "technology_data",
             )
             # fit technology data
-            tec_data.fit_technology_performance(
+            tec_data.fit_performance(
                 self.data.time_series["full"][investment_period][node]["ClimateData"][
                     "global"
                 ],
@@ -1072,7 +925,7 @@ class ModelHub:
         """
         # Todo: make it possible to chose (config)
         bounds_on = "no_storage"
-        self.construct_model()
+        self.construct_components()
         self.construct_balances()
         self._impose_size_constraints(bounds_on)
         self._optimize(self.info_solving_algorithms["objective"])
