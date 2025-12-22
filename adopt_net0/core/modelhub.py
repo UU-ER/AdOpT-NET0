@@ -16,6 +16,9 @@ from adopt_net0.core.utilities import get_glpk_parameters, get_gurobi_parameters
     get_data_for_investment_period
 from adopt_net0.core.result_management import *
 
+# Add plugin manager import
+from adopt_net0.plugins.plugin_manager import PluginManager
+
 log = logging.getLogger(__name__)
 
 
@@ -51,6 +54,9 @@ class ModelHub:
         self.info_solving_algorithms["aggregation_model"] = "Full"
         self.info_solving_algorithms["aggregation_data"] = "Full"
         self.info_solving_algorithms["time_stage"] = 1
+
+        self._plugin_manager = PluginManager()
+        self._plugins_loaded = False
 
     def read_data(
         self, data_path: Path | str, start_period: int = None, end_period: int = None

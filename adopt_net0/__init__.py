@@ -1,5 +1,6 @@
 import logging
 from .core import ModelHub
+from .plugins import PluginManager
 
 logger = logging.getLogger()
 logger.setLevel(logging.WARNING)
