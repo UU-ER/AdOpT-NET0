@@ -9,6 +9,6 @@ Compressors Class
 -------------------------------------------------------------
 As mentioned, the compressor class is a subclass of the ModelComponent class.
 
-.. automodule:: adopt_net0.components.compressors.compressor
+.. automodule:: adopt_net0.core.components.compressors.compressor
     :members: Compressor
 

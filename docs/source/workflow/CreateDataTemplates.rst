@@ -50,6 +50,6 @@ Your directory should now contain the following files:
                 - ``EnergybalanceOptions.JSON``
             - A folder called ``technology_data``
 
-.. automodule:: adopt_net0.data_preprocessing.template_creation
+.. automodule:: adopt_net0.core.data_preprocessing.template_creation
     :members: create_input_data_folder_template
     :exclude-members:

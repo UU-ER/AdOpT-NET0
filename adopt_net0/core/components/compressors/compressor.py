@@ -269,7 +269,7 @@ class Compressor(ModelComponent):
         config = data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
         annualization_factor = annualize(
             discount_rate, economics["lifetime"], fraction_of_year_modelled
         )
@@ -309,7 +309,7 @@ class Compressor(ModelComponent):
 
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
         annualization_factor = annualize(
             discount_rate, economics["lifetime"], fraction_of_year_modelled
         )
@@ -334,7 +334,7 @@ class Compressor(ModelComponent):
         config = data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
         annualization_factor = annualize(
             discount_rate, economics["lifetime"], fraction_of_year_modelled
         )
@@ -464,7 +464,7 @@ class Compressor(ModelComponent):
         config = data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
         annualization_factor = annualize(
             discount_rate, economics["lifetime"], fraction_of_year_modelled
         )
@@ -499,7 +499,7 @@ class Compressor(ModelComponent):
         config = data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
-        fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
+        fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
         annualization_factor = annualize(
             discount_rate, economics["lifetime"], fraction_of_year_modelled
         )

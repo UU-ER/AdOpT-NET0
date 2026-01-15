@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import pyomo.environ as pyo
 
+from adopt_net0.core.utilities import get_used_timeseries
+
 
 def _determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:
     """
@@ -11,7 +13,7 @@ def _determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:
     """
     carriers = []
     series = ["Demand", "Import limit", "Export limit", "Generic production"]
-    for car in time_series.columns.get_level_values("Carrier").unique():
+    for car in time_series.columns.get_level_values("Key2").unique():
         if np.any(time_series[car][series]):
             carriers.append(car)
 
@@ -53,7 +55,7 @@ def _determine_carriers_from_networks(network_data) -> list:
     return list(set(carriers))
 
 
-def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
+def construct_node_block(b_node, modelhub, period, set_t_full, set_t_clustered):
     """
     Adds all nodes with respective data to the model
 
@@ -117,32 +119,35 @@ def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
 
     # PREPROCESSING
     # Collect data for node and period
-    config = data["config"]
+    node = b_node.index()
+
+    config = modelhub.data["config"]
+    time_series_at_node = get_used_timeseries(modelhub.data)[period][node]
 
     # Determine carriers used at node
-    carriers = []
-    carriers.extend(
-        _determine_carriers_from_time_series(data["time_series"]["CarrierData"])
-    )
-    carriers.extend(_determine_carriers_from_technologies(data["technology_data"]))
+    carriers_from_time_series = _determine_carriers_from_time_series(time_series_at_node["CarrierData"])
+    carriers_from_technologies = _determine_carriers_from_technologies(modelhub.component_constructors["technology_constructors"][period][node])
     if not config["energybalance"]["copperplate"]["value"]:
-        carriers.extend(_determine_carriers_from_networks(data["network_data"]))
-    carriers = list(set(carriers))
+        carriers_from_network = _determine_carriers_from_networks(modelhub.component_constructors["network_constructors"][period])
+    else:
+        carriers_from_network = []
+
+    carriers_at_node = list(set(carriers_from_time_series + carriers_from_technologies + carriers_from_network))
 
     # SETS
-    b_node.set_technologies = pyo.Set(initialize=list(data["technology_data"].keys()))
-    b_node.set_carriers = pyo.Set(initialize=list(set(carriers)))
+    b_node.set_technologies = pyo.Set(initialize=list(modelhub.component_constructors["technology_constructors"][period][node].keys()))
+    b_node.set_carriers = pyo.Set(initialize=list(set(carriers_at_node)))
 
-    if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-        target_carriers = config["performance"]["pressure"]["pressure_carriers"][
-            "value"
-        ]
-        target_carriers = list(set(target_carriers))
-        b_node.set_carriers_compression = pyo.Set(initialize=target_carriers)
-        b_node.set_compressor = pyo.Set(initialize=list(data["compressor_data"].keys()))
+    # Todo: move to plugin
+    # if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+    #     target_carriers = config["performance"]["pressure"]["pressure_carriers"][
+    #         "value"
+    #     ]
+    #     target_carriers = list(set(target_carriers))
+    #     b_node.set_carriers_compression = pyo.Set(initialize=target_carriers)
+    #     b_node.set_compressor = pyo.Set(initialize=list(data["compressor_data"].keys()))
 
     # Time aggregation
-    config = data["config"]
     if config["optimization"]["typicaldays"]["N"]["value"] == 0:
         set_t = set_t_full
     elif config["optimization"]["typicaldays"]["method"]["value"] == 1:
@@ -156,7 +161,7 @@ def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
         ts = {}
         for car in b_node.set_carriers:
             ts[car] = {}
-            ts[car][key] = data["time_series"]["CarrierData"][car][key].to_list()
+            ts[car][key] = time_series_at_node["CarrierData"][car][key].to_list()
 
         def init_carrier_parameter(para, t, car):
             """Rule initiating a carrier parameter"""
@@ -169,7 +174,7 @@ def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
 
     def create_carbonprice_parameter(key):
         # Convert to dict/list for performance
-        ts = data["time_series"]["CarbonCost"]["global"][key].to_list()
+        ts = time_series_at_node["CarbonCost"]["global"][key].to_list()
 
         def init_carbonprice_parameter(para, t):
             """Rule initiating a carrier parameter"""
@@ -236,12 +241,12 @@ def construct_node_block(b_node, data: dict, set_t_full, set_t_clustered):
     # CONSTRAINTS
     # Generic production constraint
     def init_generic_production(const, t, car):
-        if data["energybalance_options"][car]["curtailment_possible"] == 0:
+        if config["node_config"][period][node][car]["curtailment_possible"] == 0:
             return (
                 b_node.para_production_profile[t, car]
                 == b_node.var_generic_production[t, car]
             )
-        elif data["energybalance_options"][car]["curtailment_possible"] == 1:
+        elif config["node_config"][period][node][car]["curtailment_possible"] == 1:
             return (
                 b_node.para_production_profile[t, car]
                 >= b_node.var_generic_production[t, car]

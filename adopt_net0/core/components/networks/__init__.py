@@ -1,1 +1,1 @@
-from .genericNetworks import Fluid, Electricity, Simple
+from .simple import Simple

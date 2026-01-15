@@ -4,14 +4,6 @@ import pvlib
 import os
 import json
 
-from adopt_net0.core.components.compressors.compressor import Compressor
-from adopt_net0.core.components.networks.network import Network
-from adopt_net0.core.components.networks.genericNetworks import *
-from adopt_net0.core.components.technologies.technology import Technology
-from adopt_net0.core.components.technologies.genericTechnologies import *
-from adopt_net0.core.components.technologies.specificTechnologies import *
-
-
 import logging
 
 log = logging.getLogger(__name__)
@@ -43,120 +35,93 @@ def calculate_dni(data: pd.DataFrame, lon: float, lat: float) -> pd.Series:
     return data["dni"]
 
 
-def network_factory(netw_data: dict):
-    """
-    Returns the correct subclass for a network
-
-    :param dict netw_data: dictonary derived from the network json files
-    :return: Network Class
-    """
-    # Generic netw
-    if netw_data["network_type"] == "fluid":
-        return Fluid(netw_data)
-    elif netw_data["network_type"] == "electricity":
-        return Electricity(netw_data)
-    elif netw_data["network_type"] == "simple":
-        return Simple(netw_data)
-
-
-def technology_factory(tec_data: dict):
-    """
-    Returns the correct subclass for a technology
-
-    :param dict tec_data: dictonary derived from the technology json files
-    :return: Technology Class
-    """
-    # Generic tecs
-    if tec_data["tec_type"] == "RES":
-        return Res(tec_data)
-    elif tec_data["tec_type"] == "CONV1":
-        return Conv1(tec_data)
-    elif tec_data["tec_type"] == "CONV2":
-        return Conv2(tec_data)
-    elif tec_data["tec_type"] == "CONV3":
-        return Conv3(tec_data)
-    elif tec_data["tec_type"] == "CONV4":
-        return Conv4(tec_data)
-    elif tec_data["tec_type"] == "STOR":
-        return Stor(tec_data)
-    elif tec_data["tec_type"] == "SINK":
-        return Sink(tec_data)
-    # Specific tecs
-    elif tec_data["tec_type"] == "DAC_Adsorption":
-        return DacAdsorption(tec_data)
-    elif tec_data["tec_type"].startswith("GasTurbine"):
-        return GasTurbine(tec_data)
-    elif tec_data["tec_type"].startswith("HeatPump"):
-        return HeatPump(tec_data)
-    elif tec_data["tec_type"] == "HydroOpen":
-        return HydroOpen(tec_data)
-    elif tec_data["tec_type"] == "CCPP":
-        return CCPP(tec_data)
+# def network_factory(netw_data: dict):
+#     """
+#     Returns the correct subclass for a network
+#
+#     :param dict netw_data: dictonary derived from the network json files
+#     :return: Network Class
+#     """
+#     # TODO: plugin architecture for networks
+#     if "netw_type" in netw_data:
+#         if netw_data["netw_type"] == "fluid":
+#             return Fluid(netw_data)
+#         elif netw_data["netw_type"] == "electricity":
+#             return Electricity(netw_data)
+#     else:
+#         return Simple(netw_data)
 
 
-def create_technology_class(tec_name: str, load_path: Path):
-    """
-    Loads the technology data from load_path and preprocesses it.
-
-    :param str tec_name: technology name
-    :param Path load_path: load path
-    :param pd.DataFrame climate_data: Climate Data
-    :param dict location: Dictonary with node location
-    :return: Technology Class
-    """
-    tec_data = open_json(tec_name, load_path)
-    tec_data["name"] = tec_name
-    tec_data = technology_factory(tec_data)
-
-    # CCS
-    if tec_data.ccs_possible:
-        tec_data.ccs_data = open_json(tec_data.ccs_type, load_path)
-    return tec_data
-
-
-def create_network_class(netw_name: str, load_path: Path):
-    """
-    Loads the network data from load_path and preprocesses it.
-
-    :param str netw_name: network name
-    :param Path load_path: load path
-    #:param dict location: Dictonary with node location
-
-    :return: Network Class
-    """
-    netw_data = open_json(netw_name, load_path)
-    netw_data["name"] = netw_name
-    netw_data = network_factory(netw_data)
-
-    return netw_data
-
-
-def create_compressor_class(connection_info: dict, carrier: str, load_path: Path):
-    """
-    Loads the compressor data from load_path and preprocesses it.
-
-    :param dict connection_info: information about the connection
-    :param str carrier: compressed carrier
-    :param Path load_path: load path
-
-    :return: Compressor Class
-    """
-    comp_data = open_json(carrier, load_path)
-
-    comp_data["connection_info"] = connection_info
-    comp_data["name"] = (
-        f"{carrier}_Compressor_{comp_data['connection_info']['components'][0]}_{comp_data['connection_info']['components'][1]}"
-    )
-
-    if (
-        comp_data["connection_info"]["existing"][0] == 1
-        and comp_data["connection_info"]["existing"][1] == 1
-    ):
-        comp_data["name"] = comp_data["name"] + "_existing"
-
-    comp_data = Compressor(comp_data)
-
-    return comp_data
+# def technology_factory(tec_data: dict):
+#     """
+#     Returns the correct subclass for a technology
+#
+#     :param dict tec_data: dictonary derived from the technology json files
+#     :return: Technology Class
+#     """
+#
+#
+#
+# def create_technology_class(tec_name: str, load_path: Path):
+#     """
+#     Loads the technology data from load_path and preprocesses it.
+#
+#     :param str tec_name: technology name
+#     :param Path load_path: load path
+#     :param pd.DataFrame technology_data: Climate Data
+#     :param dict location: Dictonary with node location
+#     :return: Technology Class
+#     """
+#     tec_data = open_json(tec_name, load_path)
+#     tec_data["name"] = tec_name
+#     tec_data = technology_factory(tec_data)
+#
+#     return tec_data
+#
+#
+# def create_network_class(netw_name: str, load_path: Path):
+#     """
+#     Loads the network data from load_path and preprocesses it.
+#
+#     :param str netw_name: network name
+#     :param Path load_path: load path
+#     #:param dict location: Dictonary with node location
+#
+#     :return: Network Class
+#     """
+#     netw_data = open_json(netw_name, load_path)
+#     netw_data["name"] = netw_name
+#     netw_data = network_factory(netw_data)
+#
+#     return netw_data
+#
+# Todo: plugin compressor
+# def create_compressor_class(connection_info: dict, carrier: str, load_path: Path):
+#     """
+#     Loads the compressor data from load_path and preprocesses it.
+#
+#     :param dict connection_info: information about the connection
+#     :param str carrier: compressed carrier
+#     :param Path load_path: load path
+#
+#     :return: Compressor Class
+#     """
+#     comp_data = open_json(carrier, load_path)
+#
+#     comp_data["connection_info"] = connection_info
+#     comp_data["name"] = (
+#         f"{carrier}_Compressor_{comp_data['connection_info']['components'][0]}_{comp_data['connection_info']['components'][1]}"
+#     )
+#
+#     if (
+#         comp_data["connection_info"]["existing"][0] == 1
+#         and comp_data["connection_info"]["existing"][1] == 1
+#     ):
+#         comp_data["name"] = comp_data["name"] + "_existing"
+#
+#     comp_data = Compressor(comp_data)
+#
+#     return comp_data
 
 
 def open_json(component: str, load_path: Path) -> dict:
@@ -182,67 +147,67 @@ def open_json(component: str, load_path: Path) -> dict:
 
     # Assign name
     if "data" in locals():
-        data["Name"] = component
+        data["name"] = component
     else:
         raise Exception("There is no json data file for component " + component)
 
     return data
 
-
-def get_pressure_info(component, carrier: str, direction: str) -> dict:
-    """
-    Obtains pressure-related information for a given component, carrier, and flow direction (input/output).
-
-    :param component: the component from which to extract pressure data
-    :param str carrier: the energy carrier for which pressure data is requested
-    :param str direction: either 'Input' or 'Output', specifying whether to retrieve inlet or outlet pressure
-
-    :return dict: A dictionary containing:
-            - "name": name of the component.
-            - "pressure": the inlet or outlet pressure associated with the specified carrier and component.
-            - "type": the type of the component ('Technology' or 'Network').
-            - "existing": 1 if the component is existing; 0 otherwise.
-    """
-    pressure_data = component.performance_data["pressure"]
-    component_name = component.name
-    pressure = ()
-    if direction == "Input":
-        pressure = pressure_data[carrier]["inlet"]
-    elif direction == "Output":
-        pressure = pressure_data[carrier]["outlet"]
-    if isinstance(component, Technology):
-        type = "Technology"
-    elif isinstance(component, Network):
-        type = "Network"
-    return {
-        "name": component_name,
-        "pressure": pressure,
-        "type": type,
-        "existing": component.existing,
-    }
-
-
-def collect_possible_connections_at_node(pressure_data_at_node: dict):
-    """
-    Generates all possible compression connections between output and input components at a given node.
-
-    :param dict pressure_data_at_node: contains all components that can be inputs or outputs for compression
-
-    :return list: containing all possible connection between input and outputs for each node, with necessary information
-    """
-    connection_data_at_node = []
-    for output_i in pressure_data_at_node["outputs"]:
-        for input_i in pressure_data_at_node["inputs"]:
-            connection_data_at_node.append(
-                {
-                    "components": (output_i["name"], input_i["name"]),
-                    "pressure": (output_i["pressure"], input_i["pressure"]),
-                    "type": (output_i["type"], input_i["type"]),
-                    "existing": (output_i["existing"], input_i["existing"]),
-                }
-            )
-
-    return connection_data_at_node
+# Todo: plugin compressor
+# def get_pressure_info(component, carrier: str, direction: str) -> dict:
+#     """
+#     Obtains pressure-related information for a given component, carrier, and flow direction (input/output).
+#
+#     :param component: the component from which to extract pressure data
+#     :param str carrier: the energy carrier for which pressure data is requested
+#     :param str direction: either 'Input' or 'Output', specifying whether to retrieve inlet or outlet pressure
+#
+#     :return dict: A dictionary containing:
+#             - "name": name of the component.
+#             - "pressure": the inlet or outlet pressure associated with the specified carrier and component.
+#             - "type": the type of the component ('Technology' or 'Network').
+#             - "existing": 1 if the component is existing; 0 otherwise.
+#     """
+#     pressure_data = component.performance_data["pressure"]
+#     component_name = component.name
+#     pressure = ()
+#     if direction == "Input":
+#         pressure = pressure_data[carrier]["inlet"]
+#     elif direction == "Output":
+#         pressure = pressure_data[carrier]["outlet"]
+#     if isinstance(component, Technology):
+#         type = "Technology"
+#     elif isinstance(component, Network):
+#         type = "Network"
+#     return {
+#         "name": component_name,
+#         "pressure": pressure,
+#         "type": type,
+#         "existing": component.existing,
+#     }
+#
+#
+# def collect_possible_connections_at_node(pressure_data_at_node: dict):
+#     """
+#     Generates all possible compression connections between output and input components at a given node.
+#
+#     :param dict pressure_data_at_node: contains all components that can be inputs or outputs for compression
+#
+#     :return list: containing all possible connection between input and outputs for each node, with necessary information
+#     """
+#     connection_data_at_node = []
+#     for output_i in pressure_data_at_node["outputs"]:
+#         for input_i in pressure_data_at_node["inputs"]:
+#             connection_data_at_node.append(
+#                 {
+#                     "components": (output_i["name"], input_i["name"]),
+#                     "pressure": (output_i["pressure"], input_i["pressure"]),
+#                     "type": (output_i["type"], input_i["type"]),
+#                     "existing": (output_i["existing"], input_i["existing"]),
+#                 }
+#             )
+#
+#     return connection_data_at_node
 
 
 def check_input_data_consistency(path: Path):
@@ -254,7 +219,7 @@ def check_input_data_consistency(path: Path):
     - is there a network file for each network defined?
     - are there all required files for all networks in the directory?
     - are node directories there?
-    - is ClimateData, CarbonCost for each node there?
+    - is TechnologyData, CarbonCost for each node there?
     - is Technologies.json there?
     - is there a json file for all technologies?
     - is there a carrier file for each defined carrier?
@@ -324,11 +289,6 @@ def check_input_data_consistency(path: Path):
                 check_node_path, f"The node {node} is missing in {check_node_path}"
             )
 
-            # Check if all files are there
-            check_path_existance(
-                check_node_path / "ClimateData.csv",
-                f"ClimateData.csv is missing in {check_node_path}",
-            )
             check_path_existance(
                 check_node_path / "CarbonCost.csv",
                 f"CarbonCost.csv is missing in {check_node_path}",
@@ -388,3 +348,57 @@ def check_input_data_consistency(path: Path):
     log_msg = "Input data folder has been checked successfully - no errors occurred."
     print(log_msg)
     log.info(log_msg)
+
+
+def merge_node_names_and_locations(node_names: list, node_locations: pd.DataFrame) -> dict:
+    """
+    Merges node names and locations into one dict
+
+    :param list node_names:
+    :param pd.DataFrame node_locations:
+    :return dict: merged dict
+    """
+    merged = {}
+    for node in node_names:
+        if node not in node_locations.index:
+            raise ValueError(f"Node {node} defined in Topology.json but not found in NodeLocations.csv")
+        else:
+            merged[node] = node_locations.loc[node, :].to_dict()
+    return merged
+
+
+def get_temporal_information(start_date: str, end_date: str, resolution: str, start_period: int, end_period: int, aggregation: str) -> dict:
+    """
+    Collects temporal information
+
+    Makes:
+    - time index as pd.DatetimeIndex
+    - original number of timesteps as integer
+    - new number of timesteps as integer
+    - fraction of year modelled as float
+    - resolution in hours as float
+    - hours per day as integer
+
+    :param str start_date:
+    :param str end_date:
+    :param str resolution:
+    :param int start_period:
+    :param int end_period:
+    :param str aggregation: Type of temporal aggregation
+    :return dict: dict with temporal information
+    """
+    time_index = pd.date_range(
+        start=start_date,
+        end=end_date,
+        freq=resolution,
+    )
+    temporal_information = {
+        "time_index": time_index[start_period:end_period],
+        "original_number_timesteps": len(time_index),
+        "new_number_timesteps": len(time_index[start_period:end_period]),
+        "fraction_of_year_modelled": len(time_index[start_period:end_period]) / len(time_index),
+        "resolution_in_h": pd.Timedelta(time_index.freq).seconds / 3600,
+        "hours_per_day": int(24 / pd.Timedelta(time_index.freq).seconds / 3600),
+        "aggregation": aggregation
+    }
+    return temporal_information

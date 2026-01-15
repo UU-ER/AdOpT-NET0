@@ -31,21 +31,34 @@ class ModelComponent:
 
 
         # Todo: Remove later
-        self.existing = 0
+        if "existing" in data:
+            self.existing = data["existing"]
+            self.size_initial = data["size_initial"]
+        else:
+            self.existing = 0
+            self.size_initial = None
+
         self.size_min = data["size_min"]
         self.size_max = data["size_max"]
         self.size_is_int = data["size_is_int"]
-        self.size_initial = []
         self.decommission = data["decommission"]
         self.economics = data["Economics"]
         self.performance_data = data["Performance"]
         self.bounds = {"input": {}, "output": {}}
 
 
-    def fit_performance(self, plugin_manager, **kwargs):
+    def fit_performance(self, modelhub, component_id: tuple, **kwargs):
+        """
+        Fits technology performance and writes it to self.
+
+        Implementation in subclasses.
+
+        :param modelhub: model hub
+        :param tuple component_id: component id containing (period, node, component name)
+        """
         pass
 
-    def construct_model(self, plugin_manager, **kwargs):
+    def construct_model(self, model_block, modelhub, set_t_full, set_t_clustered, **kwargs):
         pass
 
 

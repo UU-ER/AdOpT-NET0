@@ -40,8 +40,8 @@
       "heat",
       "electricity"
     ],
-    "emission_factor": 0,
-    "min_part_load": 0.1,
+    "emission_factor": 1,
+    "min_part_load": 0.2,
     "performance": {
       "in": [
         0,

@@ -3,7 +3,8 @@ import logging
 import time
 
 log = logging.getLogger(__name__)
-from adopt_net0.core.utilities import get_set_t, get_data_for_investment_period
+from adopt_net0.core.utilities import get_set_t
+from adopt_net0.plugins.hooks import Hook
 
 
 def delete_all_balances(model):
@@ -38,22 +39,21 @@ def construct_balances(model, modelhub):
     log.info(log_msg)
     start = time.time()
 
-    config = modelhub.data.model_config
-    data = modelhub.data
+    config = modelhub.data["config"]
 
     delete_all_balances(model)
 
     if not config["energybalance"]["copperplate"]["value"]:
-        construct_network_constraints(model, config)
-        construct_nodal_energybalance(model, config)
+        construct_network_constraints(model, modelhub)
+        construct_nodal_energybalance(model, modelhub)
     else:
-        construct_global_energybalance(model, config)
+        construct_global_energybalance(model, modelhub)
 
     if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-        construct_compressor_constrains(model, config)
+        construct_compressor_constrains(model, modelhub)
 
-    construct_emission_balance(model, data)
-    construct_system_cost(model, data)
+    construct_emission_balance(model, modelhub)
+    construct_system_cost(model, modelhub)
     construct_global_balance(model)
 
     log_msg = (
@@ -62,7 +62,7 @@ def construct_balances(model, modelhub):
     print(log_msg)
     log.info(log_msg)
 
-def construct_network_constraints(model, config: dict):
+def construct_network_constraints(model, modelhub):
     """
     Construct the network constraints to calculate nodal in- and outflow
 
@@ -76,6 +76,7 @@ def construct_network_constraints(model, config: dict):
     :param dict config: dict containing model information
     :return: pyomo model
     """
+    config = modelhub.data["config"]
 
     def init_network_constraints(b_netw_const, period):
         """Pyomo rule to generate network constraint block"""
@@ -134,7 +135,7 @@ def construct_network_constraints(model, config: dict):
     )
 
 
-def construct_compressor_constrains(model, config: dict):
+def construct_compressor_constrains(model, modelhub):
     """
     Construct the compressor constraints to calculate inflow and outflow for each compressor.
 
@@ -218,175 +219,178 @@ def construct_compressor_constrains(model, config: dict):
     :param dict config: dict containing model information
     :return: pyomo model
     """
-
-    def init_compressor_constraints(b_compr_const, period, node, car):
-        """Pyomo rule to generate compressor constraint block"""
-        b_period = model.periods[period]
-        b_node = b_period.node_blocks[node]
-        set_t = get_set_t(config, model.periods[period])
-        if car in b_node.set_carriers_compression:
-
-            def init_compr_inflow_tec(const, tec, t):
-                """Define constrain for the flow input to compressor from technology"""
-                if car in b_node.tech_blocks_active[tec].set_output_carriers:
-                    return b_node.tech_blocks_active[tec].var_output[t, car] == sum(
-                        b_node.compressor_blocks_active[compressor].var_flow[t]
-                        for compressor in b_node.set_compressor
-                        if (compressor[0] == car) and (compressor[1] == tec)
-                    )
-                else:
-                    return pyo.Constraint.Skip
-
-            b_compr_const.const_compr_inflow_tec = pyo.Constraint(
-                b_node.set_technologies, set_t, rule=init_compr_inflow_tec
-            )
-
-            def init_compr_inflow_netw(const, netw, t):
-                """Define constrain for the flow input to compressor from network"""
-                if car in b_period.network_block[netw].set_netw_carrier:
-                    relevant_compressors = [
-                        compressor
-                        for compressor in b_node.set_compressor
-                        if (compressor[0] == car) and (compressor[1] == netw)
-                    ]
-                    if not relevant_compressors:
-                        return pyo.Constraint.Skip
-                    return b_period.network_block[netw].var_inflow[t, car, node] == sum(
-                        b_node.compressor_blocks_active[compressor].var_flow[t]
-                        for compressor in relevant_compressors
-                    )
-                else:
-                    return pyo.Constraint.Skip
-
-            b_compr_const.const_compr_inflow_netw = pyo.Constraint(
-                b_period.set_networks, set_t, rule=init_compr_inflow_netw
-            )
-
-            def init_compr_outflow_tec(const, tec, t):
-                """Define constrain for the flow output from compressor to technology"""
-                if car in b_node.tech_blocks_active[tec].set_input_carriers:
-                    return b_node.tech_blocks_active[tec].var_input[t, car] == sum(
-                        b_node.compressor_blocks_active[compressor].var_flow[t]
-                        for compressor in b_node.set_compressor
-                        if (compressor[0] == car) and (compressor[2] == tec)
-                    )
-                else:
-                    return pyo.Constraint.Skip
-
-            b_compr_const.const_compr_outflow_tec = pyo.Constraint(
-                b_node.set_technologies, set_t, rule=init_compr_outflow_tec
-            )
-
-            def init_compr_outflow_netw(const, netw, t):
-                """Define constrain for the flow output from compressor to network"""
-                if car in b_period.network_block[netw].set_netw_carrier:
-                    relevant_compressors = [
-                        compressor
-                        for compressor in b_node.set_compressor
-                        if (compressor[0] == car) and (compressor[2] == netw)
-                    ]
-                    if not relevant_compressors:
-                        return pyo.Constraint.Skip
-                    return b_period.network_block[netw].var_outflow[
-                        t, car, node
-                    ] == sum(
-                        b_node.compressor_blocks_active[compressor].var_flow[t]
-                        for compressor in relevant_compressors
-                    )
-                else:
-                    return pyo.Constraint.Skip
-
-            b_compr_const.const_compr_outflow_netw = pyo.Constraint(
-                b_period.set_networks, set_t, rule=init_compr_outflow_netw
-            )
-
-            def init_compr_outflow_demand(const, t):
-                """Define constrain for the flow output from compressor to demand"""
-                if any(
-                    compressor[0] == car and compressor[2] == "Demand"
-                    for compressor in b_node.set_compressor
-                ):
-                    return b_node.para_demand[t, car] == sum(
-                        b_node.compressor_blocks_active[compressor].var_flow[t]
-                        for compressor in b_node.set_compressor
-                        if (compressor[0] == car) and (compressor[2] == "Demand")
-                    )
-                else:
-                    return pyo.Constraint.Skip
-
-            b_compr_const.const_compr_outflow_demand = pyo.Constraint(
-                set_t, rule=init_compr_outflow_demand
-            )
-
-            def init_compr_outflow_export(const, t):
-                """Define constrain for the flow output from compressor to export"""
-                if any(
-                    compressor[0] == car and compressor[2] == "Export"
-                    for compressor in b_node.set_compressor
-                ):
-                    return b_node.var_export_flow[t, car] == sum(
-                        b_node.compressor_blocks_active[compressor].var_flow[t]
-                        for compressor in b_node.set_compressor
-                        if (compressor[0] == car) and (compressor[2] == "Export")
-                    )
-                else:
-                    return pyo.Constraint.Skip
-
-            b_compr_const.const_compr_outflow_export = pyo.Constraint(
-                set_t, rule=init_compr_outflow_export
-            )
-
-            def init_compr_inflow_import(const, t):
-                """Define constrain for the flow input to compressor from import"""
-                if any(
-                    compressor[0] == car and compressor[2] == "Import"
-                    for compressor in b_node.set_compressor
-                ):
-                    return b_node.var_import_flow[t, car] == sum(
-                        b_node.compressor_blocks_active[compressor].var_flow[t]
-                        for compressor in b_node.set_compressor
-                        if (compressor[0] == car) and (compressor[1] == "Import")
-                    )
-                else:
-                    return pyo.Constraint.Skip
-
-            b_compr_const.const_compr_inflow_import = pyo.Constraint(
-                set_t, rule=init_compr_inflow_import
-            )
-
-            def init_compr_generic_production(const, t):
-                """Define constrain for the flow input to compressor from generic production"""
-                if any(
-                    compressor[0] == car and compressor[2] == "Generic production"
-                    for compressor in b_node.set_compressor
-                ):
-                    return b_node.var_generic_production[t, car] == sum(
-                        b_node.compressor_blocks_active[compressor].var_flow[t]
-                        for compressor in b_node.set_compressor
-                        if (compressor[0] == car)
-                        and (compressor[1] == "Generic production")
-                    )
-                else:
-                    return pyo.Constraint.Skip
-
-            b_compr_const.const_compr_inflow_generic_production = pyo.Constraint(
-                set_t, rule=init_compr_generic_production
-            )
-
-        else:
-            return pyo.Block.Skip
-
-    model.block_compressor_constraints = pyo.Block(
-        model.set_periods,
-        model.set_nodes,
-        model.set_carriers,
-        rule=init_compressor_constraints,
-    )
+    config = modelhub.data["config"]
+    pass
+    # Todo: move to plugin
+    #
+    # def init_compressor_constraints(b_compr_const, period, node, car):
+    #     """Pyomo rule to generate compressor constraint block"""
+    #     b_period = model.periods[period]
+    #     b_node = b_period.node_blocks[node]
+    #     set_t = get_set_t(config, model.periods[period])
+    #     if car in b_node.set_carriers_compression:
+    #
+    #         def init_compr_inflow_tec(const, tec, t):
+    #             """Define constrain for the flow input to compressor from technology"""
+    #             if car in b_node.tech_blocks_active[tec].set_output_carriers:
+    #                 return b_node.tech_blocks_active[tec].var_output[t, car] == sum(
+    #                     b_node.compressor_blocks_active[compressor].var_flow[t]
+    #                     for compressor in b_node.set_compressor
+    #                     if (compressor[0] == car) and (compressor[1] == tec)
+    #                 )
+    #             else:
+    #                 return pyo.Constraint.Skip
+    #
+    #         b_compr_const.const_compr_inflow_tec = pyo.Constraint(
+    #             b_node.set_technologies, set_t, rule=init_compr_inflow_tec
+    #         )
+    #
+    #         def init_compr_inflow_netw(const, netw, t):
+    #             """Define constrain for the flow input to compressor from network"""
+    #             if car in b_period.network_block[netw].set_netw_carrier:
+    #                 relevant_compressors = [
+    #                     compressor
+    #                     for compressor in b_node.set_compressor
+    #                     if (compressor[0] == car) and (compressor[1] == netw)
+    #                 ]
+    #                 if not relevant_compressors:
+    #                     return pyo.Constraint.Skip
+    #                 return b_period.network_block[netw].var_inflow[t, car, node] == sum(
+    #                     b_node.compressor_blocks_active[compressor].var_flow[t]
+    #                     for compressor in relevant_compressors
+    #                 )
+    #             else:
+    #                 return pyo.Constraint.Skip
+    #
+    #         b_compr_const.const_compr_inflow_netw = pyo.Constraint(
+    #             b_period.set_networks, set_t, rule=init_compr_inflow_netw
+    #         )
+    #
+    #         def init_compr_outflow_tec(const, tec, t):
+    #             """Define constrain for the flow output from compressor to technology"""
+    #             if car in b_node.tech_blocks_active[tec].set_input_carriers:
+    #                 return b_node.tech_blocks_active[tec].var_input[t, car] == sum(
+    #                     b_node.compressor_blocks_active[compressor].var_flow[t]
+    #                     for compressor in b_node.set_compressor
+    #                     if (compressor[0] == car) and (compressor[2] == tec)
+    #                 )
+    #             else:
+    #                 return pyo.Constraint.Skip
+    #
+    #         b_compr_const.const_compr_outflow_tec = pyo.Constraint(
+    #             b_node.set_technologies, set_t, rule=init_compr_outflow_tec
+    #         )
+    #
+    #         def init_compr_outflow_netw(const, netw, t):
+    #             """Define constrain for the flow output from compressor to network"""
+    #             if car in b_period.network_block[netw].set_netw_carrier:
+    #                 relevant_compressors = [
+    #                     compressor
+    #                     for compressor in b_node.set_compressor
+    #                     if (compressor[0] == car) and (compressor[2] == netw)
+    #                 ]
+    #                 if not relevant_compressors:
+    #                     return pyo.Constraint.Skip
+    #                 return b_period.network_block[netw].var_outflow[
+    #                     t, car, node
+    #                 ] == sum(
+    #                     b_node.compressor_blocks_active[compressor].var_flow[t]
+    #                     for compressor in relevant_compressors
+    #                 )
+    #             else:
+    #                 return pyo.Constraint.Skip
+    #
+    #         b_compr_const.const_compr_outflow_netw = pyo.Constraint(
+    #             b_period.set_networks, set_t, rule=init_compr_outflow_netw
+    #         )
+    #
+    #         def init_compr_outflow_demand(const, t):
+    #             """Define constrain for the flow output from compressor to demand"""
+    #             if any(
+    #                 compressor[0] == car and compressor[2] == "Demand"
+    #                 for compressor in b_node.set_compressor
+    #             ):
+    #                 return b_node.para_demand[t, car] == sum(
+    #                     b_node.compressor_blocks_active[compressor].var_flow[t]
+    #                     for compressor in b_node.set_compressor
+    #                     if (compressor[0] == car) and (compressor[2] == "Demand")
+    #                 )
+    #             else:
+    #                 return pyo.Constraint.Skip
+    #
+    #         b_compr_const.const_compr_outflow_demand = pyo.Constraint(
+    #             set_t, rule=init_compr_outflow_demand
+    #         )
+    #
+    #         def init_compr_outflow_export(const, t):
+    #             """Define constrain for the flow output from compressor to export"""
+    #             if any(
+    #                 compressor[0] == car and compressor[2] == "Export"
+    #                 for compressor in b_node.set_compressor
+    #             ):
+    #                 return b_node.var_export_flow[t, car] == sum(
+    #                     b_node.compressor_blocks_active[compressor].var_flow[t]
+    #                     for compressor in b_node.set_compressor
+    #                     if (compressor[0] == car) and (compressor[2] == "Export")
+    #                 )
+    #             else:
+    #                 return pyo.Constraint.Skip
+    #
+    #         b_compr_const.const_compr_outflow_export = pyo.Constraint(
+    #             set_t, rule=init_compr_outflow_export
+    #         )
+    #
+    #         def init_compr_inflow_import(const, t):
+    #             """Define constrain for the flow input to compressor from import"""
+    #             if any(
+    #                 compressor[0] == car and compressor[2] == "Import"
+    #                 for compressor in b_node.set_compressor
+    #             ):
+    #                 return b_node.var_import_flow[t, car] == sum(
+    #                     b_node.compressor_blocks_active[compressor].var_flow[t]
+    #                     for compressor in b_node.set_compressor
+    #                     if (compressor[0] == car) and (compressor[1] == "Import")
+    #                 )
+    #             else:
+    #                 return pyo.Constraint.Skip
+    #
+    #         b_compr_const.const_compr_inflow_import = pyo.Constraint(
+    #             set_t, rule=init_compr_inflow_import
+    #         )
+    #
+    #         def init_compr_generic_production(const, t):
+    #             """Define constrain for the flow input to compressor from generic production"""
+    #             if any(
+    #                 compressor[0] == car and compressor[2] == "Generic production"
+    #                 for compressor in b_node.set_compressor
+    #             ):
+    #                 return b_node.var_generic_production[t, car] == sum(
+    #                     b_node.compressor_blocks_active[compressor].var_flow[t]
+    #                     for compressor in b_node.set_compressor
+    #                     if (compressor[0] == car)
+    #                     and (compressor[1] == "Generic production")
+    #                 )
+    #             else:
+    #                 return pyo.Constraint.Skip
+    #
+    #         b_compr_const.const_compr_inflow_generic_production = pyo.Constraint(
+    #             set_t, rule=init_compr_generic_production
+    #         )
+    #
+    #     else:
+    #         return pyo.Block.Skip
+    #
+    # model.block_compressor_constraints = pyo.Block(
+    #     model.set_periods,
+    #     model.set_nodes,
+    #     model.set_carriers,
+    #     rule=init_compressor_constraints,
+    # )
 
     
 
 
-def construct_nodal_energybalance(model, config: dict):
+def construct_nodal_energybalance(model, modelhub):
     """
     Calculates the energy balance for each node and carrier
 
@@ -399,6 +403,7 @@ def construct_nodal_energybalance(model, config: dict):
     :param dict config: dict containing model information
     :return: pyomo model
     """
+    config = modelhub.data["config"]
 
     def init_energybalance(b_ebalance, period):
         b_period = model.periods[period]
@@ -429,19 +434,12 @@ def construct_nodal_energybalance(model, config: dict):
                     if car in node_block.tech_blocks_active[tec].set_input_carriers
                 )
 
-                ccs_output = sum(
-                    node_block.tech_blocks_active[tec].var_output_ccs[t, car]
-                    for tec in node_block.set_technologies
-                    if hasattr(node_block.tech_blocks_active[tec], "var_output_ccs")
-                    if car in node_block.tech_blocks_active[tec].set_output_carriers_ccs
-                )
-
-                ccs_input = sum(
-                    node_block.tech_blocks_active[tec].var_input_ccs[t, car]
-                    for tec in node_block.set_technologies
-                    if hasattr(node_block.tech_blocks_active[tec], "var_input_ccs")
-                    if car in node_block.tech_blocks_active[tec].set_input_carriers_ccs
-                )
+                plugins_add_to_energybalance = modelhub.plugin_manager.emit(Hook.ADD_TO_ENERGYBALANCE,
+                                                                 b_period=b_period,
+                                                                 node=node,
+                                                                 t=t,
+                                                                 carrier=car)
+                delta_plugins = 0 if plugins_add_to_energybalance is None else plugins_add_to_energybalance
 
                 netw_inflow = node_block.var_netw_inflow[t, car]
 
@@ -461,30 +459,30 @@ def construct_nodal_energybalance(model, config: dict):
                 else:
                     violation = 0
 
-                if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                    node_block = b_period.node_blocks[node]
-                    compression_input = sum(
-                        node_block.compressor_blocks_active[
-                            compr
-                        ].var_consumption_energy[t, car]
-                        for compr in node_block.set_compressor
-                        if hasattr(
-                            node_block.compressor_blocks_active[compr],
-                            "var_consumption_energy",
-                        )
-                        if car
-                        in node_block.compressor_blocks_active[
-                            compr
-                        ].set_consumed_carriers
-                    )
-                else:
-                    compression_input = 0
+                # TODO: Move to plugins
+                # if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                #     node_block = b_period.node_blocks[node]
+                #     compression_input = sum(
+                #         node_block.compressor_blocks_active[
+                #             compr
+                #         ].var_consumption_energy[t, car]
+                #         for compr in node_block.set_compressor
+                #         if hasattr(
+                #             node_block.compressor_blocks_active[compr],
+                #             "var_consumption_energy",
+                #         )
+                #         if car
+                #         in node_block.compressor_blocks_active[
+                #             compr
+                #         ].set_consumed_carriers
+                #     )
+                # else:
+                compression_input = 0
 
                 return (
                     tec_output
                     - tec_input
-                    - ccs_input
-                    + ccs_output
+                    + delta_plugins
                     + netw_inflow
                     - netw_outflow
                     - netw_consumption
@@ -509,7 +507,7 @@ def construct_nodal_energybalance(model, config: dict):
     
 
 
-def construct_global_energybalance(model, config):
+def construct_global_energybalance(model, modelhub):
     """
     Calculates the global energy balance for each carrier summed over all nodes
 
@@ -521,6 +519,7 @@ def construct_global_energybalance(model, config):
     :param dict config: dict containing model information
     :return: pyomo model
     """
+    config = modelhub.data["config"]
 
     def init_energybalance(b_ebalance, period):
         b_period = model.periods[period]
@@ -569,6 +568,15 @@ def construct_global_energybalance(model, config):
                 for node in model.set_nodes
             )
 
+            delta_plugins = 0
+            for node in model.set_nodes:
+                add_from_plugins = modelhub.plugin_manager.emit(Hook.ADD_TO_ENERGYBALANCE,
+                                                                 b_period=b_period,
+                                                                 node=node,
+                                                                 t=t,
+                                                                 carrier=car)
+                delta_plugins += 0 if add_from_plugins is None else add_from_plugins
+
             import_flow = sum(
                 b_period.node_blocks[node].var_import_flow[t, car]
                 for node in model.set_nodes
@@ -603,7 +611,7 @@ def construct_global_energybalance(model, config):
                 violation = 0
 
             return (
-                tec_output - tec_input + import_flow - export_flow + violation
+                tec_output - tec_input + import_flow - export_flow + delta_plugins + violation
                 == demand - gen_prod
             )
 
@@ -629,7 +637,7 @@ def construct_global_energybalance(model, config):
     
 
 
-def construct_emission_balance(model, data):
+def construct_emission_balance(model, modelhub):
     """
     Calculates the total postive and negative emissions as well as the net emissions
 
@@ -648,15 +656,14 @@ def construct_emission_balance(model, data):
     :param data: DataHandle
     :return: pyomo model
     """
-    config = data.model_config
+    config = modelhub.data["config"]
 
     def init_emissionbalance(b_emissionbalance, period):
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
 
-        data_period = get_data_for_investment_period(data, period, "full")
-        hour_factors = data_period["hour_factors"]
-        nr_timesteps_averaged = data_period["nr_timesteps_averaged"]
+        hour_factors = modelhub.data["aggregation_info"]["hour_factors"]
+        nr_timesteps_averaged = modelhub.data["aggregation_info"]["nr_timesteps_averaged"]
 
         # calculate total emissions from technologies, networks and importing/exporting carriers
         def init_emissions_pos(const):
@@ -674,6 +681,13 @@ def construct_emission_balance(model, data):
                 )
                 for node in model.set_nodes
             )
+
+            delta_plugins = modelhub.plugin_manager.emit(Hook.ADD_TO_EMISSIONBALANCE,
+                                                            modelhub=modelhub,
+                                                            model=model,
+                                                            period=period)
+            from_retrofits = 0 if delta_plugins is None else delta_plugins
+
             from_carriers = sum(
                 sum(
                     b_period.node_blocks[node].var_car_emissions_pos[t]
@@ -699,7 +713,7 @@ def construct_emission_balance(model, data):
             else:
                 from_networks = 0
             return (
-                from_technologies + from_carriers + from_networks
+                from_technologies + from_carriers + from_networks + from_retrofits
                 == b_period.var_emissions_pos
             )
 
@@ -746,8 +760,7 @@ def construct_emission_balance(model, data):
 
     
 
-
-def construct_import_costs(b_period, data, period: str):
+def construct_import_costs(b_period, modelhub):
     """
     Calculates the total import costs for an investment period
 
@@ -759,13 +772,12 @@ def construct_import_costs(b_period, data, period: str):
     :param str period: investment period to calculate import cost for
     :return: pyomo constraint
     """
-    config = data.model_config
+    config = modelhub.data["config"]
 
     set_t = get_set_t(config, b_period)
 
-    data_period = get_data_for_investment_period(data, period, "full")
-    hour_factors = data_period["hour_factors"]
-    nr_timesteps_averaged = data_period["nr_timesteps_averaged"]
+    hour_factors = modelhub.data["aggregation_info"]["hour_factors"]
+    nr_timesteps_averaged = modelhub.data["aggregation_info"]["nr_timesteps_averaged"]
 
     def init_cost_import(const):
         return b_period.var_cost_imports == sum(
@@ -785,7 +797,7 @@ def construct_import_costs(b_period, data, period: str):
     return pyo.Constraint(rule=init_cost_import)
 
 
-def construct_export_costs(b_period, data, period):
+def construct_export_costs(b_period, modelhub):
     """
     Calculates the total export costs for an investment period
 
@@ -797,13 +809,12 @@ def construct_export_costs(b_period, data, period):
     :param str period: investment period to calculate export cost for
     :return: pyomo constraint
     """
-    config = data.model_config
+    config = modelhub.data["config"]
 
     set_t = get_set_t(config, b_period)
 
-    data_period = get_data_for_investment_period(data, period, "full")
-    hour_factors = data_period["hour_factors"]
-    nr_timesteps_averaged = data_period["nr_timesteps_averaged"]
+    hour_factors = modelhub.data["aggregation_info"]["hour_factors"]
+    nr_timesteps_averaged = modelhub.data["aggregation_info"]["nr_timesteps_averaged"]
 
     def init_cost_export(const):
         return b_period.var_cost_exports == -sum(
@@ -823,7 +834,7 @@ def construct_export_costs(b_period, data, period):
     return pyo.Constraint(rule=init_cost_export)
 
 
-def construct_system_cost(model, data):
+def construct_system_cost(model, modelhub):
     """
     Aggregates costs per investment period
 
@@ -847,33 +858,31 @@ def construct_system_cost(model, data):
     :param dict config: dict containing model information
     :return: pyomo model
     """
-    config = data.model_config
+    config = modelhub.data["config"]
 
     def init_period_cost(b_period_cost, period):
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
 
-        data_period = get_data_for_investment_period(data, period, "full")
-        hour_factors = data_period["hour_factors"]
-        nr_timesteps_averaged = data_period["nr_timesteps_averaged"]
+        hour_factors = modelhub.data["aggregation_info"]["hour_factors"]
+        nr_timesteps_averaged = modelhub.data["aggregation_info"]["nr_timesteps_averaged"]
 
         # Capex Tecs
         def init_cost_capex_tecs(const):
-            return b_period.var_cost_capex_tecs == sum(
+            capex_tecs = sum(
                 sum(
                     b_period.node_blocks[node].tech_blocks_active[tec].var_capex
                     for tec in b_period.node_blocks[node].set_technologies
                 )
-                + sum(
-                    b_period.node_blocks[node].tech_blocks_active[tec].var_capex_ccs
-                    for tec in b_period.node_blocks[node].set_technologies
-                    if hasattr(
-                        b_period.node_blocks[node].tech_blocks_active[tec],
-                        "var_capex_ccs",
-                    )
-                )
                 for node in model.set_nodes
             )
+
+            delta_plugins = modelhub.plugin_manager.emit(Hook.ADD_TO_COSTBALANCE_CAPEX,
+                                                                     model=model,
+                                                                     period=period)
+            capex_retrofits = 0 if delta_plugins is None else delta_plugins
+
+            return b_period.var_cost_capex_tecs == capex_tecs + capex_retrofits
 
         b_period_cost.const_capex_tecs = pyo.Constraint(rule=init_cost_capex_tecs)
 
@@ -896,16 +905,6 @@ def construct_system_cost(model, data):
                     b_period.node_blocks[node].tech_blocks_active[tec].var_opex_variable
                     for tec in b_period.node_blocks[node].set_technologies
                 )
-                + sum(
-                    b_period.node_blocks[node]
-                    .tech_blocks_active[tec]
-                    .var_opex_variable_ccs
-                    for tec in b_period.node_blocks[node].set_technologies
-                    if hasattr(
-                        b_period.node_blocks[node].tech_blocks_active[tec],
-                        "var_opex_variable_ccs",
-                    )
-                )
                 for node in model.set_nodes
             )
 
@@ -914,20 +913,15 @@ def construct_system_cost(model, data):
                     b_period.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
                     for tec in b_period.node_blocks[node].set_technologies
                 )
-                + sum(
-                    b_period.node_blocks[node]
-                    .tech_blocks_active[tec]
-                    .var_opex_fixed_ccs
-                    for tec in b_period.node_blocks[node].set_technologies
-                    if hasattr(
-                        b_period.node_blocks[node].tech_blocks_active[tec],
-                        "var_opex_fixed_ccs",
-                    )
-                )
                 for node in model.set_nodes
             )
 
-            return b_period.var_cost_opex_tecs == tec_opex_fixed + tec_opex_variable
+            delta_plugins = modelhub.plugin_manager.emit(Hook.ADD_TO_COSTBALANCE_OPEX,
+                                                                     model=model,
+                                                                     period=period)
+            opex_retrofits = 0 if delta_plugins is None else delta_plugins
+
+            return b_period.var_cost_opex_tecs == tec_opex_fixed + tec_opex_variable + opex_retrofits
 
         b_period_cost.const_opex_tecs = pyo.Constraint(rule=init_cost_opex_tecs)
 
@@ -951,68 +945,70 @@ def construct_system_cost(model, data):
         b_period_cost.const_opex_netw = pyo.Constraint(rule=init_cost_opex_netws)
 
         # Capex Compressors
-        def init_cost_capex_compression(const):
-            if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                return b_period.var_cost_capex_compress == sum(
-                    sum(
-                        b_period.node_blocks[node]
-                        .compressor_blocks_active[compr]
-                        .var_capex
-                        for compr in b_period.node_blocks[node].set_compressor
-                        if hasattr(
-                            b_period.node_blocks[node].compressor_blocks_active[compr],
-                            "var_capex",
-                        )
-                    )
-                    for node in model.set_nodes
-                )
-            else:
-                return b_period.var_cost_capex_compress == 0
-
-        b_period_cost.const_capex_compress = pyo.Constraint(
-            rule=init_cost_capex_compression
-        )
+        # Todo: move to plugin
+        # def init_cost_capex_compression(const):
+        #     if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+        #         return b_period.var_cost_capex_compress == sum(
+        #             sum(
+        #                 b_period.node_blocks[node]
+        #                 .compressor_blocks_active[compr]
+        #                 .var_capex
+        #                 for compr in b_period.node_blocks[node].set_compressor
+        #                 if hasattr(
+        #                     b_period.node_blocks[node].compressor_blocks_active[compr],
+        #                     "var_capex",
+        #                 )
+        #             )
+        #             for node in model.set_nodes
+        #         )
+        #     else:
+        #         return b_period.var_cost_capex_compress == 0
+        #
+        # b_period_cost.const_capex_compress = pyo.Constraint(
+        #     rule=init_cost_capex_compression
+        # )
 
         # Opex Compressors
-        def init_cost_opex_compression(const):
-            if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                compress_opex_variable = sum(
-                    sum(
-                        b_period.node_blocks[node]
-                        .compressor_blocks_active[compr]
-                        .var_opex_variable
-                        for compr in b_period.node_blocks[node].set_compressor
-                        if hasattr(
-                            b_period.node_blocks[node].compressor_blocks_active[compr],
-                            "var_opex_variable",
-                        )
-                    )
-                    for node in model.set_nodes
-                )
-
-                compress_opex_fixed = sum(
-                    sum(
-                        b_period.node_blocks[node]
-                        .compressor_blocks_active[compr]
-                        .var_opex_fixed
-                        for compr in b_period.node_blocks[node].set_compressor
-                        if hasattr(
-                            b_period.node_blocks[node].compressor_blocks_active[compr],
-                            "var_opex_fixed",
-                        )
-                    )
-                    for node in model.set_nodes
-                )
-                return (
-                    b_period.var_cost_opex_compress
-                    == compress_opex_fixed + compress_opex_variable
-                )
-            else:
-                return b_period.var_cost_opex_compress == 0
-
-        b_period_cost.const_opex_compress = pyo.Constraint(
-            rule=init_cost_opex_compression
-        )
+        # Todo: move to plugin
+        # def init_cost_opex_compression(const):
+        #     if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+        #         compress_opex_variable = sum(
+        #             sum(
+        #                 b_period.node_blocks[node]
+        #                 .compressor_blocks_active[compr]
+        #                 .var_opex_variable
+        #                 for compr in b_period.node_blocks[node].set_compressor
+        #                 if hasattr(
+        #                     b_period.node_blocks[node].compressor_blocks_active[compr],
+        #                     "var_opex_variable",
+        #                 )
+        #             )
+        #             for node in model.set_nodes
+        #         )
+        #
+        #         compress_opex_fixed = sum(
+        #             sum(
+        #                 b_period.node_blocks[node]
+        #                 .compressor_blocks_active[compr]
+        #                 .var_opex_fixed
+        #                 for compr in b_period.node_blocks[node].set_compressor
+        #                 if hasattr(
+        #                     b_period.node_blocks[node].compressor_blocks_active[compr],
+        #                     "var_opex_fixed",
+        #                 )
+        #             )
+        #             for node in model.set_nodes
+        #         )
+        #         return (
+        #             b_period.var_cost_opex_compress
+        #             == compress_opex_fixed + compress_opex_variable
+        #         )
+        #     else:
+        #         return b_period.var_cost_opex_compress == 0
+        #
+        # b_period_cost.const_opex_compress = pyo.Constraint(
+        #     rule=init_cost_opex_compression
+        # )
 
         # Total technology costs
         def init_cost_tecs(const):
@@ -1042,8 +1038,8 @@ def construct_system_cost(model, data):
         b_period_cost.const_cost_compress = pyo.Constraint(rule=init_cost_compress)
 
         # Total import/export cost
-        b_period_cost.const_cost_import = construct_import_costs(b_period, data, period)
-        b_period_cost.const_cost_export = construct_export_costs(b_period, data, period)
+        b_period_cost.const_cost_import = construct_import_costs(b_period, modelhub)
+        b_period_cost.const_cost_export = construct_export_costs(b_period, modelhub)
 
         # Total violation cost
         def init_violation_cost(const):
@@ -1162,7 +1158,7 @@ def construct_system_cost(model, data):
                 + b_period.var_cost_imports
                 + b_period.var_cost_exports
                 + b_period.var_cost_violation
-                + b_period.var_cost_compress
+                # + b_period.var_cost_compress # Todo: move to plugin
                 + b_period.var_carbon_cost
                 - b_period.var_carbon_revenue
                 == b_period.var_cost_total

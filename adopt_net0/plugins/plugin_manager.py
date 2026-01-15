@@ -1,8 +1,9 @@
 from importlib import import_module
-from typing import List
+from typing import List, Dict
 import logging
 import pkgutil
 
+from adopt_net0.plugins.hooks import Hook
 from adopt_net0.plugins.base import Plugin as PluginBase
 
 log = logging.getLogger(__name__)
@@ -13,7 +14,7 @@ class PluginManager:
 
     Responsibilities (minimal):
     - Load plugins listed in a config
-    - Auto-discover plugins under `general_plugins` and `component_plugins`
+    - Auto-discover plugins under `modeling_plugins` and `preprocessing_plugins`
     - Emit hooks to loaded plugins
     """
 
@@ -23,13 +24,13 @@ class PluginManager:
 
     def discover_plugins(self) -> List[str]:
         """
-        Auto-discover plugin modules under general_plugins and component_plugins.
+        Auto-discover plugin modules under modeling_plugins and preprocessing_plugins.
 
         Returns a list of import paths that look like modules exposing a `Plugin` class.
         """
         discovered: List[str] = []
 
-        for sub in ("general_plugins", "component_plugins"):
+        for sub in ("modeling_plugins", "preprocessing_plugins"):
             sub_pkg_name = f"{self.base_package}.{sub}"
 
             try:
@@ -54,9 +55,9 @@ class PluginManager:
 
         return discovered
 
-    def load_from_config(self, plugin_ids: List[str]):
+    def register(self, plugin_ids: dict):
         """
-        Load plugins based on the provided config.
+        Register plugins based on the provided list.
 
         The config may be a list of identifiers
         """
@@ -64,7 +65,8 @@ class PluginManager:
             log.debug("No plugin config provided; skipping")
             return
 
-        for plugin_id in plugin_ids:
+        for plugin_id, plugin_config in plugin_ids.items():
+            plugin_config = plugin_config["config"]
             mod_path = f"{self.base_package}.{plugin_id}"
             if not mod_path:
                 log.warning("Could not resolve plugin identifier: %s", plugin_id)
@@ -72,7 +74,7 @@ class PluginManager:
             try:
                 mod = import_module(mod_path)
                 cls = getattr(mod, "Plugin", None)
-                inst = cls()
+                inst = cls(plugin_config)
                 try:
                     inst.activate()
                 except Exception:
@@ -82,17 +84,28 @@ class PluginManager:
             except Exception:
                 log.exception("Failed loading plugin %s", mod_path)
 
-    def emit(self, hook_name: str, **kwargs):
+    def emit(self, hook: Hook, **kwargs):
         """
-        Call hook `hook_name` on all plugins. One can pass additional arguments via kwargs.
+        Call hook on all plugins. One can pass additional arguments via kwargs.
         """
+        hook_name = hook.value
+
         for p in list(self._plugins):
-            hook = getattr(p, hook_name, None)
-            if callable(hook):
-                try:
-                    hook(**kwargs)
-                except Exception:
-                    log.exception("Plugin %s hook %s failed", getattr(p, "name", p), hook_name)
+            fn = getattr(p, hook_name, None)
+            if callable(fn):
+                return fn(**kwargs)
 
     def get_plugins(self):
         return list(self._plugins)
+
+    def print_plugins(self):
+        available_plugins = self.discover_plugins()
+
+        for p in available_plugins:
+            print(p)
+
+    def deregister_all(self):
+        """
+        Deregister all plugins.
+        """
+        self._plugins.clear()

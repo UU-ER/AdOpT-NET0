@@ -22,11 +22,12 @@ Table of Content
    Installation
    ModellingWorkflow
    CaseStudies
-   ScientificProjects
+   PluginsExtensions
    DataBase
    AdvancedTopics
    SourceCode
    ForDevelopers
+   ScientificProjects
    FAQ
 
 Indices and tables

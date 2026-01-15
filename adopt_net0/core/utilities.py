@@ -1,5 +1,5 @@
 from pyomo.environ import SolverFactory
-
+import pandas as pd
 
 def get_gurobi_parameters(solveroptions: dict):
     """
@@ -54,56 +54,56 @@ def get_set_t(config: dict, model_block):
     elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
         return model_block.set_t_full
 
-
-def get_data_for_investment_period(
-    data, investment_period: str, aggregation_model: str
-) -> dict:
-    """
-    Gets data from DataHandle for specific investement_period. Writes it to a dict.
-
-    :param data: data to use
-    :param str investment_period: investment period
-    :param str aggregation_model: aggregation type
-    :return: data of respective investment period
-    :rtype: dict
-    """
-    data_period = {}
-    data_period["period_name"] = investment_period
-    data_period["topology"] = data.topology
-    data_period["technology_data"] = data.technology_data[investment_period]
-    data_period["time_series"] = data.time_series[aggregation_model].loc[
-        :, investment_period
-    ]
-    data_period["network_data"] = data.network_data[investment_period]
-    data_period["energybalance_options"] = data.energybalance_options[investment_period]
-    data_period["config"] = data.model_config
-    if data.model_config["optimization"]["typicaldays"]["N"]["value"] != 0:
-        data_period["k_means_specs"] = data.k_means_specs[investment_period]
-        # data_period["averaged_specs"] = data.averaged_specs[investment_period]
-    if data.model_config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-        data_period["compressor_data"] = data.compressor_data[investment_period]
-
-    # Hour multiplication factors
-    if data.model_config["optimization"]["typicaldays"]["N"]["value"] == 0:
-        data_period["hour_factors"] = [1] * len(
-            data_period["topology"]["time_index"]["full"]
-        )
-    elif data.model_config["optimization"]["typicaldays"]["method"]["value"] == 1:
-        data_period["hour_factors"] = data_period["k_means_specs"]["factors"]
-    elif data.model_config["optimization"]["typicaldays"]["method"]["value"] == 2:
-        data_period["hour_factors"] = [1] * len(
-            data_period["topology"]["time_index"]["full"]
-        )
-
-    # Nr timesteps averaged
-    if data.model_config["optimization"]["timestaging"]["value"] != 0:
-        data_period["nr_timesteps_averaged"] = data.model_config["optimization"][
-            "timestaging"
-        ]["value"]
-    else:
-        data_period["nr_timesteps_averaged"] = 1
-
-    return data_period
+#
+# def get_data_for_investment_period(
+#     data, investment_period: str, aggregation_model: str
+# ) -> dict:
+#     """
+#     Gets data from DataHandle for specific investement_period. Writes it to a dict.
+#
+#     :param data: data to use
+#     :param str investment_period: investment period
+#     :param str aggregation_model: aggregation type
+#     :return: data of respective investment period
+#     :rtype: dict
+#     """
+#     data_period = {}
+#     data_period["period_name"] = investment_period
+#     data_period["topology"] = data["topology"]
+#     data_period["technology_data"] = data["system_data"]["technology_data"][investment_period]
+#     data_period["time_series"] = data["system_data"]["time_series"].loc[
+#         :, investment_period
+#     ]
+#     data_period["network_data"] = data["system_data"]["network_data"][investment_period]
+#     data_period["node_config"] = data.energybalance_options[investment_period]
+#     data_period["config"] = modelhub.data["config"]
+#     if modelhub.data["config"]["optimization"]["typicaldays"]["N"]["value"] != 0:
+#         data_period["k_means_specs"] = data.k_means_specs[investment_period]
+#         # data_period["averaged_specs"] = data.averaged_specs[investment_period]
+#     if modelhub.data["config"]["performance"]["pressure"]["pressure_on"]["value"] == 1:
+#         data_period["compressor_data"] = data.compressor_data[investment_period]
+#
+#     # Hour multiplication factors
+#     if modelhub.data["config"]["optimization"]["typicaldays"]["N"]["value"] == 0:
+#         data_period["hour_factors"] = [1] * len(
+#             data_period["topology"]["time_index"]["full_resolution"]
+#         )
+#     elif modelhub.data["config"]["optimization"]["typicaldays"]["method"]["value"] == 1:
+#         data_period["hour_factors"] = data_period["k_means_specs"]["factors"]
+#     elif modelhub.data["config"]["optimization"]["typicaldays"]["method"]["value"] == 2:
+#         data_period["hour_factors"] = [1] * len(
+#             data_period["topology"]["time_index"]["full_resolution"]
+#         )
+#
+#     # Nr timesteps averaged
+#     if modelhub.data["config"]["optimization"]["timestaging"]["value"] != 0:
+#         data_period["nr_timesteps_averaged"] = modelhub.data["config"]["optimization"][
+#             "timestaging"
+#         ]["value"]
+#     else:
+#         data_period["nr_timesteps_averaged"] = 1
+#
+#     return data_period
 
 
 def determine_flow_existing_compressors(self, compressor, b_period, node):
@@ -138,14 +138,14 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
         )
     elif type_component[0] == "Import":
         component_output_bound = max(
-            self.data.time_series["full"][period_name][node]["CarrierData"][
+            self.data.time_series["full_resolution"][period_name][node]["CarrierData"][
                 compressor.carrier
             ]["Import limit"]
         )
 
     elif type_component[0] == "Generic production":
         component_output_bound = max(
-            self.data.time_series["full"][period_name][node]["CarrierData"][
+            self.data.time_series["full_resolution"][period_name][node]["CarrierData"][
                 compressor.carrier
             ]["Generic production"]
         )
@@ -167,13 +167,13 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
         )
     elif type_component[1] == "Demand":
         component_input_bound = max(
-            self.data.time_series["full"][period_name][node]["CarrierData"][
+            self.data.time_series["full_resolution"][period_name][node]["CarrierData"][
                 compressor.carrier
             ]["Demand"]
         )
     elif type_component[1] == "Export":
         component_input_bound = max(
-            self.data.time_series["full"][period_name][node]["CarrierData"][
+            self.data.time_series["full_resolution"][period_name][node]["CarrierData"][
                 compressor.carrier
             ]["Export limit"]
         )
@@ -181,3 +181,7 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
     size = min(component_output_bound, component_input_bound)
 
     return size
+
+
+def get_used_timeseries(data: dict) -> pd.DataFrame:
+    return data["time_series_data"][data["aggregation_info"]["time_series_used"]]

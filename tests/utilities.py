@@ -2,19 +2,26 @@ import json
 import random
 from pathlib import Path
 import pandas as pd
-import numpy as np
-from pyomo.core import Objective, minimize
+from pyomo import environ as pyo
+from pyomo.core import Objective, minimize, ConcreteModel, Set, Constraint
 from pyomo.opt import SolverFactory
+import types
 
+from adopt_net0 import copy_technology_data
+from adopt_net0.core.modelhub import ModelHub
 from adopt_net0.core.data_preprocessing.template_creation import (
     initialize_configuration_templates,
     initialize_topology_templates,
 )
-from adopt_net0.core.data_management.handle_input_data import DataHandle
+from adopt_net0.core.data_management.utilities import (
+    get_temporal_information
+)
 from adopt_net0.core.data_preprocessing import (
     create_carrier_data,
     create_carbon_cost_data,
 )
+from adopt_net0.core import create_empty_network_matrix
+from adopt_net0.core.components.utilities import perform_disjunct_relaxation
 
 
 def select_random_list_from_list(ls: list) -> list:
@@ -52,7 +59,7 @@ def save_json(d: dict, folder_path: Path):
         json.dump(d, f, indent=4)
 
 
-def get_topology_data(folder_path: Path) -> (list, list, list):
+def get_topology_data(folder_path: Path) -> (dict[str], dict[str], dict[str]):
     """
     Gets investment periods, nodes and carriers from path
 
@@ -67,228 +74,126 @@ def get_topology_data(folder_path: Path) -> (list, list, list):
     return investment_periods, nodes, carriers
 
 
-def make_climate_data(start_date: str, nr_periods: int = 1) -> pd.DataFrame:
+def make_testing_modelhub(nr_timesteps, nr_nodes: int = 1) -> ModelHub:
     """
-    Makes climate data with random values
+    Makes a model hub for testing
+    """
+    modelhub = ModelHub()
 
-    :param start_date: str in datetime format e.g. 2022-10-03 12:00
-    :param nr_periods: how many periods to use (frequency is always 1h)
-    :return: dataframe with mock climate data
+    #Monkey patch read_data
+    modelhub.read_data = types.MethodType(read_data_patch, modelhub)
+    modelhub.read_data(nr_timesteps, nr_nodes)
+    modelhub.aggregate_data()
+
+    return modelhub
+
+def make_testing_time_series(modelhub: ModelHub) -> pd.DataFrame:
+    """
+    Makes testing time series for a model hub
+
+    :param ModelHub modelhub: model hub
+    :return: time series dataframe
     :rtype: pd.DataFrame
     """
-    timesteps = pd.date_range(
-        start=start_date,
-        periods=nr_periods,
-        freq="1h",
+    data = {}
+
+    carrier_data = create_carrier_data(modelhub.data["topology"]["temporal_information"]["time_index"]).fillna(0).to_dict()
+    carbon_cost = create_carbon_cost_data(modelhub.data["topology"]["temporal_information"]["time_index"]).fillna(0).to_dict()
+
+    for investment_period in modelhub.data["topology"]["investment_periods"]:
+        for node in modelhub.data["topology"]["nodes"]:
+            var = "CarbonCost"
+            carrier = "global"
+            for key in carbon_cost.keys():
+                data[(investment_period, node, var, carrier, key)] = carbon_cost[key]
+            var = "CarrierData"
+            for carrier in modelhub.data["topology"]["carriers"]:
+                for key in carrier_data.keys():
+                    data[(investment_period, node, var, carrier, key)] = carrier_data[key]
+
+    time_series = pd.DataFrame(data)
+    time_series.index = modelhub.data["topology"]["temporal_information"]["time_index"]
+
+    time_series.columns.set_names(
+        ["InvestmentPeriod", "Node", "Key1", "Key2", "Key3"], inplace=True
     )
-    climate_data = pd.DataFrame(
-        index=timesteps,
-        columns=["ghi", "dni", "dhi", "temp_air", "rh", "TestTec_Hydro_Open_inflow"],
-    )
-    climate_data["ghi"] = 152
-    climate_data["dni"] = 162.9
-    climate_data["dhi"] = 112
-    climate_data["temp_air"] = 4
-    climate_data["rh"] = 81
-    climate_data["ws100"] = 6.17
-    climate_data["TestTec_Hydro_Open_inflow"] = 1
 
-    return climate_data
+    return time_series
 
+def read_data_patch(self, nr_timesteps: int, nr_nodes: int):
+    """
+    Monkey patch read data
+    """
+    self.data["topology"] = make_topology_for_testing(nr_timesteps, nr_nodes)
+    self.data["config"] = initialize_configuration_templates()
 
-def read_topology_patch(self):
+    self.data["time_series_data"] = {}
+    self.data["time_series_data"]["full_resolution"] = make_testing_time_series(self)
+
+    self.data["network_data"] = {period: {}
+                                    for period in self.data["topology"]["investment_periods"]
+                                 }
+    self.data["technology_data"] = {period: {
+                                        node: {} for node in self.data["topology"]["nodes"]
+                                        }
+                                            for period in self.data["topology"]["investment_periods"]
+                                    }
+    self.component_constructors = {
+        "network_constructors": {period: {}
+                                    for period in self.data["topology"]["investment_periods"]
+                                 },
+        "technology_constructors": {period: {
+                                        node: {} for node in self.data["topology"]["nodes"]
+                                        }
+                                            for period in self.data["topology"]["investment_periods"]
+                                    }
+    }
+    self.data["config"]["node_config"] = {
+        period: {
+                node: {
+                    carrier: {"curtailment_possible": 0}
+                    for carrier in self.data["topology"]["carriers"]
+                }
+                for node in self.data["topology"]["nodes"]
+            }
+        for period in self.data["topology"]["investment_periods"]
+    }
+
+def make_topology_for_testing(nr_timesteps: int, nr_nodes: int) -> dict:
     """
     Monkey patch topology reading
     """
-    self.topology = initialize_topology_templates()
+    topology = initialize_topology_templates()
 
-    self.topology["time_index"] = {}
-    time_index = pd.date_range(
-        start=self.topology["start_date"],
-        end=self.topology["end_date"],
-        freq=self.topology["resolution"],
+    # get node locations and map to nodes
+    topology["nodes"] = {
+        f"node{i}": {"lon": 0, "lat": 0, "alt": 0}
+        for i in range(1, nr_nodes + 1)
+    }
+    topology["temporal_information"] = get_temporal_information(
+        topology["start_date"],
+        topology["end_date"],
+        topology["resolution"],
+        0,
+        nr_timesteps,
+        "full_resolution"
     )
-    original_number_timesteps = len(time_index)
-    self.topology["time_index"]["full"] = time_index[
-        self.start_period : self.end_period
-    ]
-    new_number_timesteps = len(self.topology["time_index"]["full"])
-    self.topology["fraction_of_year_modelled"] = (
-        new_number_timesteps / original_number_timesteps
-    )
+    return topology
 
 
-def make_data_for_testing(nr_timesteps: int) -> dict:
+def make_data_for_testing(nr_timesteps: int, config_update: dict) -> dict:
     """
-    Makes a dict with config and topology used for testing
+    Makes a data for testing with specified number of time steps
 
     :param int nr_timesteps: Number of time steps
     :return: dict with config and topology
     :rtype: dict
     """
-    # Create DataHandle and monkey patch it
-    dh = DataHandle()
-    dh.start_period = 0
-    dh.end_period = dh.start_period + nr_timesteps
-    dh._read_topology = read_topology_patch.__get__(dh, DataHandle)
-    dh._read_topology()
-
     data = {}
-    data["topology"] = dh.topology
-    data["config"] = initialize_configuration_templates()
-    data["hour_factors"] = nr_timesteps * [1]
-    data["nr_timesteps_averaged"] = 1
-
+    data["topology"] = make_topology_for_testing(nr_timesteps, 1)
+    config_template = initialize_configuration_templates()
+    data["config"] = update_config(config_template, config_update)
     return data
-
-
-def _read_energybalance_options_patch(self):
-    """
-    Monkey patch energy balance options
-    """
-    for investment_period in self.topology["investment_periods"]:
-        self.energybalance_options[investment_period] = {}
-        for node in self.topology["nodes"]:
-            energybalance_options = {
-                carrier: {"curtailment_possible": 0}
-                for carrier in self.topology["carriers"]
-            }
-            self.energybalance_options[investment_period][node] = energybalance_options
-
-
-def _read_time_series_patch(self):
-    """
-    Monkey Patch: Reads time series
-    """
-
-    def replace_nan_in_list(ls: list) -> list:
-        """
-        Replaces nan with zeros and writes warning to logger
-        """
-        if any(np.isnan(x) for x in ls):
-            ls = [0 if np.isnan(x) else x for x in ls]
-            return ls
-        else:
-            return ls
-
-    data = {}
-    for investment_period in self.topology["investment_periods"]:
-        for node in self.topology["nodes"]:
-            # Carbon Costs
-            var = "CarbonCost"
-            carrier = "global"
-            carbon_cost = create_carbon_cost_data(
-                self.topology["time_index"]["full"]
-            ).to_dict(orient="list")
-            for key in carbon_cost.keys():
-                data[(investment_period, node, var, carrier, key)] = (
-                    replace_nan_in_list(carbon_cost[key])
-                )
-
-            # Carrier Data
-            var = "CarrierData"
-            for carrier in self.topology["carriers"]:
-                carrier_data = create_carrier_data(
-                    self.topology["time_index"]["full"]
-                ).to_dict(orient="list")
-                for key in carrier_data.keys():
-                    data[(investment_period, node, var, carrier, key)] = (
-                        replace_nan_in_list(carrier_data[key])
-                    )
-
-    data = pd.DataFrame(data)
-    data = data.iloc[self.start_period : self.end_period]
-    data.index = self.topology["time_index"]["full"]
-    data.columns.set_names(
-        ["InvestmentPeriod", "Node", "Key1", "Carrier", "Key2"], inplace=True
-    )
-    self.time_series["full"] = data
-
-
-def _read_technology_data_patch(self):
-    """
-    Monkey patch read technology data
-    """
-    technology_data = {}
-    for investment_period in self.topology["investment_periods"]:
-        technology_data[investment_period] = {}
-        for node in self.topology["nodes"]:
-            technology_data[investment_period][node] = {}
-
-    self.technology_data = technology_data
-
-
-def _read_network_data_data_patch(self):
-    """
-    Monkey patch read network data
-    """
-    self.network_data = {}
-    for investment_period in self.topology["investment_periods"]:
-        self.network_data[investment_period] = {}
-
-
-def _read_compressor_data_data_patch(self):
-    """
-    Monkey patch read compressor data
-    """
-    compressor_data = {}
-    for investment_period in self.topology["investment_periods"]:
-        compressor_data[investment_period] = {}
-        for node in self.topology["nodes"]:
-            compressor_data[investment_period][node] = {}
-
-    self.compressor_data = compressor_data
-
-
-def read_input_data_patch(self):
-    """
-    Monkey patch read data
-    """
-    self.model_config = initialize_configuration_templates()
-    self._read_topology()
-    self._read_time_series()
-    self._read_energybalance_options()
-    self._read_technology_data()
-    self._read_network_data()
-    self._read_compressor_data()
-
-
-def make_data_handle(nr_timesteps: int, topology=None):
-    """
-    Creates a patched datahandle with:
-    - nr_timesteps specified
-    - two nodes
-    - two investment periods
-    - no technologies
-    - no networks
-
-    :param int nr_timesteps: number of time steps used
-    :param topology: topology
-    :return: mock DataHandle for testing
-    """
-
-    # Create DataHandle and monkey patch it
-    dh = DataHandle()
-
-    if topology is None:
-        dh.topology = initialize_topology_templates()
-    else:
-        dh.topology = topology
-
-    dh._read_topology = read_topology_patch.__get__(dh)
-    dh._read_time_series = _read_time_series_patch.__get__(dh)
-    dh._read_energybalance_options = _read_energybalance_options_patch.__get__(dh)
-    dh._read_technology_data = _read_technology_data_patch.__get__(dh)
-    dh._read_network_data = _read_network_data_data_patch.__get__(dh)
-    dh._read_compressor_data = _read_compressor_data_data_patch.__get__(dh)
-    dh.set_settings = read_input_data_patch.__get__(dh)
-
-    dh.start_period = 0
-    dh.end_period = dh.start_period + nr_timesteps
-    dh.set_settings()
-
-    return dh
-
 
 def update_config(target: dict, update: dict):
     """ "
@@ -307,8 +212,7 @@ def update_config(target: dict, update: dict):
 
     return target
 
-
-def run_model(model, solver: str, objective: str = "capex"):
+def run_model(model, solver_name: str, objective: str = "capex"):
     """
     Runs a model and returns termination condition
 
@@ -317,11 +221,7 @@ def run_model(model, solver: str, objective: str = "capex"):
     :param str objective: objective to optimize
     :return: termination condition for respective model
     """
-    if objective == "capex_tot":
-        model.obj = Objective(
-            expr=model.var_capex + model.var_capex_ccs, sense=minimize
-        )
-    elif objective == "capex":
+    if objective == "capex":
         model.obj = Objective(expr=model.var_capex, sense=minimize)
     elif objective == "emissions":
         model.obj = Objective(
@@ -329,7 +229,256 @@ def run_model(model, solver: str, objective: str = "capex"):
             sense=minimize,
         )
 
-    solver = SolverFactory(solver)
-    solution = solver.solve(model)
+    solver = SolverFactory(solver_name)
+    solution = solver.solve(model, tee=True)
 
     return solution.solver.termination_condition
+
+
+def define_technology(
+    tec_name: str,
+    modelhub,
+    technology_registry,
+    load_path: Path,
+    perf_type: int = None,
+    capex_model: int = None,
+    existing: int = 0,
+    size_initial: float = 0,
+    decommission: str = "impossible",
+    additional_settings: dict = {}
+):
+    """
+    Reads technology data and fits it
+
+    :param str tec_name: name of the technology.
+    :param modelhub: modelhub
+    :param Path load_path: Path to load from
+    :param int perf_type: performance function type (for generic conversion tecs)
+    :param int capex_model: capex model (1,2,3,4)
+    :param int existing: is technology existing or not,
+    :param float size_initial: initial size of existing technology,
+    :param str decommission: type of decommissioning "impossible", "continuous", "only_complete"
+    :param dict additional_settings: dicts with additional settings to update in tec_data
+    :return: Technology class
+    """
+    # Technology Class Creation
+    with open(load_path / (tec_name + ".json")) as json_file:
+        tec_data = json.load(json_file)
+    tec_data["name"] = tec_name
+
+    for setting_name, settings in additional_settings.items():
+        tec_data[setting_name] = settings
+
+    if perf_type:
+        tec_data["Performance"]["performance_function_type"] = perf_type
+    if capex_model:
+        tec_data["Economics"]["capex_model"] = capex_model
+
+    constructor = technology_registry.create(tec_data["tec_type"], tec_data)
+
+    if existing:
+        constructor.existing = existing
+        constructor.size_initial = size_initial
+        constructor.decommission = decommission
+
+    # Technology fitting
+    period = modelhub.data["topology"]["investment_periods"][0]
+    node = list(modelhub.data["topology"]["nodes"].keys())[0]
+    component_id = (period, node)
+    constructor.fit_performance(modelhub, component_id)
+
+    return constructor
+
+
+def construct_tec_model(tec, modelhub, nr_timesteps):
+    """
+    Construct a mock technology model for testing
+
+    :param Technology tec: Technology object.
+    :param int nr_timesteps: Number of timesteps to create climate data for
+    :param int dynamics: if dynamics should be used in mock model
+    :return ConcreteModel m: Pyomo Concrete Model
+    """
+
+    m = ConcreteModel()
+    m.set_t = Set(initialize=list(range(1, nr_timesteps + 1)))
+    m.set_t_full = Set(initialize=list(range(1, nr_timesteps + 1)))
+    # Todo: move to plugins
+    # if dynamics:
+    #     data["config"]["performance"]["dynamics"]["value"] = dynamics
+
+    tec.construct_model(m, modelhub, m.set_t, m.set_t_full)
+    if tec.big_m_transformation_required:
+        perform_disjunct_relaxation(m)
+
+    return m
+
+
+def generate_output_constraint(model, demand: list, output_ratios: dict = None):
+    """
+    Generate an output constraint of a technology model
+
+    :param model: pyomo model
+    :param list demand: list of demand values to use
+    :param output_ratios: output ratios to use
+    :return: pyomo model
+    """
+
+    def init_output_constraint(const, t, car):
+        if output_ratios:
+            if isinstance(output_ratios.get(car), dict):
+                alpha = output_ratios[car]["alpha1"]
+            else:
+                alpha = output_ratios[car]
+            if isinstance(alpha, list):
+                return model.var_output[t, car] >= demand[t - 1] * alpha[0]
+            else:
+                return model.var_output[t, car] == demand[t - 1] * alpha
+        else:
+            return model.var_output[t, car] == demand[t - 1]
+
+    model.test_const_output1 = Constraint(
+        model.set_t, model.set_output_carriers, rule=init_output_constraint
+    )
+
+
+def define_network(
+    load_path: Path,
+    netw_name: str,
+    modelhub,
+    network_registry,
+    bidirectional_network: bool = False,
+    energyconsumption: bool = False,
+    existing: int = 0,
+    size_initial: pd.DataFrame = None,
+    decommission: str = "impossible",
+):
+    """
+    reads TestNetwork from path and creates network object
+
+    :param Path load_path:
+    :param str netw_name:
+    :param modelhub: modelhub
+    :param bool bidirectional_network:
+    :param bool energyconsumption:
+    :return: Network object
+    """
+    with open(load_path / (f"TestNetwork{netw_name}.json")) as json_file:
+        netw_data = json.load(json_file)
+
+    netw_data["name"] = "TestNetwork"
+
+    if bidirectional_network:
+        netw_data["Performance"]["bidirectional_network"] = 1
+        netw_data["Performance"]["bidirectional_network_precise"] = 1
+    else:
+        netw_data["Performance"]["bidirectional_network"] = 0
+
+    if not energyconsumption:
+        netw_data["Performance"]["energyconsumption"] = {}
+
+    netw_matrix = create_empty_network_matrix(modelhub.data["topology"]["nodes"])
+    netw_matrix.loc["node2", "node1"] = 1
+    netw_matrix.loc["node1", "node2"] = 1
+
+    netw_data["connection"] = netw_matrix
+    netw_data["distance"] = netw_matrix
+    if not existing:
+        netw_data["size_max_arcs"] = netw_matrix * 10
+
+    constructor = network_registry.create(netw_data["netw_type"], netw_data)
+
+    if existing:
+        constructor.existing = existing
+        constructor.size_initial = size_initial
+        constructor.decommission = decommission
+
+    return constructor
+
+
+def construct_netw_model(netw, modelhub, nr_timesteps: int):
+    """
+    Construct a mock network model for testing
+
+    :param netw: Network object.
+    :param int nr_timesteps: Number of timesteps to create network model for
+    :return: Pyomo Model
+    """
+    period = modelhub.data["topology"]["investment_periods"][0]
+    component_id = (period)
+    netw.fit_performance(modelhub, component_id)
+
+    m = pyo.ConcreteModel()
+    m.set_t = pyo.Set(initialize=list(range(1, nr_timesteps + 1)))
+    m.set_t_full = pyo.Set(initialize=list(range(1, nr_timesteps + 1)))
+    m.set_nodes = pyo.Set(initialize=list(modelhub.data["topology"]["nodes"].keys()))
+
+    netw.construct_model(m, modelhub, m.set_t, m.set_t_full, set_nodes = m.set_nodes)
+    if netw.big_m_transformation_required:
+        perform_disjunct_relaxation(m)
+
+    return m
+
+
+def generate_size_constraint(
+    model, size: float = None, equality_constraint: bool = False
+):
+    """
+    Adds a constraint on a technology size
+
+    :param model: pyomo model
+    :param float size: value to constrain size to
+    :param equality_constraint: if True, equality constraint, otherwise less-equal
+    :return: pyomo model
+    """
+
+    def init_size_constraint(const):
+        if equality_constraint:
+            return model.var_size == size
+        else:
+            return model.var_size <= size
+
+    model.test_const_size = Constraint(rule=init_size_constraint)
+
+
+def create_plugin_testing_mock_data(data_path: Path, node_name: str, period_name: str, technology:str):
+    """
+    Creates minimal mock input data folder structure for performance_from_climate_data at data_path
+
+    :param Path data_path : directory to use
+    :param str node_name: node name
+    :param str period_name: period name
+    :param str technology: technology name
+    """
+    topology_file = data_path / "Topology.json"
+    topology = {
+        "nodes": [node_name],
+        "investment_periods": [period_name],
+        "carriers": ["electricity"],
+        "start_date": "2022-01-01 00:00",
+        "end_date": "2022-12-31 23:00",
+        "resolution": "1h",
+        "investment_period_length": 1,
+    }
+    with open(topology_file, "w") as f:
+        json.dump(topology, f, indent=4)
+
+    node_locations = pd.DataFrame(
+        index=topology["nodes"], columns=["lon", "lat", "alt"], data=[[4.9, 52, 10]]
+    )
+    node_locations.to_csv(data_path / "NodeLocations.csv", sep=";")
+
+    (data_path / period_name).mkdir(parents=True, exist_ok=True)
+    (data_path / period_name / "node_data" / node_name / "technology_time_series").mkdir(parents=True, exist_ok=True)
+    (data_path / period_name / "node_data" / node_name / "technology_data").mkdir(parents=True, exist_ok=True)
+    technologies = {"existing": {}, "new": [technology]}
+    with open(
+            data_path
+            / period_name
+            / "node_data"
+            / node_name
+            / "Technologies.json",
+            "w",
+    ) as f:
+        json.dump(technologies, f, indent=4)
+    copy_technology_data(data_path)

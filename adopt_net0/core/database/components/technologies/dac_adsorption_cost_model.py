@@ -1,30 +1,31 @@
+"""
+DAC (Adsorption)
+
+Possible options are:
+
+If source = "Sievert"
+
+- cost model is based on Sievert, K., Schmidt, T. S., & Steffen, B. (2024). Considering technology characteristics to project future costs of direct air capture. Joule, 8(4), 979-999,  https://doi.org/10.1016/j.joule.2024.02.005.
+- cumulative_capacity_installed_t_per_a: total global installed capturing capacity in t/a. Determines the cost reduction due to learning.
+- average_productivity_per_module_kg_per_h: average productivity of a DAC module in kg/h (default is at 20 degree, 43% humidity)
+- capacity_factor: used to calculate levelized cost of removal
+
+Financial indicators are:
+
+- module_capex in [currency]/module
+- fixed capex as fraction of annualized capex
+- variable opex in [currency]/ton
+- levelized cost in [currency]/ton without energy costs
+- lifetime in years
+"""
+
+
 from .utilities import Dac_sievert
 from adopt_net0.core.database.utilities import convert_currency
 from adopt_net0.core.database.data_component import DataComponent_CostModel
 
 
 class Dac_SolidSorbent_CostModel(DataComponent_CostModel):
-    """
-    DAC (Adsorption)
-
-    Possible options are:
-
-    If source = "Sievert"
-
-    - cost model is based on Sievert, K., Schmidt, T. S., & Steffen, B. (2024). Considering technology characteristics to project future costs of direct air capture. Joule, 8(4), 979-999,  https://doi.org/10.1016/j.joule.2024.02.005.
-    - cumulative_capacity_installed_t_per_a: total global installed capturing capacity in t/a. Determines the cost reduction due to learning.
-    - average_productivity_per_module_kg_per_h: average productivity of a DAC module in kg/h (default is at 20 degree, 43% humidity)
-    - capacity_factor: used to calculate levelized cost of removal
-
-    Financial indicators are:
-
-    - module_capex in [currency]/module
-    - fixed capex as fraction of annualized capex
-    - variable opex in [currency]/ton
-    - levelized cost in [currency]/ton without energy costs
-    - lifetime in years
-    """
-
     def __init__(self, tec_name):
         super().__init__(tec_name)
         # Default options:

@@ -1,7 +1,7 @@
 from adopt_net0.core.components.utilities import perform_disjunct_relaxation
 
 
-def construct_technology_block(b_tec, data: dict, set_t_full, set_t_clustered):
+def construct_technology_block(b_tec, modelhub, period, node, set_t_full, set_t_clustered):
     """
     Construct technology block and performs disjunct relaxation if required
 
@@ -11,10 +11,11 @@ def construct_technology_block(b_tec, data: dict, set_t_full, set_t_clustered):
     :param set_t_clustered: pyomo set containing clustered timesteps
     :return: pyomo block with technology model
     """
+    # Collect data for node and period
     tec = b_tec.index()
-    technology = data["technology_data"][tec]
-    b_tec = technology.construct_model(b_tec, data, set_t_full, set_t_clustered)
-    if technology.big_m_transformation_required:
-        b_tec = perform_disjunct_relaxation(b_tec)
+    technology_constructor = modelhub.component_constructors["technology_constructors"][period][node][tec]
+    technology_constructor.construct_model(b_tec, modelhub, set_t_full, set_t_clustered)
+    if technology_constructor.big_m_transformation_required:
+        perform_disjunct_relaxation(b_tec)
 
-    return b_tec
+

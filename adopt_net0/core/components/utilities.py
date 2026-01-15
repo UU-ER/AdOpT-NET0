@@ -103,7 +103,6 @@ def perform_disjunct_relaxation(model_block, method: str = "gdp.bigm"):
 
     print(log_msg)
     log.info(log_msg)
-    return model_block
 
 
 def read_dict_value(dict: dict, key: str) -> str | int | float:
@@ -194,3 +193,21 @@ def get_attribute_from_dict(d: dict, key: str, value_other) -> str | float:
         return d[key]
     else:
         return value_other
+
+
+def set_capex_model(config: dict, economics) -> int:
+    """
+    Sets the capex model of a technology
+
+    Takes either the global capex model or the model defined in respective technology
+    :param dict config: dict containing model information
+    :param economics: Economics class
+    :return: CAPEX model
+    :rtype: int
+    """
+    capex_model = economics["capex_model"]
+    if capex_model != 4:
+        if config["economic"]["global_simple_capex_model"]["value"]:
+            capex_model = 1
+
+    return capex_model

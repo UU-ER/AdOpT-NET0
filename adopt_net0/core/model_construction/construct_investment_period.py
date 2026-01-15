@@ -1,10 +1,12 @@
-from pyomo.environ import Set, RangeSet, Var
+from pyomo.environ import Set, Var
 import logging
+
+
 
 log = logging.getLogger(__name__)
 
 
-def construct_investment_period_block(b_period, data: dict):
+def construct_investment_period_block(b_period, modelhub):
     """
     SETS
     - set_networks: Set of networks for investment period
@@ -44,9 +46,8 @@ def construct_investment_period_block(b_period, data: dict):
 
     # PREPROCESSING
     investment_period = b_period.index()
-    config = data["config"]
-    topology = data["topology"]
-    network_data = data["network_data"]
+    network_data = modelhub.data["network_data"][investment_period]
+    aggregation_info = modelhub.data["aggregation_info"]
 
     # LOG
     log_msg = f"Constructing Investment Period {investment_period}"
@@ -55,25 +56,27 @@ def construct_investment_period_block(b_period, data: dict):
 
     # SETS
     b_period.set_networks = Set(initialize=list(network_data.keys()))
+    b_period.set_t_full = Set(initialize=aggregation_info["time_indexes"]["set_t_full"][investment_period])
+    b_period.set_t_clustered = Set(initialize=aggregation_info["time_indexes"]["set_t_clustered"][investment_period])
 
-    # TIME PERIODS
-    if config["optimization"]["typicaldays"]["N"]["value"] == 0:
-        # No clustering
-        if config["optimization"]["timestaging"]["value"] == 0:
-            # no averaging
-            b_period.set_t_full = RangeSet(1, len(topology["time_index"]["full"]))
-            b_period.set_t_clustered = RangeSet(1, len(topology["time_index"]["full"]))
-        else:
-            # first stage averaging
-            b_period.set_t_full = RangeSet(1, len(topology["time_index"]["averaged"]))
-            b_period.set_t_clustered = RangeSet(
-                1, len(topology["time_index"]["averaged"])
-            )
-
-    else:
-        # Method 1 and 2
-        b_period.set_t_full = RangeSet(1, len(topology["time_index"]["full"]))
-        b_period.set_t_clustered = RangeSet(1, len(topology["time_index"]["clustered"]))
+    # Todo: move this to aggregation!
+    # if config["optimization"]["typicaldays"]["N"]["value"] == 0:
+    #     # No clustering
+    #     if config["optimization"]["timestaging"]["value"] == 0:
+    #         # no averaging
+    #         b_period.set_t_full = RangeSet(1, len(topology["temporal_information"]["time_index"]["full_resolution"]))
+    #         b_period.set_t_clustered = RangeSet(1, len(topology["time_index"]["full_resolution"]))
+    #     else:
+    #         # first stage averaging
+    #         b_period.set_t_full = RangeSet(1, len(topology["time_index"]["averaged"]))
+    #         b_period.set_t_clustered = RangeSet(
+    #             1, len(topology["time_index"]["averaged"])
+    #         )
+    #
+    # else:
+    #     # Method 1 and 2
+    #     b_period.set_t_full = RangeSet(1, len(topology["time_index"]["full_resolution"]))
+    #     b_period.set_t_clustered = RangeSet(1, len(topology["time_index"]["clustered"]))
 
     # VARIABLES
     b_period.var_cost_capex_tecs = Var()
@@ -100,4 +103,3 @@ def construct_investment_period_block(b_period, data: dict):
     print(log_msg)
     log.warning(log_msg)
 
-    return b_period

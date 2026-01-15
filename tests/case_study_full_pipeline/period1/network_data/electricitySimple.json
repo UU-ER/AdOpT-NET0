@@ -1,5 +1,4 @@
 {
-  "network_type": "electricity",
   "size_is_int": 0,
   "capex_defined_per_arc": 0,
   "size_max_defined_per_arc": 0,
@@ -20,7 +19,7 @@
   },
   "Performance": {
     "carrier": "electricity",
-    "bidirectional_network": 0,
+    "bidirectional_network": 1,
     "loss": 0,
     "min_transport": 0,
     "loss2emissions": 0,

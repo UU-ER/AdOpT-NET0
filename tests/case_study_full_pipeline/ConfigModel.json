@@ -215,7 +215,7 @@
     "energybalance": {
         "violation": {
             "description": "Determines the energy balance violation price (-1 is no violation allowed).",
-            "value": 100
+            "value": -1
         },
         "copperplate": {
             "description": "Determines if a copperplate approach is used.",

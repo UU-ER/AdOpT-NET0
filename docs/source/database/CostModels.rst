@@ -71,7 +71,7 @@ Examplary use:
    td.write_json(tec, PATH, options)
 
 
-.. automodule:: adopt_net0.database.technology_database
+.. automodule:: adopt_net0.core.database.technology_database
     :members: help, write_json, calculate_indicators
 
 
@@ -80,7 +80,7 @@ Detailed technology cost models
 
 **Photovoltaic**
 
-.. automodule:: adopt_net0.database.components.technologies.pv_cost_model
+.. automodule:: adopt_net0.core.database.components.technologies.pv_cost_model
 
 .. autoclass:: PV_CostModel
    :undoc-members:
@@ -88,7 +88,7 @@ Detailed technology cost models
 
 **Wind energy**
 
-.. automodule:: adopt_net0.database.components.technologies.wind_cost_model
+.. automodule:: adopt_net0.core.database.components.technologies.wind_cost_model
 
 .. autoclass:: WindEnergy_CostModel
    :undoc-members:
@@ -96,7 +96,7 @@ Detailed technology cost models
 
 **Heat Pump**
 
-.. automodule:: adopt_net0.database.components.technologies.heat_pump_cost_model
+.. automodule:: adopt_net0.core.database.components.technologies.heat_pump_cost_model
 
 .. autoclass:: HeatPump_CostModel
    :undoc-members:
@@ -104,7 +104,7 @@ Detailed technology cost models
 
 **Solid Sorbent Direct Air Capture**
 
-.. automodule:: adopt_net0.database.components.technologies.dac_adsorption_cost_model
+.. automodule:: adopt_net0.core.database.components.technologies.dac_adsorption_cost_model
 
 .. autoclass:: Dac_SolidSorbent_CostModel
    :undoc-members:
@@ -112,7 +112,7 @@ Detailed technology cost models
 
 **CO2 compression**
 
-.. automodule:: adopt_net0.database.components.technologies.co2_compression_cost_model
+.. automodule:: adopt_net0.core.database.components.technologies.co2_compression_cost_model
 
 .. autoclass:: CO2_Compression_CostModel
    :undoc-members:
@@ -123,7 +123,7 @@ Detailed network cost models
 
 **CO2 pipeline**
 
-.. automodule:: adopt_net0.database.components.networks.co2_pipelines_cost_model
+.. automodule:: adopt_net0.core.database.components.networks.co2_pipelines_cost_model
 
 .. autoclass:: CO2_Pipeline_CostModel
    :undoc-members:

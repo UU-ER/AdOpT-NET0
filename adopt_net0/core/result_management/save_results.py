@@ -1,16 +1,19 @@
 import h5py
 from pathlib import Path
 import os
+import pyomo.environ as pyo
 from pyomo.environ import ConcreteModel
+from pyomo.core.base.var import VarData
 
-from adopt_net0.core.utilities import get_set_t, get_data_for_investment_period
+from adopt_net0.core.utilities import get_set_t
+from adopt_net0.plugins.hooks import Hook
 
 import logging
 
 log = logging.getLogger(__name__)
 
 
-def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> dict:
+def get_summary(model, solution, folder_path: Path, model_info: dict, modelhub) -> dict:
     """
     Retrieves all variable values relevant for the summary of an optimization run.
 
@@ -89,12 +92,16 @@ def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> d
         b_period = model.periods[period]
         set_t = get_set_t(config, b_period)
 
-        data_period = get_data_for_investment_period(
-            data, period, model_info["aggregation_model"]
-        )
+        hour_factors = modelhub.data["aggregation_info"]["hour_factors"]
 
-        hour_factors = data_period["hour_factors"]
-        nr_timesteps_averaged = data_period["nr_timesteps_averaged"]
+        nr_timesteps_averaged = modelhub.data["aggregation_info"]["nr_timesteps_averaged"]
+
+        add_from_plugins = modelhub.plugin_manager.emit(Hook.ADD_TO_EMISSIONBALANCE,
+                                                           modelhub=modelhub,
+                                                           model=model,
+                                                           period=period)
+
+        from_retrofits = 0 if add_from_plugins is None else pyo.value(add_from_plugins)
 
         from_technologies[period] = sum(
             sum(
@@ -110,7 +117,7 @@ def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> d
                 for tec in b_period.node_blocks[node].set_technologies
             )
             for node in model.set_nodes
-        )
+        ) + from_retrofits
 
         from_technologies_neg[period] = sum(
             sum(
@@ -210,7 +217,7 @@ def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> d
     return summary_dict
 
 
-def write_optimization_results_to_h5(model, solution, model_info: dict, data) -> dict:
+def write_optimization_results_to_h5(model, solution, model_info: dict, modelhub) -> dict:
     """
     Collects the results from the model blocks and writes them to an HDF5 file
 
@@ -251,7 +258,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
     h5_file_path = os.path.join(folder_path, "optimization_results.h5")
     with h5py.File(h5_file_path, mode="w") as f:
 
-        summary_dict = get_summary(model, solution, folder_path, model_info, data)
+        summary_dict = get_summary(model, solution, folder_path, model_info, modelhub)
 
         # SUMMARY [g]: convert dictionary to h5 datasets
         summary = f.create_group("summary")
@@ -265,12 +272,12 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
         # TIME AGGREGATION INFORMATION [g]:
         # K-means specs
         k_means_specs = f.create_group("k_means_specs")
-        for investment_period in data.k_means_specs:
-            k_means_specs_period = k_means_specs.create_group(investment_period)
-            for key in data.k_means_specs[investment_period]:
-                k_means_specs_period.create_dataset(
-                    key, data=data.k_means_specs[investment_period][key]
-                )
+        # for investment_period in modelhub.k_means_specs:
+        #     k_means_specs_period = k_means_specs.create_group(investment_period)
+        #     for key in modelhub.k_means_specs[investment_period]:
+        #         k_means_specs_period.create_dataset(
+        #             key, data=modelhub.k_means_specs[investment_period][key]
+        #         )
 
         # Topology Information
         topology = f.create_group("topology")
@@ -294,8 +301,8 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                 for netw_name in b_period.set_networks:
                     netw_specific_group = g_period_netw_design.create_group(netw_name)
                     b_netw = b_period.network_block[netw_name]
-                    data.network_data[period][netw_name].write_results_netw_design(
-                        netw_specific_group, b_netw, config, data
+                    modelhub.component_constructors["network_constructors"][period][netw_name].write_results_netw_design(
+                        netw_specific_group, b_netw, config, modelhub
                     )
 
         # TIME-INDEPENDENT RESULTS: NODES [g]
@@ -311,21 +318,27 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                 for tec_name in b_node.set_technologies:
                     tec_group = node_specific_group.create_group(tec_name)
                     b_tec = b_node.tech_blocks_active[tec_name]
-                    data.technology_data[period][node_name][
-                        tec_name
-                    ].write_results_tec_design(tec_group, b_tec)
+                    technology_constructor = modelhub.component_constructors["technology_constructors"][period][node_name][tec_name]
+                    technology_constructor.write_results_tec_design(tec_group, b_tec)
 
-                if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                    for compr_name in b_node.set_compressor:
-                        b_compr = b_node.compressor_blocks_active[compr_name]
-                        compressor = data.compressor_data[period][node_name][compr_name]
-                        if compressor.compression_active == 1:
-                            compr_group = node_specific_group.create_group(
-                                compressor.name_compressor
-                            )
-                            compressor.write_results_compressor_design(
-                                compr_group, b_compr
-                            )
+                    modelhub.plugin_manager.emit(Hook.TECHNOLOGY_RESULTS_WRITING_DESIGN,
+                                                 technology_constructor=technology_constructor,
+                                                 b_tec=b_tec,
+                                                 h5_group=tec_group,
+                                                 )
+
+                # Todo: to plugins
+                # if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                #     for compr_name in b_node.set_compressor:
+                #         b_compr = b_node.compressor_blocks_active[compr_name]
+                #         compressor = modelhub.compressor_data[period][node_name][compr_name]
+                #         if compressor.compression_active == 1:
+                #             compr_group = node_specific_group.create_group(
+                #                 compressor.name_compressor
+                #             )
+                #             compressor.write_results_compressor_design(
+                #                 compr_group, b_compr
+                #             )
 
         # TIME-DEPENDENT RESULTS (operation) [g]
         operation = f.create_group("operation")
@@ -342,7 +355,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                         netw_name
                     )
                     b_netw = b_period.network_block[netw_name]
-                    data.network_data[period][netw_name].write_results_netw_operation(
+                    modelhub.component_constructors["network_constructors"][period][netw_name].write_results_netw_operation(
                         netw_specific_group, b_netw
                     )
 
@@ -358,21 +371,27 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                 for tec_name in b_node.set_technologies:
                     tec_group = node_specific_group.create_group(tec_name)
                     b_tec = b_node.tech_blocks_active[tec_name]
-                    data.technology_data[period][node_name][
-                        tec_name
-                    ].write_results_tec_operation(tec_group, b_tec)
+                    technology_constructor = modelhub.component_constructors["technology_constructors"][period][node_name][tec_name]
 
-                if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                    for compr_name in b_node.set_compressor:
-                        b_compr = b_node.compressor_blocks_active[compr_name]
-                        compressor = data.compressor_data[period][node_name][compr_name]
-                        if compressor.compression_active == 1:
-                            compr_group = node_specific_group.create_group(
-                                compressor.name_compressor
-                            )
-                            compressor.write_results_compressor_operation(
-                                compr_group, b_compr
-                            )
+                    technology_constructor.write_results_tec_operation(tec_group, b_tec)
+
+                    modelhub.plugin_manager.emit(Hook.TECHNOLOGY_RESULTS_WRITING_OPERATION,
+                                                 technology_constructor=technology_constructor,
+                                                 b_tec=b_tec,
+                                                 h5_group=tec_group,
+                                                 )
+                # Todo: move to plugins
+                # if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                #     for compr_name in b_node.set_compressor:
+                #         b_compr = b_node.compressor_blocks_active[compr_name]
+                #         compressor = modelhub.data.compressor_data[period][node_name][compr_name]
+                #         if compressor.compression_active == 1:
+                #             compr_group = node_specific_group.create_group(
+                #                 compressor.name_compressor
+                #             )
+                #             compressor.write_results_compressor_operation(
+                #                 compr_group, b_compr
+                #             )
 
         # ENERGY BALANCE [g] > within: node > specific carrier [g]
         ebalance_group = operation.create_group("energy_balance")
@@ -413,39 +432,17 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                         "technology_outputs", data=technology_outputs
                     )
 
-                    ccs_output = [
-                        sum(
-                            node_data.tech_blocks_active[tec]
-                            .var_output_ccs[t, car]
-                            .value
-                            for tec in node_data.set_technologies
-                            if hasattr(
-                                node_data.tech_blocks_active[tec], "var_output_ccs"
-                            )
-                            if car
-                            in node_data.tech_blocks_active[tec].set_output_carriers_ccs
-                        )
-                        for t in set_t
-                    ]
+                    add_from_plugins = 0
+                    for t in set_t:
+                        add_from_plugins += modelhub.plugin_manager.emit(Hook.ADD_TO_ENERGYBALANCE,
+                                                                            b_period=b_period,
+                                                                            node=node_name,
+                                                                            t=t,
+                                                                            carrier=car)
 
-                    car_group.create_dataset("technology_outputs_ccs", data=ccs_output)
+                    from_retrofits = 0 if add_from_plugins is None else pyo.value(add_from_plugins)
 
-                    ccs_input = [
-                        sum(
-                            node_data.tech_blocks_active[tec]
-                            .var_input_ccs[t, car]
-                            .value
-                            for tec in node_data.set_technologies
-                            if hasattr(
-                                node_data.tech_blocks_active[tec], "var_input_ccs"
-                            )
-                            if car
-                            in node_data.tech_blocks_active[tec].set_input_carriers_ccs
-                        )
-                        for t in set_t
-                    ]
-
-                    car_group.create_dataset("technology_inputs_ccs", data=ccs_input)
+                    car_group.create_dataset("delta_output_retrofits", data=from_retrofits)
 
                     car_group.create_dataset(
                         "generic_production",
@@ -483,28 +480,29 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                             "network_consumption", data=network_consumption
                         )
 
-                    if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                        compression_input = [
-                            sum(
-                                node_data.compressor_blocks_active[compr]
-                                .var_consumption_energy[t, car]
-                                .value
-                                for compr in node_data.set_compressor
-                                if hasattr(
-                                    node_data.compressor_blocks_active[compr],
-                                    "var_consumption_energy",
-                                )
-                                if car
-                                in node_data.compressor_blocks_active[
-                                    compr
-                                ].set_consumed_carriers
-                            )
-                            for t in set_t
-                        ]
-
-                        car_group.create_dataset(
-                            "compressor_input", data=compression_input
-                        )
+                    # Todo: move to plugins
+                    # if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
+                    #     compression_input = [
+                    #         sum(
+                    #             node_data.compressor_blocks_active[compr]
+                    #             .var_consumption_energy[t, car]
+                    #             .value
+                    #             for compr in node_data.set_compressor
+                    #             if hasattr(
+                    #                 node_data.compressor_blocks_active[compr],
+                    #                 "var_consumption_energy",
+                    #             )
+                    #             if car
+                    #             in node_data.compressor_blocks_active[
+                    #                 compr
+                    #             ].set_consumed_carriers
+                    #         )
+                    #         for t in set_t
+                    #     ]
+                    #
+                    #     car_group.create_dataset(
+                    #         "compressor_input", data=compression_input
+                    #     )
 
                     car_group.create_dataset(
                         "import",

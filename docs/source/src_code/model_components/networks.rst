@@ -3,8 +3,16 @@
 Networks
 =====================================
 
+Networks models available are:
+
+.. contents::
+   :local:
+   :depth: 2
+
+Not that the plugin :ref:`custom networks <plugin_custom_networks>` allows to add user-defined network
+models.
+
 The network class is a subclass of the ModelComponent class.
-Furthermore, the network class has different subclasses that model different types of networks (fluid, electricity, simple).
 An overview of all networks that are currently modelled, along with their respective types, can be found
 :ref:`here <network_list>`.
 
@@ -29,23 +37,15 @@ enforced:
     - With ``bidirectional_network_precise = 0`` this is enforced with a cut, thus
       not completly eliminating a flow in both directions at the same time.
 
-Network Class
--------------------------------------------------------------
-As mentioned, the network class is a subclass of the ModelComponent class. In general, all network subclasses
-share the equations of this class, though some exceptions are there for specific technologies (the subclass then
-overwrites the class method).
+Any network is a subclass of the :class:`Network` class, which is subclass of the ModelComponent class. In general, all network
+subclasses share the equations of this class.
 
-.. automodule:: adopt_net0.components.networks.network
+.. automodule:: adopt_net0.core.components.network
     :members: Network
 
-Generic Network
+Simple Network
 --------------------------------
-.. automodule:: adopt_net0.components.networks.genericNetworks.fluid
-    :members: Fluid
 
-.. automodule:: adopt_net0.components.networks.genericNetworks.electricity
-    :members: Electricity
-
-.. automodule:: adopt_net0.components.networks.genericNetworks.simple
+.. automodule:: adopt_net0.core.components.networks.simple
     :members: Simple
 

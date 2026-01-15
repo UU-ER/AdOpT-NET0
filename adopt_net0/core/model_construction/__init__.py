@@ -15,4 +15,3 @@ from .construct_balances import (
     construct_import_costs,
 )
 from .construct_nodes import construct_node_block
-from .utilities import get_data_for_node

@@ -82,7 +82,7 @@ The module ``template_creation.py`` is used to create templates for the model co
 Explanation on the methods for these can be found :ref:`here for the model templates <workflow_create-model-templates>` and
 :ref:`here for the input data templates <workflow_create-data-templates>`.
 
-.. automodule:: adopt_net0.data_preprocessing.template_creation
+.. automodule:: adopt_net0.core.data_preprocessing.template_creation
     :members:
     :exclude-members:
 
@@ -93,7 +93,7 @@ The module ``data_loading.py`` is used to load data into your input data folder 
 from the repository of this model, or from external datasets). Explanation on which method is useful for which datatype
 can be found :ref:`here <workflow_load-data>`.
 
-.. automodule:: adopt_net0.data_preprocessing.data_loading
+.. automodule:: adopt_net0.core.data_preprocessing.data_loading
     :members:
     :exclude-members:
 

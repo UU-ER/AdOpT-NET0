@@ -8,6 +8,8 @@ class Plugin:
 
     name = "base"
 
+    hooks = set()
+
     def __init__(self, config: dict | None = None):
         self.config = config or {}
 

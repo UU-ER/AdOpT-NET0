@@ -28,7 +28,7 @@ Note: See a complete documentation of all template creation functions in the
 :ref:`source code documentation<src-code_data-preparation>`. There, you can also view
 a tree diagram on how a complete input data directory looks like.
 
-.. automodule:: adopt_net0.data_preprocessing.template_creation
+.. automodule:: adopt_net0.core.data_preprocessing.template_creation
     :members: create_optimization_templates
     :exclude-members:
 

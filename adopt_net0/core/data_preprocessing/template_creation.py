@@ -31,27 +31,21 @@ def create_carbon_cost_data(timesteps: pd.date_range) -> pd.DataFrame:
     return carbon_cost
 
 
-def create_climate_data(timesteps: pd.date_range) -> pd.DataFrame:
+def create_technology_time_series(timesteps: pd.date_range) -> pd.DataFrame:
     """
-    Creates a data frame with climate data
+    Creates a data frame with time-resolved technology data
 
     :param pd.date_range timesteps: timesteps used as index
-    :return: Data frame with two columns "ghi", "dni", "dhi", "temp_air", "rh", "ws10", "TECHNOLOGYNAME_hydro_inflow"
+    :return: Data frame with an exemplary column
     :rtype: pd.DataFrame
     """
-    climate_data = pd.DataFrame(
+    technology_time_series = pd.DataFrame(
         index=timesteps,
         columns=[
-            "ghi",
-            "dni",
-            "dhi",
-            "temp_air",
-            "rh",
-            "ws10",
-            "TECHNOLOGYNAME_hydro_inflow",
+            "hydro_inflow",
         ],
     )
-    return climate_data
+    return technology_time_series
 
 
 def create_carrier_data(timesteps: pd.date_range) -> pd.DataFrame:
@@ -114,22 +108,23 @@ def create_input_data_folder_template(base_path: Path | str):
         carrier: {"curtailment_possible": 0} for carrier in topology["carriers"]
     }
 
-    if configuration["performance"]["pressure"]["pressure_on"]["value"] == 1:
-        pressure_exchange_data = {
-            carrier: {
-                "Demand": {"value": "", "unit": "bar"},
-                "Export": {"value": "", "unit": "bar"},
-                "Import": {"value": "", "unit": "bar"},
-                "Generic production": {"value": "", "unit": "bar"},
-            }
-            for carrier in configuration["performance"]["pressure"][
-                "pressure_carriers"
-            ]["value"]
-        }
+    # Todo: move to pressure plugin
+    # if configuration["performance"]["pressure"]["pressure_on"]["value"] == 1:
+    #     pressure_exchange_data = {
+    #         carrier: {
+    #             "Demand": {"value": "", "unit": "bar"},
+    #             "Export": {"value": "", "unit": "bar"},
+    #             "Import": {"value": "", "unit": "bar"},
+    #             "Generic production": {"value": "", "unit": "bar"},
+    #         }
+    #         for carrier in configuration["performance"]["pressure"][
+    #             "pressure_carriers"
+    #         ]["value"]
+    #     }
 
     # Template csvs
     carrier_data = create_carrier_data(timesteps)
-    climate_data = create_climate_data(timesteps)
+    technology_time_series = create_technology_time_series(timesteps)
     carbon_cost = create_carbon_cost_data(timesteps)
 
     node_locations = pd.DataFrame(
@@ -231,17 +226,18 @@ def create_input_data_folder_template(base_path: Path | str):
             ) as f:
                 json.dump(energy_balance_options, f, indent=4)
 
-            if configuration["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                with open(
-                    base_path
-                    / investment_period
-                    / "node_data"
-                    / node
-                    / "carrier_data"
-                    / "PressureExchangeData.json",
-                    "w",
-                ) as f:
-                    json.dump(pressure_exchange_data, f, indent=4)
+            # TODO: Move to pressure plugin
+            # if configuration["performance"]["pressure"]["pressure_on"]["value"] == 1:
+            #     with open(
+            #         base_path
+            #         / investment_period
+            #         / "node_data"
+            #         / node
+            #         / "carrier_data"
+            #         / "PressureExchangeData.json",
+            #         "w",
+            #     ) as f:
+            #         json.dump(pressure_exchange_data, f, indent=4)
 
             for carrier in topology["carriers"]:
                 carrier_data.to_csv(
@@ -253,17 +249,20 @@ def create_input_data_folder_template(base_path: Path | str):
                     / f"{carrier}.csv",
                     sep=";",
                 )
-            climate_data.to_csv(
-                base_path / investment_period / "node_data" / node / "ClimateData.csv",
-                sep=";",
-            )
             carbon_cost.to_csv(
                 base_path / investment_period / "node_data" / node / "CarbonCost.csv",
                 sep=";",
             )
             (
+                base_path / investment_period / "node_data" / node / "technology_time_series"
+            ).mkdir(parents=True, exist_ok=True)
+            (
                 base_path / investment_period / "node_data" / node / "technology_data"
             ).mkdir(parents=True, exist_ok=True)
+            technology_time_series.to_csv(
+                base_path / investment_period / "node_data" / node / "technology_time_series" / "TECHNOLOGYNAME.csv",
+                sep=";",
+            )
 
 
 def initialize_topology_templates() -> dict:
@@ -275,7 +274,7 @@ def initialize_topology_templates() -> dict:
     """
     topology_template = {
         "nodes": ["node1", "node2"],
-        "carriers": ["electricity", "hydrogen"],
+        "carriers": ["electricity"],
         "investment_periods": ["period1"],
         "start_date": "2022-01-01 00:00",
         "end_date": "2022-12-31 23:00",

@@ -207,11 +207,11 @@ def generate_component_list(directory, base_github_url=None):
                     clickable_name = f"`{name} <{github_url}>`_"
                     component_ls.append((clickable_name, tec_type, component_group))
             elif "network" in str(directory):
-                if "network_type" in data:
-                    network_type = data.get("network_type", "")
+                if "netw_type" in data:
+                    netw_type = data.get("netw_type", "")
                     # Create clickable link for network name in reStructuredText format
                     clickable_name = f"`{name} <{github_url}>`_"
-                    component_ls.append((clickable_name, network_type))
+                    component_ls.append((clickable_name, netw_type))
     return component_ls
 
 

@@ -1,5 +1,5 @@
 {
-  "network_type": "fluid",
+  "netw_type": "FLUID",
   "size_is_int": 0,
   "capex_defined_per_arc": 0,
   "size_max_defined_per_arc": 0,
