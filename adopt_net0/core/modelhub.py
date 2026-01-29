@@ -106,8 +106,7 @@ class ModelHub:
         # Initialize component constructors
         self._initialize_technology_constructors()
         self._initialize_network_constructors()
-
-        #Todo: load plugins for initializing of other constructors
+        self.plugin_manager.emit(Hook.DATA_READ_END, modelhub=self)
 
     def _initialize_technology_constructors(self):
         """

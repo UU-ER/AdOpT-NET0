@@ -2,6 +2,7 @@
 from pathlib import Path
 import adopt_net0.core.data_preprocessing as dp
 from adopt_net0.core.modelhub import ModelHub
+from adopt_net0.extensions import load_climate_data_from_api
 
 # Specify the path to your input data
 path = "specify path to input data"
@@ -15,10 +16,9 @@ dp.create_input_data_folder_template(path)
 # Copy technology and network data into folder (comment these lines if already defined)
 dp.copy_technology_data(path, "path to tec data")
 dp.copy_network_data(path, "path to network data")
-dp.copy_compressor_data(path, "path to compressor data")
 
 # Read climate data and fill carried data (comment these lines if already defined)
-dp.load_climate_data_from_api(path)
+load_climate_data_from_api(path)
 dp.fill_carrier_data(path, value=0)
 # dp.fill_carrier_pressure_data(path, value=0)
 

@@ -16,5 +16,6 @@ def test_plugin_manager(request):
         "adopt_net0.plugins.modeling_plugins.custom_technologies",
         "adopt_net0.plugins.modeling_plugins.operational_constraints_technologies",
         "adopt_net0.plugins.modeling_plugins.technology_retrofits",
+        "adopt_net0.plugins.modeling_plugins.compression_energy",
     }
     assert discovered == expected

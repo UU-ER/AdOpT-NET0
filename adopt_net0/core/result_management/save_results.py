@@ -321,24 +321,13 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, modelhub
                     technology_constructor = modelhub.component_constructors["technology_constructors"][period][node_name][tec_name]
                     technology_constructor.write_results_tec_design(tec_group, b_tec)
 
-                    modelhub.plugin_manager.emit(Hook.TECHNOLOGY_RESULTS_WRITING_DESIGN,
-                                                 technology_constructor=technology_constructor,
-                                                 b_tec=b_tec,
-                                                 h5_group=tec_group,
-                                                 )
-
-                # Todo: to plugins
-                # if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                #     for compr_name in b_node.set_compressor:
-                #         b_compr = b_node.compressor_blocks_active[compr_name]
-                #         compressor = modelhub.compressor_data[period][node_name][compr_name]
-                #         if compressor.compression_active == 1:
-                #             compr_group = node_specific_group.create_group(
-                #                 compressor.name_compressor
-                #             )
-                #             compressor.write_results_compressor_design(
-                #                 compr_group, b_compr
-                #             )
+                modelhub.plugin_manager.emit(Hook.RESULTS_WRITING_DESIGN,
+                                             modelhub=modelhub,
+                                             model=model,
+                                             period=period,
+                                             node=node_name,
+                                             h5_node_group=node_specific_group,
+                                             )
 
         # TIME-DEPENDENT RESULTS (operation) [g]
         operation = f.create_group("operation")
@@ -375,23 +364,13 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, modelhub
 
                     technology_constructor.write_results_tec_operation(tec_group, b_tec)
 
-                    modelhub.plugin_manager.emit(Hook.TECHNOLOGY_RESULTS_WRITING_OPERATION,
-                                                 technology_constructor=technology_constructor,
-                                                 b_tec=b_tec,
-                                                 h5_group=tec_group,
-                                                 )
-                # Todo: move to plugins
-                # if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                #     for compr_name in b_node.set_compressor:
-                #         b_compr = b_node.compressor_blocks_active[compr_name]
-                #         compressor = modelhub.data.compressor_data[period][node_name][compr_name]
-                #         if compressor.compression_active == 1:
-                #             compr_group = node_specific_group.create_group(
-                #                 compressor.name_compressor
-                #             )
-                #             compressor.write_results_compressor_operation(
-                #                 compr_group, b_compr
-                #             )
+                modelhub.plugin_manager.emit(Hook.RESULTS_WRITING_OPERATION,
+                                             modelhub=modelhub,
+                                             model=model,
+                                             period=period,
+                                             node=node_name,
+                                             h5_node_group=node_specific_group,
+                                             )
 
         # ENERGY BALANCE [g] > within: node > specific carrier [g]
         ebalance_group = operation.create_group("energy_balance")
@@ -432,15 +411,16 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, modelhub
                         "technology_outputs", data=technology_outputs
                     )
 
-                    add_from_plugins = 0
+                    from_retrofits = 0
                     for t in set_t:
-                        add_from_plugins += modelhub.plugin_manager.emit(Hook.ADD_TO_ENERGYBALANCE,
+                        add_from_plugins = modelhub.plugin_manager.emit(Hook.ADD_TO_ENERGYBALANCE,
                                                                             b_period=b_period,
                                                                             node=node_name,
                                                                             t=t,
                                                                             carrier=car)
 
-                    from_retrofits = 0 if add_from_plugins is None else pyo.value(add_from_plugins)
+
+                        from_retrofits += 0 if add_from_plugins is None else pyo.value(add_from_plugins)
 
                     car_group.create_dataset("delta_output_retrofits", data=from_retrofits)
 

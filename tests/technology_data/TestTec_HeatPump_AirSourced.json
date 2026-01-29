@@ -1,5 +1,6 @@
 {
-  "tec_type": "HeatPump_AirSourced",
+  "tec_type": "HeatPump",
+  "heat_source": "Air",
   "size_is_int": 0,
   "size_min": 0.02,
   "size_max": 2,

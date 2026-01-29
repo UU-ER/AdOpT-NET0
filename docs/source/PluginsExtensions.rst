@@ -21,6 +21,7 @@ Available Plugins
    plugins/operational_constraints
    plugins/performance_from_climate_data
    plugins/technology_retrofits
+   plugins/compression_energy
 
 Available Extensions
 -----------------------

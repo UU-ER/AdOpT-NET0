@@ -243,7 +243,7 @@ def define_technology(
     perf_type: int = None,
     capex_model: int = None,
     existing: int = 0,
-    size_initial: float = 0,
+    size_initial: float = None,
     decommission: str = "impossible",
     additional_settings: dict = {}
 ):
@@ -265,6 +265,8 @@ def define_technology(
     with open(load_path / (tec_name + ".json")) as json_file:
         tec_data = json.load(json_file)
     tec_data["name"] = tec_name
+    tec_data["existing"] = existing
+    tec_data["size"] = size_initial
 
     for setting_name, settings in additional_settings.items():
         tec_data[setting_name] = settings
@@ -367,6 +369,7 @@ def define_network(
         netw_data = json.load(json_file)
 
     netw_data["name"] = "TestNetwork"
+    netw_data["existing"] = 0
 
     if bidirectional_network:
         netw_data["Performance"]["bidirectional_network"] = 1

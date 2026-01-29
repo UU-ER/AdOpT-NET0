@@ -3,7 +3,7 @@ import os
 import json
 
 import adopt_net0.core.data_preprocessing as dp
-from adopt_net0.core.data_management.utilities import calculate_dni, check_input_data_consistency
+from adopt_net0.core.data_management.utilities import check_input_data_consistency
 from tests.utilities import (
     select_random_list_from_list,
     load_json,
@@ -235,44 +235,6 @@ def test_copy_network_data(request):
 
     # Copy to folder
     dp.copy_network_data(case_study_folder_path, network_data_folder_path)
-
-    # Check it jsons are there
-    check_input_data_consistency(case_study_folder_path)
-
-
-def test_copy_compressor_data(request):
-    """
-    Tests standard behavior of test_copy_compressor_data
-    - Tests if df is indeed filled
-    """
-    case_study_folder_path = request.config.case_study_folder_path
-
-    with open(case_study_folder_path / "ConfigModel.json") as json_file:
-        configuration = json.load(json_file)
-
-    with open(case_study_folder_path / "ConfigModel.json", "w") as json_file:
-        configuration["performance"]["pressure"]["pressure_on"]["value"] = 1
-        json.dump(configuration, json_file, indent=4)
-
-    dp.create_input_data_folder_template(case_study_folder_path)
-
-    compressor_data_folder_path = request.config.compressor_data_folder_path
-
-    investment_periods, nodes, carriers = get_topology_data(case_study_folder_path)
-    periods_to_add_to = select_random_list_from_list(investment_periods)
-
-    # Create compressor
-    for period in periods_to_add_to:
-        path = case_study_folder_path / period / "compressor_data" / "hydrogen.json"
-
-        with open(
-            compressor_data_folder_path / "TestCompressor_hydrogen.json"
-        ) as json_file:
-            compressor = json.load(json_file)
-            save_json(compressor, path)
-
-    # Copy to folder
-    dp.copy_compressor_data(case_study_folder_path, compressor_data_folder_path)
 
     # Check it jsons are there
     check_input_data_consistency(case_study_folder_path)

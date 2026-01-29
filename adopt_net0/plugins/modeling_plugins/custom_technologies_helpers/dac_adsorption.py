@@ -11,7 +11,11 @@ Industrial and Engineering Chemistry Research, 2022, 12649–12667.
 https://doi.org/10.1021/acs.iecr.2c00681. It resembles operation configuration 1
 without water spraying.
 The performance data from the process model and respective metadata is located in
-database/templates/technology_data/DAC/DAC_adsorption_data
+database/templates/technology_data/DAC/DAC_adsorption_data.
+
+The model requires time series for ambient temperature and relative humidity at the
+respective node. These have to be provided in the TechnologyTimeSeries data under
+the keys "temp_air" and "rh" for the respective technology name.
 """
 
 from importlib.resources import files
@@ -84,8 +88,8 @@ class DacAdsorption(Technology):
         performance_data.CO2_Out = performance_data.CO2_Out / 1000  # in t / h
 
         # Get humidity and temperature
-        RH = copy.deepcopy(technology_data["rh"])
-        T = copy.deepcopy(technology_data["temp_air"])
+        RH = copy.deepcopy(technology_time_series["rh"])
+        T = copy.deepcopy(technology_time_series["temp_air"])
 
         # Set minimum temperature
         T.loc[T < min(performance_data.temp_air)] = min(performance_data.temp_air)

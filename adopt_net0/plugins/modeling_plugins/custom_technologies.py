@@ -14,8 +14,7 @@ add its name to the plugin configuration under the "technologies" key:
             }
     }
 
-Note that the technologies rely on climate data, and thus they require a csv file with climate data in the
-respective nodal directory.
+Note that some technologies may require additional climate data. Refer to the documentation of each technology class for details.
 """
 
 from adopt_net0.plugins.base import Plugin as PluginBase

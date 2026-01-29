@@ -33,6 +33,8 @@ def test_dac(request):
     time_steps = 1
     technology = "TestTec_DAC_Adsorption"
     modelhub = make_testing_modelhub(time_steps, 1)
+    modelhub.data["time_series_data"]["full_resolution"][("period1", "node1", "TechnologyTimeSeries", "TestTec_DAC_Adsorption", "rh")] = [81]
+    modelhub.data["time_series_data"]["full_resolution"][("period1", "node1", "TechnologyTimeSeries", "TestTec_DAC_Adsorption", "temp_air")] = [4]
     technology_registry = TechnologyRegistry()
     technology_registry.register("DAC_Adsorption", DacAdsorption)
 
@@ -92,6 +94,7 @@ def test_hydro_open(request):
     time_steps = 3
     technology = "TestTec_Hydro_Open"
     modelhub = make_testing_modelhub(time_steps, 1)
+    modelhub.data["time_series_data"]["full_resolution"][("period1", "node1", "TechnologyTimeSeries", "TestTec_Hydro_Open", "inflow")] = [1, 1, 1]
     technology_registry = TechnologyRegistry()
     technology_registry.register("HydroOpen", HydroOpen)
 
@@ -147,6 +150,8 @@ def test_heat_pump(request):
     time_steps = 1
     technology = "TestTec_HeatPump_AirSourced"
     modelhub = make_testing_modelhub(time_steps, 1)
+    modelhub.data["time_series_data"]["full_resolution"][("period1", "node1", "TechnologyTimeSeries", "TestTec_HeatPump_AirSourced", "temp_air")] = [4]
+
     technology_registry = TechnologyRegistry()
     technology_registry.register("HeatPump", HeatPump)
 
@@ -183,6 +188,8 @@ def test_gasturbine(request):
     time_steps = 1
     technology = "TestTec_GasTurbine_NG_10"
     modelhub = make_testing_modelhub(time_steps, 1)
+    modelhub.data["time_series_data"]["full_resolution"][("period1", "node1", "TechnologyTimeSeries", "TestTec_GasTurbine_NG_10", "temp_air")] = [4]
+
     technology_registry = TechnologyRegistry()
     technology_registry.register("GasTurbine", GasTurbine)
 
@@ -218,6 +225,9 @@ def test_combined_cycle_fixed_size(request):
     time_steps = 1
     technology = "TestTec_CombinedCycle_fixed_size"
     modelhub = make_testing_modelhub(time_steps, 1)
+    modelhub.data["time_series_data"]["full_resolution"][("period1", "node1", "TechnologyTimeSeries", "TestTec_CombinedCycle_fixed_size", "temp_air")] = [4]
+
+
     technology_registry = TechnologyRegistry()
     technology_registry.register("CCPP", CCPP)
 

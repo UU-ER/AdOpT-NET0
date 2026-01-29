@@ -3,13 +3,9 @@ import pytest
 import json
 
 from adopt_net0 import *
-from adopt_net0.core.components.technologies import Conv1
-from adopt_net0.core.registries import TechnologyRegistry
 from adopt_net0.plugins.plugin_manager import PluginManager
-from adopt_net0.plugins.hooks import Hook
 from tests.utilities import (
-    run_model,
-    make_testing_modelhub, define_technology, construct_tec_model, create_plugin_testing_mock_data, generate_size_constraint
+    generate_size_constraint
 )
 from adopt_net0.core.modelhub import ModelHub
 

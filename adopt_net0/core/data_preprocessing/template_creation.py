@@ -142,9 +142,6 @@ def create_input_data_folder_template(base_path: Path | str):
         (base_path / investment_period / "network_data").mkdir(
             parents=True, exist_ok=True
         )
-        (base_path / investment_period / "compressor_data").mkdir(
-            parents=True, exist_ok=True
-        )
         (base_path / investment_period / "network_topology").mkdir(
             parents=True, exist_ok=True
         )

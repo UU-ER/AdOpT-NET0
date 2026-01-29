@@ -1,0 +1,16 @@
+{
+  "preprocessing_plugins.performance_from_climate_data":
+  {
+    "config":
+    {
+      "technologies": ["Photovoltaic", "WindTurbine_Onshore_2500"]
+    }
+  },
+  "modeling_plugins.custom_technologies":
+  {
+    "config":
+    {
+      "technologies": ["DAC_Adsorption"]
+    }
+  }
+}

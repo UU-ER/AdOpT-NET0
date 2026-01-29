@@ -6,6 +6,10 @@ et al. (2024). Optimizing the Use of Limited Amounts of Hydrogen in Existing
 Combined Heat and Power Plants
 https://www.sciencedirect.com/science/article/pii/S2667095X24000199.
 
+The model requires time series for ambient temperature at the
+respective node. These have to be provided in the TechnologyTimeSeries data under
+the keys "temp_air" for the respective technology name.
+
 It is possible in the JSON file to specify the following options:
 
 - size_ohb: Size of an Oxy-fuel hydrogen burner
@@ -177,7 +181,7 @@ class CCPP(Technology):
         technology_time_series = modelhub.data["time_series_data"]["full_resolution"][(period, node, "TechnologyTimeSeries", self.name)]
 
         # Climate data & Number of timesteps
-        T = copy.deepcopy(technology_data["temp_air"])
+        T = copy.deepcopy(technology_time_series["temp_air"])
 
         # Remove outliers
         T[T >= 30] = 30

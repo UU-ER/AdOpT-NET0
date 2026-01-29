@@ -8,7 +8,11 @@ part-load operation, fuel, temperature, and sizing effects. International
 Conference on Applied Energy. https://doi.org/10.46855/energy-proceedings-5280
 
 A small adaption is made: Natural gas turbines can co-fire hydrogen up to 5% of
-the energy content
+the energy content.
+
+The model requires time series for ambient temperature at the
+respective node. These have to be provided in the TechnologyTimeSeries data under
+the keys "temp_air" for the respective technology name.
 
 **Variable declarations:**
 
@@ -74,7 +78,6 @@ import copy
 import numpy as np
 
 from adopt_net0.core.components.technology import Technology
-from adopt_net0.core.components.utilities import link_full_resolution_to_clustered
 
 
 class GasTurbine(Technology):
@@ -104,10 +107,10 @@ class GasTurbine(Technology):
         technology_time_series = modelhub.data["time_series_data"]["full_resolution"][(period, node, "TechnologyTimeSeries", self.name)]
 
         # Climate data & Number of timesteps
-        time_steps = len(technology_data)
+        time_steps = len(technology_time_series)
 
         # Ambient air temperature
-        T = copy.deepcopy(technology_data["temp_air"])
+        T = copy.deepcopy(technology_time_series["temp_air"])
 
         # Temperature correction factors
         f = np.empty(shape=(time_steps))

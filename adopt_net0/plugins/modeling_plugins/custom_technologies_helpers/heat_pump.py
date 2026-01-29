@@ -20,6 +20,10 @@ heat pump under partial load operation. International Journal of Refrigeration,
 Essentially, the equations for the heat pump model are the same as for generic
 conversion technology type 1 (with time-dependent performance parameter).
 
+The model requires time series for ambient temperature at the
+respective node. These have to be provided in the TechnologyTimeSeries data under
+the keys "temp_air" for the respective technology name.
+
 """
 
 import pyomo.environ as pyo
@@ -61,10 +65,10 @@ class HeatPump(Technology):
         technology_time_series = modelhub.data["time_series_data"]["full_resolution"][(period, node, "TechnologyTimeSeries", self.name)]
 
         # Climate data & Number of timesteps
-        time_steps = len(technology_data)
+        time_steps = len(technology_time_series)
 
         # Ambient air temperature
-        T = copy.deepcopy(technology_data["temp_air"])
+        T = copy.deepcopy(technology_time_series["temp_air"])
 
         # Determine T_out
         if self.performance_data["application"] == "radiator_heating":
@@ -78,11 +82,11 @@ class HeatPump(Technology):
         delta_T = t_out - T
 
         # Determine COP
-        if "AirSourced" in self.name:
+        if "Air" == self.data["heat_source"]:
             cop = 6.08 - 0.09 * delta_T + 0.0005 * delta_T**2
-        elif "GroundSourced" in self.name:
+        elif "Ground" == self.data["heat_source"]:
             cop = 10.29 - 0.21 * delta_T + 0.0012 * delta_T**2
-        elif "WaterSourced" in self.name:
+        elif "Water" == self.data["heat_source"]:
             cop = 9.97 - 0.20 * delta_T + 0.0012 * delta_T**2
 
         log.info("Deriving performance data for Heat Pump...")

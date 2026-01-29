@@ -1,5 +1,62 @@
-from ..component import ModelComponent
-from ..utilities import (
+"""
+This is the constructor for a compressor, lifting the pressure level of a gas.
+
+Important
+---------
+- The component that has the gas as **output** is defined as ``output_component``
+  (with respective output pressure, type, existing).
+- The component that has the gas as **input** is defined as ``input_component``
+  (with respective input pressure, type, existing).
+
+**Parameter declarations:**
+
+The following is a list of declared pyomo parameters.
+
+- ``para_name``: name of the compressor, formatted as type_component1_component2_(existing)
+- ``para_size_min``: minimal possible size
+- ``para_size_max``: maximal possible size
+- ``para_unit_capex``: investment costs per unit
+- ``para_unit_capex_annual``: Unit CAPEX annualized (annualized from given data on
+  up-front CAPEX, lifetime and discount rate)
+- ``para_fix_capex``: fixed costs independent of size
+- ``para_fix_capex_annual``: Fixed CAPEX annualized (annualized from given data on
+  up-front CAPEX, lifetime and discount rate)
+- ``para_opex_variable``: operational cost EUR/output or input
+- ``para_opex_fixed``: fixed opex as fraction of up-front capex
+
+**Variable declarations:**
+
+- ``var_flow``: flow that is processed by the compressor
+
+Only for active compressors:
+
+- ``var_consumption_energy``: energy consumption required by the compressor to raise the pressure (only if active)
+- ``var_size``: size of the compressor (only if active)
+- ``var_capex``: annualized investment of the compressor (only if active)
+- ``var_opex_variable``: variable operation costs
+- ``var_opex_fixed``: fixed operational costs as fraction of up-front CAPEX
+- ``var_capex_aux``: auxiliary variable to calculate the fixed opex of existing compressor
+
+**Constraint declarations**
+
+- For new compressors capex are defined linearly:
+
+    .. math::
+        capex_{aux} = size * capex_{unit_annual}
+
+- Variable OPEX: variable opex is defined in terms of the flow:
+
+    .. math::
+        opexvar_{t} = Flow_{t} * opex_{var}
+
+- Energy consumption calculation based on pressure ratio, type of compressor, flow:
+
+    .. math::
+         energyconsumption_{t} = Flow_{t} * energyconsumption(MW_{el}/MW_{H2})
+
+"""
+from adopt_net0.core.components.component import ModelComponent
+from adopt_net0.core.components.utilities import (
     annualize,
     set_discount_rate,
     perform_disjunct_relaxation,
@@ -20,63 +77,6 @@ log = logging.getLogger(__name__)
 
 
 class Compressor(ModelComponent):
-    """
-    Class to read and manage data for compressors.
-
-    Important
-    ---------
-    - The component that has the gas as **output** is defined as ``output_component``
-      (with respective output pressure, type, existing).
-    - The component that has the gas as **input** is defined as ``input_component``
-      (with respective input pressure, type, existing).
-
-    **Parameter declarations:**
-
-    The following is a list of declared pyomo parameters.
-
-    - ``para_name``: name of the compressor, formatted as type_component1_component2_(existing)
-    - ``para_size_min``: minimal possible size
-    - ``para_size_max``: maximal possible size
-    - ``para_unit_capex``: investment costs per unit
-    - ``para_unit_capex_annual``: Unit CAPEX annualized (annualized from given data on
-      up-front CAPEX, lifetime and discount rate)
-    - ``para_fix_capex``: fixed costs independent of size
-    - ``para_fix_capex_annual``: Fixed CAPEX annualized (annualized from given data on
-      up-front CAPEX, lifetime and discount rate)
-    - ``para_opex_variable``: operational cost EUR/output or input
-    - ``para_opex_fixed``: fixed opex as fraction of up-front capex
-
-    **Variable declarations:**
-
-    - ``var_flow``: flow that is processed by the compressor
-
-    Only for active compressors:
-
-    - ``var_consumption_energy``: energy consumption required by the compressor to raise the pressure (only if active)
-    - ``var_size``: size of the compressor (only if active)
-    - ``var_capex``: annualized investment of the compressor (only if active)
-    - ``var_opex_variable``: variable operation costs
-    - ``var_opex_fixed``: fixed operational costs as fraction of up-front CAPEX
-    - ``var_capex_aux``: auxiliary variable to calculate the fixed opex of existing compressor
-
-    **Constraint declarations**
-
-    - For new compressors capex are defined linearly:
-
-        .. math::
-            capex_{aux} = size * capex_{unit_annual}
-
-    - Variable OPEX: variable opex is defined in terms of the flow:
-
-        .. math::
-            opexvar_{t} = Flow_{t} * opex_{var}
-
-    - Energy consumption calculation based on pressure ratio, type of compressor, flow:
-
-        .. math::
-             energyconsumption_{t} = Flow_{t} * energyconsumption(MW_{el}/MW_{H2})
-
-    """
 
     def __init__(self, compr_data: dict):
         """
@@ -187,13 +187,13 @@ class Compressor(ModelComponent):
         self.processed_coeff.time_independent = time_independent
 
     def construct_compressor_model(
-        self, b_compr, data: dict, set_t_full, set_t_clustered
+        self, b_compr, modelhub, set_t_full, set_t_clustered
     ):
         """
         Construct the compressor model with all required parameters, variable, sets,...
 
         :param b_compr: pyomo block with compressor model
-        :param dict data: data containing model configuration
+        :param modelhub: ModelHub
         :param set_t_full: pyomo set containing timesteps
         :param set_t_clustered: pyomo set containing clustered timesteps
         :return: pyomo block with compressor model
@@ -205,7 +205,7 @@ class Compressor(ModelComponent):
         log.info(log_msg)
 
         # compressor data
-        config = data["config"]
+        config = modelhub.data["config"]
 
         # SET T
         self.set_t_full = set_t_full
@@ -230,16 +230,16 @@ class Compressor(ModelComponent):
             self.set_t_global = set_t_full
 
         # GENERAL TECHNOLOGY CONSTRAINTS
-        b_compr = self._define_flow(b_compr)
+        self._define_flow(b_compr)
         if self.compression_active == 1:
-            b_compr = self._define_energyconsumption_parameters(b_compr)
-            b_compr = self._define_energy_consumption(b_compr, data)
-            b_compr = self._define_opex_var(b_compr, data)
-            b_compr = self._define_size(b_compr)
-            b_compr = self._define_capex_parameters(b_compr, data)
-            b_compr = self._define_capex_variables(b_compr, data)
-            b_compr = self._define_capex_constraints(b_compr, data)
-            b_compr = self._define_opex_fixed(b_compr, data)
+            self._define_energyconsumption_parameters(b_compr)
+            self._define_energy_consumption(b_compr)
+            self._define_opex_var(b_compr, modelhub)
+            self._define_size(b_compr)
+            self._define_capex_parameters(b_compr, modelhub)
+            self._define_capex_variables(b_compr, modelhub)
+            self._define_capex_constraints(b_compr, modelhub)
+            self._define_opex_fixed(b_compr, modelhub)
 
         return b_compr
 
@@ -258,7 +258,7 @@ class Compressor(ModelComponent):
 
         return b_compr
 
-    def _define_capex_parameters(self, b_compr, data):
+    def _define_capex_parameters(self, b_compr, modelhub):
         """
         Defines the capex parameters
 
@@ -266,7 +266,7 @@ class Compressor(ModelComponent):
         :param dict data: dict containing model information
         :return:
         """
-        config = data["config"]
+        config = modelhub.data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
@@ -297,7 +297,7 @@ class Compressor(ModelComponent):
 
         return b_compr
 
-    def _define_capex_variables(self, b_compr, data: dict):
+    def _define_capex_variables(self, b_compr, modelhub):
         """
         Defines variables related to compressor capex.
 
@@ -305,7 +305,7 @@ class Compressor(ModelComponent):
         :param dict data: dict containing model information
         :return: pyomo block with compressor model
         """
-        config = data["config"]
+        config = modelhub.data["config"]
 
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
@@ -323,7 +323,7 @@ class Compressor(ModelComponent):
 
         return b_compr
 
-    def _define_capex_constraints(self, b_compr, data: dict):
+    def _define_capex_constraints(self, b_compr, modelhub):
         """
         Defines constraints related to compressor capex.
 
@@ -331,7 +331,7 @@ class Compressor(ModelComponent):
         :param dict data: dict containing model information
         :return: pyomo block with compressor model
         """
-        config = data["config"]
+        config = modelhub.data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
@@ -372,9 +372,9 @@ class Compressor(ModelComponent):
             domain=pyo.NonNegativeReals,
         )
 
-        return b_compr
 
-    def _define_energy_consumption(self, b_compr, data):
+
+    def _define_energy_consumption(self, b_compr):
         """
         Defines compressor energy consumption
 
@@ -396,7 +396,7 @@ class Compressor(ModelComponent):
             self.set_t_global, b_compr.set_consumed_carriers, rule=init_compr_energy
         )
 
-        return b_compr
+
 
     def _define_size(self, b_compr):
         """
@@ -427,7 +427,7 @@ class Compressor(ModelComponent):
                 self.set_t_global, b_compr.set_consumed_carriers, rule=sizing_rule
             )
 
-        return b_compr
+
 
     def fix_size(self, b_compr, size):
         """
@@ -439,21 +439,10 @@ class Compressor(ModelComponent):
         """
 
         if self.existing == 1:
+            b_compr.var_size.fix(size * self.processed_coeff.time_independent["energy_consumption"])
+            b_compr.var_size.fixed = True
 
-            def sizing_existing_compressor(b):
-                return (
-                    b_compr.var_size
-                    == size
-                    * self.processed_coeff.time_independent["energy_consumption"]
-                )
-
-            b_compr.const_size_existing = pyo.Constraint(
-                rule=sizing_existing_compressor
-            )
-
-        return b_compr
-
-    def _define_opex_var(self, b_compr, data: dict):
+    def _define_opex_var(self, b_compr, modelhub):
         """
         Defines variable and fixed OPEX
 
@@ -461,7 +450,7 @@ class Compressor(ModelComponent):
         :param dict data: dict containing model information
         :return: pyomo block with compressor model
         """
-        config = data["config"]
+        config = modelhub.data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
@@ -475,8 +464,8 @@ class Compressor(ModelComponent):
         )
         b_compr.var_opex_variable = pyo.Var()
 
-        hour_factors = data["hour_factors"]
-        nr_timesteps_averaged = data["nr_timesteps_averaged"]
+        hour_factors = modelhub.data["aggregation_info"]["hour_factors"]
+        nr_timesteps_averaged = modelhub.data["aggregation_info"]["nr_timesteps_averaged"]
 
         def init_opex_variable(const):
             """opexvar = sum(Input_{t, maincarrier}) * opex_{var}"""
@@ -492,11 +481,11 @@ class Compressor(ModelComponent):
 
         b_compr.const_opex_variable = pyo.Constraint(rule=init_opex_variable)
 
-        return b_compr
 
-    def _define_opex_fixed(self, b_compr, data: dict):
 
-        config = data["config"]
+    def _define_opex_fixed(self, b_compr, modelhub):
+
+        config = modelhub.data["config"]
         economics = self.economics
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = modelhub.data["topology"]["temporal_information"]["fraction_of_year_modelled"]
@@ -515,44 +504,6 @@ class Compressor(ModelComponent):
             * b_compr.para_opex_fixed
             == b_compr.var_opex_fixed
         )
-
-        return b_compr
-
-    # def _define_decommissioning_at_once_constraints(self, b_compr):
-    #     """
-    #     Defines constraints to ensure that a technology can only be decommissioned as a whole.
-    #
-    #     This function creates a disjunction formulation that enforces
-    #     full-plant decommissioning decisions, meaning that either the technology is fully installed
-    #     or fully decommissioned, with no partial decommissioning allowed.
-    #
-    #     :param b_tec: The block representing the technology.
-    #
-    #     :return: The modified technology block with added decommissioning constraints.
-    #     """
-    #
-    #     # Full plant decommissioned only
-    #     self.big_m_transformation_required = 1
-    #     s_indicators = range(0, 2)
-    #
-    #     def init_decommission_full(dis, ind):
-    #         if ind == 0:  # compressor not installed
-    #             dis.const_decommissioned = pyo.Constraint(expr=b_compr.var_size == 0)
-    #         else:  # tech installed
-    #             dis.const_installed = pyo.Constraint(
-    #                 expr=b_compr.var_size == b_compr.para_size_initial
-    #             )
-    #
-    #     b_compr.dis_decommission_full = gdp.Disjunct(
-    #         s_indicators, rule=init_decommission_full
-    #     )
-    #
-    #     def bind_disjunctions(dis):
-    #         return [b_compr.dis_decommission_full[i] for i in s_indicators]
-    #
-    #     b_compr.disjunction_decommission_full = gdp.Disjunction(rule=bind_disjunctions)
-    #
-    #     return b_compr
 
     def write_results_compressor_design(self, h5_group, model_block):
         """

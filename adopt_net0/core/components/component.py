@@ -31,11 +31,10 @@ class ModelComponent:
 
 
         # Todo: Remove later
-        if "existing" in data:
-            self.existing = data["existing"]
-            self.size_initial = data["size_initial"]
+        self.existing = data["existing"]
+        if self.existing:
+            self.size_initial = data["size"]
         else:
-            self.existing = 0
             self.size_initial = None
 
         self.size_min = data["size_min"]

@@ -66,7 +66,6 @@ def construct_node_block(b_node, modelhub, period, set_t_full, set_t_clustered):
 
     - set_technologies: Set for all technologies at respective node
     - set_carriers: Set of carriers used at node (this is a subset of all carriers)
-    - set_compressor; Set for all compressors needed at respective node
 
     **Parameter declarations:**
 
@@ -137,15 +136,6 @@ def construct_node_block(b_node, modelhub, period, set_t_full, set_t_clustered):
     # SETS
     b_node.set_technologies = pyo.Set(initialize=list(modelhub.component_constructors["technology_constructors"][period][node].keys()))
     b_node.set_carriers = pyo.Set(initialize=list(set(carriers_at_node)))
-
-    # Todo: move to plugin
-    # if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-    #     target_carriers = config["performance"]["pressure"]["pressure_carriers"][
-    #         "value"
-    #     ]
-    #     target_carriers = list(set(target_carriers))
-    #     b_node.set_carriers_compression = pyo.Set(initialize=target_carriers)
-    #     b_node.set_compressor = pyo.Set(initialize=list(data["compressor_data"].keys()))
 
     # Time aggregation
     if config["optimization"]["typicaldays"]["N"]["value"] == 0:

@@ -1,5 +1,5 @@
 {
-  "tec_type": "GasTurbine_NG_10",
+  "tec_type": "GasTurbine",
   "decommission": "impossible",
   "size_is_int": 1,
   "size_min": 0,

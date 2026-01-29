@@ -3,6 +3,10 @@ Resembles a pumped hydro plant with additional natural inflows (defined in
 climate data). Note that this technology only works for one carrier, and thus the
 carrier index is dropped in the below notation.
 
+The model requires time series for inflows at the
+respective node. These have to be provided in the TechnologyTimeSeries data under
+the keys "inflow" for the respective technology name.
+
 **Variable declarations:**
 
 - Storage level in :math:`t`: :math:`E_t`
@@ -99,8 +103,8 @@ class HydroOpen(Technology):
             ][par]
 
         # Natural inflow
-        if self.name + "_inflow" in technology_data:
-            self.processed_coeff.time_dependent_full["hydro_inflow"] = technology_data["inflow"].to_numpy()
+        if "inflow" in technology_time_series:
+            self.processed_coeff.time_dependent_full["hydro_inflow"] = technology_time_series["inflow"].to_numpy()
         else:
             raise Exception(
                 "Using Technology Type Hydro_Open requires a hydro_natural_inflow in climate data"

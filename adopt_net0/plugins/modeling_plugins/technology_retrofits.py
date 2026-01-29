@@ -205,7 +205,7 @@ class Plugin(PluginBase):
 
 
 
-    def on_technology_results_writing_design(self, technology_constructor, b_tec: pyo.Block, h5_group):
+    def on_results_writing_design(self, modelhub, model, period, node, h5_node_group):
         """
         Writes design results of retrofits to h5 file
 
@@ -214,22 +214,34 @@ class Plugin(PluginBase):
         :param h5_group: H5 technology design group
         :return:
         """
+        b_node = model.periods[period].node_blocks[node]
 
-        if ("settings_technology_retrofits" in technology_constructor.data.keys() and
-                technology_constructor.data["settings_technology_retrofits"].get("enable_efficiency_retrofit", False)):
-            constructor = EfficiencyRetrofit()
-            retrofit_group = h5_group.create_group("Efficiency_Retrofit")
-            constructor.write_results_design(b_tec.efficiency_retrofit, retrofit_group)
+        if "Efficiency_Retrofit" in self.config["retrofits"]:
+            efficiency_group = h5_node_group.create_group("Efficiency_Retrofit")
 
-        if ("settings_technology_retrofits" in technology_constructor.data.keys() and
-                technology_constructor.data["settings_technology_retrofits"].get("enable_ccs_retrofit", False)):
-            constructor = CcsRetrofit()
-            retrofit_group = h5_group.create_group("CCS_Retrofit")
-            constructor.write_results_design(b_tec.ccs_retrofit, retrofit_group)
+        if "CCS_Retrofit" in self.config["retrofits"]:
+            ccs_group = h5_node_group.create_group("CCS_Retrofit")
+
+        for tec in b_node.set_technologies:
+            technology_constructor = modelhub.component_constructors["technology_constructors"][period][node][tec]
+
+            if ("settings_technology_retrofits" in technology_constructor.data.keys() and
+                    technology_constructor.data["settings_technology_retrofits"].get("enable_efficiency_retrofit", False)):
+                b_tec = b_node.tech_blocks_active[tec]
+                constructor = EfficiencyRetrofit()
+                retrofit_group = efficiency_group.create_group(tec)
+                constructor.write_results_design(b_tec.efficiency_retrofit, retrofit_group)
+
+            if ("settings_technology_retrofits" in technology_constructor.data.keys() and
+                    technology_constructor.data["settings_technology_retrofits"].get("enable_ccs_retrofit", False)):
+                b_tec = b_node.tech_blocks_active[tec]
+                constructor = CcsRetrofit()
+                retrofit_group = ccs_group.create_group(tec)
+                constructor.write_results_design(b_tec.ccs_retrofit, retrofit_group)
 
 
 
-    def on_technology_results_writing_operation(self, technology_constructor, b_tec: pyo.Block, h5_group):
+    def on_results_writing_operation(self, modelhub, model, period, node, h5_node_group):
         """
         Writes operational results of retrofits to h5 file
 
@@ -238,14 +250,28 @@ class Plugin(PluginBase):
         :param h5_group: H5 technology operation group
         :return:
         """
-        if ("settings_technology_retrofits" in technology_constructor.data.keys() and
-                technology_constructor.data["settings_technology_retrofits"].get("enable_efficiency_retrofit", False)):
-            constructor = EfficiencyRetrofit()
-            retrofit_group = h5_group.create_group("Efficiency_Retrofit")
-            constructor.write_results_operation(technology_constructor, b_tec.efficiency_retrofit, retrofit_group)
+        b_node = model.periods[period].node_blocks[node]
 
-        if ("settings_technology_retrofits" in technology_constructor.data.keys() and
-                technology_constructor.data["settings_technology_retrofits"].get("enable_ccs_retrofit", False)):
-            constructor = CcsRetrofit()
-            retrofit_group = h5_group.create_group("CCS_Retrofit")
-            constructor.write_results_operation(technology_constructor, b_tec.ccs_retrofit, retrofit_group)
+        if "Efficiency_Retrofit" in self.config["retrofits"]:
+            efficiency_group = h5_node_group.create_group("Efficiency_Retrofit")
+
+        if "CCS_Retrofit" in self.config["retrofits"]:
+            ccs_group = h5_node_group.create_group("CCS_Retrofit")
+
+        for tec in b_node.set_technologies:
+            technology_constructor = modelhub.component_constructors["technology_constructors"][period][node][tec]
+
+
+            if ("settings_technology_retrofits" in technology_constructor.data.keys() and
+                    technology_constructor.data["settings_technology_retrofits"].get("enable_efficiency_retrofit", False)):
+                constructor = EfficiencyRetrofit()
+                b_tec = b_node.tech_blocks_active[tec]
+                retrofit_group = efficiency_group.create_group(tec)
+                constructor.write_results_operation(technology_constructor, b_tec.efficiency_retrofit, retrofit_group)
+
+            if ("settings_technology_retrofits" in technology_constructor.data.keys() and
+                    technology_constructor.data["settings_technology_retrofits"].get("enable_ccs_retrofit", False)):
+                constructor = CcsRetrofit()
+                b_tec = b_node.tech_blocks_active[tec]
+                retrofit_group = ccs_group.create_group(tec)
+                constructor.write_results_operation(technology_constructor, b_tec.ccs_retrofit, retrofit_group)

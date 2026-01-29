@@ -1,9 +1,8 @@
 import pandas as pd
-import os
-import json
+
 
 from adopt_net0.extensions import load_climate_data_from_api
-from adopt_net0.core.data_management.utilities import calculate_dni
+from adopt_net0.plugins.preprocessing_plugins.performance_from_climate_data_helpers.helpers import calculate_dni
 from tests.utilities import (
     get_topology_data,
 )
