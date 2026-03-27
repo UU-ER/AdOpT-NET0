@@ -1,10 +1,10 @@
 .. _workflow_multi-year:
 
-Multiyear analysis with rolling-horizon
+Multiyear analysis with myopic foresight
 ========================================
 
 
-When performing a **multi-year analysis** using the **rolling-horizon** approach, the model is organized as a dictionary,
+When performing a **multi-year analysis** using the **myopic foresight** approach, the model is organized as a dictionary,
 where each key corresponds to a modeled investment interval. Each interval has its own case study folder, from which
 the model reads the relevant input data.
 

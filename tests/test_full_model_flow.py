@@ -131,7 +131,7 @@ def test_full_model_flow(request):
 
 def test_full_model_flow_multiyear(request):
     """
-    Tests the full modelling pipeline with multiple investment periods and a rolling horizon
+    Tests the full modelling pipeline with multiple investment periods and a myopic foresight method
 
     Topology:
     - Nodes: node1, node2
