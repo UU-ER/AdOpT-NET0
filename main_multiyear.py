@@ -27,6 +27,7 @@ dp.fill_carrier_pressure_data(path, value=0)
 # Build the model with investment intervals
 adopthub = {}
 intervals = ["Interval_1", "Interval_2", "Interval_n"]
+intervals_between_years = [10, 10]
 
 # Construct and solve the model
 for i, interval in enumerate(intervals):
@@ -34,7 +35,9 @@ for i, interval in enumerate(intervals):
 
     if i != 0:
         prev_interval = intervals[i - 1]
-        installed_capacities_existing(adopthub, interval, prev_interval, interval_path)
+        installed_capacities_existing(
+            adopthub, interval, prev_interval, interval_path, intervals_between_years
+        )
 
     adopthub[interval] = ModelHub()
     adopthub[interval].read_data(interval_path)

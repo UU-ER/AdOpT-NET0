@@ -178,6 +178,7 @@ def test_full_model_flow_multiyear(request):
     # Build the model with investment intervals
     adopthub = {}
     intervals = ["Interval_1", "Interval_2"]
+    intervals_between_years = [10]
 
     # Construct and solve the model
     for i, interval in enumerate(intervals):
@@ -186,7 +187,11 @@ def test_full_model_flow_multiyear(request):
         if i != 0:
             prev_interval = intervals[i - 1]
             installed_capacities_existing(
-                adopthub, interval, prev_interval, path_interval
+                adopthub,
+                interval,
+                prev_interval,
+                path_interval,
+                intervals_between_years,
             )
 
         adopthub[interval] = ModelHub()

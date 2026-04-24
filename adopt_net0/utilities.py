@@ -1,5 +1,6 @@
 import json
 import shutil
+from warnings import warn
 from pathlib import Path
 
 from pyomo.environ import SolverFactory
@@ -190,7 +191,9 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
     return size
 
 
-def installed_capacities_existing(m, interval, prev_interval, casepath):
+def installed_capacities_existing(
+    m, interval, prev_interval, casepath, intervals_between_years=None
+):
     """
     Transfer installed capacities from a previous interval to define minimum capacities
     for the next brownfield simulation, updating both technologies and networks. Installed
@@ -246,6 +249,19 @@ def installed_capacities_existing(m, interval, prev_interval, casepath):
 
         # Loop through all technologies
         for tec_name in b_node_prev.set_technologies:
+
+            # If intervals between years is define we check components lifetime
+            # otherwise no lifetime check, with warning
+            if intervals_between_years is None:
+                warn(
+                    "intervals_between_years is not defined. No lifetime check will be performed on components."
+                )
+
+                # Check if component has reached end of lifetime
+                if not check_component_remaining_lifetime(
+                    tec_name, intervals_between_years, casepath, prev_interval, node
+                ):
+                    continue  # If technology has reach its lifetime, don't consider it from next interval
 
             # Standalone existing technology (no new counterpart)
             if tec_name.endswith("_existing"):
@@ -343,3 +359,33 @@ def installed_capacities_existing(m, interval, prev_interval, casepath):
         # --- Save JSON back ---
         with open(json_netw_file_path, "w") as f:
             json.dump(json_netw, f, indent=4)
+
+
+def check_component_remaining_lifetime(
+    m, intervals_between_years, interval, prev_interval, casepath
+):
+    """
+    Checks whether components installed in previous intervals have exceeded
+    their lifetime by the start of the current interval. Components whose
+    remaining lifetime has expired are removed from the set of existing
+    (brownfield) capacities.
+
+    This applies to components whose lifetime is shorter than or equal to
+    the span between investment periods, meaning they may need replacement
+    within the planning horizon.
+
+    :param dict m: Model dictionary containing interval-specific pyomo model objects.
+    :param int intervals_between_years: number of years between consecutive investment periods.
+    :param str interval: Name of the current interval (e.g., `"2030"` or `"Interval_1"`).
+    :param str prev_interval: name of the previous interval from which existing capacities are taken
+    :param casepath: base path to the case directory containing case study data
+    """
+
+    casepath = Path(casepath)
+    prev_model = (
+        m[prev_interval]
+        .model[m[prev_interval].info_solving_algorithms["aggregation_model"]]
+        .periods[prev_interval]
+    )
+
+    return
