@@ -4,5 +4,11 @@
     ],
     "new": [
         "electricitySimple"
-    ]
+    ],
+    "remaining_lifetime": {
+        "electricitySimple": 15
+    },
+    "vintage_sizes": {
+        "electricitySimple": 30.0
+    }
 }

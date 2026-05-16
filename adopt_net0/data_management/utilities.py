@@ -289,7 +289,7 @@ def check_input_data_consistency(path: Path):
         )
         with open(check_path / "Networks.json") as json_file:
             all_networks = json.load(json_file)
-        for type in all_networks.keys():
+        for type in ["new", "existing"]:
             networks = all_networks[type]
             for network in networks:
                 check_path_existance(

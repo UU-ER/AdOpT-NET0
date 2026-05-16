@@ -192,6 +192,7 @@ def test_full_model_flow_multiyear(request):
                 prev_interval,
                 path_interval,
                 intervals_between_years,
+                i,
             )
 
         adopthub[interval] = ModelHub()
@@ -278,6 +279,22 @@ def test_full_model_flow_multiyear(request):
     # COST CHECKS
     assert adopthub["Interval_1"].model["full"].var_npv.value > 0
     assert adopthub["Interval_2"].model["full"].var_npv.value > 0
+
+    # Check 4: Remaining_lifetime was written
+    import json
+
+    tec_json = json.load(
+        open(
+            path
+            / "Case_Interval_2"
+            / "Interval_2"
+            / "node_data"
+            / "node2"
+            / "Technologies.json"
+        )
+    )
+    assert "remaining_lifetime" in tec_json
+    assert tec_json["remaining_lifetime"]["TestTec_BoilerEl"] == 15
 
 
 def test_clustering_algo(request):

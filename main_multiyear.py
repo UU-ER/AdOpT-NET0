@@ -1,4 +1,5 @@
 from pathlib import Path
+from warnings import warn
 import adopt_net0.data_preprocessing as dp
 from adopt_net0.modelhub import ModelHub
 from adopt_net0.result_management.read_results import add_values_to_summary
@@ -29,6 +30,25 @@ adopthub = {}
 intervals = ["Interval_1", "Interval_2", "Interval_n"]
 intervals_between_years = [10, 10]
 
+# Check correctness of interval and intervals between years:
+# If intervals between years is not defined, no life timecheck, but warning
+if intervals_between_years is None:
+    warn(
+        "intervals_between_years is not defined. No lifetime check will be performed on components."
+    )
+
+# If intervals between years is defined, it must be have the right length
+else:
+    expected_length = len(intervals) - 1
+    if (
+        not isinstance(intervals_between_years, list)
+        or len(intervals_between_years) != expected_length
+    ):
+        raise ValueError(
+            f"intervals_between_years must be a list of length {expected_length} "
+            f"(number of intervals - 1), got {intervals_between_years}"
+        )
+
 # Construct and solve the model
 for i, interval in enumerate(intervals):
     interval_path = casestudy_path + "/Case_" + interval
@@ -36,7 +56,7 @@ for i, interval in enumerate(intervals):
     if i != 0:
         prev_interval = intervals[i - 1]
         installed_capacities_existing(
-            adopthub, interval, prev_interval, interval_path, intervals_between_years
+            adopthub, interval, prev_interval, interval_path, intervals_between_years, i
         )
 
     adopthub[interval] = ModelHub()
