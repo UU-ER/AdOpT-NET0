@@ -2,5 +2,8 @@
     "existing": {
         "TestTec_GasTurbine_simple": 10.0
     },
-    "new": []
+    "new": [],
+    "remaining_lifetime": {
+        "TestTec_GasTurbine_simple_existing": 10
+    }
 }

@@ -192,6 +192,7 @@ def test_full_model_flow_multiyear(request):
                 prev_interval,
                 path_interval,
                 intervals_between_years,
+                i,
             )
 
         adopthub[interval] = ModelHub()

@@ -6,5 +6,9 @@
     "new": [
         "TestTec_BoilerEl",
         "TestTec_Electrolyzer"
-    ]
+    ],
+    "remaining_lifetime": {
+        "TestTec_BoilerEl": 10,
+        "TestTec_Electrolyzer": 15
+    }
 }
