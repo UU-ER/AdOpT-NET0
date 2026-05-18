@@ -6,9 +6,13 @@
         "electricitySimple"
     ],
     "remaining_lifetime": {
-        "electricitySimple": 15
+        "electricitySimple": {
+            "Interval_1": 15
+        }
     },
     "vintage_sizes": {
-        "electricitySimple": 30.0
+        "electricitySimple": {
+            "Interval_1": 30.0
+        }
     }
 }

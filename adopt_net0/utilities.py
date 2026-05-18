@@ -193,6 +193,36 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
     return size
 
 
+def _expire_vintages(old_vintages, old_rls, years_this_step, label):
+    """
+    Filter vintage sizes by remaining lifetime, subtracting years_this_step.
+
+    :param dict old_vintages: {interval_name: size} from previous interval
+    :param dict old_rls: {interval_name: remaining_lifetime} from previous interval
+    :param int years_this_step: years elapsed between intervals
+    :param str label: description for warning messages
+    :return: (surviving_vintages, surviving_rls) — nested dicts keyed by interval name
+    """
+    surviving = {}
+    surviving_rls = {}
+    for vintage_interval, vsize in old_vintages.items():
+        vrl = old_rls.get(vintage_interval)
+        if vrl is None:
+            surviving[vintage_interval] = vsize
+        else:
+            new_vrl = vrl - years_this_step
+            if new_vrl > 0:
+                surviving[vintage_interval] = vsize
+                surviving_rls[vintage_interval] = new_vrl
+            else:
+                warnings.warn(
+                    f"{label}, vintage '{vintage_interval}': {vsize:.3f} expired and is not carried forward.",
+                    UserWarning,
+                    stacklevel=3,
+                )
+    return surviving, surviving_rls
+
+
 def installed_capacities_existing(
     m,
     interval,
@@ -203,55 +233,27 @@ def installed_capacities_existing(
 ):
     """
     Transfer installed capacities from a previous interval to define minimum capacities
-    for the next brownfield simulation, updating both technologies and networks. Installed
-    compressor capacities for the networks are calculated from the existing network and
-    technology capacities, as for all simulations with existing networks.
+    for the next brownfield simulation, updating both technologies and networks.
 
-    This function performs two main tasks:
-
-    1. **Technologies**
-       - If `intervals_between_years` is provided, a lifetime check is performed.
-       Technologies whose remaining lifetime has reached zero are not carried forward.
-       The updated remaining lifetimes are written under the `"remaining_lifetime"` key.
-
-        — For each node, it reads the installed technology sizes from
-       the previous interval's solved model and writes them into the corresponding
-       `Technologies.json` file of the current interval.
-
-       - The sum of the new or existing capacities of a technology in the previous run
-       are stored under the `"existing"` key in the JSON file.
-
-    2. **Networks** — For each network, it determines whether the network was active in
-       the previous interval (based on arc sizes). If active, it:
-
-       - Adds the network name to the `"existing"` list in `Networks.json`.
-       - Copies `distance.csv` and `connection.csv` from the "new" topology folder to
-         the "existing" topology folder (if not already present).
-       - Writes a `size.csv` file with the current arc sizes.
-
-       If inactive, it removes the network from `"existing"` in `Networks.json` and,
-       if the existing folder exists, overwrites `size.csv` with a zero matrix.
+    Tracks capacities per investment vintage — each historical investment period is a
+    separate entry in the nested ``vintage_sizes`` and ``remaining_lifetime`` dicts.
+    Vintages whose remaining lifetime drops to zero are not carried forward.
 
     Parameters
     ----------
     m : dict
-        Model dictionary containing interval-specific pyomo model objects. The previous
-        interval model is accessed via `m[prev_interval]`.
+        Model dictionary containing interval-specific pyomo model objects.
     interval : str
-        Name of the current interval (e.g., `"2030"` or `"Interval_1"`).
+        Name of the current interval.
     prev_interval : str
         Name of the previous interval from which existing capacities are taken.
     casepath : str or pathlib.Path
-        Base path to the case directory containing case study data, including the
-        `node_data` and `network_topology` subfolders.
+        Base path to the case directory.
     intervals_between_years : list or None
-        Full list of years between consecutive intervals. If None, no lifetime check
-        is performed.
+        Full list of years between consecutive intervals. If None, no lifetime check.
     interval_index : int or None
-        Index of the current interval in the intervals list (i.e. `i` from the loop).
-        Used to select the correct value from `intervals_between_years`.
+        Index of the current interval (used to select from intervals_between_years).
     """
-
     casepath = Path(casepath)
     years_this_step = (
         intervals_between_years[interval_index - 1]
@@ -264,15 +266,16 @@ def installed_capacities_existing(
         .periods[prev_interval]
     )
 
-    # Technologies
+    # ─── Technologies ────────────────────────────────────────────────────────
     for node in prev_model.node_blocks:
         b_node_prev = prev_model.node_blocks[node]
+        all_tecs = set(b_node_prev.set_technologies)
 
         size_tecs_existing = {}
         remaining_lifetime_dict = {}
         vintage_sizes_dict = {}
 
-        # Read remaining_lifetime and vintage_sizes from the previous interval's JSON
+        # Read tracking dicts from previous interval's JSON
         prev_remaining_lifetimes = {}
         prev_vintage_sizes = {}
         if years_this_step is not None:
@@ -289,183 +292,110 @@ def installed_capacities_existing(
                 prev_remaining_lifetimes = prev_json.get("remaining_lifetime", {})
                 prev_vintage_sizes = prev_json.get("vintage_sizes", {})
 
-        # First pass: identify expired _existing technologies
-        # (new investments are always alive — they were just built in prev_interval)
-        expired_tecs = set()
-        if years_this_step is not None:
-            for tec_name in b_node_prev.set_technologies:
-                if not tec_name.endswith("_existing"):
-                    continue
-                new_remaining = check_component_remaining_lifetime(
+        # Unique base technology names (strip _existing suffix)
+        base_tecs = {
+            t.replace("_existing", "") if t.endswith("_existing") else t
+            for t in all_tecs
+        }
+
+        for base_tec in base_tecs:
+            existing_tec = base_tec + "_existing"
+            new_size = (
+                b_node_prev.tech_blocks_active[base_tec].var_size.value or 0.0
+                if base_tec in all_tecs
+                else 0.0
+            )
+            existing_size = (
+                b_node_prev.tech_blocks_active[existing_tec].var_size.value or 0.0
+                if existing_tec in all_tecs
+                else 0.0
+            )
+
+            if years_this_step is None:
+                total_size = new_size + existing_size
+                if total_size > 1e-6:
+                    size_tecs_existing[base_tec] = total_size
+                continue
+
+            # N-vintage tracking
+            old_vintages = prev_vintage_sizes.get(base_tec, {})
+            old_rls = prev_remaining_lifetimes.get(base_tec, {})
+
+            if old_vintages:
+                surviving, surviving_rls = _expire_vintages(
+                    old_vintages,
+                    old_rls,
+                    years_this_step,
+                    f"Node '{node}', technology '{base_tec}'",
+                )
+            elif existing_size > 1e-6:
+                # First transition for pre-existing capacity: initialize tracking
+                ex_remaining = check_component_remaining_lifetime(
                     m,
-                    tec_name,
+                    existing_tec if existing_tec in all_tecs else base_tec,
                     years_this_step,
                     prev_interval,
-                    prev_remaining_lifetimes,
+                    {},
                     node=node,
                 )
-                if new_remaining is not None and new_remaining <= 0:
-                    expired_tecs.add(tec_name)
-
-        # Second pass: build carry-forward sizes and lifetime tracking
-        for tec_name in b_node_prev.set_technologies:
-
-            # --- Standalone existing technology (no new counterpart in this interval) ---
-            if tec_name.endswith("_existing"):
-                if tec_name in expired_tecs:
-                    continue
-                base_tec_name = tec_name.replace("_existing", "")
-                if base_tec_name not in b_node_prev.set_technologies:
-                    prev_existing_size = (
-                        b_node_prev.tech_blocks_active[tec_name].var_size.value or 0
-                    )
-                    if prev_existing_size > 1e-6:
-                        size_tecs_existing[base_tec_name] = prev_existing_size
-                        if years_this_step is not None:
-                            ex_remaining = check_component_remaining_lifetime(
-                                m,
-                                tec_name,
-                                years_this_step,
-                                prev_interval,
-                                prev_remaining_lifetimes,
-                                node=node,
-                            )
-                            if ex_remaining is not None:
-                                remaining_lifetime_dict[tec_name] = ex_remaining
-                                vintage_sizes_dict[tec_name] = prev_existing_size
-                continue  # Always skip further processing for _existing techs
-
-            # --- New technology (has a fresh investment variable in prev_interval) ---
-            new_size = b_node_prev.tech_blocks_active[tec_name].var_size.value or 0
-            existing_tec_name = tec_name + "_existing"
-
-            # Resolve surviving existing capacity (with sub-vintage breakdown)
-            surviving_existing_size = 0
-            existing_vintage_min_remaining = None
-
-            if (
-                existing_tec_name in b_node_prev.set_technologies
-                and existing_tec_name not in expired_tecs
-            ):
-                merged_existing_size = (
-                    b_node_prev.tech_blocks_active[existing_tec_name].var_size.value
-                    or 0
-                )
-
-                if (
-                    years_this_step is not None
-                    and merged_existing_size > 1e-6
-                    and prev_vintage_sizes
-                ):
-                    # Sub-vintage A: previous interval's new investment (key = tec_name)
-                    # Sub-vintage B: older vintages aggregated (key = existing_tec_name)
-                    sv_a_size = prev_vintage_sizes.get(tec_name, 0)
-                    sv_b_size = prev_vintage_sizes.get(existing_tec_name, 0)
-
-                    sv_a_rl = prev_remaining_lifetimes.get(tec_name)
-                    sv_b_rl = prev_remaining_lifetimes.get(existing_tec_name)
-
-                    sv_a_alive = sv_a_rl is None or (sv_a_rl - years_this_step) > 0
-                    sv_b_alive = sv_b_rl is None or (sv_b_rl - years_this_step) > 0
-
-                    surviving_existing_size = (sv_a_size if sv_a_alive else 0) + (
-                        sv_b_size if sv_b_alive else 0
-                    )
-
-                    expired_portion = merged_existing_size - surviving_existing_size
-                    if expired_portion > 1e-6:
-                        warnings.warn(
-                            f"Node '{node}', technology '{tec_name}': "
-                            f"{expired_portion:.3f} of existing capacity expired and is not carried forward.",
-                            UserWarning,
-                            stacklevel=2,
-                        )
-
-                    # Min remaining lifetime of surviving sub-vintages
-                    surviving_rls = []
-                    if sv_a_alive and sv_a_rl is not None:
-                        surviving_rls.append(sv_a_rl - years_this_step)
-                    if sv_b_alive and sv_b_rl is not None:
-                        surviving_rls.append(sv_b_rl - years_this_step)
-                    existing_vintage_min_remaining = (
-                        min(surviving_rls) if surviving_rls else None
-                    )
-
+                init_key = f"{prev_interval}_initial"
+                surviving = {}
+                surviving_rls = {}
+                if ex_remaining is None or ex_remaining > 0:
+                    surviving[init_key] = existing_size
+                    if ex_remaining is not None:
+                        surviving_rls[init_key] = ex_remaining
                 else:
-                    # No sub-vintage info — fall back to single-vintage check
-                    surviving_existing_size = merged_existing_size
-                    if years_this_step is not None:
-                        ex_remaining = check_component_remaining_lifetime(
-                            m,
-                            existing_tec_name,
-                            years_this_step,
-                            prev_interval,
-                            prev_remaining_lifetimes,
-                            node=node,
-                        )
-                        existing_vintage_min_remaining = ex_remaining
+                    warnings.warn(
+                        f"Node '{node}', technology '{base_tec}': existing capacity "
+                        f"{existing_size:.3f} expired at first transition.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+            else:
+                surviving = {}
+                surviving_rls = {}
 
-            # Warn if both vintages are active (same technology name, different investment periods)
-            if new_size > 1e-6 and surviving_existing_size > 1e-6:
-                warnings.warn(
-                    f"Node '{node}', technology '{tec_name}': both new ({new_size:.3f}) "
-                    f"and existing ({surviving_existing_size:.3f}) vintages are active. "
-                    "Sizes are merged. Consider using distinct technology names per investment period.",
-                    UserWarning,
-                    stacklevel=2,
+            # Add new investment vintage (always starts from full economics lifetime)
+            if new_size > 1e-6:
+                comp_data = (
+                    m[prev_interval]
+                    .data.technology_data[prev_interval][node]
+                    .get(base_tec)
                 )
+                full_lt = (
+                    comp_data.economics.get("lifetime")
+                    if comp_data is not None
+                    else None
+                )
+                surviving[prev_interval] = new_size
+                if full_lt is not None:
+                    surviving_rls[prev_interval] = full_lt - years_this_step
 
-            total_size = new_size + surviving_existing_size
+            total_size = sum(surviving.values())
             if total_size > 1e-6:
-                size_tecs_existing[tec_name] = total_size
+                size_tecs_existing[base_tec] = total_size
+                vintage_sizes_dict[base_tec] = dict(surviving)
+                remaining_lifetime_dict[base_tec] = dict(surviving_rls)
 
-            if years_this_step is not None:
-                # New investment vintage: always starts from full economics lifetime
-                if new_size > 1e-6:
-                    comp_data = (
-                        m[prev_interval]
-                        .data.technology_data[prev_interval][node]
-                        .get(tec_name)
-                    )
-                    if comp_data is not None:
-                        full_lt = comp_data.economics.get("lifetime")
-                        if full_lt is not None:
-                            remaining_lifetime_dict[tec_name] = (
-                                full_lt - years_this_step
-                            )
-                            vintage_sizes_dict[tec_name] = new_size
-
-                # Surviving existing vintage: carry forward with minimum remaining lifetime
-                if (
-                    surviving_existing_size > 1e-6
-                    and existing_vintage_min_remaining is not None
-                ):
-                    remaining_lifetime_dict[existing_tec_name] = (
-                        existing_vintage_min_remaining
-                    )
-                    vintage_sizes_dict[existing_tec_name] = surviving_existing_size
-
-        # Write the JSON technology file for the current interval
+        # Write Technologies.json for current interval
         json_tec_file_path = (
             casepath / interval / "node_data" / node / "Technologies.json"
         )
-        with open(json_tec_file_path, "r") as json_tec_file:
-            json_tec = json.load(json_tec_file)
-
+        with open(json_tec_file_path) as f:
+            json_tec = json.load(f)
         json_tec["existing"] = size_tecs_existing
         if years_this_step is not None:
             json_tec["remaining_lifetime"] = remaining_lifetime_dict
             json_tec["vintage_sizes"] = vintage_sizes_dict
-        with open(json_tec_file_path, "w") as json_tec_file:
-            json.dump(json_tec, json_tec_file, indent=4)
+        with open(json_tec_file_path, "w") as f:
+            json.dump(json_tec, f, indent=4)
 
-    # Networks
+    # ─── Networks ────────────────────────────────────────────────────────────
     json_netw_file_path = casepath / interval / "Networks.json"
-
-    with open(json_netw_file_path, "r") as f:
+    with open(json_netw_file_path) as f:
         json_netw = json.load(f)
 
-    # Read remaining_lifetime and vintage_sizes from the previous interval's Networks.json
     prev_remaining_lifetimes_netw = {}
     prev_vintage_sizes_netw = {}
     if years_this_step is not None:
@@ -482,22 +412,7 @@ def installed_capacities_existing(
 
     remaining_lifetime_netw_dict = {}
     vintage_sizes_netw_dict = {}
-
-    # First pass: identify expired _existing networks
-    expired_netws = set()
-    if years_this_step is not None:
-        for network in prev_model.network_block:
-            if not network.endswith("_existing"):
-                continue
-            new_remaining = check_component_remaining_lifetime(
-                m,
-                network,
-                years_this_step,
-                prev_interval,
-                prev_remaining_lifetimes_netw,
-            )
-            if new_remaining is not None and new_remaining <= 0:
-                expired_netws.add(network)
+    nodes = list(prev_model.node_blocks)
 
     def _write_size_csv(matrix, path):
         matrix.index.name = ""
@@ -507,7 +422,6 @@ def installed_capacities_existing(
         return pd.read_csv(path, sep=";", index_col=0)
 
     def _ensure_existing_folder(folder, folder_new):
-        """Create existing topology folder and copy distance/connection CSVs if missing."""
         if not folder.exists():
             folder.mkdir(parents=True, exist_ok=True)
             for fname in ["distance.csv", "connection.csv"]:
@@ -521,13 +435,23 @@ def installed_capacities_existing(
                         stacklevel=2,
                     )
 
-    # Second pass: build carry-forward arc sizes and lifetime tracking
+    # Collect unique base network names and their presence flags
+    base_networks = {}
     for network in prev_model.network_block:
-        base_name = (
+        base = (
             network.replace("_existing", "")
             if network.endswith("_existing")
             else network
         )
+        if base not in base_networks:
+            base_networks[base] = {"has_new": False, "has_existing": False}
+        if network.endswith("_existing"):
+            base_networks[base]["has_existing"] = True
+        else:
+            base_networks[base]["has_new"] = True
+
+    for base_name, presence in base_networks.items():
+        existing_netw_name = base_name + "_existing"
 
         folder_topology_existing = (
             casepath / interval / "network_topology" / "existing" / base_name
@@ -535,205 +459,140 @@ def installed_capacities_existing(
         folder_topology_new = (
             casepath / interval / "network_topology" / "new" / base_name
         )
+        prev_folder_existing = (
+            casepath.parent
+            / ("Case_" + prev_interval)
+            / prev_interval
+            / "network_topology"
+            / "existing"
+            / base_name
+        )
 
-        # Build arc size matrix for this specific network block
-        netw_size_matrix = create_empty_network_matrix(list(prev_model.node_blocks))
-        for arc in prev_model.network_block[network].set_arcs:
-            netw_size_matrix.loc[arc] = (
-                prev_model.network_block[network].arc_block[arc].var_size.value or 0
-            )
+        # Arc size matrices from previous model
+        new_matrix = create_empty_network_matrix(nodes)
+        if presence["has_new"]:
+            for arc in prev_model.network_block[base_name].set_arcs:
+                new_matrix.loc[arc] = (
+                    prev_model.network_block[base_name].arc_block[arc].var_size.value
+                    or 0
+                )
+        new_sum = float(new_matrix.values.sum())
 
-        # --- Standalone existing network (no new counterpart in this interval) ---
-        if network.endswith("_existing"):
-            if network in expired_netws:
-                if base_name in json_netw["existing"]:
-                    json_netw["existing"].remove(base_name)
-                if folder_topology_existing.exists():
-                    zero_matrix = create_empty_network_matrix(
-                        list(prev_model.node_blocks)
-                    )
-                    _write_size_csv(zero_matrix, folder_topology_existing / "size.csv")
-                continue
-
-            if base_name not in prev_model.network_block:
-                # Truly standalone: base network not invested in this interval
-                active = netw_size_matrix.values.sum() > 1e-6
-                if active:
-                    if base_name not in json_netw["existing"]:
-                        json_netw["existing"].append(base_name)
-                    _ensure_existing_folder(
-                        folder_topology_existing, folder_topology_new
-                    )
-                    _write_size_csv(
-                        netw_size_matrix, folder_topology_existing / "size.csv"
-                    )
-                    if years_this_step is not None:
-                        ex_remaining = check_component_remaining_lifetime(
-                            m,
-                            network,
-                            years_this_step,
-                            prev_interval,
-                            prev_remaining_lifetimes_netw,
-                        )
-                        if ex_remaining is not None:
-                            remaining_lifetime_netw_dict[network] = ex_remaining
-                            vintage_sizes_netw_dict[network] = float(
-                                netw_size_matrix.values.sum()
-                            )
-                            _write_size_csv(
-                                netw_size_matrix,
-                                folder_topology_existing / "size_existing.csv",
-                            )
-                else:
-                    if base_name in json_netw["existing"]:
-                        json_netw["existing"].remove(base_name)
-            continue  # Always skip further processing for _existing networks
-
-        # --- New network (has investment variable in prev_interval) ---
-        new_size_matrix = netw_size_matrix.copy()
-        existing_netw_name = network + "_existing"
-
-        # Resolve surviving existing arc sizes (with sub-vintage breakdown)
-        nodes = list(prev_model.node_blocks)
-        surviving_existing_matrix = create_empty_network_matrix(nodes)
-        existing_vintage_min_remaining = None
-
-        if (
-            existing_netw_name in prev_model.network_block
-            and existing_netw_name not in expired_netws
-        ):
-            merged_existing_matrix = create_empty_network_matrix(nodes)
+        existing_matrix = create_empty_network_matrix(nodes)
+        if presence["has_existing"]:
             for arc in prev_model.network_block[existing_netw_name].set_arcs:
-                merged_existing_matrix.loc[arc] = (
+                existing_matrix.loc[arc] = (
                     prev_model.network_block[existing_netw_name]
                     .arc_block[arc]
                     .var_size.value
                     or 0
                 )
-            merged_sum = float(merged_existing_matrix.values.sum())
+        existing_sum = float(existing_matrix.values.sum())
 
-            if (
-                years_this_step is not None
-                and merged_sum > 1e-6
-                and prev_vintage_sizes_netw
-            ):
-                # Sub-vintage A: previous interval's new investment (key = network base name)
-                # Sub-vintage B: older vintages aggregated (key = existing_netw_name)
-                sv_a_total = prev_vintage_sizes_netw.get(network, 0)
-                sv_b_total = prev_vintage_sizes_netw.get(existing_netw_name, 0)
+        if years_this_step is None:
+            total_matrix = new_matrix + existing_matrix
+            active = float(total_matrix.values.sum()) > 1e-6
+            if active:
+                if base_name not in json_netw["existing"]:
+                    json_netw["existing"].append(base_name)
+                _ensure_existing_folder(folder_topology_existing, folder_topology_new)
+                _write_size_csv(total_matrix, folder_topology_existing / "size.csv")
+            else:
+                if base_name in json_netw["existing"]:
+                    json_netw["existing"].remove(base_name)
+                if folder_topology_existing.exists():
+                    _write_size_csv(
+                        create_empty_network_matrix(nodes),
+                        folder_topology_existing / "size.csv",
+                    )
+            continue
 
-                sv_a_rl = prev_remaining_lifetimes_netw.get(network)
-                sv_b_rl = prev_remaining_lifetimes_netw.get(existing_netw_name)
+        # N-vintage tracking
+        old_vintages = prev_vintage_sizes_netw.get(base_name, {})
+        old_rls = prev_remaining_lifetimes_netw.get(base_name, {})
 
-                sv_a_alive = sv_a_rl is None or (sv_a_rl - years_this_step) > 0
-                sv_b_alive = sv_b_rl is None or (sv_b_rl - years_this_step) > 0
+        # vintage_matrices: arc DataFrames for vintages known in this step
+        surviving_vintages = {}
+        surviving_rls = {}
+        total_matrix = create_empty_network_matrix(nodes)
+        vintage_matrices = {}
 
-                # Reconstruct surviving arc matrix from per-vintage CSV files
-                surviving_existing_matrix = create_empty_network_matrix(nodes)
-                if sv_a_alive and sv_a_total > 1e-6:
-                    sv_a_csv = folder_topology_existing / "size_new.csv"
-                    if sv_a_csv.exists():
-                        surviving_existing_matrix = surviving_existing_matrix.add(
-                            _read_size_csv(sv_a_csv), fill_value=0
-                        )
-                if sv_b_alive and sv_b_total > 1e-6:
-                    sv_b_csv = folder_topology_existing / "size_existing.csv"
-                    if sv_b_csv.exists():
-                        surviving_existing_matrix = surviving_existing_matrix.add(
-                            _read_size_csv(sv_b_csv), fill_value=0
-                        )
-
-                expired_portion = merged_sum - float(
-                    surviving_existing_matrix.values.sum()
-                )
-                if expired_portion > 1e-6:
+        if old_vintages:
+            surviving_vintages, surviving_rls = _expire_vintages(
+                old_vintages, old_rls, years_this_step, f"Network '{base_name}'"
+            )
+            for vintage_interval in surviving_vintages:
+                src_csv = prev_folder_existing / f"size_{vintage_interval}.csv"
+                if src_csv.exists():
+                    vdf = _read_size_csv(src_csv)
+                    total_matrix = total_matrix.add(vdf, fill_value=0)
+                    vintage_matrices[vintage_interval] = vdf
+                else:
                     warnings.warn(
-                        f"Network '{network}': {expired_portion:.3f} of existing arc "
-                        "capacity expired and is not carried forward.",
+                        f"Network '{base_name}': vintage CSV '{src_csv.name}' not found. "
+                        "Arc sizes for this vintage lost.",
                         UserWarning,
                         stacklevel=2,
                     )
-
-                surviving_rls = []
-                if sv_a_alive and sv_a_rl is not None:
-                    surviving_rls.append(sv_a_rl - years_this_step)
-                if sv_b_alive and sv_b_rl is not None:
-                    surviving_rls.append(sv_b_rl - years_this_step)
-                existing_vintage_min_remaining = (
-                    min(surviving_rls) if surviving_rls else None
+        elif existing_sum > 1e-6:
+            # First transition for pre-existing network: initialize tracking
+            ex_remaining = check_component_remaining_lifetime(
+                m, existing_netw_name, years_this_step, prev_interval, {}
+            )
+            init_key = f"{prev_interval}_initial"
+            if ex_remaining is None or ex_remaining > 0:
+                surviving_vintages[init_key] = existing_sum
+                if ex_remaining is not None:
+                    surviving_rls[init_key] = ex_remaining
+                total_matrix = existing_matrix.copy()
+                vintage_matrices[init_key] = existing_matrix.copy()
+            else:
+                warnings.warn(
+                    f"Network '{base_name}': existing capacity expired at first transition.",
+                    UserWarning,
+                    stacklevel=2,
                 )
 
-            else:
-                # No sub-vintage info — fall back to single-vintage check
-                surviving_existing_matrix = merged_existing_matrix
-                if years_this_step is not None:
-                    ex_remaining = check_component_remaining_lifetime(
-                        m,
-                        existing_netw_name,
-                        years_this_step,
-                        prev_interval,
-                        prev_remaining_lifetimes_netw,
-                    )
-                    existing_vintage_min_remaining = ex_remaining
-
-        # Warn if both vintages are active
-        new_sum = float(new_size_matrix.values.sum())
-        surviving_existing_sum = float(surviving_existing_matrix.values.sum())
-        if new_sum > 1e-6 and surviving_existing_sum > 1e-6:
-            warnings.warn(
-                f"Network '{network}': both new ({new_sum:.3f}) and existing "
-                f"({surviving_existing_sum:.3f}) vintages are active. Arc sizes are merged. "
-                "Consider using distinct network names per investment period.",
-                UserWarning,
-                stacklevel=2,
+        # Add new investment vintage
+        if new_sum > 1e-6:
+            comp_data = m[prev_interval].data.network_data[prev_interval].get(base_name)
+            full_lt = (
+                comp_data.economics.get("lifetime") if comp_data is not None else None
             )
+            surviving_vintages[prev_interval] = new_sum
+            if full_lt is not None:
+                surviving_rls[prev_interval] = full_lt - years_this_step
+            total_matrix = total_matrix.add(new_matrix, fill_value=0)
+            vintage_matrices[prev_interval] = new_matrix.copy()
 
-        total_matrix = new_size_matrix + surviving_existing_matrix
-        active_network = float(total_matrix.values.sum()) > 1e-6
+        active = float(total_matrix.values.sum()) > 1e-6
 
-        if active_network:
+        if active:
             if base_name not in json_netw["existing"]:
                 json_netw["existing"].append(base_name)
             _ensure_existing_folder(folder_topology_existing, folder_topology_new)
             _write_size_csv(total_matrix, folder_topology_existing / "size.csv")
 
-            if years_this_step is not None:
-                # New investment vintage: always starts from full economics lifetime
-                if new_sum > 1e-6:
-                    comp_data = (
-                        m[prev_interval].data.network_data[prev_interval].get(network)
-                    )
-                    if comp_data is not None:
-                        full_lt = comp_data.economics.get("lifetime")
-                        if full_lt is not None:
-                            remaining_lifetime_netw_dict[network] = (
-                                full_lt - years_this_step
-                            )
-                            vintage_sizes_netw_dict[network] = new_sum
-                            _write_size_csv(
-                                new_size_matrix,
-                                folder_topology_existing / "size_new.csv",
-                            )
+            # Write per-vintage CSVs to current interval's existing folder
+            for vintage_interval in surviving_vintages:
+                dst_csv = folder_topology_existing / f"size_{vintage_interval}.csv"
+                if vintage_interval in vintage_matrices:
+                    _write_size_csv(vintage_matrices[vintage_interval], dst_csv)
+                else:
+                    src_csv = prev_folder_existing / f"size_{vintage_interval}.csv"
+                    if src_csv.exists() and not dst_csv.exists():
+                        shutil.copy(src_csv, dst_csv)
 
-                # Surviving existing vintage: carry forward with minimum remaining lifetime
-                if (
-                    surviving_existing_sum > 1e-6
-                    and existing_vintage_min_remaining is not None
-                ):
-                    remaining_lifetime_netw_dict[existing_netw_name] = (
-                        existing_vintage_min_remaining
-                    )
-                    vintage_sizes_netw_dict[existing_netw_name] = surviving_existing_sum
-                    _write_size_csv(
-                        surviving_existing_matrix,
-                        folder_topology_existing / "size_existing.csv",
-                    )
+            vintage_sizes_netw_dict[base_name] = dict(surviving_vintages)
+            remaining_lifetime_netw_dict[base_name] = dict(surviving_rls)
         else:
             if base_name in json_netw["existing"]:
                 json_netw["existing"].remove(base_name)
             if folder_topology_existing.exists():
-                zero_matrix = create_empty_network_matrix(list(prev_model.node_blocks))
-                _write_size_csv(zero_matrix, folder_topology_existing / "size.csv")
+                _write_size_csv(
+                    create_empty_network_matrix(nodes),
+                    folder_topology_existing / "size.csv",
+                )
 
     if years_this_step is not None:
         json_netw["remaining_lifetime"] = remaining_lifetime_netw_dict

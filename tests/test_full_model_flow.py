@@ -294,7 +294,9 @@ def test_full_model_flow_multiyear(request):
         )
     )
     assert "remaining_lifetime" in tec_json
-    assert tec_json["remaining_lifetime"]["TestTec_BoilerEl"] == 15
+    # N-vintage: remaining_lifetime is nested {tec_name: {interval: rl}}
+    assert "TestTec_BoilerEl" in tec_json["remaining_lifetime"]
+    assert tec_json["remaining_lifetime"]["TestTec_BoilerEl"]["Interval_1"] == 15
 
 
 def test_clustering_algo(request):

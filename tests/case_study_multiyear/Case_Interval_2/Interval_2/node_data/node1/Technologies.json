@@ -4,9 +4,13 @@
     },
     "new": [],
     "remaining_lifetime": {
-        "TestTec_GasTurbine_simple_existing": 15
+        "TestTec_GasTurbine_simple": {
+            "Interval_1_initial": 15
+        }
     },
     "vintage_sizes": {
-        "TestTec_GasTurbine_simple_existing": 10.0
+        "TestTec_GasTurbine_simple": {
+            "Interval_1_initial": 10.0
+        }
     }
 }

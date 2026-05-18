@@ -22,8 +22,8 @@ dp.copy_compressor_data(path, "path to compressor data")
 
 # Read climate data and fill carried data (comment these lines if already defined)
 dp.load_climate_data_from_api(path)
-dp.fill_carrier_data(path, value=0)
-dp.fill_carrier_pressure_data(path, value=0)
+dp.fill_carrier_data(path, value_or_data=0)
+dp.fill_carrier_pressure_data(path, pressure_value_bar=0)
 
 # Build the model with investment intervals
 adopthub = {}
@@ -51,13 +51,14 @@ else:
 
 # Construct and solve the model
 for i, interval in enumerate(intervals):
-    interval_path = casestudy_path + "/Case_" + interval
+    interval_path = Path(casestudy_path) / f"Case_{interval}"
 
     if i != 0:
         prev_interval = intervals[i - 1]
         installed_capacities_existing(
             adopthub, interval, prev_interval, interval_path, intervals_between_years, i
         )
+        del adopthub[prev_interval]  # Free memory — previous interval no longer needed
 
     adopthub[interval] = ModelHub()
     adopthub[interval].read_data(interval_path)
