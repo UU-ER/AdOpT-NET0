@@ -211,9 +211,11 @@ def installed_capacities_existing(
        - If `intervals_between_years` is provided, a lifetime check is performed.
          Technologies whose remaining lifetime has reached zero are not carried forward.
          The updated remaining lifetimes are written under the ``"remaining_lifetime"`` key.
-       - For each node, reads installed technology sizes from the previous interval's
+       - For each node, reads installed technology (new and existing) sizes from the previous interval's
          solved model and writes them into the corresponding `Technologies.json` of the
-         current interval under the ``"existing"`` key.
+         current interval under the ``"existing"`` key. The sum of the new and existing
+         capacities of a technology in the previous interval is stored as a single value
+         under that key.
 
     2. **Networks** — For each network, it determines whether the network was active in
        the previous interval (based on arc sizes). If active, it:
@@ -265,9 +267,8 @@ def installed_capacities_existing(
         .periods[prev_interval]
     )
 
-    # -------------------------------------------------------------------------
     # Technologies
-    # -------------------------------------------------------------------------
+
     for node in prev_model.node_blocks:
         b_node_prev = prev_model.node_blocks[node]
 
@@ -289,7 +290,7 @@ def installed_capacities_existing(
                 prev_remaining_lifetimes = json.load(f).get("remaining_lifetime", {})
 
         # First pass: identify expired _existing technologies.
-        # New investments are always alive — they were just built in prev_interval.
+        # New investments may also expire if their lifetime < years_this_step — checked in second pass.
         expired_tecs = set()
         if years_this_step is not None:
             for tec_name in b_node_prev.set_technologies:
@@ -346,13 +347,13 @@ def installed_capacities_existing(
                 )
 
             total_size = new_size + existing_size
-            if total_size > 1e-6:
-                size_tecs_existing[tec_name] = total_size
+            if total_size <= 1e-6:
+                continue
 
-            if years_this_step is not None and total_size > 1e-6:
-                # Collect remaining lifetimes of all present vintages.
-                # New investment always starts from full economics lifetime.
-                # Existing carry-over uses the tracked remaining lifetime.
+            # Compute remaining lifetimes and check expiry.
+            # New investment starts from full economics lifetime.
+            # Existing carry-over uses the tracked remaining lifetime.
+            if years_this_step is not None:
                 lifetimes = []
 
                 if new_size > 1e-6:
@@ -378,6 +379,9 @@ def installed_capacities_existing(
                     if ex_rl is not None:
                         lifetimes.append(ex_rl)
 
+                if lifetimes and min(lifetimes) <= 0:
+                    continue  # all vintages expired
+
                 if lifetimes:
                     remaining_lifetime_dict[tec_name] = min(lifetimes)
                     if len(lifetimes) > 1:
@@ -390,6 +394,8 @@ def installed_capacities_existing(
                             UserWarning,
                             stacklevel=2,
                         )
+
+            size_tecs_existing[tec_name] = total_size
 
         json_tec_file_path = (
             casepath / interval / "node_data" / node / "Technologies.json"
