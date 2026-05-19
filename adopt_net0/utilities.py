@@ -251,10 +251,9 @@ def installed_capacities_existing(
 
     if intervals_between_years is None:
         warnings.warn(
-            "intervals_between_years is not defined. No lifetime check will be performed.",
-            UserWarning,
-            stacklevel=2,
+            "intervals_between_years is not defined. No lifetime check will be performed."
         )
+
     years_this_step = (
         intervals_between_years[interval_index - 1]
         if intervals_between_years is not None
@@ -390,9 +389,7 @@ def installed_capacities_existing(
                             f"({new_size:.3f}) and existing ({existing_size:.3f}) "
                             "vintages active. Using minimum remaining lifetime "
                             f"({min(lifetimes)} years). Consider distinct technology "
-                            "names per investment period for precise lifetime tracking.",
-                            UserWarning,
-                            stacklevel=2,
+                            "names per investment period for precise lifetime tracking."
                         )
 
             size_tecs_existing[tec_name] = total_size
@@ -547,11 +544,7 @@ def installed_capacities_existing(
                     if src.exists():
                         shutil.copy(src, folder_topology_existing / fname)
                     else:
-                        warnings.warn(
-                            f"{src} not found, skipping copy.",
-                            UserWarning,
-                            stacklevel=2,
-                        )
+                        warnings.warn(f"{src} not found, skipping copy.")
             total_matrix.index.name = ""
             total_matrix.to_csv(
                 folder_topology_existing / "size.csv",
@@ -587,9 +580,7 @@ def installed_capacities_existing(
                             f"Network '{network}': both new ({new_sum:.3f}) and existing "
                             f"({existing_sum:.3f}) vintages active. Using minimum remaining "
                             f"lifetime ({min(lifetimes)} years). Consider distinct network "
-                            "names per investment period for precise lifetime tracking.",
-                            UserWarning,
-                            stacklevel=2,
+                            "names per investment period for precise lifetime tracking."
                         )
         else:
             if base_name in json_netw["existing"]:
