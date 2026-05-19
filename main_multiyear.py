@@ -36,7 +36,7 @@ for i, interval in enumerate(intervals):
     if i != 0:
         prev_interval = intervals[i - 1]
         installed_capacities_existing(
-            adopthub, interval, prev_interval, interval_path, intervals_between_years
+            adopthub, interval, prev_interval, interval_path, intervals_between_years, i
         )
 
     adopthub[interval] = ModelHub()
