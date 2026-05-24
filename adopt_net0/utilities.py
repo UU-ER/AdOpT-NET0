@@ -216,9 +216,7 @@ def _expire_vintages(old_vintages, old_rls, years_this_step, label):
                 surviving_rls[vintage_interval] = new_vrl
             else:
                 warnings.warn(
-                    f"{label}, vintage '{vintage_interval}': {vsize:.3f} expired and is not carried forward.",
-                    UserWarning,
-                    stacklevel=3,
+                    f"{label}, vintage '{vintage_interval}': {vsize:.3f} expired and is not carried forward."
                 )
     return surviving, surviving_rls
 
@@ -235,24 +233,72 @@ def installed_capacities_existing(
     Transfer installed capacities from a previous interval to define minimum capacities
     for the next brownfield simulation, updating both technologies and networks.
 
-    Tracks capacities per investment vintage — each historical investment period is a
-    separate entry in the nested ``vintage_sizes`` and ``remaining_lifetime`` dicts.
-    Vintages whose remaining lifetime drops to zero are not carried forward.
+    .. note::
+        Compressor capacities are not set explicitly by this function. They will be
+        calculated from the existing network and technology capacities in the next
+        optimization, as for all simulations with existing components and pressure levels.
+
+    The function operates in two stages:
+
+    **Stage 1 — Lifetime check (all components)**
+
+    Before carrying any capacity forward, each component's investment vintages are
+    checked against their remaining lifetime. Every investment period is tracked as
+    a separate entry in the nested ``vintage_sizes`` and ``remaining_lifetime`` dicts
+    (both written to ``Technologies.json`` and ``Networks.json``). Any vintage whose
+    remaining lifetime has dropped to zero or below is expired and excluded from the
+    carry-over. Only surviving vintages proceed to Stage 2.
+
+    If ``intervals_between_years`` is ``None``, this stage is skipped and all
+    capacities are carried forward unchanged (no lifetime check performed).
+
+    **Stage 2 — Carry-over**
+
+    1. **Technologies** — For each node, it reads the installed technology sizes from
+       the previous interval's solved model and writes them into the corresponding
+       `Technologies.json` file of the current interval.
+
+       - The sum of the new or existing capacities of a technology in the previous run
+         are stored under the ``"existing"`` key in the JSON file.
+       - If lifetime tracking is active, ``vintage_sizes`` and ``remaining_lifetime``
+         are also written to ``Technologies.json``.
+
+    2. **Networks** — For each network, it determines whether the network was active in
+       the previous interval (based on arc sizes).
+       If active, it:
+
+       - Adds the network name to the ``"existing"`` list in ``Networks.json``.
+       - Copies ``distance.csv`` and ``connection.csv`` from the "new" topology folder to
+         the "existing" topology folder (if not already present).
+       - Writes a ``size.csv`` file with the current arc sizes. If lifetime tracking
+         is active, one ``size_{interval}.csv`` per surviving vintage is also written,
+         and ``vintage_sizes`` and ``remaining_lifetime`` are added to ``Networks.json``.
+
+       If inactive, it removes the network from ``"existing"`` in ``Networks.json`` and,
+       if the existing folder exists, overwrites ``size.csv`` with a zero matrix.
 
     Parameters
     ----------
     m : dict
-        Model dictionary containing interval-specific pyomo model objects.
+        Model dictionary containing interval-specific ModelHub objects. The previous
+        interval model is accessed via ``m[prev_interval]``.
     interval : str
-        Name of the current interval.
+        Name of the current interval (e.g., ``"Interval_2"``).
     prev_interval : str
         Name of the previous interval from which existing capacities are taken.
     casepath : str or pathlib.Path
-        Base path to the case directory.
-    intervals_between_years : list or None
-        Full list of years between consecutive intervals. If None, no lifetime check.
+        Path to the current interval's case directory (e.g. ``.../Case_Interval_2``),
+        containing the ``node_data`` and ``network_topology`` subfolders. The previous
+        interval's data is read from ``casepath.parent``.
+    intervals_between_years : list of int or None
+        List of years between each pair of consecutive intervals, of length
+        ``len(intervals) - 1``. Only the element at ``interval_index - 1`` is used
+        (the gap between ``prev_interval`` and ``interval``). If ``None``, no lifetime
+        check is performed.
     interval_index : int or None
-        Index of the current interval (used to select from intervals_between_years).
+        Zero-based index of the current interval in the intervals list (i.e. ``i``
+        from the loop, minimum value ``1``). Used to select the correct step from
+        ``intervals_between_years`` via ``intervals_between_years[interval_index - 1]``.
     """
     casepath = Path(casepath)
     years_this_step = (
