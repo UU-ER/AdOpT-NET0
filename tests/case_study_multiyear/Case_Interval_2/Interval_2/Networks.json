@@ -7,7 +7,7 @@
     ],
     "remaining_lifetime": {
         "electricitySimple": {
-            "Interval_1": 15
+            "Interval_1": 90
         }
     },
     "vintage_sizes": {

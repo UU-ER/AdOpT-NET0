@@ -5,7 +5,7 @@
     "new": [],
     "remaining_lifetime": {
         "TestTec_GasTurbine_simple": {
-            "Interval_1_initial": 15
+            "Interval_1_initial": 30
         }
     },
     "vintage_sizes": {

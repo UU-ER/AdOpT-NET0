@@ -394,9 +394,7 @@ def installed_capacities_existing(
                 else:
                     warnings.warn(
                         f"Node '{node}', technology '{base_tec}': existing capacity "
-                        f"{existing_size:.3f} expired at first transition.",
-                        UserWarning,
-                        stacklevel=2,
+                        f"{existing_size:.3f} expired at first transition."
                     )
             else:
                 surviving = {}
@@ -410,7 +408,7 @@ def installed_capacities_existing(
                     .get(base_tec)
                 )
                 full_lt = (
-                    comp_data.economics.get("lifetime")
+                    _get_component_lifetime(comp_data.economics)
                     if comp_data is not None
                     else None
                 )
@@ -475,11 +473,7 @@ def installed_capacities_existing(
                 if src.exists():
                     shutil.copy(src, folder / fname)
                 else:
-                    warnings.warn(
-                        f"Warning: {src} not found, skipping copy.",
-                        UserWarning,
-                        stacklevel=2,
-                    )
+                    warnings.warn(f"Warning: {src} not found, skipping copy.")
 
     # Collect unique base network names and their presence flags
     base_networks = {}
@@ -576,9 +570,7 @@ def installed_capacities_existing(
                 else:
                     warnings.warn(
                         f"Network '{base_name}': vintage CSV '{src_csv.name}' not found. "
-                        "Arc sizes for this vintage lost.",
-                        UserWarning,
-                        stacklevel=2,
+                        "Arc sizes for this vintage lost."
                     )
         elif existing_sum > 1e-6:
             # First transition for pre-existing network: initialize tracking
@@ -594,16 +586,16 @@ def installed_capacities_existing(
                 vintage_matrices[init_key] = existing_matrix.copy()
             else:
                 warnings.warn(
-                    f"Network '{base_name}': existing capacity expired at first transition.",
-                    UserWarning,
-                    stacklevel=2,
+                    f"Network '{base_name}': existing capacity expired at first transition."
                 )
 
         # Add new investment vintage
         if new_sum > 1e-6:
             comp_data = m[prev_interval].data.network_data[prev_interval].get(base_name)
             full_lt = (
-                comp_data.economics.get("lifetime") if comp_data is not None else None
+                _get_component_lifetime(comp_data.economics)
+                if comp_data is not None
+                else None
             )
             surviving_vintages[prev_interval] = new_sum
             if full_lt is not None:
@@ -689,8 +681,18 @@ def check_component_remaining_lifetime(
 
         if component_data is None:
             return None
-        prev_remaining = component_data.economics.get("lifetime")
+        prev_remaining = _get_component_lifetime(component_data.economics)
         if prev_remaining is None:
             return None  # No lifetime defined → skip check
 
     return prev_remaining - years_this_step
+
+
+def _get_component_lifetime(economics):
+    """
+    Return the relevant lifetime for a component's economics dict.
+    Prefers ``technical_lifetime`` if defined, falls back to ``lifetime``.
+    Returns ``None`` if neither is defined.
+    """
+    lt = economics.get("technical_lifetime")
+    return lt if lt is not None else economics.get("lifetime")
