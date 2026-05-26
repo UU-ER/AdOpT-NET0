@@ -381,7 +381,7 @@ def installed_capacities_existing(
                     existing_tec if existing_tec in all_tecs else base_tec,
                     years_this_step,
                     prev_interval,
-                    {},
+                    prev_remaining_lifetimes,
                     node=node,
                 )
                 init_key = f"{prev_interval}_initial"
@@ -432,6 +432,9 @@ def installed_capacities_existing(
         if years_this_step is not None:
             json_tec["remaining_lifetime"] = remaining_lifetime_dict
             json_tec["vintage_sizes"] = vintage_sizes_dict
+        else:
+            json_tec.pop("remaining_lifetime", None)
+            json_tec.pop("vintage_sizes", None)
         with open(json_tec_file_path, "w") as f:
             json.dump(json_tec, f, indent=4)
 
@@ -575,7 +578,11 @@ def installed_capacities_existing(
         elif existing_sum > 1e-6:
             # First transition for pre-existing network: initialize tracking
             ex_remaining = check_component_remaining_lifetime(
-                m, existing_netw_name, years_this_step, prev_interval, {}
+                m,
+                existing_netw_name,
+                years_this_step,
+                prev_interval,
+                prev_remaining_lifetimes_netw,
             )
             init_key = f"{prev_interval}_initial"
             if ex_remaining is None or ex_remaining > 0:
@@ -635,6 +642,9 @@ def installed_capacities_existing(
     if years_this_step is not None:
         json_netw["remaining_lifetime"] = remaining_lifetime_netw_dict
         json_netw["vintage_sizes"] = vintage_sizes_netw_dict
+    else:
+        json_netw.pop("remaining_lifetime", None)
+        json_netw.pop("vintage_sizes", None)
     with open(json_netw_file_path, "w") as f:
         json.dump(json_netw, f, indent=4)
 

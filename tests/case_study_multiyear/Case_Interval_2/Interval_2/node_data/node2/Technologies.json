@@ -1,26 +1,26 @@
 {
     "existing": {
-        "TestTec_Electrolyzer": 1.5267175572519083,
-        "TestTec_BoilerEl": 15.0
+        "TestTec_BoilerEl": 15.0,
+        "TestTec_Electrolyzer": 1.5267175572519083
     },
     "new": [
         "TestTec_BoilerEl",
         "TestTec_Electrolyzer"
     ],
     "remaining_lifetime": {
-        "TestTec_Electrolyzer": {
+        "TestTec_BoilerEl": {
             "Interval_1": 15
         },
-        "TestTec_BoilerEl": {
+        "TestTec_Electrolyzer": {
             "Interval_1": 15
         }
     },
     "vintage_sizes": {
-        "TestTec_Electrolyzer": {
-            "Interval_1": 1.5267175572519083
-        },
         "TestTec_BoilerEl": {
             "Interval_1": 15.0
+        },
+        "TestTec_Electrolyzer": {
+            "Interval_1": 1.5267175572519083
         }
     }
 }
