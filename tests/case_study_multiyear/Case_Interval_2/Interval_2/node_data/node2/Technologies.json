@@ -22,5 +22,21 @@
         "TestTec_Electrolyzer": {
             "Interval_1": 1.5267175572519083
         }
+    },
+    "vintage_capex": {
+        "TestTec_BoilerEl": {
+            "Interval_1": 6.84931506849315e-05
+        },
+        "TestTec_Electrolyzer": {
+            "Interval_1": 1.920040297501147e-05
+        }
+    },
+    "remaining_econ_lifetime": {
+        "TestTec_BoilerEl": {
+            "Interval_1": 15
+        },
+        "TestTec_Electrolyzer": {
+            "Interval_1": 15
+        }
     }
 }

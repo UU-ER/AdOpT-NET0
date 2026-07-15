@@ -12,5 +12,11 @@
         "TestTec_GasTurbine_simple": {
             "Interval_1_initial": 10.0
         }
+    },
+    "vintage_capex": {
+        "TestTec_GasTurbine_simple": {}
+    },
+    "remaining_econ_lifetime": {
+        "TestTec_GasTurbine_simple": {}
     }
 }

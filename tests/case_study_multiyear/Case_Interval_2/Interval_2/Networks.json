@@ -14,5 +14,15 @@
         "electricitySimple": {
             "Interval_1": 30.0
         }
+    },
+    "vintage_capex": {
+        "electricitySimple": {
+            "Interval_1": 0.000136986301369863
+        }
+    },
+    "remaining_econ_lifetime": {
+        "electricitySimple": {
+            "Interval_1": 15
+        }
     }
 }

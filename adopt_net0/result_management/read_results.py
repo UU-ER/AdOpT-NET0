@@ -1,3 +1,5 @@
+import json
+
 import h5py
 import numpy as np
 import pandas as pd
@@ -247,4 +249,93 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
     )
 
     # Save the updated summary_results to the Excel file
+    summary_results.to_excel(summary_path, index=False)
+
+
+def add_vintage_annualization_to_summary(
+    summary_path: Path, casestudy_path: Path, intervals: list
+):
+    """
+        Add the annualized capex of carried-over vintages to the summary Excel file.
+
+        Sums the ``vintage_capex`` entries of each interval's Technologies.json and
+        Networks.json (present only while the economic lifetime is running) and adds
+        the columns ``cost_annualization_vintage_tecs``, ``cost_annualization_vintage_netw``,
+        ``cost_annualization`` and ``total_cost_with_vintage_annualization``.
+    5    The same values are also written to each interval's ``optimization_results.h5``
+        under the ``summary`` group.
+
+        Args:
+            summary_path (Path or str): Path to the summary Excel file, one row per
+                interval, in the same order as ``intervals``.
+            casestudy_path (Path or str): Path to the case study folder containing
+                the ``Case_{interval}`` folders.
+            intervals (list): Interval names, in the order they were solved.
+    """
+    summary_results = pd.read_excel(summary_path)
+    if len(summary_results) != len(intervals):
+        raise ValueError(
+            f"Summary file has {len(summary_results)} rows, but {len(intervals)} "
+            "intervals were given. One summary row per interval is required."
+        )
+
+    casestudy_path = Path(casestudy_path)
+    cost_vintage_tecs = []
+    cost_vintage_netw = []
+
+    for interval in intervals:
+        interval_path = casestudy_path / ("Case_" + interval) / interval
+
+        cost_tecs = 0.0
+        node_data_path = interval_path / "node_data"
+        if node_data_path.exists():
+            for node_dir in sorted(node_data_path.iterdir()):
+                tec_json_path = node_dir / "Technologies.json"
+                if not tec_json_path.exists():
+                    continue
+                with open(tec_json_path) as f:
+                    json_tec = json.load(f)
+                for vintages in json_tec.get("vintage_capex", {}).values():
+                    cost_tecs += sum(vintages.values())
+
+        cost_netw = 0.0
+        netw_json_path = interval_path / "Networks.json"
+        if netw_json_path.exists():
+            with open(netw_json_path) as f:
+                json_netw = json.load(f)
+            for vintages in json_netw.get("vintage_capex", {}).values():
+                cost_netw += sum(vintages.values())
+
+        cost_vintage_tecs.append(cost_tecs)
+        cost_vintage_netw.append(cost_netw)
+
+    summary_results["cost_annualization_vintage_tecs"] = cost_vintage_tecs
+    summary_results["cost_annualization_vintage_netw"] = cost_vintage_netw
+    summary_results["cost_annualization"] = (
+        summary_results["cost_annualization_vintage_tecs"]
+        + summary_results["cost_annualization_vintage_netw"]
+    )
+    summary_results["total_cost_with_vintage_annualization"] = (
+        summary_results["total_cost"] + summary_results["cost_annualization"]
+    )
+
+    # Write the new values to each interval's h5 file
+    if "time_stamp" in summary_results.columns:
+        h5_keys = [
+            "cost_annualization_vintage_tecs",
+            "cost_annualization_vintage_netw",
+            "cost_annualization",
+            "total_cost_with_vintage_annualization",
+        ]
+        for _, row in summary_results.iterrows():
+            hdf_file_path = Path(row["time_stamp"]) / "optimization_results.h5"
+            if not hdf_file_path.exists():
+                continue
+            with h5py.File(hdf_file_path, "a") as hdf_file:
+                summary = hdf_file["summary"]
+                for key in h5_keys:
+                    if key in summary:
+                        del summary[key]
+                    summary.create_dataset(key, data=row[key])
+
     summary_results.to_excel(summary_path, index=False)

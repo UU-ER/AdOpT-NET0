@@ -260,8 +260,17 @@ def installed_capacities_existing(
 
        - The sum of the new or existing capacities of a technology in the previous run
          are stored under the ``"existing"`` key in the JSON file.
-       - If lifetime tracking is active, ``vintage_sizes`` and ``remaining_lifetime``
-         are also written to ``Technologies.json``.
+       - If lifetime tracking is active, ``vintage_sizes``, ``remaining_lifetime``,
+         ``vintage_capex`` and ``remaining_econ_lifetime`` are also written to
+         ``Technologies.json``. The ``vintage_capex`` entry stores the annualized
+         investment capex of each vintage, frozen at its build interval (read from
+         ``var_capex_aux`` of the solved model), for use in post-processing of
+         total system costs. The entry is kept only while the vintage's economic
+         lifetime (``lifetime``, tracked in ``remaining_econ_lifetime``) is still
+         running; afterwards the vintage remains in ``vintage_sizes`` (governed by
+         its technical lifetime) but no longer pays annualized capex. Pre-existing
+         capacity at the first transition is treated as sunk cost (no
+         ``vintage_capex`` entry).
 
     2. **Networks** — For each network, it determines whether the network was active in
        the previous interval (based on arc sizes).
@@ -272,7 +281,9 @@ def installed_capacities_existing(
          the "existing" topology folder (if not already present).
        - Writes a ``size.csv`` file with the current arc sizes. If lifetime tracking
          is active, one ``size_{interval}.csv`` per surviving vintage is also written,
-         and ``vintage_sizes`` and ``remaining_lifetime`` are added to ``Networks.json``.
+         and ``vintage_sizes``, ``remaining_lifetime`` and ``vintage_capex`` are added
+         to ``Networks.json`` (network vintage capex is the sum of ``var_capex_aux``
+         over all arcs).
 
        If inactive, it removes the network from ``"existing"`` in ``Networks.json`` and,
        if the existing folder exists, overwrites ``size.csv`` with a zero matrix.
@@ -320,10 +331,14 @@ def installed_capacities_existing(
         size_tecs_existing = {}
         remaining_lifetime_dict = {}
         vintage_sizes_dict = {}
+        vintage_capex_dict = {}
+        remaining_econ_lifetime_dict = {}
 
         # Read tracking dicts from previous interval's JSON
         prev_remaining_lifetimes = {}
         prev_vintage_sizes = {}
+        prev_vintage_capex = {}
+        prev_remaining_econ = {}
         if years_this_step is not None:
             prev_json_path = (
                 casepath.parent
@@ -337,6 +352,8 @@ def installed_capacities_existing(
                 prev_json = json.load(f)
                 prev_remaining_lifetimes = prev_json.get("remaining_lifetime", {})
                 prev_vintage_sizes = prev_json.get("vintage_sizes", {})
+                prev_vintage_capex = prev_json.get("vintage_capex", {})
+                prev_remaining_econ = prev_json.get("remaining_econ_lifetime", {})
 
         # Unique base technology names (strip _existing suffix)
         base_tecs = {
@@ -366,6 +383,10 @@ def installed_capacities_existing(
             # N-vintage tracking
             old_vintages = prev_vintage_sizes.get(base_tec, {})
             old_rls = prev_remaining_lifetimes.get(base_tec, {})
+            old_capex = prev_vintage_capex.get(base_tec, {})
+            old_econ = prev_remaining_econ.get(base_tec, {})
+            surviving_capex = {}
+            surviving_econ = {}
 
             if old_vintages:
                 surviving, surviving_rls = _expire_vintages(
@@ -374,6 +395,17 @@ def installed_capacities_existing(
                     years_this_step,
                     f"Node '{node}', technology '{base_tec}'",
                 )
+                # Capex is carried only while the economic lifetime is still
+                # running; afterwards the vintage remains (technical lifetime)
+                # but no longer pays annualized capex
+                for vintage_interval in surviving:
+                    new_econ = old_econ.get(vintage_interval)
+                    if new_econ is None:
+                        continue
+                    new_econ = new_econ - years_this_step
+                    if new_econ > 0 and vintage_interval in old_capex:
+                        surviving_capex[vintage_interval] = old_capex[vintage_interval]
+                        surviving_econ[vintage_interval] = new_econ
             elif existing_size > 1e-6:
                 # First transition for pre-existing capacity: initialize tracking
                 ex_remaining = check_component_remaining_lifetime(
@@ -391,6 +423,8 @@ def installed_capacities_existing(
                     surviving[init_key] = existing_size
                     if ex_remaining is not None:
                         surviving_rls[init_key] = ex_remaining
+                    # Pre-existing capacity is treated as sunk cost: no
+                    # vintage_capex entry is written
                 else:
                     warnings.warn(
                         f"Node '{node}', technology '{base_tec}': existing capacity "
@@ -415,12 +449,36 @@ def installed_capacities_existing(
                 surviving[prev_interval] = new_size
                 if full_lt is not None:
                     surviving_rls[prev_interval] = full_lt - years_this_step
+                econ_lt = (
+                    comp_data.economics.get("lifetime")
+                    if comp_data is not None
+                    else None
+                )
+                tech_lt = (
+                    comp_data.economics.get("technical_lifetime")
+                    if comp_data is not None
+                    else None
+                )
+                if econ_lt is not None and tech_lt is not None and econ_lt > tech_lt:
+                    warnings.warn(
+                        f"Node '{node}', technology '{base_tec}': economic lifetime "
+                        f"({econ_lt}) exceeds technical_lifetime ({tech_lt})."
+                    )
+                if econ_lt is not None and econ_lt - years_this_step > 0:
+                    new_capex = b_node_prev.tech_blocks_active[
+                        base_tec
+                    ].var_capex_aux.value
+                    if new_capex is not None:
+                        surviving_capex[prev_interval] = new_capex
+                        surviving_econ[prev_interval] = econ_lt - years_this_step
 
             total_size = sum(surviving.values())
             if total_size > 1e-6:
                 size_tecs_existing[base_tec] = total_size
                 vintage_sizes_dict[base_tec] = dict(surviving)
                 remaining_lifetime_dict[base_tec] = dict(surviving_rls)
+                vintage_capex_dict[base_tec] = dict(surviving_capex)
+                remaining_econ_lifetime_dict[base_tec] = dict(surviving_econ)
 
         # Write Technologies.json for current interval
         json_tec_file_path = (
@@ -432,9 +490,13 @@ def installed_capacities_existing(
         if years_this_step is not None:
             json_tec["remaining_lifetime"] = remaining_lifetime_dict
             json_tec["vintage_sizes"] = vintage_sizes_dict
+            json_tec["vintage_capex"] = vintage_capex_dict
+            json_tec["remaining_econ_lifetime"] = remaining_econ_lifetime_dict
         else:
             json_tec.pop("remaining_lifetime", None)
             json_tec.pop("vintage_sizes", None)
+            json_tec.pop("vintage_capex", None)
+            json_tec.pop("remaining_econ_lifetime", None)
         with open(json_tec_file_path, "w") as f:
             json.dump(json_tec, f, indent=4)
 
@@ -445,6 +507,8 @@ def installed_capacities_existing(
 
     prev_remaining_lifetimes_netw = {}
     prev_vintage_sizes_netw = {}
+    prev_vintage_capex_netw = {}
+    prev_remaining_econ_netw = {}
     if years_this_step is not None:
         prev_netw_json_path = (
             casepath.parent
@@ -456,9 +520,13 @@ def installed_capacities_existing(
             prev_netw_json = json.load(f)
             prev_remaining_lifetimes_netw = prev_netw_json.get("remaining_lifetime", {})
             prev_vintage_sizes_netw = prev_netw_json.get("vintage_sizes", {})
+            prev_vintage_capex_netw = prev_netw_json.get("vintage_capex", {})
+            prev_remaining_econ_netw = prev_netw_json.get("remaining_econ_lifetime", {})
 
     remaining_lifetime_netw_dict = {}
     vintage_sizes_netw_dict = {}
+    vintage_capex_netw_dict = {}
+    remaining_econ_netw_dict = {}
     nodes = list(prev_model.node_blocks)
 
     def _write_size_csv(matrix, path):
@@ -467,6 +535,15 @@ def installed_capacities_existing(
 
     def _read_size_csv(path):
         return pd.read_csv(path, sep=";", index_col=0)
+
+    def _netw_capex_sum(block_name):
+        if block_name not in prev_model.network_block:
+            return None
+        return sum(
+            prev_model.network_block[block_name].arc_block[arc].var_capex_aux.value
+            or 0.0
+            for arc in prev_model.network_block[block_name].set_arcs
+        )
 
     def _ensure_existing_folder(folder, folder_new):
         if not folder.exists():
@@ -553,10 +630,14 @@ def installed_capacities_existing(
         # N-vintage tracking
         old_vintages = prev_vintage_sizes_netw.get(base_name, {})
         old_rls = prev_remaining_lifetimes_netw.get(base_name, {})
+        old_capex = prev_vintage_capex_netw.get(base_name, {})
+        old_econ = prev_remaining_econ_netw.get(base_name, {})
 
         # vintage_matrices: arc DataFrames for vintages known in this step
         surviving_vintages = {}
         surviving_rls = {}
+        surviving_capex = {}
+        surviving_econ = {}
         total_matrix = create_empty_network_matrix(nodes)
         vintage_matrices = {}
 
@@ -564,6 +645,15 @@ def installed_capacities_existing(
             surviving_vintages, surviving_rls = _expire_vintages(
                 old_vintages, old_rls, years_this_step, f"Network '{base_name}'"
             )
+            # Capex is carried only while the economic lifetime is still running
+            for vintage_interval in surviving_vintages:
+                new_econ = old_econ.get(vintage_interval)
+                if new_econ is None:
+                    continue
+                new_econ = new_econ - years_this_step
+                if new_econ > 0 and vintage_interval in old_capex:
+                    surviving_capex[vintage_interval] = old_capex[vintage_interval]
+                    surviving_econ[vintage_interval] = new_econ
             for vintage_interval in surviving_vintages:
                 src_csv = prev_folder_existing / f"size_{vintage_interval}.csv"
                 if src_csv.exists():
@@ -589,6 +679,8 @@ def installed_capacities_existing(
                 surviving_vintages[init_key] = existing_sum
                 if ex_remaining is not None:
                     surviving_rls[init_key] = ex_remaining
+                # Pre-existing capacity is treated as sunk cost: no
+                # vintage_capex entry is written
                 total_matrix = existing_matrix.copy()
                 vintage_matrices[init_key] = existing_matrix.copy()
             else:
@@ -607,6 +699,24 @@ def installed_capacities_existing(
             surviving_vintages[prev_interval] = new_sum
             if full_lt is not None:
                 surviving_rls[prev_interval] = full_lt - years_this_step
+            econ_lt = (
+                comp_data.economics.get("lifetime") if comp_data is not None else None
+            )
+            tech_lt = (
+                comp_data.economics.get("technical_lifetime")
+                if comp_data is not None
+                else None
+            )
+            if econ_lt is not None and tech_lt is not None and econ_lt > tech_lt:
+                warnings.warn(
+                    f"Network '{base_name}': economic lifetime ({econ_lt}) exceeds "
+                    f"technical_lifetime ({tech_lt})."
+                )
+            if econ_lt is not None and econ_lt - years_this_step > 0:
+                new_capex = _netw_capex_sum(base_name)
+                if new_capex is not None:
+                    surviving_capex[prev_interval] = new_capex
+                    surviving_econ[prev_interval] = econ_lt - years_this_step
             total_matrix = total_matrix.add(new_matrix, fill_value=0)
             vintage_matrices[prev_interval] = new_matrix.copy()
 
@@ -630,6 +740,8 @@ def installed_capacities_existing(
 
             vintage_sizes_netw_dict[base_name] = dict(surviving_vintages)
             remaining_lifetime_netw_dict[base_name] = dict(surviving_rls)
+            vintage_capex_netw_dict[base_name] = dict(surviving_capex)
+            remaining_econ_netw_dict[base_name] = dict(surviving_econ)
         else:
             if base_name in json_netw["existing"]:
                 json_netw["existing"].remove(base_name)
@@ -642,9 +754,13 @@ def installed_capacities_existing(
     if years_this_step is not None:
         json_netw["remaining_lifetime"] = remaining_lifetime_netw_dict
         json_netw["vintage_sizes"] = vintage_sizes_netw_dict
+        json_netw["vintage_capex"] = vintage_capex_netw_dict
+        json_netw["remaining_econ_lifetime"] = remaining_econ_netw_dict
     else:
         json_netw.pop("remaining_lifetime", None)
         json_netw.pop("vintage_sizes", None)
+        json_netw.pop("vintage_capex", None)
+        json_netw.pop("remaining_econ_lifetime", None)
     with open(json_netw_file_path, "w") as f:
         json.dump(json_netw, f, indent=4)
 
