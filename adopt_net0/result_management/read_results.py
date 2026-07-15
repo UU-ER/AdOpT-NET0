@@ -256,21 +256,20 @@ def add_vintage_annualization_to_summary(
     summary_path: Path, casestudy_path: Path, intervals: list
 ):
     """
-        Add the annualized capex of carried-over vintages to the summary Excel file.
+    Add the annualized capex of carried-over vintages to the summary Excel file.
 
-        Sums the ``vintage_capex`` entries of each interval's Technologies.json and
-        Networks.json (present only while the economic lifetime is running) and adds
-        the columns ``cost_annualization_vintage_tecs``, ``cost_annualization_vintage_netw``,
-        ``cost_annualization`` and ``total_cost_with_vintage_annualization``.
-    5    The same values are also written to each interval's ``optimization_results.h5``
-        under the ``summary`` group.
+    Sums the ``vintage_capex`` entries of each interval's Technologies.json and
+    Networks.json (present only while the economic lifetime is running) and adds
+    the columns ``cost_annualization_vintage_tecs``, ``cost_annualization_vintage_netw``,
+    ``cost_annualization`` and ``total_cost_with_vintage_annualization``.
+    The same values are also written to each interval's ``optimization_results.h5``
+    under the ``summary`` group.
 
-        Args:
-            summary_path (Path or str): Path to the summary Excel file, one row per
-                interval, in the same order as ``intervals``.
-            casestudy_path (Path or str): Path to the case study folder containing
-                the ``Case_{interval}`` folders.
-            intervals (list): Interval names, in the order they were solved.
+    :param summary_path: Path to the summary Excel file, one row per interval, in
+        the same order as ``intervals``.
+    :param casestudy_path: Path to the case study folder containing the
+        ``Case_{interval}`` folders.
+    :param list intervals: Interval names, in the order they were solved.
     """
     summary_results = pd.read_excel(summary_path)
     if len(summary_results) != len(intervals):

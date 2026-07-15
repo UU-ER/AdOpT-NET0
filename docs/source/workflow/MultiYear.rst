@@ -16,20 +16,113 @@ independently for each optimization step.
 .. testcode::
 
     adopthub = {}
-    intervals = ["Interval_1", "Interval_2", "Interval_n"]
+    intervals = ["Interval_1", "Interval_2", "Interval_3"]
+    intervals_between_years = [10, 10]
 
     for i, interval in enumerate(intervals):
-        path_interval = path + "/" + interval
+        interval_path = Path(casestudy_path) / f"Case_{interval}"
 
         # Take installed capacities from previous interval
         if i != 0:
             prev_interval = intervals[i - 1]
-            installed_capacities_existing(adopthub, interval, prev_interval, path_interval)
+            installed_capacities_existing(
+                adopthub, interval, prev_interval,
+                interval_path, intervals_between_years, i,
+            )
+            del adopthub[prev_interval]  # free memory
 
         adopthub[interval] = ModelHub()
-        adopthub[interval].read_data(path_interval, start_period=None, end_period=None)
+        adopthub[interval].read_data(interval_path)
 
         # Add interval name as case name
         adopthub[interval].data.model_config["reporting"]["case_name"]["value"] = interval
 
         adopthub[interval].quick_solve()
+
+``intervals_between_years`` holds the number of years between each pair of consecutive
+intervals and must have length ``len(intervals) - 1``. If it is set to ``None``, all
+capacities are carried forward unchanged and no lifetime check is performed (a warning
+is raised). If it has the wrong length, a ``ValueError`` is raised.
+
+Lifetime tracking (vintages)
+----------------------------
+
+When ``intervals_between_years`` is provided, each investment is tracked as a separate
+**vintage**: capacity built in a given interval keeps its own size and remaining
+lifetime. At every transition, the years elapsed are subtracted from each vintage's
+remaining lifetime; vintages that reach the end of their lifetime are expired and
+excluded from the carry-over (a warning reports the expired capacity).
+
+Two lifetime fields in the component JSON files are used:
+
+- ``technical_lifetime`` — drives the physical expiry of a vintage. If not defined,
+  ``lifetime`` is used instead.
+- ``lifetime`` — the economic lifetime, used for the annualization of the investment
+  costs (CAPEX). It should not exceed ``technical_lifetime`` (a warning is raised
+  otherwise).
+
+The tracking state is stored in the case study files and carried from one interval to
+the next:
+
+- ``Technologies.json`` (per node) and ``Networks.json`` receive the entries
+  ``vintage_sizes``, ``remaining_lifetime``, ``vintage_capex`` and
+  ``remaining_econ_lifetime``, each keyed by technology/network and by the interval in
+  which the vintage was built.
+- For networks, one ``size_{interval}.csv`` per surviving vintage is written to the
+  existing network topology folder, next to the total ``size.csv``.
+
+For example, after two transitions a technology entry can look like:
+
+.. code-block:: json
+
+    {
+        "existing": {"TechA": 15.0},
+        "vintage_sizes": {"TechA": {"Interval_1": 10.0, "Interval_2": 5.0}},
+        "remaining_lifetime": {"TechA": {"Interval_1": 5, "Interval_2": 15}},
+        "vintage_capex": {"TechA": {"Interval_1": 0.8, "Interval_2": 0.5}},
+        "remaining_econ_lifetime": {"TechA": {"Interval_1": 5, "Interval_2": 15}}
+    }
+
+Pre-existing (brownfield) capacities in the first interval
+----------------------------------------------------------
+
+Capacities that already exist at the start of the pathway are treated as **sunk cost**:
+they are tracked as a vintage named ``{interval}_initial`` but no ``vintage_capex``
+entry is written for them. To account for their (partially elapsed) lifetime, write a
+``remaining_lifetime`` entry for these components manually in the first interval's
+``Technologies.json`` / ``Networks.json``. If no entry is given, the full lifetime from
+the component data is assumed at the first transition.
+
+Costs of carried-over investments
+---------------------------------
+
+Within one interval's optimization, existing capacities do not pay investment costs
+(they are sunk for the MILP). Over the pathway, however, the annualized investment cost
+of a vintage is still being paid until the end of its economic lifetime. This is
+accounted for in post-processing: the annualized CAPEX of each vintage is frozen at its
+build interval (``vintage_capex``) and carried forward while the economic lifetime is
+running. After solving all intervals, it can be added to the summary file:
+
+.. testcode::
+
+    add_values_to_summary(summary_path)
+    add_vintage_annualization_to_summary(summary_path, casestudy_path, intervals)
+
+This adds the columns ``cost_annualization_vintage_tecs``,
+``cost_annualization_vintage_netw``, ``cost_annualization`` and
+``total_cost_with_vintage_annualization`` to the summary and to each interval's
+``optimization_results.h5``. It requires one summary row per interval, in the same
+order as ``intervals``.
+
+.. note::
+    Current limitations of the multiyear approach:
+
+    - All intervals must model the same fraction of the year (e.g. all full-year
+      runs): the stored vintage CAPEX values are scaled with the fraction of the
+      year modelled at their build interval.
+    - CCS units added to a technology are not carried over between intervals. To
+      include CCS in a multiyear analysis, define the plant with CCS as a separate
+      technology.
+    - Decommissioning of existing capacities is not yet reconciled with the vintage
+      tracking; use ``"decommission": "impossible"`` for existing technologies in
+      multiyear runs.
