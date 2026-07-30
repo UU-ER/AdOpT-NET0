@@ -118,6 +118,14 @@ Detailed technology cost models
    :undoc-members:
    :noindex:
 
+**Electrolyzer**
+
+.. automodule:: adopt_net0.database.components.technologies.electrolyzer_cost_model
+
+.. autoclass:: Electrolyzer_CostModel
+   :undoc-members:
+   :noindex:
+
 Detailed network cost models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
