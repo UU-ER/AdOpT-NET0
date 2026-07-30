@@ -76,7 +76,7 @@ class Sink(Technology):
 
         self.emissions_based_on = "input"
         self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
-        self.flexibility_data = tec_data["Flexibility"]
+        self.flow_capacity_relation_data = tec_data["Flow_capacity_relation"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -89,11 +89,11 @@ class Sink(Technology):
 
         # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
         # to account for charging and discharging capacity costs.
-        if self.flexibility_data["injection_capacity_is_decision_var"]:
+        if self.flow_capacity_relation_data["injection_capacity_is_decision_var"]:
             self.economics["capex_model"] = 4
 
         self.processed_coeff.time_independent["injection_rate_max"] = (
-            self.flexibility_data["injection_rate_max"]
+            self.flow_capacity_relation_data["injection_rate_max"]
         )
         if "energy_consumption" in self.performance_data["performance"]:
             self.processed_coeff.time_independent["energy_consumption"] = (
@@ -115,7 +115,7 @@ class Sink(Technology):
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.flexibility_data["injection_rate_max"],
+                        * self.flow_capacity_relation_data["injection_rate_max"],
                     )
                 )
             else:
@@ -127,7 +127,7 @@ class Sink(Technology):
                         (
                             np.zeros(shape=(time_steps)),
                             np.ones(shape=(time_steps))
-                            * self.flexibility_data["injection_rate_max"]
+                            * self.flow_capacity_relation_data["injection_rate_max"]
                             * energy_consumption["in"][car],
                         )
                     )
@@ -171,7 +171,7 @@ class Sink(Technology):
             bounds=(0, coeff_ti["injection_rate_max"]),
         )
 
-        if self.flexibility_data["injection_capacity_is_decision_var"]:
+        if self.flow_capacity_relation_data["injection_capacity_is_decision_var"]:
             b_tec = self._define_sink_capex(b_tec, data)
 
         # Maximum storage level constraint
@@ -219,7 +219,7 @@ class Sink(Technology):
 
         # if injection rates are fixed/ flexible:
         def init_max_capacity_injection(const):
-            if self.flexibility_data["injection_capacity_is_decision_var"]:
+            if self.flow_capacity_relation_data["injection_capacity_is_decision_var"]:
                 # injectionCapacity <= injectionRateMax
                 return b_tec.var_injection_capacity <= coeff_ti["injection_rate_max"]
             else:
@@ -276,13 +276,13 @@ class Sink(Technology):
         annualization_factor = annualize(
             discount_rate, economics["lifetime"], fraction_of_year_modelled
         )
-        flexibility = self.flexibility_data
+        flow_capacity_relation = self.flow_capacity_relation_data
         coeff_ti = self.processed_coeff.time_independent
 
         # CAPEX PARAMETERS
         b_tec.para_unit_capex_injection_cap = pyo.Param(
             domain=pyo.Reals,
-            initialize=flexibility["capex_injection_cap"],
+            initialize=flow_capacity_relation["capex_injection_cap"],
             mutable=True,
         )
         b_tec.para_unit_capex_stor_size = pyo.Param(
@@ -359,7 +359,7 @@ class Sink(Technology):
         """
         super(Sink, self).write_results_tec_design(h5_group, model_block)
 
-        if self.flexibility_data["injection_capacity_is_decision_var"]:
+        if self.flow_capacity_relation_data["injection_capacity_is_decision_var"]:
             h5_group.create_dataset(
                 "injection_capacity", data=[model_block.var_injection_capacity.value]
             )
