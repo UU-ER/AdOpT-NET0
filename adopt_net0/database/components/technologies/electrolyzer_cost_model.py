@@ -16,11 +16,11 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
 
     - cost model is based on Danish Energy Agency (2025): Technology Data for Renewable Fuels
     - projection_year: future year for which to estimate cost (possible values: 2022-2050)
-    - size: can be "small" or "medium" or "large"
+    - size: can be "small" (0-50 MW) or "medium" (50-500 MW) or "large" (500-2000 MW)
 
     Financial indicators are:
 
-    - unit_capex in [currency]/MW
+    - unit_capex in [currency]/MW (el)
     - fixed capex as fraction of annualized capex
     - variable opex in [currency]/MWh
     - levelized cost in [currency]/MWh
