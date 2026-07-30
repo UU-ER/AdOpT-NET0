@@ -512,11 +512,11 @@ class Technology(ModelComponent):
                 log.warning(log_msg)
 
         else:
-            if self.performance_function_type == 4:
-                self.performance_function_type = 3
+            if self.performance_function_type == "slow_dynamics":
+                self.performance_function_type = "piecewise"
                 log_msg = (
-                    "Switching dynamics off for performance function type 4, "
-                    "type changed to 3 for "
+                    "Switching dynamics off for performance function type "
+                    "'slow_dynamics', type changed to 'piecewise' for "
                 ) + self.name
 
                 log.warning(log_msg)
@@ -1621,10 +1621,12 @@ class Technology(ModelComponent):
             (min_uptime + min_downtime > -2)
             or (max_startups > -1)
             or (SU_load + SD_load > -2)
-            or self.performance_function_type == 4
+            or self.performance_function_type == "slow_dynamics"
         ):
             b_tec = self._dynamics_SUSD_logic(b_tec)
-        if not (self.performance_function_type == 4) and (SU_load + SD_load > -2):
+        if not (self.performance_function_type == "slow_dynamics") and (
+            SU_load + SD_load > -2
+        ):
             b_tec = self._dynamics_fast_SUSD(b_tec)
 
         log_msg = f"\t \t Adding dynamics to Technology {self.name}"

@@ -95,14 +95,16 @@ class HeatPump(Technology):
         log.info("Deriving performance data for Heat Pump...")
 
         if (
-            self.performance_function_type == 1 or self.performance_function_type == 2
+            self.performance_function_type == "linear_through_origin"
+            or self.performance_function_type == "linear_with_intercept"
         ):  # Linear performance function
             size_alpha = 1
-        elif self.performance_function_type == 3:
+        elif self.performance_function_type == "piecewise":
             size_alpha = 2
         else:
             raise Exception(
-                "performance_function_type must be an integer between 1 and 3"
+                "performance_function_type must be one of 'linear_through_origin', "
+                "'linear_with_intercept', 'piecewise'"
             )
 
         fit = {}
@@ -115,13 +117,13 @@ class HeatPump(Technology):
             if idx % 100 == 1:
                 print("\rComplete: ", round(idx / time_steps, 2) * 100, "%", end="")
 
-            if self.performance_function_type == 1:
+            if self.performance_function_type == "linear_through_origin":
                 x = np.linspace(self.performance_data["min_part_load"], 1, 9)
                 y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 coeff = fit_linear_function(x, y)
                 alpha1[idx, :] = coeff[0]
 
-            elif self.performance_function_type == 2:
+            elif self.performance_function_type == "linear_with_intercept":
                 x = np.linspace(self.performance_data["min_part_load"], 1, 9)
                 y = (x / (1 - 0.9 * (1 - x))) * cop_t * x
                 x = sm.add_constant(x)
@@ -129,7 +131,9 @@ class HeatPump(Technology):
                 alpha1[idx, :] = coeff[1]
                 alpha2[idx, :] = coeff[0]
 
-            elif self.performance_function_type == 3:  # piecewise performance function
+            elif (
+                self.performance_function_type == "piecewise"
+            ):  # piecewise performance function
                 y = {}
                 x = np.linspace(self.performance_data["min_part_load"], 1, 9)
                 y["out"] = (x / (1 - 0.9 * (1 - x))) * cop_t * x
@@ -141,14 +145,18 @@ class HeatPump(Technology):
 
         # Coefficients
         fit["coeff"] = {}
-        if self.performance_function_type == 1:
+        if self.performance_function_type == "linear_through_origin":
             fit["coeff"]["alpha1"] = alpha1.round(5)
 
-        elif self.performance_function_type == 2:  # Linear performance function
+        elif (
+            self.performance_function_type == "linear_with_intercept"
+        ):  # Linear performance function
             fit["coeff"]["alpha1"] = alpha1.round(5)
             fit["coeff"]["alpha2"] = alpha2.round(5)
 
-        elif self.performance_function_type == 3:  # Piecewise performance function
+        elif (
+            self.performance_function_type == "piecewise"
+        ):  # Piecewise performance function
             fit["coeff"]["alpha1"] = alpha1.round(5)
             fit["coeff"]["alpha2"] = alpha2.round(5)
             fit["coeff"]["bp_x"] = bp_x.round(5)
@@ -164,7 +172,7 @@ class HeatPump(Technology):
 
         time_steps = len(self.set_t_performance)
 
-        if self.performance_function_type == 1:
+        if self.performance_function_type == "linear_through_origin":
             for c in self.output_carrier:
                 self.bounds["output"][c] = np.column_stack(
                     (
@@ -174,7 +182,9 @@ class HeatPump(Technology):
                     )
                 )
 
-        elif self.performance_function_type == 2:  # Linear performance function
+        elif (
+            self.performance_function_type == "linear_with_intercept"
+        ):  # Linear performance function
             for c in self.output_carrier:
                 self.bounds["output"][c] = np.column_stack(
                     (
@@ -184,7 +194,9 @@ class HeatPump(Technology):
                     )
                 )
 
-        elif self.performance_function_type == 3:  # Piecewise performance function
+        elif (
+            self.performance_function_type == "piecewise"
+        ):  # Piecewise performance function
             for c in self.output_carrier:
                 self.bounds["output"][c] = np.column_stack(
                     (
@@ -221,13 +233,13 @@ class HeatPump(Technology):
         dynamics = self.processed_coeff.dynamics
         rated_capacity = coeff_ti["rated_capacity"]
 
-        if self.performance_function_type == 1:
-            b_tec = self._performance_function_type_1(b_tec)
-        elif self.performance_function_type == 2:
-            b_tec = self._performance_function_type_2(b_tec)
+        if self.performance_function_type == "linear_through_origin":
+            b_tec = self._performance_function_type_linear_through_origin(b_tec)
+        elif self.performance_function_type == "linear_with_intercept":
+            b_tec = self._performance_function_type_linear_with_intercept(b_tec)
             self.big_m_transformation_required = 1
-        elif self.performance_function_type == 3:
-            b_tec = self._performance_function_type_3(b_tec)
+        elif self.performance_function_type == "piecewise":
+            b_tec = self._performance_function_type_piecewise(b_tec)
             self.big_m_transformation_required = 1
 
         # size constraint based on input
@@ -245,7 +257,7 @@ class HeatPump(Technology):
 
         return b_tec
 
-    def _performance_function_type_1(self, b_tec):
+    def _performance_function_type_linear_through_origin(self, b_tec):
         """
         Linear, no minimal partload, through origin
         :param b_tec: technology block
@@ -266,7 +278,7 @@ class HeatPump(Technology):
 
         return b_tec
 
-    def _performance_function_type_2(self, b_tec):
+    def _performance_function_type_linear_with_intercept(self, b_tec):
         """
         Linear, minimal partload
         :param b_tec: technology block
@@ -329,7 +341,7 @@ class HeatPump(Technology):
 
         return b_tec
 
-    def _performance_function_type_3(self, b_tec):
+    def _performance_function_type_piecewise(self, b_tec):
         """
         Piece-wise linear, minimal partload
         :param b_tec: technology block

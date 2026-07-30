@@ -34,7 +34,7 @@ class Conv2(Technology):
       .. math::
         Input_{t, car} <= max_in_{car} * \\sum(Input_{t, car})
 
-    - ``performance_function_type == 1``: Linear through origin, i.e.:
+    - ``performance_function_type == "linear_through_origin"``: Linear through origin, i.e.:
 
       .. math::
         Output_{t, car} == {\\alpha}_{1, car} \\sum(Input_{t, car})
@@ -42,7 +42,7 @@ class Conv2(Technology):
       .. math::
         min_part_load * S \\leq {\\alpha}_1 \\sum(Input_{t, car})
 
-    - ``performance_function_type == 2``: Linear with minimal partload (makes big-m transformation required). If the
+    - ``performance_function_type == "linear_with_intercept"``: Linear with minimal partload (makes big-m transformation required). If the
       technology is in on, it holds:
 
       .. math::
@@ -65,12 +65,12 @@ class Conv2(Technology):
       .. math::
          Input_{t, standby-carrier} = standbypower * S
 
-    - ``performance_function_type == 3``: Piecewise linear performance function (
+    - ``performance_function_type == "piecewise"``: Piecewise linear performance function (
       makes big-m transformation required). The same constraints as for
-      ``performance_function_type == 2`` with the exception that the performance
+      ``performance_function_type == "linear_with_intercept"`` with the exception that the performance
       function is defined piecewise for the respective number of pieces.
 
-    - ``performance_function_type == 4``:Piece-wise linear, minimal partload. Enables the modeling
+    - ``performance_function_type == "slow_dynamics"``:Piece-wise linear, minimal partload. Enables the modeling
       of technologies with slow (>1h) startup and shutdown trajectories. For more information
       please refer to dynamics under advanced topics. Based on Equations 9-11, 13 and 15 in Morales-España, G., Ramírez-Elizondo, L.,
       & Hobbs, B. F. (2017). Hidden power system inflexibilities imposed by
@@ -102,21 +102,25 @@ class Conv2(Technology):
         self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
         # Initialize fitting class
-        if self.performance_function_type == 1:
+        if self.performance_function_type == "linear_through_origin":
             self.fitting_class = FitGenericTecTypeType1(
                 self.input_carrier, self.output_carrier
             )
-        elif self.performance_function_type == 2:
+        elif self.performance_function_type == "linear_with_intercept":
             self.fitting_class = FitGenericTecTypeType2(
                 self.input_carrier, self.output_carrier
             )
-        elif self.performance_function_type == 3 or self.performance_function_type == 4:
+        elif (
+            self.performance_function_type == "piecewise"
+            or self.performance_function_type == "slow_dynamics"
+        ):
             self.fitting_class = FitGenericTecTypeType34(
                 self.input_carrier, self.output_carrier
             )
         else:
             raise Exception(
-                "performance_function_type must be an integer between 1 and 4"
+                "performance_function_type must be one of 'linear_through_origin', "
+                "'linear_with_intercept', 'piecewise', 'slow_dynamics'"
             )
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
@@ -172,14 +176,14 @@ class Conv2(Technology):
         dynamics = self.processed_coeff.dynamics
         rated_capacity = coeff_ti["rated_capacity"]
 
-        if self.performance_function_type == 1:
-            b_tec = self._performance_function_type_1(b_tec)
-        elif self.performance_function_type == 2:
-            b_tec = self._performance_function_type_2(b_tec)
-        elif self.performance_function_type == 3:
-            b_tec = self._performance_function_type_3(b_tec)
-        elif self.performance_function_type == 4:
-            b_tec = self._performance_function_type_4(b_tec)
+        if self.performance_function_type == "linear_through_origin":
+            b_tec = self._performance_function_type_linear_through_origin(b_tec)
+        elif self.performance_function_type == "linear_with_intercept":
+            b_tec = self._performance_function_type_linear_with_intercept(b_tec)
+        elif self.performance_function_type == "piecewise":
+            b_tec = self._performance_function_type_piecewise(b_tec)
+        elif self.performance_function_type == "slow_dynamics":
+            b_tec = self._performance_function_type_slow_dynamics(b_tec)
 
         # Size constraints
         # size constraint based on sum of inputs
@@ -219,7 +223,7 @@ class Conv2(Technology):
 
         return b_tec
 
-    def _performance_function_type_1(self, b_tec):
+    def _performance_function_type_linear_through_origin(self, b_tec):
         """
         Linear, no minimal partload, through origin
 
@@ -259,7 +263,7 @@ class Conv2(Technology):
 
         return b_tec
 
-    def _performance_function_type_2(self, b_tec):
+    def _performance_function_type_linear_with_intercept(self, b_tec):
         """
         Linear, minimal partload
 
@@ -294,7 +298,7 @@ class Conv2(Technology):
 
         if min_part_load == 0:
             warn(
-                "Having performance_function_type = 2 with no part-load usually makes no sense. Error occured for "
+                "Having performance_function_type = 'linear_with_intercept' with no part-load usually makes no sense. Error occured for "
                 + self.name
             )
 
@@ -382,7 +386,7 @@ class Conv2(Technology):
 
         return b_tec
 
-    def _performance_function_type_3(self, b_tec):
+    def _performance_function_type_piecewise(self, b_tec):
         """
         Piece-wise linear, minimal partload
 
@@ -521,7 +525,7 @@ class Conv2(Technology):
 
         return b_tec
 
-    def _performance_function_type_4(self, b_tec):
+    def _performance_function_type_slow_dynamics(self, b_tec):
         """
         Piece-wise linear, minimal partload, includes constraints for slow (>1h) startup and shutdown trajectories.
 
@@ -547,7 +551,7 @@ class Conv2(Technology):
 
         if SU_time <= 0 and SD_time <= 0:
             warn(
-                "Having performance_function_type = 4 with no slow SU/SDs usually makes no sense."
+                "Having performance_function_type = 'slow_dynamics' with no slow SU/SDs usually makes no sense."
             )
         elif SU_time < 0:
             SU_time = 0
@@ -798,7 +802,7 @@ class Conv2(Technology):
 
         # Constraints ramping rates
         if (
-            not self.performance_function_type == 1
+            not self.performance_function_type == "linear_through_origin"
             and "ramping_const_int" in dynamics
             and dynamics["ramping_const_int"] == 1
         ):

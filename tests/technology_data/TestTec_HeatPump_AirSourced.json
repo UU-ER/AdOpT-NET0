@@ -31,7 +31,7 @@
   },
   "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",
-    "performance_function_type": 3,
+    "performance_function_type": "piecewise",
     "input_carrier": [
       "electricity"
     ],
