@@ -153,16 +153,16 @@ class Dea:
 
         elif technology == "AEC_10MW":
             self.tec_type = "CONV1"
-            filter_tec = "1.1 AEC 10 MW"
+            filter_tec = "86 AEC 10 MW"
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
             filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
-            filter_lifetime = "Technical lifetime [years]"
+            filter_lifetime = "Technical lifetime of plant [years]"
             filter_capex = "Specific investment [€/kW of total input_e]"
 
         elif technology == "AEC_100MW":
             self.tec_type = "CONV1"
-            filter_tec = "1.1 AEC 100 MW"
+            filter_tec = "86 AEC 100 MW"
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
             filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
@@ -171,7 +171,7 @@ class Dea:
 
         elif technology == "AEC_1GW":
             self.tec_type = "CONV1"
-            filter_tec = "1.1 AEC 1 GW"
+            filter_tec = "86 AEC 1 GW "
             filter_efficiency = "Hydrogen Output (% total input_e [MWh/MWh])"
             filter_var_opex = "Variable O&M [€/kWh of total input]"
             filter_fixed_opex = "Fixed O&M [% of specific investment/year] "
