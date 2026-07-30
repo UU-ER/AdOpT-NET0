@@ -37,6 +37,9 @@ class Dea:
                 "./data/technologies/dea/data_sheets_for_renewable_fuels.xlsx"
             )
 
+        else:
+            raise ValueError("Technology not available")
+
         all_data = pd.read_excel(
             dea_input_path, sheet_name="alldata_flat", index_col=None
         )
@@ -284,7 +287,11 @@ class Dea:
         if len(capex_meur_per_mw) == 0:
             raise ValueError("projection_year is not available")
 
-        self.unit_capex = capex_meur_per_mw["val"].sum() * 1e3 * capacity_correction
+        if self.tec_type == "CONV1":
+            # Specific investment is already given in EUR/kW of total input
+            self.unit_capex = capex_meur_per_mw["val"].sum() * capacity_correction
+        else:
+            self.unit_capex = capex_meur_per_mw["val"].sum() * 1e3 * capacity_correction
 
         # Lifetime
         lifetime = self.lifetime[self.lifetime["year"] == options["projection_year"]]
@@ -299,11 +306,15 @@ class Dea:
         if len(opex_fixed_eur_per_mw_per_year) != 1:
             raise ValueError("Something went wrong with fixed opex calculation")
 
-        opex_fixed_eur_per_kw_per_year = (
-            opex_fixed_eur_per_mw_per_year["val"].sum() / 1000 * capacity_correction
-        )
+        if self.tec_type == "CONV1":
+            # Fixed O&M given as % of specific investment per year
+            self.opex_fix = opex_fixed_eur_per_mw_per_year["val"].sum() / 100
+        else:
+            opex_fixed_eur_per_kw_per_year = (
+                opex_fixed_eur_per_mw_per_year["val"].sum() / 1000 * capacity_correction
+            )
 
-        self.opex_fix = opex_fixed_eur_per_kw_per_year / self.unit_capex
+            self.opex_fix = opex_fixed_eur_per_kw_per_year / self.unit_capex
 
         # Opex var
         opex_var_eur_per_mwh = self.opex_variable_eur_per_mwh[
@@ -316,6 +327,9 @@ class Dea:
             opex_val = opex_var_eur_per_mwh["val"].iloc[0]
             if isinstance(opex_val, str) or opex_val == "-" or pd.isna(opex_val):
                 self.opex_var = 0
+            elif self.tec_type == "CONV1":
+                # Variable O&M already given in EUR/kWh of total input
+                self.opex_var = float(opex_val) * capacity_correction
             else:
                 self.opex_var = float(opex_val) / 1000 * capacity_correction
         else:

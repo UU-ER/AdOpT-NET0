@@ -20,7 +20,7 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
 
     Financial indicators are:
 
-    - unit_capex in [currency]/electrolyzer
+    - unit_capex in [currency]/MW
     - fixed capex as fraction of annualized capex
     - variable opex in [currency]/MWh
     - levelized cost in [currency]/MWh
@@ -80,10 +80,8 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
 
         cost = calculation_module.calculate_cost(self.options)
 
-        # Use the stored capacity_MW instead of the original options
-        capacity_mw = self.options["capacity_MW"] or 0
-        self.financial_indicators["module_capex"] = convert_currency(
-            cost["unit_capex"] * capacity_mw * 1000,
+        self.financial_indicators["unit_capex"] = convert_currency(
+            cost["unit_capex"] * 1000,
             self.financial_year_in,
             self.financial_year_out,
             self.currency_in,
@@ -111,7 +109,7 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
 
         # Write to json template
         self.json_data["Economics"]["unit_capex"] = self.financial_indicators[
-            "module_capex"
+            "unit_capex"
         ]
         self.json_data["Economics"]["opex_fixed"] = self.financial_indicators[
             "opex_fix"
@@ -120,7 +118,7 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
             "opex_variable"
         ]
         self.json_data["Economics"]["lifetime"] = self.financial_indicators["lifetime"]
-        self.json_data["size_is_int"] = 1
+        self.json_data["size_is_int"] = 0
 
         return {"financial_indicators": self.financial_indicators}
 
@@ -135,10 +133,10 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
             capacity = self.options["capacity_MW"]
             if 0 <= capacity <= 50:
                 size = "small"
-            elif 51 <= capacity <= 500:
+            elif capacity <= 500:
                 size = "medium"
-            elif 501 <= capacity <= 2000:
-                size = "big"
+            elif capacity <= 2000:
+                size = "large"
             else:
                 raise ValueError(
                     f"Capacity {capacity} MW is outside supported range (0-2000 MW)"
@@ -147,11 +145,11 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
             # Use provided size if capacity_MW is not specified
             if "size" not in self.options:
                 raise ValueError(
-                    "You need to specify either capacity_MW or size (small, medium or big)"
+                    "You need to specify either capacity_MW or size (small, medium or large)"
                 )
             size = self.options["size"]
-            if size not in ["small", "medium", "big"]:
-                raise ValueError("size can only be small, medium or big")
+            if size not in ["small", "medium", "large"]:
+                raise ValueError("size can only be small, medium or large")
 
         # Persist the resolved size so callers/tests can assert it
         self.options["size"] = size
@@ -161,7 +159,7 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
                 return Dea("PEMEC_10MW")
             elif size == "medium":
                 return Dea("PEMEC_100MW")
-            elif size == "big":
+            elif size == "large":
                 return Dea("PEMEC_1GW")
 
         elif self.options["type"] == "AEM":
@@ -169,7 +167,7 @@ class Electrolyzer_CostModel(DataComponent_CostModel):
                 return Dea("AEC_10MW")
             elif size == "medium":
                 return Dea("AEC_100MW")
-            elif size == "big":
+            elif size == "large":
                 return Dea("AEC_1GW")
         else:
             raise ValueError("Wrong type specified, needs to be PEM or AEM")

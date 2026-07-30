@@ -241,7 +241,7 @@ def test_electrolyzer_cost_model(request):
     tec = "Electrolyzer"
     td.help(component_name=tec)
 
-    for capacity in [5, 100, 1000]:  # small, medium, big
+    for capacity in [5, 100, 1000]:  # small, medium, large
         options = {
             "currency_out": "EUR",
             "financial_year_out": 2020,
@@ -254,8 +254,8 @@ def test_electrolyzer_cost_model(request):
 
         c = td.write_json(tec, request.config.result_folder_path, options)
 
-        assert np.isfinite(c.financial_indicators["module_capex"])
-        assert c.financial_indicators["module_capex"] > 0
+        assert np.isfinite(c.financial_indicators["unit_capex"])
+        assert c.financial_indicators["unit_capex"] > 0
 
-        expected = {5: "small", 100: "medium", 1000: "big"}[capacity]
+        expected = {5: "small", 100: "medium", 1000: "large"}[capacity]
         assert c.options["size"] == expected
