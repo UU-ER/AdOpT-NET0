@@ -156,7 +156,7 @@ class Technology(ModelComponent):
       output:
 
         .. math::
-            opexvar_{t} = Input_{t, maincarrier} * opex_{var}
+            opexvar = \\sum(Input_{t, maincarrier} * opex_{var})
 
     - Fixed OPEX: defined as a fraction of annual CAPEX:
 
@@ -193,19 +193,27 @@ class Technology(ModelComponent):
     .. math::
         emissions_{tec} = input(output)_{tec} * emissionFactor - output_{CCS}
 
-    - CAPEX is given by
+    - capex is given by
 
     .. math::
-        CAPEX_{CCS} = Size_{CCS} * UnitCost_{CCS} + FixCost_{CCS}
+        capex_{CCS} = Size_{CCS} * UnitCost_{CCS} + FixCost_{CCS}
     .. math::
-        CAPEX_{tot} = CAPEX_{CCS} + CAPEX_{tec}
+        capex_{tot} = capex_{CCS} + capex_{tec}
 
-    - Fixed OPEX: defined as a fraction of annual CAPEX:
+    - Fixed OPEX: defined as a fraction of annual capex:
 
     .. math::
-        OPEXfix_{CCS} = CAPEX_{CCS} * opex_{CCS}
+        opexfix_{CCS} = capex_{CCS} * opex_{fix, CCS}
     .. math::
-        OPEX_{tot} = OPEX_{CCS} + OPEX_{tec}
+        opexfix_{tot} = opexfix_{CCS} + opexfix_{tec}
+
+    - Variable opex:
+    .. math::
+        opexvar_{CCS} = \\sum(Output_{t, CCS} * opex_{var, CCS})
+    .. math::
+        opexvar_{tot} = opexvar_{CCS} + opexvar_{tec}
+
+
     """
 
     def __init__(self, tec_data: dict):
@@ -1191,7 +1199,9 @@ class Technology(ModelComponent):
             h5_group.create_dataset(
                 "opex_fixed_ccs", data=[model_block.var_opex_fixed_ccs.value]
             )
-
+            h5_group.create_dataset(
+                "opex_variable_ccs", data=[model_block.var_opex_variable_ccs.value]
+            )
         h5_group.create_dataset(
             "para_unitCAPEX", data=[model_block.para_unit_capex.value]
         )
