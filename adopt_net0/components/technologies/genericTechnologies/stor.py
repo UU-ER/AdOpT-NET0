@@ -185,12 +185,12 @@ class Stor(Technology):
                     "performance"
                 ][par]
 
-        self.processed_coeff.time_independent["charge_rate"] = self.flow_capacity_relation_data[
-            "charge_rate"
-        ]
-        self.processed_coeff.time_independent["discharge_rate"] = self.flow_capacity_relation_data[
-            "discharge_rate"
-        ]
+        self.processed_coeff.time_independent["charge_rate"] = (
+            self.flow_capacity_relation_data["charge_rate"]
+        )
+        self.processed_coeff.time_independent["discharge_rate"] = (
+            self.flow_capacity_relation_data["discharge_rate"]
+        )
         if "energy_consumption" in self.performance_data["performance"]:
             self.processed_coeff.time_independent["energy_consumption"] = (
                 self.performance_data["performance"]["energy_consumption"]

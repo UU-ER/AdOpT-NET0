@@ -38,8 +38,7 @@
     "comment": "determines the relation between the storage capacity and the flow capacity",
     "injection_capacity_is_decision_var": 0,
     "injection_rate_max": 1,
-    "capex_charging_rate": 0,
-    "capex_discharging_rate": 0
+    "capex_injection_cap": 0
   },
   "Units": {
     "size": "tonne",
