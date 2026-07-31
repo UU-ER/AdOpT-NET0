@@ -1,6 +1,7 @@
 import json
 import warnings
 from pathlib import Path
+import pandas as pd
 from adopt_net0.modelhub import ModelHub
 from adopt_net0.utilities import installed_capacities_existing
 import pyomo.environ as pyo
@@ -524,6 +525,171 @@ def test_full_model_flow_multiyear_lifetime(request):
             / "electricitySimple"
             / "size_Interval_1.csv"
         ).exists()
+
+
+def test_full_model_flow_multiyear_extra_feature(request):
+    """
+    Tests the carry-over lifetime bookkeeping (expiry, decommission reconciliation and
+    capex proration) for both technologies and networks.
+
+    These branches operate on the ``carry_over_sizes`` / ``remaining_lifetime`` /
+    ``carry_over_capex`` / ``remaining_econ_lifetime`` dicts read from the previous
+    interval's JSON, so they are exercised by pre-seeding that tracking state in
+    Interval_1 before the transition. This is independent of the solver (GLPK does not
+    return ``var_size`` for this small model, so the reconciliation against the solved
+    ``_existing`` size fully decommissions the seeded carry_overs).
+
+    Topology / Data: identical to :func:`test_full_model_flow_multiyear_lifetime`,
+    with lifetime tracking (intervals_between_years=[10]).
+
+    The following is checked (solver-independent):
+    - The expiring boiler carry_over ('I_a', remaining_lifetime=5 < step=10) is dropped.
+    - The surviving-but-decommissioned boiler carry_over ('I_b') is dropped as well,
+      because the solved existing size is 0 (reconciliation removes it).
+    - The network carry_over ('I_a') is likewise not kept.
+    Interval_1's files are restored afterwards.
+    """
+    path = Path("tests/case_study_multiyear")
+    tec_path = (
+        path
+        / "Case_Interval_1"
+        / "Interval_1"
+        / "node_data"
+        / "node2"
+        / "Technologies.json"
+    )
+    netw_path = path / "Case_Interval_1" / "Interval_1" / "Networks.json"
+    existing_netw_dir = (
+        path
+        / "Case_Interval_1"
+        / "Interval_1"
+        / "network_topology"
+        / "existing"
+        / "electricitySimple"
+    )
+
+    tec_orig = tec_path.read_text()
+    netw_orig = netw_path.read_text()
+
+    try:
+        # Pre-seed carry_over tracking in Interval_1: two boiler vintages (one expiring,
+        # one surviving the lifetime check) and one network vintage.
+        tec_json = json.loads(tec_orig)
+        tec_json["carry_over_sizes"] = {"TestTec_BoilerEl": {"I_a": 10.0, "I_b": 10.0}}
+        tec_json["remaining_lifetime"] = {"TestTec_BoilerEl": {"I_a": 5, "I_b": 20}}
+        tec_json["carry_over_capex"] = {"TestTec_BoilerEl": {"I_a": 2.0, "I_b": 3.0}}
+        tec_json["remaining_econ_lifetime"] = {
+            "TestTec_BoilerEl": {"I_a": 5, "I_b": 15}
+        }
+        tec_path.write_text(json.dumps(tec_json, indent=4))
+
+        netw_json = json.loads(netw_orig)
+        netw_json["carry_over_sizes"] = {"electricitySimple": {"I_a": 10.0}}
+        netw_json["remaining_lifetime"] = {"electricitySimple": {"I_a": 20}}
+        netw_json["carry_over_capex"] = {"electricitySimple": {"I_a": 1.0}}
+        netw_json["remaining_econ_lifetime"] = {"electricitySimple": {"I_a": 15}}
+        netw_path.write_text(json.dumps(netw_json, indent=4))
+
+        # Per-vintage arc-size CSV for the seeded network carry_over
+        existing_netw_dir.mkdir(parents=True, exist_ok=True)
+        arc_matrix = pd.DataFrame(
+            0.0, index=["node1", "node2"], columns=["node1", "node2"]
+        )
+        arc_matrix.loc["node1", "node2"] = 10.0
+        arc_matrix.index.name = ""
+        arc_matrix.to_csv(
+            existing_netw_dir / "size_I_a.csv",
+            sep=";",
+            decimal=".",
+            float_format="%.6f",
+        )
+
+        adopthub = {}
+        intervals = ["Interval_1", "Interval_2"]
+        intervals_between_years = [10]
+
+        for i, interval in enumerate(intervals):
+            path_interval = path / ("Case_" + interval)
+
+            if i != 0:
+                installed_capacities_existing(
+                    adopthub,
+                    interval,
+                    intervals[i - 1],
+                    path_interval,
+                    intervals_between_years,
+                    i,
+                )
+
+            adopthub[interval] = ModelHub()
+            adopthub[interval].read_data(path_interval, start_period=0, end_period=1)
+            adopthub[interval].data.model_config["solveroptions"]["solver"][
+                "value"
+            ] = request.config.solver
+            adopthub[interval].data.model_config["reporting"]["save_summary_path"][
+                "value"
+            ] = request.config.result_folder_path
+            adopthub[interval].data.model_config["reporting"]["save_path"][
+                "value"
+            ] = request.config.result_folder_path
+            adopthub[interval].data.model_config["reporting"]["case_name"][
+                "value"
+            ] = interval
+
+            adopthub[interval].construct_model()
+            adopthub[interval].construct_balances()
+
+            # Force sizes in Interval_1 (as in the other multiyear tests) so the boiler
+            # new-build size is 15 with gurobi, matching the committed Interval_2 output.
+            if interval == "Interval_1":
+                p = adopthub[interval].model["full"].periods[interval]
+                b_tec = p.node_blocks["node2"].tech_blocks_active["TestTec_BoilerEl"]
+
+                def glpk_boiler_size(m):
+                    return b_tec.var_size >= 15
+
+                b_tec.const_boiler_size = pyo.Constraint(rule=glpk_boiler_size)
+
+                b_netw = p.network_block["electricitySimple"]
+
+                def glpk_netw_size(m):
+                    return b_netw.arc_block["node1", "node2"].var_size >= 15
+
+                b_tec.const_netw_size = pyo.Constraint(rule=glpk_netw_size)
+
+            adopthub[interval].solve()
+
+        # The seeded carry_overs are expired / decommissioned at the transition. The
+        # expiring vintage ('I_a') is dropped by the lifetime check; the surviving one
+        # ('I_b') is removed by the decommission reconciliation (the seeded vintages have
+        # no ``_existing`` block, so the kept size is 0). These facts hold for any solver.
+        tec_json_out = json.load(
+            open(
+                path
+                / "Case_Interval_2"
+                / "Interval_2"
+                / "node_data"
+                / "node2"
+                / "Technologies.json"
+            )
+        )
+        boiler_carry_overs = tec_json_out.get("carry_over_sizes", {}).get(
+            "TestTec_BoilerEl", {}
+        )
+        assert "I_a" not in boiler_carry_overs
+        assert "I_b" not in boiler_carry_overs
+
+        netw_json_out = json.load(
+            open(path / "Case_Interval_2" / "Interval_2" / "Networks.json")
+        )
+        netw_carry_overs = netw_json_out.get("carry_over_sizes", {}).get(
+            "electricitySimple", {}
+        )
+        assert "I_a" not in netw_carry_overs
+    finally:
+        tec_path.write_text(tec_orig)
+        netw_path.write_text(netw_orig)
+        (existing_netw_dir / "size_I_a.csv").unlink(missing_ok=True)
 
 
 def test_clustering_algo(request):
