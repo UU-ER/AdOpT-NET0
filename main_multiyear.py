@@ -4,7 +4,8 @@ import adopt_net0.data_preprocessing as dp
 from adopt_net0.modelhub import ModelHub
 from adopt_net0.result_management.read_results import (
     add_values_to_summary,
-    add_vintage_annualization_to_summary,
+    add_carry_over_annualization_to_summary,
+    add_discounted_cost_to_summary,
 )
 from adopt_net0.utilities import installed_capacities_existing
 
@@ -74,7 +75,12 @@ for i, interval in enumerate(intervals):
 # Add values of (part of) the parameters and variables to the summary file
 add_values_to_summary(Path("path to summary file"))
 
-# Add annualized capex of carried-over vintages to the summary file
-add_vintage_annualization_to_summary(
+# Add annualized capex of carried-over carry_overs to the summary file
+add_carry_over_annualization_to_summary(
     Path("path to summary file"), casestudy_path, intervals
+)
+
+# Discount each interval's cost to the first interval (present value)
+add_discounted_cost_to_summary(
+    Path("path to summary file"), casestudy_path, intervals, intervals_between_years
 )

@@ -1,4 +1,5 @@
 import json
+import warnings
 
 import h5py
 import numpy as np
@@ -252,16 +253,16 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
     summary_results.to_excel(summary_path, index=False)
 
 
-def add_vintage_annualization_to_summary(
+def add_carry_over_annualization_to_summary(
     summary_path: Path, casestudy_path: Path, intervals: list
 ):
     """
-    Add the annualized capex of carried-over vintages to the summary Excel file.
+    Add the annualized capex of carried-over carry_overs to the summary Excel file.
 
-    Sums the ``vintage_capex`` entries of each interval's Technologies.json and
+    Sums the ``carry_over_capex`` entries of each interval's Technologies.json and
     Networks.json (present only while the economic lifetime is running) and adds
-    the columns ``cost_annualization_vintage_tecs``, ``cost_annualization_vintage_netw``,
-    ``cost_annualization`` and ``total_cost_with_vintage_annualization``.
+    the columns ``cost_annualization_carry_over_tecs``, ``cost_annualization_carry_over_netw``,
+    ``cost_annualization`` and ``total_cost_with_carry_over_annualization``.
     The same values are also written to each interval's ``optimization_results.h5``
     under the ``summary`` group.
 
@@ -279,8 +280,8 @@ def add_vintage_annualization_to_summary(
         )
 
     casestudy_path = Path(casestudy_path)
-    cost_vintage_tecs = []
-    cost_vintage_netw = []
+    cost_carry_over_tecs = []
+    cost_carry_over_netw = []
 
     for interval in intervals:
         interval_path = casestudy_path / ("Case_" + interval) / interval
@@ -294,38 +295,152 @@ def add_vintage_annualization_to_summary(
                     continue
                 with open(tec_json_path) as f:
                     json_tec = json.load(f)
-                for vintages in json_tec.get("vintage_capex", {}).values():
-                    cost_tecs += sum(vintages.values())
+                for carry_overs in json_tec.get("carry_over_capex", {}).values():
+                    cost_tecs += sum(carry_overs.values())
 
         cost_netw = 0.0
         netw_json_path = interval_path / "Networks.json"
         if netw_json_path.exists():
             with open(netw_json_path) as f:
                 json_netw = json.load(f)
-            for vintages in json_netw.get("vintage_capex", {}).values():
-                cost_netw += sum(vintages.values())
+            for carry_overs in json_netw.get("carry_over_capex", {}).values():
+                cost_netw += sum(carry_overs.values())
 
-        cost_vintage_tecs.append(cost_tecs)
-        cost_vintage_netw.append(cost_netw)
+        cost_carry_over_tecs.append(cost_tecs)
+        cost_carry_over_netw.append(cost_netw)
 
-    summary_results["cost_annualization_vintage_tecs"] = cost_vintage_tecs
-    summary_results["cost_annualization_vintage_netw"] = cost_vintage_netw
+    summary_results["cost_annualization_carry_over_tecs"] = cost_carry_over_tecs
+    summary_results["cost_annualization_carry_over_netw"] = cost_carry_over_netw
     summary_results["cost_annualization"] = (
-        summary_results["cost_annualization_vintage_tecs"]
-        + summary_results["cost_annualization_vintage_netw"]
+        summary_results["cost_annualization_carry_over_tecs"]
+        + summary_results["cost_annualization_carry_over_netw"]
     )
-    summary_results["total_cost_with_vintage_annualization"] = (
+    summary_results["total_cost_with_carry_over_annualization"] = (
         summary_results["total_cost"] + summary_results["cost_annualization"]
     )
 
     # Write the new values to each interval's h5 file
     if "time_stamp" in summary_results.columns:
         h5_keys = [
-            "cost_annualization_vintage_tecs",
-            "cost_annualization_vintage_netw",
+            "cost_annualization_carry_over_tecs",
+            "cost_annualization_carry_over_netw",
             "cost_annualization",
-            "total_cost_with_vintage_annualization",
+            "total_cost_with_carry_over_annualization",
         ]
+        for _, row in summary_results.iterrows():
+            hdf_file_path = Path(row["time_stamp"]) / "optimization_results.h5"
+            if not hdf_file_path.exists():
+                continue
+            with h5py.File(hdf_file_path, "a") as hdf_file:
+                summary = hdf_file["summary"]
+                for key in h5_keys:
+                    if key in summary:
+                        del summary[key]
+                    summary.create_dataset(key, data=row[key])
+
+    summary_results.to_excel(summary_path, index=False)
+
+
+def _read_global_discount_rate(casestudy_path: Path, interval: str):
+    """
+    Read the global discount rate from an interval's ConfigModel.json.
+
+    :param Path casestudy_path: Path to the case study folder containing the
+        ``Case_{interval}`` folders.
+    :param str interval: Interval name.
+    :return: global discount rate (``-1`` if no global rate is set).
+    """
+    config_path = casestudy_path / ("Case_" + interval) / "ConfigModel.json"
+    with open(config_path) as f:
+        config = json.load(f)
+    return config["economic"]["global_discountrate"]["value"]
+
+
+def add_discounted_cost_to_summary(
+    summary_path: Path,
+    casestudy_path: Path,
+    intervals: list,
+    intervals_between_years: list,
+):
+    """
+    Add the discounted (present-value) costs to the summary Excel file.
+
+    Each interval's cost is discounted back to the first interval (the reference
+    year) using the global discount rate read from that interval's
+    ``ConfigModel.json``. The cumulative year at which an interval occurs is derived
+    from ``intervals_between_years``, and the discount factor is
+    ``1 / (1 + r) ** year_offset``.
+
+    The columns ``year_offset``, ``discount_factor``, ``discounted_total_cost`` and
+    ``discounted_total_cost_with_carry_over_annualization`` (the latter only if
+    ``total_cost_with_carry_over_annualization`` is present) are added. The same
+    values are also written to each interval's ``optimization_results.h5`` under the
+    ``summary`` group.
+
+    .. note::
+        A global discount rate must be set (``global_discountrate`` different from
+        ``-1``); the reference interval's rate is applied to the whole horizon.
+
+    :param summary_path: Path to the summary Excel file, one row per interval, in
+        the same order as ``intervals``.
+    :param casestudy_path: Path to the case study folder containing the
+        ``Case_{interval}`` folders.
+    :param list intervals: Interval names, in the order they were solved.
+    :param list intervals_between_years: Years between consecutive intervals, of
+        length ``len(intervals) - 1``.
+    """
+    summary_results = pd.read_excel(summary_path)
+    if len(summary_results) != len(intervals):
+        raise ValueError(
+            f"Summary file has {len(summary_results)} rows, but {len(intervals)} "
+            "intervals were given. One summary row per interval is required."
+        )
+    if len(intervals_between_years) != len(intervals) - 1:
+        raise ValueError(
+            f"intervals_between_years must be a list of length {len(intervals) - 1} "
+            f"(number of intervals - 1), got {intervals_between_years}"
+        )
+
+    casestudy_path = Path(casestudy_path)
+
+    # Cumulative year at which each interval occurs (first interval is the reference)
+    year_offsets = [0]
+    for years in intervals_between_years:
+        year_offsets.append(year_offsets[-1] + years)
+
+    # Global discount rate of the reference interval; must be set to discount costs
+    discount_rate = _read_global_discount_rate(casestudy_path, intervals[0])
+    if discount_rate == -1:
+        raise ValueError(
+            "No global discount rate is set (global_discountrate = -1). A global "
+            "discount rate is required to discount costs across intervals."
+        )
+    for interval in intervals[1:]:
+        if _read_global_discount_rate(casestudy_path, interval) != discount_rate:
+            warnings.warn(
+                f"Interval '{interval}' has a different global discount rate than the "
+                f"reference interval '{intervals[0]}'; the reference rate "
+                f"({discount_rate}) is applied to the whole horizon."
+            )
+
+    summary_results["year_offset"] = year_offsets
+    summary_results["discount_factor"] = [
+        1 / (1 + discount_rate) ** year for year in year_offsets
+    ]
+    summary_results["discounted_total_cost"] = (
+        summary_results["total_cost"] * summary_results["discount_factor"]
+    )
+    h5_keys = ["year_offset", "discount_factor", "discounted_total_cost"]
+
+    if "total_cost_with_carry_over_annualization" in summary_results.columns:
+        summary_results["discounted_total_cost_with_carry_over_annualization"] = (
+            summary_results["total_cost_with_carry_over_annualization"]
+            * summary_results["discount_factor"]
+        )
+        h5_keys.append("discounted_total_cost_with_carry_over_annualization")
+
+    # Write the new values to each interval's h5 file
+    if "time_stamp" in summary_results.columns:
         for _, row in summary_results.iterrows():
             hdf_file_path = Path(row["time_stamp"]) / "optimization_results.h5"
             if not hdf_file_path.exists():

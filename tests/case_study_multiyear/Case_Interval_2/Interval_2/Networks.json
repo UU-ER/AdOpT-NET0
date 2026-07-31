@@ -10,12 +10,12 @@
             "Interval_1": 90
         }
     },
-    "vintage_sizes": {
+    "carry_over_sizes": {
         "electricitySimple": {
             "Interval_1": 30.0
         }
     },
-    "vintage_capex": {
+    "carry_over_capex": {
         "electricitySimple": {
             "Interval_1": 0.000136986301369863
         }

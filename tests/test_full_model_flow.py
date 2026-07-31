@@ -174,7 +174,7 @@ def test_full_model_flow_multiyear(request):
     - Interval_1: hydrogen flow from electrolyzer to demand = 1, Interval_2: hydrogen flow from electrolyzer to demand = 3
     - Interval_2: has existing electric boiler capacity from previous interval
     - total cost
-    - vintage_sizes and remaining_lifetime are NOT written to Technologies.json and Networks.json
+    - carry_over_sizes and remaining_lifetime are NOT written to Technologies.json and Networks.json
     """
     path = Path("tests/case_study_multiyear")
 
@@ -277,7 +277,7 @@ def test_full_model_flow_multiyear(request):
     assert adopthub["Interval_1"].model["full"].var_npv.value > 0
     assert adopthub["Interval_2"].model["full"].var_npv.value > 0
 
-    # Check 4: No vintage tracking written when intervals_between_years is not provided
+    # Check 4: No carry_over tracking written when intervals_between_years is not provided
     tec_json = json.load(
         open(
             path
@@ -288,13 +288,13 @@ def test_full_model_flow_multiyear(request):
             / "Technologies.json"
         )
     )
-    assert "vintage_sizes" not in tec_json
+    assert "carry_over_sizes" not in tec_json
     assert "remaining_lifetime" not in tec_json
 
     netw_json = json.load(
         open(path / "Case_Interval_2" / "Interval_2" / "Networks.json")
     )
-    assert "vintage_sizes" not in netw_json
+    assert "carry_over_sizes" not in netw_json
     assert "remaining_lifetime" not in netw_json
 
 
@@ -342,11 +342,11 @@ def test_full_model_flow_multiyear_lifetime(request):
     - Interval_1: hydrogen flow from electrolyzer to demand = 1, Interval_2: hydrogen flow from electrolyzer to demand = 3
     - Interval_2: has existing electric boiler capacity from previous interval
     - total cost
-    - remaining_lifetime written for boiler vintage in Interval_1: lifetime=25, step=10 → 15
-    - vintage_sizes written for boiler and consistent with existing size
+    - remaining_lifetime written for boiler carry_over in Interval_1: lifetime=25, step=10 → 15
+    - carry_over_sizes written for boiler and consistent with existing size
     - network remaining_lifetime: technical_lifetime=100 preferred over lifetime=25, step=10 → 90
-    - network vintage_sizes written
-    - per-vintage CSV size_Interval_1.csv written for electricitySimple
+    - network carry_over_sizes written
+    - per-carry_over CSV size_Interval_1.csv written for electricitySimple
     """
     path = Path("tests/case_study_multiyear")
 
@@ -470,11 +470,13 @@ def test_full_model_flow_multiyear_lifetime(request):
     assert "remaining_lifetime" in tec_json
     assert tec_json["remaining_lifetime"]["TestTec_BoilerEl"]["Interval_1"] == 15
 
-    # Check 5: vintage_sizes written and consistent with existing size
-    assert "vintage_sizes" in tec_json
-    boiler_vintage_size = tec_json["vintage_sizes"]["TestTec_BoilerEl"]["Interval_1"]
-    assert boiler_vintage_size > 0
-    assert tec_json["existing"]["TestTec_BoilerEl"] == boiler_vintage_size
+    # Check 5: carry_over_sizes written and consistent with existing size
+    assert "carry_over_sizes" in tec_json
+    boiler_carry_over_size = tec_json["carry_over_sizes"]["TestTec_BoilerEl"][
+        "Interval_1"
+    ]
+    assert boiler_carry_over_size > 0
+    assert tec_json["existing"]["TestTec_BoilerEl"] == boiler_carry_over_size
 
     netw_json = json.load(
         open(path / "Case_Interval_2" / "Interval_2" / "Networks.json")
@@ -483,10 +485,10 @@ def test_full_model_flow_multiyear_lifetime(request):
     # Check 6: network remaining_lifetime (technical_lifetime=100 preferred over lifetime=25, step=10 → 90)
     assert netw_json["remaining_lifetime"]["electricitySimple"]["Interval_1"] == 90
 
-    # Check 7: network vintage_sizes written
-    assert netw_json["vintage_sizes"]["electricitySimple"]["Interval_1"] > 0
+    # Check 7: network carry_over_sizes written
+    assert netw_json["carry_over_sizes"]["electricitySimple"]["Interval_1"] > 0
 
-    # Check 8: per-vintage CSV written for electricitySimple
+    # Check 8: per-carry_over CSV written for electricitySimple
     assert (
         path
         / "Case_Interval_2"

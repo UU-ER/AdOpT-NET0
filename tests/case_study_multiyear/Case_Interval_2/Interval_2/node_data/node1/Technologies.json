@@ -8,12 +8,12 @@
             "Interval_1_initial": 30
         }
     },
-    "vintage_sizes": {
+    "carry_over_sizes": {
         "TestTec_GasTurbine_simple": {
             "Interval_1_initial": 10.0
         }
     },
-    "vintage_capex": {
+    "carry_over_capex": {
         "TestTec_GasTurbine_simple": {}
     },
     "remaining_econ_lifetime": {

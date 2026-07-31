@@ -11,10 +11,10 @@ Adding the interval name to the case identifier in the model configuration ensur
 folders. This approach enables sequential optimization of transition pathways, reflecting dynamic investment and
 decommissioning decisions under evolving boundary conditions, while keeping computational complexity manageable.
 
-Capacities carried between intervals are tracked per **vintage**: each investment
+Capacities carried between intervals are tracked per **carry_over**: each investment
 keeps its own size and remaining lifetime, and expires when its technical lifetime
 (``technical_lifetime``, falling back to ``lifetime``) runs out. The annualized
-investment cost of each vintage is frozen at its build interval and accounted for in
+investment cost of each carry_over is frozen at its build interval and accounted for in
 post-processing until the end of its economic lifetime (``lifetime``), so that the
 total pathway cost includes the loans of past investments. Pre-existing capacities at
 the start of the pathway are treated as sunk cost.

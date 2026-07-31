@@ -193,30 +193,30 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
     return size
 
 
-def _expire_vintages(old_vintages, old_rls, years_this_step, label):
+def _expire_carry_overs(old_carry_overs, old_rls, years_this_step, label):
     """
-    Filter vintage sizes by remaining lifetime, subtracting years_this_step.
+    Filter carry_over sizes by remaining lifetime, subtracting years_this_step.
 
-    :param dict old_vintages: {interval_name: size} from previous interval
+    :param dict old_carry_overs: {interval_name: size} from previous interval
     :param dict old_rls: {interval_name: remaining_lifetime} from previous interval
     :param int years_this_step: years elapsed between intervals
     :param str label: description for warning messages
-    :return: (surviving_vintages, surviving_rls) — nested dicts keyed by interval name
+    :return: (surviving_carry_overs, surviving_rls) — nested dicts keyed by interval name
     """
     surviving = {}
     surviving_rls = {}
-    for vintage_interval, vsize in old_vintages.items():
-        vrl = old_rls.get(vintage_interval)
+    for carry_over_interval, vsize in old_carry_overs.items():
+        vrl = old_rls.get(carry_over_interval)
         if vrl is None:
-            surviving[vintage_interval] = vsize
+            surviving[carry_over_interval] = vsize
         else:
             new_vrl = vrl - years_this_step
             if new_vrl > 0:
-                surviving[vintage_interval] = vsize
-                surviving_rls[vintage_interval] = new_vrl
+                surviving[carry_over_interval] = vsize
+                surviving_rls[carry_over_interval] = new_vrl
             else:
                 warnings.warn(
-                    f"{label}, vintage '{vintage_interval}': {vsize:.3f} expired and is not carried forward."
+                    f"{label}, carry_over '{carry_over_interval}': {vsize:.3f} expired and is not carried forward."
                 )
     return surviving, surviving_rls
 
@@ -242,12 +242,12 @@ def installed_capacities_existing(
 
     **Stage 1 — Lifetime check (all components)**
 
-    Before carrying any capacity forward, each component's investment vintages are
+    Before carrying any capacity forward, each component's investment carry_overs are
     checked against their remaining lifetime. Every investment period is tracked as
-    a separate entry in the nested ``vintage_sizes`` and ``remaining_lifetime`` dicts
-    (both written to ``Technologies.json`` and ``Networks.json``). Any vintage whose
+    a separate entry in the nested ``carry_over_sizes`` and ``remaining_lifetime`` dicts
+    (both written to ``Technologies.json`` and ``Networks.json``). Any carry_over whose
     remaining lifetime has dropped to zero or below is expired and excluded from the
-    carry-over. Only surviving vintages proceed to Stage 2.
+    carry-over. Only surviving carry_overs proceed to Stage 2.
 
     If ``intervals_between_years`` is ``None``, this stage is skipped and all
     capacities are carried forward unchanged (no lifetime check performed).
@@ -260,17 +260,17 @@ def installed_capacities_existing(
 
        - The sum of the new or existing capacities of a technology in the previous run
          are stored under the ``"existing"`` key in the JSON file.
-       - If lifetime tracking is active, ``vintage_sizes``, ``remaining_lifetime``,
-         ``vintage_capex`` and ``remaining_econ_lifetime`` are also written to
-         ``Technologies.json``. The ``vintage_capex`` entry stores the annualized
-         investment capex of each vintage, frozen at its build interval (read from
+       - If lifetime tracking is active, ``carry_over_sizes``, ``remaining_lifetime``,
+         ``carry_over_capex`` and ``remaining_econ_lifetime`` are also written to
+         ``Technologies.json``. The ``carry_over_capex`` entry stores the annualized
+         investment capex of each carry_over, frozen at its build interval (read from
          ``var_capex_aux`` of the solved model), for use in post-processing of
-         total system costs. The entry is kept only while the vintage's economic
+         total system costs. The entry is kept only while the carry_over's economic
          lifetime (``lifetime``, tracked in ``remaining_econ_lifetime``) is still
-         running; afterwards the vintage remains in ``vintage_sizes`` (governed by
+         running; afterwards the carry_over remains in ``carry_over_sizes`` (governed by
          its technical lifetime) but no longer pays annualized capex. Pre-existing
          capacity at the first transition is treated as sunk cost (no
-         ``vintage_capex`` entry).
+         ``carry_over_capex`` entry).
 
     2. **Networks** — For each network, it determines whether the network was active in
        the previous interval (based on arc sizes).
@@ -280,9 +280,9 @@ def installed_capacities_existing(
        - Copies ``distance.csv`` and ``connection.csv`` from the "new" topology folder to
          the "existing" topology folder (if not already present).
        - Writes a ``size.csv`` file with the current arc sizes. If lifetime tracking
-         is active, one ``size_{interval}.csv`` per surviving vintage is also written,
-         and ``vintage_sizes``, ``remaining_lifetime`` and ``vintage_capex`` are added
-         to ``Networks.json`` (network vintage capex is the sum of ``var_capex_aux``
+         is active, one ``size_{interval}.csv`` per surviving carry_over is also written,
+         and ``carry_over_sizes``, ``remaining_lifetime`` and ``carry_over_capex`` are added
+         to ``Networks.json`` (network carry_over capex is the sum of ``var_capex_aux``
          over all arcs).
 
        If inactive, it removes the network from ``"existing"`` in ``Networks.json`` and,
@@ -354,14 +354,14 @@ def _carry_over_technologies(
 
         size_tecs_existing = {}
         remaining_lifetime_dict = {}
-        vintage_sizes_dict = {}
-        vintage_capex_dict = {}
+        carry_over_sizes_dict = {}
+        carry_over_capex_dict = {}
         remaining_econ_lifetime_dict = {}
 
         # Read tracking dicts from previous interval's JSON
         prev_remaining_lifetimes = {}
-        prev_vintage_sizes = {}
-        prev_vintage_capex = {}
+        prev_carry_over_sizes = {}
+        prev_carry_over_capex = {}
         prev_remaining_econ = {}
         if years_this_step is not None:
             prev_json_path = (
@@ -374,8 +374,8 @@ def _carry_over_technologies(
             )
             (
                 prev_remaining_lifetimes,
-                prev_vintage_sizes,
-                prev_vintage_capex,
+                prev_carry_over_sizes,
+                prev_carry_over_capex,
                 prev_remaining_econ,
             ) = _read_prev_tracking(prev_json_path)
 
@@ -404,22 +404,22 @@ def _carry_over_technologies(
                     size_tecs_existing[base_tec] = total_size
                 continue
 
-            # N-vintage tracking
-            old_vintages = prev_vintage_sizes.get(base_tec, {})
+            # N-carry_over tracking
+            old_carry_overs = prev_carry_over_sizes.get(base_tec, {})
             old_rls = prev_remaining_lifetimes.get(base_tec, {})
-            old_capex = prev_vintage_capex.get(base_tec, {})
+            old_capex = prev_carry_over_capex.get(base_tec, {})
             old_econ = prev_remaining_econ.get(base_tec, {})
             surviving_capex = {}
             surviving_econ = {}
 
-            if old_vintages:
-                surviving, surviving_rls = _expire_vintages(
-                    old_vintages,
+            if old_carry_overs:
+                surviving, surviving_rls = _expire_carry_overs(
+                    old_carry_overs,
                     old_rls,
                     years_this_step,
                     f"Node '{node}', technology '{base_tec}'",
                 )
-                surviving_capex, surviving_econ = _carry_vintage_capex(
+                surviving_capex, surviving_econ = _carry_over_capex(
                     surviving, old_econ, old_capex, years_this_step
                 )
             elif existing_size > 1e-6:
@@ -440,7 +440,7 @@ def _carry_over_technologies(
                     if ex_remaining is not None:
                         surviving_rls[init_key] = ex_remaining
                     # Pre-existing capacity is treated as sunk cost: no
-                    # vintage_capex entry is written
+                    # carry_over_capex entry is written
                 else:
                     warnings.warn(
                         f"Node '{node}', technology '{base_tec}': existing capacity "
@@ -450,14 +450,14 @@ def _carry_over_technologies(
                 surviving = {}
                 surviving_rls = {}
 
-            # Add new investment vintage (always starts from full economics lifetime)
+            # Add new investment carry_over (always starts from full economics lifetime)
             if new_size > 1e-6:
                 comp_data = (
                     m[prev_interval]
                     .data.technology_data[prev_interval][node]
                     .get(base_tec)
                 )
-                full_lt, econ_remaining = _new_vintage_lifetimes(
+                full_lt, econ_remaining = _new_carry_over_lifetimes(
                     comp_data,
                     years_this_step,
                     f"Node '{node}', technology '{base_tec}'",
@@ -476,9 +476,9 @@ def _carry_over_technologies(
             total_size = sum(surviving.values())
             if total_size > 1e-6:
                 size_tecs_existing[base_tec] = total_size
-                vintage_sizes_dict[base_tec] = dict(surviving)
+                carry_over_sizes_dict[base_tec] = dict(surviving)
                 remaining_lifetime_dict[base_tec] = dict(surviving_rls)
-                vintage_capex_dict[base_tec] = dict(surviving_capex)
+                carry_over_capex_dict[base_tec] = dict(surviving_capex)
                 remaining_econ_lifetime_dict[base_tec] = dict(surviving_econ)
 
         # Write Technologies.json for current interval
@@ -492,8 +492,8 @@ def _carry_over_technologies(
             json_tec,
             years_this_step,
             remaining_lifetime_dict,
-            vintage_sizes_dict,
-            vintage_capex_dict,
+            carry_over_sizes_dict,
+            carry_over_capex_dict,
             remaining_econ_lifetime_dict,
         )
         with open(json_tec_file_path, "w") as f:
@@ -522,8 +522,8 @@ def _carry_over_networks(
         json_netw = json.load(f)
 
     prev_remaining_lifetimes_netw = {}
-    prev_vintage_sizes_netw = {}
-    prev_vintage_capex_netw = {}
+    prev_carry_over_sizes_netw = {}
+    prev_carry_over_capex_netw = {}
     prev_remaining_econ_netw = {}
     if years_this_step is not None:
         prev_netw_json_path = (
@@ -534,14 +534,14 @@ def _carry_over_networks(
         )
         (
             prev_remaining_lifetimes_netw,
-            prev_vintage_sizes_netw,
-            prev_vintage_capex_netw,
+            prev_carry_over_sizes_netw,
+            prev_carry_over_capex_netw,
             prev_remaining_econ_netw,
         ) = _read_prev_tracking(prev_netw_json_path)
 
     remaining_lifetime_netw_dict = {}
-    vintage_sizes_netw_dict = {}
-    vintage_capex_netw_dict = {}
+    carry_over_sizes_netw_dict = {}
+    carry_over_capex_netw_dict = {}
     remaining_econ_netw_dict = {}
     nodes = list(prev_model.node_blocks)
 
@@ -589,37 +589,37 @@ def _carry_over_networks(
                 )
             continue
 
-        # N-vintage tracking
-        old_vintages = prev_vintage_sizes_netw.get(base_name, {})
+        # N-carry_over tracking
+        old_carry_overs = prev_carry_over_sizes_netw.get(base_name, {})
         old_rls = prev_remaining_lifetimes_netw.get(base_name, {})
-        old_capex = prev_vintage_capex_netw.get(base_name, {})
+        old_capex = prev_carry_over_capex_netw.get(base_name, {})
         old_econ = prev_remaining_econ_netw.get(base_name, {})
 
-        # vintage_matrices: arc DataFrames for vintages known in this step
-        surviving_vintages = {}
+        # carry_over_matrices: arc DataFrames for carry_overs known in this step
+        surviving_carry_overs = {}
         surviving_rls = {}
         surviving_capex = {}
         surviving_econ = {}
         total_matrix = create_empty_network_matrix(nodes)
-        vintage_matrices = {}
+        carry_over_matrices = {}
 
-        if old_vintages:
-            surviving_vintages, surviving_rls = _expire_vintages(
-                old_vintages, old_rls, years_this_step, f"Network '{base_name}'"
+        if old_carry_overs:
+            surviving_carry_overs, surviving_rls = _expire_carry_overs(
+                old_carry_overs, old_rls, years_this_step, f"Network '{base_name}'"
             )
-            surviving_capex, surviving_econ = _carry_vintage_capex(
-                surviving_vintages, old_econ, old_capex, years_this_step
+            surviving_capex, surviving_econ = _carry_over_capex(
+                surviving_carry_overs, old_econ, old_capex, years_this_step
             )
-            for vintage_interval in surviving_vintages:
-                src_csv = prev_folder_existing / f"size_{vintage_interval}.csv"
+            for carry_over_interval in surviving_carry_overs:
+                src_csv = prev_folder_existing / f"size_{carry_over_interval}.csv"
                 if src_csv.exists():
                     vdf = _read_size_csv(src_csv)
                     total_matrix = total_matrix.add(vdf, fill_value=0)
-                    vintage_matrices[vintage_interval] = vdf
+                    carry_over_matrices[carry_over_interval] = vdf
                 else:
                     warnings.warn(
-                        f"Network '{base_name}': vintage CSV '{src_csv.name}' not found. "
-                        "Arc sizes for this vintage lost."
+                        f"Network '{base_name}': carry_over CSV '{src_csv.name}' not found. "
+                        "Arc sizes for this carry_over lost."
                     )
         elif existing_sum > 1e-6:
             # First transition for pre-existing network: initialize tracking
@@ -632,25 +632,25 @@ def _carry_over_networks(
             )
             init_key = f"{prev_interval}_initial"
             if ex_remaining is None or ex_remaining > 0:
-                surviving_vintages[init_key] = existing_sum
+                surviving_carry_overs[init_key] = existing_sum
                 if ex_remaining is not None:
                     surviving_rls[init_key] = ex_remaining
                 # Pre-existing capacity is treated as sunk cost: no
-                # vintage_capex entry is written
+                # carry_over_capex entry is written
                 total_matrix = existing_matrix.copy()
-                vintage_matrices[init_key] = existing_matrix.copy()
+                carry_over_matrices[init_key] = existing_matrix.copy()
             else:
                 warnings.warn(
                     f"Network '{base_name}': existing capacity expired at first transition."
                 )
 
-        # Add new investment vintage
+        # Add new investment carry_over
         if new_sum > 1e-6:
             comp_data = m[prev_interval].data.network_data[prev_interval].get(base_name)
-            full_lt, econ_remaining = _new_vintage_lifetimes(
+            full_lt, econ_remaining = _new_carry_over_lifetimes(
                 comp_data, years_this_step, f"Network '{base_name}'"
             )
-            surviving_vintages[prev_interval] = new_sum
+            surviving_carry_overs[prev_interval] = new_sum
             if full_lt is not None:
                 surviving_rls[prev_interval] = full_lt - years_this_step
             if econ_remaining is not None:
@@ -659,7 +659,7 @@ def _carry_over_networks(
                     surviving_capex[prev_interval] = new_capex
                     surviving_econ[prev_interval] = econ_remaining
             total_matrix = total_matrix.add(new_matrix, fill_value=0)
-            vintage_matrices[prev_interval] = new_matrix.copy()
+            carry_over_matrices[prev_interval] = new_matrix.copy()
 
         active = float(total_matrix.values.sum()) > 1e-6
 
@@ -669,19 +669,19 @@ def _carry_over_networks(
             _ensure_existing_folder(folder_topology_existing, folder_topology_new)
             _write_size_csv(total_matrix, folder_topology_existing / "size.csv")
 
-            # Write per-vintage CSVs to current interval's existing folder
-            for vintage_interval in surviving_vintages:
-                dst_csv = folder_topology_existing / f"size_{vintage_interval}.csv"
-                if vintage_interval in vintage_matrices:
-                    _write_size_csv(vintage_matrices[vintage_interval], dst_csv)
+            # Write per-carry_over CSVs to current interval's existing folder
+            for carry_over_interval in surviving_carry_overs:
+                dst_csv = folder_topology_existing / f"size_{carry_over_interval}.csv"
+                if carry_over_interval in carry_over_matrices:
+                    _write_size_csv(carry_over_matrices[carry_over_interval], dst_csv)
                 else:
-                    src_csv = prev_folder_existing / f"size_{vintage_interval}.csv"
+                    src_csv = prev_folder_existing / f"size_{carry_over_interval}.csv"
                     if src_csv.exists() and not dst_csv.exists():
                         shutil.copy(src_csv, dst_csv)
 
-            vintage_sizes_netw_dict[base_name] = dict(surviving_vintages)
+            carry_over_sizes_netw_dict[base_name] = dict(surviving_carry_overs)
             remaining_lifetime_netw_dict[base_name] = dict(surviving_rls)
-            vintage_capex_netw_dict[base_name] = dict(surviving_capex)
+            carry_over_capex_netw_dict[base_name] = dict(surviving_capex)
             remaining_econ_netw_dict[base_name] = dict(surviving_econ)
         else:
             _deactivate_network(json_netw, base_name, folder_topology_existing, nodes)
@@ -690,8 +690,8 @@ def _carry_over_networks(
         json_netw,
         years_this_step,
         remaining_lifetime_netw_dict,
-        vintage_sizes_netw_dict,
-        vintage_capex_netw_dict,
+        carry_over_sizes_netw_dict,
+        carry_over_capex_netw_dict,
         remaining_econ_netw_dict,
     )
     with open(json_netw_file_path, "w") as f:
@@ -759,30 +759,30 @@ def _get_component_lifetime(economics):
 
 def _read_prev_tracking(json_path):
     """
-    Read the vintage tracking dicts from a previous interval's JSON file.
+    Read the carry_over tracking dicts from a previous interval's JSON file.
 
     :param Path json_path: path to the previous interval's Technologies.json or Networks.json
-    :return: (remaining_lifetime, vintage_sizes, vintage_capex, remaining_econ_lifetime) dicts
+    :return: (remaining_lifetime, carry_over_sizes, carry_over_capex, remaining_econ_lifetime) dicts
     """
     with open(json_path) as f:
         prev_json = json.load(f)
     return (
         prev_json.get("remaining_lifetime", {}),
-        prev_json.get("vintage_sizes", {}),
-        prev_json.get("vintage_capex", {}),
+        prev_json.get("carry_over_sizes", {}),
+        prev_json.get("carry_over_capex", {}),
         prev_json.get("remaining_econ_lifetime", {}),
     )
 
 
-def _carry_vintage_capex(surviving, old_econ, old_capex, years_this_step):
+def _carry_over_capex(surviving, old_econ, old_capex, years_this_step):
     """
-    Carry vintage capex forward while the economic lifetime is still running.
+    Carry carry_over capex forward while the economic lifetime is still running.
 
     Capex is carried only while the economic lifetime is still running;
-    afterwards the vintage remains (technical lifetime) but no longer pays
+    afterwards the carry_over remains (technical lifetime) but no longer pays
     annualized capex.
 
-    :param dict surviving: surviving vintages {interval_name: size}
+    :param dict surviving: surviving carry_overs {interval_name: size}
     :param dict old_econ: {interval_name: remaining econ lifetime} from previous interval
     :param dict old_capex: {interval_name: annualized capex} from previous interval
     :param int years_this_step: years elapsed between intervals
@@ -790,20 +790,20 @@ def _carry_vintage_capex(surviving, old_econ, old_capex, years_this_step):
     """
     surviving_capex = {}
     surviving_econ = {}
-    for vintage_interval in surviving:
-        new_econ = old_econ.get(vintage_interval)
+    for carry_over_interval in surviving:
+        new_econ = old_econ.get(carry_over_interval)
         if new_econ is None:
             continue
         new_econ = new_econ - years_this_step
-        if new_econ > 0 and vintage_interval in old_capex:
-            surviving_capex[vintage_interval] = old_capex[vintage_interval]
-            surviving_econ[vintage_interval] = new_econ
+        if new_econ > 0 and carry_over_interval in old_capex:
+            surviving_capex[carry_over_interval] = old_capex[carry_over_interval]
+            surviving_econ[carry_over_interval] = new_econ
     return surviving_capex, surviving_econ
 
 
-def _new_vintage_lifetimes(comp_data, years_this_step, label):
+def _new_carry_over_lifetimes(comp_data, years_this_step, label):
     """
-    Determine the lifetimes of a new investment vintage and warn if the economic
+    Determine the lifetimes of a new investment carry_over and warn if the economic
     lifetime exceeds the technical lifetime.
 
     :param comp_data: component data of the previous interval, or None
@@ -834,30 +834,30 @@ def _update_tracking_json(
     json_dict,
     years_this_step,
     remaining_lifetime,
-    vintage_sizes,
-    vintage_capex,
+    carry_over_sizes,
+    carry_over_capex,
     remaining_econ_lifetime,
 ):
     """
-    Write the vintage tracking dicts to a JSON dict, or remove them if lifetime
+    Write the carry_over tracking dicts to a JSON dict, or remove them if lifetime
     tracking is inactive.
 
     :param dict json_dict: content of Technologies.json or Networks.json
     :param int | None years_this_step: years elapsed between intervals (None = tracking inactive)
-    :param dict remaining_lifetime: remaining technical lifetime per component and vintage
-    :param dict vintage_sizes: size per component and vintage
-    :param dict vintage_capex: annualized capex per component and vintage
-    :param dict remaining_econ_lifetime: remaining economic lifetime per component and vintage
+    :param dict remaining_lifetime: remaining technical lifetime per component and carry_over
+    :param dict carry_over_sizes: size per component and carry_over
+    :param dict carry_over_capex: annualized capex per component and carry_over
+    :param dict remaining_econ_lifetime: remaining economic lifetime per component and carry_over
     """
     if years_this_step is not None:
         json_dict["remaining_lifetime"] = remaining_lifetime
-        json_dict["vintage_sizes"] = vintage_sizes
-        json_dict["vintage_capex"] = vintage_capex
+        json_dict["carry_over_sizes"] = carry_over_sizes
+        json_dict["carry_over_capex"] = carry_over_capex
         json_dict["remaining_econ_lifetime"] = remaining_econ_lifetime
     else:
         json_dict.pop("remaining_lifetime", None)
-        json_dict.pop("vintage_sizes", None)
-        json_dict.pop("vintage_capex", None)
+        json_dict.pop("carry_over_sizes", None)
+        json_dict.pop("carry_over_capex", None)
         json_dict.pop("remaining_econ_lifetime", None)
 
 
