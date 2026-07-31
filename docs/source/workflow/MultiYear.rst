@@ -114,6 +114,37 @@ This adds the columns ``cost_annualization_carry_over_tecs``,
 ``optimization_results.h5``. It requires one summary row per interval, in the same
 order as ``intervals``.
 
+To compare intervals on a present-value basis, the per-interval costs can be discounted
+back to the first interval using the global discount rate:
+
+.. testcode::
+
+    add_discounted_cost_to_summary(
+        summary_path, casestudy_path, intervals, intervals_between_years
+    )
+
+This adds ``year_offset``, ``discount_factor``, ``discounted_total_cost`` and (if
+present) ``discounted_total_cost_with_carry_over_annualization``. A global discount rate
+must be set in ``ConfigModel.json`` (``global_discountrate`` different from ``-1``); the
+reference interval's rate is applied to the whole horizon.
+
+Decommissioning of carried capacity
+-----------------------------------
+
+If existing technologies or networks are allowed to decommission
+(``"decommission": "continuous"`` or ``"only_complete"``), the capacity the optimizer
+keeps in an interval is reconciled with the tracked carry_overs at the next transition.
+The decommissioned amount (tracked total minus the solved ``_existing`` size, computed
+**after** the lifetime expiry check) is removed **oldest carry_over first (FIFO)**. The
+annualized CAPEX of a partially decommissioned carry_over is **prorated** to its
+surviving size, and a fully decommissioned carry_over stops paying CAPEX (the MILP
+charges the decommissioning cost separately, within the interval).
+
+.. note::
+    Because all carry_overs of a technology share a single ``_existing`` block in the
+    optimization, retirement cannot be attributed to a specific carry_over; FIFO keeps
+    the youngest, still-CAPEX-paying vintages.
+
 .. note::
     Current limitations of the multiyear approach:
 
@@ -123,6 +154,6 @@ order as ``intervals``.
     - CCS units added to a technology are not carried over between intervals. To
       include CCS in a multiyear analysis, define the plant with CCS as a separate
       technology.
-    - Decommissioning of existing capacities is not yet reconciled with the carry_over
-      tracking; use ``"decommission": "impossible"`` for existing technologies in
-      multiyear runs.
+    - Carry_overs of a technology share a single ``_existing`` block per interval, so
+      decommissioning is reconciled at the aggregate level (oldest carry_over first)
+      and cannot be attributed to a specific build vintage.
