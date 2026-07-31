@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from adopt_net0.modelhub import ModelHub
 from adopt_net0.utilities import installed_capacities_existing
@@ -90,6 +91,12 @@ def test_full_model_flow(request):
     # Output equal to demand
     assert round(tec_block2.var_output[1, "heat"].value, 3) == 1
 
+    compressor_1 = p.node_blocks["node2"].compressor_blocks_active[
+        "hydrogen", "TestTec_Electrolyzer_existing", "Demand"
+    ]
+    # Flow equal to hydrogen demand
+    assert round(compressor_1.var_flow[1].value, 3) == 1
+
     # COST CHECKS
     assert m.var_npv.value > 0
     assert (
@@ -125,7 +132,8 @@ def test_full_model_flow(request):
 
 def test_full_model_flow_multiyear(request):
     """
-    Tests the full modelling pipeline with multiple investment periods and a rolling horizon
+    Tests the full modelling pipeline with multiple investment periods and a myopic foresight
+    method, without lifetime tracking (intervals_between_years not provided).
 
     Topology:
     - Nodes: node1, node2
@@ -152,7 +160,7 @@ def test_full_model_flow_multiyear(request):
         - node1: electricity=1
         - node2: heat=3
         - node2: hydrogen=1
-        Interval_1
+        Interval_2
         - node1: electricity=1
         - node2: heat=1
         - node2: hydrogen=3
@@ -166,6 +174,7 @@ def test_full_model_flow_multiyear(request):
     - Interval_1: hydrogen flow from electrolyzer to demand = 1, Interval_2: hydrogen flow from electrolyzer to demand = 3
     - Interval_2: has existing electric boiler capacity from previous interval
     - total cost
+    - carry_over_sizes and remaining_lifetime are NOT written to Technologies.json and Networks.json
     """
     path = Path("tests/case_study_multiyear")
 
@@ -267,6 +276,228 @@ def test_full_model_flow_multiyear(request):
     # COST CHECKS
     assert adopthub["Interval_1"].model["full"].var_npv.value > 0
     assert adopthub["Interval_2"].model["full"].var_npv.value > 0
+
+    # Check 4: No carry_over tracking written when intervals_between_years is not provided
+    tec_json = json.load(
+        open(
+            path
+            / "Case_Interval_2"
+            / "Interval_2"
+            / "node_data"
+            / "node2"
+            / "Technologies.json"
+        )
+    )
+    assert "carry_over_sizes" not in tec_json
+    assert "remaining_lifetime" not in tec_json
+
+    netw_json = json.load(
+        open(path / "Case_Interval_2" / "Interval_2" / "Networks.json")
+    )
+    assert "carry_over_sizes" not in netw_json
+    assert "remaining_lifetime" not in netw_json
+
+
+def test_full_model_flow_multiyear_lifetime(request):
+    """
+    Tests the full modelling pipeline with multiple investment periods, a myopic foresight
+    method, and lifetime tracking (intervals_between_years=[10]).
+
+    Topology:
+    - Nodes: node1, node2
+    - Investment Periods: Interval_1, Interval_2
+    - Technologies:
+        Interval_1:
+        - node1: existing gas power plant (size = 10)
+        - node2: new electric boiler
+        - node2: new electrolyzer
+        Interval_2:
+        - node1: existing gas power plant
+        - node2: new electric boiler (existing from Interval_1)
+        - node2: new electrolyzer
+    - Networks:
+        Interval_1:
+        - new electricity
+        Interval_2:
+        - new electricity
+    - Timeframe: 1 timestep
+
+    Data:
+    - Demand:
+        Interval_1
+        - node1: electricity=1
+        - node2: heat=3
+        - node2: hydrogen=1
+        Interval_2
+        - node1: electricity=1
+        - node2: heat=1
+        - node2: hydrogen=3
+    - Import:
+        - node1: gas
+    - Import price:
+        - node1: gas: 1
+
+    The following is checked:
+    - Interval_1: network size >=1, Interval_2: network size >= Interval_1
+    - Interval_1: hydrogen flow from electrolyzer to demand = 1, Interval_2: hydrogen flow from electrolyzer to demand = 3
+    - Interval_2: has existing electric boiler capacity from previous interval
+    - total cost
+    - remaining_lifetime written for boiler carry_over in Interval_1: lifetime=25, step=10 → 15
+    - carry_over_sizes written for boiler and consistent with existing size
+    - network remaining_lifetime: technical_lifetime=100 preferred over lifetime=25, step=10 → 90
+    - network carry_over_sizes written
+    - per-carry_over CSV size_Interval_1.csv written for electricitySimple
+    """
+    path = Path("tests/case_study_multiyear")
+
+    # Build the model with investment intervals
+    adopthub = {}
+    intervals = ["Interval_1", "Interval_2"]
+    intervals_between_years = [10]
+
+    # Construct and solve the model
+    for i, interval in enumerate(intervals):
+        path_interval = path / ("Case_" + interval)
+
+        if i != 0:
+            prev_interval = intervals[i - 1]
+            installed_capacities_existing(
+                adopthub,
+                interval,
+                prev_interval,
+                path_interval,
+                intervals_between_years,
+                i,
+            )
+
+        adopthub[interval] = ModelHub()
+        adopthub[interval].read_data(path_interval, start_period=0, end_period=1)
+
+        # Select options
+        adopthub[interval].data.model_config["solveroptions"]["solver"][
+            "value"
+        ] = request.config.solver
+        adopthub[interval].data.model_config["reporting"]["save_summary_path"][
+            "value"
+        ] = request.config.result_folder_path
+        adopthub[interval].data.model_config["reporting"]["save_path"][
+            "value"
+        ] = request.config.result_folder_path
+        adopthub[interval].data.model_config["reporting"]["case_name"][
+            "value"
+        ] = interval
+
+        adopthub[interval].construct_model()
+        adopthub[interval].construct_balances()
+
+        # Fix size to prevent constraint violation in glpk
+        if interval == "Interval_1":
+            p = adopthub[interval].model["full"].periods[interval]
+            b_tec = p.node_blocks["node2"].tech_blocks_active["TestTec_BoilerEl"]
+
+            # Add additional constraint to force size in glpk: var_size >= 15
+            def glpk_boiler_size(m):
+                return b_tec.var_size >= 15
+
+            b_tec.const_boiler_size = pyo.Constraint(rule=glpk_boiler_size)
+
+            b_netw = p.network_block["electricitySimple"]
+
+            def glpk_netw_size(m):
+                return b_netw.arc_block["node1", "node2"].var_size >= 15
+
+            b_tec.const_netw_size = pyo.Constraint(rule=glpk_netw_size)
+
+        adopthub[interval].solve()
+
+    # Check results
+    s_arc1 = {}
+    electrolyzer_prod = {}
+    for interval in intervals:
+        m = adopthub[interval].model["full"]
+        p = m.periods[interval]
+
+        # Network flow
+        flow_int = 0
+        for netw in p.network_block:
+            if "electricitySimple" in netw:
+                netw_block = p.network_block[netw]
+                flow_int += round(
+                    netw_block.arc_block["node1", "node2"].var_flow[1].value, 3
+                )
+
+        # Arc flow
+        s_arc1[interval] = flow_int
+
+        # Hydrogen production
+        prod_int = 0
+        for tech in p.node_blocks["node2"].tech_blocks_active:
+            if "Electrolyzer" in tech:
+                tec_block = p.node_blocks["node2"].tech_blocks_active[tech]
+                prod_int += round(tec_block.var_output[1, "hydrogen"].value, 3)
+
+        electrolyzer_prod[interval] = prod_int
+
+    # Check 1: Network flow increases in second interval
+    assert s_arc1["Interval_1"] <= s_arc1["Interval_2"]
+
+    # Check 2: Hydrogen production from electrolyzer is 1 in Interval_1 and 3 in Interval_2
+    assert electrolyzer_prod["Interval_1"] == 1
+    assert electrolyzer_prod["Interval_2"] == 3
+
+    # Check 3: Existing electric boiler in Interval_2
+    node_block = (
+        adopthub["Interval_2"].model["full"].periods["Interval_2"].node_blocks["node2"]
+    )
+    assert "TestTec_BoilerEl_existing" in node_block.tech_blocks_active
+
+    # COST CHECKS
+    assert adopthub["Interval_1"].model["full"].var_npv.value > 0
+    assert adopthub["Interval_2"].model["full"].var_npv.value > 0
+
+    tec_json = json.load(
+        open(
+            path
+            / "Case_Interval_2"
+            / "Interval_2"
+            / "node_data"
+            / "node2"
+            / "Technologies.json"
+        )
+    )
+
+    # Check 4: remaining_lifetime written (boiler lifetime=25, step=10 → 15)
+    assert "remaining_lifetime" in tec_json
+    assert tec_json["remaining_lifetime"]["TestTec_BoilerEl"]["Interval_1"] == 15
+
+    # Check 5: carry_over_sizes written and consistent with existing size
+    assert "carry_over_sizes" in tec_json
+    boiler_carry_over_size = tec_json["carry_over_sizes"]["TestTec_BoilerEl"][
+        "Interval_1"
+    ]
+    assert boiler_carry_over_size > 0
+    assert tec_json["existing"]["TestTec_BoilerEl"] == boiler_carry_over_size
+
+    netw_json = json.load(
+        open(path / "Case_Interval_2" / "Interval_2" / "Networks.json")
+    )
+
+    # Check 6: network remaining_lifetime (technical_lifetime=100 preferred over lifetime=25, step=10 → 90)
+    assert netw_json["remaining_lifetime"]["electricitySimple"]["Interval_1"] == 90
+
+    # Check 7: network carry_over_sizes written
+    assert netw_json["carry_over_sizes"]["electricitySimple"]["Interval_1"] > 0
+
+    # Check 8: per-carry_over CSV written for electricitySimple
+    assert (
+        path
+        / "Case_Interval_2"
+        / "Interval_2"
+        / "network_topology"
+        / "existing"
+        / "electricitySimple"
+        / "size_Interval_1.csv"
+    ).exists()
 
 
 def test_clustering_algo(request):

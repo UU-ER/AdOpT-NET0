@@ -15,7 +15,7 @@ In the ``Topology.JSON`` file, the system topology can be defined. The system to
    use this carrier, and subsequently an energy balance for this carrier will be solved.
 #. **The investment periods**: Here you can specify the number and names of investment periods to be modeled within a
    single problem formulation under a perfect foresight framework. (Note: This feature is planned for future releases;
-   currently, only single-period analysis is supported.) When applying the rolling-horizon approach, create a separate
+   currently, only single-period analysis is supported.) When applying the multi-year approach, create a separate
    case study folder for each investment period or interval.
 #. **The time horizon**: Here you can enter the start and end date of your model run
    and the resolution. By default, the length is one year with a resolution of one

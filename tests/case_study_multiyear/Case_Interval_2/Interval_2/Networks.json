@@ -4,5 +4,25 @@
     ],
     "new": [
         "electricitySimple"
-    ]
+    ],
+    "remaining_lifetime": {
+        "electricitySimple": {
+            "Interval_1": 90
+        }
+    },
+    "carry_over_sizes": {
+        "electricitySimple": {
+            "Interval_1": 30.0
+        }
+    },
+    "carry_over_capex": {
+        "electricitySimple": {
+            "Interval_1": 0.000136986301369863
+        }
+    },
+    "remaining_econ_lifetime": {
+        "electricitySimple": {
+            "Interval_1": 15
+        }
+    }
 }
