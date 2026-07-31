@@ -43,12 +43,9 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     capture_rate = ccs_data["Performance"]["capture_rate"]
     # Recalculate unit_capex in EUR/(t_CO2out/h)
     ccs_data["Economics"]["unit_capex"] = (
-        (
-            ccs_data["Economics"]["capex_kappa"] / convert2t_per_h
-            + ccs_data["Economics"]["capex_lambda"]
-        )
-        * co2_concentration
-    ) / convert2t_per_h
+        ccs_data["Economics"]["capex_kappa"] / (co2_concentration * capture_rate)
+        + ccs_data["Economics"]["capex_lambda"]
+    ) / (molar_mass_CO2 * 3600 / 1000)
 
     ccs_data["Economics"]["fix_capex"] = ccs_data["Economics"]["capex_zeta"]
 
@@ -65,10 +62,18 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     if "MEA" in ccs_data.technology_model:
         input_ratios = {}
         for car in ccs_data.input_carrier:
+            el_consumption_compression = (
+                ccs_data.performance_data["el_consumption_compression"]
+                if car == "electricity"
+                else 0
+            )
+
             input_ratios[car] = (
                 ccs_data.performance_data["eta"][car]
                 + ccs_data.performance_data["omega"][car] * co2_concentration
-            ) / (co2_concentration * molar_mass_CO2 * 3.6)
+            ) / (
+                co2_concentration * molar_mass_CO2 * 3.6 * capture_rate
+            ) + el_consumption_compression
         ccs_data.processed_coeff.time_independent["input_ratios"] = input_ratios
     else:
         raise Exception(
