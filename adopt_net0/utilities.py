@@ -221,6 +221,109 @@ def _expire_carry_overs(old_carry_overs, old_rls, years_this_step, label):
     return surviving, surviving_rls
 
 
+def _decommission_carry_overs(surviving, surviving_rls, existing_size, label):
+    """
+    Reconcile carried carry_over sizes with the capacity the model actually kept.
+
+    ``existing_size`` is the solved ``var_size`` of the ``_existing`` block, i.e. the
+    capacity the optimizer kept after any decommissioning. ``surviving`` holds the
+    carry_over sizes that survived the lifetime check. If the model decommissioned part
+    of the carried capacity, ``sum(surviving)`` exceeds ``existing_size``; the difference
+    is shaved off oldest carry_over first (FIFO, matching the chronological dict order)
+    so that the youngest, capex-paying carry_overs are kept.
+
+    The reconciliation is applied after :func:`_expire_carry_overs` so that capacity
+    removed by decommissioning is counted first against carry_overs that were expiring
+    anyway (no double-shaving).
+
+    :param dict surviving: carry_over sizes {interval_name: size} after the lifetime check
+    :param dict surviving_rls: remaining technical lifetimes {interval_name: rl}
+    :param float existing_size: solved size of the ``_existing`` block (capacity kept)
+    :param str label: description for warning messages
+    :return: (surviving, surviving_rls) with decommissioned capacity removed
+    """
+    deficit = sum(surviving.values()) - existing_size
+    if deficit <= 1e-6:
+        return surviving, surviving_rls
+
+    warnings.warn(
+        f"{label}: {deficit:.3f} of carried capacity was decommissioned by the model "
+        "and is removed oldest carry_over first."
+    )
+    for carry_over_interval in list(surviving):
+        if deficit <= 1e-6:
+            break
+        reduce = min(surviving[carry_over_interval], deficit)
+        surviving[carry_over_interval] -= reduce
+        deficit -= reduce
+        if surviving[carry_over_interval] <= 1e-6:
+            del surviving[carry_over_interval]
+            surviving_rls.pop(carry_over_interval, None)
+    return surviving, surviving_rls
+
+
+def _decommission_network_carry_overs(
+    carry_over_matrices, surviving_carry_overs, surviving_rls, existing_matrix, label
+):
+    """
+    Per-arc analogue of :func:`_decommission_carry_overs` for networks.
+
+    For each arc, the summed carried size across carry_overs is compared with the arc
+    size the model kept (``existing_matrix``). Any per-arc deficit is shaved oldest
+    carry_over first, the per-carry_over arc matrices are updated in place, and each
+    carry_over's ``surviving`` size is recomputed as the sum over arcs. Carry_overs
+    reduced to zero across all arcs are dropped.
+
+    :param dict carry_over_matrices: {interval_name: arc-size DataFrame} (modified in place)
+    :param dict surviving_carry_overs: {interval_name: total size} (updated)
+    :param dict surviving_rls: {interval_name: remaining lifetime}
+    :param existing_matrix: solved arc-size matrix of the ``_existing`` block
+    :param str label: description for warning messages
+    :return: (surviving_carry_overs, surviving_rls)
+    """
+    order = list(carry_over_matrices)
+    # Align every carry_over matrix to the existing matrix layout
+    for carry_over_interval in order:
+        carry_over_matrices[carry_over_interval] = carry_over_matrices[
+            carry_over_interval
+        ].reindex(
+            index=existing_matrix.index, columns=existing_matrix.columns, fill_value=0
+        )
+
+    total_deficit = 0.0
+    for arc in existing_matrix.index:
+        for col in existing_matrix.columns:
+            built = sum(carry_over_matrices[co].loc[arc, col] for co in order)
+            deficit = built - existing_matrix.loc[arc, col]
+            if deficit <= 1e-6:
+                continue
+            total_deficit += deficit
+            for co in order:
+                if deficit <= 1e-6:
+                    break
+                val = carry_over_matrices[co].loc[arc, col]
+                reduce = min(val, deficit)
+                carry_over_matrices[co].loc[arc, col] = val - reduce
+                deficit -= reduce
+
+    if total_deficit <= 1e-6:
+        return surviving_carry_overs, surviving_rls
+
+    warnings.warn(
+        f"{label}: {total_deficit:.3f} of carried arc capacity was decommissioned by "
+        "the model and is removed oldest carry_over first."
+    )
+    for carry_over_interval in order:
+        new_size = float(carry_over_matrices[carry_over_interval].values.sum())
+        if new_size <= 1e-6:
+            del carry_over_matrices[carry_over_interval]
+            surviving_carry_overs.pop(carry_over_interval, None)
+            surviving_rls.pop(carry_over_interval, None)
+        else:
+            surviving_carry_overs[carry_over_interval] = new_size
+    return surviving_carry_overs, surviving_rls
+
+
 def installed_capacities_existing(
     m,
     interval,
@@ -419,8 +522,14 @@ def _carry_over_technologies(
                     years_this_step,
                     f"Node '{node}', technology '{base_tec}'",
                 )
+                surviving, surviving_rls = _decommission_carry_overs(
+                    surviving,
+                    surviving_rls,
+                    existing_size,
+                    f"Node '{node}', technology '{base_tec}'",
+                )
                 surviving_capex, surviving_econ = _carry_over_capex(
-                    surviving, old_econ, old_capex, years_this_step
+                    surviving, old_carry_overs, old_econ, old_capex, years_this_step
                 )
             elif existing_size > 1e-6:
                 # First transition for pre-existing capacity: initialize tracking
@@ -607,20 +716,33 @@ def _carry_over_networks(
             surviving_carry_overs, surviving_rls = _expire_carry_overs(
                 old_carry_overs, old_rls, years_this_step, f"Network '{base_name}'"
             )
-            surviving_capex, surviving_econ = _carry_over_capex(
-                surviving_carry_overs, old_econ, old_capex, years_this_step
-            )
             for carry_over_interval in surviving_carry_overs:
                 src_csv = prev_folder_existing / f"size_{carry_over_interval}.csv"
                 if src_csv.exists():
-                    vdf = _read_size_csv(src_csv)
-                    total_matrix = total_matrix.add(vdf, fill_value=0)
-                    carry_over_matrices[carry_over_interval] = vdf
+                    carry_over_matrices[carry_over_interval] = _read_size_csv(src_csv)
                 else:
                     warnings.warn(
                         f"Network '{base_name}': carry_over CSV '{src_csv.name}' not found. "
                         "Arc sizes for this carry_over lost."
                     )
+            surviving_carry_overs, surviving_rls = _decommission_network_carry_overs(
+                carry_over_matrices,
+                surviving_carry_overs,
+                surviving_rls,
+                existing_matrix,
+                f"Network '{base_name}'",
+            )
+            surviving_capex, surviving_econ = _carry_over_capex(
+                surviving_carry_overs,
+                old_carry_overs,
+                old_econ,
+                old_capex,
+                years_this_step,
+            )
+            for carry_over_interval in carry_over_matrices:
+                total_matrix = total_matrix.add(
+                    carry_over_matrices[carry_over_interval], fill_value=0
+                )
         elif existing_sum > 1e-6:
             # First transition for pre-existing network: initialize tracking
             ex_remaining = check_component_remaining_lifetime(
@@ -774,15 +896,19 @@ def _read_prev_tracking(json_path):
     )
 
 
-def _carry_over_capex(surviving, old_econ, old_capex, years_this_step):
+def _carry_over_capex(surviving, old_carry_overs, old_econ, old_capex, years_this_step):
     """
-    Carry carry_over capex forward while the economic lifetime is still running.
+    Carry carry_over capex forward, prorated to the surviving carried capacity.
 
-    Capex is carried only while the economic lifetime is still running;
-    afterwards the carry_over remains (technical lifetime) but no longer pays
-    annualized capex.
+    Capex is carried only while the economic lifetime is still running; afterwards the
+    carry_over remains (technical lifetime) but no longer pays annualized capex. The
+    carried annualized capex is scaled by the fraction of the carry_over's capacity that
+    survived this step's lifetime check and decommissioning: partial decommissioning
+    reduces the annualized capex proportionally, and a fully removed carry_over pays no
+    further capex (the MILP charges the decommissioning cost separately).
 
-    :param dict surviving: surviving carry_overs {interval_name: size}
+    :param dict surviving: carry_over sizes {interval_name: size} after expiry and decommissioning
+    :param dict old_carry_overs: carry_over sizes {interval_name: size} from the previous interval
     :param dict old_econ: {interval_name: remaining econ lifetime} from previous interval
     :param dict old_capex: {interval_name: annualized capex} from previous interval
     :param int years_this_step: years elapsed between intervals
@@ -790,14 +916,16 @@ def _carry_over_capex(surviving, old_econ, old_capex, years_this_step):
     """
     surviving_capex = {}
     surviving_econ = {}
-    for carry_over_interval in surviving:
-        new_econ = old_econ.get(carry_over_interval)
-        if new_econ is None:
+    for carry_over_interval in old_econ:
+        new_econ = old_econ[carry_over_interval] - years_this_step
+        if new_econ <= 0 or carry_over_interval not in old_capex:
             continue
-        new_econ = new_econ - years_this_step
-        if new_econ > 0 and carry_over_interval in old_capex:
-            surviving_capex[carry_over_interval] = old_capex[carry_over_interval]
-            surviving_econ[carry_over_interval] = new_econ
+        if carry_over_interval not in surviving:
+            continue  # fully expired or decommissioned → no capacity left to finance
+        original = old_carry_overs.get(carry_over_interval)
+        scale = surviving[carry_over_interval] / original if original else 1.0
+        surviving_capex[carry_over_interval] = old_capex[carry_over_interval] * scale
+        surviving_econ[carry_over_interval] = new_econ
     return surviving_capex, surviving_econ
 
 
