@@ -3,3 +3,4 @@ from .wind_cost_model import WindEnergy_CostModel
 from .pv_cost_model import PV_CostModel
 from .co2_compression_cost_model import CO2_Compression_CostModel
 from .heat_pump_cost_model import HeatPump_CostModel
+from .electrolyzer_cost_model import Electrolyzer_CostModel

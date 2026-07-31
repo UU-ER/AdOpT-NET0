@@ -231,3 +231,52 @@ def test_heat_pump_cost_model(request):
 
         c = td.write_json(tec, request.config.result_folder_path, options)
         assert 400 <= c.financial_indicators["unit_capex"] / 1000 * 4 <= 4000
+
+
+# ELECTROLYZER COST MODELS
+def test_electrolyzer_cost_model(request):
+    """
+    tests the electrolyzer cost model for DEA with automatic size selection
+    """
+    tec = "Electrolyzer"
+    td.help(component_name=tec)
+
+    # Automatic size selection from capacity_MW
+    for elec_type in ["PEM", "AEM"]:
+        for capacity in [5, 100, 1000]:  # small, medium, large
+            options = {
+                "currency_out": "EUR",
+                "financial_year_out": 2020,
+                "discount_rate": 0.1,
+                "source": "DEA",
+                "projection_year": 2030,
+                "type": elec_type,
+                "capacity_MW": capacity,
+            }
+
+            c = td.write_json(tec, request.config.result_folder_path, options)
+
+            assert np.isfinite(c.financial_indicators["unit_capex"])
+            assert c.financial_indicators["unit_capex"] > 0
+
+            expected = {5: "small", 100: "medium", 1000: "large"}[capacity]
+            assert c.options["size"] == expected
+
+    # Explicit size (no capacity_MW)
+    for elec_type in ["PEM", "AEM"]:
+        for size in ["small", "medium", "large"]:
+            options = {
+                "currency_out": "EUR",
+                "financial_year_out": 2020,
+                "discount_rate": 0.1,
+                "source": "DEA",
+                "projection_year": 2030,
+                "type": elec_type,
+                "size": size,
+            }
+
+            c = td.write_json(tec, request.config.result_folder_path, options)
+
+            assert np.isfinite(c.financial_indicators["unit_capex"])
+            assert c.financial_indicators["unit_capex"] > 0
+            assert c.options["size"] == size

@@ -114,20 +114,28 @@ with open("advanced_topics/config.csv", "w", newline="", encoding="utf-8") as cs
 def get_git_info(repo_path):
     """
     Get Git repository information (remote URL and current branch/commit)
+    Handles both local builds and Read the Docs environment
     """
     try:
+        # Check if running on Read the Docs
+        rtd_version = os.environ.get("READTHEDOCS_VERSION")
+        rtd_version_type = os.environ.get("READTHEDOCS_VERSION_TYPE")
+
         # Change to the repository directory
         original_cwd = os.getcwd()
         os.chdir(repo_path)
 
         # Get the remote origin URL
-        remote_url = (
-            subprocess.check_output(
-                ["git", "remote", "get-url", "origin"], stderr=subprocess.DEVNULL
+        try:
+            remote_url = (
+                subprocess.check_output(
+                    ["git", "remote", "get-url", "origin"], stderr=subprocess.DEVNULL
+                )
+                .decode()
+                .strip()
             )
-            .decode()
-            .strip()
-        )
+        except:
+            remote_url = "https://github.com/UU-ER/AdOpT-NET0"
 
         # Convert SSH URL to HTTPS if needed
         if remote_url.startswith("git@github.com:"):
@@ -136,23 +144,85 @@ def get_git_info(repo_path):
             remote_url = remote_url[:-4]
 
         # Get current branch name
-        try:
-            current_branch = (
-                subprocess.check_output(
-                    ["git", "branch", "--show-current"], stderr=subprocess.DEVNULL
-                )
-                .decode()
-                .strip()
+        current_branch = None
+
+        # Strategy 1: If on Read the Docs, match normalized version to actual branch name
+        if rtd_version:
+            print(
+                f"Running on Read the Docs (version: {rtd_version}, type: {rtd_version_type})"
             )
-        except:
-            # If detached HEAD, get the commit hash
-            current_branch = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+
+            if rtd_version_type == "branch":
+                try:
+                    # Get all remote branches
+                    branches_output = (
+                        subprocess.check_output(
+                            ["git", "branch", "-r"], stderr=subprocess.DEVNULL
+                        )
+                        .decode()
+                        .strip()
+                    )
+
+                    # Parse branch names (remove 'origin/' prefix and filter out HEAD)
+                    branches = [
+                        b.strip().replace("origin/", "")
+                        for b in branches_output.split("\n")
+                        if b.strip() and "origin/" in b and "->" not in b
+                    ]
+
+                    print(f"Available branches: {branches}")
+
+                    # Case-insensitive match to handle RTD's lowercase normalization
+                    for branch in branches:
+                        if branch.lower() == rtd_version.lower():
+                            current_branch = branch
+                            print(f"Matched '{rtd_version}' to '{branch}'")
+                            break
+
+                    # Fallback to RTD version if no match
+                    if not current_branch:
+                        current_branch = rtd_version
+                        print(f"No match found, using '{current_branch}'")
+
+                except Exception as e:
+                    print(f"Could not match branch: {e}")
+                    current_branch = rtd_version
+
+            elif rtd_version_type == "tag":
+                current_branch = rtd_version
+            elif rtd_version == "latest":
+                current_branch = "main"
+            else:
+                current_branch = rtd_version
+
+            print(f"Using branch: {current_branch}")
+
+        # Strategy 2: Local build - try standard git commands
+        if not current_branch:
+            try:
+                current_branch = (
+                    subprocess.check_output(
+                        ["git", "branch", "--show-current"], stderr=subprocess.DEVNULL
+                    )
+                    .decode()
+                    .strip()
                 )
-                .decode()
-                .strip()
-            )
+            except:
+                pass
+
+        # Strategy 3: Detached HEAD - get commit hash
+        if not current_branch:
+            try:
+                current_branch = (
+                    subprocess.check_output(
+                        ["git", "rev-parse", "--short", "HEAD"],
+                        stderr=subprocess.DEVNULL,
+                    )
+                    .decode()
+                    .strip()
+                )
+            except:
+                current_branch = "main"  # Final fallback
 
         # Restore original directory
         os.chdir(original_cwd)
