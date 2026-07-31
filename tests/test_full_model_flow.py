@@ -4,6 +4,11 @@ from pathlib import Path
 import pandas as pd
 from adopt_net0.modelhub import ModelHub
 from adopt_net0.utilities import installed_capacities_existing
+from adopt_net0.result_management.read_results import (
+    add_values_to_summary,
+    add_carry_over_annualization_to_summary,
+    add_discounted_cost_to_summary,
+)
 import pyomo.environ as pyo
 
 
@@ -525,6 +530,36 @@ def test_full_model_flow_multiyear_lifetime(request):
             / "electricitySimple"
             / "size_Interval_1.csv"
         ).exists()
+
+    # Post-processing of the summary file (read_results). These functions read the
+    # written Summary.xlsx / h5 files and the JSON tracking, so they are exercised
+    # independently of the solver.
+    summary_path = request.config.result_folder_path / "Summary.xlsx"
+    add_values_to_summary(summary_path)
+    add_carry_over_annualization_to_summary(summary_path, path, intervals)
+
+    # Discounting requires a global discount rate; set it temporarily in both intervals'
+    # ConfigModel.json (the solves are already done, so this does not change results).
+    config_paths = [path / ("Case_" + iv) / "ConfigModel.json" for iv in intervals]
+    config_orig = [cp.read_text() for cp in config_paths]
+    try:
+        for cp in config_paths:
+            cfg = json.loads(cp.read_text())
+            cfg["economic"]["global_discountrate"]["value"] = 0.05
+            cp.write_text(json.dumps(cfg, indent=4))
+        add_discounted_cost_to_summary(
+            summary_path, path, intervals, intervals_between_years
+        )
+    finally:
+        for cp, orig in zip(config_paths, config_orig):
+            cp.write_text(orig)
+
+    # Check 9: annualization and discount columns were added (one row per interval)
+    summary = pd.read_excel(summary_path)
+    assert len(summary) == len(intervals)
+    assert "cost_annualization" in summary.columns
+    assert "total_cost_with_carry_over_annualization" in summary.columns
+    assert "discounted_total_cost" in summary.columns
 
 
 def test_full_model_flow_multiyear_extra_feature(request):
