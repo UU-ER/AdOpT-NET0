@@ -22,7 +22,7 @@ def define_technology(
     tec_name: str,
     nr_timesteps: int,
     load_path: Path,
-    perf_type: int = None,
+    perf_type: str = None,
     capex_model: int = None,
     existing: int = 0,
     size_initial: float = 0,
@@ -34,7 +34,7 @@ def define_technology(
     :param str tec_name: name of the technology.
     :param int nr_timesteps: Number of timesteps to create climate data for
     :param Path load_path: Path to load from
-    :param int perf_type: performance function type (for generic conversion tecs)
+    :param str perf_type: performance function type (for generic conversion tecs)
     :param int capex_model: capex model (1,2,3,4)
     :param int existing: is technology existing or not,
     :param float size_initial: initial size of existing technology,
@@ -335,7 +335,11 @@ def test_conv_perf(request):
     for conv_type in [1, 2, 3, 4]:
         technology = "TestTec_Conv" + str(conv_type)
 
-        for perf_type in [1, 2, 3]:
+        for perf_type in [
+            "linear_through_origin",
+            "linear_with_intercept",
+            "piecewise",
+        ]:
             # Technology Model
             tec = define_technology(
                 technology,
@@ -352,7 +356,7 @@ def test_conv_perf(request):
             else:
                 output_ratios = None
 
-            if perf_type == 1:
+            if perf_type == "linear_through_origin":
                 # INFEASIBILITY CASES
                 oversize = (
                     np.ones(time_steps)
@@ -420,7 +424,7 @@ def test_conv_perf(request):
                             * main_car_input
                         )
 
-            elif perf_type == 2:
+            elif perf_type == "linear_with_intercept":
                 # Check minimum load
                 minsize = 10
                 demand = [
@@ -440,7 +444,7 @@ def test_conv_perf(request):
                     TerminationCondition.other,
                 ]
 
-            elif perf_type == 3 and conv_type != 4:
+            elif perf_type == "piecewise" and conv_type != 4:
                 # FEASIBILITY CASES
                 model = generate_output_constraint(
                     model, [1], output_ratios=output_ratios
@@ -654,7 +658,11 @@ def test_dynamics_fast(request):
     for conv_type in [1, 2, 3]:
         technology = "TestTec_Conv" + str(conv_type)
 
-        for perf_type in [1, 2, 3]:
+        for perf_type in [
+            "linear_through_origin",
+            "linear_with_intercept",
+            "piecewise",
+        ]:
             # Technology Model
             tec = define_technology(
                 technology,
@@ -668,7 +676,7 @@ def test_dynamics_fast(request):
             else:
                 output_ratios = tec.processed_coeff.time_independent["fit"]
 
-            if perf_type == 1:
+            if perf_type == "linear_through_origin":
                 # Set parameters
                 tec.processed_coeff.dynamics["ramping_time"] = 4
                 tec.processed_coeff.dynamics["ref_size"] = 4
@@ -705,7 +713,7 @@ def test_dynamics_fast(request):
                     TerminationCondition.other,
                 ]
 
-            elif perf_type > 1:
+            elif perf_type != "linear_through_origin":
                 # Set parameters
                 tec.processed_coeff.time_independent["standby_power"] = 0.2
                 tec.processed_coeff.time_independent["min_part_load"] = 0.3
@@ -787,7 +795,7 @@ def test_dynamics_slow(request):
         technology = "TestTec_Conv" + str(conv_type)
 
         # Technology Model
-        perf_type = 4
+        perf_type = "slow_dynamics"
         tec = define_technology(
             technology,
             nr_timesteps=time_steps,
@@ -1031,7 +1039,11 @@ def test_heat_pump(request):
     time_steps = 1
     technology = "TestTec_HeatPump_AirSourced"
 
-    for perf_funct in [1, 2, 3]:
+    for perf_funct in [
+        "linear_through_origin",
+        "linear_with_intercept",
+        "piecewise",
+    ]:
         tec = define_technology(
             technology,
             time_steps,

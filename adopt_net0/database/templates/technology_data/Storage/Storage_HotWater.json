@@ -47,13 +47,13 @@
       "theta": 0.0005
     }
   },
-  "Flexibility": {
-    "comment": "determines the flexibility of the power capacity compared to the energy capacity",
-    "power_energy_ratio": "fixedratio",
+  "Flow_capacity_relation": {
+    "comment": "determines the relation between the storage capacity and the flow capacity",
+    "ratio": "fixedratio",
     "charge_rate": 0.33333333333333331,
     "discharge_rate": 0.33333333333333331,
-    "capex_charging_power": 0,
-    "capex_discharging_power": 0
+    "capex_charging_rate": 0,
+    "capex_discharging_rate": 0
   },
   "Units": {
     "size": "MWh",

@@ -30,10 +30,10 @@ class Conv4(Technology):
       .. math::
         Output_{t, car} = {\\phi}_{car} * Output_{t, maincarrier}
 
-    - ``performance_function_type == 1``: No further constraints on the performance
+    - ``performance_function_type == "linear_through_origin"``: No further constraints on the performance
       of the technology.
 
-    - ``performance_function_type == 2``: A minimum part load can be specified (
+    - ``performance_function_type == "linear_with_intercept"``: A minimum part load can be specified (
       requiring a big-m transformation for the solving). The following constraints hold:
 
       When the technology is on:
@@ -118,8 +118,8 @@ class Conv4(Technology):
         phi = coeff_ti["phi"]
 
         # add additional constraints for performance type 2 (min. part load)
-        if self.performance_function_type == 2:
-            b_tec = self._performance_function_type_2(b_tec)
+        if self.performance_function_type == "linear_with_intercept":
+            b_tec = self._performance_function_type_linear_with_intercept(b_tec)
 
         # Size constraints
         # constraint on output ratios
@@ -149,7 +149,7 @@ class Conv4(Technology):
 
         return b_tec
 
-    def _performance_function_type_2(self, b_tec):
+    def _performance_function_type_linear_with_intercept(self, b_tec):
         """
         Sets the minimum part load constraint for a tec based on tec_type CONV4 with
         performance type 2.
