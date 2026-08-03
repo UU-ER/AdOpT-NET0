@@ -71,26 +71,26 @@ class Stor(Technology):
       to zero in each respective time step (otherwise, simultaneous charging and
       discharging can lead to unwanted 'waste' of energy/material).
 
-     - If in ``Flexibility`` the ``power_energy_ratio == fixed``, then the capacity of
+     - If in ``Flow_capacity_relation`` the ``ratio == fixed``, then the capacity of
        the charging and discharging power is fixed as a ratio of the energy capacity.
        Thus:
 
        .. math::
          Input_{max} = \\gamma_{charging} * S
 
-    - If in 'Flexibility' the "power_energy_ratio == flexratio", then the
+    - If in 'Flow_capacity_relation' the "ratio == flexratio", then the
       capacity of the charging and discharging power is a variable in the
       optimization. In this case, the charging and discharging rates specified in the
       json file are the maximum installed capacities as a ratio of the energy
       capacity. The model will optimize the charging and discharging capacities,
       based on the incorporation of these components in the CAPEX function.
 
-    - If in 'Flexibility' the "power_energy_ratio == fixedratio", then the
+    - If in 'Flow_capacity_relation' the "ratio == fixedratio", then the
       capacity of the charging and discharging power is a fraction of the installed capacity.
       In this case, the charging and discharging rates specified in the
       json file are a ratio of the energy capacity.
 
-    - If in 'Flexibility' the "power_energy_ratio == fixedcapacity", then the
+    - If in 'Flow_capacity_relation' the "ratio == fixedcapacity", then the
       capacity of the charging and discharging power is a fixed input parameter.
       In this case, the charging and discharging rates specified in the
       json file in the same unit as the input and output.
@@ -147,7 +147,7 @@ class Stor(Technology):
                 tec_data["Performance"], "allow_only_one_direction_precise", 1
             )
 
-        self.flexibility_data = tec_data["Flexibility"]
+        self.flow_capacity_relation_data = tec_data["Flow_capacity_relation"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -160,15 +160,15 @@ class Stor(Technology):
 
         # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
         # to account for charging and discharging capacity costs.
-        if self.flexibility_data["power_energy_ratio"] == "flexratio":
+        if self.flow_capacity_relation_data["ratio"] == "flexratio":
             self.economics["capex_model"] = 4
-        if self.flexibility_data["power_energy_ratio"] not in [
+        if self.flow_capacity_relation_data["ratio"] not in [
             "flexratio",
             "fixedratio",
             "fixedcapacity",
         ]:
             raise Warning(
-                "power_energy_ratio should be either flexible ('flexratio') or fixed ('fixedratio') or as capacity ('fixedcapacity')"
+                "ratio should be either flexible ('flexratio') or fixed ('fixedratio') or as capacity ('fixedcapacity')"
             )
 
         # Coefficients
@@ -185,12 +185,12 @@ class Stor(Technology):
                     "performance"
                 ][par]
 
-        self.processed_coeff.time_independent["charge_rate"] = self.flexibility_data[
-            "charge_rate"
-        ]
-        self.processed_coeff.time_independent["discharge_rate"] = self.flexibility_data[
-            "discharge_rate"
-        ]
+        self.processed_coeff.time_independent["charge_rate"] = (
+            self.flow_capacity_relation_data["charge_rate"]
+        )
+        self.processed_coeff.time_independent["discharge_rate"] = (
+            self.flow_capacity_relation_data["discharge_rate"]
+        )
         if "energy_consumption" in self.performance_data["performance"]:
             self.processed_coeff.time_independent["energy_consumption"] = (
                 self.performance_data["performance"]["energy_consumption"]
@@ -210,7 +210,7 @@ class Stor(Technology):
                 (
                     np.zeros(shape=(time_steps)),
                     np.ones(shape=(time_steps))
-                    * self.flexibility_data["discharge_rate"],
+                    * self.flow_capacity_relation_data["discharge_rate"],
                 )
             )
         # Input Bounds
@@ -220,7 +220,7 @@ class Stor(Technology):
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.flexibility_data["charge_rate"],
+                        * self.flow_capacity_relation_data["charge_rate"],
                     )
                 )
             else:
@@ -232,7 +232,7 @@ class Stor(Technology):
                         (
                             np.zeros(shape=(time_steps)),
                             np.ones(shape=(time_steps))
-                            * self.flexibility_data["charge_rate"]
+                            * self.flow_capacity_relation_data["charge_rate"]
                             * energy_consumption["in"][car],
                         )
                     )
@@ -378,7 +378,7 @@ class Stor(Technology):
                     <= charge_rate + discharge_rate
                 )
 
-            if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
+            if self.flow_capacity_relation_data["ratio"] == "fixedcapacity":
                 b_tec.const_cut_bidirectional1 = pyo.Constraint(
                     self.set_t_performance, rule=init_cut_bidirectional_fix1
                 )
@@ -428,7 +428,7 @@ class Stor(Technology):
 
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t):
-            if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
+            if self.flow_capacity_relation_data["ratio"] == "fixedcapacity":
                 return self.input[t, self.main_input_carrier] <= charge_rate
             else:
                 return (
@@ -440,7 +440,7 @@ class Stor(Technology):
         )
 
         def init_maximal_discharge(const, t):
-            if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
+            if self.flow_capacity_relation_data["ratio"] == "fixedcapacity":
                 return self.output[t, self.main_input_carrier] <= discharge_rate
             else:
                 return (
@@ -453,10 +453,10 @@ class Stor(Technology):
         )
 
         # if the charging / discharging rates are fixed or flexible as a ratio of the energy capacity:
-        if not self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
+        if not self.flow_capacity_relation_data["ratio"] == "fixedcapacity":
 
             def init_max_capacity_charge(const):
-                if self.flexibility_data["power_energy_ratio"] == "fixedratio":
+                if self.flow_capacity_relation_data["ratio"] == "fixedratio":
                     return b_tec.var_capacity_charge == charge_rate * b_tec.var_size
                 else:
                     return b_tec.var_capacity_charge <= charge_rate * b_tec.var_size
@@ -464,7 +464,7 @@ class Stor(Technology):
             b_tec.const_max_cap_charge = pyo.Constraint(rule=init_max_capacity_charge)
 
             def init_max_capacity_discharge(const):
-                if self.flexibility_data["power_energy_ratio"] == "fixedratio":
+                if self.flow_capacity_relation_data["ratio"] == "fixedratio":
                     # dischargeCapacity == dischargeRate * storSize
                     return (
                         b_tec.var_capacity_discharge == discharge_rate * b_tec.var_size
@@ -545,7 +545,7 @@ class Stor(Technology):
         charge_rate = coeff_ti["charge_rate"]
         discharge_rate = coeff_ti["discharge_rate"]
 
-        if not self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
+        if not self.flow_capacity_relation_data["ratio"] == "fixedcapacity":
             b_tec.var_capacity_charge = pyo.Var(
                 domain=pyo.NonNegativeReals,
                 bounds=(0, b_tec.para_size_max * charge_rate),
@@ -588,17 +588,17 @@ class Stor(Technology):
             annualization_factor = annualize(
                 discount_rate, economics["lifetime"], fraction_of_year_modelled
             )
-            flexibility = self.flexibility_data
+            flow_capacity_relation = self.flow_capacity_relation_data
 
             # additional parameters needed for a flexible storage system
             b_tec.para_unit_capex_charging_cap = pyo.Param(
                 domain=pyo.Reals,
-                initialize=flexibility["capex_charging_power"],
+                initialize=flow_capacity_relation["capex_charging_rate"],
                 mutable=True,
             )
             b_tec.para_unit_capex_discharging_cap = pyo.Param(
                 domain=pyo.Reals,
-                initialize=flexibility["capex_discharging_power"],
+                initialize=flow_capacity_relation["capex_discharging_rate"],
                 mutable=True,
             )
             b_tec.para_unit_capex = pyo.Param(
@@ -735,7 +735,7 @@ class Stor(Technology):
         """
         super(Stor, self).write_results_tec_design(h5_group, model_block)
 
-        if self.flexibility_data["power_energy_ratio"] == "flexratio":
+        if self.flow_capacity_relation_data["ratio"] == "flexratio":
             h5_group.create_dataset(
                 "capacity_charge", data=[model_block.var_capacity_charge.value]
             )
@@ -885,7 +885,7 @@ class Stor(Technology):
                         (
                             np.zeros(shape=(len(self.set_t_full))),
                             np.ones(shape=(len(self.set_t_full)))
-                            * self.flexibility_data["discharge_rate"],
+                            * self.flow_capacity_relation_data["discharge_rate"],
                         )
                     )
 
@@ -896,7 +896,7 @@ class Stor(Technology):
                             (
                                 np.zeros(shape=(len(self.set_t_full))),
                                 np.ones(shape=(len(self.set_t_full)))
-                                * self.flexibility_data["charge_rate"],
+                                * self.flow_capacity_relation_data["charge_rate"],
                             )
                         )
                     else:
@@ -908,7 +908,7 @@ class Stor(Technology):
                                 (
                                     np.zeros(shape=(len(self.set_t_full))),
                                     np.ones(shape=(len(self.set_t_full)))
-                                    * self.flexibility_data["charge_rate"]
+                                    * self.flow_capacity_relation_data["charge_rate"]
                                     * energy_consumption["in"][carr],
                                 )
                             )
