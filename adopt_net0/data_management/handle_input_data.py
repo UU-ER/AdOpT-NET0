@@ -398,8 +398,13 @@ class DataHandle:
 
                     tec_data.name = tec_data.name + "_existing"
 
+                    existing_spec = technologies_at_node["existing"][technology]
                     tec_data.existing = 1
-                    tec_data.size_initial = technologies_at_node["existing"][technology]
+                    if isinstance(existing_spec, dict):
+                        tec_data.size_initial = existing_spec["size"]
+                        tec_data.ccs_size_initial = existing_spec.get("ccs_size", 0)
+                    else:
+                        tec_data.size_initial = existing_spec
                     tec_data.fit_technology_performance(
                         self.time_series[aggregation_model][investment_period][node][
                             "ClimateData"
