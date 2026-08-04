@@ -27,6 +27,7 @@ def define_technology(
     existing: int = 0,
     size_initial: float = 0,
     decommission: str = "impossible",
+    ccs_size_initial: float = 0,
 ):
     """
     Reads technology data and fits it
@@ -39,6 +40,8 @@ def define_technology(
     :param int existing: is technology existing or not,
     :param float size_initial: initial size of existing technology,
     :param str decommission: type of decommissioning "impossible", "continuous", "only_complete"
+    :param float ccs_size_initial: initial size of an existing CCS unit attached to the technology (only
+        has an effect if existing == 1 and the technology has ccs_possible)
     :return: Technology class
     """
     # Technology Class Creation
@@ -57,6 +60,7 @@ def define_technology(
         tec.existing = existing
         tec.size_initial = size_initial
         tec.decommission = decommission
+        tec.ccs_size_initial = ccs_size_initial
 
     # Technology fitting
     climate_data = make_climate_data("2022-01-01 12:00", nr_timesteps)
@@ -1146,6 +1150,55 @@ def test_ccs(request):
     assert round(model.var_input_ccs[1, "electricity"].value, 3) >= 0.001
     assert cost_ccs > cost_no_ccs * 1.01
     assert emissions_ccs < emissions_no_ccs * 0.11
+
+    # EXISTING CCS - already installed, cannot be decommissioned: size and capex are fixed
+    host_size_initial = 10
+    ccs_size_initial = 0.5
+    tec_existing = define_technology(
+        technology,
+        time_steps,
+        request.config.technology_data_folder_path,
+        existing=1,
+        size_initial=host_size_initial,
+        decommission="impossible",
+        ccs_size_initial=ccs_size_initial,
+    )
+    assert tec_existing.ccs_component.existing
+
+    model = construct_tec_model(tec_existing, nr_timesteps=time_steps)
+    assert round(model.var_size_ccs.lb, 3) == ccs_size_initial
+    assert round(model.var_size_ccs.ub, 3) == ccs_size_initial
+
+    model.test_const_output = Constraint(expr=model.var_output[1, "electricity"] == 1)
+    termination = run_model(model, request.config.solver, "capex_tot")
+    assert termination == TerminationCondition.optimal
+    assert round(model.var_size_ccs.value, 3) == ccs_size_initial
+    assert round(model.var_capex_ccs.value, 3) == 0
+
+    # EXISTING CCS - decommissionable: size can be reduced below what is installed, and the
+    # resulting capex follows the decommissioning cost formula rather than a fresh-build cost
+    tec_existing_decom = define_technology(
+        technology,
+        time_steps,
+        request.config.technology_data_folder_path,
+        existing=1,
+        size_initial=host_size_initial,
+        decommission="continuous",
+        ccs_size_initial=ccs_size_initial,
+    )
+    model = construct_tec_model(tec_existing_decom, nr_timesteps=time_steps)
+    assert round(model.var_size_ccs.lb, 3) == 0
+    assert round(model.var_size_ccs.ub, 3) == ccs_size_initial
+
+    model.test_const_output = Constraint(expr=model.var_output[1, "electricity"] == 1)
+    model.test_const_size_ccs = Constraint(expr=model.var_size_ccs == 0)
+    termination = run_model(model, request.config.solver, "capex_tot")
+    assert termination == TerminationCondition.optimal
+    expected_capex_ccs = (
+        ccs_size_initial * model.para_decommissioning_cost_annual_ccs.value
+    )
+    assert round(model.var_capex_ccs.value, 3) == round(expected_capex_ccs, 3)
+    assert model.var_capex_ccs.value > 0
 
 
 def test_combined_cycle_fixed_size(request):

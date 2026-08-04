@@ -123,3 +123,21 @@ To summarize, if you want to add the CCS option to a technology you have to:
 -   Have a technology type SINK or CO2captured export option
 -   Add CO2 transport option if sink and capture are in different nodes
 
+**Existing CCS**
+
+Since CCS is an add-on rather than an independent technology, it can only be existing if the technology it is
+attached to is existing as well. To specify an existing CCS unit, replace the plain initial size of the existing
+technology in ``Technologies.json`` with a dict specifying both the technology's own initial size (``size``) and the
+initial size of its CCS unit (``ccs_size``, in t/h of CO2 out - note that this is *not* in terms of the flue gas flow,
+unlike ``size_min``/``size_max`` in the CCS json files):
+
+.. code-block:: console
+
+    "existing": {"GasTurbine_simple_CCS": {"size": 10, "ccs_size": 4}}
+
+If ``ccs_size`` is omitted or 0, the technology is existing but CCS is treated as a new investment decision (e.g. a
+retrofit option). An existing CCS unit inherits the decommissioning behaviour (``decommission``)
+of its host technology: if the technology cannot be decommissioned, neither can its CCS (no capex is incurred and its
+size is fixed); otherwise the CCS unit can be decommissioned down from ``ccs_size`` and the decommissioning cost from
+the CCS json file's ``Economics.decommission_cost`` is applied.
+
