@@ -340,7 +340,7 @@ class Technology(ModelComponent):
             co2_concentration = self.performance_data["ccs"]["co2_concentration"]
             self.ccs_data["name"] = "CCS"
             self.ccs_data["tec_type"] = self.ccs_type
-            ccs_existing = bool(self.existing and self.ccs_size_initial)
+            ccs_existing = self.existing == 1 and self.ccs_size_initial > 0
             self.ccs_component = fit_ccs_coeff(
                 co2_concentration,
                 self.ccs_data,

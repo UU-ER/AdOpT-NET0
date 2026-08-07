@@ -221,6 +221,51 @@ def _expire_carry_overs(old_carry_overs, old_rls, years_this_step, label):
     return surviving, surviving_rls
 
 
+def _ccs_size_from_block(block):
+    """
+    Return the solved CCS size (``var_size_ccs``) of a technology block, or 0 if the
+    technology has no CCS add-on.
+
+    :param block: solved technology block of the previous interval
+    :return float: solved CCS size (t/h CO2 out), 0 if not present
+    """
+    var = getattr(block, "var_size_ccs", None)
+    if var is None:
+        return 0.0
+    return var.value or 0.0
+
+
+def _ccs_capex_from_block(block):
+    """
+    Return the solved annualized CCS capex (``var_capex_aux_ccs``) of a technology
+    block, or None if the technology has no CCS add-on.
+
+    :param block: solved technology block of the previous interval
+    :return: annualized CCS capex, or None if not present
+    """
+    var = getattr(block, "var_capex_aux_ccs", None)
+    if var is None:
+        return None
+    return var.value
+
+
+def _existing_entry(size, ccs_size):
+    """
+    Build the value written under the ``"existing"`` key of Technologies.json for a
+    technology: a plain size, or a ``{"size": ..., "ccs_size": ...}`` dict when an
+    existing CCS unit is carried over. The dict form is read back by
+    :class:`~adopt_net0.data_management.handle_input_data.DataHandle` to set both the
+    host technology's ``size_initial`` and the CCS unit's ``ccs_size_initial``.
+
+    :param float size: carried-over host technology size
+    :param float ccs_size: carried-over CCS size (0 if no CCS installed)
+    :return: scalar size, or a dict with ``size`` and ``ccs_size``
+    """
+    if ccs_size and ccs_size > 1e-6:
+        return {"size": size, "ccs_size": ccs_size}
+    return size
+
+
 def installed_capacities_existing(
     m,
     interval,
@@ -271,6 +316,16 @@ def installed_capacities_existing(
          its technical lifetime) but no longer pays annualized capex. Pre-existing
          capacity at the first transition is treated as sunk cost (no
          ``carry_over_capex`` entry).
+       - If a technology has an installed CCS unit, the carry-over is tied to the host
+         technology: its solved ``var_size_ccs`` is carried over scaled by the fraction
+         of host capacity that survived, and stored as a
+         ``{"size": ..., "ccs_size": ...}`` dict under ``"existing"`` (read back by
+         :class:`~adopt_net0.data_management.handle_input_data.DataHandle`). The
+         annualized CCS capex (``var_capex_aux_ccs``) of a CCS unit built together with
+         a new host investment is folded into the host carry_over's ``carry_over_capex``
+         and follows the same economic-lifetime and proration rules. A CCS retrofit on
+         an already-existing host (no new host investment carry_over) carries its size
+         but not its annualized capex (treated as sunk).
 
     2. **Networks** — For each network, it determines whether the network was active in
        the previous interval (based on arc sizes).
@@ -287,6 +342,12 @@ def installed_capacities_existing(
 
        If inactive, it removes the network from ``"existing"`` in ``Networks.json`` and,
        if the existing folder exists, overwrites ``size.csv`` with a zero matrix.
+
+    .. note::
+        Carried-over annualized capex is frozen at each carry_over's build interval,
+        including its ``fraction_of_year_modelled``, and is not rescaled when carried
+        forward. All intervals should therefore be modelled with the same fraction of
+        the year; a warning is emitted if the already solved intervals do not.
 
     Parameters
     ----------
@@ -322,6 +383,26 @@ def installed_capacities_existing(
         .model[m[prev_interval].info_solving_algorithms["aggregation_model"]]
         .periods[prev_interval]
     )
+
+    # Carried-over annualized capex is frozen at each carry_over's build interval,
+    # including its fraction_of_year_modelled, and is not rescaled when carried
+    # forward. If intervals are modelled with different year fractions, the carried
+    # capex is inconsistent with the interval it is added to. Warn if the already
+    # solved intervals do not all share the same fraction.
+    if years_this_step is not None:
+        fractions = {
+            round(hub.data.topology["fraction_of_year_modelled"], 6)
+            for hub in m.values()
+            if "fraction_of_year_modelled" in hub.data.topology
+        }
+        if len(fractions) > 1:
+            warnings.warn(
+                "Intervals are modelled with different 'fraction_of_year_modelled' "
+                f"({sorted(fractions)}). Carried-over annualized capex is frozen at "
+                "each carry_over's build interval and is not rescaled, so the carry-over "
+                "capex is inconsistent across intervals. Model all intervals with the "
+                "same fraction of the year to avoid this."
+            )
 
     _carry_over_technologies(
         m, prev_model, interval, prev_interval, casepath, years_this_step
@@ -398,10 +479,27 @@ def _carry_over_technologies(
                 else 0.0
             )
 
+            # CCS add-on sizes: carried over tied to the host technology (see
+            # _existing_entry). Aggregated over the new and existing host blocks.
+            ccs_new = (
+                _ccs_size_from_block(b_node_prev.tech_blocks_active[base_tec])
+                if base_tec in all_tecs
+                else 0.0
+            )
+            ccs_existing = (
+                _ccs_size_from_block(b_node_prev.tech_blocks_active[existing_tec])
+                if existing_tec in all_tecs
+                else 0.0
+            )
+            ccs_solved_total = ccs_new + ccs_existing
+            host_solved_total = new_size + existing_size
+
             if years_this_step is None:
                 total_size = new_size + existing_size
                 if total_size > 1e-6:
-                    size_tecs_existing[base_tec] = total_size
+                    size_tecs_existing[base_tec] = _existing_entry(
+                        total_size, ccs_solved_total
+                    )
                 continue
 
             # N-carry_over tracking
@@ -478,10 +576,25 @@ def _carry_over_technologies(
                     if new_capex is not None:
                         surviving_capex[prev_interval] = new_capex
                         surviving_econ[prev_interval] = econ_remaining
+                        # A CCS unit built together with this new host investment is
+                        # tied to the host: its annualized capex rides the same
+                        # carry_over and is prorated/dropped with the host in
+                        # subsequent intervals (see _carry_over_capex).
+                        ccs_capex_new = _ccs_capex_from_block(
+                            b_node_prev.tech_blocks_active[base_tec]
+                        )
+                        if ccs_capex_new:
+                            surviving_capex[prev_interval] += ccs_capex_new
 
             total_size = sum(surviving.values())
             if total_size > 1e-6:
-                size_tecs_existing[base_tec] = total_size
+                # CCS is tied to the host technology: carry the solved CCS size scaled
+                # by the fraction of host capacity that survived the lifetime check and
+                # decommissioning this step.
+                ccs_carried = 0.0
+                if ccs_solved_total > 1e-6 and host_solved_total > 1e-6:
+                    ccs_carried = ccs_solved_total * total_size / host_solved_total
+                size_tecs_existing[base_tec] = _existing_entry(total_size, ccs_carried)
                 carry_over_sizes_dict[base_tec] = dict(surviving)
                 remaining_lifetime_dict[base_tec] = dict(surviving_rls)
                 carry_over_capex_dict[base_tec] = dict(surviving_capex)

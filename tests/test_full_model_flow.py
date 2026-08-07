@@ -607,8 +607,8 @@ def test_full_model_flow_multiyear_extra_feature(request):
     netw_orig = netw_path.read_text()
 
     try:
-        # Pre-seed carry_over tracking in Interval_1: two boiler vintages (one expiring,
-        # one surviving the lifetime check) and one network vintage.
+        # Pre-seed carry_over tracking in Interval_1: two boiler carry_overs (one
+        # expiring, one surviving the lifetime check) and one network carry_over.
         tec_json = json.loads(tec_orig)
         tec_json["carry_over_sizes"] = {"TestTec_BoilerEl": {"I_a": 10.0, "I_b": 10.0}}
         tec_json["remaining_lifetime"] = {"TestTec_BoilerEl": {"I_a": 5, "I_b": 20}}
@@ -625,7 +625,7 @@ def test_full_model_flow_multiyear_extra_feature(request):
         netw_json["remaining_econ_lifetime"] = {"electricitySimple": {"I_a": 15}}
         netw_path.write_text(json.dumps(netw_json, indent=4))
 
-        # Per-vintage arc-size CSV for the seeded network carry_over
+        # Per-carry_over arc-size CSV for the seeded network carry_over
         existing_netw_dir.mkdir(parents=True, exist_ok=True)
         arc_matrix = pd.DataFrame(
             0.0, index=["node1", "node2"], columns=["node1", "node2"]
@@ -695,8 +695,8 @@ def test_full_model_flow_multiyear_extra_feature(request):
             adopthub[interval].solve()
 
         # The seeded carry_overs are expired / decommissioned at the transition. The
-        # expiring vintage ('I_a') is dropped by the lifetime check; the surviving one
-        # ('I_b') is removed by the decommission reconciliation (the seeded vintages have
+        # expiring carry_over ('I_a') is dropped by the lifetime check; the surviving one
+        # ('I_b') is removed by the decommission reconciliation (the seeded carry_overs have
         # no ``_existing`` block, so the kept size is 0). These facts hold for any solver.
         tec_json_out = json.load(
             open(

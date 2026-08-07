@@ -403,6 +403,12 @@ class DataHandle:
                     if isinstance(existing_spec, dict):
                         tec_data.size_initial = existing_spec["size"]
                         tec_data.ccs_size_initial = existing_spec.get("ccs_size", 0)
+                        if tec_data.ccs_size_initial and not tec_data.ccs_possible:
+                            log.warning(
+                                f"Technology '{technology}' at node '{node}' specifies "
+                                f"an existing 'ccs_size' but does not support CCS "
+                                f"(ccs not possible). The 'ccs_size' is ignored."
+                            )
                     else:
                         tec_data.size_initial = existing_spec
                     tec_data.fit_technology_performance(

@@ -16,7 +16,7 @@ class CcsComponent(ModelComponent):
         inherited from the host technology in :func:`fit_ccs_coeff`, so a placeholder is used here only to
         satisfy :class:`ModelComponent`'s constructor.
 
-        :param dict tec_data: technology data
+        :param dict ccs_data: technology data
         """
         ccs_data.setdefault("decommission", "impossible")
         super().__init__(ccs_data)
@@ -49,7 +49,7 @@ def fit_ccs_coeff(
     0), CCS is still treated as a new investment decision (i.e. a retrofit option).
 
     :param float co2_concentration: CO2 concentration for CCS
-    :param dict ccs_coeff: data of the CCS technology
+    :param dict ccs_data: data of the CCS technology
     :param pd.Dataframe climate_data: dataframe containing climate data
     :param bool existing: whether the CCS unit is already installed (only possible if the host technology is
         existing)
