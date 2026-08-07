@@ -4,7 +4,6 @@
   "size_min": 792.18,
   "size_max": 1985.203,
   "size_is_int": 0,
-  "decommission": "impossible",
   "Economics": {
     "comment": "CAPEX in EUR/(t/hCO2_out) after pre-processing, opex_variable in EUR/(t/h_CO2_out), opex_fixed in % of up-front CAPEX",
     "capex_model": 3,

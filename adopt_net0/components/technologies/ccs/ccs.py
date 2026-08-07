@@ -12,8 +12,13 @@ class CcsComponent(ModelComponent):
         """
         Initializes ccs class from technology data
 
-        :param dict tec_data: technology data
+        The CCS json file does not need to specify a "decommission" value: existing/decommission status is
+        inherited from the host technology in :func:`fit_ccs_coeff`, so a placeholder is used here only to
+        satisfy :class:`ModelComponent`'s constructor.
+
+        :param dict ccs_data: technology data
         """
+        ccs_data.setdefault("decommission", "impossible")
         super().__init__(ccs_data)
 
         self.technology_model = ccs_data["tec_type"]
@@ -21,7 +26,14 @@ class CcsComponent(ModelComponent):
         self.output_carrier = ccs_data["Performance"]["output_carrier"]
 
 
-def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.DataFrame):
+def fit_ccs_coeff(
+    co2_concentration: float,
+    ccs_data: dict,
+    climate_data: pd.DataFrame,
+    existing: bool = False,
+    size_initial: float = 0,
+    decommission: str = "impossible",
+):
     """
     Obtain bounds and input ratios for CCS
 
@@ -32,9 +44,18 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
     mixed-integer linear model of post-combustion carbon capture for reliable use in energy system optimisation
     https://doi.org/10.1016/j.apenergy.2023.120738).
 
+    CCS is an add-on to a technology rather than a technology in its own right, so it cannot be existing unless the
+    host technology is existing too. If the host technology is existing but has no CCS installed yet (size_initial ==
+    0), CCS is still treated as a new investment decision (i.e. a retrofit option).
+
     :param float co2_concentration: CO2 concentration for CCS
-    :param dict ccs_coeff: data of the CCS technology
+    :param dict ccs_data: data of the CCS technology
     :param pd.Dataframe climate_data: dataframe containing climate data
+    :param bool existing: whether the CCS unit is already installed (only possible if the host technology is
+        existing)
+    :param float size_initial: initial size of the CCS unit in t/h CO2 out (already in output units, not flue gas,
+        unlike size_min/size_max)
+    :param str decommission: decommissioning behavior of the CCS unit, inherited from the host technology
     :return: CCS data updated with the bounds and input ratios for CCS
     """
     molar_mass_CO2 = 44.01
@@ -51,9 +72,20 @@ def fit_ccs_coeff(co2_concentration: float, ccs_data: dict, climate_data: pd.Dat
 
     ccs_data = CcsComponent(ccs_data)
 
+    # Existing status is that of the host technology - CCS cannot be existing on its own
+    ccs_data.existing = existing
+    ccs_data.decommission = decommission
+    if existing:
+        # size_initial is already given in t/h CO2 out
+        ccs_data.size_initial = size_initial
+
     # Recalculate min/max size to have it in t/hCO2_out
     ccs_data.size_min = ccs_data.size_min * co2_concentration * capture_rate
     ccs_data.size_max = ccs_data.size_max * co2_concentration * capture_rate
+
+    if existing:
+        # An existing CCS unit cannot be sized beyond what is already installed
+        ccs_data.size_max = ccs_data.size_initial
 
     # Calculate input ratios
     ccs_data.processed_coeff.time_independent["size_min"] = ccs_data.size_min

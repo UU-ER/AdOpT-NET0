@@ -4,7 +4,6 @@
   "size_min": 158.436,
   "size_max": 792.18,
   "size_is_int": 0,
-  "decommission": "impossible",
   "Economics": {
     "comment": "CAPEX in EUR/t/hCO2_in, opex_variable in EUR/t/h_CO2_captured, opex_fixed in % of up-front CAPEX",
     "capex_model": 3,
@@ -16,7 +15,7 @@
     "opex_fixed": 0.05,
     "discount_rate": 0.1,
     "lifetime": 30,
-    "decommission_cost": 0
+    "decommission_cost": 1e5
   },
   "Performance": {
     "comment": "contains fitting data on unit of input, technology types and input/output carriers",

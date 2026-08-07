@@ -116,6 +116,10 @@ templates provided.
    (1500 W), and the size is an integer. Here, we thus have two 1.5MW wind turbines
    installed (totalling to 3MW), and 2.4MW of solar PV.
 
+   If an existing technology has :ref:`CCS attached <ccs_docu>` and that CCS unit is
+   already installed too (rather than being a retrofit option), specify a dict instead
+   of a plain size, e.g. ``"existing": {"GasTurbine_simple_CCS": {"size": 10, "ccs_size": 4}}``.
+
     Similar to the network data, we can now copy the required technology data files
     by running (see also :ref:`here<load-data_from-model>`). After copying the
     files you can also change the performance and cost parameters provided.
