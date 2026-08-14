@@ -34,10 +34,10 @@ def construct_network_constraints(model, config: dict):
     Construct the network constraints to calculate nodal in- and outflow
 
     .. math::
-      outflowToNetwork = \\sum(outflow \forall arcs at node)
+      outflowToNetwork = \\sum_{arc \\in node} outflow_{arc}
 
     .. math::
-      inflowFromNetwork = \\sum(inflow \forall arcs at node)\\
+      inflowFromNetwork = \\sum_{arc \\in node} inflow_{arc}
 
     :param model: pyomo model
     :param dict config: dict containing model information
@@ -114,13 +114,13 @@ def construct_compressor_constrains(model, config: dict):
 
     .. math::
 
-       Output\_tech_{tec}(t, car) =
-       \sum_{i \in C^{in}_{node,car,\,tec}} flow^{comp}_i(t, car)
+       Output\\_tech_{tec}(t, car) =
+       \\sum_{i \\in C^{in}_{node,car,\\,tec}} flow^{comp}_i(t, car)
 
     .. math::
 
-       Input\_tech_{tec}(t, car) =
-       \sum_{i \in C^{out}_{node,car,\,tec}} flow^{comp}_i(t, car)
+       Input\\_tech_{tec}(t, car) =
+       \\sum_{i \\in C^{out}_{node,car,\\,tec}} flow^{comp}_i(t, car)
 
 
     Networks
@@ -128,13 +128,13 @@ def construct_compressor_constrains(model, config: dict):
 
     .. math::
 
-       Input\_{netw}(t, car) =
-       \sum_{i \in C^{in}_{node,car,\,netw}} flow^{comp}_i(t, car)
+       Input\\_{netw}(t, car) =
+       \\sum_{i \\in C^{in}_{node,car,\\,netw}} flow^{comp}_i(t, car)
 
     .. math::
 
-       Output\_{netw}(t, car) =
-       \sum_{i \in C^{out}_{node,car,\,netw}} flow^{comp}_i(t, car)
+       Output\\_{netw}(t, car) =
+       \\sum_{i \\in C^{out}_{node,car,\\,netw}} flow^{comp}_i(t, car)
 
 
     Demand
@@ -143,7 +143,7 @@ def construct_compressor_constrains(model, config: dict):
     .. math::
 
        Demand(t, car) =
-       \sum_{i \in C^{out}_{node,car,\,demand}} flow^{comp}_i(t, car)
+       \\sum_{i \\in C^{out}_{node,car,\\,demand}} flow^{comp}_i(t, car)
 
 
     Export
@@ -152,7 +152,7 @@ def construct_compressor_constrains(model, config: dict):
     .. math::
 
        Export(t, car) =
-       \sum_{i \in C^{out}_{node,car,\,export}} flow^{comp}_i(t, car)
+       \\sum_{i \\in C^{out}_{node,car,\\,export}} flow^{comp}_i(t, car)
 
 
     Import
@@ -161,7 +161,7 @@ def construct_compressor_constrains(model, config: dict):
     .. math::
 
        Import(t, car) =
-       \sum_{i \in C^{in}_{node,car,\,import}} flow^{comp}_i(t, car)
+       \\sum_{i \\in C^{in}_{node,car,\\,import}} flow^{comp}_i(t, car)
 
 
     Generic Production
@@ -170,7 +170,7 @@ def construct_compressor_constrains(model, config: dict):
     .. math::
 
        Generic Production(t, car) =
-       \sum_{i \in C^{in}_{node,car,\,genProd}} flow^{comp}_i(t, car)
+       \\sum_{i \\in C^{in}_{node,car,\\,genProd}} flow^{comp}_i(t, car)
 
     Notation
     --------
@@ -181,7 +181,6 @@ def construct_compressor_constrains(model, config: dict):
     - :math:`flow^{comp}_i(t, car)` = flow through compressor :math:`i` at time :math:`t` for carrier :math:`car`
     - :math:`C^{in}_{node,car,x}` = set of compressors at the node that provide inflow to component :math:`x` for :math:`car`
     - :math:`C^{out}_{node,car,x}` = set of compressors at the node that provide outflow to component :math:`x` for :math:`car`
-    --------
 
     :param model: pyomo model
     :param dict config: dict containing model information
@@ -807,10 +806,10 @@ def construct_system_cost(model, data):
     - Total costs from violations of the energy balance
     - Carbon costs and revenues
     - Total cost per investment period as a sum of technology, network, import,
-      export, violation and carbon costs
-      If considering pressure levels:
-        -Total capex of compressors
-        -Total opex of compressors
+      export, violation and carbon costs. If considering pressure levels:
+
+      - Total capex of compressors
+      - Total opex of compressors
 
     :param model: pyomo model
     :param dict config: dict containing model information

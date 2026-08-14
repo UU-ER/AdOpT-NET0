@@ -286,8 +286,7 @@ def copy_network_data(folder_path: str | Path, ntw_data_path: str | Path = None)
     folder (and its subfolders) using the network names and copies them to folder_path.
 
     :param str | Path folder_path: Path to the folder containing the case study data.
-    :param str | Path ntw_data_path: Path to the folder containing the network data (if left
-    empty, standard folder is used).
+    :param str | Path ntw_data_path: Path to the folder containing the network data (if left empty, standard folder is used).
     :return: None
     """
     # Convert to Path
@@ -331,8 +330,7 @@ def copy_compressor_data(folder_path: str | Path, compr_data_path: str | Path = 
     folder (and its subfolders) using the compressor names and copies them to folder_path.
 
     :param str | Path folder_path: Path to the folder containing the case study data.
-    :param str | Path compr_data_path: Path to the folder containing the compressors data (if left
-    empty, standard folder is used).
+    :param str | Path compr_data_path: Path to the folder containing the compressors data (if left empty, standard folder is used).
     :return: None
     """
     config_file_path = folder_path / "ConfigModel.json"

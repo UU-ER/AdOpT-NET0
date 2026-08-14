@@ -220,6 +220,7 @@ class Technology(ModelComponent):
         opexfix_{tot} = opexfix_{CCS} + opexfix_{tec}
 
     - Variable opex:
+
     .. math::
         opexvar_{CCS} = \\sum(Output_{t, CCS} * opex_{var, CCS})
     .. math::

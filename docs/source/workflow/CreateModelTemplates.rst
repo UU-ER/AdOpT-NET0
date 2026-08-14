@@ -21,7 +21,7 @@ configuration and one for the topology. Before you can continue with
 :ref:`retrieving the templates for the input data<workflow_create-data-templates>`,
 you will first have to adjust ``Topology.JSON`` to
 :ref:`define the system topology<workflow_define-topology>`. The
-:ref:`configuration <src-code_model-configuration>` can be  defined anytime before
+:ref:`configuration <model_configuration>` can be  defined anytime before
 solving the model in ``ModelConfig.JSON``.
 
 Note: See a complete documentation of all template creation functions in the
@@ -31,4 +31,5 @@ a tree diagram on how a complete input data directory looks like.
 .. automodule:: adopt_net0.data_preprocessing.template_creation
     :members: create_optimization_templates
     :exclude-members:
+    :noindex:
 

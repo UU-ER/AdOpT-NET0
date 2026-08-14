@@ -72,10 +72,11 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
     """
     Collect values of input cost parameters and relevant variables from HDF5 files and add them to the summary Excel file.
 
-    Args:
-        summary_path (Path or str): Path to the summary Excel file.
-        component_set (list, optional): List of components to extract parameters and variables from.
-            Defaults to ["Technologies", "Networks", "Import", "Export"].
+    :param summary_path: Path to the summary Excel file.
+    :type summary_path: Path or str
+    :param component_set: List of components to extract parameters and variables from.
+        Defaults to ["Technologies", "Networks", "Import", "Export"].
+    :type component_set: list, optional
     """
 
     if component_set is None:

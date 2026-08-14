@@ -53,3 +53,4 @@ Your directory should now contain the following files:
 .. automodule:: adopt_net0.data_preprocessing.template_creation
     :members: create_input_data_folder_template
     :exclude-members:
+    :noindex:

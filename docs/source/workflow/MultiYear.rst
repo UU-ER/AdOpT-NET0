@@ -52,7 +52,7 @@ capacities are carried forward unchanged and no lifetime check is performed (a w
 is raised). If it has the wrong length, a ``ValueError`` is raised.
 
 Lifetime tracking (carry_overs)
-----------------------------
+-------------------------------
 
 When ``intervals_between_years`` is provided, each investment is tracked as a separate
 **carry_over**: capacity built in a given interval keeps its own size and remaining

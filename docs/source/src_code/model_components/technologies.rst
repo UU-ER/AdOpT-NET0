@@ -104,11 +104,13 @@ Carbon Capture
 
 The carbon capture object (CCS, even though it refers just to the capture technology), which does not constitute an independent technology itself, can be attached to any technology with a positive emission factor. To do this, you need to add (if not already present) the following lines of code to the json file under the “Performance” section of the technology you wish to equip with CCS:
 
-"ccs": {
-  "possible": 1,
-  "co2_concentration" : 0.08,
-  "ccs_type": "MEA_medium"
-},
+.. code-block:: json
+
+    "ccs": {
+      "possible": 1,
+      "co2_concentration" : 0.08,
+      "ccs_type": "MEA_medium"
+    },
 
 To see an example of how this is done, you can look at the json file of the GasTurbine_simple_CCS technology. When you want to have the possibility of installing CCS, you need to set the “possible” option to 1. Moreover, you can specify the CO2 concentration in the flue gas of your emitting technology; this will influence the costs and energy performance of the CCS. With “ccs_type” you can specify the specific capture technology you wish to use. So far, only post combustion capture with MEA is modelled (following the work of Weimann et Al. 2023 https://doi.org/10.1016/j.apenergy.2023.120738), and you can choose the between small, medium and large according to the size range that you expect for the capture plant (the range of the sizes – based on the flue gas flow in t/h – can be found in each json file of the CCS object, e.g. “MEA_medium.json”).
 
