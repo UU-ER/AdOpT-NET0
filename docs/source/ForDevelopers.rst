@@ -58,15 +58,70 @@ The codebase is divided into the following parts:
 
 Development Workflow
 -----------------------------------------
-The main branch contains the working and published version. The development branch
-contains a version being prepared for the next release. New features or bug fixes are
-developed on a separate branch and then merged via a pull request to the development
-branch. At each pull request to the development branch, the github CI checks if all
-tests succeed and if the code is correctly formatted. Each pull request needs at
-least one approved review.
 
-Before a pull request, tests can be locally run with ``pytest`` in
-the terminal.
+Branches
+^^^^^^^^^^
+The ``main`` branch contains the working and published version. The ``develop*``
+branches contain versions being prepared for the next release. New features or bug
+fixes are developed on a separate branch, branched off the relevant develop branch.
+
+Pull Requests
+^^^^^^^^^^^^^^^^
+New work is merged via pull request:
+
+- **Feature/bugfix branch → develop branch.** On each pull request to a ``develop*``
+  branch, the GitHub CI checks the formatting and runs the test suite.
+- **Develop branch → main.** A pull request to ``main`` must originate from a
+  ``develop_*`` branch; the CI rejects it otherwise (``check_target_branch``).
+
+The test suite runs on Windows for Python 3.12 and 3.13 (using the GLPK solver), and
+the coverage report is uploaded to Codecov. Each pull request needs at least one
+approved review.
+
+Before a pull request, tests can be locally run with ``pytest`` in the terminal. If
+you are contributing to the main version, install the pre-commit hook with
+``pre-commit install`` so the formatting is checked before each commit.
+
+Releases
+^^^^^^^^^^
+When a release is published on GitHub, the CI reruns the formatting and test checks
+and, if they pass, builds and publishes the package to PyPI.
+
+Connected Services
+-----------------------------------------
+Several external services are wired into the repository to automate testing,
+publishing, and documentation. The table below lists each service, its role, and the
+configuration file that connects it.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 50 30
+
+   * - Service
+     - Role
+     - Configuration
+   * - GitHub Actions
+     - Runs the CI/CD pipelines (formatting, testing, publishing) on pull requests
+       and releases
+     - ``.github/workflows/``
+   * - Codecov
+     - Collects and reports test coverage
+     - ``testing.yml``
+   * - PyPI
+     - Hosts the published ``adopt_net0`` package
+     - ``uploadpypi.yml``
+   * - Read the Docs
+     - Builds and hosts this documentation
+     - ``.readthedocs.yaml``
+   * - Poetry
+     - Manages dependencies, packaging, and versioning
+     - ``pyproject.toml``
+   * - pre-commit
+     - Runs the ``black`` formatter before each commit
+     - ``.pre-commit-config.yaml``
+
+The services requiring authentication (Codecov and PyPI) use tokens stored as GitHub
+repository secrets.
 
 Coding conventions
 -----------------------------------------
