@@ -91,6 +91,11 @@ class Technology(ModelComponent):
     - para_size_initial: initial size
     - para_decommissioning_cost_annual: Decommissioning cost
 
+    If ccs is possible and existing (only possible if the host technology is existing too):
+
+    - para_size_initial_ccs: initial size of the CCS unit
+    - para_decommissioning_cost_annual_ccs: Decommissioning cost of the CCS unit
+
     **Variable declarations:**
 
     - var_size: Size of the technology, can be integer or continuous
@@ -151,6 +156,13 @@ class Technology(ModelComponent):
         .. math::
             capex = (size_{initial} - size) * decommissioningcost
 
+    - CCS is an add-on rather than an independent technology, so it can only be existing if the host technology is
+      existing too (see ``ccs_size_initial``). If existing, the CCS unit follows exactly the same existing/decommission
+      logic as the host technology above (fixed size and zero capex if decommission is 'impossible', otherwise a
+      decommissioning-cost-based capex), just with variables/parameters suffixed ``_ccs``. If the host technology is
+      existing but has no CCS installed yet (``ccs_size_initial == 0``), CCS remains a new investment (retrofit)
+      decision, unaffected by this.
+
     - Variable OPEX: variable opex is defined in terms of the input, with the
       exception of DAC_Adsorption, RES and CONV4, where it is defined per unit of
       output:
@@ -208,6 +220,7 @@ class Technology(ModelComponent):
         opexfix_{tot} = opexfix_{CCS} + opexfix_{tec}
 
     - Variable opex:
+
     .. math::
         opexvar_{CCS} = \\sum(Output_{t, CCS} * opex_{var, CCS})
     .. math::
@@ -254,6 +267,7 @@ class Technology(ModelComponent):
         else:
             self.ccs_possible = False
             self.ccs_type = None
+        self.ccs_size_initial = 0
 
         # For modeling
         self.input = None
@@ -327,8 +341,14 @@ class Technology(ModelComponent):
             co2_concentration = self.performance_data["ccs"]["co2_concentration"]
             self.ccs_data["name"] = "CCS"
             self.ccs_data["tec_type"] = self.ccs_type
+            ccs_existing = self.existing == 1 and self.ccs_size_initial > 0
             self.ccs_component = fit_ccs_coeff(
-                co2_concentration, self.ccs_data, climate_data
+                co2_concentration,
+                self.ccs_data,
+                climate_data,
+                existing=ccs_existing,
+                size_initial=self.ccs_size_initial,
+                decommission=self.decommission,
             )
 
     def _calculate_bounds(self):
@@ -1071,6 +1091,46 @@ class Technology(ModelComponent):
 
         return b_tec
 
+    def _define_ccs_decommissioning_at_once_constraints(self, b_tec):
+        """
+        Defines constraints to ensure that an existing CCS unit can only be decommissioned as a whole.
+
+        Analogous to :func:`_define_decommissioning_at_once_constraints`, but for the CCS add-on: either the CCS
+        unit remains fully installed at its initial size, or it is fully decommissioned, with no partial
+        decommissioning allowed.
+
+        :param b_tec: The block representing the technology.
+
+        :return: The modified technology block with added decommissioning constraints.
+        """
+
+        # Full CCS unit decommissioned only
+        self.big_m_transformation_required = 1
+        s_indicators = range(0, 2)
+
+        def init_decommission_full_ccs(dis, ind):
+            if ind == 0:  # CCS not installed
+                dis.const_decommissioned_ccs = pyo.Constraint(
+                    expr=b_tec.var_size_ccs == 0
+                )
+            else:  # CCS installed
+                dis.const_installed_ccs = pyo.Constraint(
+                    expr=b_tec.var_size_ccs == b_tec.para_size_initial_ccs
+                )
+
+        b_tec.dis_decommission_full_ccs = gdp.Disjunct(
+            s_indicators, rule=init_decommission_full_ccs
+        )
+
+        def bind_disjunctions(dis):
+            return [b_tec.dis_decommission_full_ccs[i] for i in s_indicators]
+
+        b_tec.disjunction_decommission_full_ccs = gdp.Disjunction(
+            rule=bind_disjunctions
+        )
+
+        return b_tec
+
     def _define_auxiliary_vars(self, b_tec, data: dict):
         """
         Defines auxiliary variables, that are required for the modelling of clustered data
@@ -1194,6 +1254,7 @@ class Technology(ModelComponent):
         )
         if self.ccs_possible:
             h5_group.create_dataset("size_ccs", data=[model_block.var_size_ccs.value])
+            h5_group.create_dataset("existing_ccs", data=[self.ccs_component.existing])
             h5_group.create_dataset("capex_tec", data=[model_block.var_capex.value])
             h5_group.create_dataset("capex_ccs", data=[model_block.var_capex_ccs.value])
             h5_group.create_dataset(
@@ -1335,11 +1396,37 @@ class Technology(ModelComponent):
             mutable=True,
         )
 
+        if self.ccs_component.existing:
+            b_tec.para_size_initial_ccs = pyo.Param(
+                domain=pyo.NonNegativeReals,
+                initialize=self.ccs_component.size_initial,
+                mutable=True,
+            )
+
         # Size CCS
-        b_tec.var_size_ccs = pyo.Var(
-            within=pyo.NonNegativeReals,
-            bounds=(0, b_tec.para_size_max_ccs),
-        )
+        if (
+            self.ccs_component.existing
+            and self.ccs_component.decommission == "impossible"
+        ):
+            # Decommissioning of CCS is not possible, size fixed to what is already installed
+            b_tec.var_size_ccs = pyo.Var(
+                within=pyo.NonNegativeReals,
+                bounds=(b_tec.para_size_initial_ccs, b_tec.para_size_initial_ccs),
+            )
+        elif self.ccs_component.existing:
+            # Existing CCS that can be decommissioned.
+            b_tec.var_size_ccs = pyo.Var(
+                within=pyo.NonNegativeReals,
+                bounds=(0, b_tec.para_size_initial_ccs),
+            )
+            if self.ccs_component.decommission == "only_complete":
+                b_tec = self._define_ccs_decommissioning_at_once_constraints(b_tec)
+        else:
+            # New CCS investment decision (retrofit or on a new technology)
+            b_tec.var_size_ccs = pyo.Var(
+                within=pyo.NonNegativeReals,
+                bounds=(0, b_tec.para_size_max_ccs),
+            )
 
         # TODO: maybe make the full set of all carriers as an intersection between this set and  the others?
         # Emission Factor
@@ -1510,6 +1597,16 @@ class Technology(ModelComponent):
             mutable=True,
         )
 
+        if (
+            self.ccs_component.existing
+            and not self.ccs_component.decommission == "impossible"
+        ):
+            b_tec.para_decommissioning_cost_annual_ccs = pyo.Param(
+                domain=pyo.Reals,
+                initialize=annualization_factor * economics["decommission_cost"],
+                mutable=True,
+            )
+
         def calculate_max_capex_ccs():
             max_capex = (
                 self.ccs_component.size_max * b_tec.para_unit_capex_annual_ccs
@@ -1519,43 +1616,63 @@ class Technology(ModelComponent):
 
         b_tec.var_capex_aux_ccs = pyo.Var(bounds=calculate_max_capex_ccs())
 
-        # capex unit commitment constraint
-        self.big_m_transformation_required = 1
-        s_indicators = range(0, 2)
+        if self.ccs_component.existing:
+            b_tec.const_capex_aux_ccs = pyo.Constraint(
+                expr=b_tec.var_size_ccs * b_tec.para_unit_capex_annual_ccs
+                + b_tec.para_fix_capex_annual_ccs
+                == b_tec.var_capex_aux_ccs
+            )
+        else:
+            # capex unit commitment constraint
+            self.big_m_transformation_required = 1
+            s_indicators = range(0, 2)
 
-        def init_installation(dis, ind):
-            if ind == 0:  # tech not installed
-                dis.const_capex_aux_ccs = pyo.Constraint(
-                    expr=b_tec.var_capex_aux_ccs == 0
-                )
-                dis.const_not_installed_ccs = pyo.Constraint(
-                    expr=b_tec.var_size_ccs == 0
-                )
-            else:  # tech installed
-                dis.const_capex_aux_ccs = pyo.Constraint(
-                    expr=b_tec.var_size_ccs * b_tec.para_unit_capex_annual_ccs
-                    + b_tec.para_fix_capex_annual_ccs
-                    == b_tec.var_capex_aux_ccs
-                )
-                dis.const_installed_ccs_sizelim_min = pyo.Constraint(
-                    expr=b_tec.var_size_ccs >= b_tec.para_size_min_ccs
-                )
-                dis.const_installed_ccs_sizelim_max = pyo.Constraint(
-                    expr=b_tec.var_size_ccs <= b_tec.para_size_max_ccs
-                )
+            def init_installation(dis, ind):
+                if ind == 0:  # tech not installed
+                    dis.const_capex_aux_ccs = pyo.Constraint(
+                        expr=b_tec.var_capex_aux_ccs == 0
+                    )
+                    dis.const_not_installed_ccs = pyo.Constraint(
+                        expr=b_tec.var_size_ccs == 0
+                    )
+                else:  # tech installed
+                    dis.const_capex_aux_ccs = pyo.Constraint(
+                        expr=b_tec.var_size_ccs * b_tec.para_unit_capex_annual_ccs
+                        + b_tec.para_fix_capex_annual_ccs
+                        == b_tec.var_capex_aux_ccs
+                    )
+                    dis.const_installed_ccs_sizelim_min = pyo.Constraint(
+                        expr=b_tec.var_size_ccs >= b_tec.para_size_min_ccs
+                    )
+                    dis.const_installed_ccs_sizelim_max = pyo.Constraint(
+                        expr=b_tec.var_size_ccs <= b_tec.para_size_max_ccs
+                    )
 
-        b_tec.dis_installation_ccs = gdp.Disjunct(s_indicators, rule=init_installation)
+            b_tec.dis_installation_ccs = gdp.Disjunct(
+                s_indicators, rule=init_installation
+            )
 
-        def bind_disjunctions(dis):
-            return [b_tec.dis_installation_ccs[i] for i in s_indicators]
+            def bind_disjunctions(dis):
+                return [b_tec.dis_installation_ccs[i] for i in s_indicators]
 
-        b_tec.disjunction_installation_ccs = gdp.Disjunction(rule=bind_disjunctions)
+            b_tec.disjunction_installation_ccs = gdp.Disjunction(rule=bind_disjunctions)
 
         # CAPEX
         b_tec.var_capex_ccs = pyo.Var()
-        b_tec.const_capex_ccs = pyo.Constraint(
-            expr=b_tec.var_capex_ccs == b_tec.var_capex_aux_ccs
-        )
+        if self.ccs_component.existing:
+            if self.ccs_component.decommission == "impossible":
+                # CCS cannot be decommissioned, no capex incurred for the already-installed unit
+                b_tec.const_capex_ccs = pyo.Constraint(expr=b_tec.var_capex_ccs == 0)
+            else:
+                b_tec.const_capex_ccs = pyo.Constraint(
+                    expr=b_tec.var_capex_ccs
+                    == (b_tec.para_size_initial_ccs - b_tec.var_size_ccs)
+                    * b_tec.para_decommissioning_cost_annual_ccs
+                )
+        else:
+            b_tec.const_capex_ccs = pyo.Constraint(
+                expr=b_tec.var_capex_ccs == b_tec.var_capex_aux_ccs
+            )
 
         # FIXED OPEX
         b_tec.para_opex_fixed_ccs = pyo.Param(

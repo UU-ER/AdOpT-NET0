@@ -47,7 +47,7 @@ templates provided.
      "new") in the network_topology folder. To these folders, you should
      copy the CSV files ``connection.csv`` and ``distance.csv``. You then define the
      topology for all of your networks by filling in these files (as
-     illustrated in an elaborate example :ref:`here<workflow_example-usage>`) in
+     illustrated in an elaborate example :ref:`here<case-studies>`) in
      their respective folders. Note that the distance needs to be added manually,
      even if the node locations were specified previously.
      It is also possible to specify a maximum size for each
@@ -116,6 +116,10 @@ templates provided.
    (1500 W), and the size is an integer. Here, we thus have two 1.5MW wind turbines
    installed (totalling to 3MW), and 2.4MW of solar PV.
 
+   If an existing technology has :ref:`CCS attached <ccs_docu>` and that CCS unit is
+   already installed too (rather than being a retrofit option), specify a dict instead
+   of a plain size, e.g. ``"existing": {"GasTurbine_simple_CCS": {"size": 10, "ccs_size": 4}}``.
+
     Similar to the network data, we can now copy the required technology data files
     by running (see also :ref:`here<load-data_from-model>`). After copying the
     files you can also change the performance and cost parameters provided.
@@ -177,10 +181,11 @@ default coordinates (52.5, 5.5) with an altitude of 10m.
 .. automodule:: adopt_net0.data_preprocessing.data_loading
     :members: load_climate_data_from_api
     :exclude-members:
+    :noindex:
 
 NB: this imports all climate data, except for the hydro inflow. Hydro inflow needs to be specified for any technologies
 based on the technology type "OpenHydro" (see :ref:`here<technologies>`). For this, replace the "TECHNOLOGYNAME" in the
-column name with the technology in your system, e.g., "PumpedHydro_Open" and :ref:`load a profile<load-data_profile>`
+column name with the technology in your system, e.g., "PumpedHydro_Open" and :ref:`load a profile<load-data_fixed-value>`
 for water flow into the reservoir.
 
 .. _load-data_fixed-value:
@@ -193,6 +198,7 @@ For carrier data, you can use the :func:`fill_carrier_data` method if your value
 .. automodule:: adopt_net0.data_preprocessing.data_loading
     :members: fill_carrier_data
     :exclude-members:
+    :noindex:
 
 .. _load-data_from-model:
 
@@ -215,4 +221,5 @@ models defined in the :ref:`network<networks>` class or the
 .. automodule:: adopt_net0.data_preprocessing.data_loading
     :members: copy_technology_data, copy_network_data
     :exclude-members:
+    :noindex:
 

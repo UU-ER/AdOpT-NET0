@@ -111,9 +111,12 @@ The modelling steps are as follows:
 
     .. testcode::
 
-        m = adopt.ModelHub()
+        m = ModelHub()
         m.read_data(input_data_path, start_period=None, end_period=None)
         m.quick_solve()
+
+- To analyze an energy system over a longer time horizon, see
+  :ref:`Multiyear analysis with myopic foresight<multiyear>` in the advanced topics.
 
 - If something unexpected happens: check the :ref:`model
   diagnostics<model_diagnostics>`.

@@ -9,7 +9,7 @@ and ``data_loading.py``. For the code of these modules, see their respective pag
 below. An exemplary tree structure of the input data directory is shown below (it
 resembles the input data directory for the :ref:`network case study <case-studies>`):
 
-.. testcode::
+.. code-block:: text
 
     .
     |-- period1

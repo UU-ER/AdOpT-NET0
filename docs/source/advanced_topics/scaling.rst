@@ -9,7 +9,7 @@ and constraints are in comparable ranges, preventing numerical issues such as lo
 or convergence problems during the optimization process. When variables and constraints are scaled appropriately,
 MILP solvers can navigate the solution space more effectively, leading to faster convergence and reliable results.
 
-The PyHub offers two options to scale the model:
+AdOpT-NET0 offers two options to scale the model:
 
 - Global scaling (options specified in the :func:`.ClusteredDataHandle` class): this option is used to bring down the
   right hand side. As a general rule of thumb: if you are dealing with a model on the GW scale, use a scaling factor of

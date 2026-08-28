@@ -3,7 +3,7 @@
 =====================================
 Developer Instruction
 =====================================
-This page contains general instructions for the developers that are working on the PyHub.
+This page contains general instructions for the developers that are working on AdOpT-NET0.
 
 Reporting Issues
 -----------------------
@@ -19,18 +19,21 @@ chose a different IDE or environment management):
 - Make sure you have Python >=3.12 installed on your computer
 - Clone the repository to you drive
 - Create a virtual environment for this project. You can do this using PyCharm:
+
     - Open the project in PyCharm
     - Go to File -> Settings -> <project_name> -> Python Interpreter
     - Select Add Local Interpreter from the Add Interpreter
     - In the left-hand pane of the Add Python Interpreter dialog, select Virtualenv Environment
     - Add a Base Interpreter
 - Install all required packages to your virtual environment by using poetry. In PyCharm
-you can do this with:
+  you can do this with:
+
     - Move to the terminal in PyCharm, it is located on the bottom. If the virtual environment was correctly installed, you should see a (venv) in front of the path
     - Execute the command ``pip install poetry``
     - Execute the command ``poetry install`` to install all required packages
 - Now, you can run main.py after specifying the right paths. In PyCharm, you can do
   this:
+
     - Click on Edit configuration, in the upper right corner of the screen
     - Click Add new...
     - Name your configuration as you like (e.g. Run main)

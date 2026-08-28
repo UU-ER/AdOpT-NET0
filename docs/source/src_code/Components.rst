@@ -1,4 +1,4 @@
-.. _src-code_result_management:
+.. _src-code_components:
 
 =====================================
 Components

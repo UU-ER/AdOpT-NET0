@@ -1,0 +1,22 @@
+{
+    "existing": {
+        "TestTec_GasTurbine_simple": 10.0
+    },
+    "new": [],
+    "remaining_lifetime": {
+        "TestTec_GasTurbine_simple": {
+            "Interval_1_initial": 30
+        }
+    },
+    "carry_over_sizes": {
+        "TestTec_GasTurbine_simple": {
+            "Interval_1_initial": 10.0
+        }
+    },
+    "carry_over_capex": {
+        "TestTec_GasTurbine_simple": {}
+    },
+    "remaining_econ_lifetime": {
+        "TestTec_GasTurbine_simple": {}
+    }
+}

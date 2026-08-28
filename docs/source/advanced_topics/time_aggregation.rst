@@ -35,7 +35,7 @@ for a violation of the energy balance or allowing for import.
 
 To use this method, you need to adjust the model configuration by setting a number of
 typical days N and the clustering method in ``ConfigModel.json`` as shown in
-:ref:`this example <workflow_example-usage>`.
+:ref:`this example <case-studies>`.
 
 
 Two-stage time averaging algorithm

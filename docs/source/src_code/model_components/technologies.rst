@@ -104,11 +104,13 @@ Carbon Capture
 
 The carbon capture object (CCS, even though it refers just to the capture technology), which does not constitute an independent technology itself, can be attached to any technology with a positive emission factor. To do this, you need to add (if not already present) the following lines of code to the json file under the “Performance” section of the technology you wish to equip with CCS:
 
-"ccs": {
-  "possible": 1,
-  "co2_concentration" : 0.08,
-  "ccs_type": "MEA_medium"
-},
+.. code-block:: json
+
+    "ccs": {
+      "possible": 1,
+      "co2_concentration" : 0.08,
+      "ccs_type": "MEA_medium"
+    },
 
 To see an example of how this is done, you can look at the json file of the GasTurbine_simple_CCS technology. When you want to have the possibility of installing CCS, you need to set the “possible” option to 1. Moreover, you can specify the CO2 concentration in the flue gas of your emitting technology; this will influence the costs and energy performance of the CCS. With “ccs_type” you can specify the specific capture technology you wish to use. So far, only post combustion capture with MEA is modelled (following the work of Weimann et Al. 2023 https://doi.org/10.1016/j.apenergy.2023.120738), and you can choose the between small, medium and large according to the size range that you expect for the capture plant (the range of the sizes – based on the flue gas flow in t/h – can be found in each json file of the CCS object, e.g. “MEA_medium.json”).
 
@@ -122,4 +124,22 @@ To summarize, if you want to add the CCS option to a technology you have to:
 -   Have electricity, heat (with import possibility if required) and CO2captured as carriers
 -   Have a technology type SINK or CO2captured export option
 -   Add CO2 transport option if sink and capture are in different nodes
+
+**Existing CCS**
+
+Since CCS is an add-on rather than an independent technology, it can only be existing if the technology it is
+attached to is existing as well. To specify an existing CCS unit, replace the plain initial size of the existing
+technology in ``Technologies.json`` with a dict specifying both the technology's own initial size (``size``) and the
+initial size of its CCS unit (``ccs_size``, in t/h of CO2 out - note that this is *not* in terms of the flue gas flow,
+unlike ``size_min``/``size_max`` in the CCS json files):
+
+.. code-block:: console
+
+    "existing": {"GasTurbine_simple_CCS": {"size": 10, "ccs_size": 4}}
+
+If ``ccs_size`` is omitted or 0, the technology is existing but CCS is treated as a new investment decision (e.g. a
+retrofit option). An existing CCS unit inherits the decommissioning behaviour (``decommission``)
+of its host technology: if the technology cannot be decommissioned, neither can its CCS (no capex is incurred and its
+size is fixed); otherwise the CCS unit can be decommissioned down from ``ccs_size`` and the decommissioning cost from
+the CCS json file's ``Economics.decommission_cost`` is applied.
 
