@@ -1144,15 +1144,17 @@ def _deactivate_network(json_netw, base_name, folder, nodes):
 
 def _netw_capex_sum(prev_model, block_name):
     """
-    Sum var_capex_aux over all arcs of a network block of the solved model.
+    Sum var_capex_aux over the arcs of a network block of the solved model.
     Returns None if the block does not exist.
     """
     if block_name not in prev_model.network_block:
         return None
-    return sum(
-        prev_model.network_block[block_name].arc_block[arc].var_capex_aux.value or 0.0
-        for arc in prev_model.network_block[block_name].set_arcs
-    )
+    b_netw = prev_model.network_block[block_name]
+    if b_netw.find_component("set_arcs_unique") is not None:
+        arc_set = b_netw.set_arcs_unique
+    else:
+        arc_set = b_netw.set_arcs
+    return sum(b_netw.arc_block[arc].var_capex_aux.value or 0.0 for arc in arc_set)
 
 
 def _ensure_existing_folder(folder, folder_new):

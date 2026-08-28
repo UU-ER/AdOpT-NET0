@@ -557,9 +557,25 @@ def test_full_model_flow_multiyear_lifetime(request):
     # Check 9: annualization and discount columns were added (one row per interval)
     summary = pd.read_excel(summary_path)
     assert len(summary) == len(intervals)
-    assert "cost_annualization" in summary.columns
     assert "total_cost_with_carry_over_annualization" in summary.columns
     assert "discounted_total_cost" in summary.columns
+
+    # Check 10: the cumulative columns accumulate over the intervals, so the last row
+    # holds the cost and the net present value of the whole pathway
+    assert (
+        abs(
+            summary["cumulative_total_cost"].iloc[-1]
+            - summary["total_cost_with_carry_over_annualization"].sum()
+        )
+        < 1e-6
+    )
+    assert (
+        abs(
+            summary["npv"].iloc[-1]
+            - summary["discounted_total_cost_with_carry_over_annualization"].sum()
+        )
+        < 1e-6
+    )
 
 
 def test_full_model_flow_multiyear_extra_feature(request):

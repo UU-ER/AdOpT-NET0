@@ -261,11 +261,13 @@ def add_carry_over_annualization_to_summary(
     Add the annualized capex of carried-over carry_overs to the summary Excel file.
 
     Sums the ``carry_over_capex`` entries of each interval's Technologies.json and
-    Networks.json (present only while the economic lifetime is running) and adds
-    the columns ``cost_annualization_carry_over_tecs``, ``cost_annualization_carry_over_netw``,
-    ``cost_annualization`` and ``total_cost_with_carry_over_annualization``.
-    The same values are also written to each interval's ``optimization_results.h5``
-    under the ``summary`` group.
+    Networks.json (present only while the economic lifetime is running) and adds it
+    to the interval's objective value as ``total_cost_with_carry_over_annualization``.
+    In addition, ``cumulative_total_cost`` is added: the running sum of
+    ``total_cost_with_carry_over_annualization`` up to and including each interval, so
+    that the last row holds the undiscounted cost of the whole pathway. The same values
+    are also written to each interval's ``optimization_results.h5`` under the
+    ``summary`` group.
 
     :param summary_path: Path to the summary Excel file, one row per interval, in
         the same order as ``intervals``.
@@ -282,7 +284,7 @@ def add_carry_over_annualization_to_summary(
 
     casestudy_path = Path(casestudy_path)
     cost_carry_over_tecs = []
-    cost_carry_over_netw = []
+    cost_carry_over_netws = []
 
     for interval in intervals:
         interval_path = casestudy_path / ("Case_" + interval) / interval
@@ -299,34 +301,37 @@ def add_carry_over_annualization_to_summary(
                 for carry_overs in json_tec.get("carry_over_capex", {}).values():
                     cost_tecs += sum(carry_overs.values())
 
-        cost_netw = 0.0
+        cost_netws = 0.0
         netw_json_path = interval_path / "Networks.json"
         if netw_json_path.exists():
             with open(netw_json_path) as f:
                 json_netw = json.load(f)
             for carry_overs in json_netw.get("carry_over_capex", {}).values():
-                cost_netw += sum(carry_overs.values())
+                cost_netws += sum(carry_overs.values())
 
         cost_carry_over_tecs.append(cost_tecs)
-        cost_carry_over_netw.append(cost_netw)
+        cost_carry_over_netws.append(cost_netws)
 
     summary_results["cost_annualization_carry_over_tecs"] = cost_carry_over_tecs
-    summary_results["cost_annualization_carry_over_netw"] = cost_carry_over_netw
-    summary_results["cost_annualization"] = (
-        summary_results["cost_annualization_carry_over_tecs"]
-        + summary_results["cost_annualization_carry_over_netw"]
-    )
+    summary_results["cost_annualization_carry_over_netws"] = cost_carry_over_netws
     summary_results["total_cost_with_carry_over_annualization"] = (
-        summary_results["total_cost"] + summary_results["cost_annualization"]
+        summary_results["total_cost"]
+        + summary_results["cost_annualization_carry_over_tecs"]
+        + summary_results["cost_annualization_carry_over_netws"]
     )
+
+    # Undiscounted cost of the pathway up to and including each interval
+    summary_results["cumulative_total_cost"] = summary_results[
+        "total_cost_with_carry_over_annualization"
+    ].cumsum()
 
     # Write the new values to each interval's h5 file
     if "time_stamp" in summary_results.columns:
         h5_keys = [
             "cost_annualization_carry_over_tecs",
-            "cost_annualization_carry_over_netw",
-            "cost_annualization",
+            "cost_annualization_carry_over_netws",
             "total_cost_with_carry_over_annualization",
+            "cumulative_total_cost",
         ]
         for _, row in summary_results.iterrows():
             hdf_file_path = Path(row["time_stamp"]) / "optimization_results.h5"
@@ -372,15 +377,16 @@ def add_discounted_cost_to_summary(
     from ``intervals_between_years``, and the discount factor is
     ``1 / (1 + r) ** year_offset``.
 
-    The columns ``year_offset``, ``discount_factor``, ``discounted_total_cost`` and
-    ``discounted_total_cost_with_carry_over_annualization`` (the latter only if
-    ``total_cost_with_carry_over_annualization`` is present) are added. The same
-    values are also written to each interval's ``optimization_results.h5`` under the
-    ``summary`` group.
-
     .. note::
         A global discount rate must be set (``global_discountrate`` different from
         ``-1``); the reference interval's rate is applied to the whole horizon.
+
+    .. note::
+        ``npv`` is based on the post-processed cost, i.e. it includes the annualized
+        capex of the components carried over from earlier intervals. It therefore
+        requires :func:`add_carry_over_annualization_to_summary` to have been run
+        first; without it, ``npv`` falls back to the running sum of
+        ``discounted_total_cost``.
 
     :param summary_path: Path to the summary Excel file, one row per interval, in
         the same order as ``intervals``.
@@ -439,6 +445,21 @@ def add_discounted_cost_to_summary(
             * summary_results["discount_factor"]
         )
         h5_keys.append("discounted_total_cost_with_carry_over_annualization")
+        discounted_cost = summary_results[
+            "discounted_total_cost_with_carry_over_annualization"
+        ]
+    else:
+        warnings.warn(
+            "No carry-over annualization found in the summary file; the npv is based "
+            "on the objective value only. Run add_carry_over_annualization_to_summary "
+            "before this function to include the annualized capex of carried-over "
+            "components."
+        )
+        discounted_cost = summary_results["discounted_total_cost"]
+
+    # Net present value of the pathway up to and including each interval
+    summary_results["npv"] = discounted_cost.cumsum()
+    h5_keys.append("npv")
 
     # Write the new values to each interval's h5 file
     if "time_stamp" in summary_results.columns:
