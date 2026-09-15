@@ -1,0 +1,53 @@
+{
+  "network_type": "fluidynamic_pipeline",
+  "size_is_int": 0,
+  "capex_defined_per_arc": 0,
+  "size_max_defined_per_arc": 0,
+  "decommission": "impossible",
+  "size_min": 0,
+  "size_max": 1000000.0,
+  "Economics": {
+    "gamma1": 70000000.0,
+    "gamma2": 0.0,
+    "gamma3": 2500000.0,
+    "gamma4": 150.0,
+    "opex_variable": 0.0,
+    "opex_fixed": 0.04,
+    "discount_rate": 0.05,
+    "lifetime": 25,
+    "decommission_cost": 0.0
+  },
+  "Performance": {
+    "carrier": "hydrogen",
+    "bidirectional_network": 1,
+    "bidirectional_network_precise": 0,
+    "rated_capacity": 1,
+    "loss": 0.0,
+    "min_transport": 0.0,
+    "loss2emissions": 0.0,
+    "emissionfactor": 0.0,
+    "energyconsumption": {},
+    "pressure": {
+      "hydrogen": {
+        "inlet": 50,
+        "outlet": 50
+      }
+    },
+    "roughness": 4.5e-05,
+    "temperature": 288.15,
+    "compressibility_factor": 1.1,
+    "molar_mass": 2.016,
+    "energy_density": 33.33,
+    "nr_breakpoints": 5,
+    "diameter": 1.2,
+    "pressure_min": 30,
+    "pressure_max": 70,
+    "pressure_ref": 50
+  },
+  "Units": {
+    "size": "MW",
+    "transport_carrier": {
+      "hydrogen": "MW"
+    }
+  }
+}

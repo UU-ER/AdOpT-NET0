@@ -1,0 +1,10 @@
+;Rotterdam;Zeeland;North_Sea;North_Netherlands;Chemelot;Arnhem;Dordrecht;Venlo;Zuidwending
+Rotterdam;0.0;1.0;1.0;0.0;0.0;0.0;0.0;0.0;0.0
+Zeeland;1.0;0.0;0.0;0.0;1.0;0.0;0.0;0.0;0.0
+North_Sea;1.0;0.0;0.0;1.0;0.0;0.0;0.0;0.0;0.0
+North_Netherlands;0.0;0.0;1.0;0.0;0.0;0.0;0.0;0.0;1.0
+Chemelot;0.0;1.0;0.0;0.0;0.0;0.0;0.0;0.0;1.0
+Arnhem;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0
+Dordrecht;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0
+Venlo;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0
+Zuidwending;0.0;0.0;0.0;1.0;1.0;0.0;0.0;0.0;0.0

@@ -1,4 +1,4 @@
-from pyomo.environ import SolverFactory
+from pyomo.environ import SolverFactory, value
 
 
 def get_gurobi_parameters(solveroptions: dict):
@@ -106,6 +106,31 @@ def get_data_for_investment_period(
     return data_period
 
 
+def determine_size_existing_network(b_period, network, node):
+    """
+    Determines the capacity of an existing network at a node, by returning the
+    largest of the arcs arriving at or leaving from it
+
+    The initial size is defined per arc and not per network (network.py:571), so the
+    capacity a compressor sees at a node is the one of the arcs it can feed. The arcs
+    of a node can differ in size, so the largest of them is the one that bounds the
+    compressor. A network that does not reach the node does not bound it at all.
+
+    :param b_period: pyomo block data for period
+    :param str network: name of the network
+    :param str node: name of the node
+    :return float: capacity of the network at the node
+    """
+    b_netw = b_period.network_block[network]
+    sizes = [
+        value(b_netw.arc_block[arc].para_size_initial)
+        for arc in b_netw.arc_block
+        if node in arc
+    ]
+
+    return max(sizes) if sizes else float("inf")
+
+
 def determine_flow_existing_compressors(self, compressor, b_period, node):
     """
     Determines the flow capacity of an existing compressor connection by returning
@@ -129,12 +154,8 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
         )
         component_output_bound = max(var_output[idx].ub for idx in var_output)
     elif type_component[0] == "Network":
-        component_output_bound = next(
-            iter(
-                b_period.network_block[
-                    compressor.output_component
-                ].para_size_initial.values()
-            )
+        component_output_bound = determine_size_existing_network(
+            b_period, compressor.output_component, node
         )
     elif type_component[0] == "Import":
         component_output_bound = max(
@@ -158,12 +179,8 @@ def determine_flow_existing_compressors(self, compressor, b_period, node):
         )
         component_input_bound = max(var_output[idx].ub for idx in var_output)
     elif type_component[1] == "Network":
-        component_input_bound = next(
-            iter(
-                b_period.network_block[
-                    compressor.input_component
-                ].para_size_initial.values()
-            )
+        component_input_bound = determine_size_existing_network(
+            b_period, compressor.input_component, node
         )
     elif type_component[1] == "Demand":
         component_input_bound = max(

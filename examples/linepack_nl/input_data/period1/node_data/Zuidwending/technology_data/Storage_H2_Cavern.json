@@ -1,0 +1,69 @@
+{
+  "tec_type": "STOR",
+  "size_min": 0,
+  "size_max": 100000.0,
+  "size_is_int": 0,
+  "decommission": "impossible",
+  "Economics": {
+    "comment": "CAPEX in EUR/MWh or as a piecewise function, opex_variable in EUR/MWh total output, opex_fixed in % of up-front CAPEX",
+    "capex_model": 1,
+    "unit_capex": 0.0,
+    "fix_capex": 0.0,
+    "piecewise_capex": {
+      "bp_x": "not defined",
+      "bp_y": "not defined"
+    },
+    "opex_variable": 0.0,
+    "opex_fixed": 0.0,
+    "discount_rate": 0.05,
+    "lifetime": 25,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "comment": "contains fitting data on unit of input, technology types and input/output carriers",
+    "input_carrier": [
+      "hydrogen",
+      "electricity"
+    ],
+    "main_input_carrier": "hydrogen",
+    "output_carrier": [
+      "hydrogen"
+    ],
+    "emission_factor": 0,
+    "allow_only_one_direction": 0,
+    "performance": {
+      "eta_in": 0.93,
+      "eta_out": 0.93,
+      "lambda": 0,
+      "theta": 0,
+      "energy_consumption": {
+        "in": {
+          "electricity": 0.011
+        }
+      }
+    },
+    "pressure": {
+      "hydrogen": {
+        "inlet": 180,
+        "outlet": 180
+      }
+    }
+  },
+  "Flow_capacity_relation": {
+    "comment": "determines the relation between the storage capacity and the flow capacity",
+    "ratio": "fixedratio",
+    "charge_rate": 0.1,
+    "discharge_rate": 0.1,
+    "capex_charging_rate": 0,
+    "capex_discharging_rate": 0
+  },
+  "Units": {
+    "size": "MWh",
+    "input_carrier": {
+      "hydrogen": "MW"
+    },
+    "output_carrier": {
+      "hydrogen": "MW"
+    }
+  }
+}
