@@ -154,6 +154,7 @@ def build(
     set_type: bool = True,
     save_path: Path = None,
     write_results: bool = True,
+    pressure: bool = True,
 ):
     """
     Reads the case and constructs one model, without solving it.
@@ -184,6 +185,14 @@ def build(
     run.override_capacity_factors(pyhub, capacity_factors, hours)
     run.override_solver_options(pyhub, solver_options or {})
     pyhub.data.model_config["reporting"]["write_results"]["value"] = int(write_results)
+    # switching the pressure off drops the compressor blocks, their energy and their
+    # capex (``construct_balances.py:432`` and ``:924``) and leaves the pipeline with
+    # its own pressure equation and linepack. It is a scalpel for finding out whether
+    # the compressors are what stops a corridor being used, not a modelling choice:
+    # this case is about pressure
+    pyhub.data.model_config["performance"]["pressure"]["pressure_on"]["value"] = int(
+        pressure
+    )
 
     if save_path is not None:
         save_path = Path(save_path)
@@ -700,6 +709,7 @@ def solve_candidate(task: dict) -> dict:
             options,
             set_type=False,
             save_path=Path(task["save_path"]),
+            pressure=task.get("pressure", True),
         )
         model = model_of(pyhub)
         one, zero = fix_directions(
@@ -799,6 +809,13 @@ def parse_args(argv=None):
         "every threshold and every seed",
     )
     parser.add_argument(
+        "--no-pressure",
+        action="store_true",
+        help="solve without the compressors, keeping the pipeline equation and the "
+        "linepack. A diagnostic: it says whether the compressors are what stops a "
+        "corridor from being used",
+    )
+    parser.add_argument(
         "--fix-cycles",
         action="store_true",
         help="fix the directions of the arcs the master circulates on as well. "
@@ -896,6 +913,7 @@ def main(argv=None):
                 master_options,
                 save_path=results_path / f"it{iteration}_master",
                 write_results=False,
+                pressure=not args.no_pressure,
             )
             model = model_of(master)
             relaxed = relax_pressure(model, args.master)
@@ -968,6 +986,7 @@ def main(argv=None):
                     "seed": seed,
                     "start_node_limit": args.start_node_limit,
                     "free_cycles": not args.fix_cycles,
+                    "pressure": not args.no_pressure,
                     "save_path": str(
                         results_path / f"it{iteration}_t{threshold}_f{focus}_s{seed}"
                     ),
