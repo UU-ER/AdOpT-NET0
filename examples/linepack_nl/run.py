@@ -135,6 +135,27 @@ def set_network_type(input_path: Path, network_type: str):
         netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
 
 
+def set_precise_directions(input_path: Path, precise: bool):
+    """
+    Makes the reference forbid a corridor carrying both ways at the same timestep.
+
+    ``bidirectional_network_precise`` adds the disjunction of ``network.py:883``, which
+    is what the linepack model gets for free from its direction binary. The case is
+    built with it off, so the reference may send hydrogen both ways down one corridor
+    in the same hour: physically nonsense, and cheaper than anything the linepack model
+    is allowed to do. With it on, the two runs differ only by the pipeline equation and
+    the linepack, which is the difference the case is meant to measure.
+
+    :param Path input_path: input data folder
+    :param bool precise: whether one direction at a time is enforced
+    """
+    for name in [BACKBONE] + CANDIDATE_TYPES:
+        netw_file = input_path / PERIOD / "network_data" / f"{name}.json"
+        netw_data = json.loads(netw_file.read_text())
+        netw_data["Performance"]["bidirectional_network_precise"] = int(precise)
+        netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
+
+
 def override_solver_options(pyhub, solver_options: dict) -> dict:
     """
     Writes the solver options of the command line into the configuration of the hub.
@@ -332,6 +353,7 @@ def run(
     hours: int = DEFAULT_HOURS,
     start: dict = None,
     solver_options: dict = None,
+    precise: bool = False,
 ) -> dict:
     """
     Reads, constructs and solves the case for one network type.
@@ -342,9 +364,14 @@ def run(
     :param int hours: length of the horizon
     :param dict start: a solution of the other network type, used as a warm start
     :param dict solver_options: solver options overriding the ones of the case
+    :param bool precise: whether the reference forbids a corridor carrying both ways at
+        the same timestep, see :func:`set_precise_directions`. The linepack model
+        enforces it through its own direction binary, so the flag only touches the
+        reference
     :return: objective, design of the small clusters, arcs built, and a start
     """
     set_network_type(input_path, network_type)
+    set_precise_directions(input_path, precise and network_type == REFERENCE)
 
     pyhub = adopt.ModelHub()
     pyhub.read_data(str(input_path), start_period=0, end_period=hours)
@@ -481,6 +508,13 @@ def parse_args(argv=None):
         help="solve every run from scratch",
     )
     parser.add_argument(
+        "--precise",
+        action="store_true",
+        help="make the reference forbid a corridor carrying both ways in the same "
+        "hour, which the linepack model forbids anyway. Without it the reference is "
+        "cheaper than the physics allows and the comparison flatters the pipeline",
+    )
+    parser.add_argument(
         "--no-viewer",
         dest="viewer",
         action="store_false",
@@ -573,6 +607,7 @@ def main(argv=None):
                 hours=args.hours,
                 start=start if args.warmstart else None,
                 solver_options=solver_options,
+                precise=args.precise,
             )
             start = results[network_type]["start"]
 
@@ -587,6 +622,7 @@ def main(argv=None):
             layout.restore(input_path, backup)
         # Leave the case in the state build.py wrote it in
         set_network_type(input_path, LINEPACK)
+        set_precise_directions(input_path, False)
 
     report(results, same_layout=args.freeze != "reference")
     if args.viewer:
