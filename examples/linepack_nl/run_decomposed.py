@@ -466,36 +466,65 @@ def fix_directions(model, flows: dict, geometry: dict, threshold: float) -> tupl
                 forward = flows.get(key, {}).get(t, 0.0)
                 backward = flows.get(reverse, {}).get(t, 0.0)
                 if forward > capacity * threshold:
-                    b_arc.var_direction[t].fix(1)
+                    _restrict(b_arc.var_direction[t], 1)
                     fixed_one += 1
                 elif backward > capacity * threshold:
-                    b_arc.var_direction[t].fix(0)
+                    _restrict(b_arc.var_direction[t], 0)
                     fixed_zero += 1
     return fixed_one, fixed_zero
 
 
-def use_seed(seed: int):
+def _restrict(variable, value: int):
     """
-    Makes the solver of this process use a random seed of its own.
+    Holds a binary at a value, through its bounds rather than through ``fix``.
 
-    ``Seed`` is not one of the parameters ADOPT hands to gurobi
-    (``utilities.py:4-27``), so the builder of the solver is wrapped here instead. Two
-    subproblems that differ only by their seed search the tree differently, which is
-    the cheapest diversification there is when what is missing is a feasible point.
+    The two are the same problem and a very different solve. ``fix`` also gives the
+    variable a *value*, and ADOPT always calls the solver with ``warmstart=True``
+    (``modelhub.py:926``), so the fixed directions arrive as a partial MIP start that
+    gurobi completes with a subMIP of its own — and completing it is as hard as the
+    problem. Measured at 48 h: 225 s of a 288 s limit spent inside
+    ``Processing user MIP start``, 84 nodes, no solution. Bounds say the same thing to
+    presolve and carry no value, so there is no start and the search begins at once.
 
-    :param int seed: the seed
+    :param variable: the pyomo binary
+    :param int value: what to hold it at
+    """
+    variable.setlb(value)
+    variable.setub(value)
+
+
+def use_gurobi_options(extra: dict):
+    """
+    Adds gurobi parameters ADOPT does not carry to the solver of this process.
+
+    ``get_gurobi_parameters`` (``utilities.py:4-27``) sets a fixed list, so anything
+    outside it has to be added by wrapping the builder. Two are needed here.
+
+    ``Seed`` diversifies: two subproblems that differ only by their seed search the
+    tree differently, which is the cheapest way to look in more than one place at once
+    when what is missing is a feasible point.
+
+    ``StartNodeLimit`` bounds the damage of the warm start. Fixing a direction with
+    ``var.fix`` gives it a value, and ADOPT always calls the solver with
+    ``warmstart=True`` (``modelhub.py:926``), so gurobi receives a partial MIP start
+    and completes it with a subMIP of its own. That subMIP is as hard as the problem:
+    at 96 h it explored ten nodes in 285 s and would have eaten the whole time limit
+    before the real search began. Bounding it keeps the hint and drops the pathology.
+
+    :param dict extra: parameter name -> value
     :return: what the builder was, to put back
     """
     import adopt_net0.modelhub as modelhub
 
     original = modelhub.get_gurobi_parameters
 
-    def seeded(solveroptions):
+    def with_extra(solveroptions):
         solver = original(solveroptions)
-        solver.options["Seed"] = seed
+        for name, value in extra.items():
+            solver.options[name] = value
         return solver
 
-    modelhub.get_gurobi_parameters = seeded
+    modelhub.get_gurobi_parameters = with_extra
     return original
 
 
@@ -530,8 +559,11 @@ def solve_candidate(task: dict) -> dict:
         options = dict(task["solver_options"])
         if task.get("focus") is not None:
             options["mipfocus"] = task["focus"]
+
+        extra = {"StartNodeLimit": task.get("start_node_limit", 100)}
         if task.get("seed") is not None:
-            use_seed(task["seed"])
+            extra["Seed"] = task["seed"]
+        use_gurobi_options(extra)
 
         pyhub = build(
             Path(task["input_path"]),
@@ -634,6 +666,15 @@ def parse_args(argv=None):
         help="MIPFocus of the subproblems, one value or several. 1 looks for "
         "feasibility, 2 for optimality, 3 for the bound. Every value is combined with "
         "every threshold and every seed",
+    )
+    parser.add_argument(
+        "--start-node-limit",
+        type=int,
+        default=100,
+        help="nodes gurobi may spend completing the partial MIP start of a "
+        "subproblem. The fixed directions arrive as a start, and completing one is as "
+        "hard as the problem itself: unbounded, it eats the whole time limit before "
+        "the search begins",
     )
     parser.add_argument(
         "--seeds",
@@ -765,6 +806,7 @@ def main(argv=None):
                     "threshold": threshold,
                     "focus": focus,
                     "seed": seed,
+                    "start_node_limit": args.start_node_limit,
                     "save_path": str(
                         results_path / f"it{iteration}_t{threshold}_f{focus}_s{seed}"
                     ),
