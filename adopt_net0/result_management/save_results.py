@@ -50,6 +50,17 @@ def get_summary(model, solution, folder_path: Path, model_info: dict, data) -> d
     summary_dict["cost_netws"] = sum(
         model.periods[period].var_cost_netws.value for period in model.set_periods
     )
+    summary_dict["cost_capex_compress"] = sum(
+        model.periods[period].var_cost_capex_compress.value
+        for period in model.set_periods
+    )
+    summary_dict["cost_opex_compress"] = sum(
+        model.periods[period].var_cost_opex_compress.value
+        for period in model.set_periods
+    )
+    summary_dict["cost_compress"] = sum(
+        model.periods[period].var_cost_compress.value for period in model.set_periods
+    )
     summary_dict["cost_imports"] = sum(
         model.periods[period].var_cost_imports.value for period in model.set_periods
     )
