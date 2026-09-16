@@ -93,6 +93,7 @@ Usage::
 import argparse
 import math
 from concurrent.futures import ProcessPoolExecutor
+from itertools import product
 from pathlib import Path
 
 import pandas as pd
@@ -471,32 +472,71 @@ def fix_directions(model, flows: dict, geometry: dict, threshold: float) -> tupl
     return fixed_one, fixed_zero
 
 
+def use_seed(seed: int):
+    """
+    Makes the solver of this process use a random seed of its own.
+
+    ``Seed`` is not one of the parameters ADOPT hands to gurobi
+    (``utilities.py:4-27``), so the builder of the solver is wrapped here instead. Two
+    subproblems that differ only by their seed search the tree differently, which is
+    the cheapest diversification there is when what is missing is a feasible point.
+
+    :param int seed: the seed
+    :return: what the builder was, to put back
+    """
+    import adopt_net0.modelhub as modelhub
+
+    original = modelhub.get_gurobi_parameters
+
+    def seeded(solveroptions):
+        solver = original(solveroptions)
+        solver.options["Seed"] = seed
+        return solver
+
+    modelhub.get_gurobi_parameters = seeded
+    return original
+
+
 def solve_candidate(task: dict) -> dict:
     """
     Solves one subproblem, in its own process.
 
-    One master solution is not one subproblem but a family of them: the threshold
-    decides how much of the master flow pattern is taken as a direction, and a low
-    threshold hands the subproblem a tight corridor while a high one leaves it room to
-    reroute. They are independent, so a machine with cores to spare should run them at
-    once and keep the best upper bound of the round instead of the best of the
-    iteration.
+    One master solution is not one subproblem but a family of them, along three axes.
+    The **threshold** decides how much of the master flow pattern is taken as a
+    direction: a low one hands the subproblem a tight corridor, a high one leaves it
+    room to reroute. **MIPFocus** decides what the solver spends its time on, and 1 is
+    the one that looks for feasibility. The **seed** changes nothing about the problem
+    and everything about where the search goes. They are independent runs, so a machine
+    with cores to spare should try several at once and keep the best upper bound of the
+    round instead of the best of a single guess.
 
     Everything in and out of this function crosses a process boundary, so it is plain
     data: the model is built here and only numbers come back.
 
-    :param dict task: input folder, horizon, threshold, solver options, the flows of
-        the master, the geometry of the arcs and the folder to write the results to
-    :return: the threshold, what it reached, and where its results are
+    :param dict task: input folder, horizon, threshold, focus, seed, solver options,
+        the flows of the master, the geometry of the arcs and where to write results
+    :return: what the candidate was, what it reached, and where its results are
     """
-    outcome = {"threshold": task["threshold"], "objective": None, "error": None}
+    outcome = {
+        "threshold": task["threshold"],
+        "focus": task.get("focus"),
+        "seed": task.get("seed"),
+        "objective": None,
+        "error": None,
+    }
     try:
+        options = dict(task["solver_options"])
+        if task.get("focus") is not None:
+            options["mipfocus"] = task["focus"]
+        if task.get("seed") is not None:
+            use_seed(task["seed"])
+
         pyhub = build(
             Path(task["input_path"]),
             run.LINEPACK,
             task["capacity_factors"],
             task["hours"],
-            task["solver_options"],
+            options,
             set_type=False,
             save_path=Path(task["save_path"]),
         )
@@ -579,10 +619,25 @@ def parse_args(argv=None):
         "capacity of an arc. Each one is a subproblem of its own and they run at once",
     )
     parser.add_argument(
+        "--focus",
+        default="1",
+        help="MIPFocus of the subproblems, one value or several. 1 looks for "
+        "feasibility, 2 for optimality, 3 for the bound. Every value is combined with "
+        "every threshold and every seed",
+    )
+    parser.add_argument(
+        "--seeds",
+        default="0",
+        help="random seeds of the subproblems. Two runs that differ only by the seed "
+        "search the tree differently, which is the cheapest way to look in more than "
+        "one place at once when what is missing is a feasible point",
+    )
+    parser.add_argument(
         "--workers",
         type=int,
         default=len(DEFAULT_CANDIDATES),
-        help="how many subproblems run at the same time",
+        help="how many subproblems run at the same time. More candidates than workers "
+        "is allowed, they queue",
     )
     parser.add_argument(
         "--sub-threads",
@@ -613,7 +668,9 @@ def main(argv=None):
     capacity_factors = pd.read_csv(
         case_dir / "res_capacity_factors.csv", sep=SEP, index_col=0
     )
-    thresholds = [float(value) for value in args.candidates.split(",") if value.strip()]
+    thresholds = [float(v) for v in args.candidates.split(",") if v.strip()]
+    focuses = [int(v) for v in args.focus.split(",") if v.strip()]
+    seeds = [int(v) for v in args.seeds.split(",") if v.strip()]
     results_path = case_dir / "userData" / RESULTS_FOLDER
 
     backup = None
@@ -686,13 +743,20 @@ def main(argv=None):
                     "flows": master_flows,
                     "geometry": geometry,
                     "threshold": threshold,
-                    "save_path": str(results_path / f"it{iteration}_t{threshold}"),
+                    "focus": focus,
+                    "seed": seed,
+                    "save_path": str(
+                        results_path / f"it{iteration}_t{threshold}_f{focus}_s{seed}"
+                    ),
                 }
-                for threshold in thresholds
+                for threshold, focus, seed in product(thresholds, focuses, seeds)
             ]
             outcomes = run_candidates(tasks, args.workers)
 
-            print(f"{'threshold':>10}{'fixed':>10}{'objective':>18}  where")
+            print(
+                f"{'threshold':>10}{'focus':>7}{'seed':>6}{'fixed':>8}"
+                f"{'objective':>18}  where"
+            )
             for outcome in outcomes:
                 fixed = outcome.get("fixed_one", 0) + outcome.get("fixed_zero", 0)
                 if outcome["objective"] is None:
@@ -701,7 +765,10 @@ def main(argv=None):
                     reached = f"{outcome['objective']:.6g}"
                     best_upper = min(best_upper, outcome["objective"])
                 folder = Path(outcome["folder"]).name if outcome["folder"] else "-"
-                print(f"{outcome['threshold']:>10}{fixed:>10}{reached:>18}  {folder}")
+                print(
+                    f"{outcome['threshold']:>10}{outcome['focus']:>7}"
+                    f"{outcome['seed']:>6}{fixed:>8}{reached:>18}  {folder}"
+                )
 
             gap = None
             if math.isfinite(best_upper):
