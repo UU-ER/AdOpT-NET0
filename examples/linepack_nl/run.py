@@ -203,6 +203,33 @@ def apply_layout(input_path: Path, new_layout: dict, backup: Path = None) -> Pat
     return backup
 
 
+def cap_imports(model, cap: float) -> int:
+    """
+    Puts a ceiling on what every node may import, or forbids importing altogether.
+
+    The direction binary of an arc only permits flow, it never forces it, so the
+    solution in which nothing moves and everyone imports stays feasible however the
+    rest of the model is set up. On this case that solution is where the linepack model
+    lands: 2.86e7 against a reference of 3.77e6 at 96 h, the network idle, every small
+    cluster off grid. Taking the import away leaves the model free to route as it likes
+    but obliges it to route something, and it then finds the reference optimum exactly.
+
+    :param model: constructed pyomo model
+    :param float cap: ceiling per node and timestep, in MW. Zero forbids imports
+    :return: how many variables were bounded
+    """
+    b_period = model.periods[PERIOD]
+    bounded = 0
+    for node in b_period.node_blocks:
+        b_node = b_period.node_blocks[node]
+        for t in b_period.set_t_full:
+            variable = b_node.var_import_flow[t, CARRIER]
+            if variable.ub is None or variable.ub > cap:
+                variable.setub(cap)
+                bounded += 1
+    return bounded
+
+
 def override_capacity_factors(pyhub, capacity_factors: pd.DataFrame, n_hours: int):
     """
     Replaces the fitted capacity factors with the ones of the study.
@@ -354,6 +381,7 @@ def run(
     start: dict = None,
     solver_options: dict = None,
     precise: bool = False,
+    import_cap: float = None,
 ) -> dict:
     """
     Reads, constructs and solves the case for one network type.
@@ -385,6 +413,10 @@ def run(
     pyhub.construct_balances()
 
     model = pyhub.model[pyhub.info_solving_algorithms["aggregation_model"]]
+    if import_cap is not None:
+        print(
+            f"imports capped at {import_cap} MW: {cap_imports(model, import_cap)} bounds"
+        )
     if start:
         binaries, directions = apply_start(model, start)
         print(
@@ -508,6 +540,13 @@ def parse_args(argv=None):
         help="solve every run from scratch",
     )
     parser.add_argument(
+        "--import-cap",
+        type=float,
+        default=None,
+        help="ceiling on what a node may import, in MW per hour. Zero forbids it, "
+        "which is what stops the model answering with an idle network and imports",
+    )
+    parser.add_argument(
         "--precise",
         action="store_true",
         help="make the reference forbid a corridor carrying both ways in the same "
@@ -608,6 +647,7 @@ def main(argv=None):
                 start=start if args.warmstart else None,
                 solver_options=solver_options,
                 precise=args.precise,
+                import_cap=args.import_cap,
             )
             start = results[network_type]["start"]
 
