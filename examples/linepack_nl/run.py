@@ -1,13 +1,12 @@
 """
-Solves the NL hydrogen case, with and without the linepack.
+Solves the NL hydrogen case, with or without the linepack.
 
 The case is built for a full year by ``build.py``, so the horizon of a run is chosen
-here with ``start_period`` and ``end_period``. The default is the first week of the
-year, which is consecutive, so the cyclic linepack balance closes on a real
-chronology.
+here with ``--hours``. The default is the first week of the year, which is
+consecutive, so the cyclic linepack balance closes on a real chronology.
 
-Two runs are compared. Both use the same topology, the same frozen backbone, the same
-candidate corridors and the same costs, and differ only in the network type:
+Two network types can be solved. Both use the same topology, the same frozen backbone,
+the same candidate corridors and the same costs, and differ only in the network type:
 
 - ``fixed_size_pipeline``: the flow of an arc is bounded by its capacity and nothing
   else, the pipeline holds no fluid
@@ -18,6 +17,26 @@ The difference between the two objectives is what the linepack is worth in this
 system. The difference between the two designs of the small clusters, i.e. which
 corridor is built with which pipeline type and how much local storage goes with it,
 is where it comes from.
+
+What is solved, which corridors it may build, whether the linepack run is warm started
+and every gurobi parameter are command line options::
+
+    python run.py                                  both, warm started, 168 h
+    python run.py --case linepack --no-warmstart   the linepack run on its own
+    python run.py --case reference --hours 72      the reference on three days
+    python run.py --threads 8 --timelim 2 --mipfocus 1 --cuts 2
+    python run.py --layout my_layout.json          the corridors that file declares
+    python run.py --case linepack --freeze reference     operate the reference design
+    python run.py --freeze userData/20260915220834-1     operate an earlier design
+
+A solver option that is not given keeps the value ``build.py`` wrote into
+``ConfigModel.json``, so the command line carries only what differs from the case.
+
+``--layout`` and ``--freeze`` rewrite which corridors exist and which ones can be
+built, see :mod:`layout`. A layout with no candidate leaves no install binary in the
+model, which is the operational problem of a design decided before, and ``--freeze``
+writes exactly that out of a solved design. The case is put back as ``build.py`` wrote
+it when the runs are over.
 
 .. note::
     ``FluidynamicPipeline`` derives from ``FixedSizePipeline``, so the two runs offer
@@ -36,6 +55,7 @@ is where it comes from.
     resolution ones is picked up everywhere.
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -44,6 +64,8 @@ import pandas as pd
 import pyomo.environ as pyo
 
 import adopt_net0 as adopt
+
+import layout
 
 SEP = ";"
 PERIOD = "period1"
@@ -57,14 +79,46 @@ SMALL_NODES = ["Arnhem", "Dordrecht", "Venlo"]
 REFERENCE = "fixed_size_pipeline"
 LINEPACK = "fluidynamic_pipeline"
 
+#: What each network type is called in the tables.
+LABELS = {REFERENCE: "fixed", LINEPACK: "fluidynamic"}
+
+#: ``--case`` value -> the network types it solves, in the order they are solved.
+CASES = {
+    "reference": [REFERENCE],
+    "linepack": [LINEPACK],
+    "both": [REFERENCE, LINEPACK],
+}
+
 #: How many of the most recent runs the refreshed page carries.
 VIEWER_RUNS = 12
 
 #: One consecutive week, starting on 1 January.
-END_PERIOD = 168
+DEFAULT_HOURS = 168
 
 #: Technology name -> column of res_capacity_factors.csv
 RES_SERIES = {"WindTurbine_Onshore_4000": "wind", "Photovoltaic": "solar"}
+
+#: The solver options of ``ConfigModel.json`` that the command line can override,
+#: with the type they are read as and what they do. ``get_gurobi_parameters``
+#: (``utilities.py:4-27``) hands exactly this list to the solver, so a parameter
+#: outside it cannot be set from here.
+SOLVER_OPTIONS = {
+    "timelim": (float, "time limit, in hours"),
+    "mipgap": (float, "relative MIP gap to stop at"),
+    "threads": (int, "number of threads"),
+    "mipfocus": (int, "0 balanced, 1 feasibility, 2 optimality, 3 bound"),
+    "heuristics": (float, "fraction of the time spent in MIP heuristics"),
+    "presolve": (int, "-1 auto, 0 off, 1 conservative, 2 aggressive"),
+    "cuts": (int, "-1 auto, 0 off, up to 3 very aggressive"),
+    "numericfocus": (int, "0 auto, up to 3 most careful"),
+    "method": (int, "algorithm used for the continuous relaxations"),
+    "branchdir": (int, "-1 down first, 0 auto, 1 up first"),
+    "lpwarmstart": (int, "how the LP warm start information is used"),
+    "nodefilestart": (float, "memory in GB before nodes are written to disk"),
+    "intfeastol": (float, "integer feasibility tolerance"),
+    "feastol": (float, "feasibility tolerance of the constraints"),
+    "solver": (str, "solver name, gurobi or glpk"),
+}
 
 
 def set_network_type(input_path: Path, network_type: str):
@@ -79,6 +133,53 @@ def set_network_type(input_path: Path, network_type: str):
         netw_data = json.loads(netw_file.read_text())
         netw_data["network_type"] = network_type
         netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
+
+
+def override_solver_options(pyhub, solver_options: dict) -> dict:
+    """
+    Writes the solver options of the command line into the configuration of the hub.
+
+    ``solve`` builds the solver out of ``data.model_config`` when it is called
+    (``modelhub.py:409-417``), so setting the values after ``read_data`` is enough and
+    the case files are left as ``build.py`` wrote them.
+
+    :param pyhub: model hub, after reading the data and before solving
+    :param dict solver_options: option name of ``ConfigModel.json`` -> value, where a
+        value of ``None`` means the one of the case is kept
+    :return: the options that changed, each with the value it had before
+    """
+    config = pyhub.data.model_config["solveroptions"]
+    changed = {}
+    for option, value in solver_options.items():
+        if value is None:
+            continue
+        if option not in config:
+            raise KeyError(f"{option} is not a solver option of the case")
+        if config[option]["value"] == value:
+            continue
+        changed[option] = (config[option]["value"], value)
+        config[option]["value"] = value
+    return changed
+
+
+def apply_layout(input_path: Path, new_layout: dict, backup: Path = None) -> Path:
+    """
+    Writes a layout into the case, keeping the backup of the layout it started with.
+
+    A run can write two of them, one asked for on the command line and one frozen out
+    of the reference solution, and it is the first backup that holds the case as
+    ``build.py`` wrote it.
+
+    :param Path input_path: input data folder
+    :param dict new_layout: corridors per type, see :mod:`layout`
+    :param Path backup: backup of an earlier call, when there was one
+    :return: the backup to restore at the end of the run
+    """
+    written = layout.write(input_path, new_layout)
+    if backup is None:
+        return written
+    layout.discard(written)
+    return backup
 
 
 def override_capacity_factors(pyhub, capacity_factors: pd.DataFrame, n_hours: int):
@@ -228,7 +329,9 @@ def run(
     input_path: Path,
     network_type: str,
     capacity_factors: pd.DataFrame,
+    hours: int = DEFAULT_HOURS,
     start: dict = None,
+    solver_options: dict = None,
 ) -> dict:
     """
     Reads, constructs and solves the case for one network type.
@@ -236,14 +339,20 @@ def run(
     :param Path input_path: input data folder
     :param str network_type: ``fixed_size_pipeline`` or ``fluidynamic_pipeline``
     :param pd.DataFrame capacity_factors: capacity factors of the full year
+    :param int hours: length of the horizon
     :param dict start: a solution of the other network type, used as a warm start
+    :param dict solver_options: solver options overriding the ones of the case
     :return: objective, design of the small clusters, arcs built, and a start
     """
     set_network_type(input_path, network_type)
 
     pyhub = adopt.ModelHub()
-    pyhub.read_data(str(input_path), start_period=0, end_period=END_PERIOD)
-    override_capacity_factors(pyhub, capacity_factors, END_PERIOD)
+    pyhub.read_data(str(input_path), start_period=0, end_period=hours)
+    override_capacity_factors(pyhub, capacity_factors, hours)
+
+    changed = override_solver_options(pyhub, solver_options or {})
+    for option, (before, after) in changed.items():
+        print(f"solver option {option}: {before} -> {after}")
 
     pyhub.construct_model()
     pyhub.construct_balances()
@@ -268,44 +377,59 @@ def run(
     }
 
 
-def report(results: dict):
+def report(results: dict, same_layout: bool = True):
     """
-    Prints the two runs next to each other.
+    Prints the runs that were solved next to each other.
 
-    :param dict results: result of each network type
+    :param dict results: result of every network type that was solved
+    :param bool same_layout: whether every run saw the same corridors, which
+        ``--freeze reference`` makes false
     """
+    solved = [network_type for network_type in CASES["both"] if network_type in results]
+    columns = "".join(f"{LABELS[network_type]:>14}" for network_type in solved)
+
     print("\n" + "=" * 72)
     print(f"{'network type':26}{'cost':>18}")
     print("-" * 72)
-    for network_type, result in results.items():
-        print(f"{network_type:26}{result['cost']:18.6g}")
+    for network_type in solved:
+        print(f"{network_type:26}{results[network_type]['cost']:18.6g}")
     print("=" * 72)
 
-    reference = results[REFERENCE]["cost"]
-    delta = results[LINEPACK]["cost"] - reference
-    print(
-        f"\nlinepack changes the objective by {delta:.6g} "
-        f"({delta / abs(reference):.3%})"
-    )
+    if len(solved) == 2:
+        reference = results[REFERENCE]["cost"]
+        delta = results[LINEPACK]["cost"] - reference
+        print(
+            f"\nlinepack changes the objective by {delta:.6g} "
+            f"({delta / abs(reference):.3%})"
+        )
+        if not same_layout:
+            print(
+                "the two runs did not see the same corridors: the reference decided "
+                "the design and the linepack run only operated it"
+            )
 
     print("\ndesign of the small clusters")
-    keys = sorted(set(results[REFERENCE]["design"]) | set(results[LINEPACK]["design"]))
-    print(f"{'node':12}{'technology':28}{'fixed':>12}{'fluidynamic':>14}")
+    keys = sorted(set().union(*(results[t]["design"] for t in solved)))
+    print(f"{'node':12}{'technology':28}{columns}")
     for node, tec in keys:
-        a = results[REFERENCE]["design"].get((node, tec), 0.0)
-        b = results[LINEPACK]["design"].get((node, tec), 0.0)
-        print(f"{node:12}{tec:28}{a:12.0f}{b:14.0f}")
+        sizes = "".join(
+            f"{results[t]['design'].get((node, tec), 0.0):14.0f}" for t in solved
+        )
+        print(f"{node:12}{tec:28}{sizes}")
 
     print("\narcs built")
-    keys = sorted(
-        set(results[REFERENCE]["network"]) | set(results[LINEPACK]["network"])
-    )
-    print(f"{'network':26}{'arc':32}{'fixed':>10}{'fluidynamic':>13}")
+    keys = sorted(set().union(*(results[t]["network"] for t in solved)))
+    print(f"{'network':26}{'arc':32}{columns}")
     for name, arc in keys:
-        a = results[REFERENCE]["network"].get((name, arc), {}).get("size", 0.0)
-        b = results[LINEPACK]["network"].get((name, arc), {}).get("size", 0.0)
+        sizes = "".join(
+            f"{results[t]['network'].get((name, arc), {}).get('size', 0.0):14.0f}"
+            for t in solved
+        )
         label = name.replace("H2Pipeline_", "").replace("_existing", "")
-        print(f"{label:26}{arc[0] + ' - ' + arc[1]:32}{a:10.0f}{b:13.0f}")
+        print(f"{label:26}{arc[0] + ' - ' + arc[1]:32}{sizes}")
+
+    if LINEPACK not in solved:
+        return
 
     print("\nlinepack of the arcs that are built")
     print(f"{'network':26}{'arc':32}{'mean MWh':>10}{'swing MWh':>12}")
@@ -320,29 +444,153 @@ def report(results: dict):
         )
 
 
-def main():
+def parse_args(argv=None):
     """
-    Runs both network types and reports the difference.
+    Reads what to solve, over how long a horizon and with which solver options.
+
+    :param list argv: arguments to read, the command line when left out
+    :return: the parsed arguments
     """
+    parser = argparse.ArgumentParser(
+        description="Solves the NL hydrogen case, with or without the linepack.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--case",
+        choices=sorted(CASES),
+        default="both",
+        help="which network type is solved",
+    )
+    parser.add_argument(
+        "--hours",
+        type=int,
+        default=DEFAULT_HOURS,
+        help="length of the horizon, counted from 1 January",
+    )
+    parser.add_argument(
+        "--warmstart",
+        dest="warmstart",
+        action="store_true",
+        default=True,
+        help="hand the discrete solution of the reference to the linepack run",
+    )
+    parser.add_argument(
+        "--no-warmstart",
+        dest="warmstart",
+        action="store_false",
+        help="solve every run from scratch",
+    )
+    parser.add_argument(
+        "--no-viewer",
+        dest="viewer",
+        action="store_false",
+        help="do not rebuild results.html after the runs",
+    )
+
+    group = parser.add_argument_group(
+        "layout", "which corridors exist and which ones can be built, see layout.py"
+    )
+    group.add_argument(
+        "--layout",
+        metavar="FILE",
+        help="layout file written into the case for the runs",
+    )
+    group.add_argument(
+        "--freeze",
+        metavar="SOURCE",
+        help="make the arcs of a design existing and offer no candidate, i.e. operate "
+        "a design instead of deciding it. SOURCE is a result folder, or 'reference' "
+        "to use the design of the reference run of this call",
+    )
+    group.add_argument(
+        "--dump-layout",
+        metavar="FILE",
+        help="write the layout the case carries to FILE and stop",
+    )
+
+    group = parser.add_argument_group(
+        "solver options", "an option left out keeps the value of ConfigModel.json"
+    )
+    for option, (option_type, description) in SOLVER_OPTIONS.items():
+        group.add_argument(
+            f"--{option}", type=option_type, default=None, help=description
+        )
+
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    """
+    Solves what the command line asks for and reports it.
+
+    :param list argv: arguments to read, the command line when left out
+    """
+    args = parse_args(argv)
+    solver_options = {option: getattr(args, option) for option in SOLVER_OPTIONS}
+
     case_dir = Path(__file__).parent
     input_path = case_dir / "input_data"
+
+    if args.dump_layout:
+        layout.dump(layout.case_layout(input_path), args.dump_layout)
+        print(f"layout of the case written to {args.dump_layout}")
+        return
+
     capacity_factors = pd.read_csv(
         case_dir / "res_capacity_factors.csv", sep=SEP, index_col=0
     )
 
-    # the reference solves in seconds and its discrete decisions are a feasible
-    # point for the linepack model, which on its own struggles to find one at all
-    results = {}
-    start = None
-    for network_type in (REFERENCE, LINEPACK):
-        print(f"\n=== {network_type} ===")
-        results[network_type] = run(input_path, network_type, capacity_factors, start)
-        start = results[network_type]["start"]
+    # the reference solves in seconds and its discrete decisions are a feasible point
+    # for the linepack model, which on its own struggles to find one at all, so a warm
+    # started linepack run needs the reference even when it was not asked for
+    sequence = list(CASES[args.case])
+    if args.warmstart and LINEPACK in sequence and REFERENCE not in sequence:
+        print("warm start asked for: the reference is solved first to provide it")
+        sequence.insert(0, REFERENCE)
 
-    # Leave the case in the state build.py wrote it in
-    set_network_type(input_path, LINEPACK)
-    report(results)
-    refresh_viewer()
+    # the layout of the case is put back whatever happens, so that a run that fails
+    # does not leave the next one with a topology it did not ask for
+    backup = None
+    results = {}
+    try:
+        if args.layout:
+            chosen = layout.read(args.layout, input_path)
+            backup = apply_layout(input_path, chosen, backup)
+            print(f"\nlayout of {args.layout}\n{layout.describe(chosen)}")
+
+        if args.freeze and args.freeze != "reference":
+            frozen = layout.from_design(layout.design_from_results(Path(args.freeze)))
+            backup = apply_layout(input_path, frozen, backup)
+            print(f"\ndesign frozen from {args.freeze}\n{layout.describe(frozen)}")
+
+        start = None
+        for network_type in sequence:
+            print(f"\n=== {network_type} ===")
+            results[network_type] = run(
+                input_path,
+                network_type,
+                capacity_factors,
+                hours=args.hours,
+                start=start if args.warmstart else None,
+                solver_options=solver_options,
+            )
+            start = results[network_type]["start"]
+
+            if args.freeze == "reference" and network_type == REFERENCE:
+                frozen = layout.from_design(results[REFERENCE]["network"])
+                backup = apply_layout(input_path, frozen, backup)
+                print(
+                    f"\ndesign frozen from the reference run\n{layout.describe(frozen)}"
+                )
+    finally:
+        if backup is not None:
+            layout.restore(input_path, backup)
+        # Leave the case in the state build.py wrote it in
+        set_network_type(input_path, LINEPACK)
+
+    report(results, same_layout=args.freeze != "reference")
+    if args.viewer:
+        refresh_viewer()
 
 
 def refresh_viewer():
