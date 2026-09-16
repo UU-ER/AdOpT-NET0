@@ -1,0 +1,20 @@
+{
+  "existing": {
+    "H2Pipeline_backbone": [
+      ["Chemelot", "Zeeland"],
+      ["Chemelot", "Zuidwending"],
+      ["North_Netherlands", "Zuidwending"],
+      ["North_Sea", "Rotterdam"],
+      ["Rotterdam", "Zeeland"]
+    ],
+    "H2Pipeline_medium": [
+      ["Arnhem", "North_Sea"],
+      ["Arnhem", "Chemelot"],
+      ["Arnhem", "Dordrecht"],
+      ["Dordrecht", "Zeeland"],
+      ["Dordrecht", "Rotterdam"],
+      ["Venlo", "Chemelot"]
+    ]
+  },
+  "candidates": {}
+}
