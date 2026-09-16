@@ -108,6 +108,7 @@ import run
 
 SEP = run.SEP
 PERIOD = run.PERIOD
+CARRIER = run.CARRIER
 
 #: What the master is allowed to drop, by name of the constraint of the arc block.
 #: Both are relaxations, so both give a valid lower bound, but they are not worth the
@@ -155,6 +156,7 @@ def build(
     save_path: Path = None,
     write_results: bool = True,
     pressure: bool = True,
+    import_cap: float = None,
 ):
     """
     Reads the case and constructs one model, without solving it.
@@ -204,7 +206,49 @@ def build(
     pyhub.construct_model()
     pyhub.construct_balances()
 
+    if import_cap is not None:
+        bounded = cap_imports(
+            (
+                model_of(pyhub)
+                if False
+                else pyhub.model[pyhub.info_solving_algorithms["aggregation_model"]]
+            ),
+            import_cap,
+        )
+        print(f"imports capped at {import_cap} MW per node and hour ({bounded} bounds)")
+
     return pyhub
+
+
+def cap_imports(model, cap: float) -> int:
+    """
+    Puts a ceiling on what every node may import, or forbids importing altogether.
+
+    The direction binary of an arc only *permits* flow, it never forces it
+    (``flow_in <= direction * capacity``), so fixing the directions of the master
+    leaves the solution in which nothing moves at all perfectly feasible. On this case
+    that solution — every cluster off grid, the large ones importing at their cap — is
+    where every subproblem lands, whatever is fixed: at 96 h the most constrained
+    candidate returned the same 2.860432e7 as the free model, to seven digits.
+
+    Taking the import away removes that escape. The model is still free to route as it
+    likes, but it has to route something, and if it cannot the subproblem says so by
+    being infeasible, which is itself the answer to whether the pattern can be operated.
+
+    :param model: constructed pyomo model
+    :param float cap: ceiling per node and timestep, in MW. Zero forbids imports
+    :return: how many variables were bounded
+    """
+    b_period = model.periods[PERIOD]
+    bounded = 0
+    for node in b_period.node_blocks:
+        b_node = b_period.node_blocks[node]
+        for t in b_period.set_t_full:
+            variable = b_node.var_import_flow[t, CARRIER]
+            if variable.ub is None or variable.ub > cap:
+                variable.setub(cap)
+                bounded += 1
+    return bounded
 
 
 def model_of(pyhub):
@@ -710,6 +754,7 @@ def solve_candidate(task: dict) -> dict:
             set_type=False,
             save_path=Path(task["save_path"]),
             pressure=task.get("pressure", True),
+            import_cap=task.get("import_cap"),
         )
         model = model_of(pyhub)
         one, zero = fix_directions(
@@ -807,6 +852,14 @@ def parse_args(argv=None):
         help="MIPFocus of the subproblems, one value or several. 1 looks for "
         "feasibility, 2 for optimality, 3 for the bound. Every value is combined with "
         "every threshold and every seed",
+    )
+    parser.add_argument(
+        "--import-cap",
+        type=float,
+        default=None,
+        help="ceiling on what a node may import, in MW per hour. Zero forbids it. "
+        "Without this the solution where nothing flows and everyone imports stays "
+        "feasible in every subproblem, and that is where they all land",
     )
     parser.add_argument(
         "--no-pressure",
@@ -914,6 +967,7 @@ def main(argv=None):
                 save_path=results_path / f"it{iteration}_master",
                 write_results=False,
                 pressure=not args.no_pressure,
+                import_cap=args.import_cap,
             )
             model = model_of(master)
             relaxed = relax_pressure(model, args.master)
@@ -987,6 +1041,7 @@ def main(argv=None):
                     "start_node_limit": args.start_node_limit,
                     "free_cycles": not args.fix_cycles,
                     "pressure": not args.no_pressure,
+                    "import_cap": args.import_cap,
                     "save_path": str(
                         results_path / f"it{iteration}_t{threshold}_f{focus}_s{seed}"
                     ),
