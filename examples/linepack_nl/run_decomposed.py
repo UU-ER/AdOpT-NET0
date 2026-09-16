@@ -231,6 +231,30 @@ def relax_pressure(model, relaxation: str = "sos2") -> int:
     return deactivated
 
 
+def master_bound(pyhub, model) -> tuple:
+    """
+    The lower bound the master proved, and the solution it ended on.
+
+    The two are the same only when the master is solved to optimality. When it stops on
+    its time limit or its gap, the objective of its incumbent is **above** the optimum
+    of the master and is not a bound of anything: the valid lower bound of the full
+    problem is the best bound of the solver, which is what is read here
+    (``save_results.py:192``).
+
+    :param pyhub: model hub, after the master was solved
+    :param model: the pyomo model of the master
+    :return: the bound and the objective of the incumbent, either of which can be None
+    """
+    objective = model.var_npv.value
+    try:
+        bound = float(pyhub.solution.problem(0).lower_bound)
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError):
+        bound = None
+    if bound is not None and not math.isfinite(bound):
+        bound = None
+    return bound, objective
+
+
 def arc_geometry(pyhub) -> dict:
     """
     What the cut generator needs to know about every arc.
@@ -541,6 +565,14 @@ def parse_args(argv=None):
         "alone, or the pipeline equation and the pressure coupling as well",
     )
     parser.add_argument(
+        "--master-timelim",
+        type=float,
+        default=None,
+        help="time limit of the master in hours, when it should differ from the one "
+        "of the subproblems. The master only has to produce a flow pattern and a "
+        "bound, so it is usually given less",
+    )
+    parser.add_argument(
         "--candidates",
         default=",".join(str(threshold) for threshold in DEFAULT_CANDIDATES),
         help="thresholds to hand the subproblems of a round, as a share of the "
@@ -593,6 +625,10 @@ def main(argv=None):
             backup = run.apply_layout(input_path, chosen)
             print(f"\nlayout of {args.layout}\n{layout.describe(chosen)}")
 
+        master_options = dict(solver_options)
+        if args.master_timelim is not None:
+            master_options["timelim"] = args.master_timelim
+
         for iteration in range(1, args.iterations + 1):
             print(f"\n=== iteration {iteration}: master ===")
             master = build(
@@ -600,7 +636,7 @@ def main(argv=None):
                 run.LINEPACK,
                 capacity_factors,
                 args.hours,
-                solver_options,
+                master_options,
                 save_path=results_path / f"it{iteration}_master",
                 write_results=False,
             )
@@ -611,7 +647,10 @@ def main(argv=None):
             print(f"wrote {add_cuts(model, cuts)} cuts of earlier iterations")
 
             master.solve()
-            lower = model.var_npv.value
+            lower, master_objective = master_bound(master, model)
+            if lower is None:
+                print("the master proved no bound: the lower bound is left as it was")
+                lower = best_lower
             best_lower = max(best_lower, lower)
             master_flows = net_flows(model)
 
@@ -624,7 +663,13 @@ def main(argv=None):
                 for cut in find_cuts(master_flows, geometry, MAX_CUTS_PER_ITERATION)
                 if cut["key"] not in known
             ]
-            print(f"master {lower:.6g}, {len(fresh)} paths over their pressure budget")
+            reached = (
+                f"{master_objective:.6g}" if master_objective is not None else "none"
+            )
+            print(
+                f"master bound {lower:.6g}, solution {reached}, "
+                f"{len(fresh)} paths over their pressure budget"
+            )
 
             print(
                 f"\n=== iteration {iteration}: {len(thresholds)} subproblems on "
