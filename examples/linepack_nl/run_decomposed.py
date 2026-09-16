@@ -92,6 +92,8 @@ Usage::
 
 import argparse
 import math
+import os
+import shutil
 from concurrent.futures import ProcessPoolExecutor
 from itertools import product
 from pathlib import Path
@@ -592,6 +594,14 @@ def parse_args(argv=None):
         "instead of the one of the example (default: the one of the example)",
     )
     parser.add_argument(
+        "--copy-case",
+        action="store_true",
+        help="copy the case to a folder of this run before touching it, and remove "
+        "the copy at the end. Two runs that share one case rewrite each other's "
+        "topology: the one that finishes first puts the case back while the other is "
+        "still reading it",
+    )
+    parser.add_argument(
         "--hours", type=int, default=run.DEFAULT_HOURS, help="length of the horizon"
     )
     parser.add_argument(
@@ -674,9 +684,19 @@ def main(argv=None):
     results_path = case_dir / "userData" / RESULTS_FOLDER
 
     backup = None
+    copied = None
     cuts = []
     best_upper, best_lower = float("inf"), float("-inf")
     try:
+        if args.copy_case:
+            copied = results_path / f"case_{os.getpid()}"
+            if copied.exists():
+                shutil.rmtree(copied)
+            copied.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(input_path, copied)
+            input_path = copied
+            print(f"\nworking on a copy of the case in {input_path}")
+
         if args.layout:
             chosen = layout.read(args.layout, input_path)
             backup = run.apply_layout(input_path, chosen)
@@ -784,9 +804,13 @@ def main(argv=None):
                 break
             cuts += fresh
     finally:
-        if backup is not None:
-            layout.restore(input_path, backup)
-        run.set_network_type(input_path, run.LINEPACK)
+        if copied is not None:
+            # the copy is the whole isolation, so there is nothing to put back
+            shutil.rmtree(copied, ignore_errors=True)
+        else:
+            if backup is not None:
+                layout.restore(input_path, backup)
+            run.set_network_type(input_path, run.LINEPACK)
 
 
 if __name__ == "__main__":
