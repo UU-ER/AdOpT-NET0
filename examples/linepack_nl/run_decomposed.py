@@ -402,8 +402,119 @@ def find_cuts(flows: dict, geometry: dict, limit: int) -> list:
                         else:
                             stack.append((path, arc[2], total))
 
+    candidates += find_cycle_cuts(flows, geometry)
     candidates.sort(key=lambda cut: -cut["violation"])
     return candidates[:limit]
+
+
+def find_cycle_cuts(flows: dict, geometry: dict) -> list:
+    """
+    Circulation of the master, which the pressure physics forbids outright.
+
+    Around a closed cycle the pressures come back to where they started, so the drops
+    sum to zero. Every drop of a carried arc is positive, so a cycle whose arcs are all
+    carried the same way can only have **zero flow everywhere on it**. A master with no
+    pipeline equation does not know this and circulates freely, which is what made the
+    subproblems useless on this case: the backbone of the NL network is a single loop
+    (Rotterdam, Zeeland, Chemelot, Zuidwending, North_Netherlands, North_Sea), the
+    master sent hydrogen around it, and with those directions fixed all twelve arcs of
+    the loop were forced to zero. The only arcs left carrying anything were the two
+    spurs that lie on no cycle, Rotterdam was cut off and imported at its cap.
+
+    The cut is the same tangent argument as :func:`find_cuts` with a budget of zero:
+
+    .. math::
+        \\sum_{a \\in C} \\left[ \\alpha_a f_a + \\beta_a \\right] \\le
+        (p_{max} - p_{min}) \\sum_{a \\in C} (1 - d_a)
+
+    valid because each tangent underestimates its drop and the drops sum to zero when
+    the whole cycle is carried, and switched off arc by arc when it is not.
+
+    :param dict flows: what :func:`net_flows` returned for the master solution
+    :param dict geometry: what :func:`arc_geometry` returned
+    :return: one cut per cycle found, per timestep
+    """
+    cuts = []
+    timesteps = sorted({t for series in flows.values() for t in series})
+
+    for t in timesteps:
+        carried = {}
+        for arc, series in flows.items():
+            flow = series.get(t, 0.0)
+            if arc not in geometry or flow <= geometry[arc]["capacity"] * 1e-4:
+                continue
+            carried.setdefault(arc[0], {}).setdefault(arc[1], []).append((arc, flow))
+
+        for name, outgoing in carried.items():
+            for cycle in _cycles(outgoing):
+                total = sum(pressure_drop(geometry[a], f) for a, f in cycle)
+                if total <= 1e-6:
+                    continue
+                cuts.append(
+                    {
+                        "terms": [
+                            (
+                                a,
+                                pressure_slope(geometry[a], f),
+                                pressure_drop(geometry[a], f)
+                                - pressure_slope(geometry[a], f) * f,
+                            )
+                            for a, f in cycle
+                        ],
+                        # the drops of a cycle sum to zero, so the budget is zero and
+                        # the right hand side is only what the binaries switch off
+                        "budget": 0.0,
+                        "relief": geometry[cycle[0][0]]["band"],
+                        "timestep": t,
+                        "violation": total,
+                        "key": (t, "cycle", tuple(a for a, _ in cycle)),
+                    }
+                )
+    return cuts
+
+
+def _cycles(outgoing: dict, longest: int = 8) -> list:
+    """
+    Directed cycles of one flow pattern, at most one per arc it starts from.
+
+    :param dict outgoing: arcs carried at this timestep, keyed by the node they leave
+    :param int longest: how many arcs a cycle may have
+    :return: cycles, each a list of ``(arc, flow)``
+    """
+    found, seen = [], set()
+    for start in list(outgoing):
+        stack = [([], start)]
+        while stack:
+            walked, node = stack.pop()
+            if len(walked) >= longest:
+                continue
+            for arc, flow in outgoing.get(node, []):
+                if any(arc == taken[0] for taken in walked):
+                    continue
+                cycle = walked + [(arc, flow)]
+                if arc[2] == start and len(cycle) > 1:
+                    key = frozenset(a for a, _ in cycle)
+                    if key not in seen:
+                        seen.add(key)
+                        found.append(cycle)
+                else:
+                    stack.append((cycle, arc[2]))
+    return found
+
+
+def cycle_arcs(flows: dict, geometry: dict) -> set:
+    """
+    The arcs the master circulates on, which are the ones not to fix in the subproblem.
+
+    :param dict flows: what :func:`net_flows` returned for the master solution
+    :param dict geometry: what :func:`arc_geometry` returned
+    :return: ``(network, node_from, node_to, timestep)`` of every arc on a cycle
+    """
+    on_cycle = set()
+    for cut in find_cycle_cuts(flows, geometry):
+        for arc, _, _ in cut["terms"]:
+            on_cycle.add(arc + (cut["timestep"],))
+    return on_cycle
 
 
 def add_cuts(model, cuts: list) -> int:
@@ -425,18 +536,22 @@ def add_cuts(model, cuts: list) -> int:
     written = 0
     for cut in cuts:
         t = cut["timestep"]
-        budget = cut["budget"]
-        left, right = 0, budget
+        # a path cut is relieved by its own budget, a cycle cut has none: its budget is
+        # zero, so what switches it off arc by arc is the band of the pipeline type
+        relief = cut.get("relief", cut["budget"])
+        left, right = 0, cut["budget"]
         for (name, node_from, node_to), slope, intercept in cut["terms"]:
             b_arc = b_period.network_block[name].arc_block[node_from, node_to]
             left += slope * b_arc.var_flow[t] + intercept
-            right += budget * (1 - b_arc.var_direction[t])
+            right += relief * (1 - b_arc.var_direction[t])
         b_period.const_pressure_cuts.add(left <= right)
         written += 1
     return written
 
 
-def fix_directions(model, flows: dict, geometry: dict, threshold: float) -> tuple:
+def fix_directions(
+    model, flows: dict, geometry: dict, threshold: float, free_cycles: bool = True
+) -> tuple:
     """
     Fixes the direction of the arcs the master carries a real flow in.
 
@@ -444,13 +559,23 @@ def fix_directions(model, flows: dict, geometry: dict, threshold: float) -> tupl
     still use it. This is the remedy Ghilardi et al. report against a subproblem the
     master makes infeasible.
 
+    An arc the master *circulates* on is left free as well, which is the same remedy
+    for a worse disease. Pressure cannot drop all the way around a closed cycle, so
+    fixing the directions of one forces every flow on it to zero
+    (:func:`find_cycle_cuts`), and on this case that emptied the whole backbone and cut
+    Rotterdam off. Until the cuts have taught the master not to circulate, the honest
+    thing is to not impose the part of its pattern that cannot be operated.
+
     :param model: constructed pyomo model of the subproblem
     :param dict flows: what :func:`net_flows` returned for the master solution
     :param dict geometry: what :func:`arc_geometry` returned
     :param float threshold: share of the capacity of an arc below which its flow is
         not taken as a direction
+    :param bool free_cycles: whether the arcs of a cycle of the master keep their
+        binary free
     :return: how many binaries were fixed to one, and how many to zero
     """
+    on_cycle = cycle_arcs(flows, geometry) if free_cycles else set()
     b_period = model.periods[PERIOD]
     fixed_one, fixed_zero = 0, 0
     for name in b_period.network_block:
@@ -465,6 +590,8 @@ def fix_directions(model, flows: dict, geometry: dict, threshold: float) -> tupl
             for t in b_period.set_t_full:
                 forward = flows.get(key, {}).get(t, 0.0)
                 backward = flows.get(reverse, {}).get(t, 0.0)
+                if key + (t,) in on_cycle or reverse + (t,) in on_cycle:
+                    continue
                 if forward > capacity * threshold:
                     _restrict(b_arc.var_direction[t], 1)
                     fixed_one += 1
@@ -576,7 +703,11 @@ def solve_candidate(task: dict) -> dict:
         )
         model = model_of(pyhub)
         one, zero = fix_directions(
-            model, task["flows"], task["geometry"], task["threshold"]
+            model,
+            task["flows"],
+            task["geometry"],
+            task["threshold"],
+            free_cycles=task.get("free_cycles", True),
         )
         outcome["fixed_one"], outcome["fixed_zero"] = one, zero
 
@@ -668,6 +799,13 @@ def parse_args(argv=None):
         "every threshold and every seed",
     )
     parser.add_argument(
+        "--fix-cycles",
+        action="store_true",
+        help="fix the directions of the arcs the master circulates on as well. "
+        "Pressure cannot drop around a closed cycle, so those directions force every "
+        "flow on the cycle to zero: this is here to measure that, not to use it",
+    )
+    parser.add_argument(
         "--start-node-limit",
         type=int,
         default=100,
@@ -727,6 +865,7 @@ def main(argv=None):
     backup = None
     copied = None
     cuts = []
+    previous_pattern = None
     best_upper, best_lower = float("inf"), float("-inf")
     try:
         if args.copy_case:
@@ -784,10 +923,31 @@ def main(argv=None):
             reached = (
                 f"{master_objective:.6g}" if master_objective is not None else "none"
             )
+            carried = sum(
+                1 for series in master_flows.values() if max(series.values()) > 1e-6
+            )
+            cycles = len({cut["key"] for cut in fresh if cut["key"][1] == "cycle"})
             print(
                 f"master bound {lower:.6g}, solution {reached}, "
-                f"{len(fresh)} paths over their pressure budget"
+                f"{carried} arcs carry flow, {len(fresh)} new cuts "
+                f"({cycles} of them circulation)"
             )
+
+            # a master that returns what it returned last time will hand out the same
+            # pattern and get the same subproblems back, so there is nothing to learn
+            # from another round
+            pattern = tuple(
+                sorted(
+                    (arc, round(sum(series.values()), 3))
+                    for arc, series in master_flows.items()
+                )
+            )
+            if pattern == previous_pattern:
+                print(
+                    "the master repeated itself: the cuts are not moving it, stopping"
+                )
+                break
+            previous_pattern = pattern
 
             print(
                 f"\n=== iteration {iteration}: {len(thresholds)} subproblems on "
@@ -807,6 +967,7 @@ def main(argv=None):
                     "focus": focus,
                     "seed": seed,
                     "start_node_limit": args.start_node_limit,
+                    "free_cycles": not args.fix_cycles,
                     "save_path": str(
                         results_path / f"it{iteration}_t{threshold}_f{focus}_s{seed}"
                     ),
