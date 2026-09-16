@@ -29,6 +29,7 @@ class CO2_Pipeline_CostModel(DataComponent_CostModel):
     - operating_hours_per_a: number of operating hours per year
     - p_inlet_bar: inlet pressure in bar (beginning of pipeline)
     - p_outlet_bar: outlet pressure in bar (end of pipeline)
+    - no_intercept: fit cost function with or without intercept (True/False), without intercept yields a linear cost model
 
     Financial indicators are:
 
