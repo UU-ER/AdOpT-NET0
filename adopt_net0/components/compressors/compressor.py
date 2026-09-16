@@ -513,6 +513,7 @@ class Compressor(ModelComponent):
         b_compr.const_opex_fixed = pyo.Constraint(
             expr=(b_compr.var_capex_aux / annualization_factor)
             * b_compr.para_opex_fixed
+            * fraction_of_year_modelled
             == b_compr.var_opex_fixed
         )
 
