@@ -1,0 +1,21 @@
+{
+  "nodes": [
+    "Rotterdam",
+    "Zeeland",
+    "Chemelot",
+    "Dordrecht",
+    "Venlo",
+    "Arnhem"
+  ],
+  "carriers": [
+    "electricity",
+    "hydrogen"
+  ],
+  "investment_periods": [
+    "period1"
+  ],
+  "start_date": "2030-01-01 00:00",
+  "end_date": "2030-12-31 23:00",
+  "resolution": "1h",
+  "investment_period_length": 1
+}

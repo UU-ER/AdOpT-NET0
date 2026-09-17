@@ -1,0 +1,9 @@
+{
+  "existing": {
+    "WindTurbine_Onshore_4000": 6000.0,
+    "Photovoltaic": 2000.0,
+    "Electrolyzer": 5000.0,
+    "Storage_H2": 20000.0
+  },
+  "new": []
+}

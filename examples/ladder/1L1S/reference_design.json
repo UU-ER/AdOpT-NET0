@@ -1,0 +1,8 @@
+{
+  "Dordrecht": {
+    "WindTurbine_Onshore_4000": 265.0,
+    "Photovoltaic": 132.0,
+    "Electrolyzer": 132.0,
+    "Storage_H2": 3000.0
+  }
+}

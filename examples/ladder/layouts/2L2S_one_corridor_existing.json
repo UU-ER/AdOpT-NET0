@@ -1,0 +1,80 @@
+{
+  "existing": {
+    "H2Pipeline_backbone": [
+      [
+        "Rotterdam",
+        "Zeeland"
+      ]
+    ],
+    "H2Pipeline_medium": [
+      [
+        "Dordrecht",
+        "Rotterdam"
+      ]
+    ]
+  },
+  "candidates": {
+    "H2Pipeline_large": [
+      [
+        "Dordrecht",
+        "Rotterdam"
+      ],
+      [
+        "Dordrecht",
+        "Venlo"
+      ],
+      [
+        "Dordrecht",
+        "Zeeland"
+      ],
+      [
+        "Rotterdam",
+        "Venlo"
+      ],
+      [
+        "Venlo",
+        "Zeeland"
+      ]
+    ],
+    "H2Pipeline_medium": [
+      [
+        "Dordrecht",
+        "Venlo"
+      ],
+      [
+        "Dordrecht",
+        "Zeeland"
+      ],
+      [
+        "Rotterdam",
+        "Venlo"
+      ],
+      [
+        "Venlo",
+        "Zeeland"
+      ]
+    ],
+    "H2Pipeline_small": [
+      [
+        "Dordrecht",
+        "Rotterdam"
+      ],
+      [
+        "Dordrecht",
+        "Venlo"
+      ],
+      [
+        "Dordrecht",
+        "Zeeland"
+      ],
+      [
+        "Rotterdam",
+        "Venlo"
+      ],
+      [
+        "Venlo",
+        "Zeeland"
+      ]
+    ]
+  }
+}

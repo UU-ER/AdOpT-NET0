@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linepack NL results</title>
+<style>
+:root{
+  --bg:#f7f7f5; --panel:#ffffff; --ink:#1b1b19; --muted:#6b6b66; --line:#e2e2dd;
+  --accent:#2f6f8f; --backbone:#2f4858; --large:#2f6f8f; --medium:#6a9e5b; --small:#c87f3a;
+  --pos:#2f6f8f; --neg:#c8543a; --lp:#8a6fb0;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#16181a; --panel:#1e2124; --ink:#e8e8e4; --muted:#9a9a93; --line:#31353a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16181a; --panel:#1e2124; --ink:#e8e8e4; --muted:#9a9a93; --line:#31353a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;
+  align-items:baseline;gap:18px;flex-wrap:wrap;background:var(--panel)}
+h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em}
+.meta{color:var(--muted);font-size:12.5px}
+.meta b{color:var(--ink);font-weight:600}
+main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);
+  gap:16px;padding:16px 20px;align-items:start}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+  margin:0;padding:11px 14px;border-bottom:1px solid var(--line);font-weight:650}
+.body{padding:14px}
+svg{display:block;width:100%;height:auto}
+.controls{display:flex;align-items:center;gap:12px;padding:10px 14px;
+  border-top:1px solid var(--line);flex-wrap:wrap}
+button{font:inherit;font-size:13px;padding:5px 12px;border:1px solid var(--line);
+  border-radius:6px;background:var(--bg);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--muted)}
+select{font:inherit;font-size:12.5px;font-weight:600;padding:3px 6px;
+  border:1px solid var(--line);border-radius:6px;background:var(--bg);
+  color:var(--ink);cursor:pointer;max-width:340px}
+select:hover{border-color:var(--muted)}
+input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+.tnum{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;min-width:96px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border-bottom:1px solid var(--line)}
+td{padding:5px 8px;border-bottom:1px solid var(--line)}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:10px 14px;font-size:12.5px;
+  color:var(--muted);border-top:1px solid var(--line)}
+.sw{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.node{cursor:pointer}
+.arc{cursor:pointer}
+.arc:hover{stroke-opacity:1 !important}
+.hint{color:var(--muted);font-size:12.5px;margin:0 0 10px}
+.sel{font-weight:650;font-size:14px;margin:0 0 2px}
+.selsub{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.kv{display:grid;grid-template-columns:auto auto;gap:2px 14px;font-size:13px;margin:0 0 12px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.chart{margin-top:6px}
+.chart h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);margin:0 0 2px;font-weight:650}
+.scroll{overflow-x:auto}
+label.chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Linepack NL</h1>
+  <label class="meta" for="m-run">run <select id="m-run"></select></label>
+  <span class="meta">horizon <b id="m-horizon"></b></span>
+  <span class="meta">objective <b id="m-cost"></b></span>
+  <span class="meta">arcs built <b id="m-arcs"></b></span>
+  <span class="meta" id="m-delta"></span>
+</header>
+
+<main>
+  <div class="stack">
+    <section class="card">
+      <h2>Network</h2>
+      <div class="body" style="padding:6px 10px"><svg id="map" viewBox="0 0 640 520" role="img"></svg></div>
+      <div class="controls">
+        <button id="play">Play</button>
+        <input type="range" id="slider" min="0" value="0">
+        <span class="tnum" id="tlabel"></span>
+        <label class="chk"><input type="checkbox" id="showall"> show unbuilt corridors</label>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--backbone)"></i>backbone</span>
+        <span><i class="sw" style="background:var(--large)"></i>large</span>
+        <span><i class="sw" style="background:var(--medium)"></i>medium</span>
+        <span><i class="sw" style="background:var(--small)"></i>small</span>
+        <span>line width = capacity &middot; arrow = flow at t &middot; ring = linepack fill</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Arcs built</h2>
+      <div class="body scroll"><table id="arctable"></table></div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card">
+      <h2>Cost</h2>
+      <div class="body"><table id="costtable"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Selection</h2>
+      <div class="body" id="detail"><p class="hint">Click a pipeline or a node on the map.</p></div>
+    </section>
+
+    <section class="card">
+      <h2>Technologies built</h2>
+      <div class="body scroll"><table id="tectable"></table></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const RUNS = [{"run":"20260917101411-1","kind":"linepack","period":"period1","summary":{"absolute gap":2877.7308653742075,"carbon_cost":0.0,"carbon_revenue":0.0,"carrier_emissions_neg":0.0,"carrier_emissions_pos":0.0,"case":-1.0,"cost_capex_compress":52.46539993317113,"cost_capex_netws":14853.06654923551,"cost_capex_tecs":384277.7070493578,"cost_compress":26482.929679616216,"cost_exports":0.0,"cost_imports":107152.15904826483,"cost_netws":23226.59841246347,"cost_opex_compress":26430.464279683045,"cost_opex_netws":8373.531863227961,"cost_opex_tecs":188858.72612700926,"cost_tecs":573136.4331763671,"emissions_neg":0.0,"emissions_net":0.0,"emissions_pos":0.0,"lb":727120.3894513374,"network_emissions_pos":0.0,"pareto_point":-1.0,"technology_emissions_neg":0.0,"technology_emissions_pos":0.0,"time_stage":1.0,"time_total":0.39800000190734863,"total_cost":729998.1203167116,"total_npv":729998.1203167116,"ub":729998.1203167116,"violation_cost":0.0},"horizon":24,"nodes":[{"name":"Rotterdam","lon":4.48,"lat":51.92,"technologies":[{"name":"Storage_H2_existing","size":20000.0,"capex":0.0},{"name":"WindTurbine_Onshore_4000_existing","size":6000.0,"capex":0.0},{"name":"Electrolyzer_existing","size":5000.0,"capex":0.0},{"name":"Photovoltaic_existing","size":2000.0,"capex":0.0}],"compressors":[{"name":"hydrogen_Compressor_Import_Storage_H2_existing_existing","size":217.23215799222632,"capex":0.0},{"name":"hydrogen_Compressor_Electrolyzer_existing_Storage_H2_existing_existing","size":112.87635904874041,"capex":0.0},{"name":"hydrogen_Compressor_H2Pipeline_medium_Demand","size":0.2722864550713498,"capex":0.0}],"balance":{"demand":[3429.237,3429.209,3428.851,3428.702,3428.675,3428.644,3428.636,3428.4,3428.397,3428.437,3428.513,3428.594,3428.626,3428.649,3428.65,3428.629,3428.64,3428.63,3428.659,3428.636,3428.62,3428.616,3428.534,3428.478],"technology_outputs":[4474.844,4561.298,4600.597,3159.565,4743.823,3275.0,3275.0,3275.0,3248.182,3109.708,4757.815,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0],"technology_inputs":[1330.834,1310.827,1500.0,0.0,1500.0,31.208,31.215,31.451,0.0,0.0,1489.725,22.674,26.536,30.613,31.202,31.223,31.211,26.456,26.3,26.332,26.357,26.364,26.491,26.579],"network_inflow":[172.141,178.739,179.825,160.385,184.851,184.851,184.851,184.851,180.215,178.799,160.423,176.268,180.162,184.262,184.851,184.851,184.851,180.086,179.959,179.968,179.978,179.98,180.025,180.058],"network_outflow":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"import":[113.086,-0.0,148.43,108.751,-0.0,-0.0,-0.0,-0.0,0.0,139.93,-0.0,0.0,0.0,0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,0.0,0.0],"export":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"name":"Dordrecht","lon":4.67,"lat":51.81,"technologies":[{"name":"WindTurbine_Onshore_4000","size":507.0,"capex":0.0},{"name":"Electrolyzer","size":396.0,"capex":0.0}],"compressors":[],"balance":{"demand":[79.633,79.624,79.511,79.448,79.433,79.415,79.411,79.276,79.275,79.298,79.341,79.387,79.405,79.418,79.419,79.407,79.413,79.407,79.424,79.411,79.402,79.399,79.353,79.321],"technology_outputs":[251.388,258.694,259.38,259.38,259.38,259.38,259.38,259.38,259.38,258.03,259.358,255.373,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38],"technology_inputs":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"network_inflow":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"network_outflow":[171.755,179.07,179.869,179.932,179.947,179.965,179.969,180.104,180.105,178.732,180.018,175.987,179.975,179.962,179.961,179.973,179.967,179.973,179.956,179.969,179.978,179.981,180.027,180.059],"import":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"export":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}}],"arcs":[{"network":"H2Pipeline_medium","nodes":["Dordrecht","Rotterdam"],"size":224.3688352271957,"capex":14853.06654923551,"flow":{"Dordrecht->Rotterdam":[171.755,179.07,179.869,179.932,179.947,179.965,179.969,180.104,180.105,178.732,180.018,175.987,179.975,179.962,179.961,179.973,179.967,179.973,179.956,179.969,179.978,179.981,180.027,180.059],"Rotterdam->Dordrecht":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"linepack":[33.383,33.714,33.759,53.305,48.401,43.515,38.632,33.884,33.774,33.708,53.303,53.022,52.834,48.534,43.644,38.766,33.881,33.768,33.765,33.765,33.765,33.766,33.768,33.769]},{"network":"H2Pipeline_large","nodes":["Dordrecht","Rotterdam"],"size":0.0,"capex":0.0,"flow":{"Dordrecht->Rotterdam":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"Rotterdam->Dordrecht":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"linepack":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},{"network":"H2Pipeline_small","nodes":["Dordrecht","Rotterdam"],"size":0.0,"capex":0.0,"flow":{"Dordrecht->Rotterdam":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"Rotterdam->Dordrecht":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"linepack":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}]},{"run":"20260917101408-1","kind":"fixed size","period":"period1","summary":{"absolute gap":17.83403906598687,"carbon_cost":0.0,"carbon_revenue":0.0,"carrier_emissions_neg":0.0,"carrier_emissions_pos":0.0,"case":-1.0,"cost_capex_compress":51.1183364149219,"cost_capex_netws":14853.06654923551,"cost_capex_tecs":383888.92646141676,"cost_compress":26481.02333375096,"cost_exports":0.0,"cost_imports":107774.17590105752,"cost_netws":23226.59841246347,"cost_opex_compress":26429.904997336038,"cost_opex_netws":8373.531863227961,"cost_opex_tecs":188694.34256536543,"cost_tecs":572583.2690267821,"emissions_neg":0.0,"emissions_net":0.0,"emissions_pos":0.0,"lb":730047.2326349881,"network_emissions_pos":0.0,"pareto_point":-1.0,"technology_emissions_neg":0.0,"technology_emissions_pos":0.0,"time_stage":1.0,"time_total":0.08099985122680664,"total_cost":730065.0666740541,"total_npv":730065.0666740541,"ub":730065.0666740541,"violation_cost":0.0},"horizon":24,"nodes":[{"name":"Rotterdam","lon":4.48,"lat":51.92,"technologies":[{"name":"Storage_H2_existing","size":20000.0,"capex":0.0},{"name":"WindTurbine_Onshore_4000_existing","size":6000.0,"capex":0.0},{"name":"Electrolyzer_existing","size":5000.0,"capex":0.0},{"name":"Photovoltaic_existing","size":2000.0,"capex":0.0}],"compressors":[{"name":"hydrogen_Compressor_Import_Storage_H2_existing_existing","size":217.23215799222632,"capex":0.0},{"name":"hydrogen_Compressor_Electrolyzer_existing_Storage_H2_existing_existing","size":112.87635904874041,"capex":0.0},{"name":"hydrogen_Compressor_H2Pipeline_medium_Demand","size":0.26529542573378206,"capex":0.0}],"balance":{"demand":[3429.237,3429.209,3428.851,3428.702,3428.675,3428.644,3428.636,3428.4,3428.397,3428.437,3428.513,3428.594,3428.626,3428.649,3428.65,3428.629,3428.64,3428.63,3428.659,3428.636,3428.62,3428.616,3428.534,3428.478],"technology_outputs":[3257.978,4561.298,3248.981,3248.77,3705.262,3275.0,3275.0,3275.0,3248.292,3250.214,3257.603,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0,3275.0],"technology_inputs":[0.0,1310.648,0.0,0.0,456.534,26.321,26.332,26.704,0.0,0.0,8.596,21.889,26.146,26.313,26.312,26.344,26.326,539.502,26.297,26.333,26.358,26.365,26.493,26.581],"network_inflow":[171.259,178.56,179.869,179.932,179.947,179.965,179.969,180.104,180.105,178.223,179.506,175.483,179.773,179.962,179.961,179.973,179.967,179.973,179.956,179.969,179.978,179.981,180.027,180.059],"network_outflow":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"import":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-0.0,0.0,513.159,0.0,-0.0,-0.0,-0.0,-0.0,0.0],"export":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}},{"name":"Dordrecht","lon":4.67,"lat":51.81,"technologies":[{"name":"WindTurbine_Onshore_4000","size":506.0,"capex":0.0},{"name":"Electrolyzer","size":396.0,"capex":0.0}],"compressors":[],"balance":{"demand":[79.633,79.624,79.511,79.448,79.433,79.415,79.411,79.276,79.275,79.298,79.341,79.387,79.405,79.418,79.419,79.407,79.413,79.407,79.424,79.411,79.402,79.399,79.353,79.321],"technology_outputs":[250.893,258.184,259.38,259.38,259.38,259.38,259.38,259.38,259.38,257.521,258.847,254.87,259.178,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38,259.38],"technology_inputs":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"network_inflow":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"network_outflow":[171.259,178.56,179.869,179.932,179.947,179.965,179.969,180.104,180.105,178.223,179.506,175.483,179.773,179.962,179.961,179.973,179.967,179.973,179.956,179.969,179.978,179.981,180.027,180.059],"import":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"export":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]}}],"arcs":[{"network":"H2Pipeline_medium","nodes":["Dordrecht","Rotterdam"],"size":224.3688352271957,"capex":14853.06654923551,"flow":{"Dordrecht->Rotterdam":[171.259,178.56,179.869,179.932,179.947,179.965,179.969,180.104,180.105,178.223,179.506,175.483,179.773,179.962,179.961,179.973,179.967,179.973,179.956,179.969,179.978,179.981,180.027,180.059],"Rotterdam->Dordrecht":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"linepack":[]},{"network":"H2Pipeline_large","nodes":["Dordrecht","Rotterdam"],"size":0.0,"capex":0.0,"flow":{"Dordrecht->Rotterdam":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"Rotterdam->Dordrecht":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"linepack":[]},{"network":"H2Pipeline_small","nodes":["Dordrecht","Rotterdam"],"size":0.0,"capex":0.0,"flow":{"Dordrecht->Rotterdam":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"Rotterdam->Dordrecht":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]},"linepack":[]}]}];
+
+const TYPE = n => n.includes('backbone') ? 'backbone'
+              : n.includes('large') ? 'large'
+              : n.includes('medium') ? 'medium'
+              : n.includes('small') ? 'small' : 'large';
+const COLOR = {backbone:'var(--backbone)', large:'var(--large)',
+               medium:'var(--medium)', small:'var(--small)'};
+
+const fmt = (v, d=0) => v === null || v === undefined || !isFinite(v) ? '--'
+  : v.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+
+// everything below is rebuilt by load() whenever another run is picked
+let DATA, NODES, BUILT, PEAK, corridorIndex, maxSize;
+let px, py;
+
+// --- net flow of an arc at t, positive along nodes[0] -> nodes[1] ------------
+function netFlow(arc, t){
+  const [a, b] = arc.nodes;
+  const fwd = arc.flow[a + '->' + b] || [];
+  const rev = arc.flow[b + '->' + a] || [];
+  return (fwd[t] || 0) - (rev[t] || 0);
+}
+function peakFlow(arc){
+  let m = 0;
+  for (let t = 0; t < DATA.horizon; t++) m = Math.max(m, Math.abs(netFlow(arc, t)));
+  return m;
+}
+function key(a){ return a.network + '|' + a.nodes.join('|'); }
+
+// --- projection --------------------------------------------------------------
+const PAD = 46, W = 640, H = 520;
+function projection(nodes){
+  const lons = nodes.map(n => n.lon), lats = nodes.map(n => n.lat);
+  const meanLat = lats.reduce((s, v) => s + v, 0) / lats.length;
+  const kx = Math.cos(meanLat * Math.PI / 180);
+  const x0 = Math.min(...lons), x1 = Math.max(...lons);
+  const y0 = Math.min(...lats), y1 = Math.max(...lats);
+  const spanX = Math.max((x1 - x0) * kx, 1e-6), spanY = Math.max(y1 - y0, 1e-6);
+  const scale = Math.min((W - 2 * PAD) / spanX, (H - 2 * PAD) / spanY);
+  const offX = (W - spanX * scale) / 2, offY = (H - spanY * scale) / 2;
+  return [n => offX + (n.lon - x0) * kx * scale,
+          n => offY + (y1 - n.lat) * scale];
+}
+
+const widthOf = s => 1.6 + 7 * Math.sqrt(Math.max(s, 0) / maxSize);
+
+// --- map ---------------------------------------------------------------------
+const map = document.getElementById('map');
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs={}) => {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+};
+let selected = null, t = 0, timer = null;
+
+function drawMap(){
+  map.textContent = '';
+  const showAll = document.getElementById('showall').checked;
+
+  const gArcs = el('g'), gFlow = el('g'), gNodes = el('g');
+  map.append(gArcs, gFlow, gNodes);
+
+  for (const [corridor, arcs] of corridorIndex){
+    const shown = arcs.filter(a => showAll || a.size > 1e-6);
+    if (!shown.length) continue;
+    const [na, nb] = corridor.split('|').map(n => NODES.get(n));
+    const ax = px(na), ay = py(na), bx = px(nb), by = py(nb);
+    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy) || 1;
+    const ox = -dy / len, oy = dx / len;
+
+    shown.forEach((arc, i) => {
+      const shift = (i - (shown.length - 1) / 2) * 7;
+      const x1 = ax + ox * shift, y1 = ay + oy * shift;
+      const x2 = bx + ox * shift, y2 = by + oy * shift;
+      const built = arc.size > 1e-6;
+      const type = TYPE(arc.network);
+
+      const line = el('line', {
+        x1, y1, x2, y2, class:'arc',
+        stroke: COLOR[type],
+        'stroke-width': built ? widthOf(arc.size) : 1.2,
+        'stroke-opacity': built ? 0.5 : 0.22,
+        'stroke-dasharray': built ? '' : '4 4',
+        'stroke-linecap':'round'
+      });
+      line.addEventListener('click', () => selectArc(arc));
+      gArcs.appendChild(line);
+
+      if (!built) return;
+
+      // flow at t, drawn as a partial overlay from the sending end
+      const f = netFlow(arc, t), peak = PEAK.get(key(arc)) || 1;
+      const frac = Math.min(Math.abs(f) / (peak || 1), 1);
+      if (frac > 0.01){
+        const sx = f >= 0 ? x1 : x2, sy = f >= 0 ? y1 : y2;
+        const ex = f >= 0 ? x2 : x1, ey = f >= 0 ? y2 : y1;
+        gFlow.appendChild(el('line', {
+          x1:sx, y1:sy,
+          x2:sx + (ex - sx) * frac, y2:sy + (ey - sy) * frac,
+          stroke: f >= 0 ? 'var(--pos)' : 'var(--neg)',
+          'stroke-width': Math.max(2, widthOf(arc.size) * 0.62),
+          'stroke-linecap':'round', 'stroke-opacity':0.95
+        }));
+      }
+
+      // linepack fill, as a dot at the midpoint sized by the current level
+      if (arc.linepack && arc.linepack.length){
+        const lp = arc.linepack, lo = Math.min(...lp), hi = Math.max(...lp);
+        const rel = hi > lo ? (lp[t] - lo) / (hi - lo) : 0.5;
+        gFlow.appendChild(el('circle', {
+          cx:(x1 + x2) / 2, cy:(y1 + y2) / 2, r: 2.5 + 4 * rel,
+          fill:'var(--lp)', 'fill-opacity':0.28,
+          stroke:'var(--lp)', 'stroke-opacity':0.75, 'stroke-width':1
+        }));
+      }
+    });
+  }
+
+  for (const n of DATA.nodes){
+    const x = px(n), y = py(n);
+    const g = el('g', {class:'node'});
+    const isSel = selected && selected.kind === 'node' && selected.name === n.name;
+    g.appendChild(el('circle', {
+      cx:x, cy:y, r: n.technologies.length ? 7 : 5,
+      fill:'var(--panel)', stroke:'var(--ink)',
+      'stroke-width': isSel ? 2.5 : 1.4
+    }));
+    const label = el('text', {
+      x: x + 11, y: y + 4, 'font-size':11.5, fill:'var(--ink)',
+      'font-weight': isSel ? 650 : 500
+    });
+    label.textContent = n.name.replace(/_/g, ' ');
+    g.appendChild(label);
+    g.addEventListener('click', () => selectNode(n));
+    gNodes.appendChild(g);
+  }
+}
+
+// --- charts ------------------------------------------------------------------
+function chart(title, series, color, zero=false){
+  const w = 300, h = 66, pad = 3;
+  if (!series || !series.length) return '';
+  let lo = Math.min(...series), hi = Math.max(...series);
+  if (zero) lo = Math.min(lo, 0);
+  if (hi - lo < 1e-9) { hi = lo + 1; }
+  const sx = i => pad + i * (w - 2 * pad) / Math.max(series.length - 1, 1);
+  const sy = v => h - pad - (v - lo) * (h - 2 * pad) / (hi - lo);
+  const d = series.map((v, i) => (i ? 'L' : 'M') + sx(i).toFixed(1) + ' ' + sy(v).toFixed(1)).join(' ');
+  const zeroLine = (lo < 0 && hi > 0)
+    ? `<line x1="${pad}" y1="${sy(0).toFixed(1)}" x2="${w - pad}" y2="${sy(0).toFixed(1)}"
+        stroke="var(--line)" stroke-width="1"/>` : '';
+  const cursor = `<line x1="${sx(t).toFixed(1)}" y1="${pad}" x2="${sx(t).toFixed(1)}" y2="${h - pad}"
+      stroke="var(--muted)" stroke-width="1" stroke-opacity=".5"/>`;
+  return `<div class="chart"><h3>${title} &middot; ${fmt(series[t], 1)}</h3>
+    <svg viewBox="0 0 ${w} ${h}">${zeroLine}${cursor}
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="1.6"
+      stroke-linejoin="round" stroke-linecap="round"/></svg>
+    <div class="meta">min ${fmt(lo, 1)} &middot; max ${fmt(hi, 1)}</div></div>`;
+}
+
+// --- selection ---------------------------------------------------------------
+const detail = document.getElementById('detail');
+
+function selectArc(arc){
+  selected = {kind:'arc', arc};
+  const [a, b] = arc.nodes;
+  const flows = [];
+  for (let i = 0; i < DATA.horizon; i++) flows.push(netFlow(arc, i));
+  const lp = arc.linepack || [];
+  const swing = lp.length ? Math.max(...lp) - Math.min(...lp) : null;
+  detail.innerHTML =
+    `<p class="sel">${a.replace(/_/g,' ')} &harr; ${b.replace(/_/g,' ')}</p>
+     <p class="selsub">${arc.network.replace('H2Pipeline_','').replace('_existing',' (existing)')}</p>
+     <dl class="kv">
+       <dt>capacity</dt><dd>${fmt(arc.size)} MW</dd>
+       <dt>peak flow</dt><dd>${fmt(PEAK.get(key(arc)))} MW</dd>
+       <dt>utilisation</dt><dd>${fmt(100 * PEAK.get(key(arc)) / arc.size, 1)} %</dd>
+       <dt>capex</dt><dd>${fmt(arc.capex)}</dd>
+       ${swing !== null ? `<dt>linepack swing</dt><dd>${fmt(swing)} MWh</dd>` : ''}
+     </dl>
+     ${chart('net flow ' + a + ' &rarr; ' + b + ' [MW]', flows, 'var(--pos)', true)}
+     ${lp.length ? chart('linepack [MWh]', lp, 'var(--lp)') : ''}`;
+  drawMap();
+}
+
+function selectNode(n){
+  selected = {kind:'node', name:n.name};
+  const b = n.balance || {};
+  const rows = n.technologies.map(tec =>
+    `<tr><td>${tec.name.replace('_existing',' (ex)').replace(/_/g,' ')}</td>
+     <td class="n">${fmt(tec.size)}</td></tr>`).join('');
+  const compr = (n.compressors || []).map(c =>
+    `<tr><td>${c.name.replace(/^hydrogen_Compressor_/,'').replace('_existing','')
+      .replace('H2Pipeline_','').replace(/_/g,' → ')}</td>
+     <td class="n">${fmt(c.size, 1)}</td></tr>`).join('');
+  detail.innerHTML =
+    `<p class="sel">${n.name.replace(/_/g,' ')}</p>
+     <p class="selsub">${n.lat.toFixed(2)}&deg;N ${n.lon.toFixed(2)}&deg;E</p>
+     ${rows ? `<table><tr><th>technology</th><th style="text-align:right">size</th></tr>${rows}</table>` : '<p class="hint">No technology here.</p>'}
+     ${compr ? `<table style="margin-top:12px"><tr><th>compressor</th><th style="text-align:right">MW</th></tr>${compr}</table>` : ''}
+     ${chart('hydrogen demand [MW]', b.demand, 'var(--neg)')}
+     ${chart('production [MW]', b.technology_outputs, 'var(--medium)')}
+     ${chart('network inflow [MW]', b.network_inflow, 'var(--pos)')}
+     ${chart('network outflow [MW]', b.network_outflow, 'var(--small)')}`;
+  drawMap();
+}
+
+// --- tables ------------------------------------------------------------------
+function fillTables(){
+  const at = document.getElementById('arctable');
+  at.innerHTML = '<tr><th>type</th><th>corridor</th>' +
+    '<th style="text-align:right">capacity</th><th style="text-align:right">peak flow</th>' +
+    '<th style="text-align:right">linepack swing</th></tr>' +
+    BUILT.map(a => {
+      const lp = a.linepack || [];
+      const swing = lp.length ? Math.max(...lp) - Math.min(...lp) : null;
+      return `<tr><td><i class="sw" style="background:${COLOR[TYPE(a.network)]}"></i>${TYPE(a.network)}</td>
+        <td>${a.nodes.map(x => x.replace(/_/g,' ')).join(' – ')}</td>
+        <td class="n">${fmt(a.size)}</td>
+        <td class="n">${fmt(PEAK.get(key(a)))}</td>
+        <td class="n">${swing === null ? '--' : fmt(swing)}</td></tr>`;
+    }).join('');
+  at.querySelectorAll('tr').forEach((tr, i) => {
+    if (i === 0) return;
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => selectArc(BUILT[i - 1]));
+  });
+
+  const ct = document.getElementById('costtable');
+  const s = DATA.summary;
+  const items = [
+    ['technologies, capex', s.cost_capex_tecs],
+    ['technologies, opex', s.cost_opex_tecs],
+    ['networks, capex', s.cost_capex_netws],
+    ['networks, opex', s.cost_opex_netws],
+    ['imports', s.cost_imports],
+    ['unserved demand', s.violation_cost],
+  ].filter(([, v]) => v !== undefined);
+  ct.innerHTML = '<tr><th>item</th><th style="text-align:right">EUR</th></tr>' +
+    items.map(([k, v]) =>
+      `<tr><td${k === 'unserved demand' && v > 0 ? ' style="color:var(--neg)"' : ''}>${k}</td>
+       <td class="n">${fmt(v)}</td></tr>`).join('') +
+    `<tr><td><b>total</b></td><td class="n"><b>${fmt(s.total_npv)}</b></td></tr>`;
+
+  const tt = document.getElementById('tectable');
+  const rows = [];
+  for (const n of DATA.nodes)
+    for (const tec of n.technologies)
+      rows.push({node:n.name, ...tec});
+  rows.sort((a, b) => b.size - a.size);
+  tt.innerHTML = '<tr><th>node</th><th>technology</th>' +
+    '<th style="text-align:right">size</th></tr>' +
+    rows.map(r => `<tr><td>${r.node.replace(/_/g,' ')}</td>
+      <td>${r.name.replace('_existing',' (ex)').replace(/_/g,' ')}</td>
+      <td class="n">${fmt(r.size)}</td></tr>`).join('');
+}
+
+// --- controls ----------------------------------------------------------------
+const slider = document.getElementById('slider');
+const tlabel = document.getElementById('tlabel');
+
+function setT(v){
+  t = +v;
+  slider.value = t;
+  const day = Math.floor(t / 24) + 1, hour = t % 24;
+  tlabel.textContent = `h ${t}  ·  day ${day} ${String(hour).padStart(2,'0')}:00`;
+  drawMap();
+  if (selected) selected.kind === 'arc' ? selectArc(selected.arc) : selectNode(NODES.get(selected.name));
+}
+slider.addEventListener('input', e => setT(e.target.value));
+document.getElementById('showall').addEventListener('change', drawMap);
+document.getElementById('play').addEventListener('click', e => {
+  if (timer){ clearInterval(timer); timer = null; e.target.textContent = 'Play'; return; }
+  e.target.textContent = 'Pause';
+  timer = setInterval(() => setT((t + 1) % Math.max(DATA.horizon, 1)), 110);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') setT(Math.min(t + 1, DATA.horizon - 1));
+  if (e.key === 'ArrowLeft') setT(Math.max(t - 1, 0));
+});
+
+// --- run switching -----------------------------------------------------------
+const costOf = run => run.summary.total_npv !== undefined ? run.summary.total_npv
+                    : run.summary.npv !== undefined ? run.summary.npv : null;
+
+function load(index){
+  DATA = RUNS[index];
+  NODES = new Map(DATA.nodes.map(n => [n.name, n]));
+  BUILT = DATA.arcs.filter(a => a.size > 1e-6);
+  PEAK = new Map(DATA.arcs.map(a => [key(a), peakFlow(a)]));
+  maxSize = Math.max(...DATA.arcs.map(a => a.size), 1);
+  [px, py] = projection(DATA.nodes);
+
+  corridorIndex = new Map();
+  for (const a of DATA.arcs){
+    const c = a.nodes.join('|');
+    if (!corridorIndex.has(c)) corridorIndex.set(c, []);
+    corridorIndex.get(c).push(a);
+  }
+
+  selected = null;
+  detail.innerHTML = '<p class="hint">Click a pipeline or a node on the map.</p>';
+
+  slider.max = Math.max(DATA.horizon - 1, 0);
+  document.getElementById('m-horizon').textContent = DATA.horizon + ' h';
+  document.getElementById('m-cost').textContent = fmt(costOf(DATA));
+  document.getElementById('m-arcs').textContent =
+    BUILT.length + ' / ' + DATA.arcs.length;
+
+  // the nearest run of the other kind is the counterfactual worth naming
+  const other = RUNS.find(r => r.kind !== DATA.kind && r.horizon === DATA.horizon);
+  const label = document.getElementById('m-delta');
+  if (other && costOf(other) && costOf(DATA)){
+    const d = costOf(DATA) - costOf(other);
+    // only runs solved on the same case are comparable, which the page cannot know:
+    // the run being compared against is named so it can be checked
+    label.innerHTML = `vs ${other.run} (${other.kind}): ` +
+      `<b>${d >= 0 ? '+' : ''}${fmt(d)}</b> (${(100 * d / Math.abs(costOf(other))).toFixed(3)}%)`;
+  } else {
+    label.textContent = '';
+  }
+
+  fillTables();
+  setT(0);
+}
+
+// --- go ----------------------------------------------------------------------
+const runSelect = document.getElementById('m-run');
+runSelect.innerHTML = RUNS.map((r, i) =>
+  `<option value="${i}">${r.run} · ${r.kind} · ${r.horizon} h</option>`).join('');
+runSelect.addEventListener('change', e => load(+e.target.value));
+load(0);
+</script>
+</body>
+</html>

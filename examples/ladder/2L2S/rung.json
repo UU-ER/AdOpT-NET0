@@ -1,0 +1,18 @@
+{
+  "rung": "2L2S",
+  "large": [
+    "Rotterdam",
+    "Zeeland"
+  ],
+  "small": [
+    "Dordrecht",
+    "Venlo"
+  ],
+  "backbone": "H2Pipeline_backbone",
+  "candidate_types": [
+    "H2Pipeline_large",
+    "H2Pipeline_medium",
+    "H2Pipeline_small"
+  ],
+  "hours_available": 8760
+}
