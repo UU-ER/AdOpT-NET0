@@ -86,6 +86,25 @@ DEFAULT_ARC_COUNTS = [3, 5, 6, 7, 8, 10]
 ARC_RUNG = "3L3S"
 ARC_HOURS = 24
 
+#: Ways of posing the problem, crossed with every rung and every horizon. ``none`` is
+#: the operation of a system decided beforehand, ``network`` decides the corridors and
+#: keeps the technologies of the study, and ``all`` is the whole investment problem,
+#: corridors and technologies together, which is what the study itself asks. Each entry
+#: is the ``--design`` mode and the pipeline types offered as candidates.
+#:
+#: ``none`` is only listed once: it gives one pipeline of ``--given-type`` on every
+#: corridor whatever the types say, so a second entry would repeat the same job.
+GRID_VARIANTS = [
+    ("none", [ONE_TYPE]),
+    ("network", [ONE_TYPE]),
+    ("network", ALL_TYPES),
+    ("all", [ONE_TYPE]),
+    ("all", ALL_TYPES),
+]
+
+#: Ways of posing the problem along the arc curve, at one type.
+ARC_MODES = ["none", "network", "all"]
+
 #: What each network type is called in the tables, in the order they are solved.
 MODELS = ["reference", "linepack"]
 
@@ -241,10 +260,10 @@ def build_jobs(hours: list, arc_counts: list, only: list) -> list:
     """
     The jobs of the sweep, i.e. one call of ``run.py`` each.
 
-    The main grid crosses every rung with every horizon and with the three ways of
-    posing the problem. The arc curve then holds the rung and the horizon still and
-    varies only how many corridors are on offer, which is the one axis the main grid
-    cannot separate from the node count.
+    The main grid crosses every rung with every horizon and with every way of posing
+    the problem, see :data:`GRID_VARIANTS`. The arc curve then holds the rung and the
+    horizon still and varies only how many corridors are on offer, which is the one
+    axis the main grid cannot separate from the node count.
 
     :param list hours: horizons of the main grid
     :param list arc_counts: corridor counts of the arc curve
@@ -256,36 +275,17 @@ def build_jobs(hours: list, arc_counts: list, only: list) -> list:
         if only and rung not in only:
             continue
         for n_hours in hours:
-            jobs.append(
-                {
-                    "rung": rung,
-                    "hours": n_hours,
-                    "design": "none",
-                    "types": [ONE_TYPE],
-                    "corridors": None,
-                    "axis": "grid",
-                }
-            )
-            jobs.append(
-                {
-                    "rung": rung,
-                    "hours": n_hours,
-                    "design": "network",
-                    "types": [ONE_TYPE],
-                    "corridors": None,
-                    "axis": "grid",
-                }
-            )
-            jobs.append(
-                {
-                    "rung": rung,
-                    "hours": n_hours,
-                    "design": "network",
-                    "types": list(ALL_TYPES),
-                    "corridors": None,
-                    "axis": "grid",
-                }
-            )
+            for mode, types in GRID_VARIANTS:
+                jobs.append(
+                    {
+                        "rung": rung,
+                        "hours": n_hours,
+                        "design": mode,
+                        "types": list(types),
+                        "corridors": None,
+                        "axis": "grid",
+                    }
+                )
 
     if not only or ARC_RUNG in only:
         arc_case = CASE_DIR / ARC_RUNG / "input_data"
@@ -296,7 +296,7 @@ def build_jobs(hours: list, arc_counts: list, only: list) -> list:
             # already carries the point where every corridor is offered
             if count < connects or count >= available:
                 continue
-            for mode in ["none", "network"]:
+            for mode in ARC_MODES:
                 jobs.append(
                     {
                         "rung": ARC_RUNG,
