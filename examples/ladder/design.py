@@ -52,6 +52,9 @@ PERIOD = "period1"
 #: solver residue they carry.
 TOLERANCE = 1e-6
 
+#: The technology build.py gives its own headroom, see :func:`headroom`.
+STORAGE_TECHNOLOGY = "Storage_H2"
+
 #: What ``--design`` may ask for: whether the network and the technologies are decided.
 MODES = {
     "all": {"network": True, "tecs": True},
@@ -190,6 +193,50 @@ def pin(input_path: Path, design: dict, small: list) -> Path:
             data = json.loads(tec_file.read_text())
             data["size_min"] = size
             data["size_max"] = size
+            tec_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    return backup
+
+
+def headroom(
+    input_path: Path,
+    reference: dict,
+    small: list,
+    factor: float = None,
+    storage_factor: float = None,
+) -> Path:
+    """
+    Overrides the upper bound of the small clusters' technologies at run time.
+
+    ``build.py`` bakes ``SIZE_HEADROOM``/``STORAGE_HEADROOM`` into ``size_max`` when the
+    rung is built (``build.py:156-162``). This rewrites ``size_max`` to ``factor`` times
+    the design of the study instead, without rebuilding the rung. A technology whose
+    factor is left as ``None`` keeps the bound ``build.py`` wrote.
+
+    :param Path input_path: input data folder
+    :param dict reference: design of the study, as :func:`read` returns it
+    :param list small: small clusters of the rung
+    :param float factor: multiple of the study design for every technology but storage
+    :param float storage_factor: multiple of the study design for storage
+    :return: folder holding the technology jsons that were replaced, for :func:`restore`
+    """
+    backup = Path(tempfile.mkdtemp(prefix="ladder_headroom_"))
+
+    for node in small:
+        node_path = input_path / PERIOD / "node_data" / node
+        declared = json.loads((node_path / "Technologies.json").read_text())
+        sizes = reference.get(node, {})
+        for name in declared["new"]:
+            chosen = storage_factor if name == STORAGE_TECHNOLOGY else factor
+            if chosen is None:
+                continue
+            tec_file = _tec_file(input_path, node, name)
+            target = backup / node
+            target.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(tec_file, target / f"{name}.json")
+
+            data = json.loads(tec_file.read_text())
+            data["size_max"] = float(sizes.get(name, 0.0)) * chosen
             tec_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     return backup

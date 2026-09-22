@@ -29,6 +29,8 @@ import h5py
 import numpy as np
 import pandas as pd
 
+import rungs
+
 SEP = ";"
 #: Folder holding this script and the html template, i.e. the ladder itself. The
 #: case of a run is one rung below it, see :mod:`rungs`.
@@ -231,6 +233,32 @@ def read_results(result_folder: Path, case_dir: Path) -> dict:
     }
 
 
+def case_metadata() -> dict:
+    """
+    Where the nodes of every rung are, and which nodes each rung has.
+
+    The page needs both to read an h5 that is dropped on it rather than packed: the h5
+    names its nodes but does not say where they are, and nothing in it says which rung
+    it was solved on. The rungs share the nodes of the study, so a node reached by two
+    of them has the same location in both and the map is one table.
+
+    :return: the location of every node, and the nodes of every rung
+    """
+    locations, cases = {}, {}
+    for rung in rungs.RUNGS:
+        path = LADDER_DIR / rung / "input_data" / "NodeLocations.csv"
+        if not path.is_file():
+            continue
+        table = pd.read_csv(path, sep=SEP, index_col=0)
+        for node in table.index:
+            locations[str(node)] = [
+                round(float(table.at[node, "lon"]), 5),
+                round(float(table.at[node, "lat"]), 5),
+            ]
+        cases[rung] = [str(node) for node in table.index]
+    return {"nodes": locations, "rungs": cases}
+
+
 def write_html(runs: list, output: Path):
     """
     Writes the page, with the data of every run embedded in it.
@@ -240,7 +268,11 @@ def write_html(runs: list, output: Path):
     """
     template = (LADDER_DIR / "viewer_template.html").read_text(encoding="utf-8")
     data = json.dumps(runs, separators=(",", ":"))
-    output.write_text(template.replace("__RESULTS_JSON__", data), encoding="utf-8")
+    cases = json.dumps(case_metadata(), separators=(",", ":"))
+    output.write_text(
+        template.replace("__RESULTS_JSON__", data).replace("__CASES_JSON__", cases),
+        encoding="utf-8",
+    )
 
 
 def main():

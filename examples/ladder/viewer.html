@@ -143,12 +143,12 @@ body.dragging{outline:2px dashed var(--accent);outline-offset:-6px}
 </main>
 
 <script>
-let RUNS = __RESULTS_JSON__;
+let RUNS = [];
 
 // Where the nodes of every rung are and which nodes each rung has, written into the
 // page rather than read from a result: an h5 names its nodes but never says where they
 // are, and nothing in it says which rung it was solved on
-const CASES = __CASES_JSON__;
+const CASES = {"nodes":{"Rotterdam":[4.48,51.92],"Dordrecht":[4.67,51.81],"Venlo":[6.17,51.37],"Arnhem":[5.9,51.98],"Zeeland":[3.9,51.5],"Chemelot":[5.82,50.97]},"rungs":{"1L1S":["Rotterdam","Dordrecht"],"1L2S":["Rotterdam","Dordrecht","Venlo"],"1L3S":["Rotterdam","Dordrecht","Venlo","Arnhem"],"2L2S":["Rotterdam","Zeeland","Dordrecht","Venlo"],"3L3S":["Rotterdam","Zeeland","Chemelot","Dordrecht","Venlo","Arnhem"]}};
 
 const TYPE = n => n.includes('backbone') ? 'backbone'
               : n.includes('large') ? 'large'

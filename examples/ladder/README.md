@@ -38,6 +38,8 @@ examples/ladder/
   layout.py    which corridors exist and which ones can be built
   design.py    which technologies are dimensioned and which ones are given
   viewer.py    rebuilds results.html out of a rung's userData
+  sweep.py     runs the ladder across every axis and tabulates it
+  sweep_pack.py   packs the runs of a sweep into json the viewer is dropped
   layouts/     worked layout examples, one per rung that has one
   1L1S/ 1L2S/ 1L3S/ 2L2S/ 3L3S/
       input_data/   the case
@@ -150,6 +152,50 @@ rebuilds it on its own:
 ```bash
 python viewer.py --rung 2L2S -n 6
 ```
+
+A sweep is the other shape. It solves every rung at every horizon on a machine whose
+result folders are gigabytes of h5, and baking all of that into one page would be tens
+of megabytes of runs that are never looked at. `sweep_pack.py` therefore writes the page
+once, empty, and packs each run on its own into a few hundred kilobytes of json:
+
+```bash
+python sweep_pack.py <sweep folder>                # every run of it
+python sweep_pack.py <sweep folder> --rung 3L3S --hours 336
+python sweep_pack.py <sweep folder> --bundle       # all of it in one file
+```
+
+A single run needs none of that: **drop its `optimization_results.h5` on the page, or
+the result folder holding it**, and the page reads the h5 itself. Which rung it is comes
+from the nodes it names, since no two rungs carry the same ones, and the coordinates
+come from a table of every rung's nodes written into the page. The run is labelled by
+the folder it was saved to, which the h5 records, so the name survives being dragged out
+of that folder. The h5 reader is a wasm build of HDF5 fetched from a CDN the first time
+an h5 arrives, so that one drop needs the network; everything else works from disk.
+
+Packing a loose folder still works, and is the way to look at many runs at once without
+dropping them one by one. Nothing outside a sweep says which rung a result folder was
+solved on, so `--rung` has to:
+
+```bash
+python sweep_pack.py 2L2S/userData --rung 2L2S              # every run of a rung
+python sweep_pack.py 2L2S/userData/20260917182747-1 --rung 2L2S   # one of them
+```
+
+A run that carries no job, packed or dropped, is labelled by its result folder, and the
+two network types are told apart the way `viewer.py` does it, i.e. by whether a linepack
+was written. Inside a sweep the order the two were solved in says so instead, which is
+exact: a linepack run that builds nothing writes no linepack either.
+
+The files land in `<sweep folder>/packed/`, next to `index.csv` saying what each one
+holds and `viewer.html` holding no run at all. Open that page and drop the json files
+onto it; the `case` menu picks the rung, since two rungs have different nodes and their
+objectives do not compare, and the `run` menu picks what the job decided. A run packed
+this way names the job it came from, so the page compares it against the same job solved
+with the other network type rather than against whatever run has the same horizon.
+
+The h5 alone is not enough to draw the map: it names the nodes but not where they are,
+so a packed run joins it with the `NodeLocations.csv` of the rung and with the row of
+`results.csv` that says which rung, what was decided and how the solve went.
 
 ## Notes
 
