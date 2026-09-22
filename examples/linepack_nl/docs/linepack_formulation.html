@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linepack in AdOpT-NET0</title>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+  :root {
+    --blue: #1f5f8b; --lightblue: #eaf3fa; --green: #2e7d32; --lightgreen: #ebf5eb;
+    --orange: #c05621; --lightorange: #fdf1e7; --red: #b02a2a; --lightred: #fbecec;
+    --gray: #555; --lightgray: #f5f5f5; --border: #d0d7de;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; color: #222; line-height: 1.55; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 80px; }
+  header { background: linear-gradient(120deg, #123c5a, #1f5f8b); color: #fff; padding: 32px 24px; }
+  header h1 { margin: 0 0 6px; font-size: 1.8em; }
+  header p { margin: 2px 0; opacity: 0.92; }
+  h2 { color: var(--blue); border-bottom: 2px solid var(--blue); padding-bottom: 4px; margin-top: 40px; }
+  h3 { color: #123c5a; margin-top: 28px; }
+  h4 { color: #123c5a; margin: 18px 0 6px; }
+  code, pre { font-family: Consolas, "Courier New", monospace; }
+  code { background: var(--lightgray); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+  pre { background: #0f1a24; color: #dbe9f4; padding: 14px 16px; border-radius: 8px; overflow-x: auto; font-size: 0.88em; }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.92em; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--lightblue); }
+  tr:nth-child(even) td { background: #fafcfe; }
+  .note { background: var(--lightorange); border-left: 4px solid var(--orange); padding: 10px 16px; margin: 14px 0; }
+  .warn { background: var(--lightred); border-left: 4px solid var(--red); padding: 10px 16px; margin: 14px 0; }
+  .ok { background: var(--lightgreen); border-left: 4px solid var(--green); padding: 10px 16px; margin: 14px 0; }
+  figure { margin: 22px 0; }
+  figcaption { color: var(--gray); font-size: 0.9em; margin-top: 8px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; margin-right: 6px; }
+  .b-green { background: var(--lightgreen); color: var(--green); }
+  .b-orange { background: var(--lightorange); color: var(--orange); }
+  .b-red { background: var(--lightred); color: var(--red); }
+  .b-blue { background: var(--lightblue); color: var(--blue); }
+  .dec { border: 1px solid var(--border); border-left: 4px solid var(--blue); border-radius: 6px; padding: 4px 18px 12px; margin: 18px 0; background: #fcfdfe; }
+  .dec h3 { margin-top: 14px; }
+  .lbl { font-weight: 600; color: var(--blue); }
+  .lbl-cost { font-weight: 600; color: var(--orange); }
+  nav.toc { background: var(--lightgray); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; margin: 26px 0; font-size: 0.93em; }
+  nav.toc ol { margin: 6px 0; padding-left: 20px; }
+  nav.toc a { color: var(--blue); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  .mono-small { font-size: 0.86em; color: var(--gray); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Linepack in AdOpT-NET0</h1>
+  <p>How the quasi-dynamic pipeline equation and the linepack were put into the model, and which simplification was taken where &middot; 21 Sep 2026</p>
+  <p>
+    <span class="badge b-blue">FluidynamicPipeline</span>
+    <span class="badge b-green">same investment problem as the reference</span>
+    <span class="badge b-orange">1-D PWL around p_ref</span>
+    <span class="badge b-red">cyclic pack balance is the cost</span>
+  </p>
+</header>
+
+<div class="wrap">
+
+<p>Code: <code>adopt_net0/components/networks/specificNetworks/fluidynamic_pipeline.py</code>
+and its parent <code>fixed_size_pipeline.py</code>. Bare line numbers such as
+<code>:434</code> refer to the first file. The derivation lives in the vault note
+<em>12. Linepack linearization for adopt</em>, the measurements in note
+<em>13. How to make the model faster &mdash; formulation</em>. Markdown twin of this page:
+<code>linepack_formulation.md</code>.</p>
+
+<nav class="toc">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#before">What the model had before</a></li>
+    <li><a href="#physics">The physics being approximated</a></li>
+    <li><a href="#adds">What the implementation adds</a></li>
+    <li><a href="#decisions">The decisions, D1&ndash;D11</a></li>
+    <li><a href="#notmodelled">What is not modelled</a></li>
+    <li><a href="#cost">What it costs, and what it is worth so far</a></li>
+    <li><a href="#open">Open items</a></li>
+    <li><a href="#using">Using it</a></li>
+  </ol>
+</nav>
+
+<h2 id="before">1. What the model had before</h2>
+
+<p>AdOpT-NET0 networks are a chain of classes, each adding one thing.</p>
+
+<figure>
+<svg viewBox="0 0 680 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Class stack of an AdOpT network">
+<style>.f1-t{font:13px Segoe UI,Arial;fill:#123c5a}.f1-s{font:11.5px Segoe UI,Arial;fill:#555}.f1-m{font:12px Consolas,monospace;fill:#1f5f8b}</style>
+<rect x="8" y="8" width="664" height="44" rx="6" fill="#f5f5f5" stroke="#d0d7de"/>
+<text class="f1-m" x="22" y="28">Network</text><text class="f1-s" x="22" y="44">arcs, size, capex, losses, inflow / outflow into the node balances</text>
+<rect x="8" y="58" width="664" height="44" rx="6" fill="#f5f5f5" stroke="#d0d7de"/>
+<text class="f1-m" x="22" y="78">Fluid</text><text class="f1-s" x="22" y="94">compressor consumption at the sending node, leakage emissions</text>
+<rect x="8" y="108" width="664" height="44" rx="6" fill="#eaf3fa" stroke="#1f5f8b"/>
+<text class="f1-m" x="22" y="128">FixedSizePipeline</text><text class="f1-s" x="22" y="144">geometry: R, K_LP, breakpoints, and the arc capacity as the top breakpoint</text>
+<rect x="8" y="158" width="664" height="44" rx="6" fill="#fdf1e7" stroke="#c05621"/>
+<text class="f1-m" x="22" y="178" fill="#c05621">FluidynamicPipeline</text><text class="f1-s" x="22" y="194">pressure field, flow_in / flow_out, direction binary, SOS2 on the curve, linepack</text>
+<text class="f1-s" x="472" y="34">the basic formulation:</text>
+<text class="f1-m" x="472" y="50">flow &lt;= size</text>
+</svg>
+<figcaption>Each layer adds one thing and leaves the rest alone. The transport model of the
+first three layers is a single inequality; the fourth replaces it.</figcaption>
+</figure>
+
+<table>
+<tr><th>class</th><th>file</th><th>what it adds</th></tr>
+<tr><td><code>Network</code></td><td><code>networks/network.py</code></td><td>arcs, size, capex, losses, the inflow/outflow link to the node balances</td></tr>
+<tr><td><code>Fluid</code></td><td><code>genericNetworks/fluid.py</code></td><td>energy consumption at the sending node (compression), leakage emissions</td></tr>
+<tr><td><code>FixedSizePipeline</code></td><td><code>specificNetworks/fixed_size_pipeline.py</code></td><td>a pipeline geometry: the capacity of an arc follows from diameter, length and pressure band</td></tr>
+<tr><td><code>FluidynamicPipeline</code></td><td><code>specificNetworks/fluidynamic_pipeline.py</code></td><td>the pipeline equation and the linepack</td></tr>
+</table>
+
+<p>The transport model of the first three is one inequality:</p>
+
+<pre><code>flow[t] &lt;= size * rated_capacity</code></pre>
+
+<p>Nothing else. There is no pressure anywhere in the optimization &mdash; the
+<code>pressure</code> entry of a fluid network json is input data that only sizes the
+compressor work (<code>fluid.py:147</code>, <code>cons_model 2</code>) &mdash; and the gas
+is weightless in time: what enters an arc in hour <em>t</em> leaves it in hour <em>t</em>.
+That is the <strong>basic formulation</strong>, and it is exactly what
+<code>--case reference</code> solves in <code>examples/ladder/run.py</code>.</p>
+
+<div class="note">
+<strong>The finding that motivated the work.</strong> AdOpT has no linepack. A pipeline in
+the basic formulation stores nothing, so hydrogen infrastructure is valued purely as
+transport capacity, and whatever flexibility a real network gets from packing the line is
+invisible to the investment decision.
+</div>
+
+<h2 id="physics">2. The physics being approximated</h2>
+
+<p>Steady-state, isothermal, single-segment flow in a pipe:</p>
+
+\[ f\,|f| = R_e \,\bigl(p_i^2 - p_j^2\bigr) \]
+
+<p>with \(f\) the average flow in the arc, \(p_i,p_j\) the end pressures and \(R_e\)
+carrying diameter, length, friction factor and gas properties. The stored mass is
+proportional to the average pressure,</p>
+
+\[ \mathrm{LP}_{e,t} = K^{\mathrm{LP}}_e \frac{p_{i,t}+p_{j,t}}{2}, \]
+
+<p>and the pack is what makes inlet and outlet flows differ:</p>
+
+\[ \mathrm{LP}_{e,t} = \mathrm{LP}_{e,t-1} + \Delta t \bigl(f^{\mathrm{in}}_{e,t} - f^{\mathrm{out}}_{e,t}\bigr),
+\qquad f_{e,t} = \tfrac12\bigl(f^{\mathrm{in}}_{e,t}+f^{\mathrm{out}}_{e,t}\bigr). \]
+
+<figure>
+<svg viewBox="0 0 680 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="One arc with inlet flow, stored linepack and outlet flow">
+<style>.f2-t{font:13px Segoe UI,Arial;fill:#222}.f2-s{font:11.5px Segoe UI,Arial;fill:#555}.f2-m{font:12px Consolas,monospace;fill:#1f5f8b}.f2-n{font:13px Segoe UI,Arial;fill:#fff}</style>
+<defs><marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#1f5f8b"/></marker></defs>
+<circle cx="70" cy="110" r="34" fill="#1f5f8b"/><text class="f2-n" x="70" y="115" text-anchor="middle">node i</text>
+<circle cx="610" cy="110" r="34" fill="#1f5f8b"/><text class="f2-n" x="610" y="115" text-anchor="middle">node j</text>
+<rect x="150" y="86" width="380" height="48" rx="10" fill="#eaf3fa" stroke="#1f5f8b" stroke-width="1.5"/>
+<text class="f2-m" x="340" y="106" text-anchor="middle">linepack  LP = K_LP (p_i + p_j) / 2</text>
+<text class="f2-s" x="340" y="124" text-anchor="middle">bounded by K_LP p_min and K_LP p_max, tied to the install binary</text>
+<line x1="106" y1="110" x2="146" y2="110" stroke="#1f5f8b" stroke-width="2" marker-end="url(#a)"/>
+<line x1="534" y1="110" x2="572" y2="110" stroke="#1f5f8b" stroke-width="2" marker-end="url(#a)"/>
+<text class="f2-m" x="126" y="98" text-anchor="middle">f_in</text>
+<text class="f2-m" x="553" y="98" text-anchor="middle">f_out</text>
+<text class="f2-s" x="70" y="164" text-anchor="middle">p_i</text>
+<text class="f2-s" x="610" y="164" text-anchor="middle">p_j</text>
+<text class="f2-t" x="340" y="176" text-anchor="middle">LP(t) = LP(t-1) + dt (f_in - f_out)      f = (f_in + f_out) / 2</text>
+<text class="f2-t" x="340" y="200" text-anchor="middle" fill="#b02a2a">f |f| = R (p_i&#178; - p_j&#178;)   approximated by the PWL below</text>
+<text class="f2-s" x="340" y="60" text-anchor="middle">the pack belongs to the pipeline; the two directions are two arc blocks sharing it</text>
+</svg>
+<figcaption>One arc. Two flows instead of one, a stored quantity between them, and a
+pressure at each end. Everything in section 4 follows from these four objects.</figcaption>
+</figure>
+
+<p>Two of the three relations are already linear. <strong>The whole difficulty is the first
+equation</strong>, and section 4 is about how it enters a MILP.</p>
+
+<p>Both coefficients are derived in <code>fit_network_performance</code>
+(<code>fixed_size_pipeline.py:78</code>), per arc, because both scale with the length:</p>
+
+<pre><code>f_D   = (2 log10(3.7 D / eps))^-2                                             Nikuradse, fully turbulent
+R_e   = ed^2 * 3.6^2 * pi^2/16 * D^5 * 1e10 / (f_D * 1000 * Z * R_s * T) / L  [MW^2/bar^2]
+K_LP  = ed * (pi D^2/4 * 1000) * 100 / (Z * R_s * T) * L                      [MWh/bar]</code></pre>
+
+<p><code>ed</code> is the energy density in MWh/t: the mass flow is converted to an energy
+flow so that the arc flow, the arc size and the linepack come out in MW and MWh, consistent
+with the energy balance and with the compressors. The SI conversion factors are hardcoded,
+so the json has to give diameter and roughness in m, pressures in bar, temperature in K,
+molar mass in kg/kmol and the topology distance in km.</p>
+
+<p>Worked values for the pipeline types of the ladder case:</p>
+
+<table>
+<tr><th>type</th><th>D [m]</th><th>band [bar]</th><th>p_ref</th><th>L used</th><th>f_D</th><th>R_e</th><th>K_LP [MWh/bar]</th><th>capacity [MW]</th><th>usable pack [MWh]</th></tr>
+<tr><td>small</td><td>0.18</td><td>5&ndash;15</td><td>10</td><td>30 km</td><td>0.0144</td><td>29.8</td><td>1.95</td><td>61</td><td>19.5</td></tr>
+<tr><td>medium</td><td>0.22</td><td>15&ndash;30</td><td>22.5</td><td>20 km</td><td>0.0138</td><td>127</td><td>1.94</td><td>224</td><td>29.1</td></tr>
+<tr><td>large</td><td>0.35</td><td>15&ndash;30</td><td>22.5</td><td>20 km</td><td>0.0126</td><td>1419</td><td>4.91</td><td>748</td><td>73.6</td></tr>
+<tr><td>backbone</td><td>1.20</td><td>30&ndash;70</td><td>50</td><td>100 km</td><td>0.0100</td><td>1.69e5</td><td>288</td><td>20119</td><td>11535</td></tr>
+</table>
+
+<div class="warn">
+The last column is the ratio that decides whether any of this matters: a large pipe holds
+74 MWh of usable pack against 748 MW of throughput, i.e. <strong>six minutes of its own
+rated flow</strong>.
+</div>
+
+<h2 id="adds">3. What the implementation adds</h2>
+
+<p>Per arc and timestep, on top of the basic formulation:</p>
+
+<table>
+<tr><th>object</th><th>where</th><th>why it exists</th></tr>
+<tr><td><code>var_pressure[t, node]</code></td><td><code>:282</code>, network block</td><td>the potential the flows are driven by</td></tr>
+<tr><td><code>var_flow_in</code>, <code>var_flow_out</code></td><td><code>:313</code>, <code>:318</code></td><td>inlet and outlet differ by what is packed</td></tr>
+<tr><td><code>var_flow</code> (inherited), the mean of the two</td><td><code>:325</code></td><td>the parents' opex, emissions and size constraints all read it</td></tr>
+<tr><td><code>var_direction[t]</code>, binary</td><td><code>:323</code></td><td>which of the two directed arc blocks is active</td></tr>
+<tr><td><code>var_delta_pressure[t]</code></td><td><code>:591</code></td><td>the non-negative pressure drop in the active direction</td></tr>
+<tr><td><code>var_lambda[t, z]</code> + SOS2</td><td><code>:596</code>, <code>:674</code></td><td>interpolation on the pressure&ndash;flow curve</td></tr>
+<tr><td><code>var_linepack[t, arc]</code></td><td><code>:376</code>, unique arcs</td><td>stored energy, one per pipeline and not per direction</td></tr>
+</table>
+
+<p>plus the network-level constraints: the linepack definition and balance
+(<code>:434</code>&ndash;<code>:482</code>), the direction constraints (<code>:488</code>)
+and the two no-flow pressure equalizations (<code>:545</code>, <code>:554</code>).</p>
+
+<h2 id="decisions">4. The decisions</h2>
+
+<p>Each one states the basic formulation, what was done instead, and what it costs.</p>
+
+<div class="dec">
+<h3>D1 &mdash; One-dimensional PWL around a reference pressure</h3>
+<p>\(p_i^2-p_j^2 = (p_i-p_j)(p_i+p_j)\), so the flow depends on the pressure
+<em>difference</em> and on the <em>absolute level</em>. A faithful approximation is
+therefore two-dimensional.</p>
+
+<p><span class="lbl">Done instead:</span> fix the low pressure at <code>pressure_ref</code>
+and build a one-dimensional curve (<code>fixed_size_pipeline.py:139</code>):</p>
+
+\[ F_z = \sqrt{R_e\,\Delta P_z\,\bigl(2p^{\mathrm{ref}} + \Delta P_z\bigr)},
+\qquad \Delta P_z \in \mathrm{linspace}\bigl(0,\; p^{\max}-p^{\mathrm{ref}},\; Z\bigr). \]
+
+<figure>
+<svg viewBox="0 0 680 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pressure difference versus flow: true curve, chords and secants">
+<style>.f3-gr{stroke:#e3e8ee;stroke-width:1}.f3-ax{stroke:#8a94a0;stroke-width:1}.f3-tx{font:12px Segoe UI,Arial;fill:#555}.f3-tl{font:12.5px Segoe UI,Arial}</style>
+<line class="f3-gr" x1="62.0" y1="314.0" x2="662.0" y2="314.0"/>
+<text class="f3-tx" x="54.0" y="318.0" text-anchor="end">0</text>
+<line class="f3-gr" x1="62.0" y1="264.7" x2="662.0" y2="264.7"/>
+<text class="f3-tx" x="54.0" y="268.7" text-anchor="end">40</text>
+<line class="f3-gr" x1="62.0" y1="215.3" x2="662.0" y2="215.3"/>
+<text class="f3-tx" x="54.0" y="219.3" text-anchor="end">80</text>
+<line class="f3-gr" x1="62.0" y1="166.0" x2="662.0" y2="166.0"/>
+<text class="f3-tx" x="54.0" y="170.0" text-anchor="end">120</text>
+<line class="f3-gr" x1="62.0" y1="116.7" x2="662.0" y2="116.7"/>
+<text class="f3-tx" x="54.0" y="120.7" text-anchor="end">160</text>
+<line class="f3-gr" x1="62.0" y1="67.3" x2="662.0" y2="67.3"/>
+<text class="f3-tx" x="54.0" y="71.3" text-anchor="end">200</text>
+<line class="f3-gr" x1="62.0" y1="18.0" x2="662.0" y2="18.0"/>
+<text class="f3-tx" x="54.0" y="22.0" text-anchor="end">240</text>
+<line class="f3-gr" x1="62.0" y1="314.0" x2="62.0" y2="18.0"/>
+<text class="f3-tx" x="62.0" y="332.0" text-anchor="middle">0</text>
+<line class="f3-gr" x1="212.0" y1="314.0" x2="212.0" y2="18.0"/>
+<text class="f3-tx" x="212.0" y="332.0" text-anchor="middle">1.875</text>
+<line class="f3-gr" x1="362.0" y1="314.0" x2="362.0" y2="18.0"/>
+<text class="f3-tx" x="362.0" y="332.0" text-anchor="middle">3.75</text>
+<line class="f3-gr" x1="512.0" y1="314.0" x2="512.0" y2="18.0"/>
+<text class="f3-tx" x="512.0" y="332.0" text-anchor="middle">5.625</text>
+<line class="f3-gr" x1="662.0" y1="314.0" x2="662.0" y2="18.0"/>
+<text class="f3-tx" x="662.0" y="332.0" text-anchor="middle">7.5</text>
+<line class="f3-ax" x1="62.0" y1="314.0" x2="662.0" y2="314.0"/>
+<line class="f3-ax" x1="62.0" y1="314.0" x2="62.0" y2="18.0"/>
+<line x1="62.0" y1="314.0" x2="662.0" y2="18.0" stroke="#c05621" stroke-width="1" stroke-dasharray="4 4" opacity="0.8"/>
+<line x1="62.0" y1="241.3" x2="662.0" y2="18.0" stroke="#c05621" stroke-width="1" stroke-dasharray="4 4" opacity="0.8"/>
+<line x1="62.0" y1="219.3" x2="662.0" y2="32.9" stroke="#c05621" stroke-width="1" stroke-dasharray="4 4" opacity="0.8"/>
+<line x1="62.0" y1="203.2" x2="662.0" y2="38.3" stroke="#c05621" stroke-width="1" stroke-dasharray="4 4" opacity="0.8"/>
+<polyline points="62.0,314.0 65.0,295.9 68.0,288.4 71.0,282.6 74.1,277.7 77.1,273.5 80.1,269.6 83.1,266.0 86.1,262.6 89.1,259.5 92.2,256.5 95.2,253.7 98.2,251.0 101.2,248.4 104.2,245.9 107.2,243.5 110.2,241.1 113.3,238.9 116.3,236.7 119.3,234.5 122.3,232.4 125.3,230.3 128.3,228.3 131.3,226.4 134.4,224.5 137.4,222.6 140.4,220.7 143.4,218.9 146.4,217.1 149.4,215.4 152.5,213.6 155.5,211.9 158.5,210.3 161.5,208.6 164.5,207.0 167.5,205.4 170.5,203.8 173.6,202.2 176.6,200.7 179.6,199.2 182.6,197.7 185.6,196.2 188.6,194.7 191.6,193.2 194.7,191.8 197.7,190.3 200.7,188.9 203.7,187.5 206.7,186.1 209.7,184.8 212.8,183.4 215.8,182.0 218.8,180.7 221.8,179.4 224.8,178.1 227.8,176.7 230.8,175.4 233.9,174.2 236.9,172.9 239.9,171.6 242.9,170.4 245.9,169.1 248.9,167.9 251.9,166.6 255.0,165.4 258.0,164.2 261.0,163.0 264.0,161.8 267.0,160.6 270.0,159.4 273.1,158.2 276.1,157.1 279.1,155.9 282.1,154.7 285.1,153.6 288.1,152.4 291.1,151.3 294.2,150.2 297.2,149.0 300.2,147.9 303.2,146.8 306.2,145.7 309.2,144.6 312.3,143.5 315.3,142.4 318.3,141.3 321.3,140.3 324.3,139.2 327.3,138.1 330.3,137.0 333.4,136.0 336.4,134.9 339.4,133.9 342.4,132.8 345.4,131.8 348.4,130.7 351.4,129.7 354.5,128.7 357.5,127.7 360.5,126.6 363.5,125.6 366.5,124.6 369.5,123.6 372.6,122.6 375.6,121.6 378.6,120.6 381.6,119.6 384.6,118.6 387.6,117.6 390.6,116.6 393.7,115.7 396.7,114.7 399.7,113.7 402.7,112.7 405.7,111.8 408.7,110.8 411.7,109.9 414.8,108.9 417.8,107.9 420.8,107.0 423.8,106.1 426.8,105.1 429.8,104.2 432.9,103.2 435.9,102.3 438.9,101.4 441.9,100.4 444.9,99.5 447.9,98.6 450.9,97.7 454.0,96.7 457.0,95.8 460.0,94.9 463.0,94.0 466.0,93.1 469.0,92.2 472.1,91.3 475.1,90.4 478.1,89.5 481.1,88.6 484.1,87.7 487.1,86.8 490.1,85.9 493.2,85.0 496.2,84.1 499.2,83.2 502.2,82.4 505.2,81.5 508.2,80.6 511.2,79.7 514.3,78.9 517.3,78.0 520.3,77.1 523.3,76.3 526.3,75.4 529.3,74.5 532.4,73.7 535.4,72.8 538.4,72.0 541.4,71.1 544.4,70.3 547.4,69.4 550.4,68.6 553.5,67.7 556.5,66.9 559.5,66.0 562.5,65.2 565.5,64.3 568.5,63.5 571.5,62.7 574.6,61.8 577.6,61.0 580.6,60.2 583.6,59.3 586.6,58.5 589.6,57.7 592.7,56.9 595.7,56.0 598.7,55.2 601.7,54.4 604.7,53.6 607.7,52.7 610.7,51.9 613.8,51.1 616.8,50.3 619.8,49.5 622.8,48.7 625.8,47.9 628.8,47.1 631.8,46.3 634.9,45.5 637.9,44.7 640.9,43.9 643.9,43.1 646.9,42.3 649.9,41.5 653.0,40.7 656.0,39.9 659.0,39.1 662.0,38.3" fill="none" stroke="#b02a2a" stroke-width="2.4"/>
+<polyline points="62.0,314.0 212.0,183.7 362.0,126.1 512.0,79.5 662.0,38.3" fill="none" stroke="#1f5f8b" stroke-width="2.4"/>
+<circle cx="62.0" cy="314.0" r="4" fill="#1f5f8b"/>
+<circle cx="212.0" cy="183.7" r="4" fill="#1f5f8b"/>
+<circle cx="362.0" cy="126.1" r="4" fill="#1f5f8b"/>
+<circle cx="512.0" cy="79.5" r="4" fill="#1f5f8b"/>
+<circle cx="662.0" cy="38.3" r="4" fill="#1f5f8b"/>
+<text class="f3-tl" x="346.0" y="222.7" fill="#b02a2a">true relation, f = sqrt(R dp (2 p_ref + dp))</text>
+<text class="f3-tl" x="346.0" y="249.9" fill="#1f5f8b">SOS2 chords through the 5 breakpoints</text>
+<text class="f3-tl" x="346.0" y="277.0" fill="#c05621">secants: the R1 inequality relaxation</text>
+<text class="f3-tx" x="340.0" y="354.0" text-anchor="middle">pressure difference over the arc [bar]</text>
+<text class="f3-tx" x="14" y="180.0" text-anchor="middle" transform="rotate(-90 14 180.0)">flow [MW]</text>
+</svg>
+<figcaption>Medium type, 20 km, five breakpoints: \(R_e = 127\) MW&sup2;/bar&sup2;, flow
+breakpoints 0, 105.6, 152.3, 190.1, 223.6 MW. Blue is what the SOS2 formulation allows,
+orange is the secant family of the planned R1 relaxation (section 7), which is the region
+<em>under</em> the curve and needs no binaries because the curve is concave.</figcaption>
+</figure>
+
+<p><span class="lbl">Why:</span> a 2-D SOS2 needs a triangulation of the
+\((\Delta p,\bar p)\) plane and roughly squares the interpolation variables, for an effect
+that is second order inside a 15 bar band. A 1-D relation was judged sufficient for a first
+implementation.</p>
+
+<p><span class="lbl-cost">Cost:</span> the same \(\Delta p\) gives the same flow whether the
+pipe sits at the bottom or at the top of its band, which it does not in reality &mdash; a
+pipe running near \(p^{\max}\) moves more gas for the same drop. The error is one-sided and
+known: the curve is built at the <em>reference</em> level, i.e. the middle of the band.</p>
+
+<p><span class="lbl">Discretization:</span> the breakpoints are uniform in \(\Delta p\), so
+they are <em>not</em> uniform in flow &mdash; the curve is steepest at the origin, and for
+medium/20 km the first chord has slope 56 MW/bar against 18 MW/bar for the last. Five
+breakpoints is the default (<code>nr_breakpoints</code>), and the first chord is the
+crudest piece of the whole approximation.</p>
+</div>
+
+<div class="dec">
+<h3>D2 &mdash; The arc capacity is defined by the same curve</h3>
+<p><span class="lbl">Basic formulation:</span> <code>size_max</code> comes from the json and
+the size is a continuous decision.</p>
+<p><span class="lbl">Done instead:</span> the capacity of an arc is the top breakpoint, i.e.
+the flow at \(\Delta p = p^{\max}-p^{\mathrm{ref}}\)
+(<code>fixed_size_pipeline.py:155</code>), and an arc is either not built or built at that
+capacity. One json file is one pipeline type; choosing a capacity means choosing a type.</p>
+<p><span class="lbl">Why:</span> it makes <code>FixedSizePipeline</code> and
+<code>FluidynamicPipeline</code> <strong>the same investment problem</strong> &mdash; same
+corridors, same types, same capacity per arc, same capex &mdash; so the difference between
+the two objectives is the transport model and nothing else. Without it the comparison is
+confounded by the design space.</p>
+<div class="warn">
+<strong>Consequence worth remembering.</strong> The capacity depends on the arc length, so
+the same type carries less over a longer corridor. And, since the reference capacity
+<em>is</em> the flow at the top breakpoint, the two models coincide exactly when the pipes
+run flat out &mdash; which is what the runs in section 6 do.
+</div>
+</div>
+
+<div class="dec">
+<h3>D3 &mdash; Direction as a per-timestep binary, not a disjunction</h3>
+<p><span class="lbl">Basic formulation:</span> for a bidirectional network AdOpT writes each
+pipeline as two directed arc blocks, adds the cut \(f_{ij}+f_{ji}\le \mathrm{size}\)
+(<code>network.py:871</code>), and optionally a GDP disjunction forbidding both directions
+at once (<code>bidirectional_network_precise = 1</code>, <code>network.py:883</code>).</p>
+<p><span class="lbl">Done instead:</span> <code>var_direction[t]</code> per directed arc
+block; at most one direction of a pipeline active (<code>:519</code>); flow only in the
+active direction (<code>:333</code>, <code>:343</code>); and the parent's disjunction
+switched off in <code>__init__</code> (<code>:181</code>), because it would enforce the same
+condition a second time.</p>
+<p><span class="lbl">Why:</span> the direction binary is needed anyway. \(\Delta p\) and
+\(|f|\) are both non-negative in the PWL, so the sign has to live somewhere, and the two arc
+blocks are exactly the forward/reverse split of the derivation. Keeping the GDP on top would
+double the integrality for no extra information.</p>
+</div>
+
+<div class="dec">
+<h3>D4 &mdash; <code>sum(lambda) = direction</code>, not <code>= 1</code></h3>
+<p><span class="lbl">Textbook SOS2:</span> \(\sum_z \lambda_z = 1\).</p>
+<p><span class="lbl">Done instead</span> (<code>:643</code>): \(\sum_z \lambda_z =
+\xi_{e,t}\), the direction binary.</p>
+<p><span class="lbl">Why:</span> it makes an idle or unbuilt arc consistent. With \(=1\)
+every arc would have to sit on the curve at every hour, i.e. carry flow, and the end
+pressures of an unbuilt corridor would still be coupled. With \(=\xi\) an inactive direction
+gets \(\lambda = 0\), \(\Delta p = 0\), \(f = 0\), and that arc imposes nothing on its end
+pressures.</p>
+<p><span class="lbl-cost">Cost:</span> presolve cannot touch the SOS2 sets, because their
+sum is tied to a variable rather than to a constant. That is one of the reasons the model is
+expensive (section 6).</p>
+</div>
+
+<div class="dec">
+<h3>D5 &mdash; Split big-M on the pressure difference</h3>
+<p><code>var_delta_pressure</code> is tied to \(p_i-p_j\) only in the active direction, which
+needs a big-M. Written naively the constant is the full band, \(p^{\max}-p^{\min}\).</p>
+<p><span class="lbl">Done instead</span> (<code>:604</code>&ndash;<code>:638</code>), two
+terms:</p>
+<pre><code>dP_active  = max(breakpoints)               # = p_max - p_ref
+dP_unbuilt = (p_max - p_min) - dP_active
+delta_p &lt;= p_from - p_to + dP_active * (1 - direction) + dP_unbuilt * (1 - installed)</code></pre>
+<p><span class="lbl">Why:</span> on a <em>built</em> pipeline the difference can never leave
+\([-\Delta P_{\max},+\Delta P_{\max}]\), because the active direction ties it to a bounded
+variable and the inactive one is the active direction of the opposite arc, which forces the
+other sign. Only an unbuilt arc has its end pressures free over the whole band. Written as
+one term the constant would be twice as large everywhere, since the reference pressure sits
+in the middle of the band &mdash; a looser relaxation for nothing. The same split appears in
+the no-flow pressure constraints (<code>:538</code>).</p>
+</div>
+
+<div class="dec">
+<h3>D6 &mdash; The linepack lives on the unique arc, and is tied to <code>installed</code></h3>
+<p><span class="lbl">Done</span> (<code>:404</code>&ndash;<code>:455</code>): four
+constraints instead of one equality.</p>
+<pre><code>lp &lt;= K * p_max * installed                         # an unbuilt pipe holds nothing
+lp &gt;= K * p_min * installed                         # a built one holds at least the minimum
+lp &lt;= K * (p_from + p_to)/2                         # needs no big-M: lp &gt;= 0 and p &gt; 0
+lp &gt;= K * (p_from + p_to)/2 - K * p_max * (1 - installed)</code></pre>
+<p><span class="lbl">Why the first two:</span> without them the linepack of an unbuilt arc is
+a <em>free constant</em>. Its bounds do not force it to zero, the definition constraints are
+switched off by their own big-M, and the balance only ties it to itself once the flow is zero
+&mdash; so it floats at no cost whenever <code>installed</code> is fractional, which is most
+of the LP relaxation. Tying it to the install binary also hands the built case a genuine
+lower bound, since a built pipeline sits at least at \(p^{\min}\).</p>
+<p><span class="lbl">Why on the unique arc:</span> the pack belongs to the pipeline, not to a
+direction of it. The balance therefore sums the net injection over both arc blocks
+(<code>:383</code>), at most one of which is non-zero in a given hour.</p>
+</div>
+
+<div class="dec">
+<h3>D7 &mdash; Cyclic balance, and typical days closed per day</h3>
+<p><span class="lbl">Done</span> (<code>:460</code>): no initial pack is imposed, and hour 1
+is coupled to the last hour, as for storage technologies. Under typical days with
+<code>method 1</code> the cycle is closed <strong>within each typical day</strong> instead,
+using <code>hours_per_day</code>.</p>
+<p><span class="lbl">Why not the storage trick:</span> storage technologies in AdOpT keep the
+level at full resolution and map the flows through the sequence of typical days. That cannot
+be done here &mdash; the linepack is not a free variable, it is pinned to the pressures, so
+it cannot be at a finer resolution than the pressures, and the pressures cannot be finer than
+the flows they are tied to. Closing the cycle per typical day means the pack cannot be
+carried from one day into the next, which is acceptable for an intra-day store.</p>
+<div class="warn">
+<strong>Cost, and it is the expensive one.</strong> Combining the definition with the balance
+makes the pressure at hour <em>t</em> equal to hour 1's pressure plus the running sum of net
+injections, with every partial sum confined to \([K p^{\min}, K p^{\max}]\) and the total
+over the horizon equal to zero. That is a path constraint of length <em>T</em> per arc, and
+it is what a rounding heuristic cannot respect: fix the directions, set the flows greedily
+hour by hour, and the accumulated pack walks out of the pressure band somewhere in the middle
+of the horizon.
+</div>
+</div>
+
+<div class="dec">
+<h3>D8 &mdash; Pipeline pressure kept separate from compressor pressure</h3>
+<p><span class="lbl">Basic formulation:</span> the compressor work of a fluid network is a
+constant times the flow, derived from fixed <code>inlet</code>/<code>outlet</code> pressures
+in the json (<code>fluid.py:147</code>).</p>
+<p><span class="lbl">Done instead:</span> the compressors keep seeing the fixed reference
+pressure, while <code>var_pressure</code> moves freely between <code>pressure_min</code> and
+<code>pressure_max</code>. The two are not linked.</p>
+<p><span class="lbl">Why:</span> deliberately staged. Linking them makes the compressor work
+bilinear in flow and pressure ratio, i.e. a second non-linearity on top of the one being
+approximated.</p>
+<p><span class="lbl-cost">Cost:</span> compression is priced as if the network always ran at
+\(p^{\mathrm{ref}}\), so the model does not pay more for pushing a pipe to the top of its
+band. It therefore slightly over-values packing the line. Quantifying that bias is an open
+item.</p>
+</div>
+
+<div class="dec">
+<h3>D9 &mdash; One pressure field per network object</h3>
+<p><code>var_pressure</code> is declared on the network block (<code>:282</code>), indexed by
+the nodes the arcs of <em>that network</em> touch. A node served by three pipeline types
+therefore has three independent hydrogen pressures.</p>
+<div class="warn">
+<strong>A known defect, not a choice.</strong> <code>medium</code> and <code>large</code>
+share the band 15&ndash;30 bar and should share the node pressure; as written the model may
+hold one at 30 bar and the other at 15 bar at the same node in the same hour. It is both
+physically wrong and a relaxation. The fix is R2 in section 7: move the variable up to the
+model block, keyed by (pressure band, node).
+</div>
+</div>
+
+<div class="dec">
+<h3>D10 &mdash; <code>linepack_on</code>, a switch in the json</h3>
+<p><code>"linepack_on": 0</code> zeroes \(K^{\mathrm{LP}}\) in
+<code>construct_netw_model</code> (<code>:196</code>). Everything else follows on its own:
+the bounds become \((0,0)\), the definition constraints pin the variable to zero, and the
+balance degenerates to \(f^{\mathrm{in}}=f^{\mathrm{out}}\) &mdash; the pipeline equation
+without the storage. It isolates which half of the model costs what, and it is the experiment
+section 6 reports.</p>
+</div>
+
+<div class="dec">
+<h3>D11 &mdash; Node balances read the endpoint flows</h3>
+<p><code>_define_inflow_constraints</code> and <code>_define_outflow_constraints</code> are
+overridden (<code>:681</code>, <code>:700</code>) so that a node sends
+<code>var_flow_in</code> and receives <code>var_flow_out</code>. The inherited
+<code>var_flow</code>, the average, stays what the parents' opex, emissions and size
+constraints see. Without the override the node balance would use the average and the pack
+would leak into the energy balance.</p>
+</div>
+
+<h2 id="notmodelled">5. What is not modelled</h2>
+
+<p>Against a transient pipeline model (Shchetinin et al.) the implementation gives up,
+deliberately:</p>
+
+<ul>
+<li><strong>spatial discretization.</strong> One segment per pipe, so no pressure profile
+along the line and no wave propagation; the pack is a function of the two endpoint pressures
+only.</li>
+<li><strong>momentum inertia.</strong> The steady-state momentum balance is used at every
+hour ("quasi-dynamic"), valid when the timestep is long against the travel time &mdash; at
+hourly resolution it is.</li>
+<li><strong>temperature and compressibility dynamics.</strong> Both <code>T</code> and
+<code>Z</code> are constants per network.</li>
+<li><strong>the \(f \ge F(\Delta p)\) side</strong>, under the planned R1 relaxation only
+(section 7).</li>
+<li><strong>compressor&ndash;pressure coupling</strong> (D8).</li>
+</ul>
+
+<h2 id="cost">6. What it costs, and what it is worth so far</h2>
+
+<p>Measured on <code>examples/ladder/1L3S</code> (four nodes, no backbone, 160 h, Gurobi 13,
+4 threads, <code>mipgap 1e-2</code>).</p>
+
+<table>
+<tr><th></th><th>reference</th><th>linepack <strong>off</strong> (D10)</th><th>linepack <strong>on</strong></th></tr>
+<tr><td>rows / cols / nonzeros</td><td>88&nbsp;725 / 75&nbsp;674 / 216&nbsp;358</td><td>&mdash;</td><td>143&nbsp;463 / 126&nbsp;554 / 469&nbsp;834</td></tr>
+<tr><td>binaries after presolve</td><td>2&nbsp;898</td><td>&mdash;</td><td>5&nbsp;778</td></tr>
+<tr><td>SOS2 sets</td><td>0</td><td>5&nbsp;760</td><td>5&nbsp;760</td></tr>
+<tr><td>B&amp;B nodes</td><td><strong>1</strong></td><td><strong>1</strong></td><td><strong>1&nbsp;197</strong></td></tr>
+<tr><td>time</td><td><strong>2.5 s</strong></td><td><strong>91 s</strong></td><td><strong>4&nbsp;154 s</strong></td></tr>
+<tr><td>objective</td><td>4.131319e7</td><td>4.128101e7</td><td>4.126188e7</td></tr>
+<tr><td>gap reached</td><td>0.75 %</td><td>0.42 %</td><td>0.25 %</td></tr>
+</table>
+
+<p>Three readings, and they decide where the work goes next:</p>
+
+<ol>
+<li><strong>The cyclic pack balance (D7) is what causes the branching.</strong> Switch the
+pack off and the model solves at the root, like the reference: 1&nbsp;197 nodes become 1,
+45&times; faster.</li>
+<li><strong>The pipeline equation (D1, D3, D4) is a constant factor at the root</strong>,
+37&times; &mdash; a heavier LP and a long cut loop, not an explosion. The SOS2 sets are never
+branched on here.</li>
+<li><strong>The pack <em>weakens</em> the root bound</strong> (4.0965e7 against the
+reference's 4.1002e7): it buys the LP degrees of freedom that the MIP then has to branch
+away.</li>
+</ol>
+
+<p>And the physical result, consistent across the ladder and the full NL case:</p>
+
+<ul>
+<li>on <code>1L3S</code> the linepack is worth <strong>0.046 %</strong>, and the pack swings
+~705 MWh against ~181 GWh transported, i.e. 0.4 %;</li>
+<li>on the NL case at 24 h with imports capped, the fluidynamic optimum equals the
+capacity-only optimum <strong>to ten digits</strong>, proved at a 0.0000 % gap;</li>
+<li>in both, \(\Delta p\) <strong>saturates the top breakpoint</strong> on every active arc
+&mdash; and by D2 that is precisely where the two transport models are the same model.</li>
+</ul>
+
+<div class="warn">
+Both differences are smaller than the tolerance they were measured at, so no claim about what
+linepack is worth survives without a rerun at <code>mipgap 1e-4</code>. What is already clear
+is the regime question: 25 GW pipes carrying a few hundred MW are nowhere near where packing
+a line does anything. A case that separates the two models needs <strong>narrow corridors
+near capacity, long distances, and supply swinging faster than demand</strong>.
+</div>
+
+<h2 id="open">7. Open items</h2>
+
+<table>
+<tr><th>id</th><th>change</th><th>status</th></tr>
+<tr><td>R5</td><td>close the pack cycle daily instead of over the horizon</td><td>first in line &mdash; the only option aimed at the measured branching driver, and <code>hours_per_typical_day</code> already implements the mechanism</td></tr>
+<tr><td>R1</td><td>replace the SOS2 equality by the \(Z-1\) secant inequalities \(f \le s_k\Delta p + b_k\chi\)</td><td>the curve is concave, so the secants describe the region under it <em>exactly</em>; removes every direction binary and SOS2 set, leaving only the install binaries. Gives up the \(f \ge F(\Delta p)\) side, i.e. it allows throttling</td></tr>
+<tr><td>R12</td><td>two-dimensional \((\Delta p, \bar p)\) approximation, removing D1</td><td>unaffordable under SOS2, cheap under R1: \(f \le \sqrt{2R_e\Delta p\,\bar p}\) is a geometric mean, hence concave, hence tangent planes and no binaries</td></tr>
+<tr><td>R2</td><td>share the node pressure across types of the same band (D9)</td><td>correctness, not only speed</td></tr>
+<tr><td>R3 / R4 / R10</td><td>at most one type per corridor; tighter flow big-M; tighter pressure bounds</td><td>safe tightenings</td></tr>
+<tr><td>&mdash;</td><td>rerun the pair at <code>mipgap 1e-4</code></td><td>without it neither the 0.12 % nor the 0.046 % means anything</td></tr>
+<tr><td>&mdash;</td><td>quantify the D8 compressor decoupling</td><td>unquantified bias, direction known</td></tr>
+</table>
+
+<h2 id="using">8. Using it</h2>
+
+<p>A pipeline type is one json in <code>network_data/</code>, with
+<code>"network_type": "fluidynamic_pipeline"</code> and, under <code>Performance</code>:
+<code>diameter</code>, <code>roughness</code>, <code>pressure_min</code>,
+<code>pressure_max</code>, <code>pressure_ref</code>, <code>temperature</code>,
+<code>compressibility_factor</code>, <code>molar_mass</code>, <code>energy_density</code>,
+<code>nr_breakpoints</code>, <code>linepack_on</code>. <code>size_max</code> in the json is
+ignored &mdash; the capacity comes from the geometry (D2).</p>
+
+<pre><code>cd examples/ladder
+python run.py --rung 1L3S --hours 24 --case both       # reference first, then linepack
+python run.py --rung 1L3S --hours 24 --case linepack</code></pre>
+
+<p>Results written per arc: <code>flow_in</code>, <code>flow_out</code>,
+<code>delta_pressure</code>, <code>direction</code>; per unique arc <code>linepack</code>;
+per node <code>pressure</code> (<code>:718</code>).</p>
+
+<p class="mono-small">Related vault notes: <em>12. Linepack linearization for adopt</em>
+(derivation) &middot; <em>13. How to make model faster &mdash; formulation</em> (measurements,
+R1&ndash;R12) &middot; <em>11. Implementing adopt comparison</em> (the three fidelity levels)
+&middot; <em>1. 09-04-2026 Understanding linepack</em> (the transient model this one
+approximates) &middot; <code>examples/ladder/README.md</code> (the case ladder).</p>
+
+</div>
+</body>
+</html>
