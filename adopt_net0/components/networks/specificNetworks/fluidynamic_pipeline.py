@@ -154,7 +154,7 @@ class FluidynamicPipeline(FixedSizePipeline):
         days, cannot be used here: the linepack is not a free variable but is fixed
         by the pressures, so it cannot be at a higher resolution than the pressures,
         and the pressures in turn cannot be at a higher resolution than the flows
-        they are linked to.
+        they are linked to. (For now: don't use typical days)
 
     .. note::
         For a bidirectional network, the two directions of a pipeline are two
@@ -176,6 +176,9 @@ class FluidynamicPipeline(FixedSizePipeline):
         """
         super().__init__(netw_data)
 
+        self.linepack_on = netw_data["Performance"].get("linepack_on", 1)
+        self.pressure_coupled = netw_data["Performance"].get("pressure_coupled", 1)
+
         if self.bidirectional_network:
             # The direction is enforced per timestep with var_direction, so the
             # disjunction of the parent class is not needed
@@ -195,6 +198,10 @@ class FluidynamicPipeline(FixedSizePipeline):
         :return: pyomo block with network model
         """
         config = data["config"]
+
+        if not self.linepack_on:
+            coeff_ti = self.processed_coeff.time_independent
+            coeff_ti["linepack"] = coeff_ti["linepack"] * 0
 
         if config["optimization"]["timestaging"]["value"] != 0:
             self.nr_timesteps_averaged = config["optimization"]["timestaging"]["value"]
@@ -242,6 +249,37 @@ class FluidynamicPipeline(FixedSizePipeline):
 
         return b_netw
 
+    def _get_pressure_key(self, arc, node):
+        """
+        Returns the index the pressure of a node is defined on
+
+        With ``pressure_coupled`` the pressure is indexed by the node alone, so every
+        arc that touches it reads the same variable. Without it the index also carries
+        the pipeline the pressure is seen from, and the two directions of a pipeline
+        map to the same index.
+
+        :param arc: the arc the pressure is seen from
+        :param str node: the node
+        :return: the index of the pressure
+        """
+        if self.pressure_coupled:
+            return node
+
+        node_from, node_to = sorted(arc)
+        return f"{node_from}|{node_to}|{node}"
+
+    def _get_pressure(self, b_netw, t, arc, node):
+        """
+        Returns the pressure of a node as the given arc sees it
+
+        :param b_netw: pyomo network block
+        :param t: timestep
+        :param arc: the arc the pressure is seen from
+        :param str node: the node
+        :return: the pressure variable
+        """
+        return b_netw.var_pressure[t, self._get_pressure_key(arc, node)]
+
     def _define_pressure_vars(self, b_netw):
         """
         Defines the pressure at each node the network reaches
@@ -252,6 +290,13 @@ class FluidynamicPipeline(FixedSizePipeline):
             of an arc appear in the pipeline equation and in the linepack, so the
             pressure is defined on those alone: a node the network does not reach
             would get a variable that no constraint touches, which stays unsolved.
+
+        .. note::
+            With ``pressure_coupled = 0`` the pressure is defined per pipeline end
+            instead of per node, so the arcs that meet at a node no longer share it
+            and the pressure does not propagate through the network. Each arc keeps
+            its own pipeline equation and its own linepack, but at a pressure level
+            of its own, so this is a diagnostic and not a transport model.
 
         :param b_netw: pyomo network block
         :return: pyomo network block
@@ -269,8 +314,18 @@ class FluidynamicPipeline(FixedSizePipeline):
             mutable=True,
         )
 
+        # At each node the pressure of a network is the same for every arc of the
+        # network that touches it, which is what makes the pressure propagate. The
+        # coupling is what pressure_coupled switches: without it the index carries the
+        # pipeline as well, so every arc has a pair of end pressures of its own
         b_netw.set_pressure_nodes = pyo.Set(
-            initialize=sorted({node for arc in b_netw.set_arcs for node in arc})
+            initialize=sorted(
+                {
+                    self._get_pressure_key(arc, node)
+                    for arc in b_netw.set_arcs
+                    for node in arc
+                }
+            )
         )
 
         b_netw.var_pressure = pyo.Var(
@@ -430,7 +485,10 @@ class FluidynamicPipeline(FixedSizePipeline):
             return (
                 b_netw.var_linepack[t, node_from, node_to]
                 <= linepack
-                * (b_netw.var_pressure[t, node_from] + b_netw.var_pressure[t, node_to])
+                * (
+                    self._get_pressure(b_netw, t, (node_from, node_to), node_from)
+                    + self._get_pressure(b_netw, t, (node_from, node_to), node_to)
+                )
                 / 2
             )
 
@@ -441,7 +499,8 @@ class FluidynamicPipeline(FixedSizePipeline):
         def init_linepack_low(const, t, node_from, node_to):
             linepack = coeff_ti["linepack"].at[node_from, node_to]
             return b_netw.var_linepack[t, node_from, node_to] >= linepack * (
-                b_netw.var_pressure[t, node_from] + b_netw.var_pressure[t, node_to]
+                self._get_pressure(b_netw, t, (node_from, node_to), node_from)
+                + self._get_pressure(b_netw, t, (node_from, node_to), node_to)
             ) / 2 - linepack * coeff_ti["pressure_max"] * (
                 1 - b_netw.arc_block[node_from, node_to].var_installed
             )
@@ -537,18 +596,26 @@ class FluidynamicPipeline(FixedSizePipeline):
             ) + delta_pressure_unbuilt * (1 - installed)
 
         def init_no_flow_pressure_high(const, t, node_from, node_to):
-            return b_netw.var_pressure[t, node_from] - b_netw.var_pressure[
-                t, node_to
-            ] <= get_slack(t, node_from, node_to)
+            return self._get_pressure(
+                b_netw, t, (node_from, node_to), node_from
+            ) - self._get_pressure(
+                b_netw, t, (node_from, node_to), node_to
+            ) <= get_slack(
+                t, node_from, node_to
+            )
 
         b_netw.const_no_flow_pressure_high = pyo.Constraint(
             self.set_t, b_netw.set_arcs_unique, rule=init_no_flow_pressure_high
         )
 
         def init_no_flow_pressure_low(const, t, node_from, node_to):
-            return b_netw.var_pressure[t, node_from] - b_netw.var_pressure[
-                t, node_to
-            ] >= -get_slack(t, node_from, node_to)
+            return self._get_pressure(
+                b_netw, t, (node_from, node_to), node_from
+            ) - self._get_pressure(
+                b_netw, t, (node_from, node_to), node_to
+            ) >= -get_slack(
+                t, node_from, node_to
+            )
 
         b_netw.const_no_flow_pressure_low = pyo.Constraint(
             self.set_t, b_netw.set_arcs_unique, rule=init_no_flow_pressure_low
@@ -601,16 +668,16 @@ class FluidynamicPipeline(FixedSizePipeline):
         # var_delta_pressure, which is bounded by dP, and the inactive one is the
         # active direction of the opposite arc, which forces the difference to have
         # the other sign. Only an arc that is not built has its node pressures free
-        # over the whole range, and that is what the second term pays for. Written as
-        # one term it would be twice as large everywhere, since the reference
-        # pressure sits at the middle of the range.
+        # over the whole range.
         delta_pressure_active = max(breakpoints_delta_pressure)
         delta_pressure_unbuilt = delta_pressure_max - delta_pressure_active
 
         def init_delta_pressure_high(const, t):
-            return b_arc.var_delta_pressure[t] <= b_netw.var_pressure[
-                t, node_from
-            ] - b_netw.var_pressure[t, node_to] + delta_pressure_active * (
+            return b_arc.var_delta_pressure[t] <= self._get_pressure(
+                b_netw, t, (node_from, node_to), node_from
+            ) - self._get_pressure(
+                b_netw, t, (node_from, node_to), node_to
+            ) + delta_pressure_active * (
                 1 - b_arc.var_direction[t]
             ) + delta_pressure_unbuilt * (
                 1 - b_arc.var_installed
@@ -621,9 +688,11 @@ class FluidynamicPipeline(FixedSizePipeline):
         )
 
         def init_delta_pressure_low(const, t):
-            return b_arc.var_delta_pressure[t] >= b_netw.var_pressure[
-                t, node_from
-            ] - b_netw.var_pressure[t, node_to] - delta_pressure_active * (
+            return b_arc.var_delta_pressure[t] >= self._get_pressure(
+                b_netw, t, (node_from, node_to), node_from
+            ) - self._get_pressure(
+                b_netw, t, (node_from, node_to), node_to
+            ) - delta_pressure_active * (
                 1 - b_arc.var_direction[t]
             ) - delta_pressure_unbuilt * (
                 1 - b_arc.var_installed

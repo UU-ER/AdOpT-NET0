@@ -180,6 +180,49 @@ def set_precise_directions(input_path: Path, precise: bool):
         netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
 
 
+def set_linepack(input_path: Path, linepack: bool):
+    """
+    Switches the fluid stored in the pipeline on or off, keeping everything else.
+
+    ``linepack_on`` zeroes the linepack coefficient
+    (``fluidynamic_pipeline.py:201``), which pins the linepack to zero and degenerates
+    its balance to ``flow_in == flow_out``. The pipeline equation, the direction
+    binaries and the SOS2 all stay, so the run isolates what the storage costs from
+    what the pressure-flow coupling costs. It is a diagnostic and not a case: the
+    answer it gives is not what the linepack is worth, only where the time goes.
+
+    :param Path input_path: input data folder
+    :param bool linepack: whether the pipeline stores anything
+    """
+    for name in [BACKBONE] + CANDIDATE_TYPES:
+        netw_file = input_path / PERIOD / "network_data" / f"{name}.json"
+        netw_data = json.loads(netw_file.read_text())
+        netw_data["Performance"]["linepack_on"] = int(linepack)
+        netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
+
+
+def set_pressure_coupling(input_path: Path, coupled: bool):
+    """
+    Switches off that the arcs meeting at a node share one pressure.
+
+    ``pressure_coupled`` indexes the pressure by the pipeline end rather than by the
+    node (``fluidynamic_pipeline.py:281``), so every arc gets a pair of end pressures
+    of its own and the pressure no longer propagates through the network. Each arc
+    keeps its pipeline equation, its direction binary and its linepack, so what the
+    flag isolates is what the node coupling costs. It is a diagnostic and not a case:
+    with the coupling off the linepack of every arc sits at a level of its own, and the
+    objective it gives is not a transport optimum.
+
+    :param Path input_path: input data folder
+    :param bool coupled: whether the arcs of a node share one pressure
+    """
+    for name in [BACKBONE] + CANDIDATE_TYPES:
+        netw_file = input_path / PERIOD / "network_data" / f"{name}.json"
+        netw_data = json.loads(netw_file.read_text())
+        netw_data["Performance"]["pressure_coupled"] = int(coupled)
+        netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
+
+
 def override_solver_options(pyhub, solver_options: dict) -> dict:
     """
     Writes the solver options of the command line into the configuration of the hub.
@@ -407,6 +450,8 @@ def run(
     start: dict = None,
     solver_options: dict = None,
     precise: bool = False,
+    linepack: bool = True,
+    pressure_coupled: bool = True,
     import_cap: float = None,
 ) -> dict:
     """
@@ -423,10 +468,28 @@ def run(
         the same timestep, see :func:`set_precise_directions`. The linepack model
         enforces it through its own direction binary, so the flag only touches the
         reference
+    :param bool linepack: whether the pipeline stores anything, see
+        :func:`set_linepack`. The reference stores nothing either way, so the flag only
+        touches the linepack run
+    :param bool pressure_coupled: whether the arcs meeting at a node share one
+        pressure, see :func:`set_pressure_coupling`. The reference has no pressure, so
+        the flag only touches the linepack run
     :return: objective, design of the small clusters, arcs built, and a start
     """
     set_network_type(input_path, network_type)
     set_precise_directions(input_path, precise and network_type == REFERENCE)
+    set_linepack(input_path, linepack)
+    set_pressure_coupling(input_path, pressure_coupled)
+    if not linepack and network_type == LINEPACK:
+        print(
+            "linepack switched off: the pipeline equation is solved at steady state, "
+            "so this run says where the time goes and not what the linepack is worth"
+        )
+    if not pressure_coupled and network_type == LINEPACK:
+        print(
+            "pressure coupling switched off: every arc has its own end pressures, so "
+            "this run says what the coupling costs and not what the network can do"
+        )
 
     pyhub = adopt.ModelHub()
     pyhub.read_data(str(input_path), start_period=0, end_period=hours)
@@ -621,6 +684,36 @@ def apply_design(
     return backup
 
 
+def apply_headroom(
+    input_path: Path,
+    reference: dict,
+    small: list,
+    factor: float,
+    storage_factor: float,
+    backup: Path = None,
+) -> Path:
+    """
+    Overrides the upper bound of the small clusters' technologies, keeping the backup.
+
+    Mirrors :func:`apply_design`: a run can pin the design and override the headroom in
+    the same call, and it is the first backup that holds the case as ``build.py`` wrote
+    it.
+
+    :param Path input_path: input data folder
+    :param dict reference: design of the study, see :func:`design.headroom`
+    :param list small: small clusters of the rung
+    :param float factor: multiple of the study design for every technology but storage
+    :param float storage_factor: multiple of the study design for storage
+    :param Path backup: backup of an earlier call, when there was one
+    :return: the backup to restore at the end of the run
+    """
+    written = design.headroom(input_path, reference, small, factor, storage_factor)
+    if backup is None:
+        return written
+    design.discard(written)
+    return backup
+
+
 def parse_args(argv=None):
     """
     Reads what to solve, over how long a horizon and with which solver options.
@@ -677,6 +770,23 @@ def parse_args(argv=None):
         help="make the reference forbid a corridor carrying both ways in the same "
         "hour, which the linepack model forbids anyway. Without it the reference is "
         "cheaper than the physics allows and the comparison flatters the pipeline",
+    )
+    parser.add_argument(
+        "--no-linepack",
+        dest="linepack",
+        action="store_false",
+        help="zero the linepack coefficient, so that the pipeline equation is solved "
+        "at steady state and the storage is the only thing given up. A diagnostic: it "
+        "separates what the storage costs from what the pressure-flow coupling costs",
+    )
+    parser.add_argument(
+        "--no-pressure-coupling",
+        dest="pressure_coupled",
+        action="store_false",
+        help="give every arc its own pair of end pressures instead of one pressure "
+        "per node, so the pressure does not propagate through the network. A "
+        "diagnostic: it separates what the node coupling costs from what the "
+        "pipeline equation costs",
     )
     parser.add_argument(
         "--no-viewer",
@@ -743,6 +853,21 @@ def parse_args(argv=None):
         "--dump-design",
         metavar="FILE",
         help="write the design of a result folder to FILE and stop, see --from",
+    )
+    group.add_argument(
+        "--headroom",
+        type=float,
+        default=None,
+        help="upper bound of wind, PV and the electrolyzer at the small clusters, as a "
+        "multiple of the design of the study, overriding build.py's SIZE_HEADROOM for "
+        "this run only. Needs a --design that decides the technologies",
+    )
+    group.add_argument(
+        "--storage-headroom",
+        dest="storage_headroom",
+        type=float,
+        default=None,
+        help="same as --headroom, for storage, overriding build.py's STORAGE_HEADROOM",
     )
 
     group = parser.add_argument_group(
@@ -841,6 +966,28 @@ def main(argv=None):
                 f"\ntechnologies given by {args.given_from}\n{design.describe(pinned)}"
             )
 
+        if args.headroom is not None or args.storage_headroom is not None:
+            if not decide["tecs"]:
+                raise SystemExit(
+                    "--headroom/--storage-headroom need a --design that decides the "
+                    "technologies"
+                )
+            reference = design.read(case_dir / "reference_design.json")
+            design_backup = apply_headroom(
+                input_path,
+                reference,
+                small,
+                args.headroom,
+                args.storage_headroom,
+                design_backup,
+            )
+            bits = []
+            if args.headroom is not None:
+                bits.append(f"{args.headroom}x wind/PV/electrolyzer")
+            if args.storage_headroom is not None:
+                bits.append(f"{args.storage_headroom}x storage")
+            print(f"\nheadroom overridden: {', '.join(bits)}")
+
         start = None
         for network_type in sequence:
             print(f"\n=== {network_type} ===")
@@ -853,6 +1000,8 @@ def main(argv=None):
                 start=start if args.warmstart else None,
                 solver_options=solver_options,
                 precise=args.precise,
+                linepack=args.linepack,
+                pressure_coupled=args.pressure_coupled,
                 import_cap=args.import_cap,
             )
             start = results[network_type]["start"]
@@ -887,6 +1036,8 @@ def main(argv=None):
             # Leave the case in the state build.py wrote it in
             set_network_type(input_path, LINEPACK)
             set_precise_directions(input_path, False)
+            set_linepack(input_path, True)
+            set_pressure_coupling(input_path, True)
 
     report(results, same_layout=not deferred)
     if args.viewer:
