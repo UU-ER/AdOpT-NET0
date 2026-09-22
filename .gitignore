@@ -163,3 +163,10 @@ Playground.py
 examples/linepack/
 examples/1_settimana_operation/
 /examples/linepack_nl/.technologies_backup/
+
+# Benchmarks and scratch runs, i.e. what a measurement leaves behind
+/_bench_*/
+/_bench_*.log
+/_bench_*.err
+/benchmark_*.py
+/benchmark_*.png
