@@ -1,3 +1,4 @@
+import functools
 import warnings
 import pvlib
 from timezonefinder import TimezoneFinder
@@ -9,6 +10,12 @@ import numpy as np
 
 from ..technology import Technology
 from ...utilities import get_attribute_from_dict
+
+
+@functools.cache
+def _pv_module_database():
+    """pvlib's CEC module database, parsed once per process"""
+    return pvlib.pvsystem.retrieve_sam("CECMod")
 
 
 class Res(Technology):
@@ -106,7 +113,7 @@ class Res(Technology):
             module_name, inverter efficiency
             :return: returns PV model chain, peak power, specific area requirements
             """
-            module_database = pvlib.pvsystem.retrieve_sam("CECMod")
+            module_database = _pv_module_database()
             module = module_database[system_data["module_name"]]
 
             # Define temperature losses of module
