@@ -65,8 +65,7 @@ def construct_compressor_model(compr, nr_timesteps: int):
     # I took dynamics out
 
     m = compr.construct_compressor_model(m, data, m.set_t, m.set_t_full)
-    if compr.big_m_transformation_required:
-        m = perform_disjunct_relaxation(m)
+    m = perform_disjunct_relaxation(m)
 
     return m
 

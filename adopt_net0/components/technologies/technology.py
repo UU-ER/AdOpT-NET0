@@ -11,6 +11,7 @@ from ..utilities import (
     determine_variable_scaling,
     determine_constraint_scaling,
     get_attribute_from_dict,
+    relaxed_linear_constraint,
 )
 from .utilities import set_capex_model
 from .ccs import fit_ccs_coeff
@@ -1032,6 +1033,105 @@ class Technology(ModelComponent):
                 b_tec.const_tec_emissions_neg = pyo.Constraint(
                     self.set_t_global, rule=init_tec_emissions_neg
                 )
+
+        return b_tec
+
+    def _define_on_off(self, b_tec, relation_index, relation_terms, partload_terms):
+        """
+        On/off operation with a binary per time step (var_on), for performance
+        functions with an intercept
+
+        Off: no output and no input, or only standby power. On: the input-output
+        relations (relation_terms sum to zero) and the minimal part load
+        (partload_terms sum to zero or more). The constraints of the inactive state are
+        relaxed with big-M values from the variable bounds, as gdp.bigm relaxes the
+        equivalent disjunction.
+
+        :param b_tec: pyomo block with technology model
+        :param list relation_index: index of the input-output relations
+        :param relation_terms: function (t, index) -> list of (coefficient, variable)
+        :param partload_terms: function (t) -> list of (coefficient, variable)
+        :return: pyomo block with technology model
+        """
+        coeff_ti = self.processed_coeff.time_independent
+        standby_power = coeff_ti["standby_power"]
+        rated_capacity = coeff_ti["rated_capacity"]
+        car_standby_power = self.main_input_carrier
+        if standby_power != -1 and self.standby_power_carrier != -1:
+            car_standby_power = self.standby_power_carrier
+
+        if not b_tec.find_component("var_x"):
+            b_tec.var_x = pyo.Var(
+                self.set_t_performance, domain=pyo.NonNegativeReals, bounds=(0, 1)
+            )
+        b_tec.var_on = pyo.Var(self.set_t_performance, domain=pyo.Binary)
+
+        def init_x(const, t):
+            return b_tec.var_x[t] == b_tec.var_on[t]
+
+        b_tec.const_x = pyo.Constraint(self.set_t_performance, rule=init_x)
+
+        def off_terms(t, car_input):
+            """Terms that are zero when the technology is off"""
+            if standby_power != -1 and car_input == self.main_input_carrier:
+                return [
+                    (1, self.input[t, car_standby_power]),
+                    (-standby_power * rated_capacity, b_tec.var_size),
+                ]
+            return [(1, self.input[t, car_input])]
+
+        def init_input_off_lb(const, t, car_input):
+            return relaxed_linear_constraint(
+                off_terms(t, car_input), ">=", b_tec.var_on[t]
+            )
+
+        def init_input_off_ub(const, t, car_input):
+            return relaxed_linear_constraint(
+                off_terms(t, car_input), "<=", b_tec.var_on[t]
+            )
+
+        if standby_power != -1:
+            b_tec.const_input_off_lb = pyo.Constraint(
+                self.set_t_performance, b_tec.set_input_carriers, rule=init_input_off_lb
+            )
+        b_tec.const_input_off = pyo.Constraint(
+            self.set_t_performance, b_tec.set_input_carriers, rule=init_input_off_ub
+        )
+
+        def init_output_off(const, t, car_output):
+            return relaxed_linear_constraint(
+                [(1, self.output[t, car_output])], "<=", b_tec.var_on[t]
+            )
+
+        b_tec.const_output_off = pyo.Constraint(
+            self.set_t_performance, b_tec.set_output_carriers, rule=init_output_off
+        )
+
+        def init_input_output_on_lb(const, t, index):
+            return relaxed_linear_constraint(
+                relation_terms(t, index), ">=", 1 - b_tec.var_on[t]
+            )
+
+        def init_input_output_on_ub(const, t, index):
+            return relaxed_linear_constraint(
+                relation_terms(t, index), "<=", 1 - b_tec.var_on[t]
+            )
+
+        b_tec.const_input_output_on_lb = pyo.Constraint(
+            self.set_t_performance, relation_index, rule=init_input_output_on_lb
+        )
+        b_tec.const_input_output_on_ub = pyo.Constraint(
+            self.set_t_performance, relation_index, rule=init_input_output_on_ub
+        )
+
+        def init_min_partload(const, t):
+            return relaxed_linear_constraint(
+                partload_terms(t), ">=", 1 - b_tec.var_on[t]
+            )
+
+        b_tec.const_min_partload = pyo.Constraint(
+            self.set_t_performance, rule=init_min_partload
+        )
 
         return b_tec
 
