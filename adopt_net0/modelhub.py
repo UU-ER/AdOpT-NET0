@@ -598,7 +598,13 @@ class ModelHub:
             if not config["scaling"]["scaling_on"]["value"]:
                 if objective in ["emissions_minC", "pareto"]:
                     config["solveroptions"]["solver"]["value"] = "gurobi_persistent"
-            self.solver = get_gurobi_parameters(config["solveroptions"])
+            self.solver = get_gurobi_parameters(
+                config["solveroptions"],
+                matrix_handover=config["reporting"]["write_solution_diagnostics"][
+                    "value"
+                ]
+                < 2,
+            )
 
         elif config["solveroptions"]["solver"]["value"] == "glpk":
             self.solver = get_glpk_parameters(config["solveroptions"])
@@ -993,8 +999,6 @@ class ModelHub:
         """
         config = self.data.model_config
         model = self.solver._solver_model
-        constraint_map = self.solver._pyomo_con_to_solver_con_map
-        variable_map = self.solver._pyomo_var_to_solver_var_map
 
         # Write solution quality to txt
         with open(f"{save_path}/diag_solution_quality.txt", "w") as file:
@@ -1003,6 +1007,8 @@ class ModelHub:
             sys.stdout = sys.__stdout__  # Reset stdout to the console
 
         if config["reporting"]["write_solution_diagnostics"]["value"] >= 2:
+            constraint_map = self.solver._pyomo_con_to_solver_con_map
+            variable_map = self.solver._pyomo_var_to_solver_var_map
             # Write constraint map to txt
             with open(f"{save_path}/diag_constraint_map.txt", "w") as file:
                 for key, value in constraint_map.items():
