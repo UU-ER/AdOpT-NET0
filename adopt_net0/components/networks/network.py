@@ -1,5 +1,6 @@
 from ..component import ModelComponent
 from ..utilities import (
+    relaxed_linear_constraint,
     annualize,
     set_discount_rate,
     perform_disjunct_relaxation,
@@ -328,8 +329,7 @@ class Network(ModelComponent):
                     b_arc, b_netw, node_from, node_to
                 )
 
-            if b_arc.big_m_transformation_required:
-                b_arc = perform_disjunct_relaxation(b_arc)
+            b_arc = perform_disjunct_relaxation(b_arc)
 
             # LOG
             log_msg = f"\t\t - Constructing Arc {node_from} - {node_to} " f"completed"
@@ -879,41 +879,32 @@ class Network(ModelComponent):
             self.set_t, b_netw.set_arcs_unique, rule=init_cut_bidirectional
         )
 
-        # Disjunction
+        # Flow in one direction per time step (var_flow_forward = 1: from -> to)
         if self.bidirectional_network_precise:
-            self.big_m_transformation_required = 1
-
-            def init_bidirectional(dis, t, node_from, node_to, ind):
-                if ind == 0:
-
-                    def init_bidirectional1(const):
-                        return b_netw.arc_block[node_from, node_to].var_flow[t] == 0
-
-                    dis.const_flow_zero = pyo.Constraint(rule=init_bidirectional1)
-
-                else:
-
-                    def init_bidirectional2(const):
-                        return b_netw.arc_block[node_to, node_from].var_flow[t] == 0
-
-                    dis.const_flow_zero = pyo.Constraint(rule=init_bidirectional2)
-
-            b_netw.dis_one_direction_only = gdp.Disjunct(
-                self.set_t,
-                b_netw.set_arcs_unique,
-                s_indicators,
-                rule=init_bidirectional,
+            b_netw.var_flow_forward = pyo.Var(
+                self.set_t, b_netw.set_arcs_unique, domain=pyo.Binary
             )
 
-            # Bind disjuncts
-            def bind_disjunctions(dis, t, node_from, node_to):
-                return [
-                    b_netw.dis_one_direction_only[t, node_from, node_to, i]
-                    for i in s_indicators
-                ]
+            def init_forward_only(const, t, node_from, node_to):
+                return relaxed_linear_constraint(
+                    [(1, b_netw.arc_block[node_from, node_to].var_flow[t])],
+                    "<=",
+                    b_netw.var_flow_forward[t, node_from, node_to],
+                )
 
-            b_netw.disjunction_one_direction_only = gdp.Disjunction(
-                self.set_t, b_netw.set_arcs_unique, rule=bind_disjunctions
+            b_netw.const_forward_only = pyo.Constraint(
+                self.set_t, b_netw.set_arcs_unique, rule=init_forward_only
+            )
+
+            def init_backward_only(const, t, node_from, node_to):
+                return relaxed_linear_constraint(
+                    [(1, b_netw.arc_block[node_to, node_from].var_flow[t])],
+                    "<=",
+                    1 - b_netw.var_flow_forward[t, node_from, node_to],
+                )
+
+            b_netw.const_backward_only = pyo.Constraint(
+                self.set_t, b_netw.set_arcs_unique, rule=init_backward_only
             )
 
         return b_netw

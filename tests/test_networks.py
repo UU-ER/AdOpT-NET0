@@ -81,8 +81,7 @@ def construct_netw_model(netw, nr_timesteps: int):
     m.set_nodes = pyo.Set(initialize=data["topology"]["nodes"])
 
     m = netw.construct_netw_model(m, data, m.set_nodes, m.set_t, m.set_t_full)
-    if netw.big_m_transformation_required:
-        m = perform_disjunct_relaxation(m)
+    m = perform_disjunct_relaxation(m)
 
     return m
 

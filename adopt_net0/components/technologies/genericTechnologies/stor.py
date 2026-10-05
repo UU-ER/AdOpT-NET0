@@ -6,6 +6,7 @@ import pandas as pd
 
 from ..technology import Technology, set_capex_model
 from ....components.utilities import (
+    relaxed_linear_constraint,
     annualize,
     set_discount_rate,
     get_attribute_from_dict,
@@ -391,39 +392,35 @@ class Stor(Technology):
                 )
 
             if self.allow_only_one_direction_precise:
-
-                self.big_m_transformation_required = 1
-                s_indicators = range(0, 2)
-
-                def init_input_output(dis, t, ind):
-                    if ind == 0:  # input only
-
-                        def init_output_to_zero(const, car_output):
-                            return self.output[t, car_output] == 0
-
-                        dis.const_output_to_zero = pyo.Constraint(
-                            b_tec.set_output_carriers, rule=init_output_to_zero
-                        )
-
-                    elif ind == 1:  # output only
-
-                        def init_input_to_zero(const, car_input):
-                            return self.input[t, car_input] == 0
-
-                        dis.const_input_to_zero = pyo.Constraint(
-                            b_tec.set_input_carriers, rule=init_input_to_zero
-                        )
-
-                b_tec.dis_input_output = gdp.Disjunct(
-                    self.set_t_performance, s_indicators, rule=init_input_output
+                # Charge (var_discharging = 0) or discharge (1) in every time step
+                b_tec.var_discharging = pyo.Var(
+                    self.set_t_performance, domain=pyo.Binary
                 )
 
-                # Bind disjuncts
-                def bind_disjunctions(dis, t):
-                    return [b_tec.dis_input_output[t, i] for i in s_indicators]
+                def init_output_when_discharging(const, t, car_output):
+                    return relaxed_linear_constraint(
+                        [(1, self.output[t, car_output])],
+                        "<=",
+                        b_tec.var_discharging[t],
+                    )
 
-                b_tec.disjunction_input_output = gdp.Disjunction(
-                    self.set_t_performance, rule=bind_disjunctions
+                b_tec.const_output_when_discharging = pyo.Constraint(
+                    self.set_t_performance,
+                    b_tec.set_output_carriers,
+                    rule=init_output_when_discharging,
+                )
+
+                def init_input_when_charging(const, t, car_input):
+                    return relaxed_linear_constraint(
+                        [(1, self.input[t, car_input])],
+                        "<=",
+                        1 - b_tec.var_discharging[t],
+                    )
+
+                b_tec.const_input_when_charging = pyo.Constraint(
+                    self.set_t_performance,
+                    b_tec.set_input_carriers,
+                    rule=init_input_when_charging,
                 )
 
         # Maximal charging and discharging rates
