@@ -9,7 +9,10 @@ from ..genericTechnologies.fitting_classes import (
     FitGenericTecTypeType34,
 )
 from ..technology import Technology
-from ...utilities import link_full_resolution_to_clustered, get_attribute_from_dict
+from ...utilities import (
+    link_full_resolution_to_clustered,
+    get_attribute_from_dict,
+)
 
 
 class Conv2(Technology):
@@ -267,124 +270,41 @@ class Conv2(Technology):
         """
         Linear, minimal partload
 
+        On/off per time step, see Technology._define_on_off
+
         :param b_tec: pyomo block with technology model
         :return: pyomo block with technology model
         """
-        # Transformation required
-        self.big_m_transformation_required = 1
-
-        # Performance parameter:
         coeff_ti = self.processed_coeff.time_independent
         rated_capacity = coeff_ti["rated_capacity"]
-
-        alpha1 = {}
-        alpha2 = {}
-        for car in coeff_ti["fit"]:
-            alpha1[car] = coeff_ti["fit"][car]["alpha1"]
-            alpha2[car] = coeff_ti["fit"][car]["alpha2"]
         min_part_load = coeff_ti["min_part_load"]
-        standby_power = coeff_ti["standby_power"]
-
-        if standby_power != -1:
-            if self.standby_power_carrier == -1:
-                car_standby_power = self.main_input_carrier
-            else:
-                car_standby_power = self.standby_power_carrier
-
-        if not b_tec.find_component("var_x"):
-            b_tec.var_x = pyo.Var(
-                self.set_t_performance, domain=pyo.NonNegativeReals, bounds=(0, 1)
-            )
-
         if min_part_load == 0:
             warn(
                 "Having performance_function_type = 'linear_with_intercept' with no part-load usually makes no sense. Error occured for "
                 + self.name
             )
+        alpha1 = {car: fit["alpha1"] for car, fit in coeff_ti["fit"].items()}
+        alpha2 = {car: fit["alpha2"] for car, fit in coeff_ti["fit"].items()}
 
-        # define disjuncts
-        s_indicators = range(0, 2)
+        def relation_terms(t, car_output):
+            """output - alpha1 * sum(input) - alpha2 * size * rated capacity"""
+            return (
+                [(1, self.output[t, car_output])]
+                + [
+                    (-alpha1[car_output], self.input[t, car])
+                    for car in b_tec.set_input_carriers
+                ]
+                + [(-alpha2[car_output] * rated_capacity, b_tec.var_size)]
+            )
 
-        def init_input_output(dis, t, ind):
-            if ind == 0:  # technology off
+        def partload_terms(t):
+            return [(1, self.input[t, car]) for car in b_tec.set_input_carriers] + [
+                (-min_part_load * rated_capacity, b_tec.var_size)
+            ]
 
-                dis.const_x_off = pyo.Constraint(expr=b_tec.var_x[t] == 0)
-
-                if standby_power == -1:
-
-                    def init_input_off(const, car_input):
-                        return self.input[t, car_input] == 0
-
-                    dis.const_input = pyo.Constraint(
-                        b_tec.set_input_carriers, rule=init_input_off
-                    )
-                else:
-
-                    def init_standby_power(const, car_input):
-                        if car_input == self.main_input_carrier:
-                            return (
-                                self.input[t, car_standby_power]
-                                == standby_power * b_tec.var_size * rated_capacity
-                            )
-                        else:
-                            return self.input[t, car_input] == 0
-
-                    dis.const_input = pyo.Constraint(
-                        b_tec.set_input_carriers, rule=init_standby_power
-                    )
-
-                def init_output_off(const, car_output):
-                    return self.output[t, car_output] == 0
-
-                dis.const_output_off = pyo.Constraint(
-                    b_tec.set_output_carriers, rule=init_output_off
-                )
-
-            else:  # technology on
-
-                dis.const_x_on = pyo.Constraint(expr=b_tec.var_x[t] == 1)
-
-                # input-output relation
-                def init_input_output_on(const, car_output):
-                    return (
-                        self.output[t, car_output]
-                        == alpha1[car_output]
-                        * sum(
-                            self.input[t, car_input]
-                            for car_input in b_tec.set_input_carriers
-                        )
-                        + alpha2[car_output] * b_tec.var_size * rated_capacity
-                    )
-
-                dis.const_input_output_on = pyo.Constraint(
-                    b_tec.set_output_carriers, rule=init_input_output_on
-                )
-
-                # min part load relation
-                def init_min_partload(const):
-                    return (
-                        sum(
-                            self.input[t, car_input]
-                            for car_input in b_tec.set_input_carriers
-                        )
-                        >= min_part_load * b_tec.var_size * rated_capacity
-                    )
-
-                dis.const_min_partload = pyo.Constraint(rule=init_min_partload)
-
-        b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t_performance, s_indicators, rule=init_input_output
+        return self._define_on_off(
+            b_tec, b_tec.set_output_carriers, relation_terms, partload_terms
         )
-
-        # Bind disjuncts
-        def bind_disjunctions(dis, t):
-            return [b_tec.dis_input_output[t, i] for i in s_indicators]
-
-        b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t_performance, rule=bind_disjunctions
-        )
-
-        return b_tec
 
     def _performance_function_type_piecewise(self, b_tec):
         """

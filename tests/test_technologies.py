@@ -90,8 +90,7 @@ def construct_tec_model(tec, nr_timesteps: int, dynamics: int = None):
         data["config"]["performance"]["dynamics"]["value"] = dynamics
 
     m = tec.construct_tech_model(m, data, m.set_t, m.set_t_full)
-    if tec.big_m_transformation_required:
-        m = perform_disjunct_relaxation(m)
+    m = perform_disjunct_relaxation(m)
 
     return m
 

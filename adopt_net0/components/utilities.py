@@ -1,5 +1,6 @@
 import time
 import pyomo.environ as pyo
+import pyomo.gdp as gdp
 
 import logging
 
@@ -81,12 +82,23 @@ def link_full_resolution_to_clustered(
 
 def perform_disjunct_relaxation(model_block, method: str = "gdp.bigm"):
     """
-    Performs big-m transformation for respective component
+    Performs big-m transformation for respective component, if it holds active
+    disjuncts
 
     :param component: pyomo component
     :param str method: method to make transformation with.
     :return: component
     """
+    if (
+        next(
+            model_block.component_data_objects(
+                gdp.Disjunct, active=True, descend_into=True
+            ),
+            None,
+        )
+        is None
+    ):
+        return model_block
     log_msg = "\t\t\t" + method + " Transformation..."
     print(log_msg)
     log.info(log_msg)
@@ -194,3 +206,38 @@ def get_attribute_from_dict(d: dict, key: str, value_other) -> str | float:
         return d[key]
     else:
         return value_other
+
+
+def linear_bounds(terms) -> tuple:
+    """
+    Interval bounds of sum(coefficient * variable) from the variable bounds, the way
+    gdp.bigm estimates M
+
+    :param terms: iterable of (coefficient, pyomo variable)
+    :return: (lower bound, upper bound)
+    :rtype: tuple
+    """
+    lower = upper = 0.0
+    for coefficient, var in terms:
+        low, high = coefficient * var.lb, coefficient * var.ub
+        lower += min(low, high)
+        upper += max(low, high)
+    return lower, upper
+
+
+def relaxed_linear_constraint(terms, sense: str, relax):
+    """
+    Big-M form of sum(coefficient * variable) >= 0 (sense ">=") or <= 0 (sense "<="),
+    binding when the 0-1 expression relax is 0 and relaxed when it is 1, with M as
+    gdp.bigm computes it
+
+    :param terms: list of (coefficient, pyomo variable)
+    :param str sense: ">=" or "<="
+    :param relax: 0-1 pyomo expression
+    :return: pyomo relational expression
+    """
+    lower, upper = linear_bounds(terms)
+    body = sum(coefficient * var for coefficient, var in terms)
+    if sense == ">=":
+        return body - lower * relax >= 0
+    return body - upper * relax <= 0

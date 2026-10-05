@@ -24,8 +24,8 @@ enforced:
 - In each time step the flow can only be in one of the two directions.
 
     - With ``bidirectional_network_precise = 1`` this is enforced with a
-      disjunction and a cut adding integers and thus computational complexity in the
-      solving.
+      binary variable per time step and a cut, adding integers and thus computational
+      complexity in the solving.
     - With ``bidirectional_network_precise = 0`` this is enforced with a cut, thus
       not completly eliminating a flow in both directions at the same time.
 
