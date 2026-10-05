@@ -51,12 +51,25 @@ def construct_network_constraints(model, config: dict):
 
         set_t = get_set_t(config, b_period)
 
+        # Networks per carrier and carriers per node, collected once
+        netws = [b_period.network_block[netw] for netw in b_period.set_networks]
+        transporting = {
+            car: [b_netw for b_netw in netws if car in b_netw.set_netw_carrier]
+            for car in model.set_carriers
+        }
+        consuming = {
+            car: [b_netw for b_netw in netws if car in b_netw.set_consumed_carriers]
+            for car in model.set_carriers
+        }
+        node_carriers = {
+            node: set(b_period.node_blocks[node].set_carriers)
+            for node in model.set_nodes
+        }
+
         def init_netw_inflow(const, node, car, t):
-            if car in b_period.node_blocks[node].set_carriers:
+            if car in node_carriers[node]:
                 return b_period.node_blocks[node].var_netw_inflow[t, car] == sum(
-                    b_period.network_block[netw].var_inflow[t, car, node]
-                    for netw in b_period.set_networks
-                    if car in b_period.network_block[netw].set_netw_carrier
+                    b_netw.var_inflow[t, car, node] for b_netw in transporting[car]
                 )
             else:
                 return pyo.Constraint.Skip
@@ -66,12 +79,9 @@ def construct_network_constraints(model, config: dict):
         )
 
         def init_netw_outflow(const, node, car, t):
-
-            if car in b_period.node_blocks[node].set_carriers:
+            if car in node_carriers[node]:
                 return b_period.node_blocks[node].var_netw_outflow[t, car] == sum(
-                    b_period.network_block[netw].var_outflow[t, car, node]
-                    for netw in b_period.set_networks
-                    if car in b_period.network_block[netw].set_netw_carrier
+                    b_netw.var_outflow[t, car, node] for b_netw in transporting[car]
                 )
             else:
                 return pyo.Constraint.Skip
@@ -81,13 +91,9 @@ def construct_network_constraints(model, config: dict):
         )
 
         def init_netw_consumption(const, node, car, t):
-
-            if car in b_period.node_blocks[node].set_carriers:
-
+            if car in node_carriers[node]:
                 return b_period.node_blocks[node].var_netw_consumption[t, car] == sum(
-                    b_period.network_block[netw].var_consumption[t, car, node]
-                    for netw in b_period.set_networks
-                    if car in b_period.network_block[netw].set_consumed_carriers
+                    b_netw.var_consumption[t, car, node] for b_netw in consuming[car]
                 )
             else:
                 return pyo.Constraint.Skip
@@ -383,34 +389,58 @@ def construct_nodal_energybalance(model, config: dict):
                 domain=pyo.NonNegativeReals,
             )
 
+        pressure_on = config["performance"]["pressure"]["pressure_on"]["value"] == 1
+
+        # Technology and compressor variables per node and carrier, collected once
+        terms = {}
+        for node in model.set_nodes:
+            node_block = b_period.node_blocks[node]
+            tecs = [
+                node_block.tech_blocks_active[tec]
+                for tec in node_block.set_technologies
+            ]
+            compressors = (
+                [
+                    node_block.compressor_blocks_active[compr]
+                    for compr in node_block.set_compressor
+                ]
+                if pressure_on
+                else []
+            )
+            for car in node_block.set_carriers:
+                terms[node, car] = (
+                    [b.var_output for b in tecs if car in b.set_output_carriers],
+                    [b.var_input for b in tecs if car in b.set_input_carriers],
+                    [
+                        b.var_output_ccs
+                        for b in tecs
+                        if hasattr(b, "var_output_ccs")
+                        if car in b.set_output_carriers_ccs
+                    ],
+                    [
+                        b.var_input_ccs
+                        for b in tecs
+                        if hasattr(b, "var_input_ccs")
+                        if car in b.set_input_carriers_ccs
+                    ],
+                    [
+                        c.var_consumption_energy
+                        for c in compressors
+                        if hasattr(c, "var_consumption_energy")
+                        if car in c.set_consumed_carriers
+                    ],
+                )
+
         def init_energybalance(const, t, car, node):
-            if car in b_period.node_blocks[node].set_carriers:
+            if (node, car) in terms:
+                outputs, inputs, ccs_outputs, ccs_inputs, compressions = terms[
+                    node, car
+                ]
                 node_block = b_period.node_blocks[node]
-                tec_output = sum(
-                    node_block.tech_blocks_active[tec].var_output[t, car]
-                    for tec in node_block.set_technologies
-                    if car in node_block.tech_blocks_active[tec].set_output_carriers
-                )
-
-                tec_input = sum(
-                    node_block.tech_blocks_active[tec].var_input[t, car]
-                    for tec in node_block.set_technologies
-                    if car in node_block.tech_blocks_active[tec].set_input_carriers
-                )
-
-                ccs_output = sum(
-                    node_block.tech_blocks_active[tec].var_output_ccs[t, car]
-                    for tec in node_block.set_technologies
-                    if hasattr(node_block.tech_blocks_active[tec], "var_output_ccs")
-                    if car in node_block.tech_blocks_active[tec].set_output_carriers_ccs
-                )
-
-                ccs_input = sum(
-                    node_block.tech_blocks_active[tec].var_input_ccs[t, car]
-                    for tec in node_block.set_technologies
-                    if hasattr(node_block.tech_blocks_active[tec], "var_input_ccs")
-                    if car in node_block.tech_blocks_active[tec].set_input_carriers_ccs
-                )
+                tec_output = sum(v[t, car] for v in outputs)
+                tec_input = sum(v[t, car] for v in inputs)
+                ccs_output = sum(v[t, car] for v in ccs_outputs)
+                ccs_input = sum(v[t, car] for v in ccs_inputs)
 
                 netw_inflow = node_block.var_netw_inflow[t, car]
 
@@ -430,22 +460,8 @@ def construct_nodal_energybalance(model, config: dict):
                 else:
                     violation = 0
 
-                if config["performance"]["pressure"]["pressure_on"]["value"] == 1:
-                    node_block = b_period.node_blocks[node]
-                    compression_input = sum(
-                        node_block.compressor_blocks_active[
-                            compr
-                        ].var_consumption_energy[t, car]
-                        for compr in node_block.set_compressor
-                        if hasattr(
-                            node_block.compressor_blocks_active[compr],
-                            "var_consumption_energy",
-                        )
-                        if car
-                        in node_block.compressor_blocks_active[
-                            compr
-                        ].set_consumed_carriers
-                    )
+                if pressure_on:
+                    compression_input = sum(v[t, car] for v in compressions)
                 else:
                     compression_input = 0
 
