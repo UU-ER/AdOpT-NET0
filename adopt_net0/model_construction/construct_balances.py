@@ -25,6 +25,8 @@ def delete_all_balances(model):
         model.del_component(model.const_npv)
     if model.find_component("const_emissions"):
         model.del_component(model.const_emissions)
+    if model.find_component("const_emissions_neg"):
+        model.del_component(model.const_emissions_neg)
 
     return model
 
@@ -135,15 +137,29 @@ def construct_nodal_energybalance(model, config: dict):
             if car in b_period.node_blocks[node].set_carriers:
                 node_block = b_period.node_blocks[node]
                 tec_output = sum(
-                    node_block.tech_blocks_active[tec].var_output_tot[t, car]
+                    node_block.tech_blocks_active[tec].var_output[t, car]
                     for tec in node_block.set_technologies
-                    if car in node_block.tech_blocks_active[tec].set_output_carriers_all
+                    if car in node_block.tech_blocks_active[tec].set_output_carriers
                 )
 
                 tec_input = sum(
-                    node_block.tech_blocks_active[tec].var_input_tot[t, car]
+                    node_block.tech_blocks_active[tec].var_input[t, car]
                     for tec in node_block.set_technologies
-                    if car in node_block.tech_blocks_active[tec].set_input_carriers_all
+                    if car in node_block.tech_blocks_active[tec].set_input_carriers
+                )
+
+                ccs_output = sum(
+                    node_block.tech_blocks_active[tec].var_output_ccs[t, car]
+                    for tec in node_block.set_technologies
+                    if hasattr(node_block.tech_blocks_active[tec], "var_output_ccs")
+                    if car in node_block.tech_blocks_active[tec].set_output_carriers_ccs
+                )
+
+                ccs_input = sum(
+                    node_block.tech_blocks_active[tec].var_input_ccs[t, car]
+                    for tec in node_block.set_technologies
+                    if hasattr(node_block.tech_blocks_active[tec], "var_input_ccs")
+                    if car in node_block.tech_blocks_active[tec].set_input_carriers_ccs
                 )
 
                 netw_inflow = node_block.var_netw_inflow[t, car]
@@ -166,6 +182,8 @@ def construct_nodal_energybalance(model, config: dict):
                 return (
                     tec_output
                     - tec_input
+                    + ccs_input
+                    - ccs_output
                     + netw_inflow
                     - netw_outflow
                     - netw_consumption
@@ -221,14 +239,14 @@ def construct_global_energybalance(model, config):
                 sum(
                     b_period.node_blocks[node]
                     .tech_blocks_active[tec]
-                    .var_output_tot[t, car]
+                    .var_output[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
                     if (car in b_period.node_blocks[node].set_carriers)
                     and (
                         car
                         in b_period.node_blocks[node]
                         .tech_blocks_active[tec]
-                        .set_output_carriers_all
+                        .set_output_carriers
                     )
                 )
                 for node in model.set_nodes
@@ -236,16 +254,14 @@ def construct_global_energybalance(model, config):
 
             tec_input = sum(
                 sum(
-                    b_period.node_blocks[node]
-                    .tech_blocks_active[tec]
-                    .var_input_tot[t, car]
+                    b_period.node_blocks[node].tech_blocks_active[tec].var_input[t, car]
                     for tec in b_period.node_blocks[node].set_technologies
                     if (car in b_period.node_blocks[node].set_carriers)
                     and (
                         car
                         in b_period.node_blocks[node]
                         .tech_blocks_active[tec]
-                        .set_input_carriers_all
+                        .set_input_carriers
                     )
                 )
                 for node in model.set_nodes
@@ -532,8 +548,16 @@ def construct_system_cost(model, data):
         def init_cost_capex_tecs(const):
             return b_period.var_cost_capex_tecs == sum(
                 sum(
-                    b_period.node_blocks[node].tech_blocks_active[tec].var_capex_tot
+                    b_period.node_blocks[node].tech_blocks_active[tec].var_capex
                     for tec in b_period.node_blocks[node].set_technologies
+                )
+                + sum(
+                    b_period.node_blocks[node].tech_blocks_active[tec].var_capex_ccs
+                    for tec in b_period.node_blocks[node].set_technologies
+                    if hasattr(
+                        b_period.node_blocks[node].tech_blocks_active[tec],
+                        "var_capex_ccs",
+                    )
                 )
                 for node in model.set_nodes
             )
@@ -559,10 +583,22 @@ def construct_system_cost(model, data):
                     sum(
                         b_period.node_blocks[node]
                         .tech_blocks_active[tec]
-                        .var_opex_variable_tot[t]
+                        .var_opex_variable[t]
                         * nr_timesteps_averaged
                         * hour_factors[t - 1]
                         for tec in b_period.node_blocks[node].set_technologies
+                    )
+                    + sum(
+                        b_period.node_blocks[node]
+                        .tech_blocks_active[tec]
+                        .var_opex_variable_ccs[t]
+                        * nr_timesteps_averaged
+                        * hour_factors[t - 1]
+                        for tec in b_period.node_blocks[node].set_technologies
+                        if hasattr(
+                            b_period.node_blocks[node].tech_blocks_active[tec],
+                            "var_opex_variable_ccs",
+                        )
                     )
                     for t in set_t
                 )
@@ -571,10 +607,18 @@ def construct_system_cost(model, data):
 
             tec_opex_fixed = sum(
                 sum(
+                    b_period.node_blocks[node].tech_blocks_active[tec].var_opex_fixed
+                    for tec in b_period.node_blocks[node].set_technologies
+                )
+                + sum(
                     b_period.node_blocks[node]
                     .tech_blocks_active[tec]
-                    .var_opex_fixed_tot
+                    .var_opex_fixed_ccs
                     for tec in b_period.node_blocks[node].set_technologies
+                    if hasattr(
+                        b_period.node_blocks[node].tech_blocks_active[tec],
+                        "var_opex_fixed_ccs",
+                    )
                 )
                 for node in model.set_nodes
             )
@@ -782,5 +826,21 @@ def construct_global_balance(model):
         )
 
     model.const_emissions = pyo.Constraint(rule=init_emissions)
+
+    def init_emissions_neg(const):
+        return (
+                sum(model.periods[period].var_emissions_neg for period in model.set_periods)
+                == model.var_emissions_neg
+        )
+
+    model.const_emissions_neg = pyo.Constraint(rule=init_emissions_neg)
+
+    def init_emissions_pos(const):
+        return (
+                sum(model.periods[period].var_emissions_pos for period in model.set_periods)
+                == model.var_emissions_pos
+        )
+
+    model.const_emissions_pos = pyo.Constraint(rule=init_emissions_pos)
 
     return model

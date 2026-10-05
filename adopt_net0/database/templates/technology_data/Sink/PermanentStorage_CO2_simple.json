@@ -5,11 +5,11 @@
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
-    "comment": "CAPEX is 0, cost are given by OPEX_variable in EUR/tCO2 stored",
-    "CAPEX_model": 1,
-    "unit_CAPEX": 0,
-    "OPEX_variable": 20,
-    "OPEX_fixed": 0,
+    "comment": "CAPEX is 0, cost are given by opex_variable in EUR/tCO2 stored",
+    "capex_model": 1,
+    "unit_capex": 0,
+    "opex_variable": 20,
+    "opex_fixed": 0,
     "discount_rate": 0.1,
     "lifetime": 25,
     "decommission_cost": 0

@@ -29,6 +29,8 @@ class DacAdsorption(Technology):
     Industrial and Engineering Chemistry Research, 2022, 12649–12667.
     https://doi.org/10.1021/acs.iecr.2c00681. It resembles operation configuration 1
     without water spraying.
+    The performance data from the process model and respective metadata is located in
+    database/templates/technology_data/DAC/DAC_adsorption_data
     """
 
     def __init__(self, tec_data: dict):
@@ -39,8 +41,8 @@ class DacAdsorption(Technology):
         """
         super().__init__(tec_data)
 
-        self.component_options.emissions_based_on = "output"
-        self.component_options.main_output_carrier = "CO2captured"
+        self.emissions_based_on = "output"
+        self.main_output_carrier = "CO2captured"
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -52,19 +54,44 @@ class DacAdsorption(Technology):
         super(DacAdsorption, self).fit_technology_performance(climate_data, location)
 
         # Number of segments
-        nr_segments = self.input_parameters.performance_data["nr_segments"]
+        nr_segments = self.performance_data["nr_segments"]
 
         # Read performance data from file
-        performance_data_path = Path(__file__).parent.parent.parent.parent
-        performance_data_path = (
-            performance_data_path
-            / "database/templates/technology_data/DAC/DAC_adsorption_data/dac_adsorption_performance.txt"
+        data_dir = (
+            Path(__file__).parent.parent.parent.parent
+            / "database/templates/technology_data/DAC/DAC_adsorption_data"
         )
+        data_source = self.performance_data.get("performance_data_source", "default")
+        if data_source not in ("default", "rezo"):
+            raise ValueError(
+                f"performance_data_source '{data_source}' is not valid. "
+                f"Options are: 'default', 'rezo'"
+            )
 
-        performance_data = pd.read_csv(performance_data_path, sep=",")
+        performance_data = pd.read_csv(
+            data_dir / f"dac_adsorption_performance_{data_source}.csv", sep=","
+        )
         performance_data = performance_data.rename(
             columns={"T": "temp_air", "RH": "humidity"}
         )
+
+        if data_source == "rezo":
+            available_gef = sorted(performance_data["grid_emission_factor"].unique())
+            requested_gef = self.performance_data["grid_emission_factor"]
+            if requested_gef not in available_gef:
+                raise ValueError(
+                    f"grid_emission_factor {requested_gef} is not available. "
+                    f"Available options are: {available_gef}"
+                )
+            performance_data = performance_data.loc[
+                performance_data["grid_emission_factor"] == requested_gef
+            ].drop(columns=["grid_emission_factor"])
+
+        # input data scaling to 1 tCO2/yr for module size
+        full_load = performance_data.loc[performance_data.Point == performance_data.Point.max()]
+        module_capacity = float(griddata(
+            (full_load.temp_air, full_load.humidity), full_load.CO2_Out, (20, 43))) * 8.76
+        performance_data.CO2_Out = performance_data.CO2_Out / module_capacity
 
         # Unit Conversion of input data
         performance_data.E_tot = performance_data.E_tot.multiply(
@@ -84,6 +111,9 @@ class DacAdsorption(Technology):
 
         # Set minimum temperature
         T.loc[T < min(performance_data.temp_air)] = min(performance_data.temp_air)
+
+        # Set minimum humidity
+        RH.loc[RH < min(performance_data.humidity)] = min(performance_data.humidity)
 
         # Derive performance points for each timestep
         def interpolate_performance_point(t, rh, point_data, var):
@@ -164,17 +194,9 @@ class DacAdsorption(Technology):
         self.processed_coeff.time_dependent_full["th_in_max"] = th_in_max
         self.processed_coeff.time_dependent_full["total_in_max"] = total_in_max
 
-        self.processed_coeff.time_independent["eta_elth"] = (
-            self.input_parameters.performance_data["performance"]["eta_elth"]
-        )
-
-        # Options
-        self.component_options.other["nr_segments"] = (
-            self.input_parameters.performance_data["nr_segments"]
-        )
-        self.component_options.other["ohmic_heating"] = (
-            self.input_parameters.performance_data["ohmic_heating"]
-        )
+        self.processed_coeff.time_independent["eta_elth"] = self.performance_data[
+            "performance"
+        ]["eta_elth"]
 
     def _calculate_bounds(self):
         """
@@ -198,7 +220,7 @@ class DacAdsorption(Technology):
                 np.zeros(shape=(time_steps)),
                 self.processed_coeff.time_dependent_used["el_in_max"]
                 + self.processed_coeff.time_dependent_used["th_in_max"]
-                / self.input_parameters.performance_data["performance"]["eta_elth"],
+                / self.performance_data["performance"]["eta_elth"],
             )
         )
         self.bounds["input"]["heat"] = np.column_stack(
@@ -231,28 +253,18 @@ class DacAdsorption(Technology):
         # Comments on the equations refer to the equation numbers in the paper. All equations can be looked up there.
 
         # Transformation required
-        self.big_m_transformation_required = 1
+        self.big_m_transformation_required = 0
 
         # DATA OF TECHNOLOGY
-        nr_segments = self.component_options.other["nr_segments"]
-        ohmic_heating = self.component_options.other["ohmic_heating"]
+        nr_segments = self.performance_data["nr_segments"]
+        ohmic_heating = self.performance_data["ohmic_heating"]
 
         bounds = self.bounds
-        coeff_td = self.processed_coeff.time_dependent_used
         coeff_ti = self.processed_coeff.time_independent
 
-        alpha = coeff_td["alpha"]
-        beta = coeff_td["beta"]
-        b_point = coeff_td["b"]
-        gamma = coeff_td["gamma"]
-        delta = coeff_td["delta"]
-        a_point = coeff_td["a"]
         eta_elth = coeff_ti["eta_elth"]
 
-        # Additional sets
-        b_tec.set_pieces = pyo.RangeSet(1, nr_segments)
-
-        if self.component_options.size_is_int:
+        if self.size_is_int:
             size_domain = pyo.NonNegativeIntegers
         else:
             size_domain = pyo.NonNegativeReals
@@ -267,7 +279,7 @@ class DacAdsorption(Technology):
         def init_input_total_bounds(bds, t):
             return tuple(bounds["input"]["total"][t - 1] * b_tec.para_size_max)
 
-        b_tec.var_input_total = pyo.Var(
+        b_tec.var_input_tot = pyo.Var(
             self.set_t_performance,
             within=pyo.NonNegativeReals,
             bounds=init_input_total_bounds,
@@ -302,89 +314,10 @@ class DacAdsorption(Technology):
             bounds=init_input_ohmic_bounds,
         )
 
-        # Input-Output relationship (eq. 1-5)
-        def init_input_output(dis, t, ind):
-            # Input-output (eq. 2)
-            def init_output(const):
-                return (
-                    self.output[t, "CO2captured"]
-                    == alpha[t - 1, ind - 1] * b_tec.var_input_total[t]
-                    + beta[t - 1, ind - 1] * b_tec.var_modules_on[t]
-                )
-
-            dis.const_output = pyo.Constraint(rule=init_output)
-
-            # Lower bound on the energy input (eq. 5)
-            def init_input_low_bound(const):
-                return (
-                    b_point[t - 1, ind - 1] * b_tec.var_modules_on[t]
-                    <= b_tec.var_input_total[t]
-                )
-
-            dis.const_input_on1 = pyo.Constraint(rule=init_input_low_bound)
-
-            # Upper bound on the energy input (eq. 5)
-            def init_input_up_bound(const):
-                return (
-                    b_tec.var_input_total[t]
-                    <= b_point[t - 1, ind] * b_tec.var_modules_on[t]
-                )
-
-            dis.const_input_on2 = pyo.Constraint(rule=init_input_up_bound)
-
-        b_tec.dis_input_output = gdp.Disjunct(
-            self.set_t_performance, b_tec.set_pieces, rule=init_input_output
-        )
-
-        # Bind disjuncts
-        def bind_disjunctions(dis, t):
-            return [b_tec.dis_input_output[t, i] for i in b_tec.set_pieces]
-
-        b_tec.disjunction_input_output = gdp.Disjunction(
-            self.set_t_performance, rule=bind_disjunctions
-        )
-
-        # Electricity-Heat relationship (eq. 7-10)
-        def init_input_input(dis, t, ind):
-            # Input-output (eq. 7)
-            def init_input(const):
-                return (
-                    b_tec.var_input_el[t]
-                    == gamma[t - 1, ind - 1] * b_tec.var_input_total[t]
-                    + delta[t - 1, ind - 1] * b_tec.var_modules_on[t]
-                )
-
-            dis.const_output = pyo.Constraint(rule=init_input)
-
-            # Lower bound on the energy input (eq. 10)
-            def init_input_low_bound(const):
-                return (
-                    a_point[t - 1, ind - 1] * b_tec.var_modules_on[t]
-                    <= b_tec.var_input_total[t]
-                )
-
-            dis.const_input_on1 = pyo.Constraint(rule=init_input_low_bound)
-
-            # Upper bound on the energy input (eq. 10)
-            def init_input_up_bound(const):
-                return (
-                    b_tec.var_input_total[t]
-                    <= a_point[t - 1, ind] * b_tec.var_modules_on[t]
-                )
-
-            dis.const_input_on2 = pyo.Constraint(rule=init_input_up_bound)
-
-        b_tec.dis_input_input = gdp.Disjunct(
-            self.set_t_performance, b_tec.set_pieces, rule=init_input_input
-        )
-
-        # Bind disjuncts
-        def bind_disjunctions(dis, t):
-            return [b_tec.dis_input_input[t, i] for i in b_tec.set_pieces]
-
-        b_tec.disjunction_input_input = gdp.Disjunction(
-            self.set_t_performance, rule=bind_disjunctions
-        )
+        if nr_segments > 1:
+            self._construct_pwa_performance(b_tec)
+        else:
+            self._construct_linear_performance(b_tec)
 
         # Constraint of number of working modules (eq. 6)
         def init_modules_on(const, t):
@@ -396,10 +329,7 @@ class DacAdsorption(Technology):
 
         # Connection thermal and electric energy demand (eq. 11)
         def init_thermal_energy(const, t):
-            return (
-                b_tec.var_input_th[t]
-                == b_tec.var_input_total[t] - b_tec.var_input_el[t]
-            )
+            return b_tec.var_input_th[t] == b_tec.var_input_tot[t] - b_tec.var_input_el[t]
 
         b_tec.const_thermal_energy = pyo.Constraint(
             self.set_t_performance, rule=init_thermal_energy
@@ -428,15 +358,179 @@ class DacAdsorption(Technology):
 
         # If ohmic heating not allowed, set to zero
         if not ohmic_heating:
-
             def init_ohmic_heating(const, t):
                 return b_tec.var_input_ohmic[t] == 0
 
             b_tec.const_ohmic_heating = pyo.Constraint(
-                self.set_t_performance, rule=init_ohmic_heating
+                self.set_t_performance, rule=init_ohmic_heating)
+            for t in self.set_t_performance:
+                b_tec.var_input_ohmic[t].setub(0)
+        return b_tec
+
+    def _construct_linear_performance(self, b_tec):
+        coeff_td = self.processed_coeff.time_dependent_used
+        alpha = coeff_td["alpha"]
+        beta = coeff_td["beta"]
+        b_point = coeff_td["b"]
+        gamma = coeff_td["gamma"]
+        delta = coeff_td["delta"]
+        a_point = coeff_td["a"]
+
+        ind = 1
+
+        # Input-output (eq. 2)
+        def init_output(const, t):
+            return (
+                    self.output[t, "CO2captured"]
+                    == alpha[t - 1, ind - 1] * b_tec.var_input_tot[t]
+                    + beta[t - 1, ind - 1] * b_tec.var_modules_on[t]
             )
 
-        return b_tec
+        b_tec.const_output = pyo.Constraint(self.set_t_performance, rule=init_output)
+
+        # Lower bound on the energy input (eq. 5)
+        def init_input_low_bound(const, t):
+            return (
+                    b_point[t - 1, ind - 1] * b_tec.var_modules_on[t]
+                    <= b_tec.var_input_tot[t]
+            )
+
+        b_tec.const_input_on11 = pyo.Constraint(self.set_t_performance, rule=init_input_low_bound)
+
+        # Upper bound on the energy input (eq. 5)
+        def init_input_up_bound(const, t):
+            return (
+                    b_tec.var_input_tot[t]
+                    <= b_point[t - 1, ind] * b_tec.var_modules_on[t]
+            )
+
+        b_tec.const_input_on21 = pyo.Constraint(self.set_t_performance, rule=init_input_up_bound)
+
+
+        # Input-output (eq. 7)
+        def init_input(const, t):
+            return (
+                    b_tec.var_input_el[t]
+                    == gamma[t - 1, ind - 1] * b_tec.var_input_tot[t]
+                    + delta[t - 1, ind - 1] * b_tec.var_modules_on[t]
+            )
+
+        b_tec.const_input = pyo.Constraint(self.set_t_performance, rule=init_input)
+
+        # Lower bound on the energy input (eq. 10)
+        def init_input_low_bound(const, t):
+            return (
+                    a_point[t - 1, ind - 1] * b_tec.var_modules_on[t]
+                    <= b_tec.var_input_tot[t]
+            )
+
+        b_tec.const_input_on12 = pyo.Constraint(self.set_t_performance, rule=init_input_low_bound)
+
+        # Upper bound on the energy input (eq. 10)
+        def init_input_up_bound(const, t):
+            return (
+                    b_tec.var_input_tot[t]
+                    <= a_point[t - 1, ind] * b_tec.var_modules_on[t]
+            )
+
+        b_tec.const_input_on22 = pyo.Constraint(self.set_t_performance, rule=init_input_up_bound)
+
+
+    def _construct_pwa_performance(self, b_tec):
+        coeff_td = self.processed_coeff.time_dependent_used
+        alpha = coeff_td["alpha"]
+        beta = coeff_td["beta"]
+        b_point = coeff_td["b"]
+        gamma = coeff_td["gamma"]
+        delta = coeff_td["delta"]
+        a_point = coeff_td["a"]
+        nr_segments = self.performance_data["nr_segments"]
+
+        b_tec.set_pieces = pyo.RangeSet(1, nr_segments)
+
+        # Input-Output relationship (eq. 1-5)
+        def init_input_output(dis, t, ind):
+            # Input-output (eq. 2)
+            def init_output(const):
+                return (
+                        self.output[t, "CO2captured"]
+                        == alpha[t - 1, ind - 1] * b_tec.var_input_tot[t]
+                        + beta[t - 1, ind - 1] * b_tec.var_modules_on[t]
+                )
+
+            dis.const_output = pyo.Constraint(rule=init_output)
+
+            # Lower bound on the energy input (eq. 5)
+            def init_input_low_bound(const):
+                return (
+                        b_point[t - 1, ind - 1] * b_tec.var_modules_on[t]
+                        <= b_tec.var_input_tot[t]
+                )
+
+            dis.const_input_on1 = pyo.Constraint(rule=init_input_low_bound)
+
+            # Upper bound on the energy input (eq. 5)
+            def init_input_up_bound(const):
+                return (
+                        b_tec.var_input_tot[t]
+                        <= b_point[t - 1, ind] * b_tec.var_modules_on[t]
+                )
+
+            dis.const_input_on2 = pyo.Constraint(rule=init_input_up_bound)
+
+        b_tec.dis_input_output = gdp.Disjunct(
+            self.set_t_performance, b_tec.set_pieces, rule=init_input_output
+        )
+
+        # Bind disjuncts
+        def bind_disjunctions(dis, t):
+            return [b_tec.dis_input_output[t, i] for i in b_tec.set_pieces]
+
+        b_tec.disjunction_input_output = gdp.Disjunction(
+            self.set_t_performance, rule=bind_disjunctions
+        )
+
+        # Electricity-Heat relationship (eq. 7-10)
+        def init_input_input(dis, t, ind):
+            # Input-output (eq. 7)
+            def init_input(const):
+                return (
+                        b_tec.var_input_el[t]
+                        == gamma[t - 1, ind - 1] * b_tec.var_input_tot[t]
+                        + delta[t - 1, ind - 1] * b_tec.var_modules_on[t]
+                )
+
+            dis.const_output = pyo.Constraint(rule=init_input)
+
+            # Lower bound on the energy input (eq. 10)
+            def init_input_low_bound(const):
+                return (
+                    a_point[t - 1, ind - 1] * b_tec.var_modules_on[t]
+                    <= b_tec.var_inputal[t]
+                )
+
+            dis.const_input_on1 = pyo.Constraint(rule=init_input_low_bound)
+
+            # Upper bound on the energy input (eq. 10)
+            def init_input_up_bound(const):
+                return (
+                        b_tec.var_input_tot[t]
+                        <= a_point[t - 1, ind] * b_tec.var_modules_on[t]
+                )
+
+            dis.const_input_on2 = pyo.Constraint(rule=init_input_up_bound)
+
+        b_tec.dis_input_input = gdp.Disjunct(
+            self.set_t_performance, b_tec.set_pieces, rule=init_input_input
+        )
+
+        # Bind disjuncts
+        def bind_disjunctions(dis, t):
+            return [b_tec.dis_input_input[t, i] for i in b_tec.set_pieces]
+
+        b_tec.disjunction_input_input = gdp.Disjunction(
+            self.set_t_performance, rule=bind_disjunctions
+        )
 
     def write_results_tec_operation(self, h5_group, model_block):
         """
@@ -458,6 +552,18 @@ class DacAdsorption(Technology):
             "ohmic_heating",
             data=[
                 model_block.var_input_ohmic[self.sequence[t - 1]].value
+                for t in self.set_t_performance
+            ],
+        )
+
+        out_max = self.processed_coeff.time_dependent_used["out_max"]
+        coeff_ti = self.processed_coeff.time_independent
+        rated_capacity = coeff_ti["rated_capacity"]
+
+        h5_group.create_dataset(
+            "max_out",
+            data=[
+                out_max[t - 1] * model_block.var_size.value * rated_capacity
                 for t in self.set_t_performance
             ],
         )

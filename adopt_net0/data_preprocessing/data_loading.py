@@ -131,7 +131,7 @@ def fill_carrier_data(
                 for column in columns if columns else column_options:
                     if isinstance(value_or_data, pd.DataFrame):
                         if column in value_or_data.columns:
-                            existing_data[column] = value_or_data[column].values
+                            existing_data[column] = value_or_data[column].values[:len(existing_data)]
                         else:
                             raise ValueError(
                                 f"Column {column} not found in the provided DataFrame"

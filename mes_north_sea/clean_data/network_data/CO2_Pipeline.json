@@ -1,0 +1,51 @@
+{
+  "network_type": "fluid",
+  "size_is_int": 0,
+  "capex_defined_per_arc": 0,
+  "size_max_defined_per_arc": 0,
+  "decommission": "impossible",
+  "size_min": 0,
+  "size_max": 500000,
+  "Economics": {
+    "comment": "CAPEX coefficients are in EUR, EUR/t/h or EUR/t/h/km, opex_variable in EUR/t total output, opex_fixed in % of up-front CAPEX",
+    "gamma1": 0.0,
+    "gamma2": 0.0,
+    "gamma3": 0.0,
+    "gamma4": 33000.0,
+    "opex_variable": 0.0,
+    "opex_fixed": 0.061,
+    "discount_rate": 0.1,
+    "lifetime": 50.0,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "carrier": "CO2captured",
+    "bidirectional_network": 0,
+    "loss": 0.0,
+    "min_transport": 0,
+    "loss2emissions": 1,
+    "emissionfactor": 0,
+    "energyconsumption": {
+      "CO2captured": {
+        "cons_model": 1,
+        "k_flow": 0,
+        "k_flowDistance": 0
+      },
+      "electricity": {
+        "cons_model": 1,
+        "k_flow": 0,
+        "k_flowDistance": 0
+      }
+    },
+    "rated_capacity": 1.0
+  },
+  "Units": {
+    "size": "t/h",
+    "input_carrier": {
+      "electricity": "MW"
+    },
+    "transport_carrier": {
+      "CO2captured": "t/h"
+    }
+  }
+}

@@ -108,7 +108,7 @@ def create_input_data_folder_template(base_path: Path | str):
     networks = {"existing": [], "new": []}
     technologies = {"existing": {}, "new": []}
     energy_balance_options = {
-        carrier: {"curtailment_possible": 0} for carrier in topology["carriers"]
+        carrier: {"curtailment_possible": 1} for carrier in topology["carriers"]
     }
 
     # Template csvs
@@ -517,8 +517,8 @@ def create_montecarlo_template_csv(base_path: Path | str):
     only be performed on economic parameters.
 
     The file should be filled by specifying the type ("Technologies", "Networks", "Import", "Export"), the name (
-    specific technology or network name, carrier in case of import or export), and the parameter ('unit_CAPEX' or
-    'fix_CAPEX' for technology, 'gamma1' 'gamma2' 'gamma3' or 'gamma4' for network and 'price' for import
+    specific technology or network name, carrier in case of import or export), and the parameter ('unit_capex' or
+    'fix_capex' for technology, 'gamma1' 'gamma2' 'gamma3' or 'gamma4' for network and 'price' for import
     and export).
 
     :param str/Path path: path to folder to create Topology.json

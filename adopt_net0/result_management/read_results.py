@@ -123,23 +123,37 @@ def add_values_to_summary(summary_path: Path, component_set: list = None):
                 if "Networks" in component_set:
                     data = extract_datasets_from_h5group(hdf_file["design/networks"])
                     df = pd.DataFrame(data)
-                    if not df.empty:
-                        for period in df.columns.levels[0]:
-                            for netw in df.columns.levels[1]:
-                                for arc in df.columns.levels[2]:
-                                    parameters = [
-                                        "para_capex_gamma1",
-                                        "para_capex_gamma2",
-                                        "para_capex_gamma3",
-                                        "para_capex_gamma4",
-                                        "size",
-                                        "capex",
-                                    ]
-                                    for para in parameters:
-                                        output_name = f"{period}/{netw}/{arc}/{para}"
-                                        arc_output = df[period, netw, arc, para].iloc[0]
-                                        if output_name not in output_dict[case]:
-                                            output_dict[case][output_name] = arc_output
+
+                    parameters = [
+                        "para_capex_gamma1",
+                        "para_capex_gamma2",
+                        "para_capex_gamma3",
+                        "para_capex_gamma4",
+                        "size",
+                        "capex",
+                    ]
+
+                    df_filtered = df.loc[
+                        :, df.columns.get_level_values(3).isin(parameters)
+                    ].T
+                    for _, row in df_filtered.iterrows():
+                        output_dict[case]["/".join(row.name)] = row.values[0]
+                    #
+                    # if not df.empty:
+                    #     for period in df.columns.levels[0]:
+                    #         period_data = df[period]
+                    #         for netw in period_data.columns.levels[0]:
+                    #             netw_data = period_data[netw]
+                    #             for arc in netw_data.columns.levels[0]:
+                    #                 print(netw_data)
+                    #                 print(arc)
+                    #                 arc_data = netw_data[arc]
+                    #
+                    #                 for para in parameters:
+                    #                     output_name = f"{period}/{netw}/{arc}/{para}"
+                    #                     arc_output = arc_data[para].iloc[0]
+                    #                     if output_name not in output_dict[case]:
+                    #                         output_dict[case][output_name] = arc_output
 
                 if "Import" in component_set:
                     data = extract_datasets_from_h5group(

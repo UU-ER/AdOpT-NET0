@@ -1,0 +1,41 @@
+{
+  "network_type": "fluid",
+  "Economics": {
+    "comment": "CAPEX coefficients are in EUR, EUR/MW or EUR/MW/km, opex_variable in EUR/MWh total output, opex_fixed in % of CAPEX_annual",
+    "capex_model": 3,
+    "gamma1": 39567835.1,
+    "gamma2": -3840.28,
+    "gamma3": 0.0,
+    "gamma4": 92.54,
+    "opex_variable": 0.0,
+    "opex_fixed": 0.035,
+    "discount_rate": 0.1,
+    "lifetime": 50.0,
+    "decommission_cost": 0
+  },
+  "Performance": {
+    "carrier": "hydrogen",
+    "bidirectional_network": 0,
+    "bidirectional_network_precise": 0,
+    "loss": 4e-05,
+    "min_transport": 0,
+    "loss2emissions": 0,
+    "emissionfactor": 0,
+    "energyconsumption": {
+      "electricity": {
+        "cons_model": 2,
+        "p": 140,
+        "c": 0.00398,
+        "T": 300,
+        "eta": 0.65,
+        "gam": 1.405,
+        "LHV": 33.32
+      }
+    },
+    "rated_capacity": 1.0
+  },
+  "size_min": 0,
+  "size_max": 10000,
+  "size_is_int": 0,
+  "decommission": "impossible"
+}

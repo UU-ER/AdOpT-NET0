@@ -14,8 +14,9 @@ class FitGenericTecTypeType1:
     out = alpha1 * in
     """
 
-    def __init__(self, params):
-        self.input_parameters = params
+    def __init__(self, input_carriers, output_carriers):
+        self.input_carriers = input_carriers
+        self.output_carriers = output_carriers
         self.coeff = {}
         self.bounds = {}
 
@@ -45,12 +46,12 @@ class FitGenericTecTypeType1:
         input_bounds = {}
 
         if size_based_on == "input":
-            for car in self.input_parameters.input_carrier:
+            for car in self.input_carriers:
                 input_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
         elif size_based_on == "output":
-            for car in self.input_parameters.input_carrier:
+            for car in self.input_carriers:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -76,7 +77,7 @@ class FitGenericTecTypeType1:
         output_bounds = {}
 
         if size_based_on == "input":
-            for car in self.input_parameters.output_carrier:
+            for car in self.output_carriers:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -88,7 +89,7 @@ class FitGenericTecTypeType1:
                     )
                 )
         elif size_based_on == "output":
-            for car in self.input_parameters.output_carrier:
+            for car in self.output_carriers:
                 output_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
@@ -105,8 +106,9 @@ class FitGenericTecTypeType2:
     (out - alpha2)/alpha1
     """
 
-    def __init__(self, params):
-        self.input_parameters = params
+    def __init__(self, input_carriers, output_carriers):
+        self.input_carriers = input_carriers
+        self.output_carriers = output_carriers
         self.coeff = {}
         self.bounds = {}
 
@@ -138,12 +140,12 @@ class FitGenericTecTypeType2:
         input_bounds = {}
 
         if size_based_on == "input":
-            for car in self.input_parameters.input_carrier:
+            for car in self.input_carriers:
                 input_bounds[car] = np.column_stack(
                     (np.zeros(shape=time_steps), np.ones(shape=time_steps))
                 )
         elif size_based_on == "output":
-            for car in self.input_parameters.input_carrier:
+            for car in self.input_carriers:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -169,7 +171,7 @@ class FitGenericTecTypeType2:
         output_bounds = {}
 
         if size_based_on == "input":
-            for car in self.input_parameters.output_carrier:
+            for car in self.output_carriers:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -182,7 +184,7 @@ class FitGenericTecTypeType2:
                     )
                 )
         elif size_based_on == "output":
-            for car in self.input_parameters.output_carrier:
+            for car in self.output_carriers:
                 output_bounds[car] = np.column_stack(
                     (np.zeros(shape=time_steps), np.ones(shape=time_steps))
                 )
@@ -198,8 +200,9 @@ class FitGenericTecTypeType34:
     out = alpha1[i] * in + alpha2
     """
 
-    def __init__(self, params):
-        self.input_parameters = params
+    def __init__(self, input_carriers, output_carriers):
+        self.input_carriers = input_carriers
+        self.output_carriers = output_carriers
         self.coeff = {}
         self.bounds = {}
 
@@ -229,12 +232,12 @@ class FitGenericTecTypeType34:
         input_bounds = {}
 
         if size_based_on == "input":
-            for car in self.input_parameters.input_carrier:
+            for car in self.input_carriers:
                 input_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )
         elif size_based_on == "output":
-            for car in self.input_parameters.input_carrier:
+            for car in self.input_carriers:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -260,7 +263,7 @@ class FitGenericTecTypeType34:
         output_bounds = {}
 
         if size_based_on == "input":
-            for car in self.input_parameters.output_carrier:
+            for car in self.output_carriers:
                 if car in self.coeff:
                     car_aux = car
                 else:
@@ -273,7 +276,7 @@ class FitGenericTecTypeType34:
                     )
                 )
         elif size_based_on == "output":
-            for car in self.input_parameters.output_carrier:
+            for car in self.output_carriers:
                 output_bounds[car] = np.column_stack(
                     (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
                 )

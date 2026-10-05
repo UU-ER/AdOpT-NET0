@@ -161,21 +161,21 @@ class CO2_Compression_CostModel(DataComponent_CostModel):
             ].mean()
 
         # Write to json template
-        self.json_data["Economics"]["CAPEX_model"] = self.options["capex_model"]
+        self.json_data["Economics"]["capex_model"] = self.options["capex_model"]
         if self.options["capex_model"] == 3:
-            self.json_data["Economics"]["fix_CAPEX"] = self.financial_indicators[
+            self.json_data["Economics"]["fix_capex"] = self.financial_indicators[
                 "fix_capex"
             ]
         else:
-            self.json_data["Economics"]["fix_CAPEX"] = 0
+            self.json_data["Economics"]["fix_capex"] = 0
 
         self.json_data["Economics"]["unit_capex"] = self.financial_indicators[
             "unit_capex"
         ]
-        self.json_data["Economics"]["OPEX_fixed"] = self.financial_indicators[
+        self.json_data["Economics"]["opex_fixed"] = self.financial_indicators[
             "opex_fix"
         ]
-        self.json_data["Economics"]["OPEX_variable"] = self.financial_indicators[
+        self.json_data["Economics"]["opex_variable"] = self.financial_indicators[
             "opex_variable"
         ]
         self.json_data["Economics"]["lifetime"] = self.financial_indicators["lifetime"]

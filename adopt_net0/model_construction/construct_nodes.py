@@ -10,8 +10,9 @@ def _determine_carriers_from_time_series(time_series: pd.DataFrame) -> list:
     :param pd.Dataframe time_series: Time series
     """
     carriers = []
-    for car in time_series.columns.get_level_values("Carrier"):
-        if np.any(time_series[car]):
+    series = ['Demand', 'Import limit', 'Export limit', 'Generic production']
+    for car in time_series.columns.get_level_values("Carrier").unique():
+        if np.any(time_series[car][series]):
             carriers.append(car)
 
     return list(set(carriers))
@@ -26,9 +27,9 @@ def _determine_carriers_from_technologies(technology_data: dict) -> list:
     """
     carriers = []
     for tec in technology_data:
-        input_carriers = technology_data[tec].component_options.input_carrier
+        input_carriers = technology_data[tec].input_carrier
         carriers.extend(input_carriers)
-        output_carriers = technology_data[tec].component_options.output_carrier
+        output_carriers = technology_data[tec].output_carrier
         carriers.extend(output_carriers)
 
     return list(set(carriers))
@@ -44,9 +45,9 @@ def _determine_carriers_from_networks(network_data) -> list:
     carriers = []
     for netw in network_data:
         # Todo: This can be further extended to check if node is connected to network
-        carriers.extend([network_data[netw].component_options.transported_carrier])
+        carriers.extend([network_data[netw].transported_carrier])
 
-        if network_data[netw].component_options.energyconsumption:
+        if network_data[netw].energy_consumption:
             carriers.extend(network_data[netw].energy_consumption.keys())
 
     return list(set(carriers))

@@ -48,8 +48,8 @@ def define_network(
 
     if existing:
         netw_data.existing = existing
-        netw_data.input_parameters.size_initial = size_initial
-        netw_data.component_options.decommission = decommission
+        netw_data.size_initial = size_initial
+        netw_data.decommission = decommission
 
     return netw_data
 

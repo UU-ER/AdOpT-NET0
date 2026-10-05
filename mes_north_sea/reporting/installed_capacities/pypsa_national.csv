@@ -1,0 +1,27 @@
+,Country,Technology,Capacity PyPsa
+0,BE,Coal & Lignite,512.5969478
+1,BE,Gas,5335.3
+2,BE,Hydro - Pump Storage Closed Loop (Turbine),1308.0
+3,BE,Hydro - Run of River (Turbine),49.7
+4,BE,Nuclear,2085.0
+5,DE,Biofuels,858.5
+6,DE,Coal & Lignite,26196.74565747
+7,DE,Gas,25289.874
+8,DE,Hydro - Pump Storage Closed Loop (Turbine),7587.2
+9,DE,Hydro - Reservoir (Turbine),169.5
+10,DE,Hydro - Run of River (Turbine),2050.56
+11,DE,Oil,840.4
+12,DK,Coal & Lignite,47.94072174
+13,DK,Gas,1695.2
+14,NL,Coal & Lignite,2670.0
+15,NL,Gas,9097.1
+16,NL,Nuclear,485.0
+17,NO,Gas,638.0
+18,NO,Hydro - Pump Storage Closed Loop (Turbine),603.3530000000001
+19,NO,Hydro - Reservoir (Turbine),28294.7154
+20,UK,Biofuels,393.0
+21,UK,Gas,32635.2224321
+22,UK,Hydro - Pump Storage Closed Loop (Turbine),440.0
+23,UK,Hydro - Reservoir (Turbine),128.8
+24,UK,Hydro - Run of River (Turbine),8865.7
+25,UK,Nuclear,1320.0

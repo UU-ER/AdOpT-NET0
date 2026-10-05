@@ -240,6 +240,7 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
 
     # LOG
     log_msg = f"Writing results to {folder_path}"
+    print(log_msg)
     log.info(log_msg)
 
     # create the results h5 file in the results folder
@@ -383,6 +384,37 @@ def write_optimization_results_to_h5(model, solution, model_info: dict, data) ->
                     car_group.create_dataset(
                         "technology_outputs", data=technology_outputs
                     )
+
+                    ccs_output = [
+                        sum(
+                            node_data.tech_blocks_active[tec].var_output_ccs[t, car]
+                            for tec in node_data.set_technologies
+                            if hasattr(
+                                node_data.tech_blocks_active[tec], "var_output_ccs"
+                            )
+                            if car
+                            in node_data.tech_blocks_active[tec].set_output_carriers_ccs
+                        )
+                        for t in set_t
+                    ]
+
+                    car_group.create_dataset("technology_outputs_ccs", data=ccs_output)
+
+                    ccs_input = [
+                        sum(
+                            node_data.tech_blocks_active[tec].var_input_ccs[t, car]
+                            for tec in node_data.set_technologies
+                            if hasattr(
+                                node_data.tech_blocks_active[tec], "var_input_ccs"
+                            )
+                            if car
+                            in node_data.tech_blocks_active[tec].set_input_carriers_ccs
+                        )
+                        for t in set_t
+                    ]
+
+                    car_group.create_dataset("technology_inputs_ccs", data=ccs_input)
+
                     car_group.create_dataset(
                         "generic_production",
                         data=[

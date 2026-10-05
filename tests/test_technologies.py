@@ -23,7 +23,7 @@ def define_technology(
     nr_timesteps: int,
     load_path: Path,
     perf_type: int = None,
-    CAPEX_model: int = None,
+    capex_model: int = None,
     existing: int = 0,
     size_initial: float = 0,
     decommission: str = "impossible",
@@ -35,7 +35,7 @@ def define_technology(
     :param int nr_timesteps: Number of timesteps to create climate data for
     :param Path load_path: Path to load from
     :param int perf_type: performance function type (for generic conversion tecs)
-    :param int CAPEX_model: capex model (1,2,3,4)
+    :param int capex_model: capex model (1,2,3,4)
     :param int existing: is technology existing or not,
     :param float size_initial: initial size of existing technology,
     :param str decommission: type of decommissioning "impossible", "continuous", "only_complete"
@@ -48,15 +48,15 @@ def define_technology(
 
     if perf_type:
         tec["Performance"]["performance_function_type"] = perf_type
-    if CAPEX_model:
-        tec["Economics"]["CAPEX_model"] = CAPEX_model
+    if capex_model:
+        tec["Economics"]["capex_model"] = capex_model
 
     tec = technology_factory(tec)
 
     if existing:
         tec.existing = existing
-        tec.input_parameters.size_initial = size_initial
-        tec.component_options.decommission = decommission
+        tec.size_initial = size_initial
+        tec.decommission = decommission
 
     # Technology fitting
     climate_data = make_climate_data("2022-01-01 12:00", nr_timesteps)
@@ -64,8 +64,8 @@ def define_technology(
     location["lon"] = 5.5
     location["lat"] = 52.5
     location["alt"] = 0
-    if tec.component_options.ccs_possible:
-        tec.ccs_data = open_json(tec.component_options.ccs_type, load_path)
+    if tec.ccs_possible:
+        tec.ccs_data = open_json(tec.ccs_type, load_path)
     tec.fit_technology_performance(climate_data, location)
 
     return tec
@@ -113,11 +113,11 @@ def generate_output_constraint(model, demand: list, output_ratios: dict = None):
             else:
                 alpha = output_ratios[car]
             if isinstance(alpha, list):
-                return model.var_output_tot[t, car] >= demand[t - 1] * alpha[0]
+                return model.var_output[t, car] >= demand[t - 1] * alpha[0]
             else:
-                return model.var_output_tot[t, car] == demand[t - 1] * alpha
+                return model.var_output[t, car] == demand[t - 1] * alpha
         else:
-            return model.var_output_tot[t, car] == demand[t - 1]
+            return model.var_output[t, car] == demand[t - 1]
 
     model.test_const_output1 = Constraint(
         model.set_t, model.set_output_carriers, rule=init_output_constraint
@@ -146,11 +146,11 @@ def generate_output_constraint_start_timestep(
             else:
                 alpha = output_ratios[car]
             if isinstance(alpha, list):
-                return model.var_output_tot[step, car] >= demand * alpha[0]
+                return model.var_output[step, car] >= demand * alpha[0]
             else:
-                return model.var_output_tot[step, car] == demand * alpha
+                return model.var_output[step, car] == demand * alpha
         else:
-            return model.var_output_tot[step, car] == demand
+            return model.var_output[step, car] == demand
 
     model.test_const_output2 = Constraint(
         model.set_output_carriers, rule=init_output_constraint
@@ -270,9 +270,9 @@ def test_res_pv(request):
     # INFEASIBILITY CASES
     oversize = (
         np.ones(time_steps)
-        * tec.input_parameters.size_max
+        * tec.size_max
         * 1.1
-        * tec.input_parameters.rated_power
+        * tec.processed_coeff.time_independent["rated_capacity"]
     )
 
     model = generate_output_constraint(model, oversize)
@@ -306,9 +306,9 @@ def test_res_wt(request):
     # INFEASIBILITY CASES
     oversize = (
         np.ones(time_steps)
-        * tec.input_parameters.size_max
+        * tec.size_max
         * 1.1
-        * tec.input_parameters.rated_power
+        * tec.processed_coeff.time_independent["rated_capacity"]
     )
     model = generate_output_constraint(model, oversize)
     termination = run_model(model, request.config.solver)
@@ -348,7 +348,7 @@ def test_conv_perf(request):
             if conv_type == 2 or conv_type == 3:
                 output_ratios = tec.processed_coeff.time_independent["fit"]
             elif conv_type == 4:
-                output_ratios = tec.input_parameters.performance_data["output_ratios"]
+                output_ratios = tec.performance_data["output_ratios"]
             else:
                 output_ratios = None
 
@@ -356,9 +356,9 @@ def test_conv_perf(request):
                 # INFEASIBILITY CASES
                 oversize = (
                     np.ones(time_steps)
-                    * tec.input_parameters.size_max
+                    * tec.size_max
                     * 1.1
-                    * tec.input_parameters.rated_power
+                    * tec.processed_coeff.time_independent["rated_capacity"]
                 )
                 model = generate_output_constraint(model, oversize)
                 termination = run_model(model, request.config.solver)
@@ -378,10 +378,10 @@ def test_conv_perf(request):
                 # Check performance for performance type 1
                 if conv_type == 1:
                     car_input = sum(
-                        model.var_input_tot[car].value for car in model.var_input_tot
+                        model.var_input[car].value for car in model.var_input
                     )
                     car_output = sum(
-                        model.var_output_tot[car].value for car in model.var_output_tot
+                        model.var_output[car].value for car in model.var_output
                     )
                     assert round(car_output, 2) == round(
                         tec.processed_coeff.time_independent["fit"]["out"]["alpha1"]
@@ -390,10 +390,10 @@ def test_conv_perf(request):
                     )
                 if conv_type == 2:
                     car_input = sum(
-                        model.var_input_tot[car].value for car in model.var_input_tot
+                        model.var_input[car].value for car in model.var_input
                     )
-                    for car in model.var_output_tot:
-                        car_output = model.var_output_tot[car].value
+                    for car in model.var_output:
+                        car_output = model.var_output[car].value
                         assert round(car_output, 2) == round(
                             tec.processed_coeff.time_independent["fit"][car[1]][
                                 "alpha1"
@@ -402,18 +402,18 @@ def test_conv_perf(request):
                             2,
                         )
                 if conv_type == 3:
-                    main_car_input = model.var_input_tot[
-                        1, tec.component_options.main_input_carrier
+                    main_car_input = model.var_input[
+                        1, tec.main_input_carrier
                     ].value
-                    for car in model.var_input_tot:
-                        car_input = model.var_input_tot[car].value
+                    for car in model.var_input:
+                        car_input = model.var_input[car].value
                         assert (
                             car_input
                             == tec.processed_coeff.time_independent["phi"][car[1]]
                             * main_car_input
                         )
-                    for car in model.var_output_tot:
-                        car_output = model.var_output_tot[car].value
+                    for car in model.var_output:
+                        car_output = model.var_output[car].value
                         assert (
                             car_output
                             == tec.processed_coeff.time_independent["fit"][car[1]][
@@ -455,10 +455,10 @@ def test_conv_perf(request):
                     bp_x = tec.processed_coeff.time_independent["fit"]["out"]["bp_x"]
                     bp_y = tec.processed_coeff.time_independent["fit"]["out"]["bp_y"]
                     car_input = sum(
-                        model.var_input_tot[car].value for car in model.var_input_tot
+                        model.var_input[car].value for car in model.var_input
                     )
                     car_output = sum(
-                        model.var_output_tot[car].value for car in model.var_output_tot
+                        model.var_output[car].value for car in model.var_output
                     )
                     assert round(car_output, 2) == round(
                         calculate_piecewise_function(car_input, bp_x, bp_y) * car_input,
@@ -466,40 +466,40 @@ def test_conv_perf(request):
                     )
                 if conv_type == 2:
                     car_input = sum(
-                        model.var_input_tot[car].value for car in model.var_input_tot
+                        model.var_input[car].value for car in model.var_input
                     )
-                    for car in model.var_output_tot:
+                    for car in model.var_output:
                         bp_x = tec.processed_coeff.time_independent["fit"][car[1]][
                             "bp_x"
                         ]
                         bp_y = tec.processed_coeff.time_independent["fit"][car[1]][
                             "bp_y"
                         ]
-                        car_output = model.var_output_tot[car].value
+                        car_output = model.var_output[car].value
                         assert round(car_output, 2) == round(
                             calculate_piecewise_function(car_input, bp_x, bp_y)
                             * car_input,
                             2,
                         )
                 if conv_type == 3:
-                    main_car_input = model.var_input_tot[
-                        1, tec.component_options.main_input_carrier
+                    main_car_input = model.var_input[
+                        1, tec.main_input_carrier
                     ].value
-                    for car in model.var_input_tot:
-                        car_input = model.var_input_tot[car].value
+                    for car in model.var_input:
+                        car_input = model.var_input[car].value
                         assert round(car_input, 2) == round(
                             tec.processed_coeff.time_independent["phi"][car[1]]
                             * main_car_input,
                             2,
                         )
-                    for car in model.var_output_tot:
+                    for car in model.var_output:
                         bp_x = tec.processed_coeff.time_independent["fit"][car[1]][
                             "bp_x"
                         ]
                         bp_y = tec.processed_coeff.time_independent["fit"][car[1]][
                             "bp_y"
                         ]
-                        car_output = model.var_output_tot[car].value
+                        car_output = model.var_output[car].value
                         assert round(car_output, 2) == round(
                             calculate_piecewise_function(main_car_input, bp_x, bp_y)
                             * main_car_input,
@@ -520,14 +520,14 @@ def test_conv_CAPEX(request):
             technology,
             time_steps,
             request.config.technology_data_folder_path,
-            CAPEX_model=capex_model,
+            capex_model=capex_model,
         )
 
         # Technology Model
         model = construct_tec_model(tec, nr_timesteps=time_steps)
         f = time_steps / 8760
-        t = tec.economics.lifetime
-        r = tec.economics.discount_rate
+        t = tec.economics["lifetime"]
+        r = tec.economics["discount_rate"] 
         a = annualize(r, t, f)
 
         # Check CAPEX
@@ -544,12 +544,12 @@ def test_conv_CAPEX(request):
 
             if capex_model == 1:
                 assert round(model.var_capex.value, 4) == round(
-                    tec.economics.capex_data["unit_capex"] * model.var_size.value * a, 4
+                    tec.economics["unit_capex"] * model.var_size.value * a, 4
                 )
 
             if capex_model == 2:
-                bp_x = tec.economics.capex_data["piecewise_capex"]["bp_x"]
-                bp_y = tec.economics.capex_data["piecewise_capex"]["bp_y"]
+                bp_x = tec.economics["piecewise_capex"]["bp_x"]
+                bp_y = tec.economics["piecewise_capex"]["bp_y"]
                 assert round(model.var_capex.value, 4) == round(
                     calculate_piecewise_function(model.var_size.value, bp_x, bp_y) * a,
                     4,
@@ -558,8 +558,8 @@ def test_conv_CAPEX(request):
             if capex_model == 3:
                 assert round(model.var_capex.value, 5) == round(
                     (
-                        tec.economics.capex_data["unit_capex"] * model.var_size.value
-                        + tec.economics.capex_data["fix_capex"]
+                        tec.economics["unit_capex"] * model.var_size.value
+                        + tec.economics["fix_capex"]
                     )
                     * a,
                     5,
@@ -583,9 +583,9 @@ def test_tec_storage(request):
     # INFEASIBILITY CASES
     oversize = (
         np.ones(time_steps)
-        * tec.input_parameters.size_max
+        * tec.size_max
         * 1.1
-        * tec.input_parameters.rated_power
+        * tec.processed_coeff.time_independent["rated_capacity"]
     )
     model = generate_output_constraint(model, oversize)
     termination = run_model(model, request.config.solver)
@@ -600,7 +600,7 @@ def test_tec_storage(request):
 
     def init_output_constraint(const, t, car):
         demand = [0, 1, 0]
-        return model.var_output_tot[t, car] == demand[t - 1]
+        return model.var_output[t, car] == demand[t - 1]
 
     model.test_const_output5 = Constraint(
         model.set_t, model.set_output_carriers, rule=init_output_constraint
@@ -611,7 +611,7 @@ def test_tec_storage(request):
     assert termination == TerminationCondition.optimal
     assert model.var_size.value > 0
     assert model.var_capex_aux.value > 0
-    assert sum(model.var_input_tot[t, "electricity"].value for t in model.set_t) >= 1
+    assert sum(model.var_input[t, "electricity"].value for t in model.set_t) >= 1
 
 
 def test_tec_sink(request):
@@ -628,7 +628,7 @@ def test_tec_sink(request):
     model = construct_tec_model(tec, nr_timesteps=time_steps)
 
     # INFEASIBILITY CASES
-    model.test_const_input = Constraint(expr=model.var_input_tot[1, "CO2captured"] == 2)
+    model.test_const_input = Constraint(expr=model.var_input[1, "CO2captured"] == 2)
     termination = run_model(model, request.config.solver)
     assert termination in [
         TerminationCondition.infeasibleOrUnbounded,
@@ -638,13 +638,13 @@ def test_tec_sink(request):
 
     # # FEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
-    model.test_const_input = Constraint(expr=model.var_input_tot[2, "CO2captured"] == 1)
+    model.test_const_input = Constraint(expr=model.var_input[2, "CO2captured"] == 1)
     model.test_const_level = Constraint(expr=model.var_storage_level[1] == 0)
     termination = run_model(model, request.config.solver)
 
     assert termination == TerminationCondition.optimal
     assert model.var_storage_level[2].value == 1
-    assert model.var_input_tot[2, "electricity"].value == 1
+    assert model.var_input[2, "electricity"].value == 1
     assert model.var_capex.value > 0
 
 
@@ -733,8 +733,8 @@ def test_dynamics_fast(request):
                 )
 
                 # Check standbypower
-                main_car = tec.component_options.main_input_carrier
-                assert round(model.var_input_tot[2, main_car].value, 4) == round(
+                main_car = tec.main_input_carrier
+                assert round(model.var_input[2, main_car].value, 4) == round(
                     model.var_size.value
                     * tec.processed_coeff.time_independent["standby_power"],
                     4,
@@ -822,21 +822,21 @@ def test_dynamics_slow(request):
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
 
-        main_car = tec.component_options.main_input_carrier
+        main_car = tec.main_input_carrier
         trajectory = model.var_size.value * min_part_load / (SD_time + 1)
 
         if conv_type < 3:
             input_at_SD1 = (
-                model.var_input_tot[3, "gas"].value
-                + model.var_input_tot[3, "hydrogen"].value
+                model.var_input[3, "gas"].value
+                + model.var_input[3, "hydrogen"].value
             )
             input_at_SD2 = (
-                model.var_input_tot[4, "gas"].value
-                + model.var_input_tot[4, "hydrogen"].value
+                model.var_input[4, "gas"].value
+                + model.var_input[4, "hydrogen"].value
             )
         else:
-            input_at_SD1 = model.var_input_tot[3, main_car].value
-            input_at_SD2 = model.var_input_tot[4, main_car].value
+            input_at_SD1 = model.var_input[3, main_car].value
+            input_at_SD2 = model.var_input[4, main_car].value
 
         assert round(input_at_SD2, 3) == round(trajectory, 3)
         assert round(input_at_SD1, 3) == round(trajectory * SD_time, 3)
@@ -885,21 +885,21 @@ def test_dynamics_slow(request):
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
 
-        main_car = tec.component_options.main_input_carrier
+        main_car = tec.main_input_carrier
         trajectory = model.var_size.value * min_part_load / (SU_time + 1)
 
         if conv_type < 3:
             input_at_SU1 = (
-                model.var_input_tot[2, "gas"].value
-                + model.var_input_tot[2, "hydrogen"].value
+                model.var_input[2, "gas"].value
+                + model.var_input[2, "hydrogen"].value
             )
             input_at_SU2 = (
-                model.var_input_tot[3, "gas"].value
-                + model.var_input_tot[3, "hydrogen"].value
+                model.var_input[3, "gas"].value
+                + model.var_input[3, "hydrogen"].value
             )
         else:
-            input_at_SU1 = model.var_input_tot[2, main_car].value
-            input_at_SU2 = model.var_input_tot[3, main_car].value
+            input_at_SU1 = model.var_input[2, main_car].value
+            input_at_SU2 = model.var_input[3, main_car].value
 
         assert round(input_at_SU1, 3) == round(trajectory, 3)
         assert round(input_at_SU2, 3) == round(trajectory * SU_time, 3)
@@ -934,7 +934,7 @@ def test_dac(request):
     # INFEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [1])
-    model.test_const_input = Constraint(expr=model.var_input_tot[1, "electricity"] == 0)
+    model.test_const_input = Constraint(expr=model.var_input[1, "electricity"] == 0)
 
     termination = run_model(model, request.config.solver)
     assert termination in [
@@ -948,8 +948,8 @@ def test_dac(request):
     model = generate_output_constraint(model, [1])
     termination = run_model(model, request.config.solver)
 
-    heat_in = model.var_input_tot[1, "heat"].value
-    electricity_in = model.var_input_tot[1, "electricity"].value
+    heat_in = model.var_input[1, "heat"].value
+    electricity_in = model.var_input[1, "electricity"].value
     size = model.var_size.value
     capex = model.var_capex.value
 
@@ -960,13 +960,13 @@ def test_dac(request):
     assert round(size, 3) % 1 == 0
     assert capex > 0
 
-    tec.component_options.size_is_int = 0
+    tec.size_is_int = 0
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [1])
     termination = run_model(model, request.config.solver)
 
-    heat_in2 = model.var_input_tot[1, "heat"].value
-    electricity_in2 = model.var_input_tot[1, "electricity"].value
+    heat_in2 = model.var_input[1, "heat"].value
+    electricity_in2 = model.var_input[1, "electricity"].value
     size2 = model.var_size.value
     capex2 = model.var_capex.value
 
@@ -993,7 +993,7 @@ def test_hydro_open(request):
     model = generate_output_constraint(model, [1, 1, 1])
 
     def init_test_input(const, t):
-        return model.var_input_tot[t, "electricity"] == 0
+        return model.var_input[t, "electricity"] == 0
 
     model.test_const_input = Constraint(model.set_t, rule=init_test_input)
 
@@ -1009,7 +1009,7 @@ def test_hydro_open(request):
     model = generate_output_constraint(model, [0, 1, 1])
 
     def init_test_input(const, t):
-        return model.var_input_tot[t, "electricity"] == 0
+        return model.var_input[t, "electricity"] == 0
 
     model.test_const_input = Constraint(model.set_t, rule=init_test_input)
 
@@ -1037,7 +1037,7 @@ def test_heat_pump(request):
         model = construct_tec_model(tec, nr_timesteps=time_steps)
         model = generate_output_constraint(model, [1])
         model.test_const_input = Constraint(
-            expr=model.var_input_tot[1, "electricity"] == 0
+            expr=model.var_input[1, "electricity"] == 0
         )
 
         termination = run_model(model, request.config.solver)
@@ -1054,7 +1054,7 @@ def test_heat_pump(request):
         termination = run_model(model, request.config.solver)
         assert termination == TerminationCondition.optimal
         assert model.var_size.value >= 0.1
-        assert model.var_input_tot[1, "electricity"].value >= 0.1
+        assert model.var_input[1, "electricity"].value >= 0.1
 
 
 def test_gasturbine(request):
@@ -1070,7 +1070,7 @@ def test_gasturbine(request):
     # INFEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model = generate_output_constraint(model, [9])
-    model.test_const_input = Constraint(expr=model.var_input_tot[1, "gas"] == 0)
+    model.test_const_input = Constraint(expr=model.var_input[1, "gas"] == 0)
 
     termination = run_model(model, request.config.solver)
     assert termination in [
@@ -1082,15 +1082,15 @@ def test_gasturbine(request):
     # FEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model.test_const_output = Constraint(
-        expr=model.var_output_tot[1, "electricity"] == 10
+        expr=model.var_output[1, "electricity"] == 10
     )
-    model.test_const_input = Constraint(expr=model.var_input_tot[1, "hydrogen"] == 0)
+    model.test_const_input = Constraint(expr=model.var_input[1, "hydrogen"] == 0)
 
     termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
     assert model.var_size.value == 1
-    assert model.var_input_tot[1, "gas"].value >= 10 / 0.4
-    assert model.var_output_tot[1, "heat"].value >= 10 * 0.5
+    assert model.var_input[1, "gas"].value >= 10 / 0.4
+    assert model.var_output[1, "heat"].value >= 10 * 0.5
 
 
 def test_ccs(request):
@@ -1106,10 +1106,10 @@ def test_ccs(request):
     # INFEASIBILITY CASE
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model.test_const_output = Constraint(
-        expr=model.var_output_tot[1, "electricity"] == 1
+        expr=model.var_output[1, "electricity"] == 1
     )
     model.test_const_emissions = Constraint(
-        expr=model.var_output_tot[1, "electricity"] == 1
+        expr=model.var_output[1, "electricity"] == 1
     )
     model.test_const_emissions = Constraint(expr=model.var_tec_emissions_pos[1] == 0)
     termination = run_model(model, request.config.solver)
@@ -1122,32 +1122,32 @@ def test_ccs(request):
     # FEASBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model.test_const_output = Constraint(
-        expr=model.var_output_tot[1, "electricity"] == 1
+        expr=model.var_output[1, "electricity"] == 1
     )
-    termination = run_model(model, request.config.solver)
-    cost_no_ccs = model.var_capex_tot.value
+    termination = run_model(model, request.config.solver, "capex_tot")
+    cost_no_ccs = model.var_capex.value
     emissions_no_ccs = sum([model.var_tec_emissions_pos[t].value for t in model.set_t])
 
     assert termination == TerminationCondition.optimal
     assert round(model.var_size_ccs.value, 3) == 0
-    assert round(model.var_output_tot[1, "CO2captured"].value, 3) == 0
-    assert round(model.var_input_tot[1, "heat"].value, 3) == 0
-    assert round(model.var_input_tot[1, "electricity"].value, 3) == 0
+    assert round(model.var_output_ccs[1, "CO2captured"].value, 3) == 0
+    assert round(model.var_input_ccs[1, "heat"].value, 3) == 0
+    assert round(model.var_input_ccs[1, "electricity"].value, 3) == 0
 
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model.test_const_output = Constraint(
-        expr=model.var_output_tot[1, "electricity"] == 1
+        expr=model.var_output[1, "electricity"] == 1
     )
     termination = run_model(model, request.config.solver, objective="emissions")
     assert termination == TerminationCondition.optimal
 
-    cost_ccs = model.var_capex_tot.value
+    cost_ccs = model.var_capex.value + model.var_capex_ccs.value
     emissions_ccs = sum([model.var_tec_emissions_pos[t].value for t in model.set_t])
 
     assert round(model.var_size_ccs.value, 3) >= 0.2
-    assert round(model.var_output_tot[1, "CO2captured"].value, 3) >= 0.9
-    assert round(model.var_input_tot[1, "heat"].value, 3) >= 0.1
-    assert round(model.var_input_tot[1, "electricity"].value, 3) >= 0.001
+    assert round(model.var_output_ccs[1, "CO2captured"].value, 3) >= 0.9
+    assert round(model.var_input_ccs[1, "heat"].value, 3) >= 0.1
+    assert round(model.var_input_ccs[1, "electricity"].value, 3) >= 0.001
     assert cost_ccs > cost_no_ccs * 1.01
     assert emissions_ccs < emissions_no_ccs * 0.11
 
@@ -1176,14 +1176,14 @@ def test_combined_cycle_fixed_size(request):
     # FEASIBILITY CASES
     model = construct_tec_model(tec, nr_timesteps=time_steps)
     model.test_const_output1 = Constraint(
-        expr=model.var_output_tot[1, "electricity"] == 200
+        expr=model.var_output[1, "electricity"] == 200
     )
-    model.test_const_output2 = Constraint(expr=model.var_output_tot[1, "heat"] == 5)
-    model.test_const_input = Constraint(expr=model.var_input_tot[1, "hydrogen"] == 3)
+    model.test_const_output2 = Constraint(expr=model.var_output[1, "heat"] == 5)
+    model.test_const_input = Constraint(expr=model.var_input[1, "hydrogen"] == 3)
 
     termination = run_model(model, request.config.solver)
     assert termination == TerminationCondition.optimal
-    assert model.var_input_tot[1, "gas"].value >= 140 / 0.5
+    assert model.var_input[1, "gas"].value >= 140 / 0.5
 
 
 def test_decommissioning(request):

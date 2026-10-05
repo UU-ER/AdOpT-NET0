@@ -1,0 +1,784 @@
+,Technology,Country,Capacity TYNDP,Capacity ERAA
+0,Biofuels,AL,0.0,0.0
+1,Coal & Lignite,AL,0.0,0.0
+2,Gas,AL,300.0,300.0
+3,Nuclear,AL,0.0,0.0
+4,Oil,AL,0.0,0.0
+5,Solar,AL,500.0,500.0
+6,Wind Offshore,AL,0.0,0.0
+7,Wind Onshore,AL,200.0,200.0
+8,Biofuels,AT,585.915,761.5595554814278
+9,Coal & Lignite,AT,0.0,0.0
+10,Gas,AT,4086.012,4105.53
+11,Nuclear,AT,0.0,0.0
+12,Oil,AT,163.61,120.0
+13,Solar,AT,12000.0,12000.257
+14,Wind Offshore,AT,0.0,0.0
+15,Wind Onshore,AT,9000.001,7500.004153438355
+16,Biofuels,BA,0.0,0.0
+17,Coal & Lignite,BA,1918.0,1648.0
+18,Gas,BA,0.0,0.0
+19,Nuclear,BA,0.0,0.0
+20,Oil,BA,0.0,0.0
+21,Solar,BA,350.0,385.8
+22,Wind Offshore,BA,0.0,0.0
+23,Wind Onshore,BA,734.6,750.0
+24,Biofuels,BE,903.6,1061.0249999999996
+25,Coal & Lignite,BE,0.0,0.0
+26,Gas,BE,10109.598,5991.1
+27,Nuclear,BE,0.0,2077.0
+28,Oil,BE,158.0,158.0
+29,Solar,BE,10400.0,11354.999
+30,Wind Offshore,BE,5800.0,5800.0
+31,Wind Onshore,BE,4669.0,4989.4
+32,Biofuels,BG,302.0,302.0
+33,Coal & Lignite,BG,2519.0,2504.0
+34,Gas,BG,2004.994,2507.0
+35,Nuclear,BG,1960.0,2000.0
+36,Oil,BG,0.0,0.0
+37,Solar,BG,3216.237,3216.237
+38,Wind Offshore,BG,0.0,0.0
+39,Wind Onshore,BG,948.0,948.0
+40,Biofuels,CH,400.0,440.0
+41,Coal & Lignite,CH,0.0,0.0
+42,Gas,CH,640.0,550.0
+43,Nuclear,CH,1190.0,1190.0
+44,Oil,CH,0.0,0.0
+45,Solar,CH,9800.0,9770.0
+46,Wind Offshore,CH,0.0,0.0
+47,Wind Onshore,CH,300.0,310.0
+48,Biofuels,CY,15.0,15.0
+49,Coal & Lignite,CY,0.0,0.0
+50,Gas,CY,1210.005,1315.0
+51,Nuclear,CY,0.0,0.0
+52,Oil,CY,287.7,647.7
+53,Solar,CY,800.0,957.0
+54,Wind Offshore,CY,0.0,0.0
+55,Wind Onshore,CY,198.0,198.0
+56,Biofuels,CZ,676.453,715.6829603581901
+57,Coal & Lignite,CZ,2849.9970000000003,2849.85
+58,Gas,CZ,5752.998,3954.212671463235
+59,Nuclear,CZ,4047.0,4047.1
+60,Oil,CZ,0.0,0.0
+61,Solar,CZ,8158.59,8132.905439999998
+62,Wind Offshore,CZ,0.0,0.0
+63,Wind Onshore,CZ,741.51,751.414376657825
+64,Biofuels,DE,7570.4,12034.289999999999
+65,Coal & Lignite,DE,17041.903,0.0
+66,Gas,DE,35768.797,35448.620054347826
+67,Nuclear,DE,0.0,0.0
+68,Oil,DE,850.934,849.6499999999999
+69,Solar,DE,96139.648,200000.0
+70,Wind Offshore,DE,23632.784,30048.0
+71,Wind Onshore,DE,75371.898,110000.0
+72,Biofuels,DK,2240.479,2345.039845737806
+73,Coal & Lignite,DK,0.0,2.84685
+74,Gas,DK,1663.4790000000003,859.076304262194
+75,Nuclear,DK,0.0,0.0
+76,Oil,DK,815.625,556.1
+77,Solar,DK,6466.973,8483.013975575635
+78,Wind Offshore,DK,6829.700000000001,5339.700000000001
+79,Wind Onshore,DK,6156.593,5649.701500107729
+80,Biofuels,DZ,0.0,
+81,Coal & Lignite,DZ,0.0,
+82,Gas,DZ,26459.998,
+83,Nuclear,DZ,0.0,
+84,Oil,DZ,0.0,
+85,Solar,DZ,4266.0,
+86,Wind Offshore,DZ,0.0,
+87,Wind Onshore,DZ,0.0,
+88,Biofuels,EE,808.65,480.65
+89,Coal & Lignite,EE,0.0,0.0
+90,Gas,EE,155.0,411.552
+91,Nuclear,EE,0.0,0.0
+92,Oil,EE,0.0,330.0
+93,Solar,EE,415.0,702.0
+94,Wind Offshore,EE,200.0,200.0
+95,Wind Onshore,EE,838.0,702.0
+96,Biofuels,EG,0.0,
+97,Coal & Lignite,EG,0.0,
+98,Gas,EG,48347.221999999994,
+99,Nuclear,EG,2400.0,
+100,Oil,EG,1174.402,
+101,Solar,EG,10140.0,
+102,Wind Offshore,EG,0.0,
+103,Wind Onshore,EG,10000.0,
+104,Biofuels,ES,1730.0,1730.0002
+105,Coal & Lignite,ES,0.0,0.0
+106,Gas,ES,28478.55,28478.571
+107,Nuclear,ES,3040.719,3040.72
+108,Oil,ES,0.0,0.0
+109,Solar,ES,45704.002,38451.19220000003
+110,Wind Offshore,ES,200.0,200.0
+111,Wind Onshore,ES,48350.0,48350.36899999998
+112,Biofuels,FI,3913.418,3614.72
+113,Coal & Lignite,FI,0.0,206.1
+114,Gas,FI,3611.501,1434.5
+115,Nuclear,FI,4394.0,4394.0
+116,Oil,FI,0.0,0.0
+117,Solar,FI,1498.0,2098.0
+118,Wind Offshore,FI,1512.0,1512.0
+119,Wind Onshore,FI,12369.404,13412.51588071754
+120,Biofuels,FR,2411.0,2390.000000000002
+121,Coal & Lignite,FR,0.0,0.0
+122,Gas,FR,11411.997,11589.0
+123,Nuclear,FR,59110.02,59110.0
+124,Oil,FR,1254.998,971.0
+125,Solar,FR,43780.996,43440.99999999994
+126,Wind Offshore,FR,5500.0,5766.0
+127,Wind Onshore,FR,35957.8,35929.0
+128,Biofuels,GR,511.197,583.9978788451078
+129,Coal & Lignite,GR,0.0,0.0
+130,Gas,GR,7521.364,8687.362000000001
+131,Nuclear,GR,0.0,0.0
+132,Oil,GR,408.002,408.0
+133,Solar,GR,7471.1449999999995,8984.999
+134,Wind Offshore,GR,100.0,700.0
+135,Wind Onshore,GR,6865.758,8740.999000000003
+136,Biofuels,HR,400.0,598.0
+137,Coal & Lignite,HR,290.0,290.0
+138,Gas,HR,896.999,1674.0
+139,Nuclear,HR,0.0,0.0
+140,Oil,HR,0.0,303.0
+141,Solar,HR,750.0,1246.58
+142,Wind Offshore,HR,0.0,0.0
+143,Wind Onshore,HR,2780.95,2841.950000000001
+144,Biofuels,HU,904.87,292.59000000000003
+145,Coal & Lignite,HU,0.0,0.0
+146,Gas,HU,3474.63,5201.01544
+147,Nuclear,HU,3080.0,4260.0
+148,Oil,HU,410.001,495.0
+149,Solar,HU,6454.0,9380.79920000003
+150,Wind Offshore,HU,0.0,0.0
+151,Wind Onshore,HU,325.8,334.29
+152,Biofuels,IE,148.0,109.0
+153,Coal & Lignite,IE,0.0,39.0
+154,Gas,IE,4247.0,4085.0
+155,Nuclear,IE,0.0,0.0
+156,Oil,IE,324.0,324.0
+157,Solar,IE,600.0,1508.0
+158,Wind Offshore,IE,3500.0,5000.2
+159,Wind Onshore,IE,5800.0,5745.800000000001
+160,Biofuels,IL,0.0,
+161,Coal & Lignite,IL,0.0,
+162,Gas,IL,17710.0,
+163,Nuclear,IL,0.0,
+164,Oil,IL,0.0,
+165,Solar,IL,10000.0,
+166,Wind Offshore,IL,0.0,
+167,Wind Onshore,IL,500.0,
+168,Biofuels,IS,0.0,
+169,Coal & Lignite,IS,0.0,
+170,Gas,IS,0.0,
+171,Nuclear,IS,0.0,
+172,Oil,IS,0.0,
+173,Solar,IS,0.0,
+174,Wind Offshore,IS,0.0,
+175,Wind Onshore,IS,0.0,
+176,Biofuels,IT,4714.311,3701.02
+177,Coal & Lignite,IT,0.0,0.0
+178,Gas,IT,46817.797,52771.090000000004
+179,Nuclear,IT,0.0,0.0
+180,Oil,IT,0.0,0.0
+181,Solar,IT,52000.009,70900.31172320094
+182,Wind Offshore,IT,900.001,5000.0
+183,Wind Onshore,IT,18400.03,18400.0
+184,Biofuels,LT,212.39,210.99
+185,Coal & Lignite,LT,0.0,0.0
+186,Gas,LT,509.2,659.89
+187,Nuclear,LT,0.0,0.0
+188,Oil,LT,150.0,0.0
+189,Solar,LT,1250.0,2000.0
+190,Wind Offshore,LT,1400.0,1400.0
+191,Wind Onshore,LT,2000.0,3608.33
+192,Biofuels,LU,96.3,96.3
+193,Coal & Lignite,LU,0.0,0.0
+194,Gas,LU,100.0,100.0
+195,Nuclear,LU,0.0,0.0
+196,Oil,LU,0.0,0.0
+197,Solar,LU,608.0,608.0
+198,Wind Offshore,LU,0.0,0.0
+199,Wind Onshore,LU,400.0,400.0
+200,Biofuels,LV,159.091,159.0179090909091
+201,Coal & Lignite,LV,0.0,0.0
+202,Gas,LV,1061.002,1077.0
+203,Nuclear,LV,0.0,0.0
+204,Oil,LV,0.0,0.0
+205,Solar,LV,108.8,39.18933538461539
+206,Wind Offshore,LV,500.0,500.0
+207,Wind Onshore,LV,396.04,198.0
+208,Biofuels,LY,0.0,
+209,Coal & Lignite,LY,0.0,
+210,Gas,LY,14914.002,
+211,Nuclear,LY,0.0,
+212,Oil,LY,350.0,
+213,Solar,LY,800.0,
+214,Wind Offshore,LY,0.0,
+215,Wind Onshore,LY,1000.0,
+216,Biofuels,MA,0.0,
+217,Coal & Lignite,MA,3766.003,
+218,Gas,MA,1895.0,
+219,Nuclear,MA,0.0,
+220,Oil,MA,675.0,
+221,Solar,MA,3041.0,
+222,Wind Offshore,MA,0.0,
+223,Wind Onshore,MA,4847.0,
+224,Biofuels,MD,0.0,
+225,Coal & Lignite,MD,0.0,
+226,Gas,MD,0.0,
+227,Nuclear,MD,0.0,
+228,Oil,MD,0.0,
+229,Solar,MD,0.0,
+230,Wind Offshore,MD,0.0,
+231,Wind Onshore,MD,0.0,
+232,Biofuels,ME,49.0,49.0
+233,Coal & Lignite,ME,450.0,450.0
+234,Gas,ME,0.0,0.0
+235,Nuclear,ME,0.0,0.0
+236,Oil,ME,0.0,0.0
+237,Solar,ME,31.5,31.5
+238,Wind Offshore,ME,0.0,0.0
+239,Wind Onshore,ME,254.2,254.2
+240,Biofuels,MK,31.0,31.0
+241,Coal & Lignite,MK,410.0,0.0
+242,Gas,MK,276.8,759.5
+243,Nuclear,MK,0.0,0.0
+244,Oil,MK,0.0,0.0
+245,Solar,MK,563.0,580.0
+246,Wind Offshore,MK,0.0,0.0
+247,Wind Onshore,MK,443.0,443.0
+248,Biofuels,MT,0.0,0.0
+249,Coal & Lignite,MT,0.0,0.0
+250,Gas,MT,486.304,486.3
+251,Nuclear,MT,0.0,0.0
+252,Oil,MT,0.0,0.0
+253,Solar,MT,266.19,266.1900411597352
+254,Wind Offshore,MT,0.0,0.0
+255,Wind Onshore,MT,0.0,0.0
+256,Biofuels,NL,1250.0,2189.6
+257,Coal & Lignite,NL,0.0,0.0
+258,Gas,NL,14432.724999999999,15698.5
+259,Nuclear,NL,486.0,486.0
+260,Oil,NL,0.0,0.0
+261,Solar,NL,27263.77,46169.92881512357
+262,Wind Offshore,NL,11470.0,21470.0
+263,Wind Onshore,NL,7976.0,11633.0
+264,Biofuels,NO,0.003,0.003
+265,Coal & Lignite,NO,0.0,0.0
+266,Gas,NO,265.0,265.0
+267,Nuclear,NO,0.0,0.0
+268,Oil,NO,0.0,0.0
+269,Solar,NO,600.0,4134.0
+270,Wind Offshore,NO,200.0,1003.5
+271,Wind Onshore,NO,6059.675,7839.624999999998
+272,Biofuels,NS,0.0,
+273,Coal & Lignite,NS,0.0,
+274,Gas,NS,0.0,
+275,Nuclear,NS,0.0,
+276,Oil,NS,0.0,
+277,Solar,NS,0.0,
+278,Wind Offshore,NS,0.0,
+279,Wind Onshore,NS,0.0,
+280,Biofuels,PL,3484.204,1396.9
+281,Coal & Lignite,PL,19056.45,20256.386663727782
+282,Gas,PL,11987.784,11411.517160052437
+283,Nuclear,PL,0.0,0.0
+284,Oil,PL,0.0,0.0
+285,Solar,PL,5113.97,13576.75
+286,Wind Offshore,PL,5900.0,5932.5
+287,Wind Onshore,PL,8663.32,10805.99999999999
+288,Biofuels,PS,0.0,
+289,Coal & Lignite,PS,0.0,
+290,Gas,PS,200.0,
+291,Nuclear,PS,0.0,
+292,Oil,PS,140.0,
+293,Solar,PS,400.0,
+294,Wind Offshore,PS,0.0,
+295,Wind Onshore,PS,20.0,
+296,Biofuels,PT,1109.72,1101.5
+297,Coal & Lignite,PT,0.0,0.0
+298,Gas,PT,3643.997,3304.0
+299,Nuclear,PT,0.0,0.0
+300,Oil,PT,0.0,0.0
+301,Solar,PT,7761.458,7573.636412158435
+302,Wind Offshore,PT,260.0,246.5
+303,Wind Onshore,PT,8901.0,8696.500000000002
+304,Biofuels,RO,137.0,137.344245186652
+305,Coal & Lignite,RO,2264.299,1124.3
+306,Gas,RO,5688.504,4968.840999999999
+307,Nuclear,RO,1965.0,1965.0
+308,Oil,RO,0.0,0.0
+309,Solar,RO,5054.0,5054.000000000001
+310,Wind Offshore,RO,0.0,0.0
+311,Wind Onshore,RO,5255.0,5254.999999999999
+312,Biofuels,RS,141.76,141.21
+313,Coal & Lignite,RS,5487.746,4999.748000000001
+314,Gas,RS,400.901,400.9
+315,Nuclear,RS,0.0,0.0
+316,Oil,RS,0.0,0.0
+317,Solar,RS,235.05,3545.4
+318,Wind Offshore,RS,0.0,0.0
+319,Wind Onshore,RS,4520.73,6172.09
+320,Biofuels,SE,5074.91,6671.3
+321,Coal & Lignite,SE,0.0,0.0
+322,Gas,SE,110.78899999999999,200.7635
+323,Nuclear,SE,5851.0,6835.0
+324,Oil,SE,0.0,0.0
+325,Solar,SE,7338.289999999999,7648.741576624081
+326,Wind Offshore,SE,5000.0,5000.264154103306
+327,Wind Onshore,SE,16901.083,17952.62708796569
+328,Biofuels,SI,70.0,70.0
+329,Coal & Lignite,SI,584.0,539.0
+330,Gas,SI,663.919,445.0
+331,Nuclear,SI,703.0,703.0
+332,Oil,SI,0.0,0.0
+333,Solar,SI,1866.0,1866.0
+334,Wind Offshore,SI,0.0,0.0
+335,Wind Onshore,SI,150.0,150.0
+336,Biofuels,SK,561.104,561.9305676747679
+337,Coal & Lignite,SK,358.324,347.3427215
+338,Gas,SK,936.752,881.0037566756445
+339,Nuclear,SK,2673.954,2814.637264415849
+340,Oil,SK,137.83,133.278
+341,Solar,SK,1187.879,1187.878787878788
+342,Wind Offshore,SK,0.0,0.0
+343,Wind Onshore,SK,494.949,494.949494949495
+344,Biofuels,TN,0.0,
+345,Coal & Lignite,TN,0.0,
+346,Gas,TN,5481.0,
+347,Nuclear,TN,0.0,
+348,Oil,TN,0.0,
+349,Solar,TN,1431.0,
+350,Wind Offshore,TN,0.0,
+351,Wind Onshore,TN,1157.0,
+352,Biofuels,TR,3900.0,2300.0
+353,Coal & Lignite,TR,21230.025,19206.591509011327
+354,Gas,TR,27179.991,25233.3283703223
+355,Nuclear,TR,4460.0,4456.0
+356,Oil,TR,0.0,316.7191861809105
+357,Solar,TR,17500.0,16000.0
+358,Wind Offshore,TR,0.0,0.0
+359,Wind Onshore,TR,19000.0,17500.0
+360,Biofuels,UA,0.0,1533.0
+361,Coal & Lignite,UA,835.596,11379.36259582188
+362,Gas,UA,0.0,2141.3
+363,Nuclear,UA,0.0,12468.0
+364,Oil,UA,0.0,0.0
+365,Solar,UA,527.575,6365.0
+366,Wind Offshore,UA,0.0,0.0
+367,Wind Onshore,UA,235.25,5033.0
+368,Biofuels,UK,6439.55,10319.110000036
+369,Coal & Lignite,UK,3391.998,0.0
+370,Gas,UK,27243.523,33688.022059555
+371,Nuclear,UK,9327.996,5195.0
+372,Oil,UK,459.8,782.8200000100001
+373,Solar,UK,23407.674,31407.59197953
+374,Wind Offshore,UK,34749.605,42837.29999998
+375,Wind Onshore,UK,26590.369,28686.702505943
+376,Hydro - Pondage (Energy),AL,,0.0
+377,Hydro - Pondage (Turbine),AL,,0.0
+378,Hydro - Pump Storage Closed Loop (Energy),AL,,0.0
+379,Hydro - Pump Storage Closed Loop (Pumping),AL,,0.0
+380,Hydro - Pump Storage Closed Loop (Turbine),AL,,0.0
+381,Hydro - Pump Storage Open Loop (Energy),AL,,0.0
+382,Hydro - Pump Storage Open Loop (Pumping),AL,,0.0
+383,Hydro - Pump Storage Open Loop (Turbine),AL,,0.0
+384,Hydro - Reservoir (Energy),AL,,1721680.0
+385,Hydro - Reservoir (Turbine),AL,,1989.743999999999
+386,Hydro - Run of River (Turbine),AL,,603.6719999999999
+387,Hydro - Pondage (Energy),AT,,5314.956999999999
+388,Hydro - Pondage (Turbine),AT,,1146.78
+389,Hydro - Pump Storage Closed Loop (Energy),AT,,1800.0
+390,Hydro - Pump Storage Closed Loop (Pumping),AT,,-300.0
+391,Hydro - Pump Storage Closed Loop (Turbine),AT,,300.0
+392,Hydro - Pump Storage Open Loop (Energy),AT,,1739213.0
+393,Hydro - Pump Storage Open Loop (Pumping),AT,,-5142.92
+394,Hydro - Pump Storage Open Loop (Turbine),AT,,5673.5
+395,Hydro - Reservoir (Energy),AT,,769036.568
+396,Hydro - Reservoir (Turbine),AT,,2755.529
+397,Hydro - Run of River (Turbine),AT,,4893.021529999998
+398,Hydro - Pondage (Energy),BA,,810.0
+399,Hydro - Pondage (Turbine),BA,,227.8
+400,Hydro - Pump Storage Closed Loop (Energy),BA,,0.0
+401,Hydro - Pump Storage Closed Loop (Pumping),BA,,0.0
+402,Hydro - Pump Storage Closed Loop (Turbine),BA,,0.0
+403,Hydro - Pump Storage Open Loop (Energy),BA,,3430.0
+404,Hydro - Pump Storage Open Loop (Pumping),BA,,-440.0
+405,Hydro - Pump Storage Open Loop (Turbine),BA,,440.0
+406,Hydro - Reservoir (Energy),BA,,1753710.0
+407,Hydro - Reservoir (Turbine),BA,,1615.9
+408,Hydro - Run of River (Turbine),BA,,40.8
+409,Hydro - Pondage (Energy),BE,,0.0
+410,Hydro - Pondage (Turbine),BE,,0.0
+411,Hydro - Pump Storage Closed Loop (Energy),BE,,5750.0
+412,Hydro - Pump Storage Closed Loop (Pumping),BE,,-1226.76
+413,Hydro - Pump Storage Closed Loop (Turbine),BE,,1305.0
+414,Hydro - Pump Storage Open Loop (Energy),BE,,0.0
+415,Hydro - Pump Storage Open Loop (Pumping),BE,,0.0
+416,Hydro - Pump Storage Open Loop (Turbine),BE,,0.0
+417,Hydro - Reservoir (Energy),BE,,0.0
+418,Hydro - Reservoir (Turbine),BE,,0.0
+419,Hydro - Run of River (Turbine),BE,,148.2020000000001
+420,Hydro - Pondage (Energy),BG,,0.0
+421,Hydro - Pondage (Turbine),BG,,0.0
+422,Hydro - Pump Storage Closed Loop (Energy),BG,,218635.753968254
+423,Hydro - Pump Storage Closed Loop (Pumping),BG,,-784.0
+424,Hydro - Pump Storage Closed Loop (Turbine),BG,,864.0
+425,Hydro - Pump Storage Open Loop (Energy),BG,,255257.29242979237
+426,Hydro - Pump Storage Open Loop (Pumping),BG,,-148.0
+427,Hydro - Pump Storage Open Loop (Turbine),BG,,535.0
+428,Hydro - Reservoir (Energy),BG,,842860.8593812599
+429,Hydro - Reservoir (Turbine),BG,,1281.3
+430,Hydro - Run of River (Turbine),BG,,535.51
+431,Hydro - Pondage (Energy),CH,,0.0
+432,Hydro - Pondage (Turbine),CH,,0.0
+433,Hydro - Pump Storage Closed Loop (Energy),CH,,109930.6666666667
+434,Hydro - Pump Storage Closed Loop (Pumping),CH,,-2290.0
+435,Hydro - Pump Storage Closed Loop (Turbine),CH,,2290.0
+436,Hydro - Pump Storage Open Loop (Energy),CH,,100000.0
+437,Hydro - Pump Storage Open Loop (Pumping),CH,,-1500.0
+438,Hydro - Pump Storage Open Loop (Turbine),CH,,2070.0
+439,Hydro - Reservoir (Energy),CH,,8179438.969764838
+440,Hydro - Reservoir (Turbine),CH,,8530.0
+441,Hydro - Run of River (Turbine),CH,,4210.0
+442,Hydro - Pondage (Energy),CY,,0.0
+443,Hydro - Pondage (Turbine),CY,,0.0
+444,Hydro - Pump Storage Closed Loop (Energy),CY,,0.0
+445,Hydro - Pump Storage Closed Loop (Pumping),CY,,0.0
+446,Hydro - Pump Storage Closed Loop (Turbine),CY,,0.0
+447,Hydro - Pump Storage Open Loop (Energy),CY,,0.0
+448,Hydro - Pump Storage Open Loop (Pumping),CY,,0.0
+449,Hydro - Pump Storage Open Loop (Turbine),CY,,0.0
+450,Hydro - Reservoir (Energy),CY,,0.0
+451,Hydro - Reservoir (Turbine),CY,,0.0
+452,Hydro - Run of River (Turbine),CY,,0.0
+453,Hydro - Pondage (Energy),CZ,,0.0
+454,Hydro - Pondage (Turbine),CZ,,0.0
+455,Hydro - Pump Storage Closed Loop (Energy),CZ,,3700.0
+456,Hydro - Pump Storage Closed Loop (Pumping),CZ,,-664.0
+457,Hydro - Pump Storage Closed Loop (Turbine),CZ,,688.05
+458,Hydro - Pump Storage Open Loop (Energy),CZ,,2300.0
+459,Hydro - Pump Storage Open Loop (Pumping),CZ,,-438.0
+460,Hydro - Pump Storage Open Loop (Turbine),CZ,,470.4
+461,Hydro - Reservoir (Energy),CZ,,2500.0
+462,Hydro - Reservoir (Turbine),CZ,,697.7200000000001
+463,Hydro - Run of River (Turbine),CZ,,431.6300000000002
+464,Hydro - Pondage (Energy),DE,,0.0
+465,Hydro - Pondage (Turbine),DE,,0.0
+466,Hydro - Pump Storage Closed Loop (Energy),DE,,629879.7889984642
+467,Hydro - Pump Storage Closed Loop (Pumping),DE,,-7417.6
+468,Hydro - Pump Storage Closed Loop (Turbine),DE,,7381.64
+469,Hydro - Pump Storage Open Loop (Energy),DE,,416759.0
+470,Hydro - Pump Storage Open Loop (Pumping),DE,,-1361.0
+471,Hydro - Pump Storage Open Loop (Turbine),DE,,1644.1
+472,Hydro - Reservoir (Energy),DE,,258578.02197802198
+473,Hydro - Reservoir (Turbine),DE,,1297.0
+474,Hydro - Run of River (Turbine),DE,,4368.4
+475,Hydro - Pondage (Energy),DK,,0.0
+476,Hydro - Pondage (Turbine),DK,,0.0
+477,Hydro - Pump Storage Closed Loop (Energy),DK,,0.0
+478,Hydro - Pump Storage Closed Loop (Pumping),DK,,0.0
+479,Hydro - Pump Storage Closed Loop (Turbine),DK,,0.0
+480,Hydro - Pump Storage Open Loop (Energy),DK,,0.0
+481,Hydro - Pump Storage Open Loop (Pumping),DK,,0.0
+482,Hydro - Pump Storage Open Loop (Turbine),DK,,0.0
+483,Hydro - Reservoir (Energy),DK,,0.0
+484,Hydro - Reservoir (Turbine),DK,,0.0
+485,Hydro - Run of River (Turbine),DK,,0.0
+486,Hydro - Pondage (Energy),EE,,0.0
+487,Hydro - Pondage (Turbine),EE,,0.0
+488,Hydro - Pump Storage Closed Loop (Energy),EE,,0.0
+489,Hydro - Pump Storage Closed Loop (Pumping),EE,,0.0
+490,Hydro - Pump Storage Closed Loop (Turbine),EE,,0.0
+491,Hydro - Pump Storage Open Loop (Energy),EE,,0.0
+492,Hydro - Pump Storage Open Loop (Pumping),EE,,0.0
+493,Hydro - Pump Storage Open Loop (Turbine),EE,,0.0
+494,Hydro - Reservoir (Energy),EE,,0.0
+495,Hydro - Reservoir (Turbine),EE,,0.0
+496,Hydro - Run of River (Turbine),EE,,0.0
+497,Hydro - Pondage (Energy),ES,,0.0
+498,Hydro - Pondage (Turbine),ES,,0.0
+499,Hydro - Pump Storage Closed Loop (Energy),ES,,175221.0
+500,Hydro - Pump Storage Closed Loop (Pumping),ES,,-7165.51
+501,Hydro - Pump Storage Closed Loop (Turbine),ES,,7094.571999999999
+502,Hydro - Pump Storage Open Loop (Energy),ES,,5961860.0
+503,Hydro - Pump Storage Open Loop (Pumping),ES,,-2424.005632965166
+504,Hydro - Pump Storage Open Loop (Turbine),ES,,2683.32
+505,Hydro - Reservoir (Energy),ES,,11648512.50101
+506,Hydro - Reservoir (Turbine),ES,,10972.199
+507,Hydro - Run of River (Turbine),ES,,3589.189985519394
+508,Hydro - Pondage (Energy),FI,,0.0
+509,Hydro - Pondage (Turbine),FI,,0.0
+510,Hydro - Pump Storage Closed Loop (Energy),FI,,0.0
+511,Hydro - Pump Storage Closed Loop (Pumping),FI,,0.0
+512,Hydro - Pump Storage Closed Loop (Turbine),FI,,0.0
+513,Hydro - Pump Storage Open Loop (Energy),FI,,0.0
+514,Hydro - Pump Storage Open Loop (Pumping),FI,,0.0
+515,Hydro - Pump Storage Open Loop (Turbine),FI,,0.0
+516,Hydro - Reservoir (Energy),FI,,5530000.0
+517,Hydro - Reservoir (Turbine),FI,,3236.608
+518,Hydro - Run of River (Turbine),FI,,0.0
+519,Hydro - Pondage (Energy),FR,,13600.0
+520,Hydro - Pondage (Turbine),FR,,1411.792752701844
+521,Hydro - Pump Storage Closed Loop (Energy),FR,,10000.0
+522,Hydro - Pump Storage Closed Loop (Pumping),FR,,-1950.0
+523,Hydro - Pump Storage Closed Loop (Turbine),FR,,1950.0
+524,Hydro - Pump Storage Open Loop (Energy),FR,,90000.00000000001
+525,Hydro - Pump Storage Open Loop (Pumping),FR,,-1850.0
+526,Hydro - Pump Storage Open Loop (Turbine),FR,,1850.0
+527,Hydro - Reservoir (Energy),FR,,10000000.0
+528,Hydro - Reservoir (Turbine),FR,,9847.0
+529,Hydro - Run of River (Turbine),FR,,12188.20724729815
+530,Hydro - Pondage (Energy),GR,,1000.0
+531,Hydro - Pondage (Turbine),GR,,22.02
+532,Hydro - Pump Storage Closed Loop (Energy),GR,,3500.0
+533,Hydro - Pump Storage Closed Loop (Pumping),GR,,-710.0
+534,Hydro - Pump Storage Closed Loop (Turbine),GR,,680.0
+535,Hydro - Pump Storage Open Loop (Energy),GR,,4500.0
+536,Hydro - Pump Storage Open Loop (Pumping),GR,,-735.0
+537,Hydro - Pump Storage Open Loop (Turbine),GR,,699.0
+538,Hydro - Reservoir (Energy),GR,,4044000.0
+539,Hydro - Reservoir (Turbine),GR,,2743.7
+540,Hydro - Run of River (Turbine),GR,,327.98
+541,Hydro - Pondage (Energy),HR,,3991.000000000001
+542,Hydro - Pondage (Turbine),HR,,320.94
+543,Hydro - Pump Storage Closed Loop (Energy),HR,,0.0
+544,Hydro - Pump Storage Closed Loop (Pumping),HR,,0.0
+545,Hydro - Pump Storage Closed Loop (Turbine),HR,,0.0
+546,Hydro - Pump Storage Open Loop (Energy),HR,,18300.0
+547,Hydro - Pump Storage Open Loop (Pumping),HR,,-246.9
+548,Hydro - Pump Storage Open Loop (Turbine),HR,,281.4
+549,Hydro - Reservoir (Energy),HR,,2045910.0
+550,Hydro - Reservoir (Turbine),HR,,2328.09
+551,Hydro - Run of River (Turbine),HR,,63.14000000000001
+552,Hydro - Pondage (Energy),HU,,0.0
+553,Hydro - Pondage (Turbine),HU,,0.0
+554,Hydro - Pump Storage Closed Loop (Energy),HU,,0.0
+555,Hydro - Pump Storage Closed Loop (Pumping),HU,,0.0
+556,Hydro - Pump Storage Closed Loop (Turbine),HU,,0.0
+557,Hydro - Pump Storage Open Loop (Energy),HU,,0.0
+558,Hydro - Pump Storage Open Loop (Pumping),HU,,0.0
+559,Hydro - Pump Storage Open Loop (Turbine),HU,,0.0
+560,Hydro - Reservoir (Energy),HU,,0.0
+561,Hydro - Reservoir (Turbine),HU,,0.0
+562,Hydro - Run of River (Turbine),HU,,60.056
+563,Hydro - Pondage (Energy),IE,,0.0
+564,Hydro - Pondage (Turbine),IE,,0.0
+565,Hydro - Pump Storage Closed Loop (Energy),IE,,1720.0
+566,Hydro - Pump Storage Closed Loop (Pumping),IE,,-292.0
+567,Hydro - Pump Storage Closed Loop (Turbine),IE,,292.0
+568,Hydro - Pump Storage Open Loop (Energy),IE,,0.0
+569,Hydro - Pump Storage Open Loop (Pumping),IE,,0.0
+570,Hydro - Pump Storage Open Loop (Turbine),IE,,0.0
+571,Hydro - Reservoir (Energy),IE,,0.0
+572,Hydro - Reservoir (Turbine),IE,,0.0
+573,Hydro - Run of River (Turbine),IE,,215.0
+574,Hydro - Pondage (Energy),IT,,0.0
+575,Hydro - Pondage (Turbine),IT,,0.0
+576,Hydro - Pump Storage Closed Loop (Energy),IT,,49300.0
+577,Hydro - Pump Storage Closed Loop (Pumping),IT,,-5364.0
+578,Hydro - Pump Storage Closed Loop (Turbine),IT,,5250.0
+579,Hydro - Pump Storage Open Loop (Energy),IT,,307600.0
+580,Hydro - Pump Storage Open Loop (Pumping),IT,,-2092.0
+581,Hydro - Pump Storage Open Loop (Turbine),IT,,3332.2
+582,Hydro - Reservoir (Energy),IT,,5649260.0
+583,Hydro - Reservoir (Turbine),IT,,9670.48197647059
+584,Hydro - Run of River (Turbine),IT,,6246.142023529411
+585,Hydro - Pondage (Energy),LT,,0.0
+586,Hydro - Pondage (Turbine),LT,,0.0
+587,Hydro - Pump Storage Closed Loop (Energy),LT,,10600.0
+588,Hydro - Pump Storage Closed Loop (Pumping),LT,,-900.0
+589,Hydro - Pump Storage Closed Loop (Turbine),LT,,938.0
+590,Hydro - Pump Storage Open Loop (Energy),LT,,0.0
+591,Hydro - Pump Storage Open Loop (Pumping),LT,,0.0
+592,Hydro - Pump Storage Open Loop (Turbine),LT,,0.0
+593,Hydro - Reservoir (Energy),LT,,0.0
+594,Hydro - Reservoir (Turbine),LT,,0.0
+595,Hydro - Run of River (Turbine),LT,,126.2
+596,Hydro - Pondage (Energy),LU,,0.0
+597,Hydro - Pondage (Turbine),LU,,0.0
+598,Hydro - Pump Storage Closed Loop (Energy),LU,,0.0
+599,Hydro - Pump Storage Closed Loop (Pumping),LU,,0.0
+600,Hydro - Pump Storage Closed Loop (Turbine),LU,,0.0
+601,Hydro - Pump Storage Open Loop (Energy),LU,,0.0
+602,Hydro - Pump Storage Open Loop (Pumping),LU,,0.0
+603,Hydro - Pump Storage Open Loop (Turbine),LU,,0.0
+604,Hydro - Reservoir (Energy),LU,,0.0
+605,Hydro - Reservoir (Turbine),LU,,0.0
+606,Hydro - Run of River (Turbine),LU,,42.0
+607,Hydro - Pondage (Energy),LV,,16000.4
+608,Hydro - Pondage (Turbine),LV,,1592.0
+609,Hydro - Pump Storage Closed Loop (Energy),LV,,0.0
+610,Hydro - Pump Storage Closed Loop (Pumping),LV,,0.0
+611,Hydro - Pump Storage Closed Loop (Turbine),LV,,0.0
+612,Hydro - Pump Storage Open Loop (Energy),LV,,0.0
+613,Hydro - Pump Storage Open Loop (Pumping),LV,,0.0
+614,Hydro - Pump Storage Open Loop (Turbine),LV,,0.0
+615,Hydro - Reservoir (Energy),LV,,0.0
+616,Hydro - Reservoir (Turbine),LV,,0.0
+617,Hydro - Run of River (Turbine),LV,,0.0
+618,Hydro - Pondage (Energy),ME,,0.0
+619,Hydro - Pondage (Turbine),ME,,0.0
+620,Hydro - Pump Storage Closed Loop (Energy),ME,,0.0
+621,Hydro - Pump Storage Closed Loop (Pumping),ME,,0.0
+622,Hydro - Pump Storage Closed Loop (Turbine),ME,,0.0
+623,Hydro - Pump Storage Open Loop (Energy),ME,,0.0
+624,Hydro - Pump Storage Open Loop (Pumping),ME,,0.0
+625,Hydro - Pump Storage Open Loop (Turbine),ME,,0.0
+626,Hydro - Reservoir (Energy),ME,,582400.0000000001
+627,Hydro - Reservoir (Turbine),ME,,1058.4
+628,Hydro - Run of River (Turbine),ME,,78.853
+629,Hydro - Pondage (Energy),MK,,0.0
+630,Hydro - Pondage (Turbine),MK,,0.0
+631,Hydro - Pump Storage Closed Loop (Energy),MK,,0.0
+632,Hydro - Pump Storage Closed Loop (Pumping),MK,,0.0
+633,Hydro - Pump Storage Closed Loop (Turbine),MK,,0.0
+634,Hydro - Pump Storage Open Loop (Energy),MK,,0.0
+635,Hydro - Pump Storage Open Loop (Pumping),MK,,0.0
+636,Hydro - Pump Storage Open Loop (Turbine),MK,,0.0
+637,Hydro - Reservoir (Energy),MK,,628336.9999999999
+638,Hydro - Reservoir (Turbine),MK,,707.6
+639,Hydro - Run of River (Turbine),MK,,230.5000011
+640,Hydro - Pondage (Energy),MT,,0.0
+641,Hydro - Pondage (Turbine),MT,,0.0
+642,Hydro - Pump Storage Closed Loop (Energy),MT,,0.0
+643,Hydro - Pump Storage Closed Loop (Pumping),MT,,0.0
+644,Hydro - Pump Storage Closed Loop (Turbine),MT,,0.0
+645,Hydro - Pump Storage Open Loop (Energy),MT,,0.0
+646,Hydro - Pump Storage Open Loop (Pumping),MT,,0.0
+647,Hydro - Pump Storage Open Loop (Turbine),MT,,0.0
+648,Hydro - Reservoir (Energy),MT,,0.0
+649,Hydro - Reservoir (Turbine),MT,,0.0
+650,Hydro - Run of River (Turbine),MT,,0.0
+651,Hydro - Pondage (Energy),NL,,0.0
+652,Hydro - Pondage (Turbine),NL,,0.0
+653,Hydro - Pump Storage Closed Loop (Energy),NL,,0.0
+654,Hydro - Pump Storage Closed Loop (Pumping),NL,,0.0
+655,Hydro - Pump Storage Closed Loop (Turbine),NL,,0.0
+656,Hydro - Pump Storage Open Loop (Energy),NL,,0.0
+657,Hydro - Pump Storage Open Loop (Pumping),NL,,0.0
+658,Hydro - Pump Storage Open Loop (Turbine),NL,,0.0
+659,Hydro - Reservoir (Energy),NL,,0.0
+660,Hydro - Reservoir (Turbine),NL,,0.0
+661,Hydro - Run of River (Turbine),NL,,37.7
+662,Hydro - Pondage (Energy),NO,,0.0
+663,Hydro - Pondage (Turbine),NO,,0.0
+664,Hydro - Pump Storage Closed Loop (Energy),NO,,0.0
+665,Hydro - Pump Storage Closed Loop (Pumping),NO,,0.0
+666,Hydro - Pump Storage Closed Loop (Turbine),NO,,0.0
+667,Hydro - Pump Storage Open Loop (Energy),NO,,89577419.451951
+668,Hydro - Pump Storage Open Loop (Pumping),NO,,-1093.41
+669,Hydro - Pump Storage Open Loop (Turbine),NO,,37829.865000000005
+670,Hydro - Reservoir (Energy),NO,,0.0
+671,Hydro - Reservoir (Turbine),NO,,0.0
+672,Hydro - Run of River (Turbine),NO,,0.0
+673,Hydro - Pondage (Energy),PL,,0.0
+674,Hydro - Pondage (Turbine),PL,,0.0
+675,Hydro - Pump Storage Closed Loop (Energy),PL,,6350.000000000002
+676,Hydro - Pump Storage Closed Loop (Pumping),PL,,-1486.0
+677,Hydro - Pump Storage Closed Loop (Turbine),PL,,1333.35
+678,Hydro - Pump Storage Open Loop (Energy),PL,,1240.0
+679,Hydro - Pump Storage Open Loop (Pumping),PL,,-172.0
+680,Hydro - Pump Storage Open Loop (Turbine),PL,,216.26
+681,Hydro - Reservoir (Energy),PL,,820.0000000000001
+682,Hydro - Reservoir (Turbine),PL,,271.48
+683,Hydro - Run of River (Turbine),PL,,523.06
+684,Hydro - Pondage (Energy),PT,,3700.0
+685,Hydro - Pondage (Turbine),PT,,266.0
+686,Hydro - Pump Storage Closed Loop (Energy),PT,,0.0
+687,Hydro - Pump Storage Closed Loop (Pumping),PT,,0.0
+688,Hydro - Pump Storage Closed Loop (Turbine),PT,,0.0
+689,Hydro - Pump Storage Open Loop (Energy),PT,,2017900.0
+690,Hydro - Pump Storage Open Loop (Pumping),PT,,-3586.4
+691,Hydro - Pump Storage Open Loop (Turbine),PT,,3839.4
+692,Hydro - Reservoir (Energy),PT,,1289600.0
+693,Hydro - Reservoir (Turbine),PT,,3765.5
+694,Hydro - Run of River (Turbine),PT,,505.0
+695,Hydro - Pondage (Energy),RO,,0.0
+696,Hydro - Pondage (Turbine),RO,,0.0
+697,Hydro - Pump Storage Closed Loop (Energy),RO,,0.0
+698,Hydro - Pump Storage Closed Loop (Pumping),RO,,0.0
+699,Hydro - Pump Storage Closed Loop (Turbine),RO,,0.0
+700,Hydro - Pump Storage Open Loop (Energy),RO,,1506400.0
+701,Hydro - Pump Storage Open Loop (Pumping),RO,,-102.7
+702,Hydro - Pump Storage Open Loop (Turbine),RO,,838.7439999999999
+703,Hydro - Reservoir (Energy),RO,,2361865.0
+704,Hydro - Reservoir (Turbine),RO,,2579.238
+705,Hydro - Run of River (Turbine),RO,,3365.632366116505
+706,Hydro - Pondage (Energy),RS,,0.0
+707,Hydro - Pondage (Turbine),RS,,0.0
+708,Hydro - Pump Storage Closed Loop (Energy),RS,,194000.0
+709,Hydro - Pump Storage Closed Loop (Pumping),RS,,-560.0
+710,Hydro - Pump Storage Closed Loop (Turbine),RS,,614.0
+711,Hydro - Pump Storage Open Loop (Energy),RS,,0.0
+712,Hydro - Pump Storage Open Loop (Pumping),RS,,0.0
+713,Hydro - Pump Storage Open Loop (Turbine),RS,,0.0
+714,Hydro - Reservoir (Energy),RS,,646000.0
+715,Hydro - Reservoir (Turbine),RS,,434.27
+716,Hydro - Run of River (Turbine),RS,,2097.1
+717,Hydro - Pondage (Energy),SE,,0.0
+718,Hydro - Pondage (Turbine),SE,,0.0
+719,Hydro - Pump Storage Closed Loop (Energy),SE,,0.0
+720,Hydro - Pump Storage Closed Loop (Pumping),SE,,0.0
+721,Hydro - Pump Storage Closed Loop (Turbine),SE,,0.0
+722,Hydro - Pump Storage Open Loop (Energy),SE,,0.0
+723,Hydro - Pump Storage Open Loop (Pumping),SE,,0.0
+724,Hydro - Pump Storage Open Loop (Turbine),SE,,0.0
+725,Hydro - Reservoir (Energy),SE,,31931332.9
+726,Hydro - Reservoir (Turbine),SE,,15617.2
+727,Hydro - Run of River (Turbine),SE,,0.0
+728,Hydro - Pondage (Energy),SI,,3449.999999999998
+729,Hydro - Pondage (Turbine),SI,,1148.7
+730,Hydro - Pump Storage Closed Loop (Energy),SI,,2596.0
+731,Hydro - Pump Storage Closed Loop (Pumping),SI,,-185.0
+732,Hydro - Pump Storage Closed Loop (Turbine),SI,,180.0
+733,Hydro - Pump Storage Open Loop (Energy),SI,,0.0
+734,Hydro - Pump Storage Open Loop (Pumping),SI,,0.0
+735,Hydro - Pump Storage Open Loop (Turbine),SI,,0.0
+736,Hydro - Reservoir (Energy),SI,,0.0
+737,Hydro - Reservoir (Turbine),SI,,0.0
+738,Hydro - Run of River (Turbine),SI,,129.0
+739,Hydro - Pondage (Energy),SK,,11764.17963695
+740,Hydro - Pondage (Turbine),SK,,202.88
+741,Hydro - Pump Storage Closed Loop (Energy),SK,,4099.5445
+742,Hydro - Pump Storage Closed Loop (Pumping),SK,,-690.0
+743,Hydro - Pump Storage Closed Loop (Turbine),SK,,760.0
+744,Hydro - Pump Storage Open Loop (Energy),SK,,45547.68380375
+745,Hydro - Pump Storage Open Loop (Pumping),SK,,-178.28
+746,Hydro - Pump Storage Open Loop (Turbine),SK,,276.2
+747,Hydro - Reservoir (Energy),SK,,17241.545062499998
+748,Hydro - Reservoir (Turbine),SK,,21.28
+749,Hydro - Run of River (Turbine),SK,,1425.3015
+750,Hydro - Pondage (Energy),TR,,0.0
+751,Hydro - Pondage (Turbine),TR,,0.0
+752,Hydro - Pump Storage Closed Loop (Energy),TR,,0.0
+753,Hydro - Pump Storage Closed Loop (Pumping),TR,,0.0
+754,Hydro - Pump Storage Closed Loop (Turbine),TR,,0.0
+755,Hydro - Pump Storage Open Loop (Energy),TR,,0.0
+756,Hydro - Pump Storage Open Loop (Pumping),TR,,0.0
+757,Hydro - Pump Storage Open Loop (Turbine),TR,,0.0
+758,Hydro - Reservoir (Energy),TR,,102338808.5720385
+759,Hydro - Reservoir (Turbine),TR,,29239.66
+760,Hydro - Run of River (Turbine),TR,,10716.137
+761,Hydro - Pondage (Energy),UA,,0.0
+762,Hydro - Pondage (Turbine),UA,,0.0
+763,Hydro - Pump Storage Closed Loop (Energy),UA,,13500.0
+764,Hydro - Pump Storage Closed Loop (Pumping),UA,,-2449.0
+765,Hydro - Pump Storage Closed Loop (Turbine),UA,,1983.0
+766,Hydro - Pump Storage Open Loop (Energy),UA,,0.0
+767,Hydro - Pump Storage Open Loop (Pumping),UA,,0.0
+768,Hydro - Pump Storage Open Loop (Turbine),UA,,0.0
+769,Hydro - Reservoir (Energy),UA,,890000.0
+770,Hydro - Reservoir (Turbine),UA,,4938.0
+771,Hydro - Run of River (Turbine),UA,,220.0
+772,Hydro - Pondage (Energy),UK,,0.0
+773,Hydro - Pondage (Turbine),UK,,0.0
+774,Hydro - Pump Storage Closed Loop (Energy),UK,,26380.0
+775,Hydro - Pump Storage Closed Loop (Pumping),UK,,-2684.0
+776,Hydro - Pump Storage Closed Loop (Turbine),UK,,2744.0
+777,Hydro - Pump Storage Open Loop (Energy),UK,,0.0
+778,Hydro - Pump Storage Open Loop (Pumping),UK,,0.0
+779,Hydro - Pump Storage Open Loop (Turbine),UK,,0.0
+780,Hydro - Reservoir (Energy),UK,,0.0
+781,Hydro - Reservoir (Turbine),UK,,6.0
+782,Hydro - Run of River (Turbine),UK,,2095.1100000007

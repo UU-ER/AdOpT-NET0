@@ -5,16 +5,16 @@
   "size_is_int": 1,
   "decommission": "impossible",
   "Economics": {
-    "comment": "CAPEX in EUR/unit or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of up-front CAPEX",
-    "CAPEX_model": 1,
-    "unit_CAPEX": 162984.0,
-    "fix_CAPEX": 0,
-    "piecewise_CAPEX": {
+    "comment": "CAPEX in EUR/module or as a piecewise function, opex_variable in EUR/MWh total output, opex_fixed in % of up-front CAPEX",
+    "capex_model": 1,
+    "unit_capex": 162984.0,
+    "fix_capex": 0,
+    "piecewise_capex": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
-    "OPEX_variable": 0,
-    "OPEX_fixed": 0.04,
+    "opex_variable": 0,
+    "opex_fixed": 0.04,
     "discount_rate": 0.1,
     "lifetime": 25,
     "decommission_cost": 0
@@ -31,6 +31,10 @@
     ],
     "nr_segments": 1,
     "ohmic_heating": 1,
+    "performance_data_source": "rezo",
+    "comment_performance_data_source": "Options: 'default' or 'rezo'",
+    "grid_emission_factor": 0,
+    "comment_grid_emission_factor": "Only used if performance_data_source is 'rezo'. Options: 0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.2, 1.3. Source: Rezo et al., 2024 (max productivity case)",
     "emission_factor": -1,
     "performance": {
       "eta_elth": 0.97
@@ -38,7 +42,7 @@
   },
   "DOI": "Data is published in: https://doi.org/10.1021/acs.iecr.2c00681",
   "Units": {
-    "size": "MW",
+    "size": "number of modules",
     "input_carrier": {
       "electricity": "MW",
       "heat": "MW"

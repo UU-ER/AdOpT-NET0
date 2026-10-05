@@ -1,0 +1,304 @@
+,index,Node,Country,Technology,Capacity our work
+0,0,BE2,BE,Coal & Lignite,0.0
+1,1,BE1,BE,Gas,947.9939046351657
+2,2,BE2,BE,Gas,9161.604095364833
+3,3,BE2,BE,Hydro - Pump Storage Closed Loop (Energy),5750.0
+4,4,BE2,BE,Hydro - Run of River (Turbine),148.2020000000001
+5,5,BE2,BE,Nuclear,2077.0
+6,6,DE1,DE,Coal & Lignite,8225.00805144123
+7,7,DE2,DE,Coal & Lignite,476.80313087862
+8,8,DE3,DE,Coal & Lignite,296.8774211008287
+9,9,DE4,DE,Coal & Lignite,8043.21439657932
+10,10,DE1,DE,Gas,6981.297779747183
+11,11,DE2,DE,Gas,6744.905728407346
+12,12,DE3,DE,Gas,870.1379568099076
+13,13,DE4,DE,Gas,21172.455535035566
+14,14,DE3,DE,Hydro - Pump Storage Closed Loop (Energy),9962.248877031803
+15,15,DE4,DE,Hydro - Pump Storage Closed Loop (Energy),619917.5401214325
+16,16,DE4,DE,Hydro - Reservoir (Energy),258578.02197802198
+17,17,DE1,DE,Hydro - Run of River (Turbine),29.82482833957553
+18,18,DE4,DE,Hydro - Run of River (Turbine),4338.5751716604245
+19,19,DE1,DE,Oil,159.0691711089957
+20,20,DE4,DE,Oil,691.8648288910042
+21,21,DK1,DK,Coal & Lignite,0.0
+22,22,DK1,DK,Gas,1663.4790000000003
+23,23,NL2,NL,Coal & Lignite,0.0
+24,24,NL3,NL,Coal & Lignite,0.0
+25,25,NL1,NL,Gas,6411.124613887941
+26,26,NL2,NL,Gas,1640.4609875674664
+27,27,NL3,NL,Gas,2129.267593244
+28,28,NL4,NL,Gas,4251.87180530059
+29,29,NL1,NL,Nuclear,486.0
+30,30,NO1,NO,Gas,265.0
+31,31,NO1,NO,Hydro - Pump Storage Closed Loop (Energy),0.0
+32,32,NO1,NO,Hydro - Reservoir (Energy),0.0
+33,33,UK1,UK,Gas,4376.798454068595
+34,34,UK2,UK,Gas,10495.801442495604
+35,35,UK3,UK,Gas,1120.286768140388
+36,36,UK4,UK,Gas,11250.636335295416
+37,37,UK3,UK,Hydro - Pump Storage Closed Loop (Energy),26380.0
+38,38,UK3,UK,Hydro - Reservoir (Energy),0.0
+39,39,UK3,UK,Hydro - Run of River (Turbine),1507.1312514527294
+40,40,UK4,UK,Hydro - Run of River (Turbine),587.9787485479703
+41,41,UK1,UK,Nuclear,9327.996
+42,42,DE4,DE,Hydro - Pump Storage Open Loop (Energy),416759.0
+43,43,NO1,NO,Hydro - Pump Storage Open Loop (Energy),89577419.451951
+44,44,UK3,UK,Hydro - Pump Storage Open Loop (Energy),0.0
+45,45,BE2,BE,Hydro - Pump Storage Closed Loop (Pumping),-1226.76
+46,46,DE3,DE,Hydro - Pump Storage Closed Loop (Pumping),-117.31758751581611
+47,47,DE4,DE,Hydro - Pump Storage Closed Loop (Pumping),-7300.2824124841845
+48,48,NO1,NO,Hydro - Pump Storage Closed Loop (Pumping),0.0
+49,49,UK3,UK,Hydro - Pump Storage Closed Loop (Pumping),-2684.0
+50,50,BE2,BE,Hydro - Pump Storage Closed Loop (Turbine),1305.0
+51,51,DE3,DE,Hydro - Pump Storage Closed Loop (Turbine),116.74884015183467
+52,52,DE4,DE,Hydro - Pump Storage Closed Loop (Turbine),7264.891159848166
+53,53,NO1,NO,Hydro - Pump Storage Closed Loop (Turbine),0.0
+54,54,UK3,UK,Hydro - Pump Storage Closed Loop (Turbine),2744.0
+55,55,DE4,DE,Hydro - Pump Storage Open Loop (Pumping),-1361.0
+56,56,NO1,NO,Hydro - Pump Storage Open Loop (Pumping),-1093.41
+57,57,UK3,UK,Hydro - Pump Storage Open Loop (Pumping),0.0
+58,58,DE4,DE,Hydro - Pump Storage Open Loop (Turbine),1644.1
+59,59,NO1,NO,Hydro - Pump Storage Open Loop (Turbine),37829.865000000005
+60,60,UK3,UK,Hydro - Pump Storage Open Loop (Turbine),0.0
+61,61,DE4,DE,Hydro - Reservoir (Turbine),1297.0
+62,62,NO1,NO,Hydro - Reservoir (Turbine),0.0
+63,63,UK3,UK,Hydro - Reservoir (Turbine),6.0
+64,0,BE1,BE,Solar,1568.000271726557
+65,1,BE2,BE,Solar,8831.999728273444
+66,2,DE1,DE,Solar,7092.901018412992
+67,3,DE2,DE,Solar,4398.8101436801735
+68,4,DE3,DE,Solar,6097.4013917823995
+69,5,DE4,DE,Solar,78550.53544612444
+70,6,DK1,DK,Solar,6466.973
+71,7,NL1,NL,Solar,4077.3919390091733
+72,8,NL2,NL,Solar,4053.9229626074675
+73,9,NL3,NL,Solar,6772.682870325933
+74,10,NL4,NL,Solar,12359.772228057425
+75,11,UK1,UK,Solar,3441.1141812527867
+76,12,UK2,UK,Solar,5113.524161451269
+77,13,UK3,UK,Solar,2756.714251064341
+78,14,UK4,UK,Solar,12096.3214062316
+79,15,NO1,NO,Solar,600.0
+80,16,BE1,BE,Wind Onshore,898.3862991432445
+81,17,BE2,BE,Wind Onshore,3770.6137008567553
+82,18,DE1,DE,Wind Onshore,5137.1934765234955
+83,19,DE2,DE,Wind Onshore,7155.952601811276
+84,20,DE3,DE,Wind Onshore,14508.25262270738
+85,21,DE4,DE,Wind Onshore,48570.49929895785
+86,22,DK1,DK,Wind Onshore,6156.593
+87,23,NL1,NL,Wind Onshore,1565.247501055892
+88,24,NL2,NL,Wind Onshore,955.9438734806889
+89,25,NL3,NL,Wind Onshore,3968.970481955981
+90,26,NL4,NL,Wind Onshore,1485.8381435074382
+91,27,UK1,UK,Wind Onshore,1628.2947035396294
+92,28,UK2,UK,Wind Onshore,4036.618183069916
+93,29,UK3,UK,Wind Onshore,15721.490926579854
+94,30,UK4,UK,Wind Onshore,5203.965186810599
+95,31,NO1,NO,Wind Onshore,6059.675
+96,0,DE_A,DE,Wind Offshore,433.0
+97,1,DE_A,DE,Wind Offshore,630.0
+98,2,DE_A,DE,Wind Offshore,270.0
+99,3,DE_A,DE,Wind Offshore,980.0
+100,4,DE4,DE,Wind Offshore,300.0
+101,5,DE_A,DE,Wind Offshore,420.0
+102,6,DE_A,DE,Wind Offshore,480.0
+103,7,DE_A,DE,Wind Offshore,225.0
+104,8,DE_B,DE,Wind Offshore,2000.0
+105,9,DE_B,DE,Wind Offshore,2000.0
+106,10,DE_B,DE,Wind Offshore,2000.0
+107,11,DE_B,DE,Wind Offshore,2000.0
+108,12,DE_B,DE,Wind Offshore,2000.0
+109,13,DE_B,DE,Wind Offshore,1500.0
+110,14,DE_B,DE,Wind Offshore,2000.0
+111,15,DE_B,DE,Wind Offshore,500.0
+112,16,DE4,DE,Wind Offshore,1000.0
+113,17,NL_A,NL,Wind Offshore,1000.0
+114,18,NL_A,NL,Wind Offshore,1000.0
+115,19,NL_A,NL,Wind Offshore,1000.0
+116,20,NL_A,NL,Wind Offshore,1000.0
+117,21,NL_C,NL,Wind Offshore,376.0
+118,22,NL_C,NL,Wind Offshore,351.5
+119,23,NL_C,NL,Wind Offshore,380.0
+120,24,NL_C,NL,Wind Offshore,19.0
+121,25,NL2,NL,Wind Offshore,108.0
+122,26,NL2,NL,Wind Offshore,120.0
+123,27,NL_D,NL,Wind Offshore,129.0
+124,28,NL_E,NL,Wind Offshore,300.0
+125,29,NL_E,NL,Wind Offshore,300.0
+126,30,NL_D,NL,Wind Offshore,700.0
+127,31,NL_D,NL,Wind Offshore,700.0
+128,32,NL_D,NL,Wind Offshore,700.0
+129,33,NL_D,NL,Wind Offshore,700.0
+130,34,NL_C,NL,Wind Offshore,376.0
+131,35,NL_D,NL,Wind Offshore,759.0
+132,36,NL_D,NL,Wind Offshore,756.0
+133,37,NL_D,NL,Wind Offshore,700.0
+134,38,NL_A,NL,Wind Offshore,1000.0
+135,39,NL_B,NL,Wind Offshore,2000.0
+136,40,NL_A,NL,Wind Offshore,1000.0
+137,41,UK4,UK,Wind Offshore,180.0
+138,42,DK_B,DK,Wind Offshore,168.0
+139,43,DK1,DK,Wind Offshore,160.0
+140,44,DK_A,DK,Wind Offshore,1000.0
+141,45,DK1,DK,Wind Offshore,1200.0
+142,46,DK1,DK,Wind Offshore,23.0
+143,47,DK_B,DK,Wind Offshore,160.0
+144,48,DK1,DK,Wind Offshore,399.6
+145,49,DK1,DK,Wind Offshore,40.0
+146,50,DK1,DK,Wind Offshore,10.6
+147,51,DK1,DK,Wind Offshore,28.0
+148,52,DK_B,DK,Wind Offshore,209.3
+149,53,DK1,DK,Wind Offshore,17.0
+150,54,DK1,DK,Wind Offshore,605.0
+151,55,DK1,DK,Wind Offshore,165.6
+152,56,DK1,DK,Wind Offshore,21.0
+153,57,DK1,DK,Wind Offshore,5.0
+154,58,DK1,DK,Wind Offshore,10.8
+155,59,DK_B,DK,Wind Offshore,407.0
+156,60,DK1,DK,Wind Offshore,207.0
+157,61,DK1,DK,Wind Offshore,160.0
+158,62,DK1,DK,Wind Offshore,500.0
+159,63,DK1,DK,Wind Offshore,72.0
+160,64,DK1,DK,Wind Offshore,286.0
+161,65,DK1,DK,Wind Offshore,160.0
+162,66,DK1,DK,Wind Offshore,320.0
+163,67,DK1,DK,Wind Offshore,280.0
+164,68,DK1,DK,Wind Offshore,240.0
+165,69,BE_B,BE,Wind Offshore,216.0
+166,70,BE_B,BE,Wind Offshore,165.0
+167,71,BE_B,BE,Wind Offshore,309.0
+168,72,BE_B,BE,Wind Offshore,369.6
+169,73,BE_B,BE,Wind Offshore,252.0
+170,74,BE_B,BE,Wind Offshore,235.2
+171,75,BE_B,BE,Wind Offshore,218.5
+172,76,UK4,UK,Wind Offshore,100.0
+173,77,DE_D,DE,Wind Offshore,242.0
+174,78,DE_D,DE,Wind Offshore,913.0
+175,79,DE_F,DE,Wind Offshore,288.0
+176,80,DE_D,DE,Wind Offshore,312.0
+177,81,DE2,DE,Wind Offshore,110.7
+178,82,DE_D,DE,Wind Offshore,200.0
+179,83,DE_D,DE,Wind Offshore,203.2
+180,84,DE_E,DE,Wind Offshore,288.0
+181,85,DE_D,DE,Wind Offshore,60.0
+182,86,DE_E,DE,Wind Offshore,302.4
+183,87,DE_E,DE,Wind Offshore,295.2
+184,88,DE_F,DE,Wind Offshore,288.0
+185,89,DE_C,DE,Wind Offshore,400.0
+186,90,DE_C,DE,Wind Offshore,497.0
+187,91,DE_F,DE,Wind Offshore,288.0
+188,92,DE_D,DE,Wind Offshore,344.52
+189,93,DE_C,DE,Wind Offshore,960.0
+190,94,DE2,DE,Wind Offshore,113.4
+191,95,DE_C,DE,Wind Offshore,400.0
+192,96,DE_C,DE,Wind Offshore,252.0
+193,97,DE_D,DE,Wind Offshore,396.0
+194,98,DE_D,DE,Wind Offshore,332.1
+195,99,DE_D,DE,Wind Offshore,450.0
+196,100,DE_E,DE,Wind Offshore,342.0
+197,101,DE_D,DE,Wind Offshore,263.1
+198,102,DE_C,DE,Wind Offshore,402.0
+199,103,DE_C,DE,Wind Offshore,112.0
+200,104,BE_B,BE,Wind Offshore,141.15
+201,105,BE_B,BE,Wind Offshore,184.5
+202,106,BE_B,BE,Wind Offshore,165.0
+203,107,BE_B,BE,Wind Offshore,165.0
+204,108,UK_F,UK,Wind Offshore,406.0
+205,109,UK_F,UK,Wind Offshore,406.0
+206,110,UK_F,UK,Wind Offshore,609.0
+207,111,UK_G,UK,Wind Offshore,2800.0
+208,112,UK_G,UK,Wind Offshore,1400.0
+209,113,UK3,UK,Wind Offshore,30.0
+210,114,UK_F,UK,Wind Offshore,1386.0
+211,115,UK2,UK,Wind Offshore,84.0
+212,116,UK2,UK,Wind Offshore,90.0
+213,117,UK_D,UK,Wind Offshore,1080.0
+214,118,UK_E,UK,Wind Offshore,588.0
+215,119,UK3,UK,Wind Offshore,97.0
+216,120,UK3,UK,Wind Offshore,100.0
+217,121,UK3,UK,Wind Offshore,50.0
+218,122,UK_E,UK,Wind Offshore,953.0
+219,123,UK_D,UK,Wind Offshore,432.0
+220,124,UK_D,UK,Wind Offshore,1140.0
+221,125,UK_D,UK,Wind Offshore,360.0
+222,126,UK_E,UK,Wind Offshore,2000.0
+223,127,UK_E,UK,Wind Offshore,882.0
+224,128,UK2,UK,Wind Offshore,184.0
+225,129,UK2,UK,Wind Offshore,184.0
+226,130,UK2,UK,Wind Offshore,388.8
+227,131,UK2,UK,Wind Offshore,90.0
+228,132,UK2,UK,Wind Offshore,150.0
+229,133,UK4,UK,Wind Offshore,90.0
+230,134,UK4,UK,Wind Offshore,576.0
+231,135,UK4,UK,Wind Offshore,256.0
+232,136,UK2,UK,Wind Offshore,90.0
+233,137,UK1,UK,Wind Offshore,107.8
+234,138,UK1,UK,Wind Offshore,65.0
+235,139,UK1,UK,Wind Offshore,12.0
+236,140,UK1,UK,Wind Offshore,90.0
+237,141,UK1,UK,Wind Offshore,49.5
+238,142,UK1,UK,Wind Offshore,630.0
+239,143,UK1,UK,Wind Offshore,300.0
+240,144,UK_H,UK,Wind Offshore,504.0
+241,145,UK1,UK,Wind Offshore,60.0
+242,146,UK_B,UK,Wind Offshore,316.8
+243,147,UK2,UK,Wind Offshore,270.0
+244,148,UK_B,UK,Wind Offshore,402.0
+245,149,UK_B,UK,Wind Offshore,573.0
+246,150,UK2,UK,Wind Offshore,219.0
+247,151,UK2,UK,Wind Offshore,210.0
+248,152,UK2,UK,Wind Offshore,97.2
+249,153,UK2,UK,Wind Offshore,97.0
+250,154,UK2,UK,Wind Offshore,62.1
+251,155,UK_H,UK,Wind Offshore,353.0
+252,156,UK_F,UK,Wind Offshore,2850.0
+253,157,UK_H,UK,Wind Offshore,940.0
+254,158,UK_H,UK,Wind Offshore,600.0
+255,159,UK_G,UK,Wind Offshore,1400.0
+256,160,UK4,UK,Wind Offshore,400.2
+257,161,UK2,UK,Wind Offshore,330.0
+258,162,UK2,UK,Wind Offshore,329.0
+259,163,UK2,UK,Wind Offshore,58.4
+260,164,UK_C,UK,Wind Offshore,1200.0
+261,165,UK_C,UK,Wind Offshore,1400.0
+262,166,UK_C,UK,Wind Offshore,1200.0
+263,167,UK_C,UK,Wind Offshore,1200.0
+264,168,UK_H,UK,Wind Offshore,714.0
+265,169,UK_B,UK,Wind Offshore,857.0
+266,170,UK2,UK,Wind Offshore,41.5
+267,171,UK4,UK,Wind Offshore,60.0
+268,172,UK_H,UK,Wind Offshore,353.0
+269,173,UK4,UK,Wind Offshore,1200.0
+270,174,UK_C,UK,Wind Offshore,1500.0
+271,175,UK_C,UK,Wind Offshore,1500.0
+272,176,UK_B,UK,Wind Offshore,1500.0
+273,177,UK4,UK,Wind Offshore,1500.0
+274,178,UK2,UK,Wind Offshore,573.0
+275,179,UK2,UK,Wind Offshore,1500.0
+276,180,BE_A,BE,Wind Offshore,700.0
+277,181,BE_A,BE,Wind Offshore,1400.0
+278,182,BE_A,BE,Wind Offshore,1400.0
+279,183,DE4,DE,Wind Offshore,927.0
+280,184,DE4,DE,Wind Offshore,288.0
+281,185,DE4,DE,Wind Offshore,385.0
+282,186,DE4,DE,Wind Offshore,48.3
+283,187,DE4,DE,Wind Offshore,350.0
+284,188,DE4,DE,Wind Offshore,257.0
+285,189,DE4,DE,Wind Offshore,476.25
+286,190,UK_D,UK,Wind Offshore,4100.0
+287,0,BE1,BE,Biofuels,0.0
+288,1,BE2,BE,Biofuels,903.6
+289,2,DE1,DE,Biofuels,596.7924017815595
+290,3,DE2,DE,Biofuels,687.2517117596225
+291,4,DE3,DE,Biofuels,1089.3490061822774
+292,5,DE4,DE,Biofuels,5197.006880276541
+293,6,DK1,DK,Biofuels,2240.479
+294,7,NL1,NL,Biofuels,87.00219218122032
+295,8,NL2,NL,Biofuels,87.00219218122032
+296,9,NL3,NL,Biofuels,988.9934234563391
+297,10,NL4,NL,Biofuels,87.00219218122032
+298,11,NO1,NO,Biofuels,0.003
+299,12,UK1,UK,Biofuels,468.7196239273093
+300,13,UK2,UK,Biofuels,4107.579227662797
+301,14,UK3,UK,Biofuels,459.96785714285716
+302,15,UK4,UK,Biofuels,1403.283291267037

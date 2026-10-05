@@ -135,32 +135,28 @@ class CCPP(Technology):
         """
         super().__init__(tec_data)
 
-        self.component_options.emissions_based_on = "input"
-        self.component_options.size_based_on = "output"
-        self.component_options.main_input_carrier = tec_data["Performance"][
-            "main_input_carrier"
-        ]
+        self.emissions_based_on = "input"
+        self.size_based_on = "output"
+        self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
         # Treatment of Steam Production
-        self.component_options.other["steam_production"] = tec_data["Performance"][
-            "steam_production"
-        ]
-        steam_production = self.component_options.other["steam_production"]
+
+        steam_production = self.performance_data["steam_production"]
 
         if steam_production == "ignore":
-            self.component_options.output_carrier = ["electricity"]
+            self.output_carrier = ["electricity"]
             log_msg = "CCPP setting: only electricity output"
 
         elif steam_production == "as heat":
-            self.component_options.output_carrier = ["electricity", "heat"]
+            self.output_carrier = ["electricity", "heat"]
             log_msg = "CCPP setting: only electricity, heat output"
 
         elif steam_production == "as steam":
-            self.component_options.output_carrier = ["electricity", "steam"]
+            self.output_carrier = ["electricity", "steam"]
             log_msg = "CCPP setting: only electricity, steam output"
 
         elif steam_production == "as hp/mp steam":
-            self.component_options.output_carrier = [
+            self.output_carrier = [
                 "electricity",
                 "steam_hp",
                 "steam_mp",
@@ -169,23 +165,12 @@ class CCPP(Technology):
 
         else:
             raise Exception("steam_production setting in CCPP incorrectly specified")
+        print(log_msg)
         log.info(log_msg)
 
-        # Addtional Components considered
-        self.component_options.other["component"] = tec_data["Performance"]["component"]
-
-        # Number of segments
-        self.component_options.other["nr_segments"] = tec_data["Performance"][
-            "nr_segments"
-        ]
-
-        # All other options
-        self.component_options.other["steam_turbine_generator_efficiency"] = tec_data[
-            "Performance"
-        ]["steam_turbine_generator_efficiency"]
-        self.component_options.other["max_steam_extract_HP"] = 140
-        self.component_options.other["max_steam_extract_MP"] = 51
-        self.component_options.other["kappa_steam"] = 0.45
+        self.performance_data["max_steam_extract_HP"] = 140
+        self.performance_data["max_steam_extract_MP"] = 51
+        self.performance_data["kappa_steam"] = 0.45
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -206,10 +191,8 @@ class CCPP(Technology):
 
         # Determine correct reading paths
         data_path = {}
-        if "performance_data_path" in self.input_parameters.performance_data:
-            performance_data_path = self.input_parameters.performance_data[
-                "performance_data_path"
-            ]
+        if "performance_data_path" in self.performance_data:
+            performance_data_path = self.performance_data["performance_data_path"]
         else:
             performance_data_path = Path(__file__).parent.parent.parent.parent
             performance_data_path = (
@@ -269,7 +252,7 @@ class CCPP(Technology):
             pos += 1
 
         # Fit performance (piecewise performance GT)
-        nr_segments = self.component_options.other["nr_segments"]
+        nr_segments = self.performance_data["nr_segments"]
 
         alpha_el = np.empty(shape=(len(T), nr_segments))
         beta_el = np.empty(shape=(len(T), nr_segments))
@@ -313,9 +296,9 @@ class CCPP(Technology):
             alpha_hp = np.empty(shape=(len(T), nr_segments))
             alpha_mp = np.empty(shape=(len(T), nr_segments))
             alpha_cst = np.empty(shape=(len(T), nr_segments))
-            if self.component_options.other["component"] == "DB":
+            if self.performance_data["component"] == "DB":
                 alpha_db = np.empty(shape=(len(T), nr_segments))
-            elif self.component_options.other["component"] == "OHB":
+            elif self.performance_data["component"] == "OHB":
                 alpha_ohb = np.empty(shape=(len(T), nr_segments))
 
             for par in [1, 2]:
@@ -339,13 +322,13 @@ class CCPP(Technology):
                     np.array(data.index), np.array(data), T, method="linear"
                 )
 
-                if self.component_options.other["component"] == "DB":
+                if self.performance_data["component"] == "DB":
                     data = perf_data[p]["DB"]["alpha_" + str(par)]
                     alpha_db[:, par - 1] = griddata(
                         np.array(data.index), np.array(data), T, method="linear"
                     )
 
-                elif self.component_options.other["component"] == "OHB":
+                elif self.performance_data["component"] == "OHB":
                     data = perf_data[p]["OHB"]["alpha_" + str(par)]
                     alpha_ohb[:, par - 1] = griddata(
                         np.array(data.index), np.array(data), T, method="linear"
@@ -357,12 +340,12 @@ class CCPP(Technology):
             self.processed_coeff.time_independent[p]["alpha_mp"] = alpha_mp
             self.processed_coeff.time_independent[p]["alpha_cst"] = alpha_cst
             self.processed_coeff.time_independent[p]["bp_" + p.lower()] = bp[p]
-            if self.component_options.other["component"] == "DB":
+            if self.performance_data["component"] == "DB":
                 self.processed_coeff.time_independent[p]["alpha_db"] = alpha_db
-            elif self.component_options.other["component"] == "OHB":
+            elif self.performance_data["component"] == "OHB":
                 self.processed_coeff.time_independent[p]["alpha_ohb"] = alpha_ohb
 
-        data = self.input_parameters.performance_data
+        data = self.performance_data
         self.processed_coeff.time_independent["eta_stg"] = data[
             "steam_turbine_generator_efficiency"
         ]
@@ -394,7 +377,7 @@ class CCPP(Technology):
         )
 
         # NG
-        if self.component_options.other["component"] == "DB":
+        if self.performance_data["component"] == "DB":
             additional_ng_in = self.processed_coeff.time_independent["size_db"]
         else:
             additional_ng_in = 0
@@ -415,26 +398,24 @@ class CCPP(Technology):
             + self.processed_coeff.time_independent["mp_max_p"]
         )
         max_hp = (
-            np.ones(shape=(time_steps))
-            * self.component_options.other["max_steam_extract_HP"]
+            np.ones(shape=(time_steps)) * self.performance_data["max_steam_extract_HP"]
         )
         max_mp = (
-            np.ones(shape=(time_steps))
-            * self.component_options.other["max_steam_extract_MP"]
+            np.ones(shape=(time_steps)) * self.performance_data["max_steam_extract_MP"]
         )
         self.bounds["output"]["electricity"] = np.column_stack((min_out, max_el))
 
-        if self.component_options.other["steam_production"] == "ignore":
+        if self.performance_data["steam_production"] == "ignore":
             # For completeness, no other output then electricity
             pass
 
-        elif self.component_options.other["steam_production"] == "as heat":
+        elif self.performance_data["steam_production"] == "as heat":
             self.bounds["output"]["heat"] = np.column_stack((min_out, max_hp + max_mp))
 
-        elif self.component_options.other["steam_production"] == "as steam":
+        elif self.performance_data["steam_production"] == "as steam":
             self.bounds["output"]["steam"] = np.column_stack((min_out, max_hp + max_mp))
 
-        elif self.component_options.other["steam_production"] == "as hp/mp steam":
+        elif self.performance_data["steam_production"] == "as hp/mp steam":
             self.bounds["output"]["steam_hp"] = np.column_stack((min_out, max_hp))
             self.bounds["output"]["steam_mp"] = np.column_stack((min_out, max_mp))
 
@@ -531,7 +512,7 @@ class CCPP(Technology):
         )
 
         # Duct Burner - input
-        if self.component_options.other["component"] == "DB":
+        if self.performance_data["component"] == "DB":
 
             def init_db_input_bounds(bds, t):
                 return tuple((0, coeff_ti["size_db"]))
@@ -563,7 +544,7 @@ class CCPP(Technology):
             )
 
         # OHB - input
-        if self.component_options.other["component"] == "OHB":
+        if self.performance_data["component"] == "OHB":
 
             def init_ohb_input_bounds(bds, t):
                 return tuple((0, coeff_ti["size_ohb"]))
@@ -600,7 +581,7 @@ class CCPP(Technology):
 
         # Steam Output
         def init_mp_hp_bounds(bds, t):
-            return tuple((0, self.component_options.other["max_steam_extract_HP"]))
+            return tuple((0, self.performance_data["max_steam_extract_HP"]))
 
         b_tec.var_mp_p_hp = pyo.Var(
             self.set_t_performance,
@@ -609,7 +590,7 @@ class CCPP(Technology):
         )
 
         def init_mp_mp_bounds(bds, t):
-            return tuple((0, self.component_options.other["max_steam_extract_MP"]))
+            return tuple((0, self.performance_data["max_steam_extract_MP"]))
 
         b_tec.var_mp_p_mp = pyo.Var(
             self.set_t_performance,
@@ -684,11 +665,11 @@ class CCPP(Technology):
             rule=init_total_output_el,
         )
 
-        if self.component_options.other["steam_production"] == "ignore":
+        if self.performance_data["steam_production"] == "ignore":
             # For completeness, no other output than electricity
             pass
 
-        elif self.component_options.other["steam_production"] == "as heat":
+        elif self.performance_data["steam_production"] == "as heat":
 
             def init_total_output_heat(const, t):
                 return (
@@ -704,7 +685,7 @@ class CCPP(Technology):
                 rule=init_total_output_heat,
             )
 
-        elif self.component_options.other["steam_production"] == "as steam":
+        elif self.performance_data["steam_production"] == "as steam":
 
             def init_total_output_steam(const, t):
                 return (
@@ -720,7 +701,7 @@ class CCPP(Technology):
                 rule=init_total_output_steam,
             )
 
-        elif self.component_options.other["steam_production"] == "as hp/mp steam":
+        elif self.performance_data["steam_production"] == "as hp/mp steam":
 
             def init_total_output_steam_hp(const, t):
                 return (
@@ -758,7 +739,7 @@ class CCPP(Technology):
     def _define_performance(self, b_tec):
         coeff_td = self.processed_coeff.time_dependent_used
         coeff_ti = self.processed_coeff.time_independent
-        nr_segments = self.component_options.other["nr_segments"]
+        nr_segments = self.performance_data["nr_segments"]
         gt_alpha_th = coeff_td["GT"]["alpha_th"]
         gt_alpha = coeff_td["GT"]["alpha_el"]
         gt_beta = coeff_td["GT"]["beta_el"]
@@ -834,7 +815,7 @@ class CCPP(Technology):
                     b_tec.set_output_carriers, rule=init_output_off
                 )
 
-                if self.component_options.other["component"] == "DB":
+                if self.performance_data["component"] == "DB":
 
                     def init_input_db_off(const):
                         return b_tec.var_db_input[t] == 0
@@ -855,7 +836,7 @@ class CCPP(Technology):
                         rule=init_input_db_h2_off
                     )
 
-                if self.component_options.other["component"] == "OHB":
+                if self.performance_data["component"] == "OHB":
 
                     def init_input_ohb_h2_off(const):
                         return b_tec.var_ohb_h2_input[t] == 0
@@ -913,9 +894,9 @@ class CCPP(Technology):
         st_hp_alpha_mp = coeff_ti["HP"]["alpha_mp"]
         st_hp_alpha_cst = coeff_ti["HP"]["alpha_cst"]
         st_hp_bp_x = coeff_ti["HP"]["bp_hp"]
-        if self.component_options.other["component"] == "DB":
+        if self.performance_data["component"] == "DB":
             st_hp_alpha_db = coeff_ti["HP"]["alpha_db"]
-        elif self.component_options.other["component"] == "OHB":
+        elif self.performance_data["component"] == "OHB":
             st_hp_alpha_ohb = coeff_ti["HP"]["alpha_ohb"]
         s_indicators = range(0, nr_segments + 1)
 
@@ -939,9 +920,9 @@ class CCPP(Technology):
 
                 # HP performance
                 def init_hp_performance(const):
-                    if self.component_options.other["component"] == "DB":
+                    if self.performance_data["component"] == "DB":
                         add = st_hp_alpha_db[t - 1, ind - 1] * b_tec.var_db_input[t]
-                    elif self.component_options.other["component"] == "OHB":
+                    elif self.performance_data["component"] == "OHB":
                         add = (
                             st_hp_alpha_ohb[t - 1, ind - 1] * b_tec.var_ohb_h2_input[t]
                         )
@@ -977,9 +958,9 @@ class CCPP(Technology):
         st_mp_alpha_cst = coeff_ti["MP"]["alpha_cst"]
         st_mp_bp_x = coeff_ti["MP"]["bp_mp"]
 
-        if self.component_options.other["component"] == "DB":
+        if self.performance_data["component"] == "DB":
             st_mp_alpha_db = coeff_ti["MP"]["alpha_db"]
-        elif self.component_options.other["component"] == "OHB":
+        elif self.performance_data["component"] == "OHB":
             st_mp_alpha_ohb = coeff_ti["MP"]["alpha_ohb"]
 
         s_indicators = range(0, nr_segments + 1)
@@ -1004,9 +985,9 @@ class CCPP(Technology):
 
                 # MP performance
                 def init_mp_performance(const):
-                    if self.component_options.other["component"] == "DB":
+                    if self.performance_data["component"] == "DB":
                         add = st_mp_alpha_db[t - 1, ind - 1] * b_tec.var_db_input[t]
-                    elif self.component_options.other["component"] == "OHB":
+                    elif self.performance_data["component"] == "OHB":
                         add = (
                             st_mp_alpha_ohb[t - 1, ind - 1] * b_tec.var_ohb_h2_input[t]
                         )
@@ -1074,7 +1055,7 @@ class CCPP(Technology):
             "mp_p_el",
             data=[model_block.var_mp_p_el[t].value for t in self.set_t_performance],
         )
-        if self.component_options.other["component"] == "DB":
+        if self.performance_data["component"] == "DB":
             h5_group.create_dataset(
                 "db_input",
                 data=[
@@ -1093,7 +1074,7 @@ class CCPP(Technology):
                     model_block.var_db_ng_input[t].value for t in self.set_t_performance
                 ],
             )
-        if self.component_options.other["component"] == "OHB":
+        if self.performance_data["component"] == "OHB":
             h5_group.create_dataset(
                 "ohb_h2_input",
                 data=[
@@ -1196,19 +1177,15 @@ class CCPP(Technology):
                 # init bounds at full res
                 bounds_rr_full = {
                     "input": self.fitting_class.calculate_input_bounds(
-                        self.component_options.size_based_on, len(self.set_t_full)
+                        self.emissions_based_on, len(self.set_t_full)
                     )
                 }
 
-                for car in self.component_options.input_carrier:
-                    if not car == self.component_options.main_input_carrier:
+                for car in self.input_carrier:
+                    if not car == self.main_input_carrier:
                         bounds_rr_full["input"][car] = (
-                            bounds_rr_full["input"][
-                                self.component_options.main_input_carrier
-                            ]
-                            * self.input_parameters.performance_data["input_ratios"][
-                                car
-                            ]
+                            bounds_rr_full["input"][self.main_input_carrier]
+                            * self.performance_data["input_ratios"][car]
                         )
 
                 # create input variable for full res
@@ -1216,7 +1193,7 @@ class CCPP(Technology):
                     return tuple(
                         bounds_rr_full["input"][car][t - 1, :]
                         * self.processed_coeff.time_independent["size_max"]
-                        * self.processed_coeff.time_independent["rated_power"]
+                        * self.processed_coeff.time_independent["rated_capacity"]
                     )
 
                 b_tec.var_input_rr_full = pyo.Var(

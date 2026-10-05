@@ -94,11 +94,9 @@ class GasTurbine(Technology):
         """
         super().__init__(tec_data)
 
-        self.component_options.emissions_based_on = "input"
-        self.component_options.size_based_on = "output"
-        self.component_options.main_input_carrier = tec_data["Performance"][
-            "main_input_carrier"
-        ]
+        self.emissions_based_on = "input"
+        self.size_based_on = "output"
+        self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -119,14 +117,14 @@ class GasTurbine(Technology):
         # Temperature correction factors
         f = np.empty(shape=(time_steps))
         f[T <= 6] = (
-            self.input_parameters.performance_data["gamma"][0]
-            * (T[T <= 6] / self.input_parameters.performance_data["T_iso"])
-            + self.input_parameters.performance_data["delta"][0]
+            self.performance_data["gamma"][0]
+            * (T[T <= 6] / self.performance_data["T_iso"])
+            + self.performance_data["delta"][0]
         )
         f[T > 6] = (
-            self.input_parameters.performance_data["gamma"][1]
-            * (T[T > 6] / self.input_parameters.performance_data["T_iso"])
-            + self.input_parameters.performance_data["delta"][1]
+            self.performance_data["gamma"][1]
+            * (T[T > 6] / self.performance_data["T_iso"])
+            + self.performance_data["delta"][1]
         )
 
         # Derive return
@@ -135,17 +133,13 @@ class GasTurbine(Technology):
         fit["td"]["temperature_correction"] = f.round(5)
 
         fit["ti"] = {}
-        fit["ti"]["alpha"] = round(self.input_parameters.performance_data["alpha"], 5)
-        fit["ti"]["beta"] = round(self.input_parameters.performance_data["beta"], 5)
-        fit["ti"]["epsilon"] = round(
-            self.input_parameters.performance_data["epsilon"], 5
-        )
-        fit["ti"]["in_min"] = round(self.input_parameters.performance_data["in_min"], 5)
-        fit["ti"]["in_max"] = round(self.input_parameters.performance_data["in_max"], 5)
-        if len(self.component_options.input_carrier) == 2:
-            fit["ti"]["max_H2_admixture"] = self.input_parameters.performance_data[
-                "max_H2_admixture"
-            ]
+        fit["ti"]["alpha"] = round(self.performance_data["alpha"], 5)
+        fit["ti"]["beta"] = round(self.performance_data["beta"], 5)
+        fit["ti"]["epsilon"] = round(self.performance_data["epsilon"], 5)
+        fit["ti"]["in_min"] = round(self.performance_data["in_min"], 5)
+        fit["ti"]["in_max"] = round(self.performance_data["in_max"], 5)
+        if len(self.input_carrier) == 2:
+            fit["ti"]["max_H2_admixture"] = self.performance_data["max_H2_admixture"]
         else:
             fit["ti"]["max_H2_admixture"] = 1
 
@@ -167,13 +161,13 @@ class GasTurbine(Technology):
 
         # Input bounds
         bounds["input_bounds"] = {}
-        for c in self.component_options.input_carrier:
+        for c in self.input_carrier:
             if c == "hydrogen":
                 bounds["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
                         np.ones(shape=(time_steps))
-                        * self.input_parameters.performance_data["in_max"]
+                        * self.performance_data["in_max"]
                         * self.processed_coeff.time_independent["max_H2_admixture"],
                     )
                 )
@@ -181,8 +175,7 @@ class GasTurbine(Technology):
                 bounds["input_bounds"][c] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
-                        np.ones(shape=(time_steps))
-                        * self.input_parameters.performance_data["in_max"],
+                        np.ones(shape=(time_steps)) * self.performance_data["in_max"],
                     )
                 )
 
@@ -193,7 +186,7 @@ class GasTurbine(Technology):
                 np.zeros(shape=(time_steps)),
                 self.processed_coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.input_parameters.performance_data["in_max"]
+                    self.performance_data["in_max"]
                     * self.processed_coeff.time_independent["alpha"]
                     + self.processed_coeff.time_independent["beta"]
                 ),
@@ -206,7 +199,7 @@ class GasTurbine(Technology):
                 * self.processed_coeff.time_independent["in_max"]
                 - self.processed_coeff.time_dependent_used["temperature_correction"]
                 * (
-                    self.input_parameters.performance_data["in_max"]
+                    self.performance_data["in_max"]
                     * self.processed_coeff.time_independent["alpha"]
                     + self.processed_coeff.time_independent["beta"]
                 ),
@@ -216,7 +209,7 @@ class GasTurbine(Technology):
         # Output Bounds
         self.bounds["output"] = bounds["output_bounds"]
         # Input Bounds
-        for car in self.component_options.input_carrier:
+        for car in self.input_carrier:
             self.bounds["input"][car] = np.column_stack(
                 (np.zeros(shape=(time_steps)), np.ones(shape=(time_steps)))
             )
@@ -254,10 +247,10 @@ class GasTurbine(Technology):
         temperature_correction = coeff_td["temperature_correction"]
 
         # Additional decision variables
-        size_max = self.input_parameters.size_max
+        size_max = self.size_max
 
         def init_input_bounds(bds, t):
-            if len(self.component_options.input_carrier) == 2:
+            if len(self.input_carrier) == 2:
                 car = "gas"
             else:
                 car = "hydrogen"
@@ -284,7 +277,7 @@ class GasTurbine(Technology):
         )
 
         # Constrain hydrogen input
-        if len(self.component_options.input_carrier) == 2:
+        if len(self.input_carrier) == 2:
 
             def init_h2_input(const, t):
                 return (
@@ -487,19 +480,15 @@ class GasTurbine(Technology):
                 # init bounds at full res
                 bounds_rr_full = {
                     "input": self.fitting_class.calculate_input_bounds(
-                        self.component_options.size_based_on, len(self.set_t_full)
+                        self.emissions_based_on, len(self.set_t_full)
                     )
                 }
 
-                for car in self.component_options.input_carrier:
-                    if not car == self.component_options.main_input_carrier:
+                for car in self.input_carrier:
+                    if not car == self.main_input_carrier:
                         bounds_rr_full["input"][car] = (
-                            bounds_rr_full["input"][
-                                self.component_options.main_input_carrier
-                            ]
-                            * self.input_parameters.performance_data["input_ratios"][
-                                car
-                            ]
+                            bounds_rr_full["input"][self.main_input_carrier]
+                            * self.performance_data["input_ratios"][car]
                         )
 
                 # create input variable for full res
@@ -507,7 +496,7 @@ class GasTurbine(Technology):
                     return tuple(
                         bounds_rr_full["input"][car][t - 1, :]
                         * self.processed_coeff.time_independent["size_max"]
-                        * self.processed_coeff.time_independent["rated_power"]
+                        * self.processed_coeff.time_independent["rated_capacity"]
                     )
 
                 b_tec.var_input_rr_full = pyo.Var(

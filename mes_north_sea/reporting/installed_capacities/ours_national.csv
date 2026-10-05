@@ -1,0 +1,68 @@
+,Country,Technology,Capacity our work
+0,BE,Biofuels,903.6
+1,BE,Coal & Lignite,0.0
+2,BE,Gas,10109.598
+3,BE,Hydro - Pump Storage Closed Loop (Energy),5750.0
+4,BE,Hydro - Pump Storage Closed Loop (Pumping),-1226.76
+5,BE,Hydro - Pump Storage Closed Loop (Turbine),1305.0
+6,BE,Hydro - Run of River (Turbine),148.2020000000001
+7,BE,Nuclear,2077.0
+8,BE,Solar,10400.0
+9,BE,Wind Offshore,5920.95
+10,BE,Wind Onshore,4669.0
+11,DE,Biofuels,7570.400000000001
+12,DE,Coal & Lignite,17041.903
+13,DE,Gas,35768.797000000006
+14,DE,Hydro - Pump Storage Closed Loop (Energy),629879.7889984644
+15,DE,Hydro - Pump Storage Closed Loop (Pumping),-7417.6
+16,DE,Hydro - Pump Storage Closed Loop (Turbine),7381.640000000001
+17,DE,Hydro - Pump Storage Open Loop (Energy),416759.0
+18,DE,Hydro - Pump Storage Open Loop (Pumping),-1361.0
+19,DE,Hydro - Pump Storage Open Loop (Turbine),1644.1
+20,DE,Hydro - Reservoir (Energy),258578.02197802198
+21,DE,Hydro - Reservoir (Turbine),1297.0
+22,DE,Hydro - Run of River (Turbine),4368.4
+23,DE,Oil,850.934
+24,DE,Solar,96139.64800000002
+25,DE,Wind Offshore,30524.17
+26,DE,Wind Onshore,75371.898
+27,DK,Biofuels,2240.479
+28,DK,Coal & Lignite,0.0
+29,DK,Gas,1663.4790000000003
+30,DK,Solar,6466.973
+31,DK,Wind Offshore,6854.9
+32,DK,Wind Onshore,6156.593
+33,NL,Biofuels,1250.0
+34,NL,Coal & Lignite,0.0
+35,NL,Gas,14432.724999999999
+36,NL,Nuclear,486.0
+37,NL,Solar,27263.77
+38,NL,Wind Offshore,15474.5
+39,NL,Wind Onshore,7976.0
+40,NO,Biofuels,0.003
+41,NO,Gas,265.0
+42,NO,Hydro - Pump Storage Closed Loop (Energy),0.0
+43,NO,Hydro - Pump Storage Closed Loop (Pumping),0.0
+44,NO,Hydro - Pump Storage Closed Loop (Turbine),0.0
+45,NO,Hydro - Pump Storage Open Loop (Energy),89577419.451951
+46,NO,Hydro - Pump Storage Open Loop (Pumping),-1093.41
+47,NO,Hydro - Pump Storage Open Loop (Turbine),37829.865000000005
+48,NO,Hydro - Reservoir (Energy),0.0
+49,NO,Hydro - Reservoir (Turbine),0.0
+50,NO,Solar,600.0
+51,NO,Wind Onshore,6059.675
+52,UK,Biofuels,6439.55
+53,UK,Gas,27243.523
+54,UK,Hydro - Pump Storage Closed Loop (Energy),26380.0
+55,UK,Hydro - Pump Storage Closed Loop (Pumping),-2684.0
+56,UK,Hydro - Pump Storage Closed Loop (Turbine),2744.0
+57,UK,Hydro - Pump Storage Open Loop (Energy),0.0
+58,UK,Hydro - Pump Storage Open Loop (Pumping),0.0
+59,UK,Hydro - Pump Storage Open Loop (Turbine),0.0
+60,UK,Hydro - Reservoir (Energy),0.0
+61,UK,Hydro - Reservoir (Turbine),6.0
+62,UK,Hydro - Run of River (Turbine),2095.1100000007
+63,UK,Nuclear,9327.996
+64,UK,Solar,23407.674
+65,UK,Wind Offshore,48906.3
+66,UK,Wind Onshore,26590.369

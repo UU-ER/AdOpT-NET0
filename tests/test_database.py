@@ -165,20 +165,22 @@ def test_co2_pipeline_cost_model(request):
 
     for terrain in ["Offshore", "Onshore"]:
         for p in [10, 80]:
-            options = {
-                "currency_out": "EUR",
-                "financial_year_out": 2020,
-                "discount_rate": 0.1,
-                "length_km": 100,
-                "massflow_min_kg_per_s": 10,
-                "massflow_max_kg_per_s": 10,
-                "massflow_evaluation_points": 1,
-                "p_inlet_bar": 1,
-                "p_outlet_bar": p,
-                "terrain": terrain,
-            }
+            for no_intercept in [True, False]:
+                options = {
+                    "currency_out": "EUR",
+                    "financial_year_out": 2020,
+                    "discount_rate": 0.1,
+                    "length_km": 100,
+                    "massflow_min_kg_per_s": 10,
+                    "massflow_max_kg_per_s": 10,
+                    "massflow_evaluation_points": 1,
+                    "p_inlet_bar": 1,
+                    "p_outlet_bar": p,
+                    "terrain": terrain,
+                    "no_intercept": no_intercept,
+                }
 
-            c = td.write_json(tec, ".", options)
+                c = td.write_json(tec, ".", options)
 
 
 # CO2 Compressor

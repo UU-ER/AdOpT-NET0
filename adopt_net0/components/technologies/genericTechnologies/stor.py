@@ -136,10 +136,16 @@ class Stor(Technology):
         """
         super().__init__(tec_data)
 
-        self.component_options.emissions_based_on = "input"
-        self.component_options.main_input_carrier = tec_data["Performance"][
-            "main_input_carrier"
+        self.emissions_based_on = "input"
+        self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
+
+        self.allow_only_one_direction = tec_data["Performance"][
+            "allow_only_one_direction"
         ]
+        if self.allow_only_one_direction:
+            self.allow_only_one_direction_precise = get_attribute_from_dict(
+                tec_data["Performance"], "allow_only_one_direction_precise", 1
+            )
 
         self.flexibility_data = tec_data["Flexibility"]
 
@@ -155,7 +161,7 @@ class Stor(Technology):
         # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
         # to account for charging and discharging capacity costs.
         if self.flexibility_data["power_energy_ratio"] == "flexratio":
-            self.economics.capex_model = 4
+            self.economics["capex_model"] = 4
         if self.flexibility_data["power_energy_ratio"] not in [
             "flexratio",
             "fixedratio",
@@ -166,18 +172,18 @@ class Stor(Technology):
             )
 
         # Coefficients
-        theta = self.input_parameters.performance_data["performance"]["theta"]
+        theta = self.performance_data["performance"]["theta"]
         ambient_loss_factor = (65 - climate_data["temp_air"]) / (90 - 65) * theta
 
         self.processed_coeff.time_dependent_full["ambient_loss_factor"] = (
             ambient_loss_factor.to_numpy()
         )
 
-        for par in self.input_parameters.performance_data["performance"]:
+        for par in self.performance_data["performance"]:
             if not par == "theta":
-                self.processed_coeff.time_independent[par] = (
-                    self.input_parameters.performance_data["performance"][par]
-                )
+                self.processed_coeff.time_independent[par] = self.performance_data[
+                    "performance"
+                ][par]
 
         self.processed_coeff.time_independent["charge_rate"] = self.flexibility_data[
             "charge_rate"
@@ -185,14 +191,9 @@ class Stor(Technology):
         self.processed_coeff.time_independent["discharge_rate"] = self.flexibility_data[
             "discharge_rate"
         ]
-        if (
-            "energy_consumption"
-            in self.input_parameters.performance_data["performance"]
-        ):
+        if "energy_consumption" in self.performance_data["performance"]:
             self.processed_coeff.time_independent["energy_consumption"] = (
-                self.input_parameters.performance_data["performance"][
-                    "energy_consumption"
-                ]
+                self.performance_data["performance"]["energy_consumption"]
             )
 
     def _calculate_bounds(self):
@@ -204,7 +205,7 @@ class Stor(Technology):
         time_steps = len(self.set_t_performance)
 
         # Output Bounds
-        for car in self.component_options.output_carrier:
+        for car in self.output_carrier:
             self.bounds["output"][car] = np.column_stack(
                 (
                     np.zeros(shape=(time_steps)),
@@ -213,8 +214,8 @@ class Stor(Technology):
                 )
             )
         # Input Bounds
-        for car in self.component_options.input_carrier:
-            if car == self.component_options.main_input_carrier:
+        for car in self.input_carrier:
+            if car == self.main_input_carrier:
                 self.bounds["input"][car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
@@ -223,13 +224,10 @@ class Stor(Technology):
                     )
                 )
             else:
-                if (
-                    "energy_consumption"
-                    in self.input_parameters.performance_data["performance"]
-                ):
-                    energy_consumption = self.input_parameters.performance_data[
-                        "performance"
-                    ]["energy_consumption"]
+                if "energy_consumption" in self.performance_data["performance"]:
+                    energy_consumption = self.performance_data["performance"][
+                        "energy_consumption"
+                    ]
                     self.bounds["input"][car] = np.column_stack(
                         (
                             np.zeros(shape=(time_steps)),
@@ -314,13 +312,13 @@ class Stor(Technology):
                     eta_in
                     * self.input[
                         sequence_storage[t - 1],
-                        self.component_options.main_input_carrier,
+                        self.main_input_carrier,
                     ]
                     - 1
                     / eta_out
                     * self.output[
                         sequence_storage[t - 1],
-                        self.component_options.main_input_carrier,
+                        self.main_input_carrier,
                     ]
                 ) * sum(
                     (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
@@ -336,13 +334,13 @@ class Stor(Technology):
                     eta_in
                     * self.input[
                         sequence_storage[t - 1],
-                        self.component_options.main_input_carrier,
+                        self.main_input_carrier,
                     ]
                     - 1
                     / eta_out
                     * self.output[
                         sequence_storage[t - 1],
-                        self.component_options.main_input_carrier,
+                        self.main_input_carrier,
                     ]
                 ) * sum(
                     (1 - eta_lambda) ** i for i in range(0, nr_timesteps_averaged)
@@ -353,32 +351,30 @@ class Stor(Technology):
         )
 
         # CONSTRAINTS FOR BIDIRECTIONAL STORAGE
-        if self.component_options.allow_only_one_direction:
+        if self.allow_only_one_direction:
 
             # Cut according to Morales-Espana "LP Formulation for Optimal Investment and
             # Operation of Storage Including Reserves"
             def init_cut_bidirectional(const, t):
                 # output[t]/discharge_rate + input[t]/charge_rate <= storSize
                 return (
-                    self.output[t, self.component_options.main_input_carrier]
-                    / discharge_rate
-                    + self.input[t, self.component_options.main_input_carrier]
-                    / charge_rate
+                    self.output[t, self.main_input_carrier] / discharge_rate
+                    + self.input[t, self.main_input_carrier] / charge_rate
                     <= b_tec.var_size
                 )
 
             # Changes to cut from Morales-Espana for fixed charging and discharging capacities
             def init_cut_bidirectional_fix1(const, t):
                 return (
-                    self.output[t, self.component_options.main_input_carrier]
-                    + self.input[t, self.component_options.main_input_carrier]
+                    self.output[t, self.main_input_carrier]
+                    + self.input[t, self.main_input_carrier]
                     <= b_tec.var_size
                 )
 
             def init_cut_bidirectional_fix2(const, t):
                 return (
-                    self.output[t, self.component_options.main_input_carrier]
-                    + self.input[t, self.component_options.main_input_carrier]
+                    self.output[t, self.main_input_carrier]
+                    + self.input[t, self.main_input_carrier]
                     <= charge_rate + discharge_rate
                 )
 
@@ -394,7 +390,7 @@ class Stor(Technology):
                     self.set_t_performance, rule=init_cut_bidirectional
                 )
 
-            if self.component_options.allow_only_one_direction_precise:
+            if self.allow_only_one_direction_precise:
 
                 self.big_m_transformation_required = 1
                 s_indicators = range(0, 2)
@@ -433,14 +429,10 @@ class Stor(Technology):
         # Maximal charging and discharging rates
         def init_maximal_charge(const, t):
             if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
-                return (
-                    self.input[t, self.component_options.main_input_carrier]
-                    <= charge_rate
-                )
+                return self.input[t, self.main_input_carrier] <= charge_rate
             else:
                 return (
-                    self.input[t, self.component_options.main_input_carrier]
-                    <= b_tec.var_capacity_charge
+                    self.input[t, self.main_input_carrier] <= b_tec.var_capacity_charge
                 )
 
         b_tec.const_max_charge = pyo.Constraint(
@@ -449,13 +441,10 @@ class Stor(Technology):
 
         def init_maximal_discharge(const, t):
             if self.flexibility_data["power_energy_ratio"] == "fixedcapacity":
-                return (
-                    self.output[t, self.component_options.main_input_carrier]
-                    <= discharge_rate
-                )
+                return self.output[t, self.main_input_carrier] <= discharge_rate
             else:
                 return (
-                    self.output[t, self.component_options.main_input_carrier]
+                    self.output[t, self.main_input_carrier]
                     <= b_tec.var_capacity_discharge
                 )
 
@@ -502,7 +491,7 @@ class Stor(Technology):
                     # e.g electricity_cons[t] == input[t] * energy_cons[electricity]
                     return (
                         self.input[t, car]
-                        == self.input[t, self.component_options.main_input_carrier]
+                        == self.input[t, self.main_input_carrier]
                         * energy_consumption["in"][car]
                     )
 
@@ -525,7 +514,7 @@ class Stor(Technology):
                     # e.g electricity_prod[t] == output[t] * energy_cons[electricity]
                     return (
                         self.output[t, car]
-                        == self.output[t, self.component_options.main_input_carrier]
+                        == self.output[t, self.main_input_carrier]
                         * energy_consumption["out"][car]
                     )
 
@@ -597,7 +586,7 @@ class Stor(Technology):
             discount_rate = set_discount_rate(config, economics)
             fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
             annualization_factor = annualize(
-                discount_rate, economics.lifetime, fraction_of_year_modelled
+                discount_rate, economics["lifetime"], fraction_of_year_modelled
             )
             flexibility = self.flexibility_data
 
@@ -614,7 +603,7 @@ class Stor(Technology):
             )
             b_tec.para_unit_capex = pyo.Param(
                 domain=pyo.Reals,
-                initialize=economics.capex_data["unit_capex"],
+                initialize=economics["unit_capex"],
                 mutable=True,
             )
 
@@ -811,12 +800,8 @@ class Stor(Technology):
                             # -rampingRate <= input[t] - input[t-1]
                             return (
                                 -ramping_rate
-                                <= self.input[
-                                    t, self.component_options.main_input_carrier
-                                ]
-                                - self.input[
-                                    t - 1, self.component_options.main_input_carrier
-                                ]
+                                <= self.input[t, self.main_input_carrier]
+                                - self.input[t - 1, self.main_input_carrier]
                             )
 
                         dis.const_ramping_down_rate_in = pyo.Constraint(
@@ -826,10 +811,8 @@ class Stor(Technology):
                         def init_ramping_up_rate_operation_in(const):
                             # input[t] - input[t-1] <= rampingRate
                             return (
-                                self.input[t, self.component_options.main_input_carrier]
-                                - self.input[
-                                    t - 1, self.component_options.main_input_carrier
-                                ]
+                                self.input[t, self.main_input_carrier]
+                                - self.input[t - 1, self.main_input_carrier]
                                 <= ramping_rate
                             )
 
@@ -897,7 +880,7 @@ class Stor(Technology):
                 bounds_rr_full = {"input": {}, "output": {}}
 
                 # Output Bounds
-                for carr in self.component_options.output_carrier:
+                for carr in self.output_carrier:
                     bounds_rr_full["output"][carr] = np.column_stack(
                         (
                             np.zeros(shape=(len(self.set_t_full))),
@@ -907,8 +890,8 @@ class Stor(Technology):
                     )
 
                 # Input Bounds
-                for carr in self.component_options.input_carrier:
-                    if carr == self.component_options.main_input_carrier:
+                for carr in self.input_carrier:
+                    if carr == self.main_input_carrier:
                         bounds_rr_full["input"][carr] = np.column_stack(
                             (
                                 np.zeros(shape=(len(self.set_t_full))),
@@ -917,13 +900,10 @@ class Stor(Technology):
                             )
                         )
                     else:
-                        if (
-                            "energy_consumption"
-                            in self.input_parameters.performance_data["performance"]
-                        ):
-                            energy_consumption = self.input_parameters.performance_data[
-                                "performance"
-                            ]["energy_consumption"]
+                        if "energy_consumption" in self.performance_data["performance"]:
+                            energy_consumption = self.performance_data["performance"][
+                                "energy_consumption"
+                            ]
                             bounds_rr_full["input"][carr] = np.column_stack(
                                 (
                                     np.zeros(shape=(len(self.set_t_full))),
@@ -938,14 +918,14 @@ class Stor(Technology):
                     return tuple(
                         bounds_rr_full["input"][car][t - 1, :]
                         * self.processed_coeff.time_independent["size_max"]
-                        * self.processed_coeff.time_independent["rated_power"]
+                        * self.processed_coeff.time_independent["rated_capacity"]
                     )
 
                 def init_output_bounds(bounds, t, car):
                     return tuple(
                         bounds_rr_full["output"][car][t - 1, :]
                         * self.processed_coeff.time_independent["size_max"]
-                        * self.processed_coeff.time_independent["rated_power"]
+                        * self.processed_coeff.time_independent["rated_capacity"]
                     )
 
                 b_tec.var_input_rr_full = pyo.Var(
@@ -991,8 +971,8 @@ class Stor(Technology):
                 if t > 1:
                     return (
                         -ramping_rate
-                        <= input_aux_rr[t, self.component_options.main_input_carrier]
-                        - input_aux_rr[t - 1, self.component_options.main_input_carrier]
+                        <= input_aux_rr[t, self.main_input_carrier]
+                        - input_aux_rr[t - 1, self.main_input_carrier]
                     )
                 else:
                     return pyo.Constraint.Skip
@@ -1005,8 +985,8 @@ class Stor(Technology):
                 # input[t] - input[t-1] <= rampingRate
                 if t > 1:
                     return (
-                        input_aux_rr[t, self.component_options.main_input_carrier]
-                        - input_aux_rr[t - 1, self.component_options.main_input_carrier]
+                        input_aux_rr[t, self.main_input_carrier]
+                        - input_aux_rr[t - 1, self.main_input_carrier]
                         <= ramping_rate
                     )
                 else:

@@ -90,7 +90,7 @@ def make_climate_data(start_date: str, nr_periods: int = 1) -> pd.DataFrame:
     climate_data["dhi"] = 112
     climate_data["temp_air"] = 4
     climate_data["rh"] = 81
-    climate_data["ws10"] = 6.17
+    climate_data["ws100"] = 6.17
     climate_data["TestTec_Hydro_Open_inflow"] = 1
 
     return climate_data
@@ -273,7 +273,7 @@ def make_data_handle(nr_timesteps: int, topology=None):
     return dh
 
 
-def run_model(model, solver: str, objective: str = "capex_tot"):
+def run_model(model, solver: str, objective: str = "capex"):
     """
     Runs a model and returns termination condition
 
@@ -283,7 +283,7 @@ def run_model(model, solver: str, objective: str = "capex_tot"):
     :return: termination condition for respective model
     """
     if objective == "capex_tot":
-        model.obj = Objective(expr=model.var_capex_tot, sense=minimize)
+        model.obj = Objective(expr=model.var_capex + model.var_capex_ccs, sense=minimize)
     elif objective == "capex":
         model.obj = Objective(expr=model.var_capex, sense=minimize)
     elif objective == "emissions":

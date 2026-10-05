@@ -47,6 +47,7 @@ def construct_investment_period_block(b_period, data: dict):
 
     # LOG
     log_msg = f"Constructing Investment Period {investment_period}"
+    print(log_msg)
     log.info(log_msg)
 
     # SETS
@@ -90,6 +91,7 @@ def construct_investment_period_block(b_period, data: dict):
     b_period.var_emissions_net = Var()
 
     log_msg = f"Constructing Investment Period {investment_period} completed"
+    print(log_msg)
     log.warning(log_msg)
 
     return b_period

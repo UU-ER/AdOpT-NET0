@@ -6,6 +6,7 @@ import json
 
 from ..components.networks import *
 from ..components.technologies import *
+from ..components.technologies.genericTechnologies.res_cap import Res_Cap
 
 import logging
 
@@ -87,6 +88,8 @@ def technology_factory(tec_data: dict):
         return HydroOpen(tec_data)
     elif tec_data["tec_type"] == "CCPP":
         return CCPP(tec_data)
+    elif tec_data["tec_type"] == "RES_CAP":
+        return Res_Cap(tec_data)
 
 
 def create_technology_class(tec_name: str, load_path: Path):
@@ -104,8 +107,8 @@ def create_technology_class(tec_name: str, load_path: Path):
     tec_data = technology_factory(tec_data)
 
     # CCS
-    if tec_data.component_options.ccs_possible:
-        tec_data.ccs_data = open_json(tec_data.component_options.ccs_type, load_path)
+    if tec_data.ccs_possible:
+        tec_data.ccs_data = open_json(tec_data.ccs_type, load_path)
     return tec_data
 
 
@@ -284,4 +287,5 @@ def check_input_data_consistency(path: Path):
         )
 
     log_msg = "Input data folder has been checked successfully - no errors occurred."
+    print(log_msg)
     log.info(log_msg)

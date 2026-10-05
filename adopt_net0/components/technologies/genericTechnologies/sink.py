@@ -9,7 +9,6 @@ from ....components.utilities import (
     set_discount_rate,
     link_full_resolution_to_clustered,
 )
-from ...component import InputParameters
 
 
 class Sink(Technology):
@@ -75,10 +74,8 @@ class Sink(Technology):
         """
         super().__init__(tec_data)
 
-        self.component_options.emissions_based_on = "input"
-        self.component_options.main_input_carrier = tec_data["Performance"][
-            "main_input_carrier"
-        ]
+        self.emissions_based_on = "input"
+        self.main_input_carrier = tec_data["Performance"]["main_input_carrier"]
         self.flexibility_data = tec_data["Flexibility"]
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
@@ -93,19 +90,14 @@ class Sink(Technology):
         # For a flexibly optimized storage technology (i.e., not a fixed P-E ratio), an adapted CAPEX function is used
         # to account for charging and discharging capacity costs.
         if self.flexibility_data["injection_capacity_is_decision_var"]:
-            self.economics.capex_model = 4
+            self.economics["capex_model"] = 4
 
         self.processed_coeff.time_independent["injection_rate_max"] = (
             self.flexibility_data["injection_rate_max"]
         )
-        if (
-            "energy_consumption"
-            in self.input_parameters.performance_data["performance"]
-        ):
+        if "energy_consumption" in self.performance_data["performance"]:
             self.processed_coeff.time_independent["energy_consumption"] = (
-                self.input_parameters.performance_data["performance"][
-                    "energy_consumption"
-                ]
+                self.performance_data["performance"]["energy_consumption"]
             )
 
     def _calculate_bounds(self):
@@ -117,8 +109,8 @@ class Sink(Technology):
         time_steps = len(self.set_t_performance)
 
         # Input Bounds
-        for car in self.component_options.input_carrier:
-            if car == self.component_options.main_input_carrier:
+        for car in self.input_carrier:
+            if car == self.main_input_carrier:
                 self.bounds["input"][car] = np.column_stack(
                     (
                         np.zeros(shape=(time_steps)),
@@ -127,13 +119,10 @@ class Sink(Technology):
                     )
                 )
             else:
-                if (
-                    "energy_consumption"
-                    in self.input_parameters.performance_data["performance"]
-                ):
-                    energy_consumption = self.input_parameters.performance_data[
-                        "performance"
-                    ]["energy_consumption"]
+                if "energy_consumption" in self.performance_data["performance"]:
+                    energy_consumption = self.performance_data["performance"][
+                        "energy_consumption"
+                    ]
                     self.bounds["input"][car] = np.column_stack(
                         (
                             np.zeros(shape=(time_steps)),
@@ -157,6 +146,14 @@ class Sink(Technology):
         """
 
         super(Sink, self).construct_tech_model(b_tec, data, set_t_full, set_t_clustered)
+        b_tec.del_component(b_tec.const_opex_variable)
+        b_tec.del_component(b_tec.var_opex_variable)
+        b_tec.var_opex_variable = pyo.Var(self.set_t_global, domain=pyo.NonNegativeReals)
+
+        def init_opex_variable(const, t):
+            return (b_tec.var_opex_variable[t] == self.input[t, self.main_input_carrier] * b_tec.para_opex_variable)
+
+        b_tec.const_opex_variable = pyo.Constraint(self.set_t_global, rule=init_opex_variable)
 
         # DATA OF TECHNOLOGY
         config = data["config"]
@@ -171,7 +168,7 @@ class Sink(Technology):
         elif config["optimization"]["typicaldays"]["method"]["value"] == 2:
             sequence_storage = self.sequence
 
-        # Sotrage level and injection capacity decision variables
+        # Storage level and injection capacity decision variables
         b_tec.var_storage_level = pyo.Var(
             set_t_full,
             domain=pyo.NonNegativeReals,
@@ -201,7 +198,7 @@ class Sink(Technology):
                     b_tec.var_storage_level[t]
                     == self.input[
                         sequence_storage[t - 1],
-                        self.component_options.main_input_carrier,
+                        self.main_input_carrier,
                     ]
                 )
             else:
@@ -211,7 +208,7 @@ class Sink(Technology):
                     == b_tec.var_storage_level[t - 1]
                     + self.input[
                         sequence_storage[t - 1],
-                        self.component_options.main_input_carrier,
+                        self.main_input_carrier,
                     ]
                 )
 
@@ -221,8 +218,7 @@ class Sink(Technology):
         def init_maximal_injection(const, t):
             # input[t] <= injectionCapacity
             return (
-                self.input[t, self.component_options.main_input_carrier]
-                <= b_tec.var_injection_capacity
+                self.input[t, self.main_input_carrier] <= b_tec.var_injection_capacity
             )
 
         b_tec.const_max_injection = pyo.Constraint(
@@ -252,7 +248,7 @@ class Sink(Technology):
                     # energyInput[t] = mainInput[t] * energyConsumption
                     return (
                         self.input[t, car]
-                        == self.input[t, self.component_options.main_input_carrier]
+                        == self.input[t, self.main_input_carrier]
                         * energy_consumption["in"][car]
                     )
 
@@ -286,7 +282,7 @@ class Sink(Technology):
         discount_rate = set_discount_rate(config, economics)
         fraction_of_year_modelled = data["topology"]["fraction_of_year_modelled"]
         annualization_factor = annualize(
-            discount_rate, economics.lifetime, fraction_of_year_modelled
+            discount_rate, economics["lifetime"], fraction_of_year_modelled
         )
         flexibility = self.flexibility_data
         coeff_ti = self.processed_coeff.time_independent
@@ -299,7 +295,7 @@ class Sink(Technology):
         )
         b_tec.para_unit_capex_stor_size = pyo.Param(
             domain=pyo.Reals,
-            initialize=economics.capex_data["unit_capex"],
+            initialize=economics["unit_capex"],
             mutable=True,
         )
 
@@ -411,7 +407,7 @@ class Sink(Technology):
             # init bounds at full res
             bounds_rr_full = {
                 "input": self.fitting_class.calculate_input_bounds(
-                    self.component_options.size_based_on, len(self.set_t_full)
+                    self.emissions_based_on, len(self.set_t_full)
                 )
             }
 
@@ -420,7 +416,7 @@ class Sink(Technology):
                 return tuple(
                     bounds_rr_full["input"][car][t - 1, :]
                     * self.processed_coeff.time_independent["size_max"]
-                    * self.processed_coeff.time_independent["rated_power"]
+                    * self.processed_coeff.time_independent["rated_capacity"]
                 )
 
             b_tec.var_input_rr_full = pyo.Var(
@@ -446,8 +442,8 @@ class Sink(Technology):
             if t > 1:
                 return (
                     -ramping_rate
-                    <= input_aux_rr[t, self.component_options.main_input_carrier]
-                    - input_aux_rr[t - 1, self.component_options.main_input_carrier]
+                    <= input_aux_rr[t, self.main_input_carrier]
+                    - input_aux_rr[t - 1, self.main_input_carrier]
                 )
             else:
                 return pyo.Constraint.Skip
@@ -459,8 +455,8 @@ class Sink(Technology):
         def init_ramping_up_rate(const, t):
             if t > 1:
                 return (
-                    input_aux_rr[t, self.component_options.main_input_carrier]
-                    - input_aux_rr[t - 1, self.component_options.main_input_carrier]
+                    input_aux_rr[t, self.main_input_carrier]
+                    - input_aux_rr[t - 1, self.main_input_carrier]
                     <= ramping_rate
                 )
             else:

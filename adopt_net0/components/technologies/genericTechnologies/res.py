@@ -44,7 +44,12 @@ class Res(Technology):
         """
         super().__init__(tec_data)
 
-        self.component_options.emissions_based_on = "output"
+        self.emissions_based_on = "output"
+
+        # Options
+        self.curtailment = get_attribute_from_dict(
+            self.performance_data, "curtailment", 0
+        )
 
     def fit_technology_performance(self, climate_data: pd.DataFrame, location: dict):
         """
@@ -56,11 +61,11 @@ class Res(Technology):
         super(Res, self).fit_technology_performance(climate_data, location)
 
         if "Photovoltaic" in self.name:
-            if "system_type" in self.input_parameters.performance_data:
+            if "system_type" in self.performance_data:
                 self._perform_fitting_pv(
                     climate_data,
                     location,
-                    system_data=self.input_parameters.performance_data["system_type"],
+                    system_data=self.performance_data["system_type"],
                 )
             else:
                 self._perform_fitting_pv(climate_data, location)
@@ -69,16 +74,11 @@ class Res(Technology):
             self._perform_fitting_ST(climate_data)
 
         elif "WindTurbine" in self.name:
-            if "hubheight" in self.input_parameters.performance_data:
-                hubheight = self.input_parameters.performance_data["hubheight"]
+            if "hubheight" in self.performance_data:
+                hubheight = self.performance_data["hubheight"]
             else:
                 hubheight = 120
             self._perform_fitting_wt(climate_data, hubheight)
-
-        # Options
-        self.component_options.other["curtailment"] = get_attribute_from_dict(
-            self.input_parameters.performance_data, "curtailment", 0
-        )
 
     def _perform_fitting_pv(self, climate_data: pd.DataFrame, location: dict, **kwargs):
         """
@@ -208,7 +208,12 @@ class Res(Technology):
             )
 
         # Load wind speed and correct for height
-        ws = climate_data["ws10"]
+        if "ws100" in climate_data:
+            ws = climate_data["ws100"]
+            ws_height = 100
+        else:
+            ws = climate_data["ws10"]
+            ws_height = 10
 
         # TODO: make power exponent choice possible
         # TODO: Make different heights possible
@@ -222,24 +227,24 @@ class Res(Technology):
         #         alpha = 1 / 7;
 
         if hubheight > 0:
-            ws = ws * (hubheight / 10) ** alpha
+            ws = ws * (hubheight / ws_height) ** alpha
 
         # Make power curve
-        rated_power = wt_data.iloc[0]["RatedPowerkW"]
+        rated_capacity = wt_data.iloc[0]["RatedPowerkW"]
         x = np.linspace(0, 35, 71)
         y = wt_data.iloc[:, 13:84]
         y = y.to_numpy()
 
         f = interp1d(x, y)
         ws[ws < 0] = 0
-        capacity_factor = f(ws) / rated_power
+        capacity_factor = f(ws) / rated_capacity
 
         # Coefficients
         self.processed_coeff.time_dependent_full["capfactor"] = capacity_factor[
             0
         ].round(3)
         # Rated Power
-        self.input_parameters.rated_power = rated_power / 1000
+        self.performance_data["rated_capacity"] = rated_capacity / 1000
 
     def _calculate_bounds(self):
         """
@@ -269,16 +274,16 @@ class Res(Technology):
 
         # DATA OF TECHNOLOGY
         coeff_td = self.processed_coeff.time_dependent_used
-        rated_power = self.input_parameters.rated_power
-        curtailment = self.component_options.other["curtailment"]
+        coeff_ti = self.processed_coeff.time_independent
+        rated_capacity = coeff_ti["rated_capacity"]
 
         # CONSTRAINTS
-        if curtailment == 0:  # no curtailment allowed (default)
+        if self.curtailment == 0:  # no curtailment allowed (default)
 
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    == coeff_td["capfactor"][t - 1] * b_tec.var_size * rated_power
+                    == coeff_td["capfactor"][t - 1] * b_tec.var_size * rated_capacity
                 )
 
             b_tec.const_input_output = pyo.Constraint(
@@ -287,12 +292,12 @@ class Res(Technology):
                 rule=init_input_output,
             )
 
-        elif curtailment == 1:  # continuous curtailment
+        elif self.curtailment == 1:  # continuous curtailment
 
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    <= coeff_td["capfactor"][t - 1] * b_tec.var_size * rated_power
+                    <= coeff_td["capfactor"][t - 1] * b_tec.var_size * rated_capacity
                 )
 
             b_tec.const_input_output = pyo.Constraint(
@@ -301,7 +306,7 @@ class Res(Technology):
                 rule=init_input_output,
             )
 
-        elif curtailment == 2:  # discrete curtailment
+        elif self.curtailment == 2:  # discrete curtailment
             b_tec.var_size_on = pyo.Var(
                 self.set_t_performance,
                 within=pyo.NonNegativeIntegers,
@@ -318,7 +323,9 @@ class Res(Technology):
             def init_input_output(const, t, c_output):
                 return (
                     self.output[t, c_output]
-                    == coeff_td["capfactor"][t - 1] * b_tec.var_size_on[t] * rated_power
+                    == coeff_td["capfactor"][t - 1]
+                    * b_tec.var_size_on[t]
+                    * rated_capacity
                 )
 
             b_tec.const_input_output = pyo.Constraint(
@@ -339,7 +346,10 @@ class Res(Technology):
 
         super(Res, self).write_results_tec_design(h5_group, model_block)
 
-        h5_group.create_dataset("rated_power", data=self.input_parameters.rated_power)
+        h5_group.create_dataset(
+            "rated_capacity",
+            data=self.processed_coeff.time_independent["rated_capacity"],
+        )
 
     def write_results_tec_operation(self, h5_group, model_block):
         """
@@ -350,20 +360,22 @@ class Res(Technology):
         """
         super(Res, self).write_results_tec_operation(h5_group, model_block)
 
-        rated_power = self.input_parameters.rated_power
+        coeff_ti = self.processed_coeff.time_independent
+        rated_capacity = coeff_ti["rated_capacity"]
+
         capfactor = self.processed_coeff.time_dependent_used["capfactor"]
 
         h5_group.create_dataset(
             "max_out",
             data=[
-                capfactor[t - 1] * model_block.var_size.value * rated_power
+                capfactor[t - 1] * model_block.var_size.value * rated_capacity
                 for t in self.set_t_performance
             ],
         )
 
         h5_group.create_dataset("cap_factor", data=capfactor)
 
-        if self.component_options.other["curtailment"] == 2:
+        if self.curtailment == 2:
             h5_group.create_dataset(
                 "units_on",
                 data=[model_block.var_size_on[t].value for t in self.set_t_performance],
@@ -373,7 +385,7 @@ class Res(Technology):
             h5_group.create_dataset(
                 "curtailment_" + car,
                 data=[
-                    capfactor[t - 1] * model_block.var_size.value * rated_power
+                    capfactor[t - 1] * model_block.var_size.value * rated_capacity
                     - model_block.var_output[t, car].value
                     for t in self.set_t_performance
                 ],

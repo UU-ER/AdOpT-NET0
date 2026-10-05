@@ -122,13 +122,13 @@ class PV_CostModel(DataComponent_CostModel):
         self.financial_indicators["lifetime"] = cost["lifetime"]
 
         # Write to json template
-        self.json_data["Economics"]["unit_CAPEX"] = self.financial_indicators[
+        self.json_data["Economics"]["unit_capex"] = self.financial_indicators[
             "unit_capex"
         ]
-        self.json_data["Economics"]["OPEX_fixed"] = self.financial_indicators[
+        self.json_data["Economics"]["opex_fixed"] = self.financial_indicators[
             "opex_fix"
         ]
-        self.json_data["Economics"]["OPEX_variable"] = self.financial_indicators[
+        self.json_data["Economics"]["opex_variable"] = self.financial_indicators[
             "opex_variable"
         ]
         self.json_data["Economics"]["lifetime"] = self.financial_indicators["lifetime"]

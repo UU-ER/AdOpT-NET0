@@ -12,7 +12,7 @@ from .case_studies import *
 from .database import show_available_networks, show_available_technologies
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 # Stream Handler to control console output
 ch = logging.StreamHandler()

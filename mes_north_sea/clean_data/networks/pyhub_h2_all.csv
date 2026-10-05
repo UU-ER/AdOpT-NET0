@@ -1,0 +1,35 @@
+LinePyHub;length;s_nom;s_nom_max;node0;node1;LineCountry;Source;Type
+;333.0293584;0;5;UK3;UK2;onshore;;onshore, repurposed
+;253.9214617;0;5;UK2;UK4;onshore;;onshore, repurposed
+;219.3924577;0;5;UK4;UK1;onshore;;onshore, repurposed
+;534.222004;0;5;NO1;DE_B;offshore;;offshore
+;269.4739926;0;5;DE_B;DE3;offshore;;offshore
+;223.4365296;0;5;DE_B;DE2;offshore;;offshore
+;94.46989591;0;5;NL2;NL3;onshore;;onshore, repurposed
+;122.6312951;0;5;NL3;NL4;onshore;;onshore, repurposed
+;108.069952;0;5;NL4;NL1;onshore;;onshore, new
+;92.35386437;0;5;NL1;NL2;onshore;;onshore, repurposed
+;94.46989591;0;5;NL2;NL3;onshore;;onshore, repurposed
+;136.4032197;0;5;NL1;BE2;onshore;;onshore, repurposed
+;156.0621953;0;5;NL4;BE2;onshore;;onshore, repurposed
+;134.7550129;0;5;BE1;BE2;onshore;;onshore, new
+;172.372463;0;5;DE1;BE2;onshore;;onshore, new
+;280.8027904;0;5;DE1;DE4;onshore;;onshore, repurposed
+;96.47714124;0;5;NL4;DE1;onshore;;onshore, repurposed
+;112.6297215;0;5;NL3;DE2;onshore;;onshore, repurposed
+;329.2061232;0;5;DE2;DE4;onshore;;onshore, repurposed
+;345.0530287;0;5;DE3;DE4;onshore;;onshore, repurposed
+;254.1656044;0;5;DK1;DE3;onshore;;onshore, repurposed
+;154.593998;0;5;DK_A;DK1;offshore;;offshore
+;269.4739926;0;5;DE_B;DE3;offshore;;offshore
+;223.4365296;0;5;DE_B;DE2;offshore;;offshore
+;107.7834359;0;5;NL_A;NL2;offshore;;offshore
+;136.844945;0;5;NL_A;NL1;offshore;;offshore
+;142.3220449;0;5;NL_B;NL2;offshore;;offshore
+;165.6669739;0;5;NL_B;NL1;offshore;;offshore
+;195.7697549;0;5;BE_A;BE2;offshore;;offshore
+;157.5301735;0;5;UK_B;UK1;offshore;;offshore
+;195.0539312;0;5;UK_B;UK2;offshore;;offshore
+;256.7334302;0;5;UK_C;UK2;offshore;;offshore
+;220.7530783;0;5;UK_E;UK3;offshore;;offshore
+;175.9743543;0;5;UK_D;UK3;offshore;;offshore

@@ -5,16 +5,16 @@
   "size_is_int": 0,
   "decommission": "impossible",
   "Economics": {
-    "comment": "CAPEX in EUR/MW or as a piecewise function, OPEX_variable in EUR/MWh total output, OPEX_fixed in % of up-front CAPEX",
-    "CAPEX_model": 1,
-    "unit_CAPEX": 114430,
-    "fix_CAPEX": 1e6,
-    "piecewise_CAPEX": {
+    "comment": "CAPEX in EUR/MW or as a piecewise function, opex_variable in EUR/MWh total output, opex_fixed in % of up-front CAPEX",
+    "capex_model": 1,
+    "unit_capex": 114430,
+    "fix_capex": 1e6,
+    "piecewise_capex": {
       "bp_x": "not defined",
       "bp_y": "not defined"
     },
-    "OPEX_variable": 0.5,
-    "OPEX_fixed": 0.01,
+    "opex_variable": 0.5,
+    "opex_fixed": 0.01,
     "discount_rate": 0.1,
     "lifetime": 25,
     "decommission_cost": 0

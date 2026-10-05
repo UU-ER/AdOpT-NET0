@@ -4,9 +4,8 @@ import pyomo.gdp as gdp
 import copy
 from warnings import warn
 
-# from ..genericNetworks import fitting_classes as f
 from ..network import Network
-from ...utilities import link_full_resolution_to_clustered
+from ...utilities import get_attribute_from_dict
 
 
 class Simple(Network):
@@ -34,7 +33,10 @@ class Simple(Network):
         super().__init__(netw_data)
 
         # we keep simple networks are always bi-directional
-        self.component_options.bidirectional_network = 1
+        self.bidirectional_network = 1
+        self.bidirectional_network_precise = get_attribute_from_dict(
+            netw_data["Performance"], "bidirectional_network_precise", 1
+        )
 
     def fit_network_performance(self):
         super(Simple, self).fit_network_performance()
