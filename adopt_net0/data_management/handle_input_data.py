@@ -175,24 +175,19 @@ class DataHandle:
         Reads all time-series data and shortens time series accordingly
         """
 
-        def replace_nan_in_list(ls: list) -> list:
+        def read_series(path: Path) -> dict:
             """
-            Replaces nan with zeros and writes warning to logger
+            Reads the columns of a time series csv, with NaN values replaced by zeros
 
-            :param list ls: List
-            :return list: returns list with nan replaces by zero
-            :rtype: list
+            :param Path path: csv file
+            :return: column name to values
+            :rtype: dict
             """
-            if any(np.isnan(x) for x in ls):
-                ls = [0 if np.isnan(x) else x for x in ls]
-                log.debug(
-                    f"Found NaN values in data for investment period {investment_period},"
-                    f" node {node}, key1 {var}, carrier {carrier}, key2 {key}."
-                    f" Replaced with zeros."
-                )
-                return ls
-            else:
-                return ls
+            series = pd.read_csv(path, sep=";", index_col=0)
+            if series.isna().to_numpy().any():
+                log.debug(f"Found NaN values in {path}. Replaced with zeros.")
+                series = series.fillna(0)
+            return {key: series[key].to_numpy() for key in series.columns}
 
         # Initialize data dict
         data = {}
@@ -200,59 +195,18 @@ class DataHandle:
         # Loop through all investment_periods and nodes
         for investment_period in self.topology["investment_periods"]:
             for node in self.topology["nodes"]:
-
-                # Carbon Costs
-                var = "CarbonCost"
-                carrier = "global"
-                carbon_cost = pd.read_csv(
-                    self.data_path
-                    / investment_period
-                    / "node_data"
-                    / node
-                    / "CarbonCost.csv",
-                    sep=";",
-                    index_col=0,
-                ).to_dict(orient="list")
-                for key in carbon_cost.keys():
-                    data[(investment_period, node, var, carrier, key)] = (
-                        replace_nan_in_list(carbon_cost[key])
-                    )
-
-                # Climate Data
-                var = "ClimateData"
-                carrier = "global"
-                climate_data = pd.read_csv(
-                    self.data_path
-                    / investment_period
-                    / "node_data"
-                    / node
-                    / "ClimateData.csv",
-                    sep=";",
-                    index_col=0,
-                ).to_dict(orient="list")
-                for key in climate_data.keys():
-                    data[(investment_period, node, var, carrier, key)] = (
-                        replace_nan_in_list(climate_data[key])
-                    )
-
-                # Carrier Data
-                var = "CarrierData"
-                carrier = "global"
+                node_path = self.data_path / investment_period / "node_data" / node
+                files = {
+                    ("CarbonCost", "global"): node_path / "CarbonCost.csv",
+                    ("ClimateData", "global"): node_path / "ClimateData.csv",
+                }
                 for carrier in self.topology["carriers"]:
-                    carrier_data = pd.read_csv(
-                        self.data_path
-                        / investment_period
-                        / "node_data"
-                        / node
-                        / "carrier_data"
-                        / (carrier + ".csv"),
-                        sep=";",
-                        index_col=0,
-                    ).to_dict(orient="list")
-                    for key in carrier_data.keys():
-                        data[(investment_period, node, var, carrier, key)] = (
-                            replace_nan_in_list(carrier_data[key])
-                        )
+                    files[("CarrierData", carrier)] = (
+                        node_path / "carrier_data" / (carrier + ".csv")
+                    )
+                for (var, carrier), path in files.items():
+                    for key, values in read_series(path).items():
+                        data[(investment_period, node, var, carrier, key)] = values
 
         # Post-process data dict to dataframe and shorten
         data = pd.DataFrame(data)
