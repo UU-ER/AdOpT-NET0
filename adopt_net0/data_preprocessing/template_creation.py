@@ -405,6 +405,10 @@ def initialize_configuration_templates() -> dict:
                 "options": [-1, 0, 1, 2, 3],
                 "value": -1,
             },
+            "seed": {
+                "description": "Random seed of the solver, changes the search path but not the model.",
+                "value": 0,
+            },
         },
         "reporting": {
             "write_results": {

@@ -2,6 +2,7 @@
 userData
 results
 examples/ladder/sweep
+examples/ladder/logs
 /adopt_net0/test/test_data
 
 # Byte-compiled / optimized / DLL files

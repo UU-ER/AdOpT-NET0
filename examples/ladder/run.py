@@ -134,7 +134,12 @@ SOLVER_OPTIONS = {
     "intfeastol": (float, "integer feasibility tolerance"),
     "feastol": (float, "feasibility tolerance of the constraints"),
     "solver": (str, "solver name, gurobi or glpk"),
+    "seed": (int, "random seed of gurobi, changes the search path, not the model"),
 }
+
+#: Solver options that cases built before them do not carry, with the value the solver
+#: uses when they are left out.
+LATER_OPTIONS = {"seed": 0}
 
 
 class HelpFormatter(
@@ -241,6 +246,8 @@ def override_solver_options(pyhub, solver_options: dict) -> dict:
     for option, value in solver_options.items():
         if value is None:
             continue
+        if option not in config and option in LATER_OPTIONS:
+            config[option] = {"value": LATER_OPTIONS[option]}
         if option not in config:
             raise KeyError(f"{option} is not a solver option of the case")
         if config[option]["value"] == value:
@@ -295,6 +302,24 @@ def cap_imports(model, cap: float) -> int:
                 variable.setub(cap)
                 bounded += 1
     return bounded
+
+
+def override_save_paths(pyhub, results_dir: Path, summary_dir: Path):
+    """
+    Points the results of the hub at the rung, whatever machine built the case.
+
+    ``build.py`` writes absolute paths into ``ConfigModel.json``, which only exist on the
+    machine it ran on. Every run reads ``Summary.xlsx`` whole and writes it back, so runs
+    side by side that append to one corrupt it: a run on a copy of the case gets a
+    summary folder of its own.
+
+    :param pyhub: model hub, after reading the data and before solving
+    :param Path results_dir: folder the result folder of the run is created in
+    :param Path summary_dir: folder of the ``Summary.xlsx`` the run appends to
+    """
+    reporting = pyhub.data.model_config["reporting"]
+    reporting["save_path"]["value"] = str(results_dir)
+    reporting["save_summary_path"]["value"] = str(summary_dir)
 
 
 def override_capacity_factors(pyhub, capacity_factors: pd.DataFrame, n_hours: int):
@@ -453,6 +478,8 @@ def run(
     linepack: bool = True,
     pressure_coupled: bool = True,
     import_cap: float = None,
+    results_dir: Path = None,
+    summary_dir: Path = None,
 ) -> dict:
     """
     Reads, constructs and solves the case for one network type.
@@ -474,6 +501,10 @@ def run(
     :param bool pressure_coupled: whether the arcs meeting at a node share one
         pressure, see :func:`set_pressure_coupling`. The reference has no pressure, so
         the flag only touches the linepack run
+    :param Path results_dir: where the result folder is created, the one of the case
+        when left out
+    :param Path summary_dir: where ``Summary.xlsx`` is appended to, ``results_dir``
+        when left out
     :return: objective, design of the small clusters, arcs built, and a start
     """
     set_network_type(input_path, network_type)
@@ -494,6 +525,8 @@ def run(
     pyhub = adopt.ModelHub()
     pyhub.read_data(str(input_path), start_period=0, end_period=hours)
     override_capacity_factors(pyhub, capacity_factors, hours)
+    if results_dir is not None:
+        override_save_paths(pyhub, results_dir, summary_dir or results_dir)
 
     changed = override_solver_options(pyhub, solver_options or {})
     for option, (before, after) in changed.items():
@@ -937,6 +970,15 @@ def main(argv=None):
     design_backup = None
     copied = None
     results = {}
+    # a case given with --input carries the result paths its caller chose, see sweep.py
+    results_dir = None
+    summary_dir = None
+    if not args.input:
+        results_dir = case_dir / "userData"
+        summary_dir = results_dir
+        if args.copy_case:
+            summary_dir = results_dir / "summaries" / str(os.getpid())
+        summary_dir.mkdir(parents=True, exist_ok=True)
     try:
         if args.copy_case:
             copied = case_dir / "userData" / f"case_{os.getpid()}"
@@ -1003,6 +1045,8 @@ def main(argv=None):
                 linepack=args.linepack,
                 pressure_coupled=args.pressure_coupled,
                 import_cap=args.import_cap,
+                results_dir=results_dir,
+                summary_dir=summary_dir,
             )
             start = results[network_type]["start"]
 

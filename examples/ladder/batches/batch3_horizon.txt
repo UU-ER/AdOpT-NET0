@@ -1,0 +1,15 @@
+# Batch 3: how do the pack value and the solve time scale with the horizon?
+# 3L3S, full design, default layout, cold, 4 threads, 1 % gap, 8 h cap. 12 jobs.
+# Check RAM before: 672 h with hourly SOS2 is the biggest model so far.
+ref_168  --formulation baseline --rung 3L3S --hours 168 --design all --case reference --threads 4 --mipgap 0.01 --timelim 8
+ref_336  --formulation baseline --rung 3L3S --hours 336 --design all --case reference --threads 4 --mipgap 0.01 --timelim 8
+ref_504  --formulation baseline --rung 3L3S --hours 504 --design all --case reference --threads 4 --mipgap 0.01 --timelim 8
+ref_672  --formulation baseline --rung 3L3S --hours 672 --design all --case reference --threads 4 --mipgap 0.01 --timelim 8
+base_168 --formulation baseline --rung 3L3S --hours 168 --design all --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 8
+base_336 --formulation baseline --rung 3L3S --hours 336 --design all --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 8
+base_504 --formulation baseline --rung 3L3S --hours 504 --design all --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 8
+base_672 --formulation baseline --rung 3L3S --hours 672 --design all --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 8
+magn_168 --formulation magnitude_cuts --rung 3L3S --hours 168 --design all --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 8
+magn_336 --formulation magnitude_cuts --rung 3L3S --hours 336 --design all --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 8
+magn_504 --formulation magnitude_cuts --rung 3L3S --hours 504 --design all --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 8
+magn_672 --formulation magnitude_cuts --rung 3L3S --hours 672 --design all --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 8
