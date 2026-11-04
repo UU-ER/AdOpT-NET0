@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# bash reads these, so they keep LF on Windows checkouts too
+*.sh text eol=lf
+examples/ladder/batches/*.txt text eol=lf
