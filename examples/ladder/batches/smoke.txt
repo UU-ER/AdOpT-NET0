@@ -1,0 +1,3 @@
+# Smoke test: two tiny jobs, about 1 min. Run before a real batch to check the interpreter.
+s_ref  --formulation baseline --rung 1L1S --hours 24 --case reference --threads 2 --timelim 0.05 --seed 3
+s_magn --formulation magnitude_cuts --rung 1L1S --hours 24 --case linepack --no-warmstart --threads 2 --timelim 0.05 --seed 1
