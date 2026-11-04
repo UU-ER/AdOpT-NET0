@@ -1,16 +1,16 @@
 # Batch 2: does a warm start from the reference fix the bad linepack incumbents?
 # 3L3S, 48 h, full design, backbone as candidate (reference optimum 5.506e5; cold linepack
-# incumbents 6.2-6.4e5 after 15 min). 4 threads, 1 % gap, 2 h cap. 12 jobs.
+# incumbents 6.2-6.4e5 after 15 min). 4 threads, 1 % gap, 6 h cap. 12 jobs.
 # "--case both" solves the reference first and starts the linepack model from it.
-ref         --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case reference --threads 4 --mipgap 0.01 --timelim 2
-base_cold_s0 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 0
-base_cold_s1 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 1
-base_warm_s0 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 0
-base_warm_s1 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 1
-magn_cold_s0 --formulation magnitude_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 0
-magn_warm_s0 --formulation magnitude_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 0
-magn_warm_s1 --formulation magnitude_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 1
-comb_warm_s0 --formulation combined_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 0
-comb_warm_s1 --formulation combined_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 2 --seed 1
-base_cold_mf1 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 2 --mipfocus 1
-base_warm_mf1 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 2 --mipfocus 1
+ref         --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case reference --threads 4 --mipgap 0.01 --timelim 6
+base_cold_s0 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 0
+base_cold_s1 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 1
+base_warm_s0 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 0
+base_warm_s1 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 1
+magn_cold_s0 --formulation magnitude_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 0
+magn_warm_s0 --formulation magnitude_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 0
+magn_warm_s1 --formulation magnitude_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 1
+comb_warm_s0 --formulation combined_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 0
+comb_warm_s1 --formulation combined_cuts --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 6 --seed 1
+base_cold_mf1 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case linepack --no-warmstart --threads 4 --mipgap 0.01 --timelim 6 --mipfocus 1
+base_warm_mf1 --formulation baseline --rung 3L3S --hours 48 --design all --layout layouts/3L3S_backbone_candidate.json --case both --warmstart --threads 4 --mipgap 0.01 --timelim 6 --mipfocus 1
