@@ -421,7 +421,7 @@ def collect_start(model) -> dict:
     return {"binaries": start, "flows": flows}
 
 
-def apply_start(model, start: dict) -> tuple:
+def apply_start(model, start: dict, directions: bool = False) -> tuple:
     """
     Writes a start into a model, so that gurobi has an incumbent from the first node.
 
@@ -429,8 +429,15 @@ def apply_start(model, start: dict) -> tuple:
     the values is all that is needed. A partial start is allowed: gurobi solves for
     whatever is left. Variables the two models do not share are simply not found.
 
+    By default only the design is handed over. The directions of the reference come
+    from flows that ignore the pressure, and with every one of them fixed gurobi
+    completed the start to a solution a hundred times the reference (server batch of
+    2026-11-04), so they are left to the solver unless asked for.
+
     :param model: constructed pyomo model, before solving
     :param dict start: the output of :func:`collect_start`
+    :param bool directions: whether the hourly directions are set from the flows of
+        the reference as well
     :return: how many binaries and how many directions were set
     """
     binaries = 0
@@ -438,6 +445,9 @@ def apply_start(model, start: dict) -> tuple:
         if var.is_binary() and var.name in start["binaries"]:
             var.set_value(start["binaries"][var.name], skip_validation=True)
             binaries += 1
+
+    if not directions:
+        return binaries, 0
 
     # The direction has to come from the *net* flow of a corridor. The reference does
     # not forbid flow in both directions of one at the same timestep, it has no
@@ -473,6 +483,7 @@ def run(
     small: list,
     hours: int = DEFAULT_HOURS,
     start: dict = None,
+    start_directions: bool = False,
     solver_options: dict = None,
     precise: bool = False,
     linepack: bool = True,
@@ -490,6 +501,8 @@ def run(
     :param list small: small clusters of the rung, whose design is reported
     :param int hours: length of the horizon
     :param dict start: a solution of the other network type, used as a warm start
+    :param bool start_directions: whether the start sets the hourly directions as well
+        as the design, see :func:`apply_start`
     :param dict solver_options: solver options overriding the ones of the case
     :param bool precise: whether the reference forbids a corridor carrying both ways at
         the same timestep, see :func:`set_precise_directions`. The linepack model
@@ -541,7 +554,7 @@ def run(
             f"imports capped at {import_cap} MW: {cap_imports(model, import_cap)} bounds"
         )
     if start:
-        binaries, directions = apply_start(model, start)
+        binaries, directions = apply_start(model, start, start_directions)
         print(
             f"warm start: {binaries} binaries and {directions} directions taken "
             "from the reference run"
@@ -789,6 +802,12 @@ def parse_args(argv=None):
         dest="warmstart",
         action="store_false",
         help="solve every run from scratch",
+    )
+    parser.add_argument(
+        "--warmstart-directions",
+        action="store_true",
+        help="hand over the hourly directions of the reference as well as its design. "
+        "Off by default: gurobi completes such a start to a very poor solution",
     )
     parser.add_argument(
         "--import-cap",
@@ -1040,6 +1059,7 @@ def main(argv=None):
                 small,
                 hours=args.hours,
                 start=start if args.warmstart else None,
+                start_directions=args.warmstart_directions,
                 solver_options=solver_options,
                 precise=args.precise,
                 linepack=args.linepack,

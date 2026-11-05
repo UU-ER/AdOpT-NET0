@@ -1,0 +1,17 @@
+# Batch 4: design-only warm start (the reference's build binaries, directions left free).
+# Batch 2/3 showed the full start (with 3648 hourly directions) completes to 100x the
+# reference and that long horizons fail on the primal side. Same cases, same caps:
+# backbone candidate 48 h (cold: 1560-2090 s) and horizons 168-672 h (cold: no close in 24 h).
+# "--case both" solves the reference first, then starts the linepack run from its design.
+bbc_base_s0 --formulation baseline --hours 48 --layout layouts/3L3S_backbone_candidate.json --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 6 --seed 0
+bbc_base_s1 --formulation baseline --hours 48 --layout layouts/3L3S_backbone_candidate.json --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 6 --seed 1
+bbc_magn_s0 --formulation magnitude_cuts --hours 48 --layout layouts/3L3S_backbone_candidate.json --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 6 --seed 0
+bbc_magn_s1 --formulation magnitude_cuts --hours 48 --layout layouts/3L3S_backbone_candidate.json --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 6 --seed 1
+magn_168    --formulation magnitude_cuts --hours 168 --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 24
+base_336    --formulation baseline --hours 336 --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 24
+magn_336    --formulation magnitude_cuts --hours 336 --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 24
+magn_336_s1 --formulation magnitude_cuts --hours 336 --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 24 --seed 1
+base_504    --formulation baseline --hours 504 --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 24
+magn_504    --formulation magnitude_cuts --hours 504 --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 24
+base_672    --formulation baseline --hours 672 --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 24
+magn_672    --formulation magnitude_cuts --hours 672 --rung 3L3S --design all --case both --threads 4 --mipgap 0.01 --timelim 24
