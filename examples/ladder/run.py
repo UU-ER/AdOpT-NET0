@@ -68,6 +68,7 @@ import os
 import shutil
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pandas as pd
 import pyomo.environ as pyo
@@ -322,6 +323,27 @@ def override_save_paths(pyhub, results_dir: Path, summary_dir: Path):
     reporting["save_summary_path"]["value"] = str(summary_dir)
 
 
+def override_import_price(pyhub, price: float) -> int:
+    """
+    Sets the price of imported hydrogen at every node, for the whole horizon.
+
+    :param pyhub: model hub, after reading the data and before constructing the model
+    :param float price: import price in EUR/MWh, 210 in the case as built
+    :return: how many nodes were changed
+    """
+    series = pyhub.data.time_series["full"]
+    columns = [
+        column
+        for column in series.columns
+        if column[2] == "CarrierData"
+        and column[3] == CARRIER
+        and column[4] == "Import price"
+    ]
+    for column in columns:
+        series[column] = price
+    return len(columns)
+
+
 def override_capacity_factors(pyhub, capacity_factors: pd.DataFrame, n_hours: int):
     """
     Replaces the fitted capacity factors with the ones of the study.
@@ -421,6 +443,57 @@ def collect_start(model) -> dict:
     return {"binaries": start, "flows": flows}
 
 
+def fix_directions(model, folder: Path) -> dict:
+    """
+    Fixes every corridor to one direction for the whole horizon.
+
+    The direction is the one of the net flow summed over the horizon in an earlier
+    result, typically the reference. The reference may carry both ways in one hour, so
+    only the net flow says which way a corridor really works. With every direction fixed
+    the operational problem has no hourly binary left, which is the point: it measures
+    what the directions cost the solver, and what giving up the reversals costs the
+    system. A fixed direction forces its pipe to be built, so the option is meant for
+    runs whose network is given by that same result (``--design none --from``).
+
+    :param model: constructed pyomo model
+    :param Path folder: result folder holding ``optimization_results.h5``
+    :return: the direction chosen per corridor, as (network, from, to) -> hours fixed
+    """
+    with h5py.File(Path(folder) / "optimization_results.h5", "r") as results:
+        flows = results["operation"]["networks"][PERIOD]
+        b_period = model.periods[PERIOD]
+        fixed = {}
+        for name in b_period.network_block:
+            b_netw = b_period.network_block[name]
+            # a network given by an earlier result is existing here, and was a
+            # candidate under its plain name there
+            source = name if name in flows else name.removesuffix("_existing")
+            if source not in flows:
+                continue
+            for arc in b_netw.arc_block:
+                b_arc = b_netw.arc_block[arc]
+                if not hasattr(b_arc, "var_direction") or arc[0] > arc[1]:
+                    continue
+                forward = flows[source].get(arc[0] + arc[1])
+                reverse = flows[source].get(arc[1] + arc[0])
+                if forward is None or reverse is None:
+                    continue
+                carried = np.asarray(forward["flow"]).sum()
+                returned = np.asarray(reverse["flow"]).sum()
+                # a corridor that carried nothing was not built there: fixing its
+                # direction would force the pipe in, so it is left to the model
+                if carried + returned < 1e-6:
+                    continue
+                net = carried - returned
+                b_back = b_netw.arc_block[arc[1], arc[0]]
+                for t in b_period.set_t_full:
+                    b_arc.var_direction[t].fix(1 if net >= 0 else 0)
+                    b_back.var_direction[t].fix(0 if net >= 0 else 1)
+                way = arc if net >= 0 else (arc[1], arc[0])
+                fixed[(name,) + way] = len(b_period.set_t_full)
+    return fixed
+
+
 def apply_start(model, start: dict, directions: bool = False) -> tuple:
     """
     Writes a start into a model, so that gurobi has an incumbent from the first node.
@@ -489,6 +562,8 @@ def run(
     linepack: bool = True,
     pressure_coupled: bool = True,
     import_cap: float = None,
+    import_price: float = None,
+    directions_from: Path = None,
     results_dir: Path = None,
     summary_dir: Path = None,
 ) -> dict:
@@ -514,6 +589,11 @@ def run(
     :param bool pressure_coupled: whether the arcs meeting at a node share one
         pressure, see :func:`set_pressure_coupling`. The reference has no pressure, so
         the flag only touches the linepack run
+    :param float import_price: price of imported hydrogen in EUR/MWh at every node,
+        the one of the case when left out
+    :param Path directions_from: result folder whose net flows fix every corridor to
+        one direction, see :func:`fix_directions`. Only the linepack model has
+        directions, so it only touches the linepack run
     :param Path results_dir: where the result folder is created, the one of the case
         when left out
     :param Path summary_dir: where ``Summary.xlsx`` is appended to, ``results_dir``
@@ -538,6 +618,9 @@ def run(
     pyhub = adopt.ModelHub()
     pyhub.read_data(str(input_path), start_period=0, end_period=hours)
     override_capacity_factors(pyhub, capacity_factors, hours)
+    if import_price is not None:
+        nodes = override_import_price(pyhub, import_price)
+        print(f"hydrogen import price set to {import_price} EUR/MWh at {nodes} nodes")
     if results_dir is not None:
         override_save_paths(pyhub, results_dir, summary_dir or results_dir)
 
@@ -553,6 +636,11 @@ def run(
         print(
             f"imports capped at {import_cap} MW: {cap_imports(model, import_cap)} bounds"
         )
+    if directions_from is not None and network_type == LINEPACK:
+        fixed = fix_directions(model, directions_from)
+        print(f"directions fixed for the whole horizon, from {directions_from}:")
+        for (name, node_from, node_to), hours in fixed.items():
+            print(f"  {name}: {node_from} -> {node_to} ({hours} h)")
     if start:
         binaries, directions = apply_start(model, start, start_directions)
         print(
@@ -810,6 +898,20 @@ def parse_args(argv=None):
         "Off by default: gurobi completes such a start to a very poor solution",
     )
     parser.add_argument(
+        "--import-price",
+        type=float,
+        default=None,
+        help="price of imported hydrogen at every node, in EUR/MWh (210 as built)",
+    )
+    parser.add_argument(
+        "--fix-directions",
+        type=Path,
+        default=None,
+        metavar="FOLDER",
+        help="fix every corridor of the linepack run to the direction of its net flow in "
+        "this result folder, for the whole horizon",
+    )
+    parser.add_argument(
         "--import-cap",
         type=float,
         default=None,
@@ -1065,6 +1167,8 @@ def main(argv=None):
                 linepack=args.linepack,
                 pressure_coupled=args.pressure_coupled,
                 import_cap=args.import_cap,
+                import_price=args.import_price,
+                directions_from=args.fix_directions,
                 results_dir=results_dir,
                 summary_dir=summary_dir,
             )
