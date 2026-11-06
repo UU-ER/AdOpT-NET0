@@ -27,7 +27,8 @@ import sys
 from types import SimpleNamespace
 
 
-FORMULATIONS = ("baseline", "combined_cuts", "magnitude_cuts")
+FORMULATIONS = ("baseline", "combined_cuts", "magnitude_cuts", "magnitude_ratio_cuts")
+MAGNITUDE = ("magnitude_cuts", "magnitude_ratio_cuts")
 
 
 def _load_runner():
@@ -148,9 +149,12 @@ def main(argv=None):
             result = super().construct_balances()
             if self._has_linepack():
                 model = self.model[self.info_solving_algorithms["aggregation_model"]]
-                if variant == "magnitude_cuts":
+                if variant in MAGNITUDE:
                     details = apply_magnitude_formulation(
-                        model, self.data.network_data, inventory_cuts=True
+                        model,
+                        self.data.network_data,
+                        inventory_cuts=True,
+                        ratio_cuts=variant == "magnitude_ratio_cuts",
                     )
                 else:
                     details = apply_formulation(model, self.data.network_data, variant)
@@ -160,7 +164,7 @@ def main(argv=None):
             return result
 
         def solve(self):
-            if variant == "magnitude_cuts" and self._has_linepack():
+            if variant in MAGNITUDE and self._has_linepack():
                 model = self.model[self.info_solving_algorithms["aggregation_model"]]
                 changed = _canonicalize_idle_starts(model)
                 if changed:
@@ -171,7 +175,8 @@ def main(argv=None):
 
     if "--help" in original_args or "-h" in original_args:
         print(
-            "Additional option: --formulation {baseline,combined_cuts,magnitude_cuts}"
+            "Additional option: --formulation "
+            "{baseline,combined_cuts,magnitude_cuts,magnitude_ratio_cuts}"
         )
         print("Default: baseline. Use --no-warmstart for a cold comparison.")
         print("All remaining options below belong to the original run.py.\n")

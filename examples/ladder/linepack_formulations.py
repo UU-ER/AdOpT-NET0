@@ -352,7 +352,7 @@ def _validate_external_references(model, pipelines):
 
 
 def apply_magnitude_formulation(
-    model, network_data, inventory_cuts=False, endpoint_hull=False
+    model, network_data, inventory_cuts=False, endpoint_hull=False, ratio_cuts=False
 ):
     """Apply to a fresh model and return formulation metadata.
 
@@ -367,14 +367,22 @@ def apply_magnitude_formulation(
     ``y``; directional flow gates and ``delta<=max(dP)*direction`` force the
     inactive side to zero.  Thus a built integer pipe uses exactly the same PWL
     segments, endpoint capacities, and permitted flow signs as the original.
+
+    ``ratio_cuts=True`` adds, for each direction, ``r_min*delta <= q <= r_max*delta``
+    with ``r_min``/``r_max`` the smallest/largest ``F/B`` over the breakpoints with a
+    nonzero drop. Every point of the PWL curve satisfies them, as the curve starts at
+    the origin, so they only stop the relaxation from putting the flow in one
+    direction and the pressure drop in the other.
     """
     inventory_cuts = bool(inventory_cuts or endpoint_hull)
     endpoint_hull = bool(endpoint_hull)
+    ratio_cuts = bool(ratio_cuts)
     previous = getattr(model, "_magnitude_pipeline_experiment", None)
     if previous is not None:
         if (
             previous["inventory_cuts"] == inventory_cuts
             and previous["endpoint_hull"] == endpoint_hull
+            and previous["ratio_cuts"] == ratio_cuts
         ):
             return dict(previous)
         raise ValueError("Use a fresh model when changing magnitude variants.")
@@ -391,6 +399,8 @@ def apply_magnitude_formulation(
         ),
         "inventory_cuts": inventory_cuts,
         "endpoint_hull": endpoint_hull,
+        "ratio_cuts": ratio_cuts,
+        "ratio_cut_rows_added": 0,
         "networks": len(pipelines),
         "base_tightening": base,
         "direction_binaries_relaxed": 0,
@@ -470,6 +480,27 @@ def apply_magnitude_formulation(
                     rule=lambda _, t, part=directed: part.var_delta_pressure[t]
                     <= max_drop * part.var_direction[t],
                 )
+            if ratio_cuts:
+                if any(drops[z] <= 0 and flow_knots[z] != 0 for z in range(len(drops))):
+                    raise ValueError(
+                        "Ratio cuts need every zero-drop breakpoint at zero flow."
+                    )
+                ratios = [
+                    flow_knots[z] / drops[z] for z in range(len(drops)) if drops[z] > 0
+                ]
+                r_min, r_max = min(ratios), max(ratios)
+                pipe.const_ratio = pyo.ConstraintList()
+                for directed in directions:
+                    for t in network.set_t:
+                        pipe.const_ratio.add(
+                            directed.var_flow[t]
+                            >= r_min * directed.var_delta_pressure[t]
+                        )
+                        pipe.const_ratio.add(
+                            directed.var_flow[t]
+                            <= r_max * directed.var_delta_pressure[t]
+                        )
+                result["ratio_cut_rows_added"] += len(pipe.const_ratio)
             if inventory_cuts:
                 k = float(coefficients["linepack"].at[arc])
                 p_min = float(coefficients["pressure_min"])

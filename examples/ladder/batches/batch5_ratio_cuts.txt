@@ -1,0 +1,20 @@
+# Batch 5: Robin's direction ratio cuts, r_min*delta_d <= q_d <= r_max*delta_d per direction
+# (magnitude_ratio_cuts = magnitude_cuts + ratio cuts). They forbid the relaxation from
+# putting the flow in one direction and the pressure drop in the other, which is where
+# long horizons struggle: about 3000 of 3360 directions fractional at the root of the
+# 672 h operation, no solution found.
+# Operation only: design fixed to the server reference runs of batch 3 (336 h, 672 h).
+op336_magn    --formulation magnitude_cuts       --hours 336 --case linepack --design none --from 3L3S/userData/20261104152147-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6
+op336_ratio   --formulation magnitude_ratio_cuts --hours 336 --case linepack --design none --from 3L3S/userData/20261104152147-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6
+op672_magn    --formulation magnitude_cuts       --hours 672 --case linepack --design none --from 3L3S/userData/20261104152151-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6
+op672_ratio   --formulation magnitude_ratio_cuts --hours 672 --case linepack --design none --from 3L3S/userData/20261104152151-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6
+# Full design, 336 h: magnitude reached 3.95 / 4.30 / 5.40 % after 24 h in batches 3-4.
+des336_magn_s0  --formulation magnitude_cuts       --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 0
+des336_magn_s1  --formulation magnitude_cuts       --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 1
+des336_ratio_s0 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 0
+des336_ratio_s1 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 1
+# Full design, 48 h (batch 1: magnitude 527-850 s over four seeds), for the root bound.
+des48_magn_s0   --formulation magnitude_cuts       --hours 48 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 4 --seed 0
+des48_magn_s1   --formulation magnitude_cuts       --hours 48 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 4 --seed 1
+des48_ratio_s0  --formulation magnitude_ratio_cuts --hours 48 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 4 --seed 0
+des48_ratio_s1  --formulation magnitude_ratio_cuts --hours 48 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 4 --seed 1
