@@ -1,0 +1,12 @@
+# Batch 6: is the ratio cut gain on the operation runs real or seed luck?
+# Batch 5, seed 0: op672 ratio solved in 5931 s, magnitude no solution after 9400 s;
+# op336 ratio first solution at 878 s, magnitude at 1131 s. Same runs with seeds 1 and 2.
+# Run with 6 in parallel: batch 5 still holds 20 threads until its 24 h runs end.
+op672_magn_s1  --formulation magnitude_cuts       --hours 672 --case linepack --design none --from 3L3S/userData/20261104152151-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 8 --seed 1
+op672_ratio_s1 --formulation magnitude_ratio_cuts --hours 672 --case linepack --design none --from 3L3S/userData/20261104152151-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 8 --seed 1
+op672_magn_s2  --formulation magnitude_cuts       --hours 672 --case linepack --design none --from 3L3S/userData/20261104152151-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 8 --seed 2
+op672_ratio_s2 --formulation magnitude_ratio_cuts --hours 672 --case linepack --design none --from 3L3S/userData/20261104152151-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 8 --seed 2
+op336_magn_s1  --formulation magnitude_cuts       --hours 336 --case linepack --design none --from 3L3S/userData/20261104152147-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6 --seed 1
+op336_ratio_s1 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design none --from 3L3S/userData/20261104152147-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6 --seed 1
+op336_magn_s2  --formulation magnitude_cuts       --hours 336 --case linepack --design none --from 3L3S/userData/20261104152147-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6 --seed 2
+op336_ratio_s2 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design none --from 3L3S/userData/20261104152147-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6 --seed 2
