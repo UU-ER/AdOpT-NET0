@@ -1,4 +1,5 @@
 import json
+import warnings
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -137,7 +138,16 @@ def create_input_data_folder_template(base_path: Path | str):
     )
 
     # Make folder structure
-    node_locations.to_csv(base_path / "NodeLocations.csv", sep=";")
+    node_locations_path = base_path / "NodeLocations.csv"
+    if not node_locations_path.exists():
+        node_locations.to_csv(node_locations_path, sep=";")
+    else:
+        existing_nodes = pd.read_csv(node_locations_path, index_col=0, sep=";").index
+        if set(existing_nodes) != set(topology["nodes"]):
+            warnings.warn(
+                "NodeLocations.csv already exists and its nodes do not match "
+                "Topology.json. Delete it to regenerate the template."
+            )
     for investment_period in topology["investment_periods"]:
         (base_path / investment_period).mkdir(parents=True, exist_ok=True)
 
