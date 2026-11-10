@@ -1,0 +1,370 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.3cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{coderef}{HTML}{3775BA}
+\definecolor{warn}{HTML}{B64342}
+\newcommand{\ctag}[2]{\tag*{\small{\color{coderef}\texttt{#2}}\quad(#1)}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pmin}{p^{\min}}
+\newcommand{\pmax}{p^{\max}}
+\newcommand{\pref}{p^{\mathrm{ref}}}
+\newcommand{\dPa}{\Delta P^{\mathrm{act}}}
+\newcommand{\dPu}{\Delta P^{\mathrm{unb}}}
+\newcommand{\fin}{f^{\mathrm{in}}}
+\newcommand{\fout}{f^{\mathrm{out}}}
+\newcommand{\abar}{\bar a}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+
+\title{Pipeline and linepack formulation in AdOpT-NET0\\[2pt]
+\large \code{FluidynamicPipeline}: sets, parameters, variables and constraints}
+\author{}
+\date{10 November 2026}
+
+\begin{document}
+\maketitle
+
+\noindent This note writes out the optimization model that the class
+\code{FluidynamicPipeline} builds, read off the code at commit \code{9e530a28}.
+References in the right margin point to the code:
+\code{FP} = \code{fluidynamic\_pipeline.py},
+\code{FSP} = \code{fixed\_size\_pipeline.py} (both in
+\code{adopt\_net0/components/networks/specificNetworks/}),
+\code{NW} = \code{networks/network.py},
+\code{FL} = \code{networks/genericNetworks/fluid.py}.
+The reasoning behind each modelling choice is in \code{linepack\_formulation.md}
+(decisions D1--D11).
+
+Each pipeline type (one json in \code{network\_data/}) is a separate network
+object with its own variables. Everything below is written for one such
+network; several types at the same node do \emph{not} share variables
+(Section~\ref{sec:coupling}).
+
+\tableofcontents
+
+%---------------------------------------------------------------------------
+\section{Physics being approximated}
+
+Steady-state, isothermal, single-segment flow in a pipe $e=(i,j)$, hour $t$:
+\begin{align}
+  f_{e,t}\,\lvert f_{e,t}\rvert &= R_e\,\bigl(p_{i,t}^2 - p_{j,t}^2\bigr)
+  && \text{pipeline (Weymouth-type) equation} \label{eq:phys-pipe}\\
+  L_{e,t} &= K_e\,\tfrac12\bigl(p_{i,t}+p_{j,t}\bigr)
+  && \text{linepack} \label{eq:phys-lp}\\
+  L_{e,t} &= L_{e,t-1} + \Delta t\,\bigl(\fin_{e,t}-\fout_{e,t}\bigr),
+  \quad f_{e,t} = \tfrac12\bigl(\fin_{e,t}+\fout_{e,t}\bigr)
+  && \text{pack balance} \label{eq:phys-bal}
+\end{align}
+Equations \eqref{eq:phys-lp}--\eqref{eq:phys-bal} are linear.
+Only \eqref{eq:phys-pipe} is not; it is replaced by a piecewise-linear (PWL)
+relation in Section~\ref{sec:pwl}. Flows are energy flows (MW) and the
+linepack is energy (MWh), consistent with the node energy balances.
+
+%---------------------------------------------------------------------------
+\section{Sets}
+
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+Symbol & Code & Meaning \\
+\midrule
+$t\in\mathcal T$ & \code{set\_t} & time steps \\
+$a=(i,j)\in\mathcal A$ & \code{set\_arcs}, \code{arc\_block[i,j]} &
+  directed arcs; a bidirectional pipeline is two arcs $(i,j)$ and $(j,i)$ \\
+$\abar=(j,i)$ & & reverse arc of $a$ \\
+$e\in\mathcal E$ & \code{set\_arcs\_unique} & pipelines (one per corridor) \\
+$n\in\mathcal N^p$ & \code{set\_pressure\_nodes} &
+  pressure keys: the node if \code{pressure\_coupled}$=1$, one key per pipeline end if $0$ \\
+$z\in\{0,\dots,Z-1\}$ & \code{set\_breakpoints} & breakpoints of the PWL curve \\
+\bottomrule
+\end{tabularx}
+
+%---------------------------------------------------------------------------
+\section{Parameters}
+
+\subsection{Input (json \code{Performance} and topology)}
+
+\begin{tabularx}{\linewidth}{@{}l l X l@{}}
+\toprule
+Symbol & json key & Meaning & Unit \\
+\midrule
+$D$, $\varepsilon$ & \code{diameter}, \code{roughness} & pipe diameter, wall roughness & m \\
+$\pmin,\ \pmax$ & \code{pressure\_min}, \code{pressure\_max} & pressure band & bar \\
+$\pref$ & \code{pressure\_ref} & level at which the PWL curve is built & bar \\
+$T$, $Z_c$, $M$ & \code{temperature}, \code{compressibility\_factor}, \code{molar\_mass}
+  & gas state & K, --, kg/kmol \\
+$ed$ & \code{energy\_density} & energy per mass & MWh/t \\
+$Z$ & \code{nr\_breakpoints} & number of breakpoints (default 5) & -- \\
+$L_a$ & topology & arc length & km \\
+$\gamma_{1..4}$, \dots & economics & capex, opex, losses, compressor coefficients & \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Derived per arc (\code{fit\_network\_performance}, \code{FSP:78})}
+
+\begin{align}
+  R_s &= 8314/M
+  \\
+  f_D &= \bigl(2\log_{10}(3.7D/\varepsilon)\bigr)^{-2}
+  && \text{Nikuradse, fully turbulent}\\
+  R_a &= \frac{ed^2\cdot 3.6^2\cdot\frac{\pi^2}{16}\,D^5\cdot 10^{10}}
+             {f_D\cdot 1000\cdot Z_c R_s T}\cdot\frac{1}{L_a}
+  && [\text{MW}^2/\text{bar}^2]\\
+  K_a &= ed\cdot\frac{\pi D^2}{4}\cdot 1000\cdot\frac{100}{Z_c R_s T}\cdot L_a
+  && [\text{MWh}/\text{bar}]\\
+  B_z &= \frac{z}{Z-1}\,\bigl(\pmax-\pref\bigr), \quad z=0,\dots,Z-1
+  && \text{drop breakpoints}\\
+  F_{a,z} &= \sqrt{R_a\,B_z\,\bigl(2\pref + B_z\bigr)}
+  && \text{flow breakpoints}\\
+  \bar F_a &= \max_z F_{a,z}
+  && \text{arc capacity (json \code{size\_max} ignored)}
+\end{align}
+$F_{a,z}$ follows from \eqref{eq:phys-pipe} with the low pressure fixed at
+$\pref$ and the high one at $\pref+B_z$ (decision D1). If
+\code{linepack\_on}$=0$, then $K_a:=0$ (\code{FP:202}).
+
+\subsection{Derived constants used in the constraints}
+
+\begin{align}
+  \dPa &= \max_z B_z = \pmax-\pref, &
+  \dPu &= (\pmax-\pmin)-\dPa,
+\end{align}
+$\Delta t$ = \code{nr\_timesteps\_averaged} (1 without time staging),
+$H$ = hours per typical day (0 without typical days),
+$\rho$ = \code{rated\_capacity} (1, so sizes and flows are in MW).
+
+%---------------------------------------------------------------------------
+\section{Variables}
+
+\begin{tabularx}{\linewidth}{@{}l l l X@{}}
+\toprule
+Symbol & Code & Domain & Meaning \\
+\midrule
+\multicolumn{4}{@{}l}{\emph{Per arc $a$}}\\
+$y_a$ & \code{var\_installed} & $\{0,1\}$ & arc built \\
+$s_a$ & \code{var\_size} & $\ge 0$ & size $=y_a\bar F_a$ \\
+$f_{a,t}$ & \code{var\_flow} & $[0,\bar F_a\rho]$ & mean flow in the pipe \\
+$\fin_{a,t},\ \fout_{a,t}$ & \code{var\_flow\_in/out} & $[0,\bar F_a\rho]$ & flow entering / leaving \\
+$\ell_{a,t}$ & \code{var\_losses} & $[0,\bar F_a\rho]$ & transport losses \\
+$\xi_{a,t}$ & \code{var\_direction} & $\{0,1\}$ & direction $a$ active \\
+$\delta_{a,t}$ & \code{var\_delta\_pressure} & $[0,\dPa]$ & pressure drop along $a$ \\
+$\lambda_{a,t,z}$ & \code{var\_lambda} & $[0,1]$ & PWL weights (SOS2 over $z$) \\
+\midrule
+\multicolumn{4}{@{}l}{\emph{Per pipeline $e$}}\\
+$L_{e,t}$ & \code{var\_linepack} & $[0,K_e\pmax]$ & stored energy (MWh) \\
+\midrule
+\multicolumn{4}{@{}l}{\emph{Per pressure key $n$}}\\
+$p_{n,t}$ & \code{var\_pressure} & $[\pmin,\pmax]$ & pressure (bar) \\
+\bottomrule
+\end{tabularx}
+
+\medskip
+Notation: for an arc $a=(i,j)$, $p_{i,t}$ is the pressure of node $i$
+\emph{as seen by arc $a$} (\code{\_get\_pressure}, \code{FP:271}). With
+\code{pressure\_coupled}$=1$ all arcs of the network meeting at $i$ see the
+same variable. Per pipeline and hour there are 2 binaries ($\xi_a,\xi_{\abar}$)
+and 2 SOS2 sets.
+
+%---------------------------------------------------------------------------
+\section{Constraints}
+
+All constraints hold for every $t\in\mathcal T$ unless stated otherwise.
+
+\subsection{Investment (per arc)}
+\begin{align}
+  s_a &= y_a\,\bar F_a \ctag{C1}{FSP:189}\\
+  y_a &= 1 \quad\text{if the arc is existing} \ctag{C2}{FSP:187}\\
+  \mathrm{capex}_a &= \gamma_1 y_a + \gamma_2 s_a + \gamma_3 L_a y_a + \gamma_4 s_a L_a
+    \quad(=0 \text{ if existing}) \ctag{C3}{FSP:210}\\
+  y_a &= y_{\abar}, \qquad s_a = s_{\abar} \ctag{C4--C5}{FP:552, NW:858}
+\end{align}
+
+\subsection{Flows on an arc}
+\begin{align}
+  f_{a,t} &= \tfrac12\bigl(\fin_{a,t} + \fout_{a,t}\bigr) \ctag{C6}{FP:374}\\
+  \fin_{a,t} &\le \xi_{a,t}\,\bar F_a\rho, \qquad
+  \fout_{a,t} \le \xi_{a,t}\,\bar F_a\rho \ctag{C7--C8}{FP:382, FP:392}\\
+  f_{a,t} &\le s_a\rho \ctag{C9}{NW:785}\\
+  f_{a,t} + f_{\abar,t} &\le s_a\rho \ctag{C10}{NW:871}\\
+  \ell_{a,t} &= f_{a,t}\cdot \mathrm{loss}\cdot L_a \ctag{C11}{NW:776}
+\end{align}
+The GDP disjunction of the parent class (\code{bidirectional\_network\_precise})
+is switched off (\code{FP:185}); C7, C8 and C17 enforce the same condition.
+
+\subsection{Pipeline equation: piecewise linear with SOS2 (per arc)}
+\label{sec:pwl}
+\begin{align}
+  \sum_{z} \lambda_{a,t,z} &= \xi_{a,t} \ctag{C12}{FP:706}\\
+  \delta_{a,t} &= \sum_{z} B_z\,\lambda_{a,t,z} \ctag{C13}{FP:714}\\
+  f_{a,t} &= \sum_{z} F_{a,z}\,\lambda_{a,t,z} \ctag{C14}{FP:724}\\
+  \bigl(\lambda_{a,t,0},\dots,\lambda_{a,t,Z-1}\bigr) &\in \mathrm{SOS2} \ctag{C15}{FP:735}
+\end{align}
+SOS2: at most two \emph{adjacent} weights are non-zero, so $(\delta,f)$ lies on
+one segment of the curve. Because the weights sum to $\xi$ (not to 1), an
+inactive direction has $\lambda=0$, hence $\delta=0$ and $f=0$. Note that C14
+interpolates the \emph{mean} flow $f$.
+
+\subsection{Pressure drop and node pressures (per arc $a=(i,j)$)}
+\begin{align}
+  \delta_{a,t} &\le (p_{i,t}-p_{j,t}) + \dPa(1-\xi_{a,t}) + \dPu(1-y_a) \ctag{C16a}{FP:675}\\
+  \delta_{a,t} &\ge (p_{i,t}-p_{j,t}) - \dPa(1-\xi_{a,t}) - \dPu(1-y_a) \ctag{C16b}{FP:690}
+\end{align}
+Built and active: $\delta_{a,t}=p_{i,t}-p_{j,t}\ge 0$, gas flows from high to low
+pressure. Inactive: $\lvert p_i-p_j\rvert\le\dPa$. Not built: the end pressures
+are free over the whole band. The big-M is split in two terms (decision D5)
+to keep it as small as possible on built pipelines.
+
+\subsection{Directions and pressures on an idle pipeline (per pipeline $e=(i,j)$)}
+\begin{align}
+  \xi_{a,t} + \xi_{\abar,t} &\le y_a \ctag{C17}{FP:572}\\
+  p_{i,t}-p_{j,t} &\le \dPa\bigl(\xi_{a,t}+\xi_{\abar,t}+1-y_a\bigr) + \dPu(1-y_a) \ctag{C18a}{FP:598}\\
+  p_{i,t}-p_{j,t} &\ge -\dPa\bigl(\xi_{a,t}+\xi_{\abar,t}+1-y_a\bigr) - \dPu(1-y_a) \ctag{C18b}{FP:611}
+\end{align}
+A built pipeline may be idle ($\xi_a=\xi_{\abar}=0$); C18 then forces
+$p_{i,t}=p_{j,t}$.
+
+\subsection{Linepack (per pipeline $e=(i,j)$)}
+With $\bar p_{e,t}=\tfrac12(p_{i,t}+p_{j,t})$:
+\begin{align}
+  L_{e,t} &\le K_e\,\pmax\,y_e \ctag{C19}{FP:453}\\
+  L_{e,t} &\ge K_e\,\pmin\,y_e \ctag{C20}{FP:466}\\
+  L_{e,t} &\le K_e\,\bar p_{e,t} \ctag{C21}{FP:483}\\
+  L_{e,t} &\ge K_e\,\bar p_{e,t} - K_e\,\pmax(1-y_e) \ctag{C22}{FP:499}\\
+  L_{e,t} &= L_{e,\mathrm{prev}(t)} + \Delta t\sum_{d\in\{a,\abar\}}\bigl(\fin_{d,t}-\fout_{d,t}\bigr) \ctag{C23}{FP:513}
+\end{align}
+Built: C21--C22 give $L=K\bar p$, i.e.\ \eqref{eq:phys-lp}. Not built: C19 gives
+$L=0$. The predecessor is
+\[
+  \mathrm{prev}(t)=
+  \begin{cases}
+    t-1, & \text{otherwise},\\
+    \lvert\mathcal T\rvert, & t=1 \text{ (no typical days: cyclic over the horizon)},\\
+    t+H-1, & (t-1)\bmod H = 0 \text{ (typical days, method 1: cyclic per day)}.
+  \end{cases}
+\]
+No initial linepack is imposed.
+
+\subsection{Coupling to the rest of the model (per node $n$)}
+\begin{align}
+  \mathrm{inflow}_{n,t} &= \sum_{i\to n}\bigl(\fout_{(i,n),t}-\ell_{(i,n),t}\bigr) \ctag{C24}{FP:753}\\
+  \mathrm{outflow}_{n,t} &= \sum_{n\to j}\fin_{(n,j),t} \ctag{C25}{FP:773}\\
+  \mathrm{cons}^{\mathrm{send}}_{a,t} &= f_{a,t}\,\bigl(k^{\mathrm{flow}}+k^{\mathrm{flowDist}}L_a\bigr)
+  \quad\text{(same at the receiving end)} \ctag{C26}{FL:212}\\
+  \mathrm{opex}^{\mathrm{var}} &\propto \textstyle\sum_{a,t} f_{a,t}, \qquad
+  \mathrm{opex}^{\mathrm{fix}} \propto \mathrm{capex} \ctag{C27}{NW:812}
+\end{align}
+The node balance sees the end flows, so gas being packed is not delivered.
+Losses, compressor energy and variable opex see the mean flow. The compressor
+coefficients $k$ are computed from the fixed json pressures and do not depend
+on $p_{n,t}$ (decision D8).
+
+%---------------------------------------------------------------------------
+\section{How pressures connect in a network}
+\label{sec:coupling}
+
+Three ingredients together act like Kirchhoff's laws:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Current law} (node balance, C24--C25 in the ADOPT energy
+    balance): what enters a node equals what leaves it. The reference
+    transport model already has this law.
+  \item \textbf{Potential}: on every active arc $\delta_a=p_i-p_j$ (C16), with
+    $p_i$ one variable per node, shared by every arc of the network at $i$.
+  \item \textbf{Pipe law}: $f_a=\mathrm{PWL}(\delta_a)$ (C12--C15).
+\end{enumerate}
+Around any loop $\sum(p_i-p_j)=0$ identically, so
+$\sum_{\text{loop}}\pm\delta_a=0$ and, through the pipe law,
+$\sum_{\text{loop}}\pm\mathrm{PWL}^{-1}(f_a)=0$: the \emph{voltage law}. It is
+not written explicitly; it follows from point 2. As a consequence, the split of
+flow between parallel paths is fixed by the physics instead of being free.
+
+\textbf{Which pressure does an arc see at node $n$?}
+
+\begin{tabularx}{\linewidth}{@{}X l@{}}
+\toprule
+Arcs meeting at $n$ & Pressures at $n$ \\
+\midrule
+same pipeline type, \code{pressure\_coupled}$=1$ (default) & one, shared \\
+different pipeline types & one per type, not linked \\
+same type, \code{pressure\_coupled}$=0$ & one per pipeline end \\
+\bottomrule
+\end{tabularx}
+
+\smallskip
+{\color{warn}Caveat (D9):} \code{medium} and \code{large} share the band
+15--30\,bar but get separate pressures at the same node. A fix (R2) is
+$p^{\mathrm{medium}}_{n,t}=p^{\mathrm{large}}_{n,t}$ for every shared node.
+Between the backbone (30--70\,bar) and the distribution grid the pressures are
+independent by design, which acts as a free regulator or compressor.
+
+%---------------------------------------------------------------------------
+\section{Tightened variants (\code{examples/ladder/linepack\_formulations.py})}
+
+Applied after the model is built; same integer feasible set, tighter LP
+relaxation. $D=\pmax-\pmin$.
+
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+Variant & Removes & Adds \\
+\midrule
+\code{hull} & C21 & $L\le K\bar p - K\pmin(1-y)$ \\
+\code{signed} & C16, C18 & $\bigl\lvert(p_i-p_j)-(\delta_a-\delta_{\abar})\bigr\rvert\le D(1-y)$ \\
+\code{combined} & both of the above & both of the above \\
+\code{combined\_cuts} & as \code{combined} &
+  $K\pmin y+\tfrac K2(\delta_a+\delta_{\abar})\le L\le K\pmax y-\tfrac K2(\delta_a+\delta_{\abar})$ \\
+\code{magnitude\_cuts} & \code{combined\_cuts}, C12--C15 of both arcs &
+  one SOS2 per pipeline: $\sum_z\lambda_{e,t,z}=y$,
+  $f_a+f_{\abar}=\sum_z F_z\lambda$, $\delta_a+\delta_{\abar}=\sum_z B_z\lambda$;
+  $\xi_a+\xi_{\abar}=y$ with $\xi_{\abar}$ continuous; $\delta_d\le\dPa\xi_d$ \\
+\code{magnitude\_ratio\_cuts} & as \code{magnitude\_cuts} &
+  $r^{\min}\delta_d\le f_d\le r^{\max}\delta_d$ per direction $d$,
+  $r=F_z/B_z$ over $B_z>0$ \\
+\bottomrule
+\end{tabularx}
+
+%---------------------------------------------------------------------------
+\section{Possible extensions (not implemented)}
+
+\paragraph{R1, inequality relaxation.} The curve $F(\Delta p)$ is concave, so
+the PWL equals the minimum of its secant lines,
+$s_k=\frac{F_{k+1}-F_k}{B_{k+1}-B_k}$, $b_k=F_k-s_kB_k$. Replacing C12--C15 by
+\[
+  f_{a,t}\le s_k\,\delta_{a,t} + b_k\,\xi_{a,t}\qquad k=0,\dots,Z-2
+\]
+describes exactly the region \emph{under} the curve without $\lambda$ or SOS2.
+It gives up $f\ge F(\Delta p)$, i.e.\ it allows throttling. The direction
+binaries $\xi$ must stay: without them both arcs of a pipeline would force
+$p_i\ge p_j$ and $p_j\ge p_i$, hence no flow.
+
+\paragraph{Gas velocity limit.} With $\rho=p/(Z_cR_sT)$ and
+$\dot m=f/ed$, the velocity is $v=\dot m/(\rho A)$, $A=\pi D^2/4$. A cap
+$v\le v^{\max}$ is linear in flow and pressure:
+\[
+  \fin_{a,t}\le c\,v^{\max}\,p_{i,t},\qquad
+  \fout_{a,t}\le c\,v^{\max}\,p_{j,t},\qquad
+  c=\frac{ed\cdot A}{Z_cR_sT}\ \text{(with unit conversion)}.
+\]
+At capacity the current model allows 17--35\,m/s at the inlet and up to
+52--81\,m/s if the pipe runs at $\pmin$, so a realistic cap would bind.
+
+%---------------------------------------------------------------------------
+\section{What is not modelled}
+\begin{itemize}[leftmargin=*]
+  \item dependence of the flow on the absolute pressure level (1-D curve at $\pref$, D1);
+  \item spatial discretisation, gas inertia, temperature dynamics;
+  \item compressor work as a function of the pipeline pressure (D8);
+  \item a shared pressure across pipeline types of the same band (D9);
+  \item at most one pipeline type per corridor (R3);
+  \item an initial linepack (the balance is cyclic).
+\end{itemize}
+
+\end{document}

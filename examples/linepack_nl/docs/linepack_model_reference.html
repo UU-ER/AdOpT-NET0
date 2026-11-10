@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linepack Model Reference</title>
+<script>
+MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+  :root {
+    --blue: #1f5f8b; --lightblue: #eaf3fa; --green: #2e7d32; --lightgreen: #ebf5eb;
+    --orange: #c05621; --lightorange: #fdf1e7; --red: #b02a2a; --lightred: #fbecec;
+    --gray: #555; --lightgray: #f5f5f5; --border: #d0d7de;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; color: #222; line-height: 1.55; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px 80px; }
+  header { background: linear-gradient(120deg, #123c5a, #1f5f8b); color: #fff; padding: 32px 24px; }
+  header h1 { margin: 0 0 6px; font-size: 1.8em; }
+  header p { margin: 2px 0; opacity: 0.92; }
+  h2 { color: var(--blue); border-bottom: 2px solid var(--blue); padding-bottom: 4px; margin-top: 40px; }
+  h3 { color: #123c5a; margin-top: 28px; }
+  h4 { color: #123c5a; margin: 18px 0 6px; }
+  code, pre { font-family: Consolas, "Courier New", monospace; }
+  code { background: var(--lightgray); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+  pre { background: #0f1a24; color: #dbe9f4; padding: 14px 16px; border-radius: 8px; overflow-x: auto; font-size: 0.88em; }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.92em; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--lightblue); }
+  tr:nth-child(even) td { background: #fafcfe; }
+  .note { background: var(--lightorange); border-left: 4px solid var(--orange); padding: 10px 16px; margin: 14px 0; }
+  .warn { background: var(--lightred); border-left: 4px solid var(--red); padding: 10px 16px; margin: 14px 0; }
+  .ok { background: var(--lightgreen); border-left: 4px solid var(--green); padding: 10px 16px; margin: 14px 0; }
+  figure { margin: 22px 0; }
+  figcaption { color: var(--gray); font-size: 0.9em; margin-top: 8px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; margin-right: 6px; }
+  .b-green { background: var(--lightgreen); color: var(--green); }
+  .b-orange { background: var(--lightorange); color: var(--orange); }
+  .b-red { background: var(--lightred); color: var(--red); }
+  .b-blue { background: var(--lightblue); color: var(--blue); }
+  .dec { border: 1px solid var(--border); border-left: 4px solid var(--blue); border-radius: 6px; padding: 4px 18px 12px; margin: 18px 0; background: #fcfdfe; }
+  .dec h3 { margin-top: 14px; }
+  .lbl { font-weight: 600; color: var(--blue); }
+  .lbl-cost { font-weight: 600; color: var(--orange); }
+  nav.toc { background: var(--lightgray); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; margin: 26px 0; font-size: 0.93em; }
+  nav.toc ol { margin: 6px 0; padding-left: 20px; }
+  nav.toc a { color: var(--blue); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  .mono-small { font-size: 0.86em; color: var(--gray); }
+</style>
+<style>
+  table td:first-child { white-space: nowrap; }
+  td .math { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Linepack model reference</h1>
+  <p>Sets, parameters, variables and constraints of <code style="background:none;color:#fff">FluidynamicPipeline</code>, read off the code &middot; 10 Nov 2026</p>
+  <p>
+    <span class="badge b-blue">C1&ndash;C27 baseline</span>
+    <span class="badge b-green">line refs at 9e530a28</span>
+    <span class="badge b-orange">Robin's variants in &sect;7</span>
+  </p>
+</header>
+
+<div class="wrap">
+
+<p>Reasoning behind each choice: <code>linepack_formulation.md</code> (decisions D1&ndash;D11).
+Physics: vault note <em>12. Linepack linearization for adopt</em>. Markdown twin of this page:
+<code>linepack_model_reference.md</code>.</p>
+<ul>
+<li><code>FP</code> = <code>adopt_net0/components/networks/specificNetworks/fluidynamic_pipeline.py</code></li>
+<li><code>FSP</code> = <code>adopt_net0/components/networks/specificNetworks/fixed_size_pipeline.py</code></li>
+<li><code>NW</code> = <code>adopt_net0/components/networks/network.py</code></li>
+<li><code>FL</code> = <code>adopt_net0/components/networks/genericNetworks/fluid.py</code></li>
+</ul>
+<p>Class chain: <code>Network</code> &rarr; <code>Fluid</code> &rarr; <code>FixedSizePipeline</code> &rarr; <code>FluidynamicPipeline</code>.
+One json in <code>network_data/</code> is one pipeline type, i.e. one network object, with its own blocks, binaries and pressures.</p>
+<hr>
+<h2 id="sets">1. Sets</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(t \in \mathcal{T}\)</span></td>
+<td><code>self.set_t</code></td>
+<td>timesteps (hours, or averaged steps under time staging)</td>
+</tr>
+<tr>
+<td><span class="math inline">\(a=(i,j) \in \mathcal{A}\)</span></td>
+<td><code>b_netw.set_arcs</code>,
+<code>b_netw.arc_block[i, j]</code></td>
+<td>directed arcs. A bidirectional pipeline is <strong>two</strong> arc
+blocks, <span class="math inline">\((i,j)\)</span> and <span
+class="math inline">\((j,i)\)</span></td>
+</tr>
+<tr>
+<td><span class="math inline">\(\bar a = (j,i)\)</span></td>
+<td></td>
+<td>the reverse arc of <span class="math inline">\(a\)</span></td>
+</tr>
+<tr>
+<td><span class="math inline">\(e \in \mathcal{E}\)</span></td>
+<td><code>b_netw.set_arcs_unique</code></td>
+<td>unique arcs = physical pipelines, one per corridor</td>
+</tr>
+<tr>
+<td><span class="math inline">\(n \in \mathcal{N}^p\)</span></td>
+<td><code>b_netw.set_pressure_nodes</code> (<code>FP:325</code>)</td>
+<td>pressure keys: the node name if <code>pressure_coupled = 1</code>;
+one key per pipeline end (from, to, node joined by a pipe) if
+<code>0</code> (<code>FP:252</code>)</td>
+</tr>
+<tr>
+<td><span class="math inline">\(z \in \{0..Z-1\}\)</span></td>
+<td><code>b_arc.set_breakpoints</code> (<code>FP:648</code>)</td>
+<td>breakpoints of the PWL curve, <span class="math inline">\(Z\)</span>
+= <code>nr_breakpoints</code></td>
+</tr>
+</tbody>
+</table>
+<p>Notation below: <span class="math inline">\(p_{i}\)</span> means
+<code>_get_pressure(b_netw, t, arc, i)</code>, i.e. the pressure of node
+<span class="math inline">\(i\)</span> <em>as seen by arc</em> <span
+class="math inline">\(a\)</span>. With coupling on, all arcs of the
+network meeting at <span class="math inline">\(i\)</span> see the same
+variable; with coupling off, each pipeline has its own.</p>
+<hr />
+<h2 id="parameters">2. Parameters</h2>
+<h3 id="read-from-the-json-performance-fsp56">2.1 Read from the json
+(<code>Performance</code>, <code>FSP:56</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>json key</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(D\)</span></td>
+<td><code>diameter</code></td>
+<td>m</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\varepsilon\)</span></td>
+<td><code>roughness</code></td>
+<td>m</td>
+</tr>
+<tr>
+<td><span class="math inline">\(p^{\min}, p^{\max}\)</span></td>
+<td><code>pressure_min</code>, <code>pressure_max</code></td>
+<td>bar</td>
+</tr>
+<tr>
+<td><span class="math inline">\(p^{\mathrm{ref}}\)</span></td>
+<td><code>pressure_ref</code></td>
+<td>bar</td>
+</tr>
+<tr>
+<td><span class="math inline">\(T\)</span></td>
+<td><code>temperature</code></td>
+<td>K</td>
+</tr>
+<tr>
+<td><span class="math inline">\(Z_c\)</span></td>
+<td><code>compressibility_factor</code></td>
+<td>–</td>
+</tr>
+<tr>
+<td><span class="math inline">\(M\)</span></td>
+<td><code>molar_mass</code></td>
+<td>kg/kmol</td>
+</tr>
+<tr>
+<td><span class="math inline">\(ed\)</span></td>
+<td><code>energy_density</code></td>
+<td>MWh/t</td>
+</tr>
+<tr>
+<td><span class="math inline">\(Z\)</span></td>
+<td><code>nr_breakpoints</code></td>
+<td>–</td>
+</tr>
+<tr>
+<td></td>
+<td><code>linepack_on</code> (default 1, <code>FP:179</code>)</td>
+<td>switch</td>
+</tr>
+<tr>
+<td></td>
+<td><code>pressure_coupled</code> (default 1, <code>FP:180</code>)</td>
+<td>switch</td>
+</tr>
+</tbody>
+</table>
+<p>Plus, from the topology: <span class="math inline">\(L_{a}\)</span>,
+the arc distance in km (<code>self.distance</code>). Plus the usual
+network economics: <code>gamma1..4</code>, <code>opex_variable</code>,
+<code>opex_fixed</code>, <code>loss</code>, the compressor
+<code>energyconsumption</code> block.</p>
+<h3 id="derived-in-fit_network_performance-fsp78">2.2 Derived in
+<code>fit_network_performance</code> (<code>FSP:78</code>)</h3>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Code key</th>
+<th>Formula</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(R_s\)</span></td>
+<td><code>r_specific</code></td>
+<td><span class="math inline">\(8314 / M\)</span></td>
+<td>J/(kg K)</td>
+</tr>
+<tr>
+<td><span class="math inline">\(f_D\)</span></td>
+<td><code>friction_factor</code></td>
+<td><span
+class="math inline">\(\bigl(2\log_{10}(3.7D/\varepsilon)\bigr)^{-2}\)</span>
+(Nikuradse)</td>
+<td>–</td>
+</tr>
+<tr>
+<td><span class="math inline">\(R_a\)</span></td>
+<td><code>r_pipeline</code></td>
+<td><span
+class="math inline">\(\dfrac{ed^2\,3.6^2\,\frac{\pi^2}{16}\,D^5\,10^{10}}{f_D\cdot
+1000\cdot Z_c R_s T}\cdot\dfrac{1}{L_a}\)</span></td>
+<td>MW²/bar²</td>
+</tr>
+<tr>
+<td><span class="math inline">\(K_a\)</span></td>
+<td><code>linepack</code></td>
+<td><span class="math inline">\(ed\cdot\dfrac{\pi
+D^2}{4}\,1000\cdot\dfrac{100}{Z_c R_s T}\cdot L_a\)</span></td>
+<td>MWh/bar</td>
+</tr>
+<tr>
+<td><span class="math inline">\(B_z\)</span></td>
+<td><code>breakpoints_delta_pressure</code></td>
+<td><span
+class="math inline">\(\mathrm{linspace}(0,\;p^{\max}-p^{\mathrm{ref}},\;Z)\)</span></td>
+<td>bar</td>
+</tr>
+<tr>
+<td><span class="math inline">\(F_{a,z}\)</span></td>
+<td><code>breakpoints_flow[a]</code></td>
+<td><span
+class="math inline">\(\sqrt{R_a\,B_z\,(2p^{\mathrm{ref}}+B_z)}\)</span></td>
+<td>MW</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\bar F_a\)</span></td>
+<td><code>size_max_arcs</code> → <code>b_arc.para_size_max</code></td>
+<td><span class="math inline">\(\max_z F_{a,z}\)</span> (json
+<code>size_max</code> ignored)</td>
+<td>MW</td>
+</tr>
+</tbody>
+</table>
+<p>If <code>linepack_on = 0</code>, <span class="math inline">\(K_a :=
+0\)</span> in <code>construct_netw_model</code>
+(<code>FP:202</code>).</p>
+<h3 id="derived-in-the-constraints">2.3 Derived in the constraints</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Formula</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(\Delta P^{\mathrm{act}}\)</span></td>
+<td><span class="math inline">\(\max_z B_z =
+p^{\max}-p^{\mathrm{ref}}\)</span></td>
+<td><code>FP:588</code>, <code>FP:672</code></td>
+</tr>
+<tr>
+<td><span class="math inline">\(\Delta P^{\mathrm{unb}}\)</span></td>
+<td><span class="math inline">\((p^{\max}-p^{\min}) - \Delta
+P^{\mathrm{act}}\)</span></td>
+<td><code>FP:589</code>, <code>FP:673</code></td>
+</tr>
+<tr>
+<td><span class="math inline">\(\Delta t\)</span></td>
+<td><code>nr_timesteps_averaged</code> (time staging value, else 1)</td>
+<td><code>FP:207</code></td>
+</tr>
+<tr>
+<td><span class="math inline">\(H\)</span></td>
+<td><code>hours_per_typical_day</code>: hours per day if typical days
+with <code>method 1</code>, else 0</td>
+<td><code>FP:216</code></td>
+</tr>
+<tr>
+<td><span class="math inline">\(\rho\)</span></td>
+<td><code>rated_capacity</code> (default 1, so flow and size are both in
+MW)</td>
+<td><code>NW:232</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="variables">3. Variables</h2>
+<h3 id="per-directed-arc-a-in-arc_blocka">3.1 Per directed arc <span
+class="math inline">\(a\)</span> (in <code>arc_block[a]</code>)</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Code</th>
+<th>Domain / bounds</th>
+<th>Defined</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(y_a\)</span></td>
+<td><code>var_installed</code></td>
+<td>binary</td>
+<td><code>FSP:184</code></td>
+<td>arc built (fixed to 1 if <code>existing</code>)</td>
+</tr>
+<tr>
+<td><span class="math inline">\(s_a\)</span></td>
+<td><code>var_size</code></td>
+<td><span class="math inline">\(= y_a \bar F_a\)</span></td>
+<td><code>NW:548</code>, <code>FSP:189</code></td>
+<td>size, MW</td>
+</tr>
+<tr>
+<td><span class="math inline">\(f_{a,t}\)</span></td>
+<td><code>var_flow</code></td>
+<td><span class="math inline">\([0, \bar F_a\rho]\)</span></td>
+<td><code>NW:758</code></td>
+<td><strong>mean</strong> flow in the pipe; read by losses, opex,
+compressor energy</td>
+</tr>
+<tr>
+<td><span class="math inline">\(f^{\mathrm{in}}_{a,t}\)</span></td>
+<td><code>var_flow_in</code></td>
+<td><span class="math inline">\([0, \bar F_a\rho]\)</span></td>
+<td><code>FP:362</code></td>
+<td>flow entering at the sending node</td>
+</tr>
+<tr>
+<td><span class="math inline">\(f^{\mathrm{out}}_{a,t}\)</span></td>
+<td><code>var_flow_out</code></td>
+<td><span class="math inline">\([0, \bar F_a\rho]\)</span></td>
+<td><code>FP:367</code></td>
+<td>flow leaving at the receiving node</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\ell_{a,t}\)</span></td>
+<td><code>var_losses</code></td>
+<td><span class="math inline">\([0, \bar F_a\rho]\)</span></td>
+<td><code>NW:766</code></td>
+<td>transport losses</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\xi_{a,t}\)</span></td>
+<td><code>var_direction</code></td>
+<td>binary</td>
+<td><code>FP:372</code></td>
+<td>direction <span class="math inline">\(a\)</span> is the active one
+in hour <span class="math inline">\(t\)</span></td>
+</tr>
+<tr>
+<td><span class="math inline">\(\delta_{a,t}\)</span></td>
+<td><code>var_delta_pressure</code></td>
+<td><span class="math inline">\([0, \Delta
+P^{\mathrm{act}}]\)</span></td>
+<td><code>FP:652</code></td>
+<td>pressure drop along <span class="math inline">\(a\)</span>,
+non-negative</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\lambda_{a,t,z}\)</span></td>
+<td><code>var_lambda</code></td>
+<td><span class="math inline">\([0,1]\)</span>, SOS2 over <span
+class="math inline">\(z\)</span></td>
+<td><code>FP:657</code></td>
+<td>interpolation weights</td>
+</tr>
+<tr>
+<td></td>
+<td><code>var_consumption_send/receive</code></td>
+<td><span class="math inline">\(\ge 0\)</span></td>
+<td><code>FL:192</code></td>
+<td>compressor electricity at the two ends</td>
+</tr>
+<tr>
+<td></td>
+<td><code>var_capex</code>, <code>var_capex_aux</code></td>
+<td></td>
+<td><code>NW:657</code></td>
+<td>arc capex</td>
+</tr>
+</tbody>
+</table>
+<h3 id="per-pipeline-e-on-the-network-block">3.2 Per pipeline <span
+class="math inline">\(e\)</span> (on the network block)</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Code</th>
+<th>Domain / bounds</th>
+<th>Defined</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(L_{e,t}\)</span></td>
+<td><code>var_linepack</code></td>
+<td><span class="math inline">\([0, K_e p^{\max}]\)</span></td>
+<td><code>FP:425</code></td>
+<td>stored energy, MWh</td>
+</tr>
+</tbody>
+</table>
+<h3 id="per-pressure-key-n-on-the-network-block">3.3 Per pressure key
+<span class="math inline">\(n\)</span> (on the network block)</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Code</th>
+<th>Domain / bounds</th>
+<th>Defined</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">\(p_{n,t}\)</span></td>
+<td><code>var_pressure</code></td>
+<td><span class="math inline">\([p^{\min}, p^{\max}]\)</span></td>
+<td><code>FP:331</code></td>
+<td>pressure, bar</td>
+</tr>
+</tbody>
+</table>
+<h3 id="size-per-pipeline-and-hour">3.4 Size per pipeline and hour</h3>
+<p>Two arc blocks, each with <span class="math inline">\(f,
+f^{\mathrm{in}}, f^{\mathrm{out}}, \ell, \delta\)</span>, <span
+class="math inline">\(Z\)</span> weights <span
+class="math inline">\(\lambda\)</span>, one binary <span
+class="math inline">\(\xi\)</span> and one SOS2 set; plus one <span
+class="math inline">\(L\)</span> and two <span
+class="math inline">\(p\)</span> (shared with other pipelines when
+coupled). With <span class="math inline">\(Z=5\)</span>: 2 binaries, 2
+SOS2 sets, about 20 continuous variables per pipeline-hour.</p>
+<hr />
+<h2 id="constraints">4. Constraints</h2>
+<p>All per <span class="math inline">\(t \in \mathcal{T}\)</span> unless
+stated otherwise.</p>
+<h3 id="investment-per-arc-no-t">4.1 Investment (per arc, no <span
+class="math inline">\(t\)</span>)</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Constraint</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1</td>
+<td><span class="math inline">\(s_a = y_a\,\bar F_a\)</span></td>
+<td><code>FSP:189</code> <code>const_size_installed</code></td>
+</tr>
+<tr>
+<td>C2</td>
+<td><span class="math inline">\(y_a = 1\)</span> if the arc is
+existing</td>
+<td><code>FSP:187</code> <code>const_installed</code></td>
+</tr>
+<tr>
+<td>C3</td>
+<td><span class="math inline">\(\mathrm{capex}_a = \gamma_1 y_a +
+\gamma_2 s_a + \gamma_3 L_a y_a + \gamma_4 s_a L_a\)</span> (0 if
+existing)</td>
+<td><code>FSP:210</code> <code>const_capex_aux</code></td>
+</tr>
+<tr>
+<td>C4</td>
+<td><span class="math inline">\(y_a = y_{\bar a}\)</span></td>
+<td><code>FP:552</code> <code>const_installed_bidirectional</code></td>
+</tr>
+<tr>
+<td>C5</td>
+<td><span class="math inline">\(s_a = s_{\bar a}\)</span></td>
+<td><code>NW:858</code> <code>const_size_bidirectional</code>
+(inherited)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="flow-on-an-arc">4.2 Flow on an arc</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Constraint</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C6</td>
+<td><span class="math inline">\(f_{a,t} =
+\tfrac12\bigl(f^{\mathrm{in}}_{a,t} +
+f^{\mathrm{out}}_{a,t}\bigr)\)</span></td>
+<td><code>FP:374</code> <code>const_flow_average</code></td>
+</tr>
+<tr>
+<td>C7</td>
+<td><span class="math inline">\(f^{\mathrm{in}}_{a,t} \le
+\xi_{a,t}\,\bar F_a\rho\)</span></td>
+<td><code>FP:382</code> <code>const_flow_direction_in</code></td>
+</tr>
+<tr>
+<td>C8</td>
+<td><span class="math inline">\(f^{\mathrm{out}}_{a,t} \le
+\xi_{a,t}\,\bar F_a\rho\)</span></td>
+<td><code>FP:392</code> <code>const_flow_direction_out</code></td>
+</tr>
+<tr>
+<td>C9</td>
+<td><span class="math inline">\(f_{a,t} \le s_a\rho\)</span></td>
+<td><code>NW:785</code> <code>const_flow_size_high</code>
+(inherited)</td>
+</tr>
+<tr>
+<td>C10</td>
+<td><span class="math inline">\(f_{a,t} + f_{\bar a,t} \le
+s_a\rho\)</span></td>
+<td><code>NW:871</code> <code>const_cut_bidirectional</code>
+(inherited)</td>
+</tr>
+<tr>
+<td>C11</td>
+<td><span class="math inline">\(\ell_{a,t} =
+f_{a,t}\cdot\mathrm{loss}\cdot L_a\)</span></td>
+<td><code>NW:776</code> <code>const_flowlosses</code></td>
+</tr>
+</tbody>
+</table>
+<p>The parent's GDP disjunction
+(<code>bidirectional_network_precise</code>) is switched off in
+<code>__init__</code> (<code>FP:185</code>): C7, C8 and C17 do its
+job.</p>
+<h3 id="pipeline-equation-pwl-with-sos2-per-arc">4.3 Pipeline equation —
+PWL with SOS2 (per arc)</h3>
+<p>The target is <span class="math inline">\(f\lvert f\rvert =
+R_a(p_i^2-p_j^2)\)</span>. With the low pressure fixed at <span
+class="math inline">\(p^{\mathrm{ref}}\)</span> it becomes the 1-D curve
+<span class="math inline">\(F(B)\)</span> through the points <span
+class="math inline">\((B_z, F_{a,z})\)</span>.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Constraint</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C12</td>
+<td><span class="math inline">\(\sum_z \lambda_{a,t,z} =
+\xi_{a,t}\)</span></td>
+<td><code>FP:706</code> <code>const_lambda</code></td>
+</tr>
+<tr>
+<td>C13</td>
+<td><span class="math inline">\(\delta_{a,t} = \sum_z
+B_z\,\lambda_{a,t,z}\)</span></td>
+<td><code>FP:714</code>
+<code>const_interpolation_delta_pressure</code></td>
+</tr>
+<tr>
+<td>C14</td>
+<td><span class="math inline">\(f_{a,t} = \sum_z
+F_{a,z}\,\lambda_{a,t,z}\)</span></td>
+<td><code>FP:724</code> <code>const_interpolation_flow</code></td>
+</tr>
+<tr>
+<td>C15</td>
+<td><span
+class="math inline">\(\mathrm{SOS2}\bigl(\lambda_{a,t,0},\dots,\lambda_{a,t,Z-1}\bigr)\)</span>,
+weights <span class="math inline">\(z+1\)</span></td>
+<td><code>FP:735</code> <code>const_lambda_sos2</code></td>
+</tr>
+</tbody>
+</table>
+<p>With <span class="math inline">\(\xi_{a,t}=0\)</span>: <span
+class="math inline">\(\lambda = 0 \Rightarrow \delta = 0,\ f =
+0\)</span>, and by C6–C8 <span class="math inline">\(f^{\mathrm{in}} =
+f^{\mathrm{out}} = 0\)</span>.</p>
+<p>C14 interpolates the <strong>mean</strong> flow <span
+class="math inline">\(f\)</span>, not <span
+class="math inline">\(f^{\mathrm{in}}\)</span> or <span
+class="math inline">\(f^{\mathrm{out}}\)</span>.</p>
+<h3 id="drop-and-node-pressures-per-arc-aij">4.4 Drop and node pressures
+(per arc <span class="math inline">\(a=(i,j)\)</span>)</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Constraint</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C16a</td>
+<td><span class="math inline">\(\delta_{a,t} \le (p_{i,t}-p_{j,t}) +
+\Delta P^{\mathrm{act}}(1-\xi_{a,t}) + \Delta
+P^{\mathrm{unb}}(1-y_a)\)</span></td>
+<td><code>FP:675</code> <code>const_delta_pressure_high</code></td>
+</tr>
+<tr>
+<td>C16b</td>
+<td><span class="math inline">\(\delta_{a,t} \ge (p_{i,t}-p_{j,t}) -
+\Delta P^{\mathrm{act}}(1-\xi_{a,t}) - \Delta
+P^{\mathrm{unb}}(1-y_a)\)</span></td>
+<td><code>FP:690</code> <code>const_delta_pressure_low</code></td>
+</tr>
+</tbody>
+</table>
+<p>Active and built: <span class="math inline">\(\delta_{a,t} = p_i -
+p_j \ge 0\)</span>, so the flow goes downhill. Inactive (<span
+class="math inline">\(\delta = 0\)</span>): <span
+class="math inline">\(\lvert p_i - p_j\rvert \le \Delta
+P^{\mathrm{act}}\)</span>. Unbuilt: free over the whole band.</p>
+<h3 id="directions-and-no-flow-pressures-per-pipeline-eij">4.5
+Directions and no-flow pressures (per pipeline <span
+class="math inline">\(e=(i,j)\)</span>)</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Constraint</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C17</td>
+<td><span class="math inline">\(\xi_{a,t} + \xi_{\bar a,t} \le
+y_a\)</span></td>
+<td><code>FP:572</code> <code>const_direction_unique</code></td>
+</tr>
+<tr>
+<td>C18a</td>
+<td><span class="math inline">\(p_{i,t}-p_{j,t} \le \Delta
+P^{\mathrm{act}}\bigl(\xi_{a,t}+\xi_{\bar a,t}+1-y_a\bigr) + \Delta
+P^{\mathrm{unb}}(1-y_a)\)</span></td>
+<td><code>FP:598</code> <code>const_no_flow_pressure_high</code></td>
+</tr>
+<tr>
+<td>C18b</td>
+<td><span class="math inline">\(p_{i,t}-p_{j,t} \ge -\bigl[\Delta
+P^{\mathrm{act}}\bigl(\xi_{a,t}+\xi_{\bar a,t}+1-y_a\bigr) + \Delta
+P^{\mathrm{unb}}(1-y_a)\bigr]\)</span></td>
+<td><code>FP:611</code> <code>const_no_flow_pressure_low</code></td>
+</tr>
+</tbody>
+</table>
+<p>C17 lets a built pipe be idle (both <span class="math inline">\(\xi =
+0\)</span>); C18 then forces <span class="math inline">\(p_i =
+p_j\)</span> on it.</p>
+<h3 id="linepack-per-pipeline-eij-with-bar-p_et-tfrac12p_itp_jt">4.6
+Linepack (per pipeline <span class="math inline">\(e=(i,j)\)</span>,
+with <span class="math inline">\(\bar p_{e,t} =
+\tfrac12(p_{i,t}+p_{j,t})\)</span>)</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Constraint</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C19</td>
+<td><span class="math inline">\(L_{e,t} \le
+K_e\,p^{\max}\,y_e\)</span></td>
+<td><code>FP:453</code> <code>const_linepack_installed_high</code></td>
+</tr>
+<tr>
+<td>C20</td>
+<td><span class="math inline">\(L_{e,t} \ge
+K_e\,p^{\min}\,y_e\)</span></td>
+<td><code>FP:466</code> <code>const_linepack_installed_low</code></td>
+</tr>
+<tr>
+<td>C21</td>
+<td><span class="math inline">\(L_{e,t} \le K_e\,\bar
+p_{e,t}\)</span></td>
+<td><code>FP:483</code> <code>const_linepack_high</code></td>
+</tr>
+<tr>
+<td>C22</td>
+<td><span class="math inline">\(L_{e,t} \ge K_e\,\bar p_{e,t} -
+K_e\,p^{\max}(1-y_e)\)</span></td>
+<td><code>FP:499</code> <code>const_linepack_low</code></td>
+</tr>
+<tr>
+<td>C23</td>
+<td><span class="math inline">\(L_{e,t} = L_{e,\mathrm{prev}(t)} +
+\Delta t\sum_{d\in\{a,\bar
+a\}}\bigl(f^{\mathrm{in}}_{d,t}-f^{\mathrm{out}}_{d,t}\bigr)\)</span></td>
+<td><code>FP:513</code> <code>const_linepack_balance</code></td>
+</tr>
+</tbody>
+</table>
+<p>Built: C21 + C22 give <span class="math inline">\(L = K\bar
+p\)</span>. Unbuilt: C19 gives <span
+class="math inline">\(L=0\)</span>.</p>
+<p><span class="math inline">\(\mathrm{prev}(t)\)</span> in C23:</p>
+<ul>
+<li>no typical days: <span class="math inline">\(t-1\)</span>, and <span
+class="math inline">\(\mathrm{prev}(1) =
+\lvert\mathcal{T}\rvert\)</span> (cyclic over the horizon);</li>
+<li>typical days, <code>method 1</code>: <span
+class="math inline">\(t-1\)</span> inside the day, and the first hour of
+each day points to the last hour of the <em>same</em> day (cyclic per
+day, no carry-over between days).</li>
+</ul>
+<h3 id="coupling-to-the-rest-of-the-model-per-node-n-carrier">4.7
+Coupling to the rest of the model (per node <span
+class="math inline">\(n\)</span>, carrier)</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Constraint</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C24</td>
+<td><span class="math inline">\(\mathrm{inflow}_{n,t} = \sum_{i \to
+n}\bigl(f^{\mathrm{out}}_{(i,n),t} - \ell_{(i,n),t}\bigr)\)</span></td>
+<td><code>FP:753</code> <code>const_inflow</code></td>
+</tr>
+<tr>
+<td>C25</td>
+<td><span class="math inline">\(\mathrm{outflow}_{n,t} = \sum_{n \to j}
+f^{\mathrm{in}}_{(n,j),t}\)</span></td>
+<td><code>FP:773</code> <code>const_outflow</code></td>
+</tr>
+<tr>
+<td>C26</td>
+<td><span class="math inline">\(\mathrm{cons}^{\mathrm{send}}_{a,t} =
+f_{a,t}\,(k^{\mathrm{flow}} + k^{\mathrm{flowDist}} L_a)\)</span>, same
+at the receiving end</td>
+<td><code>FL:212</code>, <code>FL:226</code></td>
+</tr>
+<tr>
+<td>C27</td>
+<td>variable opex <span class="math inline">\(\propto \sum_t
+f_{a,t}\)</span>; fixed opex <span
+class="math inline">\(\propto\)</span> capex</td>
+<td><code>NW:812</code>, <code>NW:943</code></td>
+</tr>
+</tbody>
+</table>
+<p>The node balance sees the <strong>endpoint</strong> flows (C24, C25),
+so whatever is packed in the line is not delivered. Losses, compressor
+energy and variable opex see the <strong>mean</strong> flow <span
+class="math inline">\(f\)</span>. The compressor coefficients <span
+class="math inline">\(k\)</span> come from the fixed json pressures
+(<code>FL:103</code>); they do <strong>not</strong> depend on <span
+class="math inline">\(p_{n,t}\)</span>.</p>
+<hr />
+<h2 id="the-chain-in-one-picture">5. The chain in one picture</h2>
+<pre><code>                    y_a (binary, per arc, C1-C5)
+                     |
+      xi_a,t &lt;= y    |  (C17)
+        |            |
+        |  sum lambda = xi  (C12)
+        v
+   lambda_a,t,z --SOS2--&gt;  delta_a,t = sum B_z lambda   (C13)
+                           f_a,t     = sum F_z lambda   (C14)
+        |                     |
+        |                     | big-M on xi, y   (C16)
+        v                     v
+   f_in, f_out  &lt;-- C6 --&gt;  p_i,t - p_j,t   &lt;-- C18 (idle: p_i = p_j)
+        |                     |
+        | C23 balance         | C21/C22 (L = K * p_mean if built)
+        v                     v
+              L_e,t  (C19/C20: 0 if unbuilt)
+        |
+   C24/C25 -&gt; node energy balance (f_out in, f_in out)</code></pre>
+<hr />
+<h2 id="results-written-fp784">6. Results written
+(<code>FP:784</code>)</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>h5 path</th>
+<th>Variable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;network&gt;/&lt;from&gt;&lt;to&gt;/flow_in</code>,
+<code>flow_out</code></td>
+<td><span class="math inline">\(f^{\mathrm{in}},
+f^{\mathrm{out}}\)</span></td>
+</tr>
+<tr>
+<td><code>&lt;network&gt;/&lt;from&gt;&lt;to&gt;/delta_pressure</code></td>
+<td><span class="math inline">\(\delta\)</span></td>
+</tr>
+<tr>
+<td><code>&lt;network&gt;/&lt;from&gt;&lt;to&gt;/direction</code></td>
+<td><span class="math inline">\(\xi\)</span></td>
+</tr>
+<tr>
+<td><code>&lt;network&gt;/&lt;from&gt;&lt;to&gt;/linepack</code> (unique
+arcs only)</td>
+<td><span class="math inline">\(L\)</span></td>
+</tr>
+<tr>
+<td><code>&lt;network&gt;/&lt;node&gt;/pressure</code> (uncoupled: one
+group per pipeline-end key)</td>
+<td><span class="math inline">\(p\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Plus everything the parent classes write (<code>flow</code>,
+<code>losses</code>, <code>consumption</code>, size, capex).</p>
+<hr />
+<h2
+id="variants-applied-on-top-examplesladderlinepack_formulations.py">7.
+Variants applied on top
+(<code>examples/ladder/linepack_formulations.py</code>)</h2>
+<p>These are not in <code>FP</code>.
+<code>run_linepack_formulations.py</code> builds the model normally and
+then rewrites the pipeline blocks before solving. Same integer feasible
+set, tighter LP.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Removes</th>
+<th>Adds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>baseline</code></td>
+<td>–</td>
+<td>–</td>
+</tr>
+<tr>
+<td><code>hull</code></td>
+<td>C21</td>
+<td><span class="math inline">\(L \le K\bar p - K
+p^{\min}(1-y)\)</span></td>
+</tr>
+<tr>
+<td><code>signed</code></td>
+<td>C16a/b, C18a/b</td>
+<td><span
+class="math inline">\(\bigl\lvert(p_i-p_j)-(\delta_a-\delta_{\bar
+a})\bigr\rvert \le (p^{\max}-p^{\min})(1-y)\)</span></td>
+</tr>
+<tr>
+<td><code>combined</code></td>
+<td>hull + signed</td>
+<td>hull + signed</td>
+</tr>
+<tr>
+<td><code>combined_cuts</code></td>
+<td>as <code>combined</code></td>
+<td><span class="math inline">\(K p^{\min} y + \tfrac
+K2(\delta_a+\delta_{\bar a}) \le L \le K p^{\max} y - \tfrac
+K2(\delta_a+\delta_{\bar a})\)</span></td>
+</tr>
+<tr>
+<td><code>magnitude</code></td>
+<td><code>combined</code>, plus C12–C15 of both arcs</td>
+<td>one <span class="math inline">\(\lambda_{e,t,z}\)</span> per
+pipeline: <span class="math inline">\(\sum_z\lambda = y\)</span>; <span
+class="math inline">\(f_a+f_{\bar a} = \sum_z F_z\lambda\)</span>; <span
+class="math inline">\(\delta_a+\delta_{\bar a} = \sum_z
+B_z\lambda\)</span>; SOS2; C17 as equality <span
+class="math inline">\(\xi_a+\xi_{\bar a}=y\)</span> with <span
+class="math inline">\(\xi_{\bar a}\)</span> continuous; <span
+class="math inline">\(\delta_d \le \Delta
+P^{\mathrm{act}}\xi_d\)</span></td>
+</tr>
+<tr>
+<td><code>magnitude_cuts</code></td>
+<td>as <code>magnitude</code></td>
+<td>+ the <code>combined_cuts</code> inventory/drop rows</td>
+</tr>
+<tr>
+<td><code>magnitude_ratio_cuts</code></td>
+<td>as <code>magnitude_cuts</code></td>
+<td>per direction <span class="math inline">\(d\)</span>: <span
+class="math inline">\(r^{\min}\delta_d \le f_d \le
+r^{\max}\delta_d\)</span>, <span class="math inline">\(r =
+F_z/B_z\)</span> over <span class="math inline">\(B_z&gt;0\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Line references: <code>_complete_linepack_hull</code>
+<code>:73</code>, <code>_link_signed_pressure</code> <code>:98</code>,
+<code>_add_inventory_drop_cuts</code> <code>:155</code>,
+<code>apply_formulation</code> <code>:195</code>,
+<code>apply_magnitude_formulation</code> <code>:354</code> (ratio cuts
+<code>:483</code>).</p>
+<hr />
+<h2 id="what-the-code-does-not-have-vs-note-12">8. What the code does
+<em>not</em> have (vs note 12)</h2>
+<ul>
+<li><strong>At most one type per corridor</strong> (<span
+class="math inline">\(\sum_d y_{e,d} \le 1\)</span>): not implemented.
+Each type is its own network object with its own <span
+class="math inline">\(y\)</span> (R3, open).</li>
+<li><strong>One pressure per node across types:</strong> not
+implemented. Two types meeting at a node have independent <span
+class="math inline">\(p\)</span> (D9, fix R2).</li>
+<li><strong>2-D curve in <span class="math inline">\((\Delta p, \bar
+p)\)</span>:</strong> not implemented. The curve sits at <span
+class="math inline">\(p^{\mathrm{ref}}\)</span> (D1, idea R12).</li>
+<li><strong>Compressor work depending on <span
+class="math inline">\(p\)</span>:</strong> not implemented (D8).</li>
+<li><strong>An initial linepack:</strong> none. The balance is cyclic
+(C23).</li>
+</ul>
+
+</div>
+</body>
+</html>
