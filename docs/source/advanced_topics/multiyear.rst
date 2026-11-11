@@ -21,6 +21,10 @@ of its economic lifetime, so that the total cost of the pathway includes the inv
 Capacities that already exist at the start of the pathway are treated as sunk cost. The sections below describe the
 pathway loop, what is tracked, and how the costs of the pathway are reported.
 
+A complete example, from the creation of the case study folders of each interval to the post-processing of the
+pathway, is given in the case study
+:doc:`Multiyear decarbonisation of a chemical cluster <../case_studies/CaseStudy_Multiyear>`.
+
 .. testcode::
 
     adopthub = {}
