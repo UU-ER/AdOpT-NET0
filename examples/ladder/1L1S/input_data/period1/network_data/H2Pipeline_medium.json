@@ -42,7 +42,9 @@
     "diameter": 0.22,
     "pressure_min": 15,
     "pressure_max": 30,
-    "pressure_ref": 22.5
+    "pressure_ref": 22.5,
+    "linepack_on": 1,
+    "pressure_coupled": 1
   },
   "Units": {
     "size": "MW",
