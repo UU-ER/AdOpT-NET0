@@ -1,0 +1,23 @@
+# Batch 7: roadmap P0, items 1 and 2 (vault: 2026-11-16 Ideas to go further, sections 8.1.1 and 1.1).
+# 3L3S, full design, cold, 4 threads, 1 % gap. 12 jobs, 48 threads.
+#
+# Race (8 jobs): the open 336 h design run with eight new seeds. Seeds 0-1 never closed in
+# 24 h (best 1.5108e7, bound <= 1.4610e7, gaps 3.9-7.1 %). The first seed to reach 1 %
+# kills the others. Ratio cuts: same 24 h gaps as magnitude, first design found earlier.
+des336@s2 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 2
+des336@s3 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 3
+des336@s4 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 4
+des336@s5 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 5
+des336@s6 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 6
+des336@s7 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 7
+des336@s8 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 8
+des336@s9 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 9
+#
+# Pack off on thin pipes (4 jobs): linepack kept on the backbone only; small/medium/large keep
+# pressure, directions and PWL but store nothing. Baselines: 168 h magnitude 112 s / 1.2624e7;
+# 336 h as above. Closes at 336 h inside [1.461e7, 1.511e7] -> thin-pipe pack worth nothing;
+# above 1.5108e7 -> it has value; still open -> backbone directions are the problem (section 1.2).
+thin168_magn_s0 --formulation magnitude_cuts       --hours 168 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 4  --seed 0 --linepack-types H2Pipeline_backbone
+thin336_magn_s0 --formulation magnitude_cuts       --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 0 --linepack-types H2Pipeline_backbone
+thin336_magn_s1 --formulation magnitude_cuts       --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 1 --linepack-types H2Pipeline_backbone
+thin336_ratio_s0 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 0 --linepack-types H2Pipeline_backbone

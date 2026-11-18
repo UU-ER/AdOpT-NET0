@@ -13,6 +13,12 @@
 #   nohup bash launch.sh batches/batch1_seeds.txt > /dev/null 2>&1 &
 #   tail -f logs/batch1_seeds/status.tsv
 #
+# Races: jobs named "<group>@<anything>" (e.g. des336@s3) race each other. The first of
+# a group whose solver log says "Optimal solution found" wins, the others of the group
+# are killed (exit 143 in status.tsv) and those not started yet are skipped (exit -).
+# Same job with different --seed values gives about the fastest seed instead of the
+# median one (seed spread x2 to x14 measured in batches 5-6).
+#
 # PYTHON picks the interpreter (default: python3).
 
 set -u
@@ -26,7 +32,7 @@ batch=$(basename "$batch_file" .txt)
 log_dir="$ladder_dir/logs/$batch"
 batch_file=$(cd "$(dirname "$batch_file")" && pwd)/$(basename "$batch_file")
 
-mkdir -p "$log_dir"
+mkdir -p "$log_dir/race"
 cp "$batch_file" "$log_dir/jobs.txt"
 printf "name\texit\tseconds\tresult\n" > "$log_dir/status.tsv"
 
@@ -48,11 +54,43 @@ run_job() {
     fi
     local log="$log_dir/$name.txt"
     local start=$SECONDS
+    local group=""
+    [ "${name#*@}" != "$name" ] && group=${name%%@*}
+    if [ -n "$group" ] && [ -d "$log_dir/race/$group.won" ]; then
+        printf "%s\t-\t0\tskipped, %s already won\n" "$name" "$group" \
+            >> "$log_dir/status.tsv"
+        return 0
+    fi
     cd "$ladder_dir" || return 1
     echo "$PYTHON run_linepack_formulations.py $* --copy-case --no-viewer" > "$log"
+    # setsid puts the job in a process group of its own, so that a race can kill it
+    # together with anything the solver started (without setsid only the job is killed)
+    local detach=""
+    command -v setsid > /dev/null && detach=setsid
     # shellcheck disable=SC2086
-    $PYTHON run_linepack_formulations.py "$@" --copy-case --no-viewer >> "$log" 2>&1
+    $detach $PYTHON run_linepack_formulations.py "$@" --copy-case --no-viewer \
+        >> "$log" 2>&1 &
+    local pid=$!
+    [ -n "$group" ] && echo "$pid" > "$log_dir/race/$name.pid"
+    wait "$pid"
     local code=$?
+    if [ -n "$group" ]; then
+        rm -f "$log_dir/race/$name.pid"
+        # mkdir is atomic: only one job of the group can claim the win
+        if [ "$code" -eq 0 ] && grep -q "Optimal solution found" "$log" \
+            && mkdir "$log_dir/race/$group.won" 2>/dev/null; then
+            echo "$name" > "$log_dir/race/$group.won/winner"
+            local other
+            for other in "$log_dir/race/$group"@*.pid; do
+                [ -e "$other" ] || continue
+                kill -TERM -- "-$(cat "$other")" 2>/dev/null \
+                    || kill -TERM "$(cat "$other")" 2>/dev/null
+            done
+        elif [ -d "$log_dir/race/$group.won" ]; then
+            # a killed job leaves its copy of the case behind (named after its pid)
+            rm -rf "$ladder_dir"/*/userData/case_"$pid"
+        fi
+    fi
     local result
     result=$(grep -o "userData[/\\][0-9]*-[0-9]*" "$log" | tail -1)
     printf "%s\t%s\t%s\t%s\n" "$name" "$code" "$((SECONDS - start))" "${result:--}" \

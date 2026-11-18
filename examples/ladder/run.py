@@ -186,7 +186,7 @@ def set_precise_directions(input_path: Path, precise: bool):
         netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
 
 
-def set_linepack(input_path: Path, linepack: bool):
+def set_linepack(input_path: Path, linepack: bool, types: list = None):
     """
     Switches the fluid stored in the pipeline on or off, keeping everything else.
 
@@ -199,11 +199,16 @@ def set_linepack(input_path: Path, linepack: bool):
 
     :param Path input_path: input data folder
     :param bool linepack: whether the pipeline stores anything
+    :param list types: pipeline types that keep their linepack when ``linepack`` is
+        on, every type when left out. The others are switched off, which drops the
+        sub-hourly pack of the thin pipes and keeps the cyclic balance on these only
     """
     for name in [BACKBONE] + CANDIDATE_TYPES:
         netw_file = input_path / PERIOD / "network_data" / f"{name}.json"
         netw_data = json.loads(netw_file.read_text())
-        netw_data["Performance"]["linepack_on"] = int(linepack)
+        netw_data["Performance"]["linepack_on"] = int(
+            linepack and (types is None or name in types)
+        )
         netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
 
 
@@ -560,6 +565,7 @@ def run(
     solver_options: dict = None,
     precise: bool = False,
     linepack: bool = True,
+    linepack_types: list = None,
     pressure_coupled: bool = True,
     import_cap: float = None,
     import_price: float = None,
@@ -586,6 +592,8 @@ def run(
     :param bool linepack: whether the pipeline stores anything, see
         :func:`set_linepack`. The reference stores nothing either way, so the flag only
         touches the linepack run
+    :param list linepack_types: pipeline types that keep their linepack, every type
+        when left out, see :func:`set_linepack`
     :param bool pressure_coupled: whether the arcs meeting at a node share one
         pressure, see :func:`set_pressure_coupling`. The reference has no pressure, so
         the flag only touches the linepack run
@@ -602,12 +610,17 @@ def run(
     """
     set_network_type(input_path, network_type)
     set_precise_directions(input_path, precise and network_type == REFERENCE)
-    set_linepack(input_path, linepack)
+    set_linepack(input_path, linepack, linepack_types)
     set_pressure_coupling(input_path, pressure_coupled)
     if not linepack and network_type == LINEPACK:
         print(
             "linepack switched off: the pipeline equation is solved at steady state, "
             "so this run says where the time goes and not what the linepack is worth"
+        )
+    elif linepack_types is not None and network_type == LINEPACK:
+        print(
+            f"linepack kept on {', '.join(linepack_types) or 'no type'} only: the "
+            "other types carry no storage, so the result approximates the full model"
         )
     if not pressure_coupled and network_type == LINEPACK:
         print(
@@ -934,6 +947,16 @@ def parse_args(argv=None):
         "separates what the storage costs from what the pressure-flow coupling costs",
     )
     parser.add_argument(
+        "--linepack-types",
+        nargs="+",
+        choices=[BACKBONE] + CANDIDATE_TYPES,
+        default=None,
+        metavar="TYPE",
+        help="pipeline types that keep their linepack, the others store nothing "
+        "(default: every type). 'H2Pipeline_backbone' alone drops the pack of the "
+        "thin pipes, whose pack holds less than an hour of their own flow",
+    )
+    parser.add_argument(
         "--no-pressure-coupling",
         dest="pressure_coupled",
         action="store_false",
@@ -1165,6 +1188,7 @@ def main(argv=None):
                 solver_options=solver_options,
                 precise=args.precise,
                 linepack=args.linepack,
+                linepack_types=args.linepack_types,
                 pressure_coupled=args.pressure_coupled,
                 import_cap=args.import_cap,
                 import_price=args.import_price,
