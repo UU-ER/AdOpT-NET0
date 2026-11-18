@@ -14,8 +14,9 @@
 #   tail -f logs/batch1_seeds/status.tsv
 #
 # Races: jobs named "<group>@<anything>" (e.g. des336@s3) race each other. The first of
-# a group whose solver log says "Optimal solution found" wins, the others of the group
-# are killed (exit 143 in status.tsv) and those not started yet are skipped (exit -).
+# a group whose last solve ends with "Optimal solution found" wins, the others of the
+# group are killed (exit 143 in status.tsv; their userData/<timestamp> folder, holding
+# only a solver log, stays) and those not started yet are skipped (exit -).
 # Same job with different --seed values gives about the fastest seed instead of the
 # median one (seed spread x2 to x14 measured in batches 5-6).
 #
@@ -74,10 +75,17 @@ run_job() {
     [ -n "$group" ] && echo "$pid" > "$log_dir/race/$name.pid"
     wait "$pid"
     local code=$?
+    local result
+    result=$(grep -o "userData[/\\][0-9]*-[0-9]*" "$log" | tail -1)
     if [ -n "$group" ]; then
         rm -f "$log_dir/race/$name.pid"
+        # only the last solve counts: with --case both the reference solves first and
+        # its "Optimal solution found" says nothing about the linepack run
+        local status
+        status=$(grep -E "^(Optimal solution found|Time limit reached|Solve interrupted|Model is infeasible|Infeasible model)" \
+            "$log" | tail -1)
         # mkdir is atomic: only one job of the group can claim the win
-        if [ "$code" -eq 0 ] && grep -q "Optimal solution found" "$log" \
+        if [ "$code" -eq 0 ] && [ "${status#Optimal solution found}" != "$status" ] \
             && mkdir "$log_dir/race/$group.won" 2>/dev/null; then
             echo "$name" > "$log_dir/race/$group.won/winner"
             local other
@@ -91,8 +99,6 @@ run_job() {
             rm -rf "$ladder_dir"/*/userData/case_"$pid"
         fi
     fi
-    local result
-    result=$(grep -o "userData[/\\][0-9]*-[0-9]*" "$log" | tail -1)
     printf "%s\t%s\t%s\t%s\n" "$name" "$code" "$((SECONDS - start))" "${result:--}" \
         >> "$log_dir/status.tsv"
 }
