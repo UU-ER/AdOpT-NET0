@@ -76,7 +76,7 @@ run_job() {
     wait "$pid"
     local code=$?
     local result
-    result=$(grep -o "userData[/\\][0-9]*-[0-9]*" "$log" | tail -1)
+    result=$(grep -o "userData[/\\][0-9]*-[0-9]*\(_[0-9]*\)*" "$log" | tail -1)
     if [ -n "$group" ]; then
         rm -f "$log_dir/race/$name.pid"
         # only the last solve counts: with --case both the reference solves first and

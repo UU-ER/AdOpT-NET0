@@ -1,0 +1,14 @@
+# Batch 8: what the thin-pipe result of batch 7 is worth. 3 jobs, 12 threads, runs next to batch 7.
+# thin336_ratio_s0 closed in 11.7 h at 1.4913e7 (gap 0.94 %), below the best full-model design
+# ever found (1.5108e7). Its design is in 3L3S/userData/20261118162945-1_1_2.
+#
+# Validation (race of 2): that design fixed, linepack on every pipe, operation only. Cost minus
+# 1.4913e7 = error of dropping the thin-pipe pack. At most 1.5108e7 -> the thin route gives a
+# better full-physics design than the full model finds itself; with the full-model bound
+# (1.4587e7, batch 7 race) that is a certified gap for the 336 h design.
+val336@magn_s0  --formulation magnitude_cuts       --hours 336 --case linepack --design none --from 3L3S/userData/20261118162945-1_1_2 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6 --seed 0
+val336@ratio_s0 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design none --from 3L3S/userData/20261118162945-1_1_2 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 6 --seed 0
+#
+# Value of the backbone pack: same design problem as thin336, every pack off. Its cost minus
+# 1.4913e7 = what the backbone linepack saves at 336 h (thin pipes store nothing in both).
+nopack336_ratio_s0 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 0 --no-linepack

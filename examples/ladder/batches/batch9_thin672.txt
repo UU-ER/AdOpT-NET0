@@ -1,0 +1,11 @@
+# Batch 9: the thin-pipe model at 672 h, the gate of roadmap P1 (gap <= 2 % at 672 h -> speed
+# work stops). 4 jobs, 16 threads. Launch only after the batch 7 race has ended (its 24 h cap),
+# or the machine is oversubscribed.
+# 336 h closed in 11.7 h (ratio) and was at 1.01 % after 16.5 h (magnitude, seed 1), so 48 h cap.
+# The full model at 672 h never closed in 24 h (batch 3).
+thin672_ratio_s0 --formulation magnitude_ratio_cuts --hours 672 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 48 --seed 0 --linepack-types H2Pipeline_backbone
+thin672_ratio_s1 --formulation magnitude_ratio_cuts --hours 672 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 48 --seed 1 --linepack-types H2Pipeline_backbone
+thin672_magn_s0  --formulation magnitude_cuts       --hours 672 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 48 --seed 0 --linepack-types H2Pipeline_backbone
+#
+# Value of the backbone pack at 672 h (compare with nopack336 of batch 8: stable per week?).
+nopack672_ratio_s0 --formulation magnitude_ratio_cuts --hours 672 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 0 --no-linepack
