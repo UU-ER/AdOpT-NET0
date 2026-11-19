@@ -1,0 +1,18 @@
+# Batch 10: when is the linepack worth something? Pack value with and without new tanks at the
+# large clusters, at 168 h and 336 h. 6 jobs, run 4 at a time (16 threads, next to batch 9).
+# The 168 h jobs take minutes and go first, so their results are in before the 336 h ones.
+# Reference numbers (note 2026-11-19 section 7): thin168 1.2618e7 (3L3S/userData/20261118162931-1),
+# thin336 1.4913e7, nopack336 1.8134e7 -> backbone pack worth +21.6 % at 336 h.
+#
+# 168 h companions without large tanks: validation of the thin168 design (pack on every pipe,
+# operation only; add back its cost_capex_netws 106 102) and the pack value at 168 h.
+val168_ratio_s0 --formulation magnitude_ratio_cuts --hours 168 --case linepack --design none --from 3L3S/userData/20261118162931-1 --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 2 --seed 0
+nopack168_ratio_s0 --formulation magnitude_ratio_cuts --hours 168 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 4 --seed 0 --no-linepack
+#
+# New tanks offered at Rotterdam, Zeeland and Chemelot (up to 3x the existing tank, priced like
+# the small-cluster tanks). Thin model vs no pack: pack value when storage can go where it is
+# needed. If it drops far below +21.6 %, the pack mostly replaced misplaced storage (Dordrecht).
+thin168t_magn_s0 --formulation magnitude_cuts --hours 168 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 4 --seed 0 --linepack-types H2Pipeline_backbone --large-storage 3
+nopack168t_ratio_s0 --formulation magnitude_ratio_cuts --hours 168 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 4 --seed 0 --no-linepack --large-storage 3
+thin336t_ratio_s0 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 0 --linepack-types H2Pipeline_backbone --large-storage 3
+nopack336t_ratio_s0 --formulation magnitude_ratio_cuts --hours 336 --case linepack --design all --rung 3L3S --threads 4 --mipgap 0.01 --no-warmstart --timelim 24 --seed 0 --no-linepack --large-storage 3
