@@ -106,6 +106,12 @@ CASES = {
     "both": [REFERENCE, LINEPACK],
 }
 
+#: Storage technology of the study, and the name under which ``--large-storage`` offers
+#: new tanks at the large clusters. The existing tank and a new one would otherwise
+#: read the same file, whose investment cost ``build_case`` zeroes.
+STORAGE = "Storage_H2"
+LARGE_STORAGE = "Storage_H2_new"
+
 #: How many of the most recent runs the refreshed page carries.
 VIEWER_RUNS = 12
 
@@ -210,6 +216,48 @@ def set_linepack(input_path: Path, linepack: bool, types: list = None):
             linepack and (types is None or name in types)
         )
         netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
+
+
+def offer_large_storage(
+    input_path: Path, large: list, small: list, factor: float
+) -> dict:
+    """
+    Lets the large clusters build hydrogen tanks next to the existing ones.
+
+    The existing tank keeps its zero investment cost. The new one is a copy of its data
+    under :data:`LARGE_STORAGE`, with the economics of the tank of a small cluster, so
+    that a tank costs the same wherever it is built.
+
+    :param Path input_path: input data folder
+    :param list large: large clusters of the rung
+    :param list small: small clusters of the rung, the first one gives the economics
+    :param float factor: upper bound of the new tank, as a multiple of the existing one
+    :return: large cluster -> upper bound of its new tank, in MWh
+    """
+    node_data = input_path / PERIOD / "node_data"
+    priced = json.loads(
+        (node_data / small[0] / "technology_data" / f"{STORAGE}.json").read_text()
+    )
+    offered = {}
+    for node in large:
+        tecs_file = node_data / node / "Technologies.json"
+        tecs = json.loads(tecs_file.read_text())
+        existing = float(tecs["existing"].get(STORAGE, 0))
+        if existing <= 0:
+            continue
+        data = json.loads(
+            (node_data / node / "technology_data" / f"{STORAGE}.json").read_text()
+        )
+        data["Economics"] = priced["Economics"]
+        data["size_min"] = 0
+        data["size_max"] = existing * factor
+        (node_data / node / "technology_data" / f"{LARGE_STORAGE}.json").write_text(
+            json.dumps(data, indent=2), encoding="utf-8"
+        )
+        tecs["new"] = list(tecs["new"]) + [LARGE_STORAGE]
+        tecs_file.write_text(json.dumps(tecs, indent=2), encoding="utf-8")
+        offered[node] = existing * factor
+    return offered
 
 
 def set_pressure_coupling(input_path: Path, coupled: bool):
@@ -1046,6 +1094,16 @@ def parse_args(argv=None):
         default=None,
         help="same as --headroom, for storage, overriding build.py's STORAGE_HEADROOM",
     )
+    group.add_argument(
+        "--large-storage",
+        dest="large_storage",
+        type=float,
+        default=None,
+        metavar="FACTOR",
+        help="offer new hydrogen tanks at the large clusters next to the existing ones, "
+        "priced like the tanks of the small clusters, up to FACTOR times the existing "
+        "tank. Needs --copy-case and a --design that decides the technologies",
+    )
 
     group = parser.add_argument_group(
         "solver options", "an option left out keeps the value of ConfigModel.json"
@@ -1173,6 +1231,17 @@ def main(argv=None):
             if args.storage_headroom is not None:
                 bits.append(f"{args.storage_headroom}x storage")
             print(f"\nheadroom overridden: {', '.join(bits)}")
+
+        if args.large_storage is not None:
+            if not args.copy_case or not decide["tecs"]:
+                raise SystemExit(
+                    "--large-storage needs --copy-case and a --design that decides the "
+                    "technologies"
+                )
+            offered = offer_large_storage(
+                input_path, manifest["large"], small, args.large_storage
+            )
+            print(f"\nnew tanks offered at the large clusters (MWh): {offered}")
 
         start = None
         for network_type in sequence:
