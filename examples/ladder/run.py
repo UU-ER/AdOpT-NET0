@@ -171,6 +171,24 @@ def set_network_type(input_path: Path, network_type: str):
         netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
 
 
+def set_hybrid(input_path: Path):
+    """
+    Turns the candidate pipeline types into the reference, keeping the backbone.
+
+    The backbone keeps the pipeline equation, its directions and its linepack, while
+    the small, medium and large types carry flow up to their capacity with no pressure,
+    no SOS2 and no direction binaries. Whether a corridor exists or is a candidate is
+    still up to the layout, so a backbone offered as a candidate stays fluidynamic.
+
+    :param Path input_path: input data folder
+    """
+    for name in CANDIDATE_TYPES:
+        netw_file = input_path / PERIOD / "network_data" / f"{name}.json"
+        netw_data = json.loads(netw_file.read_text())
+        netw_data["network_type"] = REFERENCE
+        netw_file.write_text(json.dumps(netw_data, indent=2), encoding="utf-8")
+
+
 def set_precise_directions(input_path: Path, precise: bool):
     """
     Makes the reference forbid a corridor carrying both ways at the same timestep.
@@ -614,6 +632,7 @@ def run(
     precise: bool = False,
     linepack: bool = True,
     linepack_types: list = None,
+    hybrid: bool = False,
     pressure_coupled: bool = True,
     import_cap: float = None,
     import_price: float = None,
@@ -642,6 +661,9 @@ def run(
         touches the linepack run
     :param list linepack_types: pipeline types that keep their linepack, every type
         when left out, see :func:`set_linepack`
+    :param bool hybrid: whether only the backbone keeps the pipeline equation and the
+        candidate types are solved as the reference, see :func:`set_hybrid`. Only
+        touches the linepack run
     :param bool pressure_coupled: whether the arcs meeting at a node share one
         pressure, see :func:`set_pressure_coupling`. The reference has no pressure, so
         the flag only touches the linepack run
@@ -657,6 +679,12 @@ def run(
     :return: objective, design of the small clusters, arcs built, and a start
     """
     set_network_type(input_path, network_type)
+    if hybrid and network_type == LINEPACK:
+        set_hybrid(input_path)
+        print(
+            "hybrid: only the backbone keeps the pipeline equation, the candidate "
+            "types carry flow up to their capacity with no pressure"
+        )
     set_precise_directions(input_path, precise and network_type == REFERENCE)
     set_linepack(input_path, linepack, linepack_types)
     set_pressure_coupling(input_path, pressure_coupled)
@@ -1005,6 +1033,14 @@ def parse_args(argv=None):
         "thin pipes, whose pack holds less than an hour of their own flow",
     )
     parser.add_argument(
+        "--hybrid",
+        action="store_true",
+        help="in the linepack run, keep the pipeline equation on the backbone only and "
+        "solve the small, medium and large types as the reference: flow up to the "
+        "capacity, no pressure, no direction binaries. Existing or candidate is still "
+        "up to the layout",
+    )
+    parser.add_argument(
         "--no-pressure-coupling",
         dest="pressure_coupled",
         action="store_false",
@@ -1258,6 +1294,7 @@ def main(argv=None):
                 precise=args.precise,
                 linepack=args.linepack,
                 linepack_types=args.linepack_types,
+                hybrid=args.hybrid,
                 pressure_coupled=args.pressure_coupled,
                 import_cap=args.import_cap,
                 import_price=args.import_price,

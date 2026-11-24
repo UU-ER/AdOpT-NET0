@@ -35,6 +35,10 @@ examples/ladder/
   build.py     builds a rung out of the study
   run.py       solves a rung, monolithically
   run_decomposed.py   solves a rung by the bilevel decomposition
+  run_linepack_formulations.py   run.py with another pipeline formulation
+  linepack_formulations.py       the formulations it can choose
+  launch.sh    runs a batch file of jobs in parallel
+  batches/     every batch solved so far
   layout.py    which corridors exist and which ones can be built
   design.py    which technologies are dimensioned and which ones are given
   viewer.py    rebuilds results.html out of a rung's userData
@@ -126,6 +130,85 @@ python run.py --rung 2L2S --dump-layout mine.json   # start from what the rung c
 A type that appears under `existing` is built and paid for already; a type under
 `candidates` carries the install binary. A corridor may carry both, which is one pipeline
 already there and a second one that may be laid next to it.
+
+**The start of the linepack run** — `--warmstart` (default), `--no-warmstart`,
+`--warmstart-directions`. With `--case both`, the linepack run starts from the reference
+solution of the same call. By default only the design binaries are handed over. The
+hourly directions of the reference come from flows that ignore the pressure, and fixed in
+the start gurobi completed them to a solution a hundred times the reference cost;
+`--warmstart-directions` hands them over anyway. `--no-warmstart` solves every run from
+scratch, which is what a comparison of formulations or seeds needs.
+
+**Other options of a run:**
+
+| option                     | what it does                                                                 |
+|----------------------------|------------------------------------------------------------------------------|
+| `--seed N`                 | random seed of gurobi; changes the search path, not the model. Solve times of one job spread by a factor 2 to 14 over seeds, so compare runs over several seeds |
+| `--import-price X`         | price of imported hydrogen at every node, in EUR/MWh (210 as built)          |
+| `--fix-directions FOLDER`  | fixes every corridor of the linepack run to the direction of its net flow in that result folder, for the whole horizon. Corridors that carried nothing are left free, since a fixed direction forces the pipe in |
+| `--linepack-types TYPE...` | pipeline types that keep their linepack; the others store nothing. `H2Pipeline_backbone` alone drops the pack of the thin pipes, which holds less than an hour of their own flow |
+| `--hybrid`                 | in the linepack run, only the backbone keeps the pipeline equation, its directions and its linepack; the small, medium and large types are solved as the reference (flow up to the capacity, no pressure, no direction binaries). Much lighter than the full model. Whether the backbone exists or is a candidate is still up to `--layout`, e.g. `layouts/3L3S_backbone_candidate.json` |
+| `--large-storage FACTOR`   | offers new hydrogen tanks at the large clusters next to the existing ones, priced like the tanks of the small clusters, up to FACTOR times the existing tank. Needs `--copy-case` and a `--design` that decides the technologies |
+
+```bash
+python run.py --rung 3L3S --hours 336 --case linepack --no-warmstart --seed 1
+python run.py --rung 3L3S --hours 336 --case linepack --linepack-types H2Pipeline_backbone
+python run.py --rung 3L3S --hours 168 --case linepack --fix-directions 3L3S/userData/<result folder>
+python run.py --rung 3L3S --hours 336 --copy-case --large-storage 2
+python run.py --rung 3L3S --hours 336 --case linepack --no-warmstart --hybrid --layout layouts/3L3S_backbone_candidate.json
+```
+
+## Solving with another pipeline formulation
+
+`run_linepack_formulations.py` runs `run.py` with one extra option, `--formulation`, and
+passes every other option on unchanged. The formulations live in
+`linepack_formulations.py`; `run.py` and `adopt_net0` are not edited, the wrapper swaps
+the constraints of the fluid-dynamic pipeline after the model is built.
+
+| `--formulation`        | what it is                                                                    |
+|------------------------|-------------------------------------------------------------------------------|
+| `baseline`             | the model as it is, i.e. plain `run.py` (default)                            |
+| `combined_cuts`        | the original formulation with the convex hull of `linepack = installed * k * p_average`, the two directional pressure drops linked to the physical pressure difference once per pipe, and two valid inventory/drop rows per pipe-hour |
+| `magnitude_cuts`       | one SOS2 curve per pipe for the flow and drop magnitudes (`q_forward + q_reverse`, `delta_forward + delta_reverse`), the direction binaries summing to the install binary, plus the inventory hull, the signed pressure link and the inventory cuts |
+| `magnitude_ratio_cuts` | `magnitude_cuts` plus, for each direction, `r_min*delta <= q <= r_max*delta`, with `r_min`, `r_max` the smallest and largest flow/pressure-drop ratio over the breakpoints with a nonzero drop |
+
+The modified formulations accept only a cost-minimising, unscaled, hourly, chronological
+configuration (no typical days, no time staging), which is what the rungs carry; anything
+else is refused and needs `baseline`. Unlike `run.py`, the wrapper puts the repository
+root on the path itself, so it runs from `examples/ladder` with nothing installed.
+
+```bash
+python run_linepack_formulations.py --formulation magnitude_ratio_cuts --rung 3L3S --hours 48 --case linepack --design all --no-warmstart --threads 4 --mipgap 0.01 --timelim 4 --seed 0
+```
+
+The operation runs, where the cuts made the difference, need a reference design first:
+
+```bash
+python run_linepack_formulations.py --formulation baseline --rung 3L3S --hours 672 --case reference --design all --threads 4 --mipgap 0.01 --timelim 24
+python run_linepack_formulations.py --formulation magnitude_ratio_cuts --rung 3L3S --hours 672 --case linepack --design none --from 3L3S/userData/<reference result folder> --no-warmstart --threads 4 --mipgap 0.01 --timelim 8 --seed 1
+```
+
+Always pass `--no-warmstart` when comparing formulations, so that no run starts from the
+reference, and repeat over seeds.
+
+## Running batches
+
+`launch.sh` runs a batch file of jobs in parallel, each on its own copy of the case
+(`--copy-case` and `--no-viewer` are added to every job). A batch file holds one job per
+line, `<name> <options of run_linepack_formulations.py>`; blank lines and lines starting
+with `#` are skipped. `batches/` holds every batch solved so far and is the record of
+which options each result came from.
+
+```bash
+bash launch.sh batches/batch5_ratio_cuts.txt 12      # 12 jobs at a time
+nohup bash launch.sh batches/batch5_ratio_cuts.txt > /dev/null 2>&1 &
+tail -f logs/batch5_ratio_cuts/status.tsv
+```
+
+The log of each job goes to `logs/<batch>/<name>.txt`, and `status.tsv` gets one line per
+finished job: name, exit code, seconds, result folder. Jobs named `<group>@<anything>`
+race each other: the first of a group to close wins, the others are killed. `PYTHON` picks
+the interpreter (default `python3`).
 
 ## Solving decomposed
 
